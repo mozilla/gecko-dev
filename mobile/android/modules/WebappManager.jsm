@@ -11,6 +11,7 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 const UPDATE_URL_PREF = "browser.webapps.updateCheckUrl";
 
 Cu.import("resource://gre/modules/AppsUtils.jsm");
+Cu.import("resource://gre/modules/Downloads.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
@@ -24,6 +25,11 @@ Cu.import("resource://gre/modules/Task.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Notifications", "resource://gre/modules/Notifications.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Messaging", "resource://gre/modules/Messaging.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PluralForm", "resource://gre/modules/PluralForm.jsm");
+
+// Import AppsServiceChild.DOMApplicationRegistry for its getAll method.
+var AppsServiceChild = {};
+XPCOMUtils.defineLazyModuleGetter(AppsServiceChild, "DOMApplicationRegistry",
+                                  "resource://gre/modules/AppsServiceChild.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "Strings", function() {
   return Services.strings.createBundle("chrome://browser/locale/webapp.properties");
@@ -57,8 +63,8 @@ function getFormattedPluralForm(stringName, formatterArgs, pluralNum) {
   return unescapedString;
 }
 
-let Log = Cu.import("resource://gre/modules/AndroidLog.jsm", {}).AndroidLog;
-let debug = Log.d.bind(null, "WebappManager");
+var Log = Cu.import("resource://gre/modules/AndroidLog.jsm", {}).AndroidLog;
+var debug = Log.d.bind(null, "WebappManager");
 
 this.WebappManager = {
   __proto__: DOMRequestIpcHelper.prototype,
@@ -137,30 +143,29 @@ this.WebappManager = {
       [p + "=" + encodeURIComponent(params[p]) for (p in params)].join("&");
     debug("downloading APK from " + generatorUrl.spec);
 
-    let file = Cc["@mozilla.org/download-manager;1"].
-               getService(Ci.nsIDownloadManager).
-               defaultDownloadsDirectory.
-               clone();
-    file.append(aManifestUrl.replace(/[^a-zA-Z0-9]/gi, "") + ".apk");
-    file.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
-    debug("downloading APK to " + file.path);
+    Downloads.getSystemDownloadsDirectory().then(function(downloadsDir) {
+      let file = new FileUtils.File(downloadsDir);
+      file.append(aManifestUrl.replace(/[^a-zA-Z0-9]/gi, "") + ".apk");
+      file.createUnique(Ci.nsIFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
+      debug("downloading APK to " + file.path);
 
-    let worker = new ChromeWorker("resource://gre/modules/WebappManagerWorker.js");
-    worker.onmessage = function(event) {
-      let { type, message } = event.data;
+      let worker = new ChromeWorker("resource://gre/modules/WebappManagerWorker.js");
+      worker.onmessage = function(event) {
+        let { type, message } = event.data;
 
-      worker.terminate();
+        worker.terminate();
 
-      if (type == "success") {
-        deferred.resolve(file.path);
-      } else { // type == "failure"
-        debug("error downloading APK: " + message);
-        deferred.reject(message);
+        if (type == "success") {
+          deferred.resolve(file.path);
+        } else { // type == "failure"
+          debug("error downloading APK: " + message);
+          deferred.reject(message);
+        }
       }
-    }
 
-    // Trigger the download.
-    worker.postMessage({ url: generatorUrl.spec, path: file.path });
+      // Trigger the download.
+      worker.postMessage({ url: generatorUrl.spec, path: file.path });
+    });
 
     return deferred.promise;
   },
@@ -234,8 +239,7 @@ this.WebappManager = {
 
     // If the APK is installed, then _getAPKVersions will return a version
     // for it, so we can use that function to determine its install status.
-    let apkVersions = yield this._getAPKVersions([ app.apkPackageName ]);
-    if (app.apkPackageName in apkVersions) {
+    if (app.apkPackageName && app.apkPackageName in (yield this._getAPKVersions([ app.apkPackageName ]))) {
       debug("APK is installed; requesting uninstallation");
       Messaging.sendRequest({
         type: "Webapps:UninstallApk",
@@ -259,23 +263,13 @@ this.WebappManager = {
       // to ensure the user can always remove an app from the registry (and thus
       // about:apps) even if it's out of sync with installed APKs.
       debug("APK not installed; proceeding directly to removal from registry");
-      DOMApplicationRegistry.doUninstall(aData, aMessageManager);
+      DOMApplicationRegistry.uninstall(aData.manifestURL);
     }
 
   }),
 
   autoInstall: function(aData) {
     debug("autoInstall " + aData.manifestURL);
-
-    // If the app is already installed, update the existing installation.
-    // We should be able to use DOMApplicationRegistry.getAppByManifestURL,
-    // but it returns a mozIApplication, while _autoUpdate needs the original
-    // object from DOMApplicationRegistry.webapps in order to modify it.
-    for (let [ , app] in Iterator(DOMApplicationRegistry.webapps)) {
-      if (app.manifestURL == aData.manifestURL) {
-        return this._autoUpdate(aData, app);
-      }
-    }
 
     let mm = {
       sendAsyncMessage: function (aMessageName, aData) {
@@ -311,6 +305,16 @@ this.WebappManager = {
     message.apkInstall = true;
 
     DOMApplicationRegistry.registryReady.then(() => {
+      // If the app is already installed, update the existing installation.
+      // We should be able to use DOMApplicationRegistry.getAppByManifestURL,
+      // but it returns a mozIApplication, while _autoUpdate needs the original
+      // object from DOMApplicationRegistry.webapps in order to modify it.
+      for (let [ , app] in Iterator(DOMApplicationRegistry.webapps)) {
+        if (app.manifestURL == aData.manifestURL) {
+          return this._autoUpdate(aData, app);
+        }
+      }
+
       switch (aData.type) { // can be hosted or packaged.
         case "hosted":
           DOMApplicationRegistry.doInstall(message, mm);
@@ -359,7 +363,7 @@ this.WebappManager = {
 
     try {
       yield DOMApplicationRegistry.startDownload(aData.manifestURL);
-    } catch (ex if ex.message == "PACKAGE_UNCHANGED") {
+    } catch (ex if ex == "PACKAGE_UNCHANGED") {
       debug("package unchanged");
       // If the package is unchanged, then there's nothing more to do.
       return;
@@ -464,7 +468,7 @@ this.WebappManager = {
 
   _getInstalledApps: function() {
     let deferred = Promise.defer();
-    DOMApplicationRegistry.getAll(apps => deferred.resolve(apps));
+    AppsServiceChild.DOMApplicationRegistry.getAll(apps => deferred.resolve(apps));
     return deferred.promise;
   },
 

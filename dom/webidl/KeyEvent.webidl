@@ -4,8 +4,6 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-interface WindowProxy;
-
 // http://www.w3.org/TR/1999/WD-DOM-Level-2-19990923/events.html#Events-KeyEvent
 interface KeyEvent
 {
@@ -226,11 +224,10 @@ interface KeyEvent
   // for compatibility with the other web browsers on Windows.
   const unsigned long DOM_VK_WIN_OEM_CLEAR  = 0xFE;
 
-  [Throws]
   void initKeyEvent(DOMString type,
                     boolean canBubble,
                     boolean cancelable,
-                    WindowProxy? view,
+                    Window? view,
                     boolean ctrlKey,
                     boolean altKey,
                     boolean shiftKey,

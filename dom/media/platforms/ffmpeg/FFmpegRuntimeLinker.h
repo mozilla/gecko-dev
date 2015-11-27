@@ -1,0 +1,41 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#ifndef __FFmpegRuntimeLinker_h__
+#define __FFmpegRuntimeLinker_h__
+
+#include "PlatformDecoderModule.h"
+#include <stdint.h>
+
+struct PRLibrary;
+
+namespace mozilla
+{
+
+class FFmpegRuntimeLinker
+{
+public:
+  static bool Link();
+  static void Unlink();
+  static already_AddRefed<PlatformDecoderModule> CreateDecoderModule();
+  static bool GetVersion(uint32_t& aMajor, uint32_t& aMinor);
+
+private:
+  static PRLibrary* sLinkedLib;
+  static const char* sLib;
+
+  static bool Bind(const char* aLibName);
+
+  static enum LinkStatus {
+    LinkStatus_INIT = 0,
+    LinkStatus_FAILED,
+    LinkStatus_SUCCEEDED
+  } sLinkStatus;
+};
+
+}
+
+#endif // __FFmpegRuntimeLinker_h__

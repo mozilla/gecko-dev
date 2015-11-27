@@ -9,10 +9,10 @@
 #include "mozilla/BinarySearch.h"
 
 #include "nsStyleConsts.h"
-#include "nsStyleContext.h"
 #include "nsTextFrameUtils.h"
 #include "nsFontMetrics.h"
 #include "nsDeviceContext.h"
+#include "nsUnicodeScriptCodes.h"
 
 using namespace mozilla;
 
@@ -195,7 +195,7 @@ namespace {
 struct MathVarMappingWrapper
 {
   const MathVarMapping* const mTable;
-  MathVarMappingWrapper(const MathVarMapping* aTable) : mTable(aTable) {}
+  explicit MathVarMappingWrapper(const MathVarMapping* aTable) : mTable(aTable) {}
   uint32_t operator[](size_t index) const {
     return mTable[index].mKey;
   }
@@ -524,16 +524,20 @@ MathVariant(uint32_t aCh, uint8_t aMathVar)
 
 }
 
+#define TT_SSTY TRUETYPE_TAG('s', 's', 't', 'y')
+#define TT_DTLS TRUETYPE_TAG('d', 't', 'l', 's')
+
 void
 MathMLTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
-                                     gfxContext* aRefContext)
+                                     gfxContext* aRefContext,
+                                     gfxMissingFontRecorder* aMFR)
 {
   gfxFontGroup* fontGroup = aTextRun->GetFontGroup();
 
   nsAutoString convertedString;
   nsAutoTArray<bool,50> charsToMergeArray;
   nsAutoTArray<bool,50> deletedCharsArray;
-  nsAutoTArray<nsStyleContext*,50> styleArray;
+  nsAutoTArray<RefPtr<nsTransformedCharStyle>,50> styleArray;
   nsAutoTArray<uint8_t,50> canBreakBeforeArray;
   bool mergeNeeded = false;
 
@@ -542,23 +546,25 @@ MathMLTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
 
   uint32_t length = aTextRun->GetLength();
   const char16_t* str = aTextRun->mString.BeginReading();
-  nsRefPtr<nsStyleContext>* styles = aTextRun->mStyles.Elements();
+  const nsTArray<RefPtr<nsTransformedCharStyle>>& styles = aTextRun->mStyles;
   nsFont font;
   if (length) {
-    font = styles[0]->StyleFont()->mFont;
+    font = styles[0]->mFont;
 
-    if (mSSTYScriptLevel) {
-      bool found = false;
+    if (mSSTYScriptLevel || (mFlags & MATH_FONT_FEATURE_DTLS)) {
+      bool foundSSTY = false;
+      bool foundDTLS = false;
       // We respect ssty settings explicitly set by the user
       for (uint32_t i = 0; i < font.fontFeatureSettings.Length(); i++) {
-        if (font.fontFeatureSettings[i].mTag == TRUETYPE_TAG('s', 's', 't', 'y')) {
-          found = true;
-          break;
+        if (font.fontFeatureSettings[i].mTag == TT_SSTY) {
+          foundSSTY = true;
+        } else if (font.fontFeatureSettings[i].mTag == TT_DTLS) {
+          foundDTLS = true;
         }
       }
-      if (!found) {
+      if (mSSTYScriptLevel && !foundSSTY) {
         uint8_t sstyLevel = 0;
-        float scriptScaling = pow(styles[0]->StyleFont()->mScriptSizeMultiplier,
+        float scriptScaling = pow(styles[0]->mScriptSizeMultiplier,
                                   mSSTYScriptLevel);
         static_assert(NS_MATHML_DEFAULT_SCRIPT_SIZE_MULTIPLIER < 1,
                       "Shouldn't it make things smaller?");
@@ -590,10 +596,26 @@ MathMLTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
         }
         if (sstyLevel) {
           gfxFontFeature settingSSTY;
-          settingSSTY.mTag = TRUETYPE_TAG('s','s','t','y');
+          settingSSTY.mTag = TT_SSTY;
           settingSSTY.mValue = sstyLevel;
           font.fontFeatureSettings.AppendElement(settingSSTY);
         }
+      }
+      /*
+        Apply the dtls font feature setting (dotless).
+        This gets applied to the base frame and all descendants of the base
+        frame of certain <mover> and <munderover> frames.
+
+        See nsMathMLmunderoverFrame.cpp for a full description.
+
+        To opt out of this change, add the following to the stylesheet:
+        "font-feature-settings: 'dtls' 0"
+      */
+      if ((mFlags & MATH_FONT_FEATURE_DTLS) && !foundDTLS) {
+        gfxFontFeature settingDTLS;
+        settingDTLS.mTag = TT_DTLS;
+        settingDTLS.mValue = 1;
+        font.fontFeatureSettings.AppendElement(settingDTLS);
       }
     }
   }
@@ -603,8 +625,7 @@ MathMLTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
 
   for (uint32_t i = 0; i < length; ++i) {
     int extraChars = 0;
-    nsStyleContext* styleContext = styles[i];
-    mathVar = styleContext->StyleFont()->mMathVariant;
+    mathVar = styles[i]->mMathVariant;
 
     if (singleCharMI && mathVar == NS_MATHML_MATHVARIANT_NONE) {
       // If the user has explicitly set a non-default value for fontstyle or
@@ -647,8 +668,8 @@ MathMLTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
         // Alphanumeric Symbols. Hence we check whether the transformed
         // character is actually available.
         uint8_t matchType;
-        nsRefPtr<gfxFont> mathFont = fontGroup->
-          FindFontForChar(ch2, 0, HB_SCRIPT_COMMON, nullptr, &matchType);
+        RefPtr<gfxFont> mathFont = fontGroup->
+          FindFontForChar(ch2, 0, 0, HB_SCRIPT_COMMON, nullptr, &matchType);
         if (mathFont) {
           // Don't apply the CSS style if there is a math font for at least one
           // of the transformed character in this text run.
@@ -656,13 +677,16 @@ MathMLTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
         } else {
           // We fallback to the original character.
           ch2 = ch;
+          if (aMFR) {
+            aMFR->RecordScript(MOZ_SCRIPT_MATHEMATICAL_NOTATION);
+          }
         }
       }
     }
 
     deletedCharsArray.AppendElement(false);
     charsToMergeArray.AppendElement(false);
-    styleArray.AppendElement(styleContext);
+    styleArray.AppendElement(styles[i]);
     canBreakBeforeArray.AppendElement(aTextRun->CanBreakLineBefore(i));
 
     if (IS_IN_BMP(ch2)) {
@@ -681,7 +705,7 @@ MathMLTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
     while (extraChars-- > 0) {
       mergeNeeded = true;
       charsToMergeArray.AppendElement(true);
-      styleArray.AppendElement(styleContext);
+      styleArray.AppendElement(styles[i]);
       canBreakBeforeArray.AppendElement(false);
     }
   }
@@ -715,10 +739,13 @@ MathMLTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
 
   // Get the correct gfxFontGroup that corresponds to the earlier font changes.
   if (length) {
-    nsPresContext* pc = styles[0]->PresContext();
-    nsRefPtr<nsFontMetrics> metrics;
+    font.size = NSToCoordRound(font.size * mFontInflation);
+    nsPresContext* pc = styles[0]->mPresContext;
+    RefPtr<nsFontMetrics> metrics;
     pc->DeviceContext()->GetMetricsFor(font,
-                                       styles[0]->StyleFont()->mLanguage,
+                                       styles[0]->mLanguage,
+                                       styles[0]->mExplicitLanguage,
+                                       gfxFont::eHorizontal,
                                        pc->GetUserFontSet(),
                                        pc->GetTextPerfMetrics(),
                                        *getter_AddRefs(metrics));
@@ -736,12 +763,12 @@ MathMLTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
   if (mInnerTransformingTextRunFactory) {
     transformedChild = mInnerTransformingTextRunFactory->MakeTextRun(
         convertedString.BeginReading(), convertedString.Length(),
-        &innerParams, newFontGroup, flags, styleArray.Elements(), false);
+        &innerParams, newFontGroup, flags, Move(styleArray), false);
     child = transformedChild.get();
   } else {
     cachedChild = newFontGroup->MakeTextRun(
         convertedString.BeginReading(), convertedString.Length(),
-        &innerParams, flags);
+        &innerParams, flags, aMFR);
     child = cachedChild.get();
   }
   if (!child)
@@ -753,7 +780,7 @@ MathMLTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
   child->SetPotentialLineBreaks(0, canBreakBeforeArray.Length(),
       canBreakBeforeArray.Elements(), aRefContext);
   if (transformedChild) {
-    transformedChild->FinishSettingProperties(aRefContext);
+    transformedChild->FinishSettingProperties(aRefContext, aMFR);
   }
 
   if (mergeNeeded) {

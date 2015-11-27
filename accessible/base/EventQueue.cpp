@@ -8,6 +8,7 @@
 #include "Accessible-inl.h"
 #include "nsEventShell.h"
 #include "DocAccessible.h"
+#include "DocAccessibleChild.h"
 #include "nsAccessibilityService.h"
 #include "nsTextEquivUtils.h"
 #ifdef A11Y_LOG
@@ -60,7 +61,7 @@ EventQueue::PushEvent(AccEvent* aEvent)
         ENameValueFlag nameFlag = parent->Name(name);
         // If name is obtained from subtree, fire name change event.
         if (nameFlag == eNameFromSubtree) {
-          nsRefPtr<AccEvent> nameChangeEvent =
+          RefPtr<AccEvent> nameChangeEvent =
             new AccEvent(nsIAccessibleEvent::EVENT_NAME_CHANGE, parent);
           PushEvent(nameChangeEvent);
         }
@@ -247,12 +248,7 @@ EventQueue::CoalesceReorderEvents(AccEvent* aTailEvent)
 
     // Coalesce earlier event of the same target.
     if (thisEvent->mAccessible == aTailEvent->mAccessible) {
-      if (thisEvent->mEventRule == AccEvent::eDoNotEmit) {
-        AccReorderEvent* tailReorder = downcast_accEvent(aTailEvent);
-        tailReorder->DoNotEmitAll();
-      } else {
-        thisEvent->mEventRule = AccEvent::eDoNotEmit;
-      }
+      thisEvent->mEventRule = AccEvent::eDoNotEmit;
 
       return;
     }
@@ -299,12 +295,16 @@ EventQueue::CoalesceReorderEvents(AccEvent* aTailEvent)
         AccReorderEvent* thisReorder = downcast_accEvent(thisEvent);
         AccReorderEvent* tailReorder = downcast_accEvent(aTailEvent);
         uint32_t eventType = thisReorder->IsShowHideEventTarget(tailParent);
-        if (eventType == nsIAccessibleEvent::EVENT_SHOW)
+        if (eventType == nsIAccessibleEvent::EVENT_SHOW) {
           tailReorder->DoNotEmitAll();
-        else if (eventType == nsIAccessibleEvent::EVENT_HIDE)
+        }
+        else if (eventType == nsIAccessibleEvent::EVENT_HIDE) {
           NS_ERROR("Accessible tree was modified after it was removed! Huh?");
-        else
+        }
+        else {
           aTailEvent->mEventRule = AccEvent::eDoNotEmit;
+          mEvents[index].swap(mEvents[count - 1]);
+        }
 
         return;
       }
@@ -486,7 +486,7 @@ void
 EventQueue::ProcessEventQueue()
 {
   // Process only currently queued events.
-  nsTArray<nsRefPtr<AccEvent> > events;
+  nsTArray<RefPtr<AccEvent> > events;
   events.SwapElements(mEvents);
 
   uint32_t eventCount = events.Length();
@@ -550,8 +550,10 @@ EventQueue::ProcessEventQueue()
       }
     }
 
-    if (event->mEventType == nsIAccessibleEvent::EVENT_HIDE)
+    AccHideEvent* hideEvent = downcast_accEvent(event);
+    if (hideEvent && hideEvent->NeedsShutdown()) {
       mDocument->ShutdownChildrenInSubtree(event->mAccessible);
+    }
 
     if (!mDocument)
       return;

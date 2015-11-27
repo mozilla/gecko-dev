@@ -24,7 +24,8 @@ ia2AccessibleAction::QueryInterface(REFIID iid, void** ppv)
 
   *ppv = nullptr;
 
-  if (IID_IAccessibleAction == iid) {
+  if (IID_IAccessibleAction == iid &&
+      !static_cast<AccessibleWrap*>(this)->IsProxy()) {
     *ppv = static_cast<IAccessibleAction*>(this);
     (reinterpret_cast<IUnknown*>(*ppv))->AddRef();
     return S_OK;
@@ -77,7 +78,6 @@ ia2AccessibleAction::get_description(long aActionIndex, BSTR *aDescription)
 
   if (!aDescription)
     return E_INVALIDARG;
-
   *aDescription = nullptr;
 
   AccessibleWrap* acc = static_cast<AccessibleWrap*>(this);
@@ -86,10 +86,7 @@ ia2AccessibleAction::get_description(long aActionIndex, BSTR *aDescription)
 
   nsAutoString description;
   uint8_t index = static_cast<uint8_t>(aActionIndex);
-  nsresult rv = acc->GetActionDescription(index, description);
-  if (NS_FAILED(rv))
-    return GetHRESULT(rv);
-
+  acc->ActionDescriptionAt(index, description);
   if (description.IsEmpty())
     return S_FALSE;
 

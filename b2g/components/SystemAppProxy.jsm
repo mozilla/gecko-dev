@@ -11,10 +11,12 @@ Cu.import('resource://gre/modules/Services.jsm');
 
 this.EXPORTED_SYMBOLS = ['SystemAppProxy'];
 
-let SystemAppProxy = {
+var SystemAppProxy = {
   _frame: null,
+  _isLoaded: false,
   _isReady: false,
-  _pendingEvents: [],
+  _pendingLoadedEvents: [],
+  _pendingReadyEvents: [],
   _pendingListeners: [],
 
   // To call when a new system app iframe is created
@@ -29,18 +31,43 @@ let SystemAppProxy = {
     this._pendingListeners = [];
   },
 
+  // Get the system app frame
+  getFrame: function () {
+    return this._frame;
+  },
+
+  // To call when the load event of the System app document is triggered.
+  // i.e. everything that is not lazily loaded are run and done.
+  setIsLoaded: function () {
+    if (this._isLoaded) {
+      Cu.reportError('SystemApp has already been declared as being loaded.');
+    }
+    this._isLoaded = true;
+
+    // Dispatch all events being queued while the system app was still loading
+    this._pendingLoadedEvents
+        .forEach(([type, details]) =>
+                 this._sendCustomEvent(type, details, true));
+    this._pendingLoadedEvents = [];
+  },
+
   // To call when it is ready to receive events
+  // i.e. when system-message-listener-ready mozContentEvent is sent.
   setIsReady: function () {
+    if (!this._isLoaded) {
+      Cu.reportError('SystemApp.setIsLoaded() should be called before setIsReady().');
+    }
+
     if (this._isReady) {
       Cu.reportError('SystemApp has already been declared as being ready.');
     }
     this._isReady = true;
 
-    // Dispatch all events being queued while the system app was still loading
-    this._pendingEvents
+    // Dispatch all events being queued while the system app was still not ready
+    this._pendingReadyEvents
         .forEach(([type, details]) =>
                  this._sendCustomEvent(type, details));
-    this._pendingEvents = [];
+    this._pendingReadyEvents = [];
   },
 
   /*
@@ -57,6 +84,9 @@ let SystemAppProxy = {
    *   @param details   The event details.
    *   @param noPending Set to true to emit this event even before the system
    *                    app is ready.
+   *                    Event is always pending if the app is not loaded yet.
+   *
+   *   @returns event?  Dispatched event, or null if the event is pending.
    */
   _sendCustomEvent: function systemApp_sendCustomEvent(type,
                                                        details,
@@ -64,10 +94,22 @@ let SystemAppProxy = {
                                                        target) {
     let content = this._frame ? this._frame.contentWindow : null;
 
+    // If the system app isn't loaded yet,
+    // queue events until someone calls setIsLoaded
+    if (!content || !this._isLoaded) {
+      if (noPending) {
+        this._pendingLoadedEvents.push([type, details]);
+      } else {
+        this._pendingReadyEvents.push([type, details]);
+      }
+
+      return null;
+    }
+
     // If the system app isn't ready yet,
     // queue events until someone calls setIsReady
-    if (!content || (!this._isReady && !noPending)) {
-      this._pendingEvents.push([type, details]);
+    if (!this._isReady && !noPending) {
+      this._pendingReadyEvents.push([type, details]);
       return null;
     }
 
@@ -82,6 +124,10 @@ let SystemAppProxy = {
       payload = details ? Cu.cloneInto(details, content) : {};
     }
 
+    if ((target || content) === this._frame.contentWindow) {
+      dump('XXX FIXME : Dispatch a ' + type + ': ' + details.type + "\n");
+    }
+
     event.initCustomEvent(type, true, false, payload);
     (target || content).dispatchEvent(event);
 
@@ -89,8 +135,46 @@ let SystemAppProxy = {
   },
 
   // Now deprecated, use sendCustomEvent with a custom event name
-  dispatchEvent: function systemApp_sendChromeEvent(details, target) {
+  dispatchEvent: function systemApp_dispatchEvent(details, target) {
     return this._sendCustomEvent('mozChromeEvent', details, false, target);
+  },
+
+  dispatchKeyboardEvent: function systemApp_dispatchKeyboardEvent(type, details) {
+    try {
+      let content = this._frame ? this._frame.contentWindow : null;
+      if (!content) {
+        throw new Error("no content window");
+      }
+
+      // If we don't already have a TextInputProcessor, create one now
+      if (!this.TIP) {
+        this.TIP = Cc["@mozilla.org/text-input-processor;1"]
+          .createInstance(Ci.nsITextInputProcessor);
+        if (!this.TIP) {
+          throw new Error("failed to create textInputProcessor");
+        }
+      }
+
+      if (!this.TIP.beginInputTransactionForTests(content)) {
+        this.TIP = null;
+        throw new Error("beginInputTransaction failed");
+      }
+
+      let e = new content.KeyboardEvent("", { key: details.key, });
+
+      if (type === 'keydown') {
+        this.TIP.keydown(e);
+      }
+      else if (type === 'keyup') {
+        this.TIP.keyup(e);
+      }
+      else {
+        throw new Error("unexpected event type: " + type);
+      }
+    }
+    catch(e) {
+      dump("dispatchKeyboardEvent: " + e + "\n");
+    }
   },
 
   // Listen for dom events on the system app
@@ -117,23 +201,16 @@ let SystemAppProxy = {
     }
   },
 
-  getAppFrames: function systemApp_getAppFrames() {
+  getFrames: function systemApp_getFrames() {
     let systemAppFrame = this._frame;
     if (!systemAppFrame) {
       return [];
     }
-
     let list = [systemAppFrame];
-
-    // List all app frames hosted in the system app: the homescreen,
-    // all regular apps, activities, rocket bar, attention screen and the keyboard.
-    // Bookmark apps and other system app internal frames like captive portal
-    // are also hosted in system app, but they are not using mozapp attribute.
-    let frames = systemAppFrame.contentDocument.querySelectorAll("iframe[mozapp]");
+    let frames = systemAppFrame.contentDocument.querySelectorAll('iframe');
     for (let i = 0; i < frames.length; i++) {
       list.push(frames[i]);
     }
-
     return list;
   }
 };

@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -16,23 +17,20 @@
 #include "nsIDOMHTMLAreaElement.h"
 #include "nsIDOMHTMLLinkElement.h"
 #include "nsIDOMWindow.h"
-#include "nsIDOMCSSStyleDeclaration.h"
+#include "nsICSSDeclaration.h"
 #include "nsIDOMCSSValue.h"
 #include "nsIDOMCSSPrimitiveValue.h"
 #include "nsNetUtil.h"
 #include "nsUnicharUtils.h"
 #include "nsIDocument.h"
 #include "nsIPrincipal.h"
-#include "nsIChannelPolicy.h"
 #include "nsIContentSecurityPolicy.h"
 #include "nsIContentPolicy.h"
 #include "nsAutoPtr.h"
 #include "imgRequestProxy.h"
 
-
-//*****************************************************************************
-// class nsContextMenuInfo
-//*****************************************************************************
+using mozilla::dom::Element;
+using mozilla::ErrorResult;
 
 NS_IMPL_ISUPPORTS(nsContextMenuInfo, nsIContextMenuInfo)
 
@@ -44,35 +42,33 @@ nsContextMenuInfo::~nsContextMenuInfo()
 {
 }
 
-/* readonly attribute nsIDOMEvent mouseEvent; */
 NS_IMETHODIMP
-nsContextMenuInfo::GetMouseEvent(nsIDOMEvent **aEvent)
+nsContextMenuInfo::GetMouseEvent(nsIDOMEvent** aEvent)
 {
   NS_ENSURE_ARG_POINTER(aEvent);
   NS_IF_ADDREF(*aEvent = mMouseEvent);
   return NS_OK;
 }
 
-/* readonly attribute nsIDOMNode targetNode; */
 NS_IMETHODIMP
-nsContextMenuInfo::GetTargetNode(nsIDOMNode **aNode)
+nsContextMenuInfo::GetTargetNode(nsIDOMNode** aNode)
 {
   NS_ENSURE_ARG_POINTER(aNode);
   NS_IF_ADDREF(*aNode = mDOMNode);
   return NS_OK;
 }
 
-/* readonly attribute AString associatedLink; */
 NS_IMETHODIMP
 nsContextMenuInfo::GetAssociatedLink(nsAString& aHRef)
 {
   NS_ENSURE_STATE(mAssociatedLink);
   aHRef.Truncate(0);
-    
+
   nsCOMPtr<nsIDOMElement> content(do_QueryInterface(mAssociatedLink));
   nsAutoString localName;
-  if (content)
+  if (content) {
     content->GetLocalName(localName);
+  }
 
   nsCOMPtr<nsIDOMElement> linkContent;
   ToLowerCase(localName);
@@ -84,27 +80,28 @@ nsContextMenuInfo::GetAssociatedLink(nsAString& aHRef)
     if (hasAttr) {
       linkContent = content;
       nsCOMPtr<nsIDOMHTMLAnchorElement> anchor(do_QueryInterface(linkContent));
-      if (anchor)
+      if (anchor) {
         anchor->GetHref(aHRef);
-      else {
+      } else {
         nsCOMPtr<nsIDOMHTMLAreaElement> area(do_QueryInterface(linkContent));
-        if (area)
+        if (area) {
           area->GetHref(aHRef);
-        else {
+        } else {
           nsCOMPtr<nsIDOMHTMLLinkElement> link(do_QueryInterface(linkContent));
-          if (link)
+          if (link) {
             link->GetHref(aHRef);
+          }
         }
       }
     }
-  }
-  else {
+  } else {
     nsCOMPtr<nsIDOMNode> curr;
     mAssociatedLink->GetParentNode(getter_AddRefs(curr));
     while (curr) {
       content = do_QueryInterface(curr);
-      if (!content)
+      if (!content) {
         break;
+      }
       content->GetLocalName(localName);
       ToLowerCase(localName);
       if (localName.EqualsLiteral("a")) {
@@ -112,12 +109,14 @@ nsContextMenuInfo::GetAssociatedLink(nsAString& aHRef)
         content->HasAttribute(NS_LITERAL_STRING("href"), &hasAttr);
         if (hasAttr) {
           linkContent = content;
-          nsCOMPtr<nsIDOMHTMLAnchorElement> anchor(do_QueryInterface(linkContent));
-          if (anchor)
+          nsCOMPtr<nsIDOMHTMLAnchorElement> anchor(
+            do_QueryInterface(linkContent));
+          if (anchor) {
             anchor->GetHref(aHRef);
-        }
-        else
+          }
+        } else {
           linkContent = nullptr; // Links can't be nested.
+        }
         break;
       }
 
@@ -129,67 +128,64 @@ nsContextMenuInfo::GetAssociatedLink(nsAString& aHRef)
   return NS_OK;
 }
 
-/* readonly attribute imgIContainer imageContainer; */
 NS_IMETHODIMP
-nsContextMenuInfo::GetImageContainer(imgIContainer **aImageContainer)
+nsContextMenuInfo::GetImageContainer(imgIContainer** aImageContainer)
 {
   NS_ENSURE_ARG_POINTER(aImageContainer);
   NS_ENSURE_STATE(mDOMNode);
-  
+
   nsCOMPtr<imgIRequest> request;
   GetImageRequest(mDOMNode, getter_AddRefs(request));
-  if (request)
+  if (request) {
     return request->GetImage(aImageContainer);
+  }
 
   return NS_ERROR_FAILURE;
 }
 
-/* readonly attribute nsIURI imageSrc; */
 NS_IMETHODIMP
-nsContextMenuInfo::GetImageSrc(nsIURI **aURI)
+nsContextMenuInfo::GetImageSrc(nsIURI** aURI)
 {
   NS_ENSURE_ARG_POINTER(aURI);
   NS_ENSURE_STATE(mDOMNode);
-  
+
   nsCOMPtr<nsIImageLoadingContent> content(do_QueryInterface(mDOMNode));
   NS_ENSURE_TRUE(content, NS_ERROR_FAILURE);
   return content->GetCurrentURI(aURI);
 }
 
-/* readonly attribute imgIContainer backgroundImageContainer; */
 NS_IMETHODIMP
-nsContextMenuInfo::GetBackgroundImageContainer(imgIContainer **aImageContainer)
+nsContextMenuInfo::GetBackgroundImageContainer(imgIContainer** aImageContainer)
 {
   NS_ENSURE_ARG_POINTER(aImageContainer);
   NS_ENSURE_STATE(mDOMNode);
-  
-  nsRefPtr<imgRequestProxy> request;
+
+  RefPtr<imgRequestProxy> request;
   GetBackgroundImageRequest(mDOMNode, getter_AddRefs(request));
-  if (request)
+  if (request) {
     return request->GetImage(aImageContainer);
+  }
 
   return NS_ERROR_FAILURE;
 }
 
-/* readonly attribute nsIURI backgroundImageSrc; */
 NS_IMETHODIMP
-nsContextMenuInfo::GetBackgroundImageSrc(nsIURI **aURI)
+nsContextMenuInfo::GetBackgroundImageSrc(nsIURI** aURI)
 {
   NS_ENSURE_ARG_POINTER(aURI);
   NS_ENSURE_STATE(mDOMNode);
-  
-  nsRefPtr<imgRequestProxy> request;
+
+  RefPtr<imgRequestProxy> request;
   GetBackgroundImageRequest(mDOMNode, getter_AddRefs(request));
-  if (request)
+  if (request) {
     return request->GetURI(aURI);
+  }
 
   return NS_ERROR_FAILURE;
 }
 
-//*****************************************************************************
-
 nsresult
-nsContextMenuInfo::GetImageRequest(nsIDOMNode *aDOMNode, imgIRequest **aRequest)
+nsContextMenuInfo::GetImageRequest(nsIDOMNode* aDOMNode, imgIRequest** aRequest)
 {
   NS_ENSURE_ARG(aDOMNode);
   NS_ENSURE_ARG_POINTER(aRequest);
@@ -198,23 +194,23 @@ nsContextMenuInfo::GetImageRequest(nsIDOMNode *aDOMNode, imgIRequest **aRequest)
   nsCOMPtr<nsIImageLoadingContent> content(do_QueryInterface(aDOMNode));
   NS_ENSURE_TRUE(content, NS_ERROR_FAILURE);
 
-  return content->GetRequest(nsIImageLoadingContent::CURRENT_REQUEST,
-                             aRequest);
+  return content->GetRequest(nsIImageLoadingContent::CURRENT_REQUEST, aRequest);
 }
 
 bool
-nsContextMenuInfo::HasBackgroundImage(nsIDOMNode * aDOMNode)
+nsContextMenuInfo::HasBackgroundImage(nsIDOMNode* aDOMNode)
 {
   NS_ENSURE_TRUE(aDOMNode, false);
 
-  nsRefPtr<imgRequestProxy> request;
+  RefPtr<imgRequestProxy> request;
   GetBackgroundImageRequest(aDOMNode, getter_AddRefs(request));
-  
+
   return (request != nullptr);
 }
 
 nsresult
-nsContextMenuInfo::GetBackgroundImageRequest(nsIDOMNode *aDOMNode, imgRequestProxy **aRequest)
+nsContextMenuInfo::GetBackgroundImageRequest(nsIDOMNode* aDOMNode,
+                                             imgRequestProxy** aRequest)
 {
 
   NS_ENSURE_ARG(aDOMNode);
@@ -231,8 +227,9 @@ nsContextMenuInfo::GetBackgroundImageRequest(nsIDOMNode *aDOMNode, imgRequestPro
     element->GetNamespaceURI(nameSpace);
     if (nameSpace.IsEmpty()) {
       nsresult rv = GetBackgroundImageRequestInternal(domNode, aRequest);
-      if (NS_SUCCEEDED(rv) && *aRequest)
+      if (NS_SUCCEEDED(rv) && *aRequest) {
         return NS_OK;
+      }
 
       // no background-image found
       nsCOMPtr<nsIDOMDocument> document;
@@ -250,7 +247,8 @@ nsContextMenuInfo::GetBackgroundImageRequest(nsIDOMNode *aDOMNode, imgRequestPro
 }
 
 nsresult
-nsContextMenuInfo::GetBackgroundImageRequestInternal(nsIDOMNode *aDOMNode, imgRequestProxy **aRequest)
+nsContextMenuInfo::GetBackgroundImageRequestInternal(nsIDOMNode* aDOMNode,
+                                                     imgRequestProxy** aRequest)
 {
   NS_ENSURE_ARG_POINTER(aDOMNode);
 
@@ -265,34 +263,28 @@ nsContextMenuInfo::GetBackgroundImageRequestInternal(nsIDOMNode *aDOMNode, imgRe
   document->GetDefaultView(getter_AddRefs(window));
   NS_ENSURE_TRUE(window, NS_ERROR_FAILURE);
 
+  nsCOMPtr<nsPIDOMWindow> piWindow = do_QueryInterface(window);
+  MOZ_ASSERT(piWindow);
+  piWindow = piWindow->GetCurrentInnerWindow();
+  MOZ_ASSERT(piWindow);
+
   nsCOMPtr<nsIDOMCSSPrimitiveValue> primitiveValue;
   nsAutoString bgStringValue;
 
-  // get Content Security Policy to pass to LoadImage
   nsCOMPtr<nsIDocument> doc(do_QueryInterface(document));
-  nsCOMPtr<nsIPrincipal> principal;
-  nsCOMPtr<nsIChannelPolicy> channelPolicy;
-  nsCOMPtr<nsIContentSecurityPolicy> csp;
-  if (doc) {
-    principal = doc->NodePrincipal();
-    nsresult rv = principal->GetCsp(getter_AddRefs(csp));
-    NS_ENSURE_SUCCESS(rv, rv);
-    if (csp) {
-      channelPolicy = do_CreateInstance("@mozilla.org/nschannelpolicy;1");
-      channelPolicy->SetContentSecurityPolicy(csp);
-      channelPolicy->SetLoadType(nsIContentPolicy::TYPE_IMAGE);
-    }
-  }
-  
+  nsCOMPtr<nsIPrincipal> principal = doc ? doc->NodePrincipal() : nullptr;
+
   while (true) {
-    nsCOMPtr<nsIDOMElement> domElement(do_QueryInterface(domNode));
+    nsCOMPtr<Element> domElement(do_QueryInterface(domNode));
     // bail for the parent node of the root element or null argument
-    if (!domElement)
+    if (!domElement) {
       break;
-    
-    nsCOMPtr<nsIDOMCSSStyleDeclaration> computedStyle;
-    window->GetComputedStyle(domElement, EmptyString(),
-                             getter_AddRefs(computedStyle));
+    }
+
+    ErrorResult dummy;
+    nsCOMPtr<nsICSSDeclaration> computedStyle =
+      piWindow->GetComputedStyle(*domElement, EmptyString(), dummy);
+    dummy.SuppressException();
     if (computedStyle) {
       nsCOMPtr<nsIDOMCSSValue> cssValue;
       computedStyle->GetPropertyCSSValue(NS_LITERAL_STRING("background-image"),
@@ -305,12 +297,14 @@ nsContextMenuInfo::GetBackgroundImageRequestInternal(nsIDOMNode *aDOMNode, imgRe
           NS_NewURI(getter_AddRefs(bgUri), bgStringValue);
           NS_ENSURE_TRUE(bgUri, NS_ERROR_FAILURE);
 
-          nsRefPtr<imgLoader> il = imgLoader::GetInstance();
+          RefPtr<imgLoader> il = imgLoader::GetInstance();
           NS_ENSURE_TRUE(il, NS_ERROR_FAILURE);
 
-          return il->LoadImage(bgUri, nullptr, nullptr, principal, nullptr,
+          return il->LoadImage(bgUri, nullptr, nullptr,
+                               doc->GetReferrerPolicy(), principal, nullptr,
                                nullptr, nullptr, nsIRequest::LOAD_NORMAL,
-                               nullptr, channelPolicy, EmptyString(), aRequest);
+                               nullptr, nsIContentPolicy::TYPE_INTERNAL_IMAGE,
+                               EmptyString(), aRequest);
         }
       }
 
@@ -320,8 +314,9 @@ nsContextMenuInfo::GetBackgroundImageRequestInternal(nsIDOMNode *aDOMNode, imgRe
       primitiveValue = do_QueryInterface(cssValue);
       if (primitiveValue) {
         primitiveValue->GetStringValue(bgStringValue);
-        if (!bgStringValue.EqualsLiteral("transparent"))
+        if (!bgStringValue.EqualsLiteral("transparent")) {
           return NS_ERROR_FAILURE;
+        }
       }
     }
 

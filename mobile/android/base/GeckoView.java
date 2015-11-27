@@ -5,33 +5,39 @@
 
 package org.mozilla.gecko;
 
-import org.mozilla.gecko.db.BrowserDB;
-import org.mozilla.gecko.gfx.LayerView;
-import org.mozilla.gecko.mozglue.GeckoLoader;
-import org.mozilla.gecko.util.Clipboard;
-import org.mozilla.gecko.util.HardwareUtils;
-import org.mozilla.gecko.util.GeckoEventListener;
-import org.mozilla.gecko.util.ThreadUtils;
-import org.mozilla.gecko.util.EventCallback;
-import org.mozilla.gecko.util.NativeEventListener;
-import org.mozilla.gecko.util.NativeJSObject;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.mozilla.gecko.annotation.WrapForJNI;
+import org.mozilla.gecko.gfx.LayerView;
+import org.mozilla.gecko.mozglue.GeckoLoader;
+import org.mozilla.gecko.mozglue.JNIObject;
+import org.mozilla.gecko.util.Clipboard;
+import org.mozilla.gecko.util.EventCallback;
+import org.mozilla.gecko.util.GeckoEventListener;
+import org.mozilla.gecko.util.HardwareUtils;
+import org.mozilla.gecko.util.NativeEventListener;
+import org.mozilla.gecko.util.NativeJSObject;
+import org.mozilla.gecko.util.ThreadUtils;
 
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.TypedArray;
+import android.os.Bundle;
 import android.os.Handler;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputConnection;
 
 public class GeckoView extends LayerView
     implements ContextGetter {
@@ -41,6 +47,8 @@ public class GeckoView extends LayerView
 
     private ChromeDelegate mChromeDelegate;
     private ContentDelegate mContentDelegate;
+
+    private InputConnectionListener mInputConnectionListener;
 
     private final GeckoEventListener mGeckoEventListener = new GeckoEventListener() {
         @Override
@@ -81,20 +89,39 @@ public class GeckoView extends LayerView
     private final NativeEventListener mNativeEventListener = new NativeEventListener() {
         @Override
         public void handleMessage(final String event, final NativeJSObject message, final EventCallback callback) {
-            ThreadUtils.postToUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        if ("Accessibility:Ready".equals(event)) {
-                            GeckoAccessibility.updateAccessibilitySettings(getContext());
-                        }
-                    } catch (Exception e) {
-                        Log.w(LOGTAG, "handleMessage threw for " + event, e);
+            try {
+                if ("Accessibility:Ready".equals(event)) {
+                    GeckoAccessibility.updateAccessibilitySettings(getContext());
+                } else if ("GeckoView:Message".equals(event)) {
+                    // We need to pull out the bundle while on the Gecko thread.
+                    NativeJSObject json = message.optObject("data", null);
+                    if (json == null) {
+                        // Must have payload to call the message handler.
+                        return;
                     }
+                    final Bundle data = json.toBundle();
+                    ThreadUtils.postToUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            handleScriptMessage(data, callback);
+                        }
+                    });
                 }
-            });
+            } catch (Exception e) {
+                Log.w(LOGTAG, "handleMessage threw for " + event, e);
+            }
         }
     };
+
+    @WrapForJNI
+    private static final class Window extends JNIObject {
+        static native void open(Window instance, GeckoView view, int width, int height);
+        static native void setLayerClient(Object client);
+        @Override protected native void disposeNative();
+        native void close();
+    }
+
+    private final Window window = new Window();
 
     public GeckoView(Context context) {
         super(context);
@@ -111,6 +138,31 @@ public class GeckoView extends LayerView
     }
 
     private void init(Context context, String url, boolean doInit) {
+
+        if (GeckoAppShell.getApplicationContext() == null) {
+            GeckoAppShell.setApplicationContext(context.getApplicationContext());
+        }
+
+        // Set the GeckoInterface if the context is an activity and the GeckoInterface
+        // has not already been set
+        if (context instanceof Activity && getGeckoInterface() == null) {
+            setGeckoInterface(new BaseGeckoInterface(context));
+            GeckoAppShell.setContextGetter(this);
+        }
+
+        // Perform common initialization for Fennec/GeckoView.
+        GeckoAppShell.setLayerView(this);
+
+        initializeView(EventDispatcher.getInstance());
+
+        if (GeckoThread.isStateAtLeast(GeckoThread.State.JNI_READY)) {
+            Window.setLayerClient(getLayerClientObject());
+        } else {
+            GeckoThread.queueNativeCallUntil(GeckoThread.State.JNI_READY,
+                    Window.class, "setLayerClient",
+                    Object.class, getLayerClientObject());
+        }
+
         // TODO: Fennec currently takes care of its own initialization, so this
         // flag is a hack used in Fennec to prevent GeckoView initialization.
         // This should go away once Fennec also uses GeckoView for
@@ -126,27 +178,19 @@ public class GeckoView extends LayerView
         } catch (NoClassDefFoundError ex) {}
 
         if (!isGeckoActivity) {
-            // Set the GeckoInterface if the context is an activity and the GeckoInterface
-            // has not already been set
-            if (context instanceof Activity && getGeckoInterface() == null) {
-                setGeckoInterface(new BaseGeckoInterface(context));
-            }
-
             Clipboard.init(context);
             HardwareUtils.init(context);
 
             // If you want to use GeckoNetworkManager, start it.
 
-            GeckoLoader.loadMozGlue(context);
-            BrowserDB.setEnableContentProviders(false);
+            final GeckoProfile profile = GeckoProfile.get(context);
          }
 
+        GeckoThread.ensureInit(null, null);
         if (url != null) {
-            GeckoThread.setUri(url);
-            GeckoThread.setAction(Intent.ACTION_VIEW);
             GeckoAppShell.sendEventToGecko(GeckoEvent.createURILoadEvent(url));
         }
-        GeckoAppShell.setContextGetter(this);
+
         if (context instanceof Activity) {
             Tabs tabs = Tabs.getInstance();
             tabs.attachToContext(context);
@@ -164,23 +208,124 @@ public class GeckoView extends LayerView
             "Prompt:ShowTop");
 
         EventDispatcher.getInstance().registerGeckoThreadListener(mNativeEventListener,
-            "Accessibility:Ready");
+            "Accessibility:Ready",
+            "GeckoView:Message");
 
-        ThreadUtils.setUiThread(Thread.currentThread(), new Handler());
-        initializeView(EventDispatcher.getInstance());
-
-        if (GeckoThread.checkAndSetLaunchState(GeckoThread.LaunchState.Launching, GeckoThread.LaunchState.Launched)) {
+        if (GeckoThread.launch()) {
             // This is the first launch, so finish initialization and go.
             GeckoProfile profile = GeckoProfile.get(context).forceCreate();
-            BrowserDB.initialize(profile.getName());
 
-            GeckoAppShell.setLayerView(this);
-            GeckoThread.createAndStart();
-        } else if(GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning)) {
+        } else if (GeckoThread.isRunning()) {
             // If Gecko is already running, that means the Activity was
             // destroyed, so we need to re-attach Gecko to this GeckoView.
             connectToGecko();
         }
+    }
+
+    @Override
+    public void onAttachedToWindow()
+    {
+        super.onAttachedToWindow();
+
+        final DisplayMetrics metrics = getContext().getResources().getDisplayMetrics();
+
+        if (GeckoThread.isStateAtLeast(GeckoThread.State.PROFILE_READY)) {
+            Window.open(window, this, metrics.widthPixels, metrics.heightPixels);
+        } else {
+            GeckoThread.queueNativeCallUntil(GeckoThread.State.PROFILE_READY, Window.class,
+                    "open", window, GeckoView.class, this,
+                    metrics.widthPixels, metrics.heightPixels);
+        }
+    }
+
+    @Override
+    public void onDetachedFromWindow()
+    {
+        super.onDetachedFromWindow();
+
+        // FIXME: because we don't support separate nsWindow for each GeckoView
+        // yet, we have to keep this window around in case another GeckoView
+        // wants to attach. So don't call window.close() for now.
+
+        if (GeckoThread.isStateAtLeast(GeckoThread.State.PROFILE_READY)) {
+            // window.close();
+            window.disposeNative();
+        } else {
+            // GeckoThread.queueNativeCallUntil(GeckoThread.State.PROFILE_READY,
+            //        window, "close");
+            GeckoThread.queueNativeCallUntil(GeckoThread.State.PROFILE_READY,
+                    window, "disposeNative");
+        }
+    }
+
+    /* package */ void setInputConnectionListener(final InputConnectionListener icl) {
+        mInputConnectionListener = icl;
+    }
+
+    @Override
+    public Handler getHandler() {
+        if (mInputConnectionListener != null) {
+            return mInputConnectionListener.getHandler(super.getHandler());
+        }
+        return super.getHandler();
+    }
+
+    @Override
+    public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
+        if (mInputConnectionListener != null) {
+            return mInputConnectionListener.onCreateInputConnection(outAttrs);
+        }
+        return null;
+    }
+
+    @Override
+    public boolean onKeyPreIme(int keyCode, KeyEvent event) {
+        if (super.onKeyPreIme(keyCode, event)) {
+            return true;
+        }
+        return mInputConnectionListener != null &&
+                mInputConnectionListener.onKeyPreIme(keyCode, event);
+    }
+
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        if (super.onKeyUp(keyCode, event)) {
+            return true;
+        }
+        return mInputConnectionListener != null &&
+                mInputConnectionListener.onKeyUp(keyCode, event);
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (super.onKeyDown(keyCode, event)) {
+            return true;
+        }
+        return mInputConnectionListener != null &&
+                mInputConnectionListener.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    public boolean onKeyLongPress(int keyCode, KeyEvent event) {
+        if (super.onKeyLongPress(keyCode, event)) {
+            return true;
+        }
+        return mInputConnectionListener != null &&
+                mInputConnectionListener.onKeyLongPress(keyCode, event);
+    }
+
+    @Override
+    public boolean onKeyMultiple(int keyCode, int repeatCount, KeyEvent event) {
+        if (super.onKeyMultiple(keyCode, repeatCount, event)) {
+            return true;
+        }
+        return mInputConnectionListener != null &&
+                mInputConnectionListener.onKeyMultiple(keyCode, repeatCount, event);
+    }
+
+    /* package */ boolean isIMEEnabled() {
+        return mInputConnectionListener != null &&
+                mInputConnectionListener.isIMEEnabled();
     }
 
     /**
@@ -242,14 +387,24 @@ public class GeckoView extends LayerView
         return Collections.unmodifiableList(browsers);
     }
 
+    public void importScript(final String url) {
+        if (url.startsWith("resource://android/assets/")) {
+            GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("GeckoView:ImportScript", url));
+            return;
+        }
+
+        throw new IllegalArgumentException("Must import script from 'resources://android/assets/' location.");
+    }
+
     private void connectToGecko() {
-        GeckoThread.setLaunchState(GeckoThread.LaunchState.GeckoRunning);
         Tab selectedTab = Tabs.getInstance().getSelectedTab();
-        if (selectedTab != null)
+        if (selectedTab != null) {
             Tabs.getInstance().notifyListeners(selectedTab, Tabs.TabEvents.SELECTED);
+        }
+
         geckoConnected();
-        GeckoAppShell.setLayerClient(getLayerClientObject());
-        GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Viewport:Flush", null));
+        GeckoAppShell.sendEventToGecko(
+                GeckoEvent.createBroadcastEvent("Viewport:Flush", null));
     }
 
     private void handleReady(final JSONObject message) {
@@ -324,6 +479,16 @@ public class GeckoView extends LayerView
         }
     }
 
+    private void handleScriptMessage(final Bundle data, final EventCallback callback) {
+        if (mChromeDelegate != null) {
+            MessageResult result = null;
+            if (callback != null) {
+                result = new MessageResult(callback);
+            }
+            mChromeDelegate.onScriptMessage(GeckoView.this, data, result);
+        }
+    }
+
     /**
     * Set the chrome callback handler.
     * This will replace the current handler.
@@ -354,6 +519,7 @@ public class GeckoView extends LayerView
         return DEFAULT_SHARED_PREFERENCES_FILE;
     }
 
+    @Override
     public SharedPreferences getSharedPreferences() {
         return getContext().getSharedPreferences(getSharedPreferencesFile(), 0);
     }
@@ -401,7 +567,7 @@ public class GeckoView extends LayerView
         public void reload() {
             Tab tab = Tabs.getInstance().getTab(mId);
             if (tab != null) {
-                tab.doReload();
+                tab.doReload(true);
             }
         }
 
@@ -515,6 +681,51 @@ public class GeckoView extends LayerView
         }
     }
 
+    /* Provides a means for the client to respond to a script message with some data.
+     * An instance of this class is passed to GeckoViewChrome.onScriptMessage.
+     */
+    public class MessageResult {
+        private final EventCallback mCallback;
+
+        public MessageResult(EventCallback callback) {
+            if (callback == null) {
+                throw new IllegalArgumentException("EventCallback should not be null.");
+            }
+            mCallback = callback;
+        }
+
+        private JSONObject bundleToJSON(Bundle data) {
+            JSONObject result = new JSONObject();
+            if (data == null) {
+                return result;
+            }
+
+            final Set<String> keys = data.keySet();
+            for (String key : keys) {
+                try {
+                    result.put(key, data.get(key));
+                } catch (JSONException e) {
+                }
+            }
+            return result;
+        }
+
+        /**
+        * Handle a successful response to a script message.
+        * @param value Bundle value to return to the script context.
+        */
+        public void success(Bundle data) {
+            mCallback.sendSuccess(bundleToJSON(data));
+        }
+
+        /**
+        * Handle a failure response to a script message.
+        */
+        public void failure(Bundle data) {
+            mCallback.sendError(bundleToJSON(data));
+        }
+    }
+
     public interface ChromeDelegate {
         /**
         * Tell the host application that Gecko is ready to handle requests.
@@ -560,6 +771,15 @@ public class GeckoView extends LayerView
         * Defaults to cancel requests.
         */
         public void onDebugRequest(GeckoView view, GeckoView.PromptResult result);
+
+        /**
+        * Receive a message from an imported script.
+        * @param view The GeckoView that initiated the callback.
+        * @param data Bundle of data sent with the message. Never null.
+        * @param result A MessageResult used to send back a response without blocking. Can be null.
+        * Defaults to do nothing.
+        */
+        public void onScriptMessage(GeckoView view, Bundle data, GeckoView.MessageResult result);
     }
 
     public interface ContentDelegate {
@@ -575,10 +795,10 @@ public class GeckoView extends LayerView
         * A Browser has finished loading content from the network.
         * @param view The GeckoView that initiated the callback.
         * @param browser The Browser that was loading the content.
-        * @param success Whether the page loaded successfully or an error occured.
+        * @param success Whether the page loaded successfully or an error occurred.
         */
         public void onPageStop(GeckoView view, GeckoView.Browser browser, boolean success);
-    
+
         /**
         * A Browser is displaying content. This page could have been loaded via
         * network or from the session history.
@@ -586,7 +806,7 @@ public class GeckoView extends LayerView
         * @param browser The Browser that is showing the content.
         */
         public void onPageShow(GeckoView view, GeckoView.Browser browser);
-    
+
         /**
         * A page title was discovered in the content or updated after the content
         * loaded.
@@ -595,7 +815,7 @@ public class GeckoView extends LayerView
         * @param title The title sent from the content.
         */
         public void onReceivedTitle(GeckoView view, GeckoView.Browser browser, String title);
-    
+
         /**
         * A link element was discovered in the content or updated after the content
         * loaded that specifies a favicon.

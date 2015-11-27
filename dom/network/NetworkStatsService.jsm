@@ -18,6 +18,7 @@ this.EXPORTED_SYMBOLS = ["NetworkStatsService"];
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/NetworkStatsDB.jsm");
+Cu.import("resource://gre/modules/Timer.jsm");
 
 const NET_NETWORKSTATSSERVICE_CONTRACTID = "@mozilla.org/network/netstatsservice;1";
 const NET_NETWORKSTATSSERVICE_CID = Components.ID("{18725604-e9ac-488a-8aa0-2471e7f6c0a4}");
@@ -25,8 +26,8 @@ const NET_NETWORKSTATSSERVICE_CID = Components.ID("{18725604-e9ac-488a-8aa0-2471
 const TOPIC_BANDWIDTH_CONTROL = "netd-bandwidth-control"
 
 const TOPIC_CONNECTION_STATE_CHANGED = "network-connection-state-changed";
-const NET_TYPE_WIFI = Ci.nsINetworkInterface.NETWORK_TYPE_WIFI;
-const NET_TYPE_MOBILE = Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE;
+const NET_TYPE_WIFI = Ci.nsINetworkInfo.NETWORK_TYPE_WIFI;
+const NET_TYPE_MOBILE = Ci.nsINetworkInfo.NETWORK_TYPE_MOBILE;
 
 // Networks have different status that NetworkStats API needs to be aware of.
 // Network is present and ready, so NetworkManager provides the whole info.
@@ -67,6 +68,10 @@ XPCOMUtils.defineLazyServiceGetter(this, "gSettingsService",
 XPCOMUtils.defineLazyServiceGetter(this, "messenger",
                                    "@mozilla.org/system-message-internal;1",
                                    "nsISystemMessagesInternal");
+
+XPCOMUtils.defineLazyServiceGetter(this, "gIccService",
+                                   "@mozilla.org/icc/iccservice;1",
+                                   "nsIIccService");
 
 this.NetworkStatsService = {
   init: function() {
@@ -122,7 +127,7 @@ this.NetworkStatsService = {
 
     // Stats for all interfaces are updated periodically
     this.timer.initWithCallback(this, this._db.sampleRate,
-                                Ci.nsITimer.TYPE_REPEATING_PRECISE);
+                                Ci.nsITimer.TYPE_REPEATING_PRECISE_CAN_SKIP);
 
     // Stats not from netd are firstly stored in the cached.
     this.cachedStats = Object.create(null);
@@ -187,10 +192,10 @@ this.NetworkStatsService = {
         // the stats are updated for the new interface without waiting to
         // complete the updating period.
 
-        let network = aSubject.QueryInterface(Ci.nsINetworkInterface);
-        debug("Network " + network.name + " of type " + network.type + " status change");
+        let networkInfo = aSubject.QueryInterface(Ci.nsINetworkInfo);
+        debug("Network " + networkInfo.name + " of type " + networkInfo.type + " status change");
 
-        let netId = this.convertNetworkInterface(network);
+        let netId = this.convertNetworkInfo(networkInfo);
         if (!netId) {
           break;
         }
@@ -252,44 +257,45 @@ this.NetworkStatsService = {
     let networks = {};
     let numRadioInterfaces = gRil.numRadioInterfaces;
     for (let i = 0; i < numRadioInterfaces; i++) {
+      let icc = gIccService.getIccByServiceId(i);
       let radioInterface = gRil.getRadioInterface(i);
-      if (radioInterface.rilContext.iccInfo) {
-        let netId = this.getNetworkId(radioInterface.rilContext.iccInfo.iccid,
+      if (icc && icc.iccInfo) {
+        let netId = this.getNetworkId(icc.iccInfo.iccid,
                                       NET_TYPE_MOBILE);
-        networks[netId] = { id : radioInterface.rilContext.iccInfo.iccid,
+        networks[netId] = { id : icc.iccInfo.iccid,
                             type: NET_TYPE_MOBILE };
       }
     }
     return networks;
   },
 
-  convertNetworkInterface: function(aNetwork) {
-    if (aNetwork.type != NET_TYPE_MOBILE &&
-        aNetwork.type != NET_TYPE_WIFI) {
+  convertNetworkInfo: function(aNetworkInfo) {
+    if (aNetworkInfo.type != NET_TYPE_MOBILE &&
+        aNetworkInfo.type != NET_TYPE_WIFI) {
       return null;
     }
 
     let id = '0';
-    if (aNetwork.type == NET_TYPE_MOBILE) {
-      if (!(aNetwork instanceof Ci.nsIRilNetworkInterface)) {
-        debug("Error! Mobile network should be an nsIRilNetworkInterface!");
+    if (aNetworkInfo.type == NET_TYPE_MOBILE) {
+      if (!(aNetworkInfo instanceof Ci.nsIRilNetworkInfo)) {
+        debug("Error! Mobile network should be an nsIRilNetworkInfo!");
         return null;
       }
 
-      let rilNetwork = aNetwork.QueryInterface(Ci.nsIRilNetworkInterface);
+      let rilNetwork = aNetworkInfo.QueryInterface(Ci.nsIRilNetworkInfo);
       id = rilNetwork.iccId;
     }
 
-    let netId = this.getNetworkId(id, aNetwork.type);
+    let netId = this.getNetworkId(id, aNetworkInfo.type);
 
     if (!this._networks[netId]) {
       this._networks[netId] = Object.create(null);
       this._networks[netId].network = { id: id,
-                                        type: aNetwork.type };
+                                        type: aNetworkInfo.type };
     }
 
     this._networks[netId].status = NETWORK_STATUS_READY;
-    this._networks[netId].interfaceName = aNetwork.name;
+    this._networks[netId].interfaceName = aNetworkInfo.name;
     return netId;
   },
 
@@ -414,6 +420,7 @@ this.NetworkStatsService = {
       }
     }
 
+    let browsingTrafficOnly = msg.browsingTrafficOnly || false;
     let serviceType = msg.serviceType || "";
 
     let start = new Date(msg.start);
@@ -423,7 +430,7 @@ this.NetworkStatsService = {
       this._db.find(function onStatsFound(aError, aResult) {
         mm.sendAsyncMessage("NetworkStats:Get:Return",
                             { id: msg.id, error: aError, result: aResult });
-      }, appId, serviceType, network, start, end, appManifestURL);
+      }, appId, browsingTrafficOnly, serviceType, network, start, end, appManifestURL);
     }).bind(this);
 
     this.validateNetwork(network, function onValidateNetwork(aNetId) {
@@ -438,6 +445,7 @@ this.NetworkStatsService = {
       if (this._networks[aNetId].status == NETWORK_STATUS_READY) {
         debug("getstats for network " + network.id + " of type " + network.type);
         debug("appId: " + appId + " from appManifestURL: " + appManifestURL);
+        debug("browsingTrafficOnly: " + browsingTrafficOnly);
         debug("serviceType: " + serviceType);
 
         if (appId || serviceType) {
@@ -455,7 +463,7 @@ this.NetworkStatsService = {
       this._db.find(function onStatsFound(aError, aResult) {
         mm.sendAsyncMessage("NetworkStats:Get:Return",
                             { id: msg.id, error: aError, result: aResult });
-      }, appId, serviceType, network, start, end, appManifestURL);
+      }, appId, browsingTrafficOnly, serviceType, network, start, end, appManifestURL);
     }.bind(this));
   },
 
@@ -619,6 +627,8 @@ this.NetworkStatsService = {
     // If aResult is not undefined, the caller of the function is the result
     // of processing an element, so remove that element and call the callbacks
     // it has.
+    let self = this;
+
     if (aResult != undefined) {
       let item = this.updateQueue.shift();
       for (let callback of item.callbacks) {
@@ -643,16 +653,22 @@ this.NetworkStatsService = {
       return;
     }
 
-    // Call the update function for the next element.
-    switch (this.updateQueue[0].queueType) {
+    // Process the next item as soon as possible.
+    setTimeout(function () {
+                 self.run(self.updateQueue[0]);
+               }, 0);
+  },
+
+  run: function run(item) {
+    switch (item.queueType) {
       case QUEUE_TYPE_UPDATE_STATS:
-        this.update(this.updateQueue[0].netId, this.processQueue.bind(this));
+        this.update(item.netId, this.processQueue.bind(this));
         break;
       case QUEUE_TYPE_UPDATE_CACHE:
         this.updateCache(this.processQueue.bind(this));
         break;
       case QUEUE_TYPE_WRITE_CACHE:
-        this.writeCache(this.updateQueue[0].stats, this.processQueue.bind(this));
+        this.writeCache(item.stats, this.processQueue.bind(this));
         break;
     }
   },
@@ -696,6 +712,7 @@ this.NetworkStatsService = {
     }
 
     let stats = { appId:          0,
+                  isInBrowser:    false,
                   serviceType:    "",
                   networkId:      this._networks[aNetId].network.id,
                   networkType:    this._networks[aNetId].network.type,
@@ -721,10 +738,10 @@ this.NetworkStatsService = {
   /*
    * Function responsible for receiving stats which are not from netd.
    */
-  saveStats: function saveStats(aAppId, aServiceType, aNetwork, aTimeStamp,
-                                aRxBytes, aTxBytes, aIsAccumulative,
+  saveStats: function saveStats(aAppId, aIsInBrowser, aServiceType, aNetworkInfo,
+                                aTimeStamp, aRxBytes, aTxBytes, aIsAccumulative,
                                 aCallback) {
-    let netId = this.convertNetworkInterface(aNetwork);
+    let netId = this.convertNetworkInfo(aNetworkInfo);
     if (!netId) {
       if (aCallback) {
         aCallback(false, "Invalid network type");
@@ -744,6 +761,7 @@ this.NetworkStatsService = {
     }
 
     let stats = { appId:          aAppId,
+                  isInBrowser:    aIsInBrowser,
                   serviceType:    aServiceType,
                   networkId:      this._networks[netId].network.id,
                   networkType:    this._networks[netId].network.type,
@@ -763,14 +781,16 @@ this.NetworkStatsService = {
    *
    */
   writeCache: function writeCache(aStats, aCallback) {
-    debug("saveStats: " + aStats.appId + " " + aStats.serviceType + " " +
-          aStats.networkId + " " + aStats.networkType + " " + aStats.date + " "
-          + aStats.date + " " + aStats.rxBytes + " " + aStats.txBytes);
+    debug("saveStats: " + aStats.appId + " " + aStats.isInBrowser + " " +
+          aStats.serviceType + " " + aStats.networkId + " " +
+          aStats.networkType + " " + aStats.date + " " +
+          aStats.rxBytes + " " + aStats.txBytes);
 
-    // Generate an unique key from |appId|, |serviceType| and |netId|,
-    // which is used to retrieve data in |cachedStats|.
+    // Generate an unique key from |appId|, |isInBrowser|, |serviceType| and
+    // |netId|, which is used to retrieve data in |cachedStats|.
     let netId = this.getNetworkId(aStats.networkId, aStats.networkType);
-    let key = aStats.appId + "" + aStats.serviceType + "" + netId;
+    let key = aStats.appId + "" + aStats.isInBrowser + "" +
+              aStats.serviceType + "" + netId;
 
     // |cachedStats| only keeps the data with the same date.
     // If the incoming date is different from |cachedStatsDate|,

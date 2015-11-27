@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include "base/compiler_specific.h"
+
 #ifndef BASE_MOVE_H_
 #define BASE_MOVE_H_
 
@@ -136,6 +138,16 @@
 // choose the one that adheres to the standard.
 //
 //
+// WHY HAVE typedef void MoveOnlyTypeForCPP03
+//
+// Callback<>/Bind() needs to understand movable-but-not-copyable semantics
+// to call .Pass() appropriately when it is expected to transfer the value.
+// The cryptic typedef MoveOnlyTypeForCPP03 is added to make this check
+// easy and automatic in helper templates for Callback<>/Bind().
+// See IsMoveOnlyType template and its usage in base/callback_internal.h
+// for more details.
+//
+//
 // COMPARED TO C++11
 //
 // In C++11, you would implement this functionality using an r-value reference
@@ -201,7 +213,17 @@
   void operator=(type&); \
  public: \
   operator rvalue_type() { return rvalue_type(this); } \
-  type Pass() { return type(rvalue_type(this)); } \
+  type Pass() WARN_UNUSED_RESULT { return type(rvalue_type(this)); } \
+  typedef void MoveOnlyTypeForCPP03; \
+ private:
+
+#define MOVE_ONLY_TYPE_WITH_MOVE_CONSTRUCTOR_FOR_CPP_03(type) \
+ private: \
+  type(type&); \
+  void operator=(type&); \
+ public: \
+  type&& Pass() WARN_UNUSED_RESULT { return static_cast<type&&>(*this); } \
+  typedef void MoveOnlyTypeForCPP03; \
  private:
 
 #endif  // BASE_MOVE_H_

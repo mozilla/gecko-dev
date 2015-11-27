@@ -185,11 +185,24 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
 /* SSL_REUSE_SERVER_ECDHE_KEY controls whether the ECDHE server key is
  * reused for multiple handshakes or generated each time.
  * SSL_REUSE_SERVER_ECDHE_KEY is currently enabled by default.
+ * This socket option is for ECDHE, only. It is unrelated to DHE.
  */
 #define SSL_REUSE_SERVER_ECDHE_KEY 27
 
 #define SSL_ENABLE_FALLBACK_SCSV       28 /* Send fallback SCSV in
                                            * handshakes. */
+
+/* SSL_ENABLE_SERVER_DHE controls whether DHE is enabled for the server socket.
+ */
+#define SSL_ENABLE_SERVER_DHE 29
+
+/* Use draft-ietf-tls-session-hash. Controls whether we offer the
+ * extended_master_secret extension which, when accepted, hashes
+ * the handshake transcript into the master secret. This option is
+ * disabled by default.
+ */
+#define SSL_ENABLE_EXTENDED_MASTER_SECRET 30
+
 
 #ifdef SSL_DEPRECATED_FUNCTION 
 /* Old deprecated function names */
@@ -291,6 +304,86 @@ SSL_IMPORT SECStatus SSL_CipherPrefSetDefault(PRInt32 cipher, PRBool enabled);
 SSL_IMPORT SECStatus SSL_CipherPrefGetDefault(PRInt32 cipher, PRBool *enabled);
 SSL_IMPORT SECStatus SSL_CipherPolicySet(PRInt32 cipher, PRInt32 policy);
 SSL_IMPORT SECStatus SSL_CipherPolicyGet(PRInt32 cipher, PRInt32 *policy);
+
+/*
+** Control for TLS signature algorithms for TLS 1.2 only.
+**
+** This governs what signature algorithms are sent by a client in the
+** signature_algorithms extension.  A client will not accept a signature from a
+** server unless it uses an enabled algorithm.
+**
+** This also governs what the server sends in the supported_signature_algorithms
+** field of a CertificateRequest.  It also changes what the server uses to sign
+** ServerKeyExchange: a server uses the first entry from this list that is
+** compatible with the client's advertised signature_algorithms extension and
+** the selected server certificate.
+**
+** Omitting SHA-256 from this list might be foolish.  Support is mandatory in
+** TLS 1.2 and there might be interoperability issues.  For a server, NSS only
+** supports SHA-256 for verifying a TLS 1.2 CertificateVerify.  This list needs
+** to include SHA-256 if client authentication is requested or required, or
+** creating a CertificateRequest will fail.
+*/
+SSL_IMPORT SECStatus SSL_SignaturePrefSet(
+    PRFileDesc *fd, const SSLSignatureAndHashAlg *algorithms,
+    unsigned int count);
+
+/*
+** Get the currently configured signature algorithms.
+**
+** The algorithms are written to |algorithms| but not if there are more than
+** |maxCount| values configured.  The number of algorithms that are in use are
+** written to |count|.  This fails if |maxCount| is insufficiently large.
+*/
+SSL_IMPORT SECStatus SSL_SignaturePrefGet(
+    PRFileDesc *fd, SSLSignatureAndHashAlg *algorithms, unsigned int *count,
+    unsigned int maxCount);
+
+/*
+** Returns the maximum number of signature algorithms that are supported and
+** can be set or retrieved using SSL_SignaturePrefSet or SSL_SignaturePrefGet.
+*/
+SSL_IMPORT unsigned int SSL_SignatureMaxCount();
+
+/* SSL_DHEGroupPrefSet is used to configure the set of allowed/enabled DHE group
+** parameters that can be used by NSS for the given server socket.
+** The first item in the array is used as the default group, if no other
+** selection criteria can be used by NSS.
+** The set is provided as an array of identifiers as defined by SSLDHEGroupType.
+** If more than one group identifier is provided, NSS will select the one to use.
+** For example, a TLS extension sent by the client might indicate a preference.
+*/
+SSL_IMPORT SECStatus SSL_DHEGroupPrefSet(PRFileDesc *fd,
+                                         SSLDHEGroupType *groups,
+                                         PRUint16 num_groups);
+
+/* Enable the use of a DHE group that's smaller than the library default,
+** for backwards compatibility reasons. The DH parameters will be created
+** at the time this function is called, which might take a very long time.
+** The function will block until generation is completed.
+** The intention is to enforce that fresh and safe parameters are generated
+** each time a process is started.
+** At the time this API was initially implemented, the API will enable the
+** use of 1024 bit DHE parameters. This value might get increased in future
+** versions of NSS.
+**
+** It is allowed to call this API will a NULL value for parameter fd,
+** which will prepare the global parameters that NSS will reuse for the remainder
+** of the process lifetime. This can be used early after startup of a process,
+** to avoid a delay when handling incoming client connections.
+** This preparation with a NULL for parameter fd will NOT enable the weak group
+** on sockets. The function needs to be called again for every socket that
+** should use the weak group.
+**
+** It is allowed to use this API in combination with the SSL_DHEGroupPrefSet API.
+** If both APIs have been called, the weakest group will be used,
+** unless it is certain that the client supports larger group parameters.
+** The weak group will be used as the default group, overriding the preference
+** for the first group potentially set with a call to SSL_DHEGroupPrefSet
+** (The first group set using SSL_DHEGroupPrefSet will still be enabled, but
+** it's no longer the default group.)
+*/
+SSL_IMPORT SECStatus SSL_EnableWeakDHEPrimeGroup(PRFileDesc *fd, PRBool enabled);
 
 /* SSL Version Range API
 **
@@ -895,10 +988,27 @@ SSL_IMPORT SECStatus NSS_SetFrancePolicy(void);
 SSL_IMPORT SSL3Statistics * SSL_GetStatistics(void);
 
 /* Report more information than SSL_SecurityStatus.
-** Caller supplies the info struct.  Function fills it in.
-*/
+ * Caller supplies the info struct.  This function fills it in.
+ * The information here will be zeroed prior to details being confirmed.  The
+ * details are confirmed either when a Finished message is received, or - for a
+ * client - when the second flight of messages have been sent.  This function
+ * therefore produces unreliable results prior to receiving the
+ * SSLHandshakeCallback or the SSLCanFalseStartCallback.
+ */
 SSL_IMPORT SECStatus SSL_GetChannelInfo(PRFileDesc *fd, SSLChannelInfo *info,
                                         PRUintn len);
+/* Get preliminary information about a channel.
+ * This function can be called prior to handshake details being confirmed (see
+ * SSL_GetChannelInfo above for what that means).  Thus, information provided by
+ * this function is available to SSLAuthCertificate, SSLGetClientAuthData,
+ * SSLSNISocketConfig, and other callbacks that might be called during the
+ * processing of the first flight of client of server handshake messages.
+ * Values are marked as being unavailable when renegotiation is initiated.
+ */
+SSL_IMPORT SECStatus
+SSL_GetPreliminaryChannelInfo(PRFileDesc *fd,
+                              SSLPreliminaryChannelInfo *info,
+                              PRUintn len);
 SSL_IMPORT SECStatus SSL_GetCipherSuiteInfo(PRUint16 cipherSuite, 
                                         SSLCipherSuiteInfo *info, PRUintn len);
 

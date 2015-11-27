@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 40; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -65,6 +66,37 @@
 namespace mozilla {
 namespace internal {
 
+class AutoVirtualProtect
+{
+public:
+  AutoVirtualProtect(void* aFunc, size_t aSize, DWORD aProtect)
+    : mFunc(aFunc), mSize(aSize), mNewProtect(aProtect), mOldProtect(0),
+      mSuccess(false)
+  {}
+
+  ~AutoVirtualProtect()
+  {
+    if (mSuccess) {
+      VirtualProtectEx(GetCurrentProcess(), mFunc, mSize, mOldProtect,
+                       &mOldProtect);
+    }
+  }
+
+  bool Protect()
+  {
+    mSuccess = !!VirtualProtectEx(GetCurrentProcess(), mFunc, mSize,
+                                  mNewProtect, &mOldProtect);
+    return mSuccess;
+  }
+
+private:
+  void* const mFunc;
+  size_t const mSize;
+  DWORD const mNewProtect;
+  DWORD mOldProtect;
+  bool mSuccess;
+};
+
 class WindowsDllNopSpacePatcher
 {
   typedef unsigned char* byteptr_t;
@@ -90,17 +122,14 @@ public:
       byteptr_t fn = mPatchedFns[i];
 
       // Ensure we can write to the code.
-      DWORD op;
-      if (!VirtualProtectEx(GetCurrentProcess(), fn, 2, PAGE_EXECUTE_READWRITE, &op)) {
+      AutoVirtualProtect protect(fn, 2, PAGE_EXECUTE_READWRITE);
+      if (!protect.Protect()) {
         // printf("VirtualProtectEx failed! %d\n", GetLastError());
         continue;
       }
 
       // mov edi, edi
       *((uint16_t*)fn) = 0xff8b;
-
-      // Restore the old protection.
-      VirtualProtectEx(GetCurrentProcess(), fn, 2, op, &op);
 
       // I don't think this is actually necessary, but it can't hurt.
       FlushInstructionCache(GetCurrentProcess(),
@@ -136,20 +165,19 @@ public:
       return false;
     }
 
+    fn = ResolveRedirectedAddress(fn);
+
     // Ensure we can read and write starting at fn - 5 (for the long jmp we're
     // going to write) and ending at fn + 2 (for the short jmp up to the long
-    // jmp).
-    DWORD op;
-    if (!VirtualProtectEx(GetCurrentProcess(), fn - 5, 7,
-                          PAGE_EXECUTE_READWRITE, &op)) {
+    // jmp). These bytes may span two pages with different protection.
+    AutoVirtualProtect protectBefore(fn - 5, 5, PAGE_EXECUTE_READWRITE);
+    AutoVirtualProtect protectAfter(fn, 2, PAGE_EXECUTE_READWRITE);
+    if (!protectBefore.Protect() || !protectAfter.Protect()) {
       //printf ("VirtualProtectEx failed! %d\n", GetLastError());
       return false;
     }
 
     bool rv = WriteHook(fn, aHookDest, aOrigFunc);
-
-    // Re-protect, and we're done.
-    VirtualProtectEx(GetCurrentProcess(), fn - 5, 7, op, &op);
 
     if (rv) {
       mPatchedFns[mPatchedFnsLen] = fn;
@@ -202,6 +230,18 @@ public:
 
     return true;
   }
+
+private:
+  static byteptr_t ResolveRedirectedAddress(const byteptr_t aOriginalFunction)
+  {
+    // If function entry is jmp [disp32] such as used by kernel32,
+    // we resolve redirected address from import table.
+    if (aOriginalFunction[0] == 0xff && aOriginalFunction[1] == 0x25) {
+      return (byteptr_t)(**((uint32_t**) (aOriginalFunction + 2)));
+    }
+
+    return aOriginalFunction;
+  }
 #else
   bool AddHook(const char* aName, intptr_t aHookDest, void** aOrigFunc)
   {
@@ -233,13 +273,14 @@ public:
 #error "Unknown processor type"
 #endif
       byteptr_t origBytes = *((byteptr_t*)p);
+
       // ensure we can modify the original code
-      DWORD op;
-      if (!VirtualProtectEx(GetCurrentProcess(), origBytes, nBytes,
-                            PAGE_EXECUTE_READWRITE, &op)) {
+      AutoVirtualProtect protect(origBytes, nBytes, PAGE_EXECUTE_READWRITE);
+      if (!protect.Protect()) {
         //printf ("VirtualProtectEx failed! %d\n", GetLastError());
         continue;
       }
+
       // Remove the hook by making the original function jump directly
       // in the trampoline.
       intptr_t dest = (intptr_t)(p + sizeof(void*));
@@ -251,8 +292,6 @@ public:
 #else
 #error "Unknown processor type"
 #endif
-      // restore protection; if this fails we can't really do anything about it
-      VirtualProtectEx(GetCurrentProcess(), origBytes, nBytes, op, &op);
     }
   }
 
@@ -311,6 +350,8 @@ public:
       //printf ("GetProcAddress failed\n");
       return false;
     }
+
+    pAddr = ResolveRedirectedAddress((byteptr_t)pAddr);
 
     CreateTrampoline(pAddr, aHookDest, aOrigFunc);
     if (!*aOrigFunc) {
@@ -397,6 +438,9 @@ protected:
         pJmp32 = nBytes;
         // jmp 32bit offset
         nBytes += 5;
+      } else if (origBytes[nBytes] == 0xff && origBytes[nBytes + 1] == 0x25) {
+        // jmp [disp32]
+        nBytes += 6;
       } else {
         //printf ("Unknown x86 instruction byte 0x%02x, aborting trampoline\n", origBytes[nBytes]);
         return;
@@ -407,13 +451,13 @@ protected:
 
     while (nBytes < 13) {
 
-      // if found JMP 32bit offset, next bytes must be NOP
+      // if found JMP 32bit offset, next bytes must be NOP or INT3
       if (pJmp32 >= 0) {
-        if (origBytes[nBytes++] != 0x90) {
-          return;
+        if (origBytes[nBytes] == 0x90 || origBytes[nBytes] == 0xcc) {
+          nBytes++;
+          continue;
         }
-
-        continue;
+        return;
       }
       if (origBytes[nBytes] == 0x0f) {
         nBytes++;
@@ -432,8 +476,9 @@ protected:
         } else {
           return;
         }
-      } else if (origBytes[nBytes] == 0x41) {
-        // REX.B
+      } else if (origBytes[nBytes] == 0x40 ||
+                 origBytes[nBytes] == 0x41) {
+        // Plain REX or REX.B
         nBytes++;
 
         if ((origBytes[nBytes] & 0xf0) == 0x50) {
@@ -608,9 +653,8 @@ protected:
     *aOutTramp = tramp;
 
     // ensure we can modify the original code
-    DWORD op;
-    if (!VirtualProtectEx(GetCurrentProcess(), aOrigFunction, nBytes,
-                          PAGE_EXECUTE_READWRITE, &op)) {
+    AutoVirtualProtect protect(aOrigFunction, nBytes, PAGE_EXECUTE_READWRITE);
+    if (!protect.Protect()) {
       //printf ("VirtualProtectEx failed! %d\n", GetLastError());
       return;
     }
@@ -632,9 +676,6 @@ protected:
     origBytes[11] = 0xff;
     origBytes[12] = 0xe3;
 #endif
-
-    // restore protection; if this fails we can't really do anything about it
-    VirtualProtectEx(GetCurrentProcess(), aOrigFunction, nBytes, op, &op);
   }
 
   byteptr_t FindTrampolineSpace()
@@ -648,6 +689,25 @@ protected:
     mCurHooks++;
 
     return p;
+  }
+
+  static void* ResolveRedirectedAddress(const byteptr_t aOriginalFunction)
+  {
+#if defined(_M_IX86)
+    // If function entry is jmp [disp32] such as used by kernel32,
+    // we resolve redirected address from import table.
+    if (aOriginalFunction[0] == 0xff && aOriginalFunction[1] == 0x25) {
+      return (void*)(**((uint32_t**) (aOriginalFunction + 2)));
+    }
+#elif defined(_M_X64)
+    if (aOriginalFunction[0] == 0xe9) {
+      // require for TestDllInterceptor with --disable-optimize
+      int32_t offset = *((int32_t*)(aOriginalFunction + 1));
+      return aOriginalFunction + 5 + offset;
+    }
+#endif
+
+    return aOriginalFunction;
   }
 };
 

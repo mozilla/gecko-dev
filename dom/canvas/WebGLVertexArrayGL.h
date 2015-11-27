@@ -3,33 +3,37 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef WEBGLVERTEXARRAYGL_H_
-#define WEBGLVERTEXARRAYGL_H_
+#ifndef WEBGL_VERTEX_ARRAY_GL_H_
+#define WEBGL_VERTEX_ARRAY_GL_H_
 
 #include "WebGLVertexArray.h"
 
 namespace mozilla {
 
-class WebGLVertexArrayGL MOZ_FINAL
+class WebGLVertexArrayGL
     : public WebGLVertexArray
 {
-public:
-    virtual void DeleteImpl() MOZ_OVERRIDE;
-    virtual void BindVertexArrayImpl() MOZ_OVERRIDE;
-    virtual void GenVertexArray() MOZ_OVERRIDE;
-
-private:
-    explicit WebGLVertexArrayGL(WebGLContext* aContext)
-        : WebGLVertexArray(aContext)
-    { }
-
-    ~WebGLVertexArrayGL() {
-        DeleteOnce();
-    }
-
     friend class WebGLVertexArray;
+
+public:
+    virtual void DeleteImpl() override;
+    virtual void BindVertexArrayImpl() override;
+    virtual void GenVertexArray() override;
+    virtual bool IsVertexArrayImpl() override;
+
+protected:
+    explicit WebGLVertexArrayGL(WebGLContext* webgl);
+    ~WebGLVertexArrayGL();
+
+#if defined(XP_LINUX)
+    // Bug 1140459: Some drivers (including our test slaves!) don't
+    // give reasonable answers for IsRenderbuffer, maybe others.
+    //
+    // So we track the `is a VAO` state ourselves.
+    bool mIsVAO;
+#endif
 };
 
 } // namespace mozilla
 
-#endif
+#endif // WEBGL_VERTEX_ARRAY_GL_H_

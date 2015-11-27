@@ -16,10 +16,12 @@ function handleConferenceRemoveError(callToRemove) {
     is(evt.name, 'removeError', 'conference removeError');
 
     deferred.resolve();
-  }
-  conference.remove(callToRemove);
+  };
 
-  return deferred.promise;
+  return conference.remove(callToRemove)
+    .then(() => ok(false, "|conference.remove()| should be rejected"),
+          () => log("|conference.remove()| is rejected as expected"))
+    .then(() => deferred.promise);
 }
 
 function testConferenceRemoveError() {
@@ -43,7 +45,7 @@ function testConferenceRemoveError() {
     .then(() => gRemoteDial(inNumber2))
     .then(call => {inCall2 = call;})
     .then(() => gCheckAll(conference, [inCall2], 'connected', [outCall, inCall],
-                          [outInfo.active, inInfo.active, inInfo2.incoming]))
+                          [outInfo.active, inInfo.active, inInfo2.waiting]))
     .then(() => gAnswer(inCall2, function() {
       gCheckState(inCall2, [inCall2], 'held', [outCall, inCall]);
     }))
@@ -61,8 +63,6 @@ function testConferenceRemoveError() {
 // Start the test
 startTest(function() {
   testConferenceRemoveError()
-    .then(null, error => {
-      ok(false, 'promise rejects during test.');
-    })
+    .catch(error => ok(false, "Promise reject: " + error))
     .then(finish);
 });

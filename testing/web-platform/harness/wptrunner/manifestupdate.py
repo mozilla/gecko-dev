@@ -3,6 +3,7 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import os
+import urlparse
 from collections import namedtuple, defaultdict
 
 from wptmanifest.node import (DataNode, ConditionalNode, BinaryExpressionNode,
@@ -48,29 +49,32 @@ def data_cls_getter(output_node, visited_node):
 
 
 class ExpectedManifest(ManifestItem):
-    def __init__(self, node, test_path=None):
+    def __init__(self, node, test_path=None, url_base=None):
         """Object representing all the tests in a particular manifest
 
         :param node: AST Node associated with this object. If this is None,
                      a new AST is created to associate with this manifest.
         :param test_path: Path of the test file associated with this manifest.
+        :param url_base: Base url for serving the tests in this manifest
         """
         if node is None:
             node = DataNode(None)
         ManifestItem.__init__(self, node)
         self.child_map = {}
         self.test_path = test_path
+        self.url_base = url_base
+        assert self.url_base is not None
         self.modified = False
 
     def append(self, child):
         ManifestItem.append(self, child)
+        if child.id in self.child_map:
+            print "Warning: Duplicate heading %s" % child.id
         self.child_map[child.id] = child
-        assert len(self.child_map) == len(self.children)
 
     def _remove_child(self, child):
         del self.child_map[child.id]
         ManifestItem._remove_child(self, child)
-        assert len(self.child_map) == len(self.children)
 
     def get_test(self, test_id):
         """Return a TestNode by test id, or None if no test matches
@@ -87,6 +91,10 @@ class ExpectedManifest(ManifestItem):
 
         return test_id in self.child_map
 
+    @property
+    def url(self):
+        return urlparse.urljoin(self.url_base,
+                                "/".join(self.test_path.split(os.path.sep)))
 
 class TestNode(ManifestItem):
     def __init__(self, node):
@@ -108,26 +116,18 @@ class TestNode(ManifestItem):
         :param test_type: The type of the test
         :param test_id: The id of the test"""
 
-        if test_type == "reftest":
-            url = test_id[0]
-        else:
-            url = test_id
+        url = test_id
         name = url.split("/")[-1]
         node = DataNode(name)
         self = cls(node)
 
         self.set("type", test_type)
-        if test_type == "reftest":
-            self.set("reftype", test_id[1])
-            self.set("refurl", test_id[2])
         self._from_file = False
         return self
 
     @property
     def is_empty(self):
         required_keys = set(["type"])
-        if self.test_type == "reftest":
-            required_keys |= set(["reftype", "refurl"])
         if set(self._data.keys()) != required_keys:
             return False
         return all(child.is_empty for child in self.children)
@@ -141,14 +141,7 @@ class TestNode(ManifestItem):
     @property
     def id(self):
         """The id of the test represented by this TestNode"""
-
-        components = self.parent.test_path.split(os.path.sep)[:-1]
-        components.append(self.name)
-        url = "/" + "/".join(components)
-        if self.test_type == "reftest":
-            return (url, self.get("reftype", None), self.get("refurl", None))
-        else:
-            return url
+        return urlparse.urljoin(self.parent.url, self.name)
 
     def disabled(self, run_info):
         """Boolean indicating whether this test is disabled when run in an
@@ -336,7 +329,7 @@ def group_conditionals(values):
 
     properties = set(item[0] for item in by_property.iterkeys())
 
-    prop_order = ["debug", "os", "version", "processor", "bits"]
+    prop_order = ["debug", "e10s", "os", "version", "processor", "bits"]
     include_props = []
 
     for prop in prop_order:
@@ -363,7 +356,7 @@ def make_expr(prop_set, status):
 
     assert len(prop_set) > 0
 
-    no_value_props = set(["debug"])
+    no_value_props = set(["debug", "e10s"])
 
     expressions = []
     for prop, value in prop_set:
@@ -404,22 +397,24 @@ def make_expr(prop_set, status):
     return root
 
 
-def get_manifest(metadata_root, test_path):
+def get_manifest(metadata_root, test_path, url_base):
     """Get the ExpectedManifest for a particular test path, or None if there is no
     metadata stored for that test path.
 
     :param metadata_root: Absolute path to the root of the metadata directory
     :param test_path: Path to the test(s) relative to the test root
+    :param url_base: Base url for serving the tests in this manifest
     """
     manifest_path = expected.expected_path(metadata_root, test_path)
     try:
         with open(manifest_path) as f:
-            return compile(f, test_path)
+            return compile(f, test_path, url_base)
     except IOError:
         return None
 
 
-def compile(manifest_file, test_path):
+def compile(manifest_file, test_path, url_base):
     return conditional.compile(manifest_file,
                                data_cls_getter=data_cls_getter,
-                               test_path=test_path)
+                               test_path=test_path,
+                               url_base=url_base)

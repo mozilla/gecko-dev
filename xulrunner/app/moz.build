@@ -6,15 +6,14 @@
 
 DIRS += ['profile']
 
-Program('xulrunner')
+GeckoProgram('xulrunner')
 
 SOURCES += [
     'nsXULRunnerApp.cpp',
 ]
 
 DEFINES['XULRUNNER_PROGNAME'] = '"xulrunner"'
-DEFINES['XPCOM_GLUE'] = True
-if CONFIG['DEBUG']:
+if CONFIG['MOZ_DEBUG']:
     DEFINES['DEBUG'] = True
 
 LOCAL_INCLUDES += [
@@ -53,8 +52,23 @@ if CONFIG['OS_ARCH'] == 'WINNT':
         'winspool',
     ]
 
-USE_LIBS += [
-    'xpcomglue',
+DISABLE_STL_WRAPPING = True
+
+JS_PREFERENCE_FILES += [
+    'xulrunner.js',
 ]
 
-DISABLE_STL_WRAPPING = True
+if CONFIG['OS_ARCH'] == 'WINNT':
+    BRANDING_FILES += [
+        'app.ico',
+        'document.ico',
+        'xulrunner.ico',
+    ]
+    BRANDING_FILES['app.ico'].source = 'xulrunner.ico'
+
+if CONFIG['MOZ_WIDGET_GTK']:
+    BRANDING_FILES += [
+        'default16.png',
+        'default32.png',
+        'default48.png',
+    ]

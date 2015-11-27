@@ -19,7 +19,7 @@ add_task(function* required_setup_params() {
     content_uri: "https://example.com/content/",
     oauth_uri: "https://example.com/oauth/",
     profile_uri: "https://example.com/profile/",
-    state: "my_state",
+    state: "my_state"
   };
   let request = yield promiseOAuthParamsSetup(BASE_URL, params);
   is(request.status, 200, "Check /setup_params status");
@@ -38,7 +38,7 @@ add_task(function* optional_setup_params() {
     oauth_uri: "https://example.com/oauth/",
     profile_uri: "https://example.com/profile/",
     scope: "profile",
-    state: "my_state",
+    state: "my_state"
   };
   let request = yield promiseOAuthParamsSetup(BASE_URL, params);
   is(request.status, 200, "Check /setup_params status");
@@ -63,15 +63,15 @@ add_task(function* token_request() {
     content_uri: "https://example.com/content/",
     oauth_uri: "https://example.com/oauth/",
     profile_uri: "https://example.com/profile/",
-    state: "my_state",
+    state: "my_state"
   };
   yield promiseOAuthParamsSetup(BASE_URL, params);
 
   let request = yield promiseToken("my_code", params.state);
-  ise(request.status, 200, "Check token response status");
-  ise(request.response.access_token, "my_code_access_token", "Check access_token");
-  ise(request.response.scope, "profile", "Check scope");
-  ise(request.response.token_type, "bearer", "Check token_type");
+  is(request.status, 200, "Check token response status");
+  is(request.response.access_token, "my_code_access_token", "Check access_token");
+  is(request.response.scope, "profile", "Check scope");
+  is(request.response.token_type, "bearer", "Check token_type");
 });
 
 add_task(function* token_request_invalid_state() {
@@ -80,50 +80,48 @@ add_task(function* token_request_invalid_state() {
     content_uri: "https://example.com/content/",
     oauth_uri: "https://example.com/oauth/",
     profile_uri: "https://example.com/profile/",
-    state: "my_invalid_state",
+    state: "my_invalid_state"
   };
   yield promiseOAuthParamsSetup(BASE_URL, params);
   let request = yield promiseToken("my_code", "my_state");
-  ise(request.status, 400, "Check token response status");
-  ise(request.response, null, "Check token response body");
+  is(request.status, 400, "Check token response status");
+  is(request.response, null, "Check token response body");
 });
 
 
 // Helper methods
 
 function promiseParams() {
-  let deferred = Promise.defer();
-  let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].
-              createInstance(Ci.nsIXMLHttpRequest);
-  xhr.open("POST", BASE_URL + "/fxa-oauth/params", true);
-  xhr.responseType = "json";
-  xhr.addEventListener("load", () => {
-    info("/fxa-oauth/params response:\n" + JSON.stringify(xhr.response, null, 4));
-    deferred.resolve(xhr);
+  return new Promise((resolve, reject) => {
+    let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(
+              Ci.nsIXMLHttpRequest);
+    xhr.open("POST", BASE_URL + "/fxa-oauth/params", true);
+    xhr.responseType = "json";
+    xhr.addEventListener("load", () => {
+      info("/fxa-oauth/params response:\n" + JSON.stringify(xhr.response, null, 4));
+      resolve(xhr);
+    });
+    xhr.addEventListener("error", reject);
+    xhr.send();
   });
-  xhr.addEventListener("error", deferred.reject);
-  xhr.send();
-
-  return deferred.promise;
 }
 
 function promiseToken(code, state) {
-  let deferred = Promise.defer();
-  let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].
-              createInstance(Ci.nsIXMLHttpRequest);
-  xhr.open("POST", BASE_URL + "/fxa-oauth/token", true);
-  xhr.setRequestHeader("Authorization", "Hawk ...");
-  xhr.responseType = "json";
-  xhr.addEventListener("load", () => {
-    info("/fxa-oauth/token response:\n" + JSON.stringify(xhr.response, null, 4));
-    deferred.resolve(xhr);
+  return new Promise((resolve, reject) => {
+    let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(
+              Ci.nsIXMLHttpRequest);
+    xhr.open("POST", BASE_URL + "/fxa-oauth/token", true);
+    xhr.setRequestHeader("Authorization", "Hawk ...");
+    xhr.responseType = "json";
+    xhr.addEventListener("load", () => {
+      info("/fxa-oauth/token response:\n" + JSON.stringify(xhr.response, null, 4));
+      resolve(xhr);
+    });
+    xhr.addEventListener("error", reject);
+    let payload = {
+      code: code,
+      state: state
+    };
+    xhr.send(JSON.stringify(payload, null, 4));
   });
-  xhr.addEventListener("error", deferred.reject);
-  let payload = {
-    code: code,
-    state: state,
-  };
-  xhr.send(JSON.stringify(payload, null, 4));
-
-  return deferred.promise;
 }

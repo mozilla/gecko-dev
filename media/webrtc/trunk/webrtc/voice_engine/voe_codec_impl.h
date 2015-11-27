@@ -31,18 +31,6 @@ public:
 
     virtual int GetRecCodec(int channel, CodecInst& codec);
 
-    virtual int SetAMREncFormat(int channel,
-                                AmrMode mode = kRfc3267BwEfficient);
-
-    virtual int SetAMRDecFormat(int channel,
-                                AmrMode mode = kRfc3267BwEfficient);
-
-    virtual int SetAMRWbEncFormat(int channel,
-                                  AmrMode mode = kRfc3267BwEfficient);
-
-    virtual int SetAMRWbDecFormat(int channel,
-                                  AmrMode mode = kRfc3267BwEfficient);
-
     virtual int SetSendCNPayloadType(
         int channel, int type,
         PayloadFrequencies frequency = kFreq16000Hz);
@@ -52,13 +40,9 @@ public:
 
     virtual int GetRecPayloadType(int channel, CodecInst& codec);
 
-    virtual int SetISACInitTargetRate(int channel,
-                                      int rateBps,
-                                      bool useFixedFrameSize = false);
+    virtual int SetFECStatus(int channel, bool enable);
 
-    virtual int SetISACMaxRate(int channel, int rateBps);
-
-    virtual int SetISACMaxPayloadSize(int channel, int sizeBytes);
+    virtual int GetFECStatus(int channel, bool& enabled);
 
     virtual int SetVADStatus(int channel,
                              bool enable,
@@ -70,13 +54,9 @@ public:
                              VadModes& mode,
                              bool& disabledDTX);
 
-    // Dual-streaming
-    virtual int SetSecondarySendCodec(int channel, const CodecInst& codec,
-                                      int red_payload_type);
+    virtual int SetOpusMaxPlaybackRate(int channel, int frequency_hz);
 
-    virtual int RemoveSecondarySendCodec(int channel);
-
-    virtual int GetSecondarySendCodec(int channel, CodecInst& codec);
+    virtual int SetOpusDtx(int channel, bool enable_dtx);
 
 protected:
     VoECodecImpl(voe::SharedData* shared);

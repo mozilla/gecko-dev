@@ -17,7 +17,6 @@ nsDOMCSSRect::nsDOMCSSRect(nsROCSSPrimitiveValue* aTop,
                            nsROCSSPrimitiveValue* aLeft)
   : mTop(aTop), mRight(aRight), mBottom(aBottom), mLeft(aLeft)
 {
-  SetIsDOMBinding();
 }
 
 nsDOMCSSRect::~nsDOMCSSRect(void)
@@ -36,9 +35,9 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(nsDOMCSSRect)
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(nsDOMCSSRect, mTop, mBottom, mLeft, mRight)
  
 JSObject*
-nsDOMCSSRect::WrapObject(JSContext* cx)
+nsDOMCSSRect::WrapObject(JSContext* cx, JS::Handle<JSObject*> aGivenProto)
 {
- return dom::RectBinding::Wrap(cx, this);
+ return dom::RectBinding::Wrap(cx, this, aGivenProto);
 }
 
 NS_IMETHODIMP

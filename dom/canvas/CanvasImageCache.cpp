@@ -13,6 +13,7 @@
 #include "nsContentUtils.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/gfx/2D.h"
+#include "gfx2DGlue.h"
 
 namespace mozilla {
 
@@ -20,10 +21,16 @@ using namespace dom;
 using namespace gfx;
 
 struct ImageCacheKey {
-  ImageCacheKey(Element* aImage, HTMLCanvasElement* aCanvas)
-    : mImage(aImage), mCanvas(aCanvas) {}
+  ImageCacheKey(Element* aImage,
+                HTMLCanvasElement* aCanvas,
+                bool aIsAccelerated)
+    : mImage(aImage)
+    , mCanvas(aCanvas)
+    , mIsAccelerated(aIsAccelerated)
+  {}
   Element* mImage;
   HTMLCanvasElement* mCanvas;
+  bool mIsAccelerated;
 };
 
 struct ImageCacheEntryData {
@@ -31,6 +38,7 @@ struct ImageCacheEntryData {
     : mImage(aOther.mImage)
     , mILC(aOther.mILC)
     , mCanvas(aOther.mCanvas)
+    , mIsAccelerated(aOther.mIsAccelerated)
     , mRequest(aOther.mRequest)
     , mSourceSurface(aOther.mSourceSurface)
     , mSize(aOther.mSize)
@@ -39,6 +47,7 @@ struct ImageCacheEntryData {
     : mImage(aKey.mImage)
     , mILC(nullptr)
     , mCanvas(aKey.mCanvas)
+    , mIsAccelerated(aKey.mIsAccelerated)
   {}
 
   nsExpirationState* GetExpirationState() { return &mState; }
@@ -46,13 +55,14 @@ struct ImageCacheEntryData {
   size_t SizeInBytes() { return mSize.width * mSize.height * 4; }
 
   // Key
-  nsRefPtr<Element> mImage;
+  RefPtr<Element> mImage;
   nsIImageLoadingContent* mILC;
-  nsRefPtr<HTMLCanvasElement> mCanvas;
+  RefPtr<HTMLCanvasElement> mCanvas;
+  bool mIsAccelerated;
   // Value
   nsCOMPtr<imgIRequest> mRequest;
   RefPtr<SourceSurface> mSourceSurface;
-  gfxIntSize mSize;
+  IntSize mSize;
   nsExpirationState mState;
 };
 
@@ -69,17 +79,62 @@ public:
 
   bool KeyEquals(KeyTypePointer key) const
   {
-    return mData->mImage == key->mImage && mData->mCanvas == key->mCanvas;
+    return mData->mImage == key->mImage &&
+           mData->mCanvas == key->mCanvas &&
+           mData->mIsAccelerated == key->mIsAccelerated;
   }
 
   static KeyTypePointer KeyToPointer(KeyType& key) { return &key; }
   static PLDHashNumber HashKey(KeyTypePointer key)
   {
-    return HashGeneric(key->mImage, key->mCanvas);
+    return HashGeneric(key->mImage, key->mCanvas, key->mIsAccelerated);
   }
   enum { ALLOW_MEMMOVE = true };
 
   nsAutoPtr<ImageCacheEntryData> mData;
+};
+
+struct SimpleImageCacheKey {
+  SimpleImageCacheKey(const imgIRequest* aImage,
+                      bool aIsAccelerated)
+    : mImage(aImage)
+    , mIsAccelerated(aIsAccelerated)
+  {}
+  const imgIRequest* mImage;
+  bool mIsAccelerated;
+};
+
+class SimpleImageCacheEntry : public PLDHashEntryHdr {
+public:
+  typedef SimpleImageCacheKey KeyType;
+  typedef const SimpleImageCacheKey* KeyTypePointer;
+
+  explicit SimpleImageCacheEntry(KeyTypePointer aKey)
+    : mRequest(const_cast<imgIRequest*>(aKey->mImage))
+    , mIsAccelerated(aKey->mIsAccelerated)
+  {}
+  SimpleImageCacheEntry(const SimpleImageCacheEntry &toCopy)
+    : mRequest(toCopy.mRequest)
+    , mIsAccelerated(toCopy.mIsAccelerated)
+    , mSourceSurface(toCopy.mSourceSurface)
+  {}
+  ~SimpleImageCacheEntry() {}
+
+  bool KeyEquals(KeyTypePointer key) const
+  {
+    return key->mImage == mRequest && key->mIsAccelerated == mIsAccelerated;
+  }
+
+  static KeyTypePointer KeyToPointer(KeyType& key) { return &key; }
+  static PLDHashNumber HashKey(KeyTypePointer key)
+  {
+    return HashGeneric(key->mImage, key->mIsAccelerated);
+  }
+  enum { ALLOW_MEMMOVE = true };
+
+  nsCOMPtr<imgIRequest> mRequest;
+  bool mIsAccelerated;
+  RefPtr<SourceSurface> mSourceSurface;
 };
 
 static bool sPrefsInitialized = false;
@@ -87,7 +142,7 @@ static int32_t sCanvasImageCacheLimit = 0;
 
 class ImageCacheObserver;
 
-class ImageCache MOZ_FINAL : public nsExpirationTracker<ImageCacheEntryData,4> {
+class ImageCache final : public nsExpirationTracker<ImageCacheEntryData,4> {
 public:
   // We use 3 generations of 1 second each to get a 2-3 seconds timeout.
   enum { GENERATION_MS = 1000 };
@@ -99,18 +154,20 @@ public:
     mTotal -= aObject->SizeInBytes();
     RemoveObject(aObject);
     // Deleting the entry will delete aObject since the entry owns aObject
-    mCache.RemoveEntry(ImageCacheKey(aObject->mImage, aObject->mCanvas));
+    mSimpleCache.RemoveEntry(SimpleImageCacheKey(aObject->mRequest, aObject->mIsAccelerated));
+    mCache.RemoveEntry(ImageCacheKey(aObject->mImage, aObject->mCanvas, aObject->mIsAccelerated));
   }
 
   nsTHashtable<ImageCacheEntry> mCache;
+  nsTHashtable<SimpleImageCacheEntry> mSimpleCache;
   size_t mTotal;
-  nsRefPtr<ImageCacheObserver> mImageCacheObserver;
+  RefPtr<ImageCacheObserver> mImageCacheObserver;
 };
 
 static ImageCache* gImageCache = nullptr;
 
 // Listen memory-pressure event for image cache purge
-class ImageCacheObserver MOZ_FINAL : public nsIObserver
+class ImageCacheObserver final : public nsIObserver
 {
 public:
   NS_DECL_ISUPPORTS
@@ -129,7 +186,7 @@ public:
 
   NS_IMETHODIMP Observe(nsISupports* aSubject,
                         const char* aTopic,
-                        const char16_t* aSomeData)
+                        const char16_t* aSomeData) override
   {
     if (!mImageCache || strcmp(aTopic, "memory-pressure")) {
       return NS_OK;
@@ -174,7 +231,7 @@ private:
 
 NS_IMPL_ISUPPORTS(ImageCacheObserver, nsIObserver)
 
-class CanvasImageCacheShutdownObserver MOZ_FINAL : public nsIObserver
+class CanvasImageCacheShutdownObserver final : public nsIObserver
 {
   ~CanvasImageCacheShutdownObserver() {}
 public:
@@ -183,7 +240,7 @@ public:
 };
 
 ImageCache::ImageCache()
-  : nsExpirationTracker<ImageCacheEntryData,4>(GENERATION_MS)
+  : nsExpirationTracker<ImageCacheEntryData,4>(GENERATION_MS, "ImageCache")
   , mTotal(0)
 {
   if (!sPrefsInitialized) {
@@ -204,19 +261,22 @@ CanvasImageCache::NotifyDrawImage(Element* aImage,
                                   HTMLCanvasElement* aCanvas,
                                   imgIRequest* aRequest,
                                   SourceSurface* aSource,
-                                  const gfxIntSize& aSize)
+                                  const IntSize& aSize,
+                                  bool aIsAccelerated)
 {
   if (!gImageCache) {
     gImageCache = new ImageCache();
     nsContentUtils::RegisterShutdownObserver(new CanvasImageCacheShutdownObserver());
   }
 
-  ImageCacheEntry* entry = gImageCache->mCache.PutEntry(ImageCacheKey(aImage, aCanvas));
+  ImageCacheEntry* entry =
+    gImageCache->mCache.PutEntry(ImageCacheKey(aImage, aCanvas, aIsAccelerated));
   if (entry) {
     if (entry->mData->mSourceSurface) {
       // We are overwriting an existing entry.
       gImageCache->mTotal -= entry->mData->SizeInBytes();
       gImageCache->RemoveObject(entry->mData);
+      gImageCache->mSimpleCache.RemoveEntry(SimpleImageCacheKey(entry->mData->mRequest, entry->mData->mIsAccelerated));
     }
     gImageCache->AddObject(entry->mData);
 
@@ -230,6 +290,12 @@ CanvasImageCache::NotifyDrawImage(Element* aImage,
     entry->mData->mSize = aSize;
 
     gImageCache->mTotal += entry->mData->SizeInBytes();
+
+    if (entry->mData->mRequest) {
+      SimpleImageCacheEntry* simpleentry =
+        gImageCache->mSimpleCache.PutEntry(SimpleImageCacheKey(entry->mData->mRequest, aIsAccelerated));
+      simpleentry->mSourceSurface = aSource;
+    }
   }
 
   if (!sCanvasImageCacheLimit)
@@ -243,12 +309,14 @@ CanvasImageCache::NotifyDrawImage(Element* aImage,
 SourceSurface*
 CanvasImageCache::Lookup(Element* aImage,
                          HTMLCanvasElement* aCanvas,
-                         gfxIntSize* aSize)
+                         gfx::IntSize* aSize,
+                         bool aIsAccelerated)
 {
   if (!gImageCache)
     return nullptr;
 
-  ImageCacheEntry* entry = gImageCache->mCache.GetEntry(ImageCacheKey(aImage, aCanvas));
+  ImageCacheEntry* entry =
+    gImageCache->mCache.GetEntry(ImageCacheKey(aImage, aCanvas, aIsAccelerated));
   if (!entry || !entry->mData->mILC)
     return nullptr;
 
@@ -261,6 +329,30 @@ CanvasImageCache::Lookup(Element* aImage,
 
   *aSize = entry->mData->mSize;
   return entry->mData->mSourceSurface;
+}
+
+SourceSurface*
+CanvasImageCache::SimpleLookup(Element* aImage,
+                               bool aIsAccelerated)
+{
+  if (!gImageCache)
+    return nullptr;
+
+  nsCOMPtr<imgIRequest> request;
+  nsCOMPtr<nsIImageLoadingContent> ilc = do_QueryInterface(aImage);
+  if (!ilc)
+    return nullptr;
+
+  ilc->GetRequest(nsIImageLoadingContent::CURRENT_REQUEST,
+                  getter_AddRefs(request));
+  if (!request)
+    return nullptr;
+
+  SimpleImageCacheEntry* entry = gImageCache->mSimpleCache.GetEntry(SimpleImageCacheKey(request, aIsAccelerated));
+  if (!entry)
+    return nullptr;
+
+  return entry->mSourceSurface;
 }
 
 NS_IMPL_ISUPPORTS(CanvasImageCacheShutdownObserver, nsIObserver)

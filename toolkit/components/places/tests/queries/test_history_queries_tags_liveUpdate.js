@@ -4,15 +4,15 @@
 // This test ensures that tags changes are correctly live-updated in a history
 // query.
 
-let gNow = Date.now();
-let gTestData = [
+var gNow = Date.now();
+var gTestData = [
   {
     isVisit: true,
     uri: "http://example.com/1/",
     lastVisit: gNow,
     isInQuery: true,
     isBookmark: true,
-    parentFolder: PlacesUtils.unfiledBookmarksFolderId,
+    parentGuid: PlacesUtils.bookmarks.unfiledGuid,
     index: PlacesUtils.bookmarks.DEFAULT_INDEX,
     title: "example1",
   },
@@ -22,7 +22,7 @@ let gTestData = [
     lastVisit: gNow++,
     isInQuery: true,
     isBookmark: true,
-    parentFolder: PlacesUtils.unfiledBookmarksFolderId,
+    parentGuid: PlacesUtils.bookmarks.unfiledGuid,
     index: PlacesUtils.bookmarks.DEFAULT_INDEX,
     title: "example2",
   },
@@ -32,7 +32,7 @@ let gTestData = [
     lastVisit: gNow++,
     isInQuery: true,
     isBookmark: true,
-    parentFolder: PlacesUtils.unfiledBookmarksFolderId,
+    parentGuid: PlacesUtils.bookmarks.unfiledGuid,
     index: PlacesUtils.bookmarks.DEFAULT_INDEX,
     title: "example3",
   },
@@ -57,7 +57,7 @@ function run_test()
   run_next_test();
 }
 
-add_task(function test_initialize()
+add_task(function* test_initialize()
 {
   yield task_populateDB(gTestData);
 });
@@ -160,6 +160,10 @@ add_task(function pages_searchterm_is_tag_query()
     compareArrayToResult([], root);
     gTestData.forEach(function (data) {
       let uri = NetUtil.newURI(data.uri);
+      PlacesUtils.bookmarks.insertBookmark(PlacesUtils.unfiledBookmarksFolderId,
+                                           uri,
+                                           PlacesUtils.bookmarks.DEFAULT_INDEX,
+                                           data.title);
       PlacesUtils.tagging.tagURI(uri, ["test-tag"]);
       compareArrayToResult([data], root);
       PlacesUtils.tagging.untagURI(uri, ["test-tag"]);
@@ -177,6 +181,10 @@ add_task(function visits_searchterm_is_tag_query()
     compareArrayToResult([], root);
     gTestData.forEach(function (data) {
       let uri = NetUtil.newURI(data.uri);
+      PlacesUtils.bookmarks.insertBookmark(PlacesUtils.unfiledBookmarksFolderId,
+                                           uri,
+                                           PlacesUtils.bookmarks.DEFAULT_INDEX,
+                                           data.title);
       PlacesUtils.tagging.tagURI(uri, ["test-tag"]);
       compareArrayToResult([data], root);
       PlacesUtils.tagging.untagURI(uri, ["test-tag"]);

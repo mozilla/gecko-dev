@@ -71,6 +71,8 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/MouseEvents.h"
 
+#include "nsPIWindowRoot.h"
+
 #ifdef XP_MACOSX
 #include "nsINativeMenuService.h"
 #define USE_NATIVE_MENUS
@@ -172,9 +174,8 @@ nsresult nsWebShellWindow::Initialize(nsIXULWindow* aParent,
   mWindow->Create((nsIWidget *)parentWidget,          // Parent nsIWidget
                   nullptr,                            // Native parent widget
                   r,                                  // Widget dimensions
-                  nullptr,                            // Device context
                   &widgetInitData);                   // Widget initialization data
-  mWindow->GetClientBounds(r);
+  mWindow->GetClientBoundsUntyped(r);
   // Match the default background color of content. Important on windows
   // since we no longer use content child widgets.
   mWindow->SetBackgroundColor(NS_RGB(255,255,255));
@@ -212,7 +213,7 @@ nsresult nsWebShellWindow::Initialize(nsIXULWindow* aParent,
   // and then blowing it away with a second one, which can cause problems for the
   // top-level chrome window case. See bug 789773.
   if (nsContentUtils::IsInitialized()) { // Sometimes this happens really early  See bug 793370.
-    rv = mDocShell->CreateAboutBlankContentViewer(nsContentUtils::SubjectPrincipal());
+    rv = mDocShell->CreateAboutBlankContentViewer(nsContentUtils::SubjectPrincipalOrSystemIfNativeCaller());
     NS_ENSURE_SUCCESS(rv, rv);
     nsCOMPtr<nsIDocument> doc = mDocShell ? mDocShell->GetDocument() : nullptr;
     NS_ENSURE_TRUE(!!doc, NS_ERROR_FAILURE);
@@ -258,6 +259,15 @@ nsWebShellWindow::WindowMoved(nsIWidget* aWidget, int32_t x, int32_t y)
     pm->AdjustPopupsOnWindowChange(window);
   }
 
+  // Notify all tabs that the widget moved.
+  if (mDocShell && mDocShell->GetWindow()) {
+    nsCOMPtr<EventTarget> eventTarget = mDocShell->GetWindow()->GetTopWindowRoot();
+    nsContentUtils::DispatchChromeEvent(mDocShell->GetDocument(),
+                                        eventTarget,
+                                        NS_LITERAL_STRING("MozUpdateWindowPos"),
+                                        false, false, nullptr);
+  }
+
   // Persist position, but not immediately, in case this OS is firing
   // repeated move events as the user drags the window
   SetPersistenceTimer(PAD_POSITION);
@@ -293,10 +303,10 @@ nsWebShellWindow::RequestWindowClose(nsIWidget* aWidget)
     MOZ_ASSERT(NS_SUCCEEDED(mDocShell->IsBeingDestroyed(&dying)) && dying,
                "No presShell, but window is not being destroyed");
   } else if (eventTarget) {
-    nsRefPtr<nsPresContext> presContext = presShell->GetPresContext();
+    RefPtr<nsPresContext> presContext = presShell->GetPresContext();
 
     nsEventStatus status = nsEventStatus_eIgnore;
-    WidgetMouseEvent event(true, NS_XUL_CLOSE, nullptr,
+    WidgetMouseEvent event(true, eWindowClose, nullptr,
                            WidgetMouseEvent::eReal);
     if (NS_SUCCEEDED(eventTarget->DispatchDOMEvent(&event, nullptr, presContext, &status)) &&
         status == nsEventStatus_eConsumeNoDefault)
@@ -331,8 +341,8 @@ nsWebShellWindow::SizeModeChanged(nsSizeMode sizeMode)
   if (ourWindow) {
     MOZ_ASSERT(ourWindow->IsOuterWindow());
 
-    // Let the application know if it's in fullscreen mode so it
-    // can update its UI.
+    // Ensure that the fullscreen state is synchronized between
+    // the widget and the outer window object.
     if (sizeMode == nsSizeMode_Fullscreen) {
       ourWindow->SetFullScreen(true);
     }
@@ -349,6 +359,16 @@ nsWebShellWindow::SizeModeChanged(nsSizeMode sizeMode)
   // the state and pass the event on to the OS. The day is coming
   // when we'll handle the event here, and the return result will
   // then need to be different.
+}
+
+void
+nsWebShellWindow::FullscreenChanged(bool aInFullscreen)
+{
+  if (mDocShell) {
+    if (nsCOMPtr<nsPIDOMWindow> ourWindow = mDocShell->GetWindow()) {
+      ourWindow->FinishFullscreenChange(aInFullscreen);
+    }
+  }
 }
 
 void
@@ -419,6 +439,11 @@ nsWebShellWindow::WindowDeactivated()
 #ifdef USE_NATIVE_MENUS
 static void LoadNativeMenus(nsIDOMDocument *aDOMDoc, nsIWidget *aParentWindow)
 {
+  nsCOMPtr<nsINativeMenuService> nms = do_GetService("@mozilla.org/widget/nativemenuservice;1");
+  if (!nms) {
+    return;
+  }
+
   // Find the menubar tag (if there is more than one, we ignore all but
   // the first).
   nsCOMPtr<nsIDOMNodeList> menubarElements;
@@ -429,19 +454,19 @@ static void LoadNativeMenus(nsIDOMDocument *aDOMDoc, nsIWidget *aParentWindow)
   nsCOMPtr<nsIDOMNode> menubarNode;
   if (menubarElements)
     menubarElements->Item(0, getter_AddRefs(menubarNode));
-  if (!menubarNode)
-    return;
 
-  nsCOMPtr<nsINativeMenuService> nms = do_GetService("@mozilla.org/widget/nativemenuservice;1");
-  nsCOMPtr<nsIContent> menubarContent(do_QueryInterface(menubarNode));
-  if (nms && menubarContent)
+  if (menubarNode) {
+    nsCOMPtr<nsIContent> menubarContent(do_QueryInterface(menubarNode));
     nms->CreateNativeMenuBar(aParentWindow, menubarContent);
+  } else {
+    nms->CreateNativeMenuBar(aParentWindow, nullptr);
+  }
 }
 #endif
 
 namespace mozilla {
 
-class WebShellWindowTimerCallback MOZ_FINAL : public nsITimerCallback
+class WebShellWindowTimerCallback final : public nsITimerCallback
 {
 public:
   explicit WebShellWindowTimerCallback(nsWebShellWindow* aWindow)
@@ -450,7 +475,7 @@ public:
 
   NS_DECL_THREADSAFE_ISUPPORTS
 
-  NS_IMETHOD Notify(nsITimer* aTimer)
+  NS_IMETHOD Notify(nsITimer* aTimer) override
   {
     // Although this object participates in a refcount cycle (this -> mWindow
     // -> mSPTimer -> this), mSPTimer is a one-shot timer and releases this
@@ -463,7 +488,7 @@ public:
 private:
   ~WebShellWindowTimerCallback() {}
 
-  nsRefPtr<nsWebShellWindow> mWindow;
+  RefPtr<nsWebShellWindow> mWindow;
 };
 
 NS_IMPL_ISUPPORTS(WebShellWindowTimerCallback, nsITimerCallback)
@@ -482,7 +507,7 @@ nsWebShellWindow::SetPersistenceTimer(uint32_t aDirtyFlags)
     }
   }
 
-  nsRefPtr<WebShellWindowTimerCallback> callback =
+  RefPtr<WebShellWindowTimerCallback> callback =
     new WebShellWindowTimerCallback(this);
   mSPTimer->InitWithCallback(callback, SIZE_PERSISTENCE_TIMEOUT,
                              nsITimer::TYPE_ONE_SHOT);
@@ -658,7 +683,7 @@ void nsWebShellWindow::LoadContentAreas() {
                           nullptr,
                           nullptr,
                           nullptr);
-            nsMemory::Free(urlChar);
+            free(urlChar);
           }
         }
       }
@@ -688,11 +713,11 @@ bool nsWebShellWindow::ExecuteCloseHandler()
     nsCOMPtr<nsIContentViewer> contentViewer;
     mDocShell->GetContentViewer(getter_AddRefs(contentViewer));
     if (contentViewer) {
-      nsRefPtr<nsPresContext> presContext;
+      RefPtr<nsPresContext> presContext;
       contentViewer->GetPresContext(getter_AddRefs(presContext));
 
       nsEventStatus status = nsEventStatus_eIgnore;
-      WidgetMouseEvent event(true, NS_XUL_CLOSE, nullptr,
+      WidgetMouseEvent event(true, eWindowClose, nullptr,
                              WidgetMouseEvent::eReal);
 
       nsresult rv =

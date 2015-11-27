@@ -11,6 +11,8 @@ Cu.import("resource://gre/modules/UITelemetry.jsm");
 
 this.EXPORTED_SYMBOLS = ["NetErrorHelper"];
 
+const KEY_CODE_ENTER = 13;
+
 /* Handlers is a list of objects that will be notified when an error page is shown
  * or when an event occurs on the page that they are registered to handle. Registration
  * is done by just adding yourself to the dictionary.
@@ -24,7 +26,7 @@ this.EXPORTED_SYMBOLS = ["NetErrorHelper"];
  * watch for click events on.
  */
 
-let handlers = {};
+var handlers = {};
 
 function NetErrorHelper(browser) {
   browser.addEventListener("click", this.handleClick, true);
@@ -78,12 +80,22 @@ handlers.searchbutton = {
     } else {
       let text = browser.contentDocument.querySelector("#searchtext");
       text.value = tab.userRequested;
+      text.addEventListener("keypress", (event) => {
+        if (event.keyCode === KEY_CODE_ENTER) {
+          this.doSearch(event.target.value);
+        }
+      });
     }
   },
 
   handleClick: function(event) {
-    let engine = Services.search.defaultEngine;
     let value = event.target.previousElementSibling.value;
+    this.doSearch(value);
+  },
+
+  doSearch: function(value) {
+    UITelemetry.addEvent("neterror.1", "button", null, "search");
+    let engine = Services.search.defaultEngine;
     let uri = engine.getSubmission(value).uri;
 
     let browserWin = Services.wm.getMostRecentWindow("navigator:browser");
@@ -123,7 +135,7 @@ handlers.wifi = {
       return;
     }
 
-    UITelemetry.addEvent("neterror.1", "button", "wifitoggle");
+    UITelemetry.addEvent("neterror.1", "button", null, "wifitoggle");
     // Show indeterminate progress while we wait for the network.
     node.disabled = true;
     node.classList.add("inProgress");
@@ -149,7 +161,7 @@ handlers.wifi = {
     let network = Cc["@mozilla.org/network/network-link-service;1"].getService(Ci.nsINetworkLinkService);
     if (network.isLinkUp && network.linkStatusKnown) {
       // If everything worked, reload the page
-      UITelemetry.addEvent("neterror.1", "button", "wifitoggle.reload");
+      UITelemetry.addEvent("neterror.1", "button", null, "wifitoggle.reload");
       Services.obs.removeObserver(this, "network:link-status-changed");
 
       // Even at this point, Android sometimes lies about the real state of the network and this reload request fails.

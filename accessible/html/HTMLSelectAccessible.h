@@ -8,8 +8,6 @@
 
 #include "HTMLFormControlAccessible.h"
 
-class nsIMutableArray;
-
 namespace mozilla {
 namespace a11y {
 
@@ -39,24 +37,24 @@ public:
   virtual ~HTMLSelectListAccessible() {}
 
   // Accessible
-  virtual a11y::role NativeRole() MOZ_OVERRIDE;
-  virtual uint64_t NativeState() MOZ_OVERRIDE;
+  virtual a11y::role NativeRole() override;
+  virtual uint64_t NativeState() override;
 
   // SelectAccessible
-  virtual bool SelectAll();
-  virtual bool UnselectAll();
+  virtual bool SelectAll() override;
+  virtual bool UnselectAll() override;
 
   // Widgets
-  virtual bool IsWidget() const;
-  virtual bool IsActiveWidget() const;
-  virtual bool AreItemsOperable() const;
-  virtual Accessible* CurrentItem();
-  virtual void SetCurrentItem(Accessible* aItem);
+  virtual bool IsWidget() const override;
+  virtual bool IsActiveWidget() const override;
+  virtual bool AreItemsOperable() const override;
+  virtual Accessible* CurrentItem() override;
+  virtual void SetCurrentItem(Accessible* aItem) override;
 
 protected:
 
   // Accessible
-  virtual void CacheChildren();
+  virtual void CacheChildren() override;
 };
 
 /*
@@ -71,25 +69,25 @@ public:
   virtual ~HTMLSelectOptionAccessible() {}
 
   // Accessible
-  virtual a11y::role NativeRole() MOZ_OVERRIDE;
-  virtual uint64_t NativeState() MOZ_OVERRIDE;
-  virtual uint64_t NativeInteractiveState() const MOZ_OVERRIDE;
+  virtual a11y::role NativeRole() override;
+  virtual uint64_t NativeState() override;
+  virtual uint64_t NativeInteractiveState() const override;
 
-  virtual int32_t GetLevelInternal();
-  virtual nsRect RelativeBounds(nsIFrame** aBoundingFrame) const MOZ_OVERRIDE;
-  virtual void SetSelected(bool aSelect) MOZ_OVERRIDE;
+  virtual int32_t GetLevelInternal() override;
+  virtual nsRect RelativeBounds(nsIFrame** aBoundingFrame) const override;
+  virtual void SetSelected(bool aSelect) override;
 
   // ActionAccessible
-  virtual uint8_t ActionCount() MOZ_OVERRIDE;
-  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) MOZ_OVERRIDE;
-  virtual bool DoAction(uint8_t aIndex) MOZ_OVERRIDE;
+  virtual uint8_t ActionCount() override;
+  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) override;
+  virtual bool DoAction(uint8_t aIndex) override;
 
   // Widgets
-  virtual Accessible* ContainerWidget() const;
+  virtual Accessible* ContainerWidget() const override;
 
 protected:
   // Accessible
-  virtual ENameValueFlag NativeName(nsString& aName) MOZ_OVERRIDE;
+  virtual ENameValueFlag NativeName(nsString& aName) override;
 
 private:
 
@@ -141,13 +139,13 @@ public:
   virtual ~HTMLSelectOptGroupAccessible() {}
 
   // Accessible
-  virtual a11y::role NativeRole() MOZ_OVERRIDE;
-  virtual uint64_t NativeInteractiveState() const MOZ_OVERRIDE;
+  virtual a11y::role NativeRole() override;
+  virtual uint64_t NativeInteractiveState() const override;
 
   // ActionAccessible
-  virtual uint8_t ActionCount() MOZ_OVERRIDE;
-  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) MOZ_OVERRIDE;
-  virtual bool DoAction(uint8_t aIndex) MOZ_OVERRIDE;
+  virtual uint8_t ActionCount() override;
+  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) override;
+  virtual bool DoAction(uint8_t aIndex) override;
 };
 
 /** ------------------------------------------------------ */
@@ -159,7 +157,7 @@ class HTMLComboboxListAccessible;
 /*
  * A class the represents the HTML Combobox widget.
  */
-class HTMLComboboxAccessible MOZ_FINAL : public AccessibleWrap
+class HTMLComboboxAccessible final : public AccessibleWrap
 {
 public:
   enum { eAction_Click = 0 };
@@ -168,28 +166,29 @@ public:
   virtual ~HTMLComboboxAccessible() {}
 
   // Accessible
-  virtual void Shutdown();
-  virtual void Description(nsString& aDescription);
-  virtual void Value(nsString& aValue);
-  virtual a11y::role NativeRole() MOZ_OVERRIDE;
-  virtual uint64_t NativeState() MOZ_OVERRIDE;
-  virtual void InvalidateChildren();
+  virtual void Shutdown() override;
+  virtual void Description(nsString& aDescription) override;
+  virtual void Value(nsString& aValue) override;
+  virtual a11y::role NativeRole() override;
+  virtual uint64_t NativeState() override;
+  virtual void InvalidateChildren() override;
+  virtual bool RemoveChild(Accessible* aChild) override;
 
   // ActionAccessible
-  virtual uint8_t ActionCount() MOZ_OVERRIDE;
-  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) MOZ_OVERRIDE;
-  virtual bool DoAction(uint8_t aIndex) MOZ_OVERRIDE;
+  virtual uint8_t ActionCount() override;
+  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) override;
+  virtual bool DoAction(uint8_t aIndex) override;
 
   // Widgets
-  virtual bool IsWidget() const;
-  virtual bool IsActiveWidget() const;
-  virtual bool AreItemsOperable() const;
-  virtual Accessible* CurrentItem();
-  virtual void SetCurrentItem(Accessible* aItem);
+  virtual bool IsWidget() const override;
+  virtual bool IsActiveWidget() const override;
+  virtual bool AreItemsOperable() const override;
+  virtual Accessible* CurrentItem() override;
+  virtual void SetCurrentItem(Accessible* aItem) override;
 
 protected:
   // Accessible
-  virtual void CacheChildren();
+  virtual void CacheChildren() override;
 
   /**
    * Return selected option.
@@ -197,7 +196,7 @@ protected:
   Accessible* SelectedOption() const;
 
 private:
-  nsRefPtr<HTMLComboboxListAccessible> mListAccessible;
+  RefPtr<HTMLComboboxListAccessible> mListAccessible;
 };
 
 /*
@@ -209,19 +208,19 @@ class HTMLComboboxListAccessible : public HTMLSelectListAccessible
 {
 public:
 
-  HTMLComboboxListAccessible(nsIAccessible* aParent, nsIContent* aContent,
+  HTMLComboboxListAccessible(Accessible* aParent, nsIContent* aContent,
                              DocAccessible* aDoc);
   virtual ~HTMLComboboxListAccessible() {}
 
   // Accessible
-  virtual nsIFrame* GetFrame() const;
-  virtual a11y::role NativeRole() MOZ_OVERRIDE;
-  virtual uint64_t NativeState() MOZ_OVERRIDE;
-  virtual nsRect RelativeBounds(nsIFrame** aBoundingFrame) const MOZ_OVERRIDE;
+  virtual nsIFrame* GetFrame() const override;
+  virtual a11y::role NativeRole() override;
+  virtual uint64_t NativeState() override;
+  virtual nsRect RelativeBounds(nsIFrame** aBoundingFrame) const override;
 
   // Widgets
-  virtual bool IsActiveWidget() const;
-  virtual bool AreItemsOperable() const;
+  virtual bool IsActiveWidget() const override;
+  virtual bool AreItemsOperable() const override;
 };
 
 } // namespace a11y

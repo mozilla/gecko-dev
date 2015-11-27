@@ -627,7 +627,6 @@ crl_storeCRL (PK11SlotInfo *slot,char *url,
     CERTSignedCrl *oldCrl = NULL, *crl = NULL;
     PRBool deleteOldCrl = PR_FALSE;
     CK_OBJECT_HANDLE crlHandle = CK_INVALID_HANDLE;
-    SECStatus rv;
 
     PORT_Assert(newCrl);
     PORT_Assert(derCrl);
@@ -640,8 +639,8 @@ crl_storeCRL (PK11SlotInfo *slot,char *url,
 
     /* we can't use the cache here because we must look in the same
        token */
-    rv = SEC_FindCrlByKeyOnSlot(slot, &newCrl->crl.derName, type,
-                                &oldCrl, CRL_DECODE_SKIP_ENTRIES);
+    (void)SEC_FindCrlByKeyOnSlot(slot, &newCrl->crl.derName, type,
+                                 &oldCrl, CRL_DECODE_SKIP_ENTRIES);
     /* if there is an old crl on the token, make sure the one we are
        installing is newer. If not, exit out, otherwise delete the
        old crl.
@@ -1123,9 +1122,9 @@ static SECStatus DPCache_Destroy(CRLDPCache* cache)
 	PORT_Free(cache->crls);
     }
     /* destroy the cert */
-    if (cache->issuer)
+    if (cache->issuerDERCert)
     {
-        CERT_DestroyCertificate(cache->issuer);
+        SECITEM_FreeItem(cache->issuerDERCert, PR_TRUE);
     }
     /* free the subject */
     if (cache->subject)
@@ -1571,14 +1570,20 @@ static SECStatus CachedCrl_Verify(CRLDPCache* cache, CachedCrl* crlobject,
     else
     {
         SECStatus signstatus = SECFailure;
-        if (cache->issuer)
+        if (cache->issuerDERCert)
         {
-            signstatus = CERT_VerifyCRL(crlobject->crl, cache->issuer, vfdate,
+	    CERTCertificate *issuer = CERT_NewTempCertificate(cache->dbHandle,
+		cache->issuerDERCert, NULL, PR_FALSE, PR_TRUE);
+
+	    if (issuer) {
+                signstatus = CERT_VerifyCRL(crlobject->crl, issuer, vfdate,
                                         wincx);
+		CERT_DestroyCertificate(issuer);
+	    }
         }
         if (SECSuccess != signstatus)
         {
-            if (!cache->issuer)
+            if (!cache->issuerDERCert)
             {
                 /* we tried to verify without an issuer cert . This is
                    because this CRL came through a call to SEC_FindCrlByName.
@@ -1925,15 +1930,16 @@ static SECStatus DPCache_GetUpToDate(CRLDPCache* cache, CERTCertificate*
     }
 
     /* add issuer certificate if it was previously unavailable */
-    if (issuer && (NULL == cache->issuer) &&
+    if (issuer && (NULL == cache->issuerDERCert) &&
         (SECSuccess == CERT_CheckCertUsage(issuer, KU_CRL_SIGN)))
     {
         /* if we didn't have a valid issuer cert yet, but we do now. add it */
         DPCache_LockWrite();
-        if (!cache->issuer)
+        if (!cache->issuerDERCert)
         {
             dirty = PR_TRUE;
-            cache->issuer = CERT_DupCertificate(issuer);    
+	    cache->dbHandle = issuer->dbhandle;
+    	    cache->issuerDERCert = SECITEM_DupItem(&issuer->derCert);
         }
         DPCache_UnlockWrite();
     }
@@ -1944,7 +1950,7 @@ static SECStatus DPCache_GetUpToDate(CRLDPCache* cache, CERTCertificate*
        SEC_FindCrlByName, or through manual insertion, rather than through a
        certificate verification (CERT_CheckCRL) */
 
-    if (cache->issuer && vfdate )
+    if (cache->issuerDERCert && vfdate )
     {
 	mustunlock = PR_FALSE;
         /* re-process all unverified CRLs */
@@ -2201,7 +2207,8 @@ static SECStatus DPCache_Create(CRLDPCache** returned, CERTCertificate* issuer,
     }
     if (issuer)
     {
-        cache->issuer = CERT_DupCertificate(issuer);
+	cache->dbHandle = issuer->dbhandle;
+    	cache->issuerDERCert = SECITEM_DupItem(&issuer->derCert);
     }
     cache->distributionPoint = SECITEM_DupItem(dp);
     cache->subject = SECITEM_DupItem(subject);
@@ -2685,7 +2692,7 @@ cert_CheckCertRevocationStatus(CERTCertificate* cert, CERTCertificate* issuer,
             }
             if (SECFailure == rv)
             {
-                SECStatus rv2 = CERT_FindCRLEntryReasonExten(entry, &reason);
+                (void)CERT_FindCRLEntryReasonExten(entry, &reason);
                 PORT_SetError(SEC_ERROR_REVOKED_CERTIFICATE);
             }
             break;
@@ -3042,7 +3049,7 @@ SECStatus cert_CacheCRLByGeneralName(CERTCertDBHandle* dbhandle, SECItem* crl,
 {
     NamedCRLCacheEntry* oldEntry, * newEntry = NULL;
     NamedCRLCache* ncc = NULL;
-    SECStatus rv = SECSuccess, rv2;
+    SECStatus rv = SECSuccess;
 
     PORT_Assert(namedCRLCache.lock);
     PORT_Assert(namedCRLCache.entries);
@@ -3080,8 +3087,7 @@ SECStatus cert_CacheCRLByGeneralName(CERTCertDBHandle* dbhandle, SECItem* crl,
                                         (void*) newEntry))
             {
                 PORT_Assert(0);
-                rv2 = NamedCRLCacheEntry_Destroy(newEntry);
-                PORT_Assert(SECSuccess == rv2);
+                NamedCRLCacheEntry_Destroy(newEntry);
                 rv = SECFailure;
             }
         }
@@ -3104,8 +3110,7 @@ SECStatus cert_CacheCRLByGeneralName(CERTCertDBHandle* dbhandle, SECItem* crl,
             }
             else
             {
-                rv2 = NamedCRLCacheEntry_Destroy(oldEntry);
-                PORT_Assert(SECSuccess == rv2);
+                PORT_CheckSuccess(NamedCRLCacheEntry_Destroy(oldEntry));
             }
             if (NULL == PL_HashTableAdd(namedCRLCache.entries,
                                       (void*) newEntry->canonicalizedName,
@@ -3152,8 +3157,7 @@ SECStatus cert_CacheCRLByGeneralName(CERTCertDBHandle* dbhandle, SECItem* crl,
                 }
                 else
                 {
-                    rv2 = NamedCRLCacheEntry_Destroy(oldEntry);
-                    PORT_Assert(SECSuccess == rv2);
+                    PORT_CheckSuccess(NamedCRLCacheEntry_Destroy(oldEntry));
                 }
                 if (NULL == PL_HashTableAdd(namedCRLCache.entries,
                                           (void*) newEntry->canonicalizedName,
@@ -3165,8 +3169,7 @@ SECStatus cert_CacheCRLByGeneralName(CERTCertDBHandle* dbhandle, SECItem* crl,
             }
         }
     }
-    rv2 = cert_ReleaseNamedCRLCache(ncc);
-    PORT_Assert(SECSuccess == rv2);
+    PORT_CheckSuccess(cert_ReleaseNamedCRLCache(ncc));
 
     return rv;
 }

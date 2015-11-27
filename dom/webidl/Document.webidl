@@ -10,6 +10,7 @@ interface WindowProxy;
 interface nsISupports;
 interface URI;
 interface nsIDocShell;
+interface nsILoadGroup;
 
 enum VisibilityState { "hidden", "visible" };
 
@@ -26,6 +27,10 @@ interface Document : Node {
   readonly attribute DOMString compatMode;
   [Pure]
   readonly attribute DOMString characterSet;
+  [Pure,BinaryName="characterSet"]
+  readonly attribute DOMString charset; // legacy alias of .characterSet
+  [Pure,BinaryName="characterSet"]
+  readonly attribute DOMString inputEncoding; // legacy alias of .characterSet
   [Pure]
   readonly attribute DOMString contentType;
 
@@ -85,8 +90,6 @@ interface Document : Node {
   Attr createAttribute(DOMString name);
   [NewObject, Throws]
   Attr createAttributeNS(DOMString? namespace, DOMString name);
-  [Pure]
-  readonly attribute DOMString? inputEncoding;
 };
 
 // http://www.whatwg.org/specs/web-apps/current-work/#the-document-object
@@ -150,6 +153,7 @@ partial interface Document {
                 attribute EventHandler onpaste;
                 attribute EventHandler onbeforescriptexecute;
                 attribute EventHandler onafterscriptexecute;
+
   /**
    * True if this document is synthetic : stand alone image, video, audio file,
    * etc.
@@ -203,6 +207,13 @@ partial interface Document {
 
   [ChromeOnly]
   readonly attribute URI? documentURIObject;
+
+  /**
+   * Current referrer policy - one of the REFERRER_POLICY_* constants
+   * from nsIHttpChannel.
+   */
+  [ChromeOnly]
+  readonly attribute unsigned long referrerPolicy;
 
 };
 
@@ -285,10 +296,10 @@ partial interface Document {
   //(Not implemented)NodeList  findAll(DOMString selectors, optional (Element or sequence<Node>)? refNodes);
 };
 
-// http://dev.w3.org/fxtf/web-animations/#extensions-to-the-document-interface
+// http://w3c.github.io/web-animations/#extensions-to-the-document-interface
 partial interface Document {
-  [Pref="dom.animations-api.core.enabled"]
-  readonly attribute AnimationTimeline timeline;
+  [Func="nsDocument::IsWebAnimationsEnabled"]
+  readonly attribute DocumentTimeline timeline;
 };
 
 //  Mozilla extensions of various sorts
@@ -347,6 +358,8 @@ partial interface Document {
   [ChromeOnly] readonly attribute nsIDocShell? docShell;
 
   [ChromeOnly] readonly attribute DOMString contentLanguage;
+
+  [ChromeOnly] readonly attribute nsILoadGroup? documentLoadGroup;
 };
 
 // Extension to give chrome JS the ability to determine when a document was
@@ -355,9 +368,40 @@ partial interface Document {
   [ChromeOnly] readonly attribute boolean isSrcdocDocument;
 };
 
+/**
+ * Chrome document anonymous content management.
+ * This is a Chrome-only API that allows inserting fixed positioned anonymous
+ * content on top of the current page displayed in the document.
+ * The supplied content is cloned and inserted into the document's CanvasFrame.
+ * Note that this only works for HTML documents.
+ */
+partial interface Document {
+  /**
+   * Deep-clones the provided element and inserts it into the CanvasFrame.
+   * Returns an AnonymousContent instance that can be used to manipulate the
+   * inserted element.
+   */
+  [ChromeOnly, NewObject, Throws]
+  AnonymousContent insertAnonymousContent(Element aElement);
+
+  /**
+   * Removes the element inserted into the CanvasFrame given an AnonymousContent
+   * instance.
+   */
+  [ChromeOnly, Throws]
+  void removeAnonymousContent(AnonymousContent aContent);
+};
+
+// Extension to give chrome JS the ability to determine whether
+// the user has interacted with the document or not.
+partial interface Document {
+  [ChromeOnly] readonly attribute boolean userHasInteracted;
+};
+
 Document implements XPathEvaluator;
 Document implements GlobalEventHandlers;
 Document implements TouchEventHandlers;
 Document implements ParentNode;
 Document implements OnErrorEventHandlerForNodes;
 Document implements GeometryUtils;
+Document implements FontFaceSource;

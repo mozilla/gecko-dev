@@ -15,7 +15,6 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/NullPtr.h"
 
 #include <stdint.h>
 
@@ -49,9 +48,6 @@ class RangedPtr
   T* const mRangeStart;
   T* const mRangeEnd;
 #endif
-
-  typedef void (RangedPtr::* ConvertibleToBool)();
-  void nonNull() {}
 
   void checkSanity()
   {
@@ -108,7 +104,7 @@ public:
 
   /* Equivalent to RangedPtr(aArr, aArr, N). */
   template<size_t N>
-  RangedPtr(T (&aArr)[N])
+  explicit RangedPtr(T (&aArr)[N])
     : mPtr(aArr)
 #ifdef DEBUG
     , mRangeStart(aArr), mRangeEnd(aArr + N)
@@ -119,7 +115,7 @@ public:
 
   T* get() const { return mPtr; }
 
-  operator ConvertibleToBool() const { return mPtr ? &RangedPtr::nonNull : 0; }
+  explicit operator bool() const { return mPtr != nullptr; }
 
   /*
    * You can only assign one RangedPtr into another if the two pointers have
@@ -275,8 +271,8 @@ public:
   }
 
 private:
-  RangedPtr() MOZ_DELETE;
-  T* operator&() MOZ_DELETE;
+  RangedPtr() = delete;
+  T* operator&() = delete;
 };
 
 } /* namespace mozilla */

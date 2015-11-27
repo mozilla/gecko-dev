@@ -31,16 +31,18 @@ import org.mozilla.gecko.background.common.log.Logger;
 import org.mozilla.gecko.background.nativecode.NativeCrypto;
 import org.mozilla.gecko.sync.setup.Constants;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.text.Spannable;
+import android.text.Spanned;
+import android.text.style.ClickableSpan;
 
 public class Utils {
 
   private static final String LOG_TAG = "Utils";
 
-  private static SecureRandom sharedSecureRandom = new SecureRandom();
+  private static final SecureRandom sharedSecureRandom = new SecureRandom();
 
   // See <http://developer.android.com/reference/android/content/Context.html#getSharedPreferences%28java.lang.String,%20int%29>
   public static final int SHARED_PREFERENCES_MODE = 0;
@@ -141,11 +143,10 @@ public class Utils {
     return Base64.decodeBase64(base64.getBytes("UTF-8"));
   }
 
-  @SuppressLint("DefaultLocale")
   public static byte[] decodeFriendlyBase32(String base32) {
     Base32 converter = new Base32();
     final String translated = base32.replace('8', 'l').replace('9', 'o');
-    return converter.decode(translated.toUpperCase());
+    return converter.decode(translated.toUpperCase(Locale.US));
   }
 
   public static byte[] hex2Byte(String str, int byteLength) {
@@ -200,7 +201,7 @@ public class Utils {
   }
 
   public static long decimalSecondsToMilliseconds(Integer decimal) {
-    return (long)(decimal * 1000);
+    return (decimal * 1000);
   }
 
   public static byte[] sha256(byte[] in)
@@ -613,5 +614,27 @@ public class Utils {
       return language;
     }
     return language + "-" + country;
+  }
+
+  /**
+   * Make a span with a clickable chunk of text interpolated in.
+   *
+   * @param context Android context.
+   * @param messageId of string containing clickable chunk.
+   * @param clickableId of string to make clickable.
+   * @param clickableSpan to activate on click.
+   * @return Spannable.
+   */
+  public static Spannable interpolateClickableSpan(Context context, int messageId, int clickableId, ClickableSpan clickableSpan) {
+    // This horrible bit of special-casing is because we want this error message to
+    // contain a clickable, extra chunk of text, but we don't want to pollute
+    // the exception class with Android specifics.
+    final String clickablePart = context.getString(clickableId);
+    final String message = context.getString(messageId, clickablePart);
+    final int clickableStart = message.lastIndexOf(clickablePart);
+    final int clickableEnd = clickableStart + clickablePart.length();
+    final Spannable span = Spannable.Factory.getInstance().newSpannable(message);
+    span.setSpan(clickableSpan, clickableStart, clickableEnd, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    return span;
   }
 }

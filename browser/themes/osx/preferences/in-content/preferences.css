@@ -2,34 +2,11 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this file,
    - You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-%include ../../../shared/incontentprefs/preferences.css
+%include ../../../shared/incontentprefs/preferences.inc.css
 
 prefpane .groupbox-title {
   background: none;
   margin-bottom: 0;
-}
-
-spinbuttons {
-  -moz-appearance: none;
-}
-
-.spinbuttons-up {
-  margin-top: 0 !important;
-  border-radius: 4px 4px 0 0;
-}
-
-.spinbuttons-down  {
-  margin-bottom: 0 !important;
-  border-radius: 0 0 4px 4px;
-}
-
-.spinbuttons-button > .button-box {
-  -moz-padding-start: 2px !important;
-  -moz-padding-end: 3px !important;
-}
-
-.spinbuttons-button > .button-box > .button-text {
-  display: none;
 }
 
 .actionsMenu > .menulist-label-box > .menulist-icon {
@@ -50,14 +27,23 @@ filefield + button {
   -moz-margin-start: -8px;
 }
 
-#dialogTitle {
-  -moz-margin-start: 6px !important;
-}
-
 #popupPolicyRow {
   /* Override styles from
      browser/themes/osx/preferences/preferences.css */
   margin-bottom: 0 !important;
   padding-bottom: 0 !important;
   border-bottom: none;
+}
+
+#advancedPrefs {
+  margin-right: 0; /*override margin from normal preferences.css */
+  margin-left: 0;
+}
+
+/**
+ * Dialog
+ */
+
+#dialogTitle {
+  font-size: 1.1em;
 }

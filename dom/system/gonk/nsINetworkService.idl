@@ -4,8 +4,6 @@
 
 #include "nsISupports.idl"
 
-interface nsINetworkInterface;
-
 [scriptable, function, uuid(91824160-fb25-11e1-a21f-0800200c9a66)]
 interface nsIWifiTetheringCallback : nsISupports
 {
@@ -101,12 +99,70 @@ interface nsIUpdateUpStreamCallback : nsISupports
   void updateUpStreamResult(in boolean success, in DOMString externalIfname);
 };
 
+[scriptable, function, uuid(eedca6c0-1310-11e4-9191-0800200c9a66)]
+interface nsISetDnsCallback : nsISupports
+{
+  /**
+   * Callback function used to report the result of setting DNS server.
+   *
+   * @param error
+   *        An error message if the operation wasn't successful,
+   *        or `null` if it was.
+   */
+  void setDnsResult(in jsval error);
+};
+
+[scriptable, function, uuid(5d0e1a60-1187-11e4-9191-0800200c9a66)]
+interface nsINativeCommandCallback : nsISupports
+{
+  /**
+   * Callback function used to report the result of a network native command.
+   *
+   * @param success
+   *        Boolean to indicate the operation is successful or not.
+   */
+  void nativeCommandResult(in boolean success);
+};
+
+[scriptable, function, uuid(694abb80-1187-11e4-9191-0800200c9a66)]
+interface nsIDhcpRequestCallback : nsISupports
+{
+  /**
+   * Callback function used to report the result of DHCP client request.
+   *
+   * @param success
+   *        Boolean to indicate the operation is successful or not.
+   *
+   * @param dhcpInfo
+   *        An object to represent the successful DHCP request:
+   *
+   *          - gateway_str: string
+   *          - dns1_str:    string
+   *          - dns2_str:    string
+   *          - mask_str:    string
+   *          - server_str:  string
+   *          - vendor_str:  string
+   *          - lease:       long
+   *          - mask:        long
+   *          - ipaddr:      long
+   *          - gateway:     long
+   *          - dns1:        long
+   *          - dns2:        long
+   *          - server:      long
+   */
+  void dhcpRequestResult(in boolean success, in jsval dhcpInfo);
+};
+
+
 /**
  * Provide network services.
  */
-[scriptable, uuid(ddb38428-0cf2-4c6a-a3c9-5e2f00fc54db)]
+[scriptable, uuid(bb929ae3-4a42-4a63-8388-97c4de69200e)]
 interface nsINetworkService : nsISupports
 {
+  const long MODIFY_ROUTE_ADD    = 0;
+  const long MODIFY_ROUTE_REMOVE = 1;
+
   /**
    * Enable or disable Wifi Tethering
    *
@@ -172,7 +228,7 @@ interface nsINetworkService : nsISupports
    * @return false if there is no interface registered for the networkType param.
    */
   boolean setNetworkInterfaceAlarm(in DOMString networkName,
-                                   in long threshold,
+                                   in long long threshold,
                                    in nsINetworkUsageAlarmCallback callback);
 
   /**
@@ -194,15 +250,6 @@ interface nsINetworkService : nsISupports
                             in nsIWifiOperationModeCallback callback);
 
   /**
-   * Set http proxy for specific network
-   *
-   * @param networkInterface
-   *        The network interface which contains the http proxy host/port
-   *        we want to set.
-   */
-  void setNetworkProxy(in nsINetworkInterface networkInterface);
-
-  /**
    * Set USB tethering.
    *
    * @param enabled
@@ -219,77 +266,100 @@ interface nsINetworkService : nsISupports
   /**
    * Reset routing table.
    *
-   * @param networkInterface
-   *        The network interface we want remove from the routing table.
+   * @param interfaceName
+   *        The name of the network interface we want to remove from the routing
+   *        table.
+   *
+   * @param callback
+   *        Callback to notify the result of resetting routing table.
    */
-  void resetRoutingTable(in nsINetworkInterface networkInterface);
+  void resetRoutingTable(in DOMString interfaceName,
+                         in nsINativeCommandCallback callback);
 
   /**
    * Set DNS.
    *
-   * @param networkInterface
-   *        The network interface which contains the DNS we want to set.
+   * @param interfaceName
+   *        The network interface name of the DNS we want to set.
+   * @param dnsesCount
+   *        Number of elements in dnses.
+   * @param dnses
+   *        Dnses to set.
+   * @param gatewaysCount
+   *        Number of elements in gateways.
+   * @param gateways
+   *        Gateways for the dnses, the most suitable, usually the one with the
+   *        same address family, will be selected for each dns.
+   *
+   * @param callback
+   *        Callback to notify the result of setting DNS server.
    */
-  void setDNS(in nsINetworkInterface networkInterface);
+  void setDNS(in DOMString interfaceName,
+              in unsigned long dnsesCount,
+              [array, size_is(dnsesCount)] in wstring dnses,
+              in unsigned long gatewaysCount,
+              [array, size_is(gatewaysCount)] in wstring gateways,
+              in nsISetDnsCallback callback);
 
   /**
-   * Set default route and DNS.
+   * Set default route.
    *
-   * @param networkInterface
-   *        The network interface we want to set to the default route and dns.
-   * @param oldInterface
-   *        The previous network interface.
+   * @param interfaceName
+   *        The network interface name of the default route we want to set.
+   * @param count
+   *        Number of elements in gateways.
+   * @param gateways
+   *        Default gateways for setting default route.
+   *
+   * @param callback
+   *        Callback to notify the result of setting default route.
    */
-  void setDefaultRouteAndDNS(in nsINetworkInterface networkInterface,
-                             in nsINetworkInterface oldInterface);
+  void setDefaultRoute(in DOMString interfaceName,
+                       in unsigned long count,
+                       [array, size_is(count)] in wstring gateways,
+                       in nsINativeCommandCallback callback);
 
   /**
    * Remove default route.
    *
-   * @param networkInterface
-   *        The network interface we want remove from the default route.
+   * @param interfaceName
+   *        The network interface name of the default route we want to remove.
+   * @param count
+   *        Number of elements in gateways.
+   * @param gatways
+   *        Default gateways for removing default route.
+   *
+   * @param callback
+   *        Callback to notify the result of removing default route.
    */
-  void removeDefaultRoute(in nsINetworkInterface networkInterface);
+  void removeDefaultRoute(in DOMString interfaceName,
+                          in unsigned long count,
+                          [array, size_is(count)] in wstring gateways,
+                          in nsINativeCommandCallback callback);
 
   /**
-   * Add host route.
+   * Modify route.
    *
+   * @param action
+   *        nsINetworkService.MODIFY_ROUTE_ADD to add route and
+   *        nsINetworkService.MODIFY_ROUTE_REMOVE to remove.
    * @param interfaceName
    *        Network interface name for the output of the host route.
-   * @param gateway
-   *        Gateway ip for the output of the host route.
-   * @param host
-   *        Host ip we want to add route for.
-   *
-   * @return A deferred promise that resolves on success or rejects with a
-   *         specified reason otherwise.
-   */
-  jsval addHostRoute(in DOMString interfaceName, in DOMString gateway,
-                     in DOMString host);
-
-  /**
-   * Remove host route.
-   *
-   * @param interfaceName
-   *        Network interface name for the output of the host route.
-   * @param gateway
-   *        Gateway ip for the output of the host route.
    * @param host
    *        Host ip we want to remove route for.
+   * @param prefixLength
+   *        The prefix length of the route we'd like to modify.
+   * @param [optional] gateway
+   *        Gateway ip for the output of the host route.
    *
    * @return A deferred promise that resolves on success or rejects with a
    *         specified reason otherwise.
    */
-  jsval removeHostRoute(in DOMString interfaceName, in DOMString gateway,
-                        in DOMString host);
-
-  /**
-   * Remove all host routes.
-   *
-   * @param interfaceName
-   *        The interface name we want remove from the routing table.
-   */
-  void removeHostRoutes(in DOMString interfaceName);
+  jsval modifyRoute(in long      action,
+                    in DOMString interfaceName,
+                    in DOMString host,
+                    in long      prefixLength,
+                    [optional] in DOMString gateway);
 
   /**
    * Add route to secondary routing table.
@@ -302,7 +372,8 @@ interface nsINetworkService : nsISupports
    *        .prefix: destination prefix
    *        .gateway: gateway ip address
    */
-  void addSecondaryRoute(in DOMString interfaceName, in jsval route);
+  void addSecondaryRoute(in DOMString interfaceName, in jsval route,
+                         in nsINativeCommandCallback callback);
 
   /**
    * Remove route from secondary routing table.
@@ -315,7 +386,8 @@ interface nsINetworkService : nsISupports
    *        .prefix: destination prefix
    *        .gateway: gateway ip address
    */
-  void removeSecondaryRoute(in DOMString interfaceName, in jsval route);
+  void removeSecondaryRoute(in DOMString interfaceName, in jsval route,
+                            in nsINativeCommandCallback callback);
 
   /**
    * Enable or disable usb rndis.
@@ -341,4 +413,134 @@ interface nsINetworkService : nsISupports
   void updateUpStream(in jsval previous,
                       in jsval current,
                       in nsIUpdateUpStreamCallback callback);
+
+  /**
+   * Configure a network interface.
+   *
+   * @param config
+   *        An object containing the detail that we want to configure the interface:
+   *
+   *          - ifname:  string
+   *          - ipaddr:  long
+   *          - mask:    long
+   *          - gateway: long
+   *          - dns1:    long
+   *          - dns2:    long
+   *
+   * @param callback
+   *        Callback to notify the result of configurating network interface.
+   */
+  void configureInterface(in jsval config,
+                          in nsINativeCommandCallback callback);
+
+  /**
+   * Issue a DHCP client request.
+   *
+   * @param networkInterface
+   *        The network interface which we wnat to do the DHCP request on.
+   *
+   * @param callback
+   *        Callback to notify the result of the DHCP request.
+   */
+  void dhcpRequest(in DOMString interfaceName,
+                   in nsIDhcpRequestCallback callback);
+
+  /**
+   * Stop Dhcp daemon.
+   *
+   * @param ifname
+   *        Target interface.
+   *
+   * @param callback
+   *        Callback to notify the result of stopping dhcp request.
+   */
+  void stopDhcp(in DOMString ifname,
+                in nsINativeCommandCallback callback);
+
+  /**
+   * Enable a network interface.
+   *
+   * @param networkInterface
+   *        The network interface name which we want to enable.
+   *
+   * @param callback
+   *        Callback to notify the result of disabling network interface.
+   */
+  void enableInterface(in DOMString interfaceName,
+                       in nsINativeCommandCallback callback);
+
+  /**
+   * Disable a network interface.
+   *
+   * @param networkInterface
+   *        The network interface name which we want to disable.
+   *
+   * @param callback
+   *        Callback to notify the result of disabling network interface.
+   */
+  void disableInterface(in DOMString interfaceName,
+                        in nsINativeCommandCallback callback);
+
+  /**
+   * Reset all connections on a specified network interface.
+   *
+   * @param interfaceName
+   *        The network interface name which we want to reset.
+   *
+   * @param callback
+   *        Callback to notify the result of resetting connections.
+   */
+  void resetConnections(in DOMString interfaceName,
+                        in nsINativeCommandCallback callback);
+
+  /**
+   * Create network (required to call prior to any networking operation).
+   *
+   * @param interfaceName
+   *        The network interface name which we want to create network for.
+   *
+   * @param callback
+   *        Callback to notify the result of creating network.
+   */
+  void createNetwork(in DOMString interfaceName,
+                     in nsINativeCommandCallback callback);
+
+  /**
+   * Destroy network.
+   *
+   * @param interfaceName
+   *        The network interface name of the network we want to destroy.
+   *
+   * @param callback
+   *        Callback to notify the result of destroying network.
+   */
+  void destroyNetwork(in DOMString interfaceName,
+                      in nsINativeCommandCallback callback);
+
+  /**
+   * Query the netId associated with given network interface name.
+   *
+   * @param interfaceName
+   *        The network interface name which we want to query.
+   *
+   * @return A deferred promise that resolves with a string to indicate.
+   *         the queried netId on success and rejects if the interface name
+   *         is invalid.
+   *
+   */
+  jsval getNetId(in DOMString interfaceName);
+
+  /**
+   * Set maximum transmission unit on a network interface.
+   *
+   * @param interfaceName
+   *        The name of the network interface that we want to set mtu.
+   * @param mtu
+   *        Size of maximum tranmission unit.
+   *
+   * @param callback
+   *        Callback to notify the result of setting mtu.
+   */
+  void setMtu(in DOMString interfaceName, in long mtu,
+              in nsINativeCommandCallback callback);
 };

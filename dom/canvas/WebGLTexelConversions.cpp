@@ -37,7 +37,7 @@ class WebGLImageConverter
      * texels with typed pointers and this value will tell us by how much we need
      * to increment these pointers to advance to the next texel.
      */
-    template<MOZ_ENUM_CLASS_ENUM_TYPE(WebGLTexelFormat) Format>
+    template<WebGLTexelFormat Format>
     static size_t NumElementsPerTexelForFormat() {
         switch (Format) {
             case WebGLTexelFormat::R8:
@@ -78,9 +78,9 @@ class WebGLImageConverter
      * to return immediately in these cases to allow the compiler to avoid generating
      * useless code.
      */
-    template<MOZ_ENUM_CLASS_ENUM_TYPE(WebGLTexelFormat) SrcFormat,
-             MOZ_ENUM_CLASS_ENUM_TYPE(WebGLTexelFormat) DstFormat,
-             MOZ_ENUM_CLASS_ENUM_TYPE(WebGLTexelPremultiplicationOp) PremultiplicationOp>
+    template<WebGLTexelFormat SrcFormat,
+             WebGLTexelFormat DstFormat,
+             WebGLTexelPremultiplicationOp PremultiplicationOp>
     void run()
     {
         // check for never-called cases. We early-return to allow the compiler
@@ -151,9 +151,9 @@ class WebGLImageConverter
             typename DataTypeForFormat<DstFormat>::Type
             DstType;
 
-        const MOZ_ENUM_CLASS_ENUM_TYPE(WebGLTexelFormat) IntermediateSrcFormat
+        const WebGLTexelFormat IntermediateSrcFormat
             = IntermediateFormat<SrcFormat>::Value;
-        const MOZ_ENUM_CLASS_ENUM_TYPE(WebGLTexelFormat) IntermediateDstFormat
+        const WebGLTexelFormat IntermediateDstFormat
             = IntermediateFormat<DstFormat>::Value;
         typedef
             typename DataTypeForFormat<IntermediateSrcFormat>::Type
@@ -180,14 +180,14 @@ class WebGLImageConverter
         const ptrdiff_t srcStrideInElements = mSrcStride / sizeof(SrcType);
         const ptrdiff_t dstStrideInElements = mDstStride / sizeof(DstType);
 
-        const SrcType *srcRowStart = static_cast<const SrcType*>(mSrcStart);
-        DstType *dstRowStart = static_cast<DstType*>(mDstStart);
+        const SrcType* srcRowStart = static_cast<const SrcType*>(mSrcStart);
+        DstType* dstRowStart = static_cast<DstType*>(mDstStart);
 
         // the loop performing the texture format conversion
         for (size_t i = 0; i < mHeight; ++i) {
-            const SrcType *srcRowEnd = srcRowStart + mWidth * NumElementsPerSrcTexel;
-            const SrcType *srcPtr = srcRowStart;
-            DstType *dstPtr = dstRowStart;
+            const SrcType* srcRowEnd = srcRowStart + mWidth * NumElementsPerSrcTexel;
+            const SrcType* srcPtr = srcRowStart;
+            DstType* dstPtr = dstRowStart;
             while (srcPtr != srcRowEnd) {
                 // convert a single texel. We proceed in 3 steps: unpack the source texel
                 // so the corresponding interchange format (e.g. unpack RGB565 to RGBA8),
@@ -218,8 +218,8 @@ class WebGLImageConverter
         return;
     }
 
-    template<MOZ_ENUM_CLASS_ENUM_TYPE(WebGLTexelFormat) SrcFormat,
-             MOZ_ENUM_CLASS_ENUM_TYPE(WebGLTexelFormat) DstFormat>
+    template<WebGLTexelFormat SrcFormat,
+             WebGLTexelFormat DstFormat>
     void run(WebGLTexelPremultiplicationOp premultiplicationOp)
     {
         #define WEBGLIMAGECONVERTER_CASE_PREMULTIPLICATIONOP(PremultiplicationOp) \
@@ -237,7 +237,7 @@ class WebGLImageConverter
         #undef WEBGLIMAGECONVERTER_CASE_PREMULTIPLICATIONOP
     }
 
-    template<MOZ_ENUM_CLASS_ENUM_TYPE(WebGLTexelFormat) SrcFormat>
+    template<WebGLTexelFormat SrcFormat>
     void run(WebGLTexelFormat dstFormat,
              WebGLTexelPremultiplicationOp premultiplicationOp)
     {
@@ -325,68 +325,74 @@ public:
 
 } // end anonymous namespace
 
-void
-WebGLContext::ConvertImage(size_t width, size_t height, size_t srcStride, size_t dstStride,
-                           const uint8_t* src, uint8_t *dst,
-                           WebGLTexelFormat srcFormat, bool srcPremultiplied,
-                           WebGLTexelFormat dstFormat, bool dstPremultiplied,
-                           size_t dstTexelSize)
+bool
+ConvertImage(size_t width, size_t height,
+             const void* srcBegin, size_t srcStride, gl::OriginPos srcOrigin,
+             WebGLTexelFormat srcFormat, bool srcPremultiplied,
+             void* dstBegin, size_t dstStride, gl::OriginPos dstOrigin,
+             WebGLTexelFormat dstFormat, bool dstPremultiplied)
 {
-    if (width <= 0 || height <= 0)
-        return;
-
-    const bool FormatsRequireNoPremultiplicationOp =
-        !HasAlpha(srcFormat) ||
-        !HasColor(srcFormat) ||
-        !HasColor(dstFormat);
-
-    if (srcFormat == dstFormat &&
-        (FormatsRequireNoPremultiplicationOp || srcPremultiplied == dstPremultiplied))
+    if (srcFormat == WebGLTexelFormat::FormatNotSupportingAnyConversion ||
+        dstFormat == WebGLTexelFormat::FormatNotSupportingAnyConversion)
     {
-        // fast exit path: we just have to memcpy all the rows.
+        return false;
+    }
+
+    if (!width || !height)
+        return true;
+
+    const bool shouldYFlip = (srcOrigin != dstOrigin);
+
+    const bool canSkipPremult = (!HasAlpha(srcFormat) ||
+                                 !HasColor(srcFormat) ||
+                                 !HasColor(dstFormat));
+
+    WebGLTexelPremultiplicationOp premultOp;
+    if (canSkipPremult) {
+        premultOp = WebGLTexelPremultiplicationOp::None;
+    } else if (!srcPremultiplied && dstPremultiplied) {
+        premultOp = WebGLTexelPremultiplicationOp::Premultiply;
+    } else if (srcPremultiplied && !dstPremultiplied) {
+        premultOp = WebGLTexelPremultiplicationOp::Unpremultiply;
+    } else {
+        premultOp = WebGLTexelPremultiplicationOp::None;
+    }
+
+    const uint8_t* srcItr = (const uint8_t*)srcBegin;
+    const uint8_t* const srcEnd = srcItr + srcStride * height;
+    uint8_t* dstItr = (uint8_t*)dstBegin;
+    ptrdiff_t dstItrStride = dstStride;
+    if (shouldYFlip) {
+         dstItr = dstItr + dstStride * (height - 1);
+         dstItrStride = -dstItrStride;
+    }
+
+    if (srcFormat == dstFormat && premultOp == WebGLTexelPremultiplicationOp::None) {
+        // Fast exit path: we just have to memcpy all the rows.
         //
         // The case where absolutely nothing needs to be done is supposed to have
         // been handled earlier (in TexImage2D_base, etc).
         //
-        // So the case we're handling here is when even though no format conversion is needed,
-        // we still might have to flip vertically and/or to adjust to a different stride.
+        // So the case we're handling here is when even though no format conversion is
+        // needed, we still might have to flip vertically and/or to adjust to a different
+        // stride.
 
-        MOZ_ASSERT(mPixelStoreFlipY || srcStride != dstStride, "Performance trap -- should handle this case earlier, to avoid memcpy");
+        MOZ_ASSERT(shouldYFlip || srcStride != dstStride,
+                   "Performance trap -- should handle this case earlier to avoid memcpy");
 
-        size_t row_size = width * dstTexelSize; // doesn't matter, src and dst formats agree
-        const uint8_t* ptr = src;
-        const uint8_t* src_end = src + height * srcStride;
+        const auto bytesPerPixel = TexelBytesForFormat(srcFormat);
+        const size_t bytesPerRow = bytesPerPixel * width;
 
-        uint8_t* dst_row = mPixelStoreFlipY
-                           ? dst + (height-1) * dstStride
-                           : dst;
-        ptrdiff_t dstStrideSigned(dstStride);
-        ptrdiff_t dst_delta = mPixelStoreFlipY ? -dstStrideSigned : dstStrideSigned;
-
-        while(ptr != src_end) {
-            memcpy(dst_row, ptr, row_size);
-            ptr += srcStride;
-            dst_row += dst_delta;
+        while (srcItr != srcEnd) {
+            memcpy(dstItr, srcItr, bytesPerRow);
+            srcItr += srcStride;
+            dstItr += dstItrStride;
         }
-        return;
+        return true;
     }
 
-    uint8_t* dstStart = dst;
-    ptrdiff_t signedDstStride = dstStride;
-    if (mPixelStoreFlipY) {
-        dstStart = dst + (height - 1) * dstStride;
-        signedDstStride = -signedDstStride;
-    }
-
-    WebGLImageConverter converter(width, height, src, dstStart, srcStride, signedDstStride);
-
-    const WebGLTexelPremultiplicationOp premultiplicationOp
-        = FormatsRequireNoPremultiplicationOp     ? WebGLTexelPremultiplicationOp::None
-        : (!srcPremultiplied && dstPremultiplied) ? WebGLTexelPremultiplicationOp::Premultiply
-        : (srcPremultiplied && !dstPremultiplied) ? WebGLTexelPremultiplicationOp::Unpremultiply
-                                                  : WebGLTexelPremultiplicationOp::None;
-
-    converter.run(srcFormat, dstFormat, premultiplicationOp);
+    WebGLImageConverter converter(width, height, srcItr, dstItr, srcStride, dstItrStride);
+    converter.run(srcFormat, dstFormat, premultOp);
 
     if (!converter.Success()) {
         // the dst image may be left uninitialized, so we better not try to
@@ -394,6 +400,8 @@ WebGLContext::ConvertImage(size_t width, size_t height, size_t srcStride, size_t
         // and would be a bug in our code.
         NS_RUNTIMEABORT("programming mistake in WebGL texture conversions");
     }
+
+    return true;
 }
 
 } // end namespace mozilla

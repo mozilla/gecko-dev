@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -50,8 +51,7 @@ CommandEvent::InitCommandEvent(const nsAString& aTypeArg,
                                bool aCancelableArg,
                                const nsAString& aCommand)
 {
-  nsresult rv = Event::InitEvent(aTypeArg, aCanBubbleArg, aCancelableArg);
-  NS_ENSURE_SUCCESS(rv, rv);
+  Event::InitEvent(aTypeArg, aCanBubbleArg, aCancelableArg);
 
   mEvent->AsCommandEvent()->command = do_GetAtom(aCommand);
   return NS_OK;
@@ -63,14 +63,12 @@ CommandEvent::InitCommandEvent(const nsAString& aTypeArg,
 using namespace mozilla;
 using namespace mozilla::dom;
 
-nsresult
-NS_NewDOMCommandEvent(nsIDOMEvent** aInstancePtrResult,
-                      EventTarget* aOwner,
+already_AddRefed<CommandEvent>
+NS_NewDOMCommandEvent(EventTarget* aOwner,
                       nsPresContext* aPresContext,
                       WidgetCommandEvent* aEvent)
 {
-  CommandEvent* it = new CommandEvent(aOwner, aPresContext, aEvent);
-  NS_ADDREF(it);
-  *aInstancePtrResult = static_cast<Event*>(it);
-  return NS_OK;
+  RefPtr<CommandEvent> it =
+    new CommandEvent(aOwner, aPresContext, aEvent);
+  return it.forget();
 }

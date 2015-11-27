@@ -27,11 +27,11 @@ function nextTest() {
   }
 }
 
-let tests = [
+var tests = [
   function revert(next) {
     loadTabInWindow(window, function (tab) {
       gURLBar.handleRevert();
-      is(gURLBar.value, "example.com", "URL bar had user/pass stripped after reverting");
+      is(gURLBar.textValue, "example.com", "URL bar had user/pass stripped after reverting");
       gBrowser.removeTab(tab);
       next();
     });
@@ -44,7 +44,7 @@ let tests = [
         loadTabInWindow(win, function () {
           openToolbarCustomizationUI(function () {
             closeToolbarCustomizationUI(function () {
-              is(win.gURLBar.value, "example.com", "URL bar had user/pass stripped after customize");
+              is(win.gURLBar.textValue, "example.com", "URL bar had user/pass stripped after customize");
               win.close();
               next();
             }, win);
@@ -59,7 +59,7 @@ let tests = [
       // error.
       tab.linkedBrowser.loadURI("http://test1.example.com");
       tab.linkedBrowser.stop();
-      is(gURLBar.value, "example.com", "URL bar had user/pass stripped after load error");
+      is(gURLBar.textValue, "example.com", "URL bar had user/pass stripped after load error");
       gBrowser.removeTab(tab);
       next();
     });
@@ -70,13 +70,9 @@ function loadTabInWindow(win, callback) {
   info("Loading tab");
   let url = "http://user:pass@example.com/";
   let tab = win.gBrowser.selectedTab = win.gBrowser.addTab(url);
-  tab.linkedBrowser.addEventListener("load", function listener() {
+  BrowserTestUtils.browserLoaded(tab.linkedBrowser, false, url).then(() => {
     info("Tab loaded");
-    if (tab.linkedBrowser.currentURI.spec != url)
-      return;
-    tab.linkedBrowser.removeEventListener("load", listener, true);
-
-    is(win.gURLBar.value, "example.com", "URL bar had user/pass stripped initially");
+    is(win.gURLBar.textValue, "example.com", "URL bar had user/pass stripped initially");
     callback(tab);
   }, true);
 }

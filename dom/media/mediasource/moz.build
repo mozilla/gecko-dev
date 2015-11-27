@@ -1,0 +1,42 @@
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+MOCHITEST_MANIFESTS += ['test/mochitest.ini']
+
+EXPORTS += [
+    'AsyncEventRunner.h',
+    'MediaSourceDecoder.h',
+    'MediaSourceDemuxer.h',
+    'SourceBufferContentManager.h',
+]
+
+EXPORTS.mozilla.dom += [
+    'MediaSource.h',
+    'SourceBuffer.h',
+    'SourceBufferList.h',
+]
+
+UNIFIED_SOURCES += [
+    'ContainerParser.cpp',
+    'MediaSource.cpp',
+    'MediaSourceDecoder.cpp',
+    'MediaSourceDemuxer.cpp',
+    'MediaSourceUtils.cpp',
+    'ResourceQueue.cpp',
+    'SourceBuffer.cpp',
+    'SourceBufferContentManager.cpp',
+    'SourceBufferList.cpp',
+    'SourceBufferResource.cpp',
+    'TrackBuffersManager.cpp',
+]
+
+TEST_DIRS += [
+    'gtest',
+]
+
+if CONFIG['MOZ_GONK_MEDIACODEC']:
+    DEFINES['MOZ_GONK_MEDIACODEC'] = True
+
+FINAL_LIBRARY = 'xul'

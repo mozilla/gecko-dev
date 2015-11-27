@@ -4,13 +4,16 @@
 
 #include "nsISupports.idl"
 
-[scriptable, uuid(909f5972-c74e-44dd-b72a-7ddb62aae617)]
+interface nsINeighboringCellInfo;
+
+[scriptable, uuid(0941cb79-36e5-41e0-b05f-cdb854c53f03)]
 interface nsINeighboringCellIdsCallback : nsISupports
 {
   /**
    * result is an array of nsINeighboringCellInfo.
    */
-  void notifyGetNeighboringCellIds(in jsval result);
+  void notifyGetNeighboringCellIds(in uint32_t count,
+                                   [array, size_is(count)] in nsINeighboringCellInfo result);
 
   /**
    * Callback function with error message.
@@ -33,15 +36,15 @@ interface nsINeighboringCellInfo: nsISupports
    * Mobile Location Area Code (LAC) for GSM networks.
    *
    * Possible ranges from 0x0000 to 0xffff.
-   * -1 if the LAC is unknown.
+   * nsICellInfo.UNKNOWN_VALUE if the LAC is unknown.
    */
   readonly attribute long gsmLocationAreaCode;
 
   /**
    * Mobile Cell ID for GSM networks.
    *
-   * Possible ranges from 0x00000000 to 0xffffffff.
-   * -1 if the cell id is unknown.
+   * Possible ranges from 0x0000 to 0xffff.
+   * nsICellInfo.UNKNOWN_VALUE if the cell id is unknown.
    */
   readonly attribute long long gsmCellId;
 
@@ -49,7 +52,7 @@ interface nsINeighboringCellInfo: nsISupports
    * Primary Scrambling Code (PSC) for WCDMA networks.
    *
    * Possible ranges from 0x0000 to 0x01ff.
-   * -1 if the psc is unknown.
+   * nsICellInfo.UNKNOWN_VALUE if the psc is unknown.
    */
   readonly attribute long wcdmaPsc;
 
@@ -58,7 +61,7 @@ interface nsINeighboringCellInfo: nsISupports
    * For WCDMA networks, signalStrength is the CPICH Received Signal Code Power,
    * ranging from -120 to -25.
    *
-   * 99 if signalStrength is unknown.
+   * nsICellInfo.UNKNOWN_VALUE if signalStrength is unknown.
    */
   readonly attribute long signalStrength;
 };

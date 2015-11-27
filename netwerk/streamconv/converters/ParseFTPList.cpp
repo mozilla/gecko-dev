@@ -10,6 +10,8 @@
 #include "plstr.h"
 #include "nsDebug.h"
 #include "prprf.h"
+#include "mozilla/IntegerPrintfMacros.h"
+#include "mozilla/Snprintf.h"
 
 /* ==================================================================== */
 
@@ -24,7 +26,7 @@ int ParseFTPList(const char *line, struct list_state *state,
                  struct list_result *result )
 {
   unsigned int carry_buf_len; /* copy of state->carry_buf_len */
-  unsigned int linelen, pos;
+  unsigned int pos;
   const char *p;
 
   if (!line || !state || !result)
@@ -37,8 +39,6 @@ int ParseFTPList(const char *line, struct list_state *state,
   carry_buf_len = state->carry_buf_len;
   state->carry_buf_len = 0;
 
-  linelen = 0;
-
   /* strip leading whitespace */
   while (*line == ' ' || *line == '\t')
     line++;
@@ -47,7 +47,7 @@ int ParseFTPList(const char *line, struct list_state *state,
   p = line;
   while (*p && *p != '\n')
     p++;
-  linelen = p - line;
+  unsigned int linelen = p - line;
 
   if (linelen > 0 && *p == '\n' && *(p-1) == '\r')
     linelen--;
@@ -487,8 +487,7 @@ int ParseFTPList(const char *line, struct list_state *state,
                * than not showing the size at all.
               */
               uint64_t fsz = uint64_t(strtoul(tokens[1], (char **)0, 10) * 512);
-              PR_snprintf(result->fe_size, sizeof(result->fe_size), 
-                          "%lld", fsz);
+              snprintf_literal(result->fe_size, "%" PRId64, fsz);
             } 
 
           } /* if (result->fe_type != 'd') */
@@ -723,7 +722,13 @@ int ParseFTPList(const char *line, struct list_state *state,
        * "07-21-00  01:19PM                52275 Name Plate.jpg"
        * "07-14-00  01:38PM              2250540 Valentineoffprank-HiRes.jpg"
       */
-      if ((numtoks >= 4) && toklen[0] == 8 && toklen[1] == 7 && 
+      // Microsoft FTP server with FtpDirBrowseShowLongDate set returns year
+      // in 4-digit format:
+      // "10-10-2014  10:10AM       <DIR>        FTP"
+      // Windows CE FTP server returns time in 24-hour format:
+      // "05-03-13  22:01       <DIR>          APPS"
+      if ((numtoks >= 4) && (toklen[0] == 8 || toklen[0] == 10) &&
+          (toklen[1] == 5 || toklen[1] == 7) &&
           (*tokens[2] == '<' || isdigit(*tokens[2])) )
       {
         p = tokens[0];
@@ -734,7 +739,8 @@ int ParseFTPList(const char *line, struct list_state *state,
           p = tokens[1];
           if ( isdigit(p[0]) && isdigit(p[1]) && p[2]==':' && 
                isdigit(p[3]) && isdigit(p[4]) && 
-               (p[5]=='A' || p[5]=='P') && p[6]=='M')
+               (toklen[1] == 5 || (toklen[1] == 7 &&
+                                  (p[5]=='A' || p[5]=='P') && p[6]=='M')))
           {
             lstyle = 'W';
             if (!state->lstyle)
@@ -831,10 +837,13 @@ int ParseFTPList(const char *line, struct list_state *state,
 
         result->fe_time.tm_hour = atoi(tokens[1]+0);
         result->fe_time.tm_min = atoi(tokens[1]+3);
-        if ((tokens[1][5]) == 'P' && result->fe_time.tm_hour < 12)
-          result->fe_time.tm_hour += 12;
-	else if ((tokens[1][5]) == 'A' && result->fe_time.tm_hour == 12)
-          result->fe_time.tm_hour = 0;
+        if (toklen[1] == 7)
+        {
+          if ((tokens[1][5]) == 'P' && result->fe_time.tm_hour < 12)
+            result->fe_time.tm_hour += 12;
+          else if ((tokens[1][5]) == 'A' && result->fe_time.tm_hour == 12)
+            result->fe_time.tm_hour = 0;
+        }
 
         /* the caller should do this (if dropping "." and ".." is desired)
         if (result->fe_type == 'd' && result->fe_fname[0] == '.' &&

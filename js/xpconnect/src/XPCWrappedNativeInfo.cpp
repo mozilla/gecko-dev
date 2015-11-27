@@ -11,6 +11,7 @@
 
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/XPTInterfaceInfoManager.h"
+#include "nsPrintfCString.h"
 
 using namespace JS;
 using namespace mozilla;
@@ -26,11 +27,12 @@ XPCNativeMember::GetCallInfo(JSObject* funobj,
                              XPCNativeMember**    pMember)
 {
     funobj = js::UncheckedUnwrap(funobj);
-    jsval ifaceVal = js::GetFunctionNativeReserved(funobj, 0);
-    jsval memberVal = js::GetFunctionNativeReserved(funobj, 1);
+    Value memberVal =
+        js::GetFunctionNativeReserved(funobj,
+                                      XPC_FUNCTION_NATIVE_MEMBER_SLOT);
 
-    *pInterface = (XPCNativeInterface*) ifaceVal.toPrivate();
-    *pMember = (XPCNativeMember*) memberVal.toPrivate();
+    *pMember = static_cast<XPCNativeMember*>(memberVal.toPrivate());
+    *pInterface = (*pMember)->GetInterface();
 
     return true;
 }
@@ -38,7 +40,7 @@ XPCNativeMember::GetCallInfo(JSObject* funobj,
 bool
 XPCNativeMember::NewFunctionObject(XPCCallContext& ccx,
                                    XPCNativeInterface* iface, HandleObject parent,
-                                   jsval* pval)
+                                   Value* pval)
 {
     MOZ_ASSERT(!IsConstant(), "Only call this if you're sure this is not a constant!");
 
@@ -47,8 +49,9 @@ XPCNativeMember::NewFunctionObject(XPCCallContext& ccx,
 
 bool
 XPCNativeMember::Resolve(XPCCallContext& ccx, XPCNativeInterface* iface,
-                         HandleObject parent, jsval *vp)
+                         HandleObject parent, Value* vp)
 {
+    MOZ_ASSERT(iface == GetInterface());
     if (IsConstant()) {
         RootedValue resultVal(ccx);
         nsXPIDLCString name;
@@ -83,7 +86,7 @@ XPCNativeMember::Resolve(XPCCallContext& ccx, XPCNativeInterface* iface,
         callback = XPC_WN_GetterSetter;
     }
 
-    JSFunction *fun = js::NewFunctionByIdWithReserved(ccx, callback, argc, 0, parent, GetName());
+    JSFunction* fun = js::NewFunctionByIdWithReserved(ccx, callback, argc, 0, GetName());
     if (!fun)
         return false;
 
@@ -91,10 +94,12 @@ XPCNativeMember::Resolve(XPCCallContext& ccx, XPCNativeInterface* iface,
     if (!funobj)
         return false;
 
-    js::SetFunctionNativeReserved(funobj, 0, PRIVATE_TO_JSVAL(iface));
-    js::SetFunctionNativeReserved(funobj, 1, PRIVATE_TO_JSVAL(this));
+    js::SetFunctionNativeReserved(funobj, XPC_FUNCTION_NATIVE_MEMBER_SLOT,
+                                  PrivateValue(this));
+    js::SetFunctionNativeReserved(funobj, XPC_FUNCTION_PARENT_OBJECT_SLOT,
+                                  ObjectValue(*parent));
 
-    *vp = OBJECT_TO_JSVAL(funobj);
+    vp->setObject(*funobj);
 
     return true;
 }
@@ -228,6 +233,27 @@ XPCNativeInterface::NewInstance(nsIInterfaceInfo* aInfo)
     if (NS_FAILED(aInfo->IsScriptable(&canScript)) || !canScript)
         return nullptr;
 
+    bool mainProcessScriptableOnly;
+    if (NS_FAILED(aInfo->IsMainProcessScriptableOnly(&mainProcessScriptableOnly)))
+        return nullptr;
+    if (mainProcessScriptableOnly && !XRE_IsParentProcess()) {
+        nsCOMPtr<nsIConsoleService> console(do_GetService(NS_CONSOLESERVICE_CONTRACTID));
+        if (console) {
+            const char* intfNameChars;
+            aInfo->GetNameShared(&intfNameChars);
+            nsPrintfCString errorMsg("Use of %s in content process is deprecated.", intfNameChars);
+
+            nsAutoString filename;
+            uint32_t lineno = 0, column = 0;
+            nsJSUtils::GetCallingLocation(cx, filename, &lineno, &column);
+            nsCOMPtr<nsIScriptError> error(do_CreateInstance(NS_SCRIPTERROR_CONTRACTID));
+            error->Init(NS_ConvertUTF8toUTF16(errorMsg),
+                        filename, EmptyString(),
+                        lineno, column, nsIScriptError::warningFlag, "chrome javascript");
+            console->LogMessage(error);
+        }
+    }
+
     if (NS_FAILED(aInfo->GetMethodCount(&methodCount)) ||
         NS_FAILED(aInfo->GetConstantCount(&constCount)))
         return nullptr;
@@ -267,7 +293,7 @@ XPCNativeInterface::NewInstance(nsIInterfaceInfo* aInfo)
         if (!XPCConvert::IsMethodReflectable(*info))
             continue;
 
-        str = JS_InternString(cx, info->GetName());
+        str = JS_AtomizeAndPinString(cx, info->GetName());
         if (!str) {
             NS_ERROR("bad method name");
             failed = true;
@@ -287,12 +313,19 @@ XPCNativeInterface::NewInstance(nsIInterfaceInfo* aInfo)
         } else {
             // XXX need better way to find dups
             // MOZ_ASSERT(!LookupMemberByID(name),"duplicate method name");
-            cur = &members[realTotalCount++];
+            if (realTotalCount == XPCNativeMember::GetMaxIndexInInterface()) {
+                NS_WARNING("Too many members in interface");
+                failed = true;
+                break;
+            }
+            cur = &members[realTotalCount];
             cur->SetName(name);
             if (info->IsGetter())
                 cur->SetReadOnlyAttribute(i);
             else
                 cur->SetMethod(i);
+            cur->SetIndexInInterface(realTotalCount);
+            ++realTotalCount;
         }
     }
 
@@ -305,7 +338,7 @@ XPCNativeInterface::NewInstance(nsIInterfaceInfo* aInfo)
                 break;
             }
 
-            str = JS_InternString(cx, namestr);
+            str = JS_AtomizeAndPinString(cx, namestr);
             if (!str) {
                 NS_ERROR("bad constant name");
                 failed = true;
@@ -315,17 +348,23 @@ XPCNativeInterface::NewInstance(nsIInterfaceInfo* aInfo)
 
             // XXX need better way to find dups
             //MOZ_ASSERT(!LookupMemberByID(name),"duplicate method/constant name");
-
-            cur = &members[realTotalCount++];
+            if (realTotalCount == XPCNativeMember::GetMaxIndexInInterface()) {
+                NS_WARNING("Too many members in interface");
+                failed = true;
+                break;
+            }
+            cur = &members[realTotalCount];
             cur->SetName(name);
             cur->SetConstant(i);
+            cur->SetIndexInInterface(realTotalCount);
+            ++realTotalCount;
         }
     }
 
     if (!failed) {
         const char* bytes;
         if (NS_FAILED(aInfo->GetNameShared(&bytes)) || !bytes ||
-            nullptr == (str = JS_InternString(cx, bytes))) {
+            nullptr == (str = JS_AtomizeAndPinString(cx, bytes))) {
             failed = true;
         }
         interfaceName = INTERNED_STRING_TO_JSID(cx, str);

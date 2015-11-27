@@ -16,10 +16,11 @@ EXPORTS += [
     'xptcstubsdef.inc',
 ]
 
-MSVC_ENABLE_PGO = True
-
 LOCAL_INCLUDES += [
     '/xpcom/reflect/xptinfo',
 ]
 
 FINAL_LIBRARY = 'xul'
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wshadow']

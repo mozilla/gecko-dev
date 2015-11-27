@@ -16,13 +16,13 @@ function wait_for_notification(aCallback) {
 }
 
 var TESTS = [
-function test_install_lwtheme() {
+function test_install_http() {
   is(LightweightThemeManager.currentTheme, null, "Should be no lightweight theme selected");
 
   var pm = Services.perms;
-  pm.add(makeURI("http://example.com/"), "install", pm.ALLOW_ACTION);
+  pm.add(makeURI("http://example.org/"), "install", pm.ALLOW_ACTION);
 
-  gBrowser.selectedTab = gBrowser.addTab("http://example.com/browser/browser/base/content/test/general/bug592338.html");
+  gBrowser.selectedTab = gBrowser.addTab("http://example.org/browser/browser/base/content/test/general/bug592338.html");
   gBrowser.selectedBrowser.addEventListener("pageshow", function() {
     if (gBrowser.contentDocument.location.href == "about:blank")
       return;
@@ -30,18 +30,47 @@ function test_install_lwtheme() {
     gBrowser.selectedBrowser.removeEventListener("pageshow", arguments.callee, false);
 
     executeSoon(function() {
-      var link = gBrowser.contentDocument.getElementById("theme-install");
-      EventUtils.synthesizeMouse(link, 2, 2, {}, gBrowser.contentWindow);
+      BrowserTestUtils.synthesizeMouse("#theme-install", 2, 2, {}, gBrowser.selectedBrowser);
 
-      is(LightweightThemeManager.currentTheme.id, "test", "Should have installed the test theme");
+      is(LightweightThemeManager.currentTheme, null, "Should not have installed the test theme");
 
-      LightweightThemeManager.currentTheme = null;
       gBrowser.removeTab(gBrowser.selectedTab);
 
-      Services.perms.remove("example.com", "install");
+      pm.remove(makeURI("http://example.org/"), "install");
 
       runNextTest();
     });
+  }, false);
+},
+
+function test_install_lwtheme() {
+  is(LightweightThemeManager.currentTheme, null, "Should be no lightweight theme selected");
+
+  var pm = Services.perms;
+  pm.add(makeURI("https://example.com/"), "install", pm.ALLOW_ACTION);
+
+  gBrowser.selectedTab = gBrowser.addTab("https://example.com/browser/browser/base/content/test/general/bug592338.html");
+  gBrowser.selectedBrowser.addEventListener("pageshow", function() {
+    if (gBrowser.contentDocument.location.href == "about:blank")
+      return;
+
+    gBrowser.selectedBrowser.removeEventListener("pageshow", arguments.callee, false);
+
+    BrowserTestUtils.synthesizeMouse("#theme-install", 2, 2, {}, gBrowser.selectedBrowser);
+    let notification;
+    let notificationBox = gBrowser.getNotificationBox(gBrowser.selectedBrowser);
+    waitForCondition(
+      () => (notification = notificationBox.getNotificationWithValue("lwtheme-install-notification")),
+      () => {
+        is(LightweightThemeManager.currentTheme.id, "test", "Should have installed the test theme");
+
+        LightweightThemeManager.currentTheme = null;
+        gBrowser.removeTab(gBrowser.selectedTab);
+        Services.perms.remove(makeURI("http://example.com/"), "install");
+
+        runNextTest();
+      }
+    );
   }, false);
 },
 
@@ -54,9 +83,9 @@ function test_lwtheme_switch_theme() {
     Services.prefs.setBoolPref("extensions.dss.enabled", false);
 
     var pm = Services.perms;
-    pm.add(makeURI("http://example.com/"), "install", pm.ALLOW_ACTION);
+    pm.add(makeURI("https://example.com/"), "install", pm.ALLOW_ACTION);
 
-    gBrowser.selectedTab = gBrowser.addTab("http://example.com/browser/browser/base/content/test/general/bug592338.html");
+    gBrowser.selectedTab = gBrowser.addTab("https://example.com/browser/browser/base/content/test/general/bug592338.html");
     gBrowser.selectedBrowser.addEventListener("pageshow", function() {
       if (gBrowser.contentDocument.location.href == "about:blank")
         return;
@@ -64,7 +93,6 @@ function test_lwtheme_switch_theme() {
       gBrowser.selectedBrowser.removeEventListener("pageshow", arguments.callee, false);
 
       executeSoon(function() {
-        var link = gBrowser.contentDocument.getElementById("theme-install");
         wait_for_notification(function(aPanel) {
           is(LightweightThemeManager.currentTheme, null, "Should not have installed the test lwtheme");
           ok(aAddon.isActive, "Test theme should still be active");
@@ -78,11 +106,11 @@ function test_lwtheme_switch_theme() {
 
           gBrowser.removeTab(gBrowser.selectedTab);
 
-          Services.perms.remove("example.com", "install");
+          Services.perms.remove(makeURI("http://example.com"), "install");
 
           runNextTest();
         });
-        EventUtils.synthesizeMouse(link, 2, 2, {}, gBrowser.contentWindow);
+        BrowserTestUtils.synthesizeMouse("#theme-install", 2, 2, {}, gBrowser.selectedBrowser);
       });
     }, false);
   });

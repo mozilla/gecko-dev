@@ -59,7 +59,7 @@ function test() {
       // execute should only be called when need, like when you are opening
       // web pages on the test. If calling executeSoon() is not necesary, then
       // call whenNewWindowLoaded() instead of testOnWindow() on your test.
-      executeSoon(function() aCallback(aWin));
+      executeSoon(() => aCallback(aWin));
     });
   };
 
@@ -76,7 +76,7 @@ function test() {
       // then test when not on private mode
       testOnWindow({}, function(aWin) {
         doTest(false, aWin, finalURL, function () {
-          promiseClearHistory().then(finish);
+          PlacesTestUtils.clearHistory().then(finish);
         });
       });
     });

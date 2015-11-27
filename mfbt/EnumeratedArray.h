@@ -10,14 +10,12 @@
 #define mozilla_EnumeratedArray_h
 
 #include "mozilla/Array.h"
-#include "mozilla/TypedEnum.h"
 
 namespace mozilla {
 
 /**
  * EnumeratedArray is a fixed-size array container for use when an
- * array is indexed by a specific enum class, as currently implemented
- * by MOZ_BEGIN_ENUM_CLASS.
+ * array is indexed by a specific enum class.
  *
  * This provides type safety by guarding at compile time against accidentally
  * indexing such arrays with unrelated values. This also removes the need
@@ -27,11 +25,11 @@ namespace mozilla {
  *
  * Example:
  *
- *   MOZ_BEGIN_ENUM_CLASS(AnimalSpecies)
+ *   enum class AnimalSpecies {
  *     Cow,
  *     Sheep,
  *     Count
- *   MOZ_END_ENUM_CLASS(AnimalSpecies)
+ *   };
  *
  *   EnumeratedArray<AnimalSpecies, AnimalSpecies::Count, int> headCount;
  *
@@ -40,7 +38,7 @@ namespace mozilla {
  *
  */
 template<typename IndexType,
-         MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(IndexType) SizeAsEnumValue,
+         IndexType SizeAsEnumValue,
          typename ValueType>
 class EnumeratedArray
 {
@@ -48,7 +46,9 @@ public:
   static const size_t kSize = size_t(SizeAsEnumValue);
 
 private:
-  Array<ValueType, kSize> mArray;
+  typedef Array<ValueType, kSize> ArrayType;
+
+  ArrayType mArray;
 
 public:
   EnumeratedArray() {}
@@ -69,6 +69,27 @@ public:
   {
     return mArray[size_t(aIndex)];
   }
+
+  typedef typename ArrayType::iterator               iterator;
+  typedef typename ArrayType::const_iterator         const_iterator;
+  typedef typename ArrayType::reverse_iterator       reverse_iterator;
+  typedef typename ArrayType::const_reverse_iterator const_reverse_iterator;
+
+  // Methods for range-based for loops.
+  iterator begin() { return mArray.begin(); }
+  const_iterator begin() const { return mArray.begin(); }
+  const_iterator cbegin() const { return mArray.cbegin(); }
+  iterator end() { return mArray.end(); }
+  const_iterator end() const { return mArray.end(); }
+  const_iterator cend() const { return mArray.cend(); }
+
+  // Methods for reverse iterating.
+  reverse_iterator rbegin() { return mArray.rbegin(); }
+  const_reverse_iterator rbegin() const { return mArray.rbegin(); }
+  const_reverse_iterator crbegin() const { return mArray.crbegin(); }
+  reverse_iterator rend() { return mArray.rend(); }
+  const_reverse_iterator rend() const { return mArray.rend(); }
+  const_reverse_iterator crend() const { return mArray.crend(); }
 };
 
 } // namespace mozilla

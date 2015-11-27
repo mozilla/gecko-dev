@@ -1,5 +1,5 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
-/* vim: set ts=2 et sw=2 tw=40: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -7,34 +7,37 @@
 #ifndef mozilla_dom_telephony_telephonycall_h__
 #define mozilla_dom_telephony_telephonycall_h__
 
+#include "mozilla/dom/DOMError.h"
+#include "mozilla/dom/Promise.h"
+#include "mozilla/dom/TelephonyCallBinding.h"
+#include "mozilla/dom/TelephonyCallId.h"
 #include "mozilla/dom/telephony/TelephonyCommon.h"
 
-#include "mozilla/dom/DOMError.h"
-
-#include "TelephonyCallId.h"
+#include "nsITelephonyService.h"
 
 class nsPIDOMWindow;
 
 namespace mozilla {
 namespace dom {
 
-class TelephonyCall MOZ_FINAL : public DOMEventTargetHelper
+class TelephonyCall final : public DOMEventTargetHelper
 {
-  nsRefPtr<Telephony> mTelephony;
-  nsRefPtr<TelephonyCallGroup> mGroup;
+  RefPtr<Telephony> mTelephony;
+  RefPtr<TelephonyCallGroup> mGroup;
 
-  nsRefPtr<TelephonyCallId> mId;
-  nsRefPtr<TelephonyCallId> mSecondId;
+  RefPtr<TelephonyCallId> mId;
+  RefPtr<TelephonyCallId> mSecondId;
 
   uint32_t mServiceId;
-  nsString mState;
+  TelephonyCallState mState;
   bool mEmergency;
-  nsRefPtr<DOMError> mError;
+  RefPtr<DOMError> mError;
+  Nullable<TelephonyCallDisconnectedReason> mDisconnectedReason;
+
   bool mSwitchable;
   bool mMergeable;
 
   uint32_t mCallIndex;
-  uint16_t mCallState;
   bool mLive;
 
 public:
@@ -52,7 +55,7 @@ public:
 
   // WrapperCache
   virtual JSObject*
-  WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL
   already_AddRefed<TelephonyCallId>
@@ -61,10 +64,10 @@ public:
   already_AddRefed<TelephonyCallId>
   GetSecondId() const;
 
-  void
-  GetState(nsString& aState) const
+  TelephonyCallState
+  State() const
   {
-    aState.Assign(mState);
+    return mState;
   }
 
   bool
@@ -85,48 +88,64 @@ public:
     return mMergeable;
   }
 
+  bool
+  IsActive() const
+  {
+    return mState == TelephonyCallState::Dialing ||
+           mState == TelephonyCallState::Alerting ||
+           mState == TelephonyCallState::Connected;
+  }
+
   already_AddRefed<DOMError>
   GetError() const;
+
+  Nullable<TelephonyCallDisconnectedReason>
+  GetDisconnectedReason() const
+  {
+    return mDisconnectedReason;
+  }
 
   already_AddRefed<TelephonyCallGroup>
   GetGroup() const;
 
-  void
+  already_AddRefed<Promise>
   Answer(ErrorResult& aRv);
 
-  void
+  already_AddRefed<Promise>
   HangUp(ErrorResult& aRv);
 
-  void
+  already_AddRefed<Promise>
   Hold(ErrorResult& aRv);
 
-  void
+  already_AddRefed<Promise>
   Resume(ErrorResult& aRv);
 
   IMPL_EVENT_HANDLER(statechange)
   IMPL_EVENT_HANDLER(dialing)
   IMPL_EVENT_HANDLER(alerting)
-  IMPL_EVENT_HANDLER(connecting)
   IMPL_EVENT_HANDLER(connected)
-  IMPL_EVENT_HANDLER(disconnecting)
   IMPL_EVENT_HANDLER(disconnected)
-  IMPL_EVENT_HANDLER(holding)
   IMPL_EVENT_HANDLER(held)
-  IMPL_EVENT_HANDLER(resuming)
   IMPL_EVENT_HANDLER(error)
   IMPL_EVENT_HANDLER(groupchange)
 
+  static TelephonyCallState
+  ConvertToTelephonyCallState(uint32_t aCallState);
+
   static already_AddRefed<TelephonyCall>
   Create(Telephony* aTelephony, TelephonyCallId* aId,
-         uint32_t aServiceId, uint32_t aCallIndex, uint16_t aCallState,
+         uint32_t aServiceId, uint32_t aCallIndex, TelephonyCallState aState,
          bool aEmergency = false, bool aConference = false,
          bool aSwitchable = true, bool aMergeable = true);
 
   void
-  ChangeState(uint16_t aCallState)
+  ChangeState(TelephonyCallState aState)
   {
-    ChangeStateInternal(aCallState, true);
+    ChangeStateInternal(aState, true);
   }
+
+  nsresult
+  NotifyStateChanged();
 
   uint32_t
   ServiceId() const
@@ -138,12 +157,6 @@ public:
   CallIndex() const
   {
     return mCallIndex;
-  }
-
-  uint16_t
-  CallState() const
-  {
-    return mCallState;
   }
 
   void
@@ -171,6 +184,9 @@ public:
   NotifyError(const nsAString& aError);
 
   void
+  UpdateDisconnectedReason(const nsAString& aDisconnectedReason);
+
+  void
   ChangeGroup(TelephonyCallGroup* aGroup);
 
 private:
@@ -178,12 +194,21 @@ private:
 
   ~TelephonyCall();
 
+  nsresult
+  Hold(nsITelephonyCallback* aCallback);
+
+  nsresult
+  Resume(nsITelephonyCallback* aCallback);
+
   void
-  ChangeStateInternal(uint16_t aCallState, bool aFireEvents);
+  ChangeStateInternal(TelephonyCallState aState, bool aFireEvents);
 
   nsresult
   DispatchCallEvent(const nsAString& aType,
                     TelephonyCall* aCall);
+
+  already_AddRefed<Promise>
+  CreatePromise(ErrorResult& aRv);
 };
 
 } // namespace dom

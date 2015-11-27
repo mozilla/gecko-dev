@@ -13,7 +13,7 @@
   <binding id="autocomplete" role="xul:combobox"
            extends="chrome://global/content/bindings/textbox.xml#textbox">
     <resources>
-      <stylesheet src="chrome://global/content/autocomplete.css"/>
+      <stylesheet src="chrome://communicator/content/autocomplete.css"/>
       <stylesheet src="chrome://global/skin/autocomplete.css"/>
     </resources>
 
@@ -277,7 +277,7 @@
       <!-- option to allow scrolling through the list via the tab key, rather than
            tab moving focus out of the textbox -->
       <property name="tabScrolling"
-                onset="return this.setAttribute('tabscrolling', val); return val;"
+                onset="this.setAttribute('tabscrolling', val); return val;"
                 onget="return this.getAttribute('tabscrolling') == 'true';"/>
 
       <!-- option to completely ignore any blur events while
@@ -1331,7 +1331,7 @@
 
   <binding id="autocomplete-result-popup" extends="chrome://global/content/bindings/popup.xml#popup">
     <resources>
-      <stylesheet src="chrome://global/content/autocomplete.css"/>
+      <stylesheet src="chrome://communicator/content/autocomplete.css"/>
       <stylesheet src="chrome://global/skin/autocomplete.css"/>
     </resources>
 
@@ -1511,10 +1511,9 @@
             this.style.direction = aElement.ownerDocument.defaultView
                                            .getComputedStyle(aElement)
                                            .direction;
-            const nsIPopupBoxObject = Components.interfaces.nsIPopupBoxObject;
             this.popupBoxObject.setConsumeRollupEvent(aInput.consumeRollupEvent
-              ? nsIPopupBoxObject.ROLLUP_CONSUME
-              : nsIPopupBoxObject.ROLLUP_NO_CONSUME);
+              ? PopupBoxObject.ROLLUP_CONSUME
+              : PopupBoxObject.ROLLUP_NO_CONSUME);
             this.openPopup(aElement, "after_start", 0, 0, false, false);
             if (this.state != "closed")
               this.input = aInput;
@@ -1599,7 +1598,7 @@
   <binding id="autocomplete-history-popup"
            extends="chrome://global/content/bindings/popup.xml#popup-scrollbars">
     <resources>
-      <stylesheet src="chrome://global/content/autocomplete.css"/>
+      <stylesheet src="chrome://communicator/content/autocomplete.css"/>
       <stylesheet src="chrome://global/skin/autocomplete.css"/>
     </resources>
 
@@ -1645,4 +1644,3 @@
   </binding>
 
 </bindings>
-

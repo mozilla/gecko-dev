@@ -27,8 +27,8 @@ public abstract class AndroidBrowserRepository extends Repository {
   }
 
   class CleanThread extends Thread {
-    private RepositorySessionCleanDelegate delegate;
-    private Context context;
+    private final RepositorySessionCleanDelegate delegate;
+    private final Context context;
 
     public CleanThread(RepositorySessionCleanDelegate delegate, Context context) {
       if (context == null) {
@@ -38,12 +38,10 @@ public abstract class AndroidBrowserRepository extends Repository {
       this.context = context;
     }
 
+    @Override
     public void run() {
       try {
         getDataAccessor(context).purgeDeleted();
-      } catch (NullCursorException e) {
-        delegate.onCleanFailed(AndroidBrowserRepository.this, e);
-        return;
       } catch (Exception e) {
         delegate.onCleanFailed(AndroidBrowserRepository.this, e);
         return;
@@ -56,8 +54,8 @@ public abstract class AndroidBrowserRepository extends Repository {
   protected abstract void sessionCreator(RepositorySessionCreationDelegate delegate, Context context);
 
   class CreateSessionThread extends Thread {
-    private RepositorySessionCreationDelegate delegate;
-    private Context context;
+    private final RepositorySessionCreationDelegate delegate;
+    private final Context context;
 
     public CreateSessionThread(RepositorySessionCreationDelegate delegate, Context context) {
       if (context == null) {
@@ -67,6 +65,7 @@ public abstract class AndroidBrowserRepository extends Repository {
       this.context = context;
     }
 
+    @Override
     public void run() {
       sessionCreator(delegate, context);
     }

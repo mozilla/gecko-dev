@@ -26,6 +26,7 @@ import android.accounts.AccountManager;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.res.Resources;
+import android.os.AsyncTask;
 import android.os.Bundle;
 
 /**
@@ -67,13 +68,6 @@ public class FirefoxAccounts {
       SyncHint.SCHEDULE_NOW,
       SyncHint.IGNORE_LOCAL_RATE_LIMIT,
       SyncHint.IGNORE_REMOTE_SERVER_BACKOFF);
-
-  public interface SyncStatusListener {
-    public Context getContext();
-    public Account getAccount();
-    public void onSyncStarted();
-    public void onSyncFinished();
-  }
 
   /**
    * Returns true if a FirefoxAccount exists, false otherwise.
@@ -128,7 +122,7 @@ public class FirefoxAccounts {
           // exist.
           final AndroidFxAccount fxAccount =
               AccountPickler.unpickle(context, FxAccountConstants.ACCOUNT_PICKLE_FILENAME);
-          accounts[0] = fxAccount.getAndroidAccount();
+          accounts[0] = fxAccount != null ? fxAccount.getAndroidAccount() : null;
         } finally {
           latch.countDown();
         }
@@ -274,7 +268,7 @@ public class FirefoxAccounts {
     ThreadPool.run(new Runnable() {
       @Override
       public void run() {
-        for (String authority : AndroidFxAccount.getAndroidAuthorities()) {
+        for (String authority : AndroidFxAccount.DEFAULT_AUTHORITIES_TO_SYNC_AUTOMATICALLY_MAP.keySet()) {
           ContentResolver.requestSync(account, authority, extras);
         }
       }

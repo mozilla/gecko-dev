@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -188,6 +189,9 @@ nsSupportsArray::Read(nsIObjectInputStream* aStream)
 
   uint32_t newArraySize;
   rv = aStream->Read32(&newArraySize);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
 
   if (newArraySize <= kAutoArraySize) {
     if (mArray != mAutoArray) {
@@ -452,15 +456,15 @@ nsSupportsArray::RemoveElementsAt(uint32_t aIndex, uint32_t aCount)
   return false;
 }
 
-NS_IMETHODIMP_(bool)
-nsSupportsArray::RemoveElement(const nsISupports* aElement, uint32_t aStartIndex)
+NS_IMETHODIMP
+nsSupportsArray::RemoveElement(nsISupports* aElement)
 {
-  int32_t theIndex = IndexOfStartingAt(aElement, aStartIndex);
+  int32_t theIndex = IndexOfStartingAt(aElement, 0);
   if (theIndex >= 0) {
-    return RemoveElementAt(theIndex);
+    return RemoveElementAt(theIndex) ? NS_OK : NS_ERROR_FAILURE;
   }
 
-  return false;
+  return NS_ERROR_FAILURE;
 }
 
 NS_IMETHODIMP_(bool)

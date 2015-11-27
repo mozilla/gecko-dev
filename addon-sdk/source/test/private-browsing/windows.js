@@ -3,67 +3,58 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 'use strict';
 
-const { pb, pbUtils } = require('./helper');
 const { onFocus, openDialog, open } = require('sdk/window/utils');
 const { open: openPromise, close, focus, promise } = require('sdk/window/helpers');
 const { isPrivate } = require('sdk/private-browsing');
+const { getMode } = require('sdk/private-browsing/utils');
 const { browserWindows: windows } = require('sdk/windows');
 const { defer } = require('sdk/core/promise');
 const tabs = require('sdk/tabs');
+const { getMostRecentBrowserWindow } = require('sdk/window/utils');
+const { cleanUI } = require("sdk/test/utils");
 
 // test openDialog() from window/utils with private option
 // test isActive state in pwpb case
 // test isPrivate on ChromeWindow
-exports.testPerWindowPrivateBrowsingGetter = function(assert, done) {
-  let win = openDialog({
-    private: true
-  });
+exports.testPerWindowPrivateBrowsingGetter = function*(assert) {
+  let win = openDialog({ private: true });
 
-  promise(win, 'DOMContentLoaded').then(function onload() {
-    assert.equal(pbUtils.getMode(win),
-                 true, 'Newly opened window is in PB mode');
-    assert.ok(isPrivate(win), 'isPrivate(window) is true');
-    assert.equal(pb.isActive, false, 'PB mode is not active');
+  yield promise(win, 'DOMContentLoaded');
 
-    close(win).then(function() {
-      assert.equal(pb.isActive, false, 'PB mode is not active');
-      done();
-    });
-  });
+  assert.equal(getMode(win), true, 'Newly opened window is in PB mode');
+  assert.ok(isPrivate(win), 'isPrivate(window) is true');
+
+  yield close(win);
 }
 
 // test open() from window/utils with private feature
 // test isActive state in pwpb case
 // test isPrivate on ChromeWindow
-exports.testPerWindowPrivateBrowsingGetter = function(assert, done) {
+exports.testPerWindowPrivateBrowsingGetter = function*(assert) {
   let win = open('chrome://browser/content/browser.xul', {
     features: {
       private: true
     }
   });
 
-  promise(win, 'DOMContentLoaded').then(function onload() {
-    assert.equal(pbUtils.getMode(win),
-                 true, 'Newly opened window is in PB mode');
-    assert.ok(isPrivate(win), 'isPrivate(window) is true');
-    assert.equal(pb.isActive, false, 'PB mode is not active');
-
-    close(win).then(function() {
-      assert.equal(pb.isActive, false, 'PB mode is not active');
-      done();
-    });
-  });
+  yield promise(win, 'DOMContentLoaded');
+  assert.equal(getMode(win), true, 'Newly opened window is in PB mode');
+  assert.ok(isPrivate(win), 'isPrivate(window) is true');
+  yield close(win)
 }
 
-exports.testIsPrivateOnWindowOpen = function(assert, done) {
-  windows.open({
-    isPrivate: true,
-    onOpen: function(window) {
-      assert.equal(isPrivate(window), false, 'isPrivate for a window is true when it should be');
-      assert.equal(isPrivate(window.tabs[0]), false, 'isPrivate for a tab is false when it should be');
-      window.close(done);
-    }
+exports.testIsPrivateOnWindowOpen = function*(assert) {
+  let window = yield new Promise(resolve => {
+    windows.open({
+      isPrivate: true,
+      onOpen: resolve
+    });
   });
+
+  assert.equal(isPrivate(window), false, 'isPrivate for a window is true when it should be');
+  assert.equal(isPrivate(window.tabs[0]), false, 'isPrivate for a tab is false when it should be');
+
+  yield cleanUI();
 }
 
 exports.testIsPrivateOnWindowOpenFromPrivate = function(assert, done) {
@@ -84,7 +75,7 @@ exports.testIsPrivateOnWindowOpenFromPrivate = function(assert, done) {
         url: 'about:blank',
         onOpen: function(w) {
           assert.equal(isPrivate(w), false, 'new test window is not private');
-          w.close(function() resolve(window));
+          w.close(() => resolve(window));
         }
       });
 
@@ -94,27 +85,22 @@ exports.testIsPrivateOnWindowOpenFromPrivate = function(assert, done) {
 };
 
 exports.testOpenTabWithPrivateWindow = function*(assert) {
-  let { promise, resolve } = defer();
+  let window = getMostRecentBrowserWindow().OpenBrowserWindow({ private: true });
 
-  let window = yield openPromise(null, {
-    features: {
-      private: true,
-      toolbar: true
-    }
-  });
-  yield focus(window);
+  assert.pass("loading new private window");
+
+  yield promise(window, 'load').then(focus);
 
   assert.equal(isPrivate(window), true, 'the focused window is private');
 
-  tabs.open({
+  yield new Promise(resolve => tabs.open({
     url: 'about:blank',
     onOpen: (tab) => {
       assert.equal(isPrivate(tab), false, 'the opened tab is not private');
       tab.close(resolve);
     }
-  });
+  }));
 
-  yield promise;
   yield close(window);
 };
 

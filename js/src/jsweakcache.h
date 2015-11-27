@@ -30,40 +30,39 @@ class WeakCache : public HashMap<Key, Value, HashPolicy, AllocPolicy> {
     typedef typename Base::Enum Enum;
 
   public:
-    explicit WeakCache(JSRuntime *rt) : Base(rt) { }
-    explicit WeakCache(JSContext *cx) : Base(cx->runtime()) { }
+    explicit WeakCache(JSRuntime* rt) : Base(rt) { }
+    explicit WeakCache(JSContext* cx) : Base(cx->runtime()) { }
 
   public:
     // Sweep all entries which have unmarked key or value.
-    void sweep(FreeOp *fop) {
+    void sweep(FreeOp* fop) {
         // Remove all entries whose keys/values remain unmarked.
         for (Enum e(*this); !e.empty(); e.popFront()) {
-            // Checking IsMarked() may update the location of the Key (or Value).
+            // IsAboutToBeFinalized() may update the location of the Key (or Value).
             // Pass in a stack local, then manually update the backing heap store.
-            Key k(e.front().key);
-            bool isKeyDying = gc::IsAboutToBeFinalized(&k);
-
-            if (isKeyDying || gc::IsAboutToBeFinalized(e.front().value)) {
+            Key key(e.front().key);
+            MOZ_ASSERT(key);
+            MOZ_ASSERT(e.front().value());
+            if (gc::IsAboutToBeFinalized(&key) || gc::IsAboutToBeFinalized(e.front().value))
                 e.removeFront();
-            } else {
-                // Potentially update the location of the Key.
-                // The Value had its heap addresses correctly passed to IsMarked(),
-                // and therefore has already been updated if necessary.
-                // e.rekeyFront(k);
-            }
+            else if (key != e.front().key)
+                e.rekeyFront(key);
         }
 
-#if DEBUG
+#ifdef DEBUG
         // Once we've swept, all remaining edges should stay within the
         // known-live part of the graph.
         for (Range r = Base::all(); !r.empty(); r.popFront()) {
-            Key k(r.front().key);
-
-            JS_ASSERT(!gc::IsAboutToBeFinalized(&k));
-            JS_ASSERT(!gc::IsAboutToBeFinalized(r.front().value));
-
-            // Assert that IsMarked() did not perform relocation.
-            JS_ASSERT(k == r.front().key);
+            Key key(r.front().key);
+            Value value(r.front().value);
+            MOZ_ASSERT(key);
+            MOZ_ASSERT(value);
+            MOZ_ASSERT(!gc::IsAboutToBeFinalized(&key));
+            MOZ_ASSERT(!gc::IsAboutToBeFinalized(&value));
+            CheckGCThingAfterMovingGC(key);
+            CheckGCThingAfterMovingGC(value);
+            auto ptr = this->lookup(key);
+            MOZ_ASSERT(ptr.found() && &*ptr == &r.front());
         }
 #endif
     }
@@ -81,23 +80,30 @@ class WeakValueCache : public HashMap<Key, Value, HashPolicy, AllocPolicy>
     typedef typename Base::Range Range;
     typedef typename Base::Enum Enum;
 
-    explicit WeakValueCache(JSRuntime *rt) : Base(rt) { }
-    explicit WeakValueCache(JSContext *cx) : Base(cx->runtime()) { }
+    explicit WeakValueCache(JSRuntime* rt) : Base(rt) { }
+    explicit WeakValueCache(JSContext* cx) : Base(cx->runtime()) { }
 
   public:
     // Sweep all entries which have unmarked key or value.
-    void sweep(FreeOp *fop) {
+    void sweep(FreeOp* fop) {
         // Remove all entries whose values remain unmarked.
         for (Enum e(*this); !e.empty(); e.popFront()) {
-            if (gc::IsAboutToBeFinalized(e.front().value()))
+            MOZ_ASSERT(e.front().value());
+            if (gc::IsAboutToBeFinalized(&e.front().value()))
                 e.removeFront();
         }
 
-#if DEBUG
+#ifdef DEBUG
         // Once we've swept, all remaining edges should stay within the
         // known-live part of the graph.
-        for (Range r = Base::all(); !r.empty(); r.popFront())
-            JS_ASSERT(!gc::IsAboutToBeFinalized(r.front().value()));
+        for (Range r = Base::all(); !r.empty(); r.popFront()) {
+            Value value(r.front().value());
+            MOZ_ASSERT(value);
+            MOZ_ASSERT(!gc::IsAboutToBeFinalized(&value));
+            CheckGCThingAfterMovingGC(value);
+            auto ptr = this->lookup(r.front().key());
+            MOZ_ASSERT(ptr.found() && &*ptr == &r.front());
+        }
 #endif
     }
 };

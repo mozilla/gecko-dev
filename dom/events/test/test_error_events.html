@@ -5,6 +5,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <script>
+  setup({allow_uncaught_exception:true});
   var errorEvent;
   var file;
   var line;
@@ -31,14 +32,14 @@
   generate_tests(assert_equals, [
     [ "Event filename", errorEvent.filename, location.href ],
     [ "Callback filename", file, location.href ],
-    [ "Event line number", errorEvent.lineno, 27 ],
-    [ "Callback line number", line, 27 ],
+    [ "Event line number", errorEvent.lineno, 28 ],
+    [ "Callback line number", line, 28 ],
     [ "Event message", errorEvent.message, "Error: hello" ],
     [ "Callback message", msg, "Error: hello" ],
     [ "Event error-object", errorEvent.error, thrown],
     [ "Callback error-object", error, thrown ],
-    [ "Event column", errorEvent.colno, 15 ],
-    [ "Callback column", column, 15 ]
+    [ "Event column", errorEvent.colno, 16 ],
+    [ "Callback column", column, 16 ]
   ]);
 </script>
 <script>

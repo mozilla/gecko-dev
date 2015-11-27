@@ -1,9 +1,12 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "Activity.h"
 #include "mozilla/dom/ToJSValue.h"
+#include "mozilla/dom/ContentChild.h"
 #include "nsContentUtils.h"
 #include "nsDOMClassInfo.h"
 #include "nsIConsoleService.h"
@@ -25,9 +28,9 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(Activity, DOMRequest)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 /* virtual */ JSObject*
-Activity::WrapObject(JSContext* aCx)
+Activity::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return MozActivityBinding::Wrap(aCx, this);
+  return MozActivityBinding::Wrap(aCx, this, aGivenProto);
 }
 
 nsresult
@@ -66,12 +69,24 @@ Activity::Initialize(nsPIDOMWindow* aWindow,
   mProxy = do_CreateInstance("@mozilla.org/dom/activities/proxy;1", &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  // We're about the pass the dictionary to a JS-implemented component, so
+  // rehydrate it in a system scode so that security wrappers don't get in the
+  // way. See bug 1161748 comment 16.
+  bool ok;
   JS::Rooted<JS::Value> optionsValue(aCx);
-  if (!ToJSValue(aCx, aOptions, &optionsValue)) {
-    return NS_ERROR_FAILURE;
+  {
+    JSAutoCompartment ac(aCx, xpc::PrivilegedJunkScope());
+    ok = ToJSValue(aCx, aOptions, &optionsValue);
+    NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
   }
+  ok = JS_WrapValue(aCx, &optionsValue);
+  NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
 
-  mProxy->StartActivity(static_cast<nsIDOMDOMRequest*>(this), optionsValue, aWindow);
+  ContentChild *cpc = ContentChild::GetSingleton();
+  uint64_t childID = cpc ? cpc->GetID() : 0;
+
+  mProxy->StartActivity(static_cast<nsIDOMDOMRequest*>(this), optionsValue,
+                        aWindow, childID);
   return NS_OK;
 }
 
@@ -85,6 +100,5 @@ Activity::~Activity()
 Activity::Activity(nsPIDOMWindow* aWindow)
   : DOMRequest(aWindow)
 {
-  MOZ_ASSERT(IsDOMBinding());
 }
 

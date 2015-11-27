@@ -23,6 +23,7 @@ CERT_CacheOCSPResponseFromSideChannel
 CERT_CertChainFromCert
 CERT_CertificateRequestTemplate DATA
 CERT_CertificateTemplate DATA
+CERT_CertListFromCert
 CERT_ChangeCertTrust
 CERT_CheckCertUsage
 CERT_CheckCertValidTimes
@@ -87,6 +88,7 @@ CERT_FilterCertListByUsage
 CERT_FilterCertListForUserCerts
 CERT_FindCertByDERCert
 CERT_FindCertByIssuerAndSN
+CERT_FindCertByName
 CERT_FindCertByNickname
 CERT_FindCertByNicknameOrEmailAddr
 CERT_FindCertExtension
@@ -110,6 +112,7 @@ CERT_GetCountryName
 CERT_GetDefaultCertDB
 CERT_GetFirstEmailAddress
 CERT_GetGeneralNameTypeFromString
+CERT_GetImposedNameConstraints
 CERT_GetLocalityName
 CERT_GetNextEmailAddress
 CERT_GetNextGeneralName
@@ -145,7 +148,6 @@ CERT_StartCertificateRequestAttributes
 CERT_SubjectPublicKeyInfoTemplate DATA
 CERT_TimeChoiceTemplate DATA
 CERT_VerifyCertificate
-CERT_VerifyCertName
 CERT_VerifySignedDataWithPublicKeyInfo
 DER_AsciiToTime_Util
 DER_DecodeTimeChoice_Util
@@ -159,6 +161,8 @@ DER_GetInteger_Util
 DER_Lengths
 DER_SetUInteger
 DER_UTCTimeToTime_Util
+DSAU_DecodeDerSigToLen
+DSAU_EncodeDerSigWithLen
 DTLS_GetHandshakeTimeout
 DTLS_ImportFD
 HASH_Begin
@@ -307,6 +311,7 @@ PK11_DeriveWithTemplate
 PK11_DestroyContext
 PK11_DestroyGenericObject
 PK11_DestroyMergeLog
+PK11_DestroyObject
 PK11_DestroyTokenObject
 PK11_DigestBegin
 PK11_DigestFinal
@@ -314,6 +319,7 @@ PK11_DigestOp
 PK11_DoesMechanism
 PK11_Encrypt
 PK11_ExportDERPrivateKeyInfo
+PK11_ExportEncryptedPrivKeyInfo
 PK11_ExtractKeyValue
 PK11_FindCertFromNickname
 PK11_FindCertsFromEmailAddress
@@ -368,6 +374,7 @@ PK11_ImportCert
 PK11_ImportCertForKey
 PK11_ImportCRL
 PK11_ImportDERPrivateKeyInfoAndReturnKey
+PK11_ImportPublicKey
 PK11_ImportSymKey
 PK11_InitPin
 PK11_IsDisabled
@@ -396,9 +403,6 @@ PK11_NeedLogin
 PK11_NeedUserInit
 PK11_ParamFromIV
 PK11_PBEKeyGen
-PK11_PQG_DestroyParams
-PK11_PQG_DestroyVerify
-PK11_PQG_ParamGen
 PK11_PrivDecrypt
 PK11_PrivDecryptPKCS1
 PK11_ProtectedAuthenticationPath
@@ -508,6 +512,7 @@ SECKEY_CopyPublicKey
 SECKEY_CopySubjectPublicKeyInfo
 SECKEY_CreateSubjectPublicKeyInfo
 SECKEY_DecodeDERSubjectPublicKeyInfo
+SECKEY_DestroyEncryptedPrivateKeyInfo
 SECKEY_DestroyPrivateKey
 SECKEY_DestroyPrivateKeyList
 SECKEY_DestroyPublicKey
@@ -516,10 +521,11 @@ SECKEY_ECParamsToBasePointOrderLen
 SECKEY_ECParamsToKeySize
 SECKEY_EncodeDERSubjectPublicKeyInfo
 SECKEY_ExtractPublicKey
+SECKEY_GetPublicKeyType
 SECKEY_ImportDERPublicKey
 SECKEY_PublicKeyStrength
-SECKEY_PublicKeyStrengthInBits
 SECKEY_RSAPSSParamsTemplate DATA
+SECKEY_SignatureLen
 SECMIME_DecryptionAllowed
 SECMOD_AddNewModule
 SECMOD_AddNewModuleEx
@@ -583,6 +589,7 @@ SEC_PKCS12DecoderFinish
 SEC_PKCS12DecoderImportBags
 SEC_PKCS12DecoderIterateInit
 SEC_PKCS12DecoderIterateNext
+SEC_PKCS12DecoderRenameCertNicknames
 SEC_PKCS12DecoderStart
 SEC_PKCS12DecoderUpdate
 SEC_PKCS12DecoderValidateBags
@@ -630,6 +637,7 @@ SSL_CipherPrefSet
 SSL_CipherPrefSetDefault
 SSL_ClearSessionCache
 SSL_ConfigSecureServer
+SSL_ConfigSecureServerWithCertChain
 SSL_ConfigServerSessionIDCache
 SSL_ExportKeyingMaterial
 SSL_ForceHandshake
@@ -660,6 +668,8 @@ SSL_SetStapledOCSPResponses
 SSL_SetURL
 SSL_SNISocketConfigHook
 SSL_VersionRangeGet
+SSL_VersionRangeGetDefault
+SSL_VersionRangeGetSupported
 SSL_VersionRangeSet
 SSL_VersionRangeSetDefault
 UTIL_SetForkState
@@ -667,7 +677,10 @@ VFY_Begin
 VFY_CreateContext
 VFY_DestroyContext
 VFY_End
+VFY_EndWithSignature
 VFY_Update
-VFY_VerifyDataDirect
+VFY_VerifyData
 VFY_VerifyDataWithAlgorithmID
+VFY_VerifyDigestDirect
 _SGN_VerifyPKCS1DigestInfo
+__PK11_SetCertificateNickname

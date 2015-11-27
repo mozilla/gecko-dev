@@ -6,7 +6,7 @@
 const INITIAL_URL = "http://example.com/tests/toolkit/components/places/tests/browser/begin.html";
 const FINAL_URL = "http://example.com/tests/toolkit/components/places/tests/browser/final.html";
 
-let gTab = gBrowser.selectedTab = gBrowser.addTab();
+var gTab = gBrowser.selectedTab = gBrowser.addTab();
 
 /**
  * One-time observer callback.
@@ -50,7 +50,7 @@ function test()
     if (uri.spec != FINAL_URL)
       return;
     gBrowser.removeCurrentTab();
-    promiseClearHistory().then(finish);
+    PlacesTestUtils.clearHistory().then(finish);
   });
 
   Services.prefs.setBoolPref("places.history.enabled", false);

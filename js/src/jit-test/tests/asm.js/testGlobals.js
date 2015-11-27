@@ -1,8 +1,8 @@
+// |jit-test| test-also-noasmjs
 load(libdir + "asm.js");
 load(libdir + "asserts.js");
 
 assertAsmTypeFail(USE_ASM + "var i; function f(){} return f");
-assertAsmTypeFail(USE_ASM + "const i; function f(){} return f");
 assertEq(asmLink(asmCompile(USE_ASM + "var i=0; function f(){} return f"))(), undefined);
 assertEq(asmLink(asmCompile(USE_ASM + "const i=0; function f(){} return f"))(), undefined);
 assertEq(asmLink(asmCompile(USE_ASM + "var i=42; function f(){ return i|0 } return f"))(), 42);
@@ -14,15 +14,9 @@ assertAsmTypeFail(USE_ASM + "const i=42; function f(){ return +(i+.1) } return f
 assertAsmTypeFail(USE_ASM + "var i=1.2; function f(){ return i|0 } return f");
 assertAsmTypeFail(USE_ASM + "const i=1.2; function f(){ return i|0 } return f");
 assertAsmTypeFail(USE_ASM + "var i=0; function f(e){ e=+e; i=e } return f");
-assertAsmTypeFail(USE_ASM + "const i=0; function f(e){ e=+e; i=e } return f");
 assertAsmTypeFail(USE_ASM + "var d=0.1; function f(i){ i=i|0; d=i } return f");
-assertAsmTypeFail(USE_ASM + "const d=0.1; function f(i){ i=i|0; d=i } return f");
 assertEq(asmLink(asmCompile(USE_ASM + "var i=13; function f(j) { j=j|0; i=j; return i|0 } return f"))(42), 42);
-assertAsmTypeFail(USE_ASM + "const i=13; function f(j) { j=j|0; i=j; return i|0 } return f");
-assertAsmTypeFail(USE_ASM + "const c=0,i=13; function f(j) { j=j|0; i=j; return i|0 } return f");
 assertEq(asmLink(asmCompile(USE_ASM + "var d=.1; function f(e) { e=+e; d=e; return +e } return f"))(42.1), 42.1);
-assertAsmTypeFail(USE_ASM + "const d=.1; function f(e) { e=+e; d=e; return +e } return f");
-assertAsmTypeFail(USE_ASM + "const c=0, d=.1; function f(e) { e=+e; d=e; return +e } return f");
 assertEq(asmLink(asmCompile(USE_ASM + "var i=13; function f(i, j) { i=i|0; j=j|0; i=j; return i|0 } return f"))(42,43), 43);
 assertEq(asmLink(asmCompile(USE_ASM + "var i=13; function f(j) { j=j|0; var i=0; i=j; return i|0 } return f"))(42), 42);
 
@@ -62,7 +56,6 @@ assertAsmTypeFail('global', USE_ASM + "var i=global.i|0; function f() { return i
 assertAsmTypeFail('global', USE_ASM + "const i=global.i|0; function f() { return i|0 } return f");
 assertAsmTypeFail('global', USE_ASM + "var i=global.i|0; function f() { return i|0 } return f");
 assertAsmTypeFail('global', USE_ASM + 'var i=global.Infinity; function f() { i = 0.0 } return f');
-assertAsmTypeFail('global', USE_ASM + 'const i=global.Infinity; function f() { i = 0.0 } return f');
 assertAsmLinkAlwaysFail(asmCompile('global', USE_ASM + 'var i=global.Infinity; function f() { return +i } return f'), undefined);
 assertAsmLinkAlwaysFail(asmCompile('global', USE_ASM + 'const i=global.Infinity; function f() { return +i } return f'), undefined);
 assertAsmLinkAlwaysFail(asmCompile('global', USE_ASM + 'var i=global.Infinity; function f() { return +i } return f'), null);
@@ -123,11 +116,9 @@ assertAsmLinkFail(asmCompile('glob','foreign', USE_ASM + 'var i = foreign.x|0; f
 assertEq(asmLink(asmCompile('glob','foreign', USE_ASM + 'var i = foreign.x|0; function f() { return i|0} return f'), null, {x:"blah"})(), 0);
 assertEq(asmLink(asmCompile('glob','foreign', USE_ASM + 'var i = +foreign.x; function f() { return +i} return f'), null, {x:"blah"})(), NaN);
 assertEq(asmLink(asmCompile('glob','foreign', USE_ASM + 'var tof = glob.Math.fround; var i = tof(foreign.x); function f() { return +i} return f'), this, {x:"blah"})(), NaN);
-if (typeof Symbol === "function") {
-    assertThrowsInstanceOf(() => asmCompile('glob','foreign',USE_ASM + 'var i = foreign.x|0; function f() { return i|0} return f')(null, {x:Symbol("blah")}), TypeError);
-    assertThrowsInstanceOf(() => asmCompile('glob','foreign',USE_ASM + 'var i = +foreign.x; function f() { return +i} return f')(null, {x:Symbol("blah")}), TypeError);
-    assertThrowsInstanceOf(() => asmCompile('glob','foreign',USE_ASM + 'var tof = glob.Math.fround; var i = tof(foreign.x); function f() { return +i} return f')(this, {x:Symbol("blah")}), TypeError);
-}
+assertThrowsInstanceOf(() => asmCompile('glob','foreign',USE_ASM + 'var i = foreign.x|0; function f() { return i|0} return f')(null, {x:Symbol("blah")}), TypeError);
+assertThrowsInstanceOf(() => asmCompile('glob','foreign',USE_ASM + 'var i = +foreign.x; function f() { return +i} return f')(null, {x:Symbol("blah")}), TypeError);
+assertThrowsInstanceOf(() => asmCompile('glob','foreign',USE_ASM + 'var tof = glob.Math.fround; var i = tof(foreign.x); function f() { return +i} return f')(this, {x:Symbol("blah")}), TypeError);
 
 // Temporary workaround; this test can be removed when Emscripten is fixed and
 // the fix has propagated out to most apps:

@@ -61,8 +61,9 @@ class Device(object):
         remote_dump_dir = posixpath.join(self.app_ctx.remote_profile, 'minidumps')
         local_dump_dir = tempfile.mkdtemp()
         self.dm.getDirectory(remote_dump_dir, local_dump_dir)
-        for f in self.dm.listFiles(remote_dump_dir):
-            self.dm.removeFile(posixpath.join(remote_dump_dir, f))
+        if os.listdir(local_dump_dir):
+            for f in self.dm.listFiles(remote_dump_dir):
+                self.dm.removeFile(posixpath.join(remote_dump_dir, f))
         return local_dump_dir
 
     def setup_profile(self, profile):
@@ -140,7 +141,7 @@ class Device(object):
             if os.path.isfile(logcat_log):
                 self._rotate_log(logcat_log)
             logcat_args = [self.app_ctx.adb, '-s', '%s' % serial,
-                           'logcat', '-v', 'time']
+                           'logcat', '-v', 'time', '-b', 'main', '-b', 'radio']
             self.logcat_proc = ProcessHandler(logcat_args, logfile=logcat_log)
             self.logcat_proc.run()
 

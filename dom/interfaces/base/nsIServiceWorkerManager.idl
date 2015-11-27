@@ -5,19 +5,69 @@
 
 #include "domstubs.idl"
 
+interface nsIArray;
 interface nsIDocument;
+interface nsIInterceptedChannel;
+interface nsIPrincipal;
+interface nsIRunnable;
 interface nsIURI;
 
-[builtinclass, uuid(d6a9d4b6-39b0-4cd2-957d-28a57df5a031)]
+[scriptable, uuid(52ee2c9d-ee87-4caf-9588-23ae77ff8798)]
 interface nsIServiceWorkerUnregisterCallback : nsISupports
 {
   // aState is true if the unregistration succeded.
   // It's false if this ServiceWorkerRegistration doesn't exist.
-  [noscript] void UnregisterSucceeded(in bool aState);
-  [noscript] void UnregisterFailed();
+  void unregisterSucceeded(in bool aState);
+  void unregisterFailed();
 };
 
-[builtinclass, uuid(79ad5b57-d65d-46d3-b5e9-32d27e16052d)]
+interface nsIWorkerDebugger;
+
+[scriptable, builtinclass, uuid(76e357ed-208d-4e4c-9165-1c4059707879)]
+interface nsIServiceWorkerInfo : nsISupports
+{
+  readonly attribute DOMString scriptSpec;
+  readonly attribute DOMString cacheName;
+
+  readonly attribute nsIWorkerDebugger debugger;
+
+  void attachDebugger();
+
+  void detachDebugger();
+};
+
+[scriptable, uuid(87e63548-d440-4b8a-b158-65ad1de0211E)]
+interface nsIServiceWorkerRegistrationInfoListener : nsISupports
+{
+  void onChange();
+};
+
+[scriptable, builtinclass, uuid(72faba24-0a1b-4284-bad3-d44c044d6d95)]
+interface nsIServiceWorkerRegistrationInfo : nsISupports
+{
+  readonly attribute nsIPrincipal principal;
+
+  readonly attribute DOMString scope;
+  readonly attribute DOMString scriptSpec;
+
+  readonly attribute nsIServiceWorkerInfo installingWorker;
+  readonly attribute nsIServiceWorkerInfo waitingWorker;
+  readonly attribute nsIServiceWorkerInfo activeWorker;
+
+  void addListener(in nsIServiceWorkerRegistrationInfoListener listener);
+
+  void removeListener(in nsIServiceWorkerRegistrationInfoListener listener);
+};
+
+[scriptable, uuid(9e523e7c-ad6f-4df0-8077-c74aebbc679d)]
+interface nsIServiceWorkerManagerListener : nsISupports
+{
+  void onRegister(in nsIServiceWorkerRegistrationInfo aInfo);
+
+  void onUnregister(in nsIServiceWorkerRegistrationInfo aInfo);
+};
+
+[scriptable, builtinclass, uuid(c945e2e6-30c2-48e6-a282-e69de0c7ebb1)]
 interface nsIServiceWorkerManager : nsISupports
 {
   /**
@@ -28,13 +78,14 @@ interface nsIServiceWorkerManager : nsISupports
    *
    * Returns a Promise.
    */
-  nsISupports register(in DOMString aScope, in DOMString aScriptURI);
+  nsISupports register(in nsIDOMWindow aWindow, in nsIURI aScope, in nsIURI aScriptURI);
 
   /**
    * Unregister an existing ServiceWorker registration for `aScope`.
    * It keeps aCallback alive until the operation is concluded.
    */
-  void unregister(in nsIServiceWorkerUnregisterCallback aCallback,
+  void unregister(in nsIPrincipal aPrincipal,
+                  in nsIServiceWorkerUnregisterCallback aCallback,
                   in DOMString aScope);
 
   // Returns a Promise
@@ -48,10 +99,6 @@ interface nsIServiceWorkerManager : nsISupports
 
   // Remove ready pending Promise
   void removeReadyPromise(in nsIDOMWindow aWindow);
-
-  // aTarget MUST be a ServiceWorkerRegistration.
-  [noscript] void AddRegistrationEventListener(in nsIURI aPageURI, in nsIDOMEventTarget aTarget);
-  [noscript] void RemoveRegistrationEventListener(in nsIURI aPageURI, in nsIDOMEventTarget aTarget);
 
   /**
    * Call this to request that document `aDoc` be controlled by a ServiceWorker
@@ -79,12 +126,64 @@ interface nsIServiceWorkerManager : nsISupports
   [noscript] nsISupports GetActive(in nsIDOMWindow aWindow, in DOMString aScope);
 
   /*
-   * Returns a ServiceWorker.
+   * Returns a ServiceWorker object representing the active worker controlling this
+   * window.
    */
   [noscript] nsISupports GetDocumentController(in nsIDOMWindow aWindow);
 
+  /*
+   * Clears ServiceWorker registrations from memory and disk for the specified
+   * host.
+   * - All ServiceWorker instances change their state to redundant.
+   * - Existing ServiceWorker instances handling fetches will keep running.
+   * - All documents will immediately stop being controlled.
+   * - Unregister jobs will be queued for all registrations.
+   *   This eventually results in the registration being deleted from disk too.
+   */
+  void removeAndPropagate(in AUTF8String aHost);
+
   // Testing
-  DOMString getScopeForUrl(in DOMString path);
+  DOMString getScopeForUrl(in nsIPrincipal aPrincipal, in DOMString aPath);
+
+  // Note: This is meant to be used only by about:serviceworkers.
+  // It returns an array of nsIServiceWorkerRegistrationInfos.
+  nsIArray getAllRegistrations();
+
+  // Note: This is meant to be used only by about:serviceworkers.
+  // It calls softUpdate() for each child process.
+  [implicit_jscontext] void propagateSoftUpdate(in jsval aOriginAttributes,
+                                                in DOMString aScope);
+
+  // Note: This is meant to be used only by about:serviceworkers.
+  // It calls unregister() in each child process. The callback is used to
+  // inform when unregister() is completed on the current process.
+  void propagateUnregister(in nsIPrincipal aPrincipal,
+                           in nsIServiceWorkerUnregisterCallback aCallback,
+                           in DOMString aScope);
+
+  void sendNotificationClickEvent(in ACString aOriginSuffix,
+                                  in ACString scope,
+                                  in AString aID,
+                                  in AString aTitle,
+                                  in AString aDir,
+                                  in AString aLang,
+                                  in AString aBody,
+                                  in AString aTag,
+                                  in AString aIcon,
+                                  in AString aData,
+                                  in AString aBehavior);
+  [optional_argc] void sendPushEvent(in ACString aOriginAttributes,
+                                     in ACString aScope,
+                                     [optional] in uint32_t aDataLength,
+                                     [optional, array, size_is(aDataLength)] in uint8_t aDataBytes);
+  void sendPushSubscriptionChangeEvent(in ACString aOriginAttributes,
+                                       in ACString scope);
+
+  void addListener(in nsIServiceWorkerManagerListener aListener);
+
+  void removeListener(in nsIServiceWorkerManagerListener aListener);
+
+  bool shouldReportToWindow(in nsIDOMWindow aWindow, in ACString aScope);
 };
 
 %{ C++

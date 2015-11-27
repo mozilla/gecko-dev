@@ -4,9 +4,19 @@
 
 package org.mozilla.gecko.fxa.activities;
 
+import android.accounts.Account;
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.TextView;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.background.common.log.Logger;
 import org.mozilla.gecko.fxa.FirefoxAccounts;
+import org.mozilla.gecko.fxa.FxAccountConstants;
+import org.mozilla.gecko.fxa.SyncStatusListener;
 import org.mozilla.gecko.fxa.authenticator.AndroidFxAccount;
 import org.mozilla.gecko.fxa.login.Engaged;
 import org.mozilla.gecko.fxa.login.State;
@@ -14,14 +24,6 @@ import org.mozilla.gecko.fxa.login.State.Action;
 import org.mozilla.gecko.fxa.sync.FxAccountSyncStatusHelper;
 import org.mozilla.gecko.fxa.tasks.FxAccountCodeResender;
 import org.mozilla.gecko.sync.setup.activities.ActivityUtils;
-
-import android.accounts.Account;
-import android.app.Activity;
-import android.content.Context;
-import android.os.Bundle;
-import android.view.View;
-import android.view.View.OnClickListener;
-import android.widget.TextView;
 
 /**
  * Activity which displays account created successfully screen to the user, and
@@ -33,6 +35,7 @@ public class FxAccountConfirmAccountActivity extends FxAccountAbstractActivity i
   // Set in onCreate.
   protected TextView verificationLinkTextView;
   protected View resendLink;
+  protected View changeEmail;
 
   // Set in onResume.
   protected AndroidFxAccount fxAccount;
@@ -56,6 +59,8 @@ public class FxAccountConfirmAccountActivity extends FxAccountAbstractActivity i
     verificationLinkTextView = (TextView) ensureFindViewById(null, R.id.verification_link_text, "verification link text");
     resendLink = ensureFindViewById(null, R.id.resend_confirmation_email_link, "resend confirmation email link");
     resendLink.setOnClickListener(this);
+    changeEmail = ensureFindViewById(null, R.id.change_confirmation_email_link, "change confirmation email address");
+    changeEmail.setOnClickListener(this);
 
     View backToBrowsingButton = ensureFindViewById(null, R.id.button, "back to browsing button");
     backToBrowsingButton.setOnClickListener(new OnClickListener() {
@@ -96,7 +101,7 @@ public class FxAccountConfirmAccountActivity extends FxAccountAbstractActivity i
     }
   }
 
-  protected class InnerSyncStatusDelegate implements FirefoxAccounts.SyncStatusListener {
+  protected class InnerSyncStatusDelegate implements SyncStatusListener {
     protected final Runnable refreshRunnable = new Runnable() {
       @Override
       public void run() {
@@ -136,15 +141,12 @@ public class FxAccountConfirmAccountActivity extends FxAccountAbstractActivity i
     case NeedsVerification:
       // This is what we're here to handle.
       break;
-    case NeedsPassword:
-    case NeedsUpgrade:
-    case None:
     default:
       // We're not in the right place!  Redirect to status.
-      Logger.warn(LOG_TAG, "No need to verifiy Firefox Account that needs action " + neededAction.toString() +
+      Logger.warn(LOG_TAG, "No need to verify Firefox Account that needs action " + neededAction.toString() +
           " (in state " + state.getStateLabel() + ").");
       setResult(RESULT_CANCELED);
-      this.redirectToActivity(FxAccountStatusActivity.class);
+      redirectToAction(FxAccountConstants.ACTION_FXA_STATUS);
       return;
     }
 
@@ -159,6 +161,12 @@ public class FxAccountConfirmAccountActivity extends FxAccountAbstractActivity i
 
   @Override
   public void onClick(View v) {
-    FxAccountCodeResender.resendCode(this, fxAccount);
+    if (v.equals(resendLink)) {
+        FxAccountCodeResender.resendCode(this, fxAccount);
+    } else if (v.equals(changeEmail)) {
+      final Account account = fxAccount.getAndroidAccount();
+      Intent intent = new Intent(this, FxAccountGetStartedActivity.class);
+      FxAccountStatusActivity.maybeDeleteAndroidAccount(this, account, intent);
+    }
   }
 }

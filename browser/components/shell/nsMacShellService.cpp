@@ -17,7 +17,8 @@
 #include "nsIURL.h"
 #include "nsIWebBrowserPersist.h"
 #include "nsMacShellService.h"
-#include "nsNetUtil.h"
+#include "nsIProperties.h"
+#include "nsServiceManagerUtils.h"
 #include "nsShellService.h"
 #include "nsStringAPI.h"
 #include "nsIDocShell.h"
@@ -90,7 +91,15 @@ nsMacShellService::SetDefaultBrowser(bool aClaimAllTypes, bool aForAllUsers)
       return NS_ERROR_FAILURE;
     }
   }
-  
+
+  nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID));
+  if (prefs) {
+    (void) prefs->SetBoolPref(PREF_CHECKDEFAULTBROWSER, true);
+    // Reset the number of times the dialog should be shown
+    // before it is silenced.
+    (void) prefs->SetIntPref(PREF_DEFAULTBROWSERCHECKCOUNT, 0);
+  }
+
   return NS_OK;
 }
 
@@ -104,27 +113,25 @@ nsMacShellService::GetShouldCheckDefaultBrowser(bool* aResult)
     return NS_OK;
   }
 
-  nsCOMPtr<nsIPrefBranch> prefs;
-  nsCOMPtr<nsIPrefService> pserve(do_GetService(NS_PREFSERVICE_CONTRACTID));
-  if (pserve)
-    pserve->GetBranch("", getter_AddRefs(prefs));
+  nsresult rv;
+  nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
 
-  prefs->GetBoolPref(PREF_CHECKDEFAULTBROWSER, aResult);
-
-  return NS_OK;
+  return prefs->GetBoolPref(PREF_CHECKDEFAULTBROWSER, aResult);
 }
 
 NS_IMETHODIMP
 nsMacShellService::SetShouldCheckDefaultBrowser(bool aShouldCheck)
 {
-  nsCOMPtr<nsIPrefBranch> prefs;
-  nsCOMPtr<nsIPrefService> pserve(do_GetService(NS_PREFSERVICE_CONTRACTID));
-  if (pserve)
-    pserve->GetBranch("", getter_AddRefs(prefs));
+  nsresult rv;
+  nsCOMPtr<nsIPrefBranch> prefs(do_GetService(NS_PREFSERVICE_CONTRACTID, &rv));
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
 
-  prefs->SetBoolPref(PREF_CHECKDEFAULTBROWSER, aShouldCheck);
-
-  return NS_OK;
+  return prefs->SetBoolPref(PREF_CHECKDEFAULTBROWSER, aShouldCheck);
 }
 
 NS_IMETHODIMP
@@ -202,7 +209,9 @@ nsMacShellService::SetDesktopBackground(nsIDOMElement* aElement,
     loadContext = do_QueryInterface(docShell);
   }
 
-  return wbp->SaveURI(imageURI, nullptr, docURI, nullptr, nullptr,
+  return wbp->SaveURI(imageURI, nullptr,
+                      docURI, content->OwnerDoc()->GetReferrerPolicy(),
+                      nullptr, nullptr,
                       mBackgroundFile, loadContext);
 }
 
@@ -350,8 +359,7 @@ nsMacShellService::OpenApplication(int32_t aApplication)
       if (!exists)
         return NS_ERROR_FILE_NOT_FOUND;
       return lf->Launch();
-    }  
-    break;
+    }
   case nsIMacShellService::APPLICATION_DESKTOP:
     {
       nsCOMPtr<nsIFile> lf;
@@ -362,8 +370,7 @@ nsMacShellService::OpenApplication(int32_t aApplication)
       if (!exists)
         return NS_ERROR_FILE_NOT_FOUND;
       return lf->Launch();
-    }  
-    break;
+    }
   }
 
   if (appURL && err == noErr) {

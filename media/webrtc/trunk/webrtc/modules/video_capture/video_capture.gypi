@@ -9,12 +9,17 @@
 {
   'targets': [
     {
+      # Note this library is missing an implementation for the video capture.
+      # Targets must link with either 'video_capture' or
+      # 'video_capture_module_internal_impl' depending on whether they want to
+      # use the internal capturer.
       'target_name': 'video_capture_module',
       'type': 'static_library',
       'dependencies': [
         'webrtc_utility',
+        '<(webrtc_root)/common.gyp:webrtc_common',
         '<(webrtc_root)/common_video/common_video.gyp:common_video',
-        '<(webrtc_root)/system_wrappers/source/system_wrappers.gyp:system_wrappers',
+        '<(webrtc_root)/system_wrappers/system_wrappers.gyp:system_wrappers',
       ],
       'cflags_mozilla': [
         '$(NSPR_CFLAGS)',
@@ -31,15 +36,39 @@
         'video_capture_impl.cc',
         'video_capture_impl.h',
       ],
-      'conditions': [
-        ['include_internal_video_capture==0', {
-          'sources': [
-            'external/device_info_external.cc',
-            'external/video_capture_external.cc',
+    },
+    {
+      # Default video capture module implementation that only supports external
+      # capture.
+      'target_name': 'video_capture',
+      'type': 'static_library',
+      'dependencies': [
+        'video_capture_module',
+      ],
+      'cflags_mozilla': [
+        '$(NSPR_CFLAGS)',
+      ],
+      'sources': [
+        'external/device_info_external.cc',
+        'external/video_capture_external.cc',
+      ],
+    },
+  ], # targets
+  'conditions': [
+    ['build_with_chromium==0', {
+      'targets': [
+        {
+          'target_name': 'video_capture_module_internal_impl',
+          'type': 'static_library',
+          'dependencies': [
+            'video_capture_module',
+            '<(webrtc_root)/common.gyp:webrtc_common',
           ],
-        }, {  # include_internal_video_capture == 1
+	  'cflags_mozilla': [
+	    '$(NSPR_CFLAGS)',
+          ],
           'conditions': [
-            ['include_v4l2_video_capture==1', {
+           ['include_v4l2_video_capture==1', {
               'sources': [
                 'linux/device_info_linux.cc',
                 'linux/device_info_linux.h',
@@ -63,6 +92,8 @@
               'link_settings': {
                 'xcode_settings': {
                   'OTHER_LDFLAGS': [
+                    '-framework Cocoa',
+                    '-framework CoreVideo',
                     '-framework QTKit',
                   ],
                 },
@@ -75,7 +106,7 @@
                     '<(DEPTH)/third_party/winsdk_samples/winsdk_samples.gyp:directshow_baseclasses',
                   ],
                 }],
-              ],
+	      ],
               'sources': [
                 'windows/device_info_ds.cc',
                 'windows/device_info_ds.h',
@@ -90,7 +121,7 @@
                 'windows/video_capture_factory_windows.cc',
                 'windows/video_capture_mf.cc',
                 'windows/video_capture_mf.h',
-                'windows/BasePin.cpp',
+		'windows/BasePin.cpp',
                 'windows/BaseFilter.cpp',
                 'windows/BaseInputPin.cpp',
                 'windows/MediaType.cpp',
@@ -115,10 +146,16 @@
                 'ios/device_info_ios.mm',
                 'ios/device_info_ios_objc.h',
                 'ios/device_info_ios_objc.mm',
+                'ios/rtc_video_capture_ios_objc.h',
+                'ios/rtc_video_capture_ios_objc.mm',
                 'ios/video_capture_ios.h',
                 'ios/video_capture_ios.mm',
-                'ios/video_capture_ios_objc.h',
-                'ios/video_capture_ios_objc.mm',
+              ],
+              'xcode_settings': {
+                'CLANG_ENABLE_OBJC_ARC': 'YES',
+              },
+              'cflags_mozilla': [
+                '-fobjc-arc',
               ],
               'all_dependent_settings': {
                 'xcode_settings': {
@@ -132,23 +169,24 @@
               },
             }],  # ios
           ], # conditions
-        }],  # include_internal_video_capture
-      ], # conditions
-    },
-  ],
-  'conditions': [
+        },
+      ],
+    }], # build_with_chromium==0
     ['include_tests==1', {
       'targets': [
         {
           'target_name': 'video_capture_tests',
-          'type': 'executable',
+          'type': '<(gtest_target_type)',
           'dependencies': [
             'video_capture_module',
+            'video_capture_module_internal_impl',
             'webrtc_utility',
-            '<(webrtc_root)/system_wrappers/source/system_wrappers.gyp:system_wrappers',
+            '<(webrtc_root)/system_wrappers/system_wrappers.gyp:system_wrappers',
             '<(DEPTH)/testing/gtest.gyp:gtest',
           ],
           'sources': [
+            'ensure_initialized.cc',
+            'ensure_initialized.h',
             'test/video_capture_unittest.cc',
             'test/video_capture_main_mac.mm',
           ],
@@ -170,6 +208,18 @@
             ['OS=="linux"', {
               'libraries': [
                 '-lrt',
+              ],
+            }],
+            ['OS=="android"', {
+              'dependencies': [
+                '<(DEPTH)/testing/android/native_test.gyp:native_test_native_code',
+              ],
+              # Need to disable error due to the line in
+              # base/android/jni_android.h triggering it:
+              # const BASE_EXPORT jobject GetApplicationContext()
+              # error: type qualifiers ignored on function return type
+              'cflags': [
+                '-Wno-ignored-qualifiers',
               ],
             }],
             ['OS=="mac"', {
@@ -194,6 +244,17 @@
         },
       ], # targets
       'conditions': [
+        ['OS=="android"', {
+          'targets': [
+            {
+              'target_name': 'video_capture_tests_apk_target',
+              'type': 'none',
+              'dependencies': [
+                '<(apk_tests_path):video_capture_tests_apk',
+              ],
+            },
+          ],
+        }],
         ['test_isolation_mode != "noop"', {
           'targets': [
             {
@@ -204,7 +265,6 @@
               ],
               'includes': [
                 '../../build/isolate.gypi',
-                'video_capture_tests.isolate',
               ],
               'sources': [
                 'video_capture_tests.isolate',

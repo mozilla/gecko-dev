@@ -16,6 +16,8 @@
 #include "mozilla/layers/TextureD3D11.h"
 #include "mozilla/layers/TextureD3D9.h"
 #endif
+#include "gfxUtils.h"
+#include "IPDLActor.h"
 
 namespace mozilla {
 namespace layers {
@@ -28,7 +30,7 @@ using namespace mozilla::gfx;
  *
  * CompositableChild is owned by a CompositableClient.
  */
-class CompositableChild : public PCompositableChild
+class CompositableChild : public ChildActor<PCompositableChild>
                         , public AsyncTransactionTrackersHolder
 {
 public:
@@ -43,7 +45,7 @@ public:
     MOZ_COUNT_DTOR(CompositableChild);
   }
 
-  virtual void ActorDestroy(ActorDestroyReason) MOZ_OVERRIDE {
+  virtual void ActorDestroy(ActorDestroyReason) override {
     DestroyAsyncTransactionTrackersHolder();
     if (mCompositableClient) {
       mCompositableClient->mCompositableChild = nullptr;
@@ -156,23 +158,34 @@ CompositableClient::GetIPDLActor() const
 }
 
 bool
-CompositableClient::Connect()
+CompositableClient::Connect(ImageContainer* aImageContainer)
 {
+  MOZ_ASSERT(!mCompositableChild);
   if (!GetForwarder() || GetIPDLActor()) {
     return false;
   }
-  GetForwarder()->Connect(this);
+  GetForwarder()->Connect(this, aImageContainer);
   return true;
+}
+
+bool
+CompositableClient::IsConnected() const
+{
+  return mCompositableChild && mCompositableChild->CanSend();
 }
 
 void
 CompositableClient::Destroy()
 {
-  if (!mCompositableChild) {
+  if (!IsConnected()) {
     return;
   }
+  // Send pending AsyncMessages before deleting CompositableChild.
+  // They might have dependency to the mCompositableChild.
+  mForwarder->SendPendingAsyncMessges();
+  // Destroy CompositableChild.
   mCompositableChild->mCompositableClient = nullptr;
-  PCompositableChild::Send__delete__(mCompositableChild);
+  mCompositableChild->Destroy();
   mCompositableChild = nullptr;
 }
 
@@ -185,7 +198,7 @@ CompositableClient::GetAsyncID() const
   return 0; // zero is always an invalid async ID
 }
 
-TemporaryRef<BufferTextureClient>
+already_AddRefed<BufferTextureClient>
 CompositableClient::CreateBufferTextureClient(gfx::SurfaceFormat aFormat,
                                               gfx::IntSize aSize,
                                               gfx::BackendType aMoz2DBackend,
@@ -196,15 +209,15 @@ CompositableClient::CreateBufferTextureClient(gfx::SurfaceFormat aFormat,
                                                  aTextureFlags | mTextureFlags);
 }
 
-TemporaryRef<TextureClient>
+already_AddRefed<TextureClient>
 CompositableClient::CreateTextureClientForDrawing(gfx::SurfaceFormat aFormat,
                                                   gfx::IntSize aSize,
-                                                  gfx::BackendType aMoz2DBackend,
+                                                  BackendSelector aSelector,
                                                   TextureFlags aTextureFlags,
                                                   TextureAllocationFlags aAllocFlags)
 {
   return TextureClient::CreateForDrawing(GetForwarder(),
-                                         aFormat, aSize, aMoz2DBackend,
+                                         aFormat, aSize, aSelector,
                                          aTextureFlags | mTextureFlags,
                                          aAllocFlags);
 }
@@ -215,36 +228,78 @@ CompositableClient::AddTextureClient(TextureClient* aClient)
   if(!aClient || !aClient->IsAllocated()) {
     return false;
   }
+  aClient->SetAddedToCompositableClient();
   return aClient->InitIPDLActor(mForwarder);
 }
 
 void
-CompositableClient::OnTransaction()
+CompositableClient::ClearCachedResources()
 {
-}
-
-void
-CompositableClient::UseTexture(TextureClient* aTexture)
-{
-  MOZ_ASSERT(aTexture);
-  if (!aTexture) {
-    return;
+  if (mTextureClientRecycler) {
+    mTextureClientRecycler = nullptr;
   }
-
-#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
-  FenceHandle handle = aTexture->GetAcquireFenceHandle();
-  if (handle.IsValid()) {
-    RefPtr<FenceDeliveryTracker> tracker = new FenceDeliveryTracker(handle);
-    mForwarder->SendFenceHandle(tracker, aTexture->GetIPDLActor(), handle);
-  }
-#endif
-  mForwarder->UseTexture(this, aTexture);
 }
 
 void
 CompositableClient::RemoveTexture(TextureClient* aTexture)
 {
   mForwarder->RemoveTextureFromCompositable(this, aTexture);
+}
+
+TextureClientRecycleAllocator*
+CompositableClient::GetTextureClientRecycler()
+{
+  if (mTextureClientRecycler) {
+    return mTextureClientRecycler;
+  }
+
+  if (!mForwarder) {
+    return nullptr;
+  }
+
+  mTextureClientRecycler =
+    new layers::TextureClientRecycleAllocator(mForwarder);
+  return mTextureClientRecycler;
+}
+
+void
+CompositableClient::DumpTextureClient(std::stringstream& aStream,
+                                      TextureClient* aTexture,
+                                      TextureDumpMode aCompress)
+{
+  if (!aTexture) {
+    return;
+  }
+  RefPtr<gfx::DataSourceSurface> dSurf = aTexture->GetAsSurface();
+  if (!dSurf) {
+    return;
+  }
+  if (aCompress == TextureDumpMode::Compress) {
+    aStream << gfxUtils::GetAsLZ4Base64Str(dSurf).get();
+  } else {
+    aStream << gfxUtils::GetAsDataURI(dSurf).get();
+  }
+}
+
+AutoRemoveTexture::~AutoRemoveTexture()
+{
+#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 17
+  if (mCompositable && mTexture && mCompositable->IsConnected()) {
+    // remove old buffer from CompositableHost
+    RefPtr<AsyncTransactionWaiter> waiter = new AsyncTransactionWaiter();
+    RefPtr<AsyncTransactionTracker> tracker =
+        new RemoveTextureFromCompositableTracker(waiter);
+    // Hold TextureClient until transaction complete.
+    tracker->SetTextureClient(mTexture);
+    mTexture->SetRemoveFromCompositableWaiter(waiter);
+    // RemoveTextureFromCompositableAsync() expects CompositorChild's presence.
+    mCompositable->GetForwarder()->RemoveTextureFromCompositableAsync(tracker, mCompositable, mTexture);
+  }
+#else
+  if (mCompositable && mTexture) {
+    mCompositable->RemoveTexture(mTexture);
+  }
+#endif
 }
 
 } // namespace layers

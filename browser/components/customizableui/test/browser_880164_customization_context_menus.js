@@ -116,7 +116,7 @@ add_task(function() {
   let urlBarContainer = document.getElementById("urlbar-container");
   // Need to make sure not to click within an edit field.
   let urlbarRect = urlBarContainer.getBoundingClientRect();
-  EventUtils.synthesizeMouse(urlBarContainer, 100, urlbarRect.height - 1, {type: "contextmenu", button: 2 });
+  EventUtils.synthesizeMouse(urlBarContainer, 100, 1, {type: "contextmenu", button: 2 });
   yield shownPromise;
 
   let expectedEntries = [
@@ -276,6 +276,8 @@ add_task(function() {
 add_task(function() {
   this.otherWin = yield openAndLoadWindow(null, true);
 
+  yield new Promise(resolve => waitForFocus(resolve, this.otherWin));
+
   yield startCustomizing(this.otherWin);
 
   let contextMenu = this.otherWin.document.getElementById("customizationPanelItemContextMenu");
@@ -298,6 +300,8 @@ add_task(function() {
   yield endCustomizing(this.otherWin);
   yield promiseWindowClosed(this.otherWin);
   this.otherWin = null;
+
+  yield new Promise(resolve => waitForFocus(resolve, window));
 });
 
 // Bug 945191 - Combined buttons show wrong context menu options

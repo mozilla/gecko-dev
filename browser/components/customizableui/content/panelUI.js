@@ -10,13 +10,16 @@ XPCOMUtils.defineLazyModuleGetter(this, "Promise",
                                   "resource://gre/modules/Promise.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ShortcutUtils",
                                   "resource://gre/modules/ShortcutUtils.jsm");
+
 /**
  * Maintains the state and dispatches events for the main menu panel.
  */
 
 const PanelUI = {
   /** Panel events that we listen for. **/
-  get kEvents() ["popupshowing", "popupshown", "popuphiding", "popuphidden"],
+  get kEvents() {
+    return ["popupshowing", "popupshown", "popuphiding", "popuphidden"];
+  },
   /**
    * Used for lazily getting and memoizing elements from the document. Lazy
    * getters are set in init, and memoizing happens after the first retrieval.
@@ -163,6 +166,8 @@ const PanelUI = {
         document.getAnonymousElementByAttribute(anchor, "class",
                                                 "toolbarbutton-icon");
       this.panel.openPopup(iconAnchor || anchor);
+    }, (reason) => {
+      console.error("Error showing the PanelUI menu", reason);
     });
 
     return deferred.promise;
@@ -329,6 +334,7 @@ const PanelUI = {
       tempPanel.setAttribute("type", "arrow");
       tempPanel.setAttribute("id", "customizationui-widget-panel");
       tempPanel.setAttribute("class", "cui-widget-panel");
+      tempPanel.setAttribute("viewId", aViewId);
       if (this._disableAnimations) {
         tempPanel.setAttribute("animate", "false");
       }
@@ -339,6 +345,7 @@ const PanelUI = {
                                  viewNode.querySelector(".panel-subview-footer"));
 
       let multiView = document.createElement("panelmultiview");
+      multiView.setAttribute("id", "customizationui-widget-multiview");
       multiView.setAttribute("nosubviews", "true");
       tempPanel.appendChild(multiView);
       multiView.setAttribute("mainViewIsSubView", "true");
@@ -403,7 +410,7 @@ const PanelUI = {
     }
   },
 
-  /** 
+  /**
    * Signal that we're about to make a lot of changes to the contents of the
    * panels all at once. For performance, we ignore the mutations.
    */
@@ -430,7 +437,7 @@ const PanelUI = {
       if (!label) {
         continue;
       }
-      if (label.contains("\u00ad")) {
+      if (label.includes("\u00ad")) {
         node.setAttribute("auto-hyphens", "off");
       } else {
         node.removeAttribute("auto-hyphens");
@@ -505,25 +512,18 @@ const PanelUI = {
   },
 };
 
+XPCOMUtils.defineConstant(this, "PanelUI", PanelUI);
+
 /**
  * Gets the currently selected locale for display.
  * @return  the selected locale or "en-US" if none is selected
  */
 function getLocale() {
-  const PREF_SELECTED_LOCALE = "general.useragent.locale";
   try {
-    let locale = Services.prefs.getComplexValue(PREF_SELECTED_LOCALE,
-                                                Ci.nsIPrefLocalizedString);
-    if (locale)
-      return locale;
+    let chromeRegistry = Cc["@mozilla.org/chrome/chrome-registry;1"]
+                           .getService(Ci.nsIXULChromeRegistry);
+    return chromeRegistry.getSelectedLocale("browser");
+  } catch (ex) {
+    return "en-US";
   }
-  catch (e) { }
-
-  try {
-    return Services.prefs.getCharPref(PREF_SELECTED_LOCALE);
-  }
-  catch (e) { }
-
-  return "en-US";
 }
-

@@ -21,7 +21,7 @@ endif
 
 include $(topsrcdir)/config/config.mk
 
-GARBAGE_DIRS += dist _javagen _profile staticlib
+GARBAGE_DIRS += _javagen _profile staticlib
 DIST_GARBAGE = config.cache config.log config.status* config-defs.h \
    config/autoconf.mk \
    mozilla-config.h \
@@ -37,10 +37,10 @@ endif
 ifndef MOZ_PROFILE_USE
 # We need to explicitly put backend.RecursiveMakeBackend here
 # otherwise the rule in rules.mk doesn't run early enough.
-libs binaries export tools:: CLOBBER $(configure_dir)/configure config.status backend.RecursiveMakeBackend
+$(TIERS) binaries:: CLOBBER $(configure_dir)/configure config.status backend.RecursiveMakeBackend
 ifndef JS_STANDALONE
-ifndef LIBXUL_SDK
-libs binaries export tools:: $(topsrcdir)/js/src/configure js/src/config.status
+ifdef COMPILE_ENVIRONMENT
+$(TIERS) binaries:: $(topsrcdir)/js/src/configure js/src/config.status
 endif
 endif
 endif
@@ -93,7 +93,7 @@ include backend.RecursiveMakeBackend.pp
 default:: backend.RecursiveMakeBackend
 
 install_manifests := \
-  $(addprefix dist/,bin idl include public private sdk) \
+  $(addprefix dist/,bin branding idl include public private sdk xpi-stage) \
   _tests \
   $(NULL)
 install_manifest_depends = \
@@ -104,7 +104,7 @@ install_manifest_depends = \
   $(NULL)
 
 ifndef JS_STANDALONE
-ifndef LIBXUL_SDK
+ifdef COMPILE_ENVIRONMENT
 install_manifest_depends += \
   $(topsrcdir)/js/src/configure \
   js/src/config.status \
@@ -128,6 +128,9 @@ endif
 $(addprefix install-,$(filter dist/%,$(install_manifests))): install-dist/%: $(install_manifest_depends)
 	$(call py_action,process_install_manifest,$(if $(NO_REMOVE),--no-remove )$(DIST)/$* _build_manifests/install/dist_$*)
 
+# Dummy wrapper rule to allow the faster backend to piggy back
+install-dist_%: install-dist/% ;
+
 install-_tests: $(install_manifest_depends)
 	$(call py_action,process_install_manifest,$(if $(NO_REMOVE),--no-remove )_tests _build_manifests/install/tests)
 
@@ -137,10 +140,10 @@ install-tests: install-_tests
 
 include $(topsrcdir)/build/moz-automation.mk
 
-# _tests should be purged during cleaning. However, we don't want it purged
-# during PGO builds because it contains some auto-generated files.
+# dist and _tests should be purged during cleaning. However, we don't want them
+# purged during PGO builds because they contain some auto-generated files.
 ifneq ($(filter-out maybe_clobber_profiledbuild,$(MAKECMDGOALS)),)
-GARBAGE_DIRS += _tests
+GARBAGE_DIRS += dist _tests
 endif
 
 # Windows PGO builds don't perform a clean before the 2nd pass. So, we want
@@ -174,7 +177,7 @@ endif
 endif
 
 default all::
-	$(call BUILDSTATUS,TIERS export $(if $(COMPILE_ENVIRONMENT),compile )libs tools $(if $(MOZ_AUTOMATION),$(MOZ_AUTOMATION_TIERS)))
+	$(call BUILDSTATUS,TIERS $(TIERS) $(if $(MOZ_AUTOMATION),$(MOZ_AUTOMATION_TIERS)))
 
 include $(topsrcdir)/config/rules.mk
 
@@ -249,7 +252,11 @@ endif # MOZ_CRASHREPORTER
 
 uploadsymbols:
 ifdef MOZ_CRASHREPORTER
+ifdef SOCORRO_SYMBOL_UPLOAD_TOKEN_FILE
+	$(PYTHON) -u $(topsrcdir)/toolkit/crashreporter/tools/upload_symbols.py '$(DIST)/$(PKG_PATH)$(SYMBOL_FULL_ARCHIVE_BASENAME).zip'
+else
 	$(SHELL) $(topsrcdir)/toolkit/crashreporter/tools/upload_symbols.sh $(SYMBOL_INDEX_NAME) '$(DIST)/$(PKG_PATH)$(SYMBOL_FULL_ARCHIVE_BASENAME).zip'
+endif
 endif
 
 # MOZ_SOURCE_STAMP is defined in package-name.mk with a deferred assignment.

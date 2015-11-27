@@ -9,7 +9,7 @@ this.EXPORTED_SYMBOLS = [
   "initTestLogging",
 ];
 
-const {utils: Cu} = Components;
+var {utils: Cu} = Components;
 
 Cu.import("resource://gre/modules/Log.jsm");
 
@@ -23,11 +23,11 @@ this.initTestLogging = function initTestLogging(level) {
         this.errorsLogged += 1;
       }
 
-      return message.loggerName + "\t" + message.levelDesc + "\t" +
-        message.message + "\n";
+      return message.time + "\t" + message.loggerName + "\t" + message.levelDesc + "\t" +
+        this.formatText(message) + "\n";
     }
   };
-  LogStats.prototype.__proto__ = new Log.Formatter();
+  LogStats.prototype.__proto__ = new Log.BasicFormatter();
 
   let log = Log.repository.rootLogger;
   let logStats = new LogStats();

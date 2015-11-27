@@ -11,12 +11,12 @@
 #ifndef WEBRTC_MODULES_DESKTOP_CAPTURE_WINDOW_CAPTURER_H_
 #define WEBRTC_MODULES_DESKTOP_CAPTURE_WINDOW_CAPTURER_H_
 
-#include <vector>
 #include <string>
+#include <vector>
 
+#include "webrtc/base/constructormagic.h"
 #include "webrtc/modules/desktop_capture/desktop_capture_types.h"
 #include "webrtc/modules/desktop_capture/desktop_capturer.h"
-#include "webrtc/system_wrappers/interface/constructor_magic.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
@@ -52,11 +52,7 @@ class WindowCapturer : public DesktopCapturer {
 
   // Bring the selected window to the front. Returns false in case of a
   // failure or no window selected.
-  // TODO(jiayl): remove the default impl when FakeWindowCapturer is updated in
-  // Chromium.
-  virtual bool BringSelectedWindowToFront() {
-    return true;
-  }
+  virtual bool BringSelectedWindowToFront() = 0;
 };
 
 }  // namespace webrtc

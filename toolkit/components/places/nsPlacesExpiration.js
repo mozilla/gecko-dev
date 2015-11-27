@@ -27,6 +27,9 @@ const Cu = Components.utils;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
+  "resource://gre/modules/PlacesUtils.jsm");
+
 ////////////////////////////////////////////////////////////////////////////////
 //// Constants
 
@@ -194,7 +197,7 @@ const EXPIRATION_QUERIES = {
   },
 
   // Finds orphan URIs in the database.
-  // Notice we won't notify single removed URIs on removeAllPages, so we don't
+  // Notice we won't notify single removed URIs on History.clear(), so we don't
   // run this query in such a case, but just delete URIs.
   // This could run in the middle of adding a visit or bookmark to a new page.
   // In such a case since it is async, could end up expiring the orphan page
@@ -400,6 +403,24 @@ const EXPIRATION_QUERIES = {
   },
 };
 
+/**
+ * Sends a bookmarks notification through the given observers.
+ *
+ * @param observers
+ *        array of nsINavBookmarkObserver objects.
+ * @param notification
+ *        the notification name.
+ * @param args
+ *        array of arguments to pass to the notification.
+ */
+function notify(observers, notification, args = []) {
+  for (let observer of observers) {
+    try {
+      observer[notification](...args);
+    } catch (ex) {}
+  }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //// nsPlacesExpiration definition
 
@@ -430,9 +451,6 @@ function nsPlacesExpiration()
     return db;
   });
 
-  XPCOMUtils.defineLazyServiceGetter(this, "_hsn",
-                                     "@mozilla.org/browser/nav-history-service;1",
-                                     "nsPIPlacesHistoryListenersNotifier");
   XPCOMUtils.defineLazyServiceGetter(this, "_sys",
                                      "@mozilla.org/system-info;1",
                                      "nsIPropertyBag2");
@@ -626,9 +644,15 @@ nsPlacesExpiration.prototype = {
       let guid = row.getResultByName("guid");
       let visitDate = row.getResultByName("visit_date");
       let wholeEntry = row.getResultByName("whole_entry");
+      let reason = Ci.nsINavHistoryObserver.REASON_EXPIRED;
+      let observers = PlacesUtils.history.getObservers();
+
       // Dispatch expiration notifications to history.
-      this._hsn.notifyOnPageExpired(uri, visitDate, wholeEntry, guid,
-                                    Ci.nsINavHistoryObserver.REASON_EXPIRED, 0);
+      if (wholeEntry) {
+        notify(observers, "onDeleteURI", [uri, guid, reason]);
+      } else {
+        notify(observers, "onDeleteVisits", [uri, visitDate, guid, reason, 0]);
+      }
     }
   },
 
@@ -697,7 +721,9 @@ nsPlacesExpiration.prototype = {
     }
     return aNewStatus;
   },
-  get status() this._status,
+  get status() {
+    return this._status;
+  },
 
   _isIdleObserver: false,
   _expireOnIdle: false,
@@ -722,7 +748,9 @@ nsPlacesExpiration.prototype = {
       this._expireOnIdle = aExpireOnIdle;
     return this._expireOnIdle;
   },
-  get expireOnIdle() this._expireOnIdle,
+  get expireOnIdle() {
+    return this._expireOnIdle;
+  },
 
   _loadPrefs: function PEX__loadPrefs() {
     // Get the user's limit, if it was set.
@@ -854,7 +882,8 @@ nsPlacesExpiration.prototype = {
    */
   _finalizeInternalStatements: function PEX__finalizeInternalStatements()
   {
-    for each (let stmt in this._cachedStatements) {
+    for (let queryType in this._cachedStatements) {
+      let stmt = this._cachedStatements[queryType];
       stmt.finalize();
     }
   },
@@ -990,5 +1019,5 @@ nsPlacesExpiration.prototype = {
 ////////////////////////////////////////////////////////////////////////////////
 //// Module Registration
 
-let components = [nsPlacesExpiration];
+var components = [nsPlacesExpiration];
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory(components);

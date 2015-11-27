@@ -9,7 +9,7 @@
 
 namespace mozilla {
 
-class NativeFileWatcherService MOZ_FINAL : public nsINativeFileWatcherService
+class NativeFileWatcherService final : public nsINativeFileWatcherService
 {
 public:
   NS_DECL_ISUPPORTS
@@ -26,7 +26,7 @@ public:
   NS_IMETHODIMP AddPath(const nsAString& aPathToWatch,
                         nsINativeFileWatcherCallback* aOnChange,
                         nsINativeFileWatcherErrorCallback* aOnError,
-                        nsINativeFileWatcherSuccessCallback* aOnSuccess)
+                        nsINativeFileWatcherSuccessCallback* aOnSuccess) override
   {
     return NS_ERROR_NOT_IMPLEMENTED;
   };
@@ -34,15 +34,15 @@ public:
   NS_IMETHODIMP RemovePath(const nsAString& aPathToRemove,
                            nsINativeFileWatcherCallback* aOnChange,
                            nsINativeFileWatcherErrorCallback* aOnError,
-                           nsINativeFileWatcherSuccessCallback* aOnSuccess)
+                           nsINativeFileWatcherSuccessCallback* aOnSuccess) override
   {
     return NS_ERROR_NOT_IMPLEMENTED;
   };
 
 private:
   ~NativeFileWatcherService() { };
-  NativeFileWatcherService(const NativeFileWatcherService& other) MOZ_DELETE;
-  void operator=(const NativeFileWatcherService& other) MOZ_DELETE;
+  NativeFileWatcherService(const NativeFileWatcherService& other) = delete;
+  void operator=(const NativeFileWatcherService& other) = delete;
 };
 
 NS_IMPL_ISUPPORTS(NativeFileWatcherService, nsINativeFileWatcherService);

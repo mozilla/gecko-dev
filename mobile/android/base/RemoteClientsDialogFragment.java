@@ -8,7 +8,7 @@ package org.mozilla.gecko;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.mozilla.gecko.TabsAccessor.RemoteClient;
+import org.mozilla.gecko.db.RemoteClient;
 
 import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
@@ -102,7 +102,7 @@ public class RemoteClientsDialogFragment extends DialogFragment {
                     final AlertDialog dialog = (AlertDialog) dialogInterface;
                     final SparseBooleanArray checkedItemPositions = dialog.getListView().getCheckedItemPositions();
                     final ArrayList<RemoteClient> checked = new ArrayList<RemoteClient>();
-                    for (int i = 0; i < checkedItemPositions.size(); i++) {
+                    for (int i = 0; i < clients.size(); i++) {
                         if (checkedItemPositions.get(i)) {
                             checked.add(clients.get(i));
                         }
@@ -112,6 +112,7 @@ public class RemoteClientsDialogFragment extends DialogFragment {
             });
         } else {
             builder.setItems(clientNames, new DialogInterface.OnClickListener() {
+                @Override
                 public void onClick(DialogInterface dialog, int index) {
                     final ArrayList<RemoteClient> checked = new ArrayList<RemoteClient>();
                     checked.add(clients.get(index));

@@ -44,14 +44,14 @@ var gPluginHandler = {
     switch (msg.name) {
       case "PluginContent:ShowClickToPlayNotification":
         this.showClickToPlayNotification(msg.target, msg.data.plugins, msg.data.showNow,
-                                         msg.principal, msg.data.host);
+                                         msg.principal, msg.data.location);
         break;
       case "PluginContent:RemoveNotification":
         this.removeNotification(msg.target, msg.data.name);
         break;
       case "PluginContent:UpdateHiddenPluginUI":
         this.updateHiddenPluginUI(msg.target, msg.data.haveInsecure, msg.data.actions,
-                                  msg.principal, msg.data.host);
+                                  msg.principal, msg.data.location);
         break;
       case "PluginContent:HideNotificationBar":
         this.hideNotificationBar(msg.target, msg.data.name);
@@ -63,10 +63,12 @@ var gPluginHandler = {
         break;
       case "PluginContent:ShowPluginCrashedNotification":
         this.showPluginCrashedNotification(msg.target, msg.data.messageString,
-                                           msg.data.pluginDumpID, msg.data.browserDumpID);
+                                           msg.data.pluginID);
         break;
       case "PluginContent:SubmitReport":
-        this.submitReport(msg.data.pluginDumpID, msg.data.browserDumpID, msg.data.keyVals);
+        if (AppConstants.MOZ_CRASHREPORTER) {
+          this.submitReport(msg.data.runID, msg.data.keyVals, msg.data.submitURLOptIn);
+        }
         break;
       case "PluginContent:LinkClickCallback":
         switch (msg.data.name) {
@@ -102,15 +104,13 @@ var gPluginHandler = {
     openUILinkIn(Services.urlFormatter.formatURLPref("plugins.update.url"), "tab");
   },
 
-#ifdef MOZ_CRASHREPORTER
-  submitReport: function submitReport(pluginDumpID, browserDumpID, keyVals) {
-    keyVals = keyVals || {};
-    this.CrashSubmit.submit(pluginDumpID, { recordSubmission: true,
-                                            extraExtraKeyVals: keyVals });
-    if (browserDumpID)
-      this.CrashSubmit.submit(browserDumpID);
+  submitReport: function submitReport(runID, keyVals, submitURLOptIn) {
+    if (!AppConstants.MOZ_CRASHREPORTER) {
+      return;
+    }
+    Services.prefs.setBoolPref("dom.ipc.plugins.reportCrashURL", submitURLOptIn);
+    PluginCrashReporter.submitCrashReport(runID, keyVals);
   },
-#endif
 
   // Callback for user clicking a "reload page" link
   reloadPage: function (browser) {
@@ -138,11 +138,6 @@ var gPluginHandler = {
       // Once the popup is dismissed, clicking the icon should show the full
       // list again
       this.options.primaryPlugin = null;
-    }
-    else if (event == "removed") {
-      // Once the notification is removed, let the content script clear any
-      // caches it may have populated.
-      this.browser.messageManager.sendAsyncMessage("BrowserPlugins:NotificationRemoved");
     }
   },
 
@@ -221,13 +216,23 @@ var gPluginHandler = {
     });
   },
 
-  showClickToPlayNotification: function (browser, plugins, showNow, principal, host) {
+  showClickToPlayNotification: function (browser, plugins, showNow,
+                                         principal, location) {
     // It is possible that we've received a message from the frame script to show
     // a click to play notification for a principal that no longer matches the one
     // that the browser's content now has assigned (ie, the browser has browsed away
     // after the message was sent, but before the message was received). In that case,
     // we should just ignore the message.
     if (!principal.equals(browser.contentPrincipal)) {
+      return;
+    }
+
+    // Data URIs, when linked to from some page, inherit the principal of that
+    // page. That means that we also need to compare the actual locations to
+    // ensure we aren't getting a message from a Data URI that we're no longer
+    // looking at.
+    let receivedURI = BrowserUtils.makeURI(location);
+    if (!browser.documentURI.equalsExceptRef(receivedURI)) {
       return;
     }
 
@@ -246,13 +251,19 @@ var gPluginHandler = {
         continue;
       }
 
-      let url;
-      // TODO: allow the blocklist to specify a better link, bug 873093
+      // If a block contains an infoURL, we should always prefer that to the default
+      // URL that we construct in-product, even for other blocklist types.
+      let url = Services.blocklist.getPluginInfoURL(pluginInfo.pluginTag);
+
       if (pluginInfo.blocklistState == Ci.nsIBlocklistService.STATE_VULNERABLE_UPDATE_AVAILABLE) {
-        url = Services.urlFormatter.formatURLPref("plugins.update.url");
+        if (!url) {
+          url = Services.urlFormatter.formatURLPref("plugins.update.url");
+        }
       }
       else if (pluginInfo.blocklistState != Ci.nsIBlocklistService.STATE_NOT_BLOCKED) {
-        url = Services.blocklist.getPluginBlocklistURL(pluginInfo.pluginTag);
+        if (!url) {
+          url = Services.blocklist.getPluginBlocklistURL(pluginInfo.pluginTag);
+        }
       }
       else {
         url = Services.urlFormatter.formatURLPref("app.support.baseURL") + "clicktoplay";
@@ -284,7 +295,6 @@ var gPluginHandler = {
       primaryPlugin: primaryPluginPermission,
       pluginData: pluginData,
       principal: principal,
-      host: host,
     };
     PopupNotifications.show(browser, "click-to-play-plugins",
                             "", "plugins-notification-icon",
@@ -305,13 +315,25 @@ var gPluginHandler = {
       notificationBox.removeNotification(notification, true);
   },
 
-  updateHiddenPluginUI: function (browser, haveInsecure, actions, principal, host) {
+  updateHiddenPluginUI: function (browser, haveInsecure, actions,
+                                  principal, location) {
+    let origin = principal.originNoSuffix;
+
     // It is possible that we've received a message from the frame script to show
     // the hidden plugin notification for a principal that no longer matches the one
     // that the browser's content now has assigned (ie, the browser has browsed away
     // after the message was sent, but before the message was received). In that case,
     // we should just ignore the message.
     if (!principal.equals(browser.contentPrincipal)) {
+      return;
+    }
+
+    // Data URIs, when linked to from some page, inherit the principal of that
+    // page. That means that we also need to compare the actual locations to
+    // ensure we aren't getting a message from a Data URI that we're no longer
+    // looking at.
+    let receivedURI = BrowserUtils.makeURI(location);
+    if (!browser.documentURI.equalsExceptRef(receivedURI)) {
       return;
     }
 
@@ -359,22 +381,22 @@ var gPluginHandler = {
           case Ci.nsIObjectLoadingContent.PLUGIN_CLICK_TO_PLAY:
             message = gNavigatorBundle.getFormattedString(
               "pluginActivateNew.message",
-              [pluginName, host]);
+              [pluginName, origin]);
             break;
           case Ci.nsIObjectLoadingContent.PLUGIN_VULNERABLE_UPDATABLE:
             message = gNavigatorBundle.getFormattedString(
               "pluginActivateOutdated.message",
-              [pluginName, host, brand]);
+              [pluginName, origin, brand]);
             break;
           case Ci.nsIObjectLoadingContent.PLUGIN_VULNERABLE_NO_UPDATE:
             message = gNavigatorBundle.getFormattedString(
               "pluginActivateVulnerable.message",
-              [pluginName, host, brand]);
+              [pluginName, origin, brand]);
         }
       } else {
         // Multi-plugin
         message = gNavigatorBundle.getFormattedString(
-          "pluginActivateMultiple.message", [host]);
+          "pluginActivateMultiple.message", [origin]);
       }
 
       let buttons = [
@@ -434,41 +456,68 @@ var gPluginHandler = {
 
   // Crashed-plugin observer. Notified once per plugin crash, before events
   // are dispatched to individual plugin instances.
-  pluginCrashed : function(subject, topic, data) {
+  NPAPIPluginCrashed : function(subject, topic, data) {
     let propertyBag = subject;
     if (!(propertyBag instanceof Ci.nsIPropertyBag2) ||
-        !(propertyBag instanceof Ci.nsIWritablePropertyBag2))
-     return;
-
-#ifdef MOZ_CRASHREPORTER
-    let pluginDumpID = propertyBag.getPropertyAsAString("pluginDumpID");
-    let browserDumpID= propertyBag.getPropertyAsAString("browserDumpID");
-    let shouldSubmit = gCrashReporter.submitReports;
-    let doPrompt     = true; // XXX followup to get via gCrashReporter
-
-    // Submit automatically when appropriate.
-    if (pluginDumpID && shouldSubmit && !doPrompt) {
-      this.submitReport(pluginDumpID, browserDumpID);
-      // Submission is async, so we can't easily show failure UI.
-      propertyBag.setPropertyAsBool("submittedCrashReport", true);
+        !(propertyBag instanceof Ci.nsIWritablePropertyBag2) ||
+        !propertyBag.hasKey("runID") ||
+        !propertyBag.hasKey("pluginName")) {
+      Cu.reportError("A NPAPI plugin crashed, but the properties of this plugin " +
+                     "cannot be read.");
+      return;
     }
-#endif
+
+    let runID = propertyBag.getPropertyAsUint32("runID");
+    let uglyPluginName = propertyBag.getPropertyAsAString("pluginName");
+    let pluginName = BrowserUtils.makeNicePluginName(uglyPluginName);
+    let pluginDumpID = propertyBag.getPropertyAsAString("pluginDumpID");
+
+    // If we don't have a minidumpID, we can't (or didn't) submit anything.
+    // This can happen if the plugin is killed from the task manager.
+    let state;
+    if (!AppConstants.MOZ_CRASHREPORTER || !gCrashReporter.enabled) {
+      // This state tells the user that crash reporting is disabled, so we
+      // cannot send a report.
+      state = "noSubmit";
+    } else if (!pluginDumpID) {
+      // This state tells the user that there is no crash report available.
+      state = "noReport";
+    } else {
+      // This state asks the user to submit a crash report.
+      state = "please";
+    }
+
+    let mm = window.getGroupMessageManager("browsers");
+    mm.broadcastAsyncMessage("BrowserPlugins:NPAPIPluginProcessCrashed",
+                             { pluginName, runID, state });
   },
 
-  showPluginCrashedNotification: function (browser, messageString, pluginDumpID, browserDumpID) {
+  /**
+   * Shows a plugin-crashed notification bar for a browser that has had an
+   * invisiable NPAPI plugin crash, or a GMP plugin crash.
+   *
+   * @param browser
+   *        The browser to show the notification for.
+   * @param messageString
+   *        The string to put in the notification bar
+   * @param pluginID
+   *        The unique-per-process identifier for the NPAPI plugin or GMP.
+   *        For a GMP, this is the pluginID. For NPAPI plugins (where "pluginID"
+   *        means something different), this is the runID.
+   */
+  showPluginCrashedNotification: function (browser, messageString, pluginID) {
     // If there's already an existing notification bar, don't do anything.
     let notificationBox = gBrowser.getNotificationBox(browser);
     let notification = notificationBox.getNotificationWithValue("plugin-crashed");
-    if (notification)
+    if (notification) {
       return;
+    }
 
     // Configure the notification bar
     let priority = notificationBox.PRIORITY_WARNING_MEDIUM;
     let iconURL = "chrome://mozapps/skin/plugins/notifyPluginCrashed.png";
     let reloadLabel = gNavigatorBundle.getString("crashedpluginsMessage.reloadButton.label");
     let reloadKey   = gNavigatorBundle.getString("crashedpluginsMessage.reloadButton.accesskey");
-    let submitLabel = gNavigatorBundle.getString("crashedpluginsMessage.submitButton.label");
-    let submitKey   = gNavigatorBundle.getString("crashedpluginsMessage.submitButton.accesskey");
 
     let buttons = [{
       label: reloadLabel,
@@ -477,16 +526,21 @@ var gPluginHandler = {
       callback: function() { browser.reload(); },
     }];
 
-#ifdef MOZ_CRASHREPORTER
-    let submitButton = {
-      label: submitLabel,
-      accessKey: submitKey,
-      popup: null,
-        callback: function() { gPluginHandler.submitReport(pluginDumpID, browserDumpID); },
-    };
-    if (pluginDumpID)
+    if (AppConstants.MOZ_CRASHREPORTER &&
+        PluginCrashReporter.hasCrashReport(pluginID)) {
+      let submitLabel = gNavigatorBundle.getString("crashedpluginsMessage.submitButton.label");
+      let submitKey   = gNavigatorBundle.getString("crashedpluginsMessage.submitButton.accesskey");
+      let submitButton = {
+        label: submitLabel,
+        accessKey: submitKey,
+        popup: null,
+        callback: () => {
+          PluginCrashReporter.submitCrashReport(pluginID);
+        },
+      };
+
       buttons.push(submitButton);
-#endif
+    }
 
     notification = notificationBox.appendNotification(messageString, "plugin-crashed",
                                                       iconURL, priority, buttons);
@@ -499,11 +553,9 @@ var gPluginHandler = {
     let crashurl = formatURL("app.support.baseURL", true);
     crashurl += "plugin-crashed-notificationbar";
     link.href = crashurl;
-
     let description = notification.ownerDocument.getAnonymousElementByAttribute(notification, "anonid", "messageText");
     description.appendChild(link);
   },
 };
 
 gPluginHandler.init();
-

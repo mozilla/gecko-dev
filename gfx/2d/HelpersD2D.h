@@ -6,15 +6,12 @@
 #ifndef MOZILLA_GFX_HELPERSD2D_H_
 #define MOZILLA_GFX_HELPERSD2D_H_
 
-#ifndef USE_D2D1_1
-#include "moz-d2d1-1.h"
-#else
 #include <d2d1_1.h>
-#endif
 
 #include <vector>
 
 #include <dwrite.h>
+#include <versionhelpers.h>
 #include "2D.h"
 #include "Logging.h"
 #include "Tools.h"
@@ -30,9 +27,7 @@ namespace gfx {
 
 ID2D1Factory* D2DFactory();
 
-#ifdef USE_D2D1_1
 ID2D1Factory1* D2DFactory1();
-#endif
 
 static inline D2D1_POINT_2F D2DPoint(const Point &aPoint)
 {
@@ -50,13 +45,27 @@ static inline D2D1_RECT_F D2DRect(const T &aRect)
   return D2D1::RectF(aRect.x, aRect.y, aRect.XMost(), aRect.YMost());
 }
 
-static inline D2D1_EXTEND_MODE D2DExtend(ExtendMode aExtendMode)
+static inline D2D1_EXTEND_MODE D2DExtend(ExtendMode aExtendMode, Axis aAxis)
 {
   D2D1_EXTEND_MODE extend;
   switch (aExtendMode) {
   case ExtendMode::REPEAT:
     extend = D2D1_EXTEND_MODE_WRAP;
     break;
+  case ExtendMode::REPEAT_X:
+  {
+    extend = aAxis == Axis::X_AXIS
+             ? D2D1_EXTEND_MODE_WRAP
+             : D2D1_EXTEND_MODE_CLAMP;
+    break;
+  }
+  case ExtendMode::REPEAT_Y:
+  {
+    extend = aAxis == Axis::Y_AXIS
+             ? D2D1_EXTEND_MODE_WRAP
+             : D2D1_EXTEND_MODE_CLAMP;
+    break;
+  }
   case ExtendMode::REFLECT:
     extend = D2D1_EXTEND_MODE_MIRROR;
     break;
@@ -77,7 +86,6 @@ static inline D2D1_BITMAP_INTERPOLATION_MODE D2DFilter(const Filter &aFilter)
   }
 }
 
-#ifdef USE_D2D1_1
 static inline D2D1_INTERPOLATION_MODE D2DInterpolationMode(const Filter &aFilter)
 {
   switch (aFilter) {
@@ -101,8 +109,6 @@ static inline D2D1_VECTOR_3F D2DVector3D(const Point3D &aPoint)
 {
   return D2D1::Vector3F(aPoint.x, aPoint.y, aPoint.z);
 }
-
-#endif
 
 static inline D2D1_ANTIALIAS_MODE D2DAAMode(AntialiasMode aMode)
 {
@@ -135,6 +141,7 @@ static inline SurfaceFormat ToPixelFormat(const D2D1_PIXEL_FORMAT &aFormat)
 {
   switch(aFormat.format) {
   case DXGI_FORMAT_A8_UNORM:
+  case DXGI_FORMAT_R8_UNORM:
     return SurfaceFormat::A8;
   case DXGI_FORMAT_B8G8R8A8_UNORM:
     if (aFormat.alphaMode == D2D1_ALPHA_MODE_IGNORE) {
@@ -193,7 +200,6 @@ static inline D2D1_PIXEL_FORMAT D2DPixelFormat(SurfaceFormat aFormat)
   return D2D1::PixelFormat(DXGIFormat(aFormat), D2DAlphaModeForFormat(aFormat));
 }
 
-#ifdef USE_D2D1_1
 static inline bool D2DSupportsCompositeMode(CompositionOp aOp)
 {
   switch(aOp) {
@@ -281,7 +287,41 @@ static inline D2D1_BLEND_MODE D2DBlendMode(CompositionOp aOp)
     return D2D1_BLEND_MODE_MULTIPLY;
   }
 }
-#endif
+
+static inline bool D2DSupportsPrimitiveBlendMode(CompositionOp aOp)
+{
+  switch (aOp) {
+    case CompositionOp::OP_OVER:
+//  case CompositionOp::OP_SOURCE:
+      return true;
+//  case CompositionOp::OP_DARKEN:
+    case CompositionOp::OP_ADD:
+      return IsWindows8Point1OrGreater();
+    default:
+      return false;
+  }
+}
+
+static inline D2D1_PRIMITIVE_BLEND D2DPrimitiveBlendMode(CompositionOp aOp)
+{
+  switch (aOp) {
+    case CompositionOp::OP_OVER:
+      return D2D1_PRIMITIVE_BLEND_SOURCE_OVER;
+    // D2D1_PRIMITIVE_BLEND_COPY should leave pixels out of the source's
+    // bounds unchanged, but doesn't- breaking unbounded ops.
+    // D2D1_PRIMITIVE_BLEND_MIN doesn't quite work like darken either, as it
+    // accounts for the source alpha.
+    //
+    // case CompositionOp::OP_SOURCE:
+    //   return D2D1_PRIMITIVE_BLEND_COPY;
+    // case CompositionOp::OP_DARKEN:
+    //   return D2D1_PRIMITIVE_BLEND_MIN;
+    case CompositionOp::OP_ADD:
+      return D2D1_PRIMITIVE_BLEND_ADD;
+    default:
+      return D2D1_PRIMITIVE_BLEND_SOURCE_OVER;
+  }
+}
 
 static inline bool IsPatternSupportedByD2D(const Pattern &aPattern)
 {
@@ -396,41 +436,41 @@ DWriteGlyphRunFromGlyphs(const GlyphBuffer &aGlyphs, ScaledFontDWrite *aFont, Au
   run->isSideways = FALSE;
 }
 
-static TemporaryRef<ID2D1Geometry>
+static inline already_AddRefed<ID2D1Geometry>
 ConvertRectToGeometry(const D2D1_RECT_F& aRect)
 {
   RefPtr<ID2D1RectangleGeometry> rectGeom;
-  D2DFactory()->CreateRectangleGeometry(&aRect, byRef(rectGeom));
+  D2DFactory()->CreateRectangleGeometry(&aRect, getter_AddRefs(rectGeom));
   return rectGeom.forget();
 }
 
-static TemporaryRef<ID2D1Geometry>
+static inline already_AddRefed<ID2D1Geometry>
 GetTransformedGeometry(ID2D1Geometry *aGeometry, const D2D1_MATRIX_3X2_F &aTransform)
 {
   RefPtr<ID2D1PathGeometry> tmpGeometry;
-  D2DFactory()->CreatePathGeometry(byRef(tmpGeometry));
+  D2DFactory()->CreatePathGeometry(getter_AddRefs(tmpGeometry));
   RefPtr<ID2D1GeometrySink> currentSink;
-  tmpGeometry->Open(byRef(currentSink));
+  tmpGeometry->Open(getter_AddRefs(currentSink));
   aGeometry->Simplify(D2D1_GEOMETRY_SIMPLIFICATION_OPTION_CUBICS_AND_LINES,
                       aTransform, currentSink);
   currentSink->Close();
   return tmpGeometry.forget();
 }
 
-static TemporaryRef<ID2D1Geometry>
+static inline already_AddRefed<ID2D1Geometry>
 IntersectGeometry(ID2D1Geometry *aGeometryA, ID2D1Geometry *aGeometryB)
 {
   RefPtr<ID2D1PathGeometry> pathGeom;
-  D2DFactory()->CreatePathGeometry(byRef(pathGeom));
+  D2DFactory()->CreatePathGeometry(getter_AddRefs(pathGeom));
   RefPtr<ID2D1GeometrySink> sink;
-  pathGeom->Open(byRef(sink));
+  pathGeom->Open(getter_AddRefs(sink));
   aGeometryA->CombineWithGeometry(aGeometryB, D2D1_COMBINE_MODE_INTERSECT, nullptr, sink);
   sink->Close();
 
   return pathGeom.forget();
 }
 
-static TemporaryRef<ID2D1StrokeStyle>
+static inline already_AddRefed<ID2D1StrokeStyle>
 CreateStrokeStyleForOptions(const StrokeOptions &aStrokeOptions)
 {
   RefPtr<ID2D1StrokeStyle> style;
@@ -467,7 +507,10 @@ CreateStrokeStyleForOptions(const StrokeOptions &aStrokeOptions)
 
 
   HRESULT hr;
-  if (aStrokeOptions.mDashPattern) {
+  // We need to check mDashLength in addition to mDashPattern here since if
+  // mDashPattern is set but mDashLength is zero then the stroke will fail to
+  // paint.
+  if (aStrokeOptions.mDashLength > 0 && aStrokeOptions.mDashPattern) {
     typedef std::vector<Float> FloatVector;
     // D2D "helpfully" multiplies the dash pattern by the line width.
     // That's not what cairo does, or is what <canvas>'s dash wants.
@@ -488,13 +531,13 @@ CreateStrokeStyleForOptions(const StrokeOptions &aStrokeOptions)
       &dash[0], // data() is not C++98, although it's in recent gcc
                 // and VC10's STL
       dash.size(),
-      byRef(style));
+      getter_AddRefs(style));
   } else {
     hr = D2DFactory()->CreateStrokeStyle(
       D2D1::StrokeStyleProperties(capStyle, capStyle,
                                   capStyle, joinStyle,
                                   aStrokeOptions.mMiterLimit),
-      nullptr, 0, byRef(style));
+      nullptr, 0, getter_AddRefs(style));
   }
 
   if (FAILED(hr)) {
@@ -507,10 +550,11 @@ CreateStrokeStyleForOptions(const StrokeOptions &aStrokeOptions)
 // This creates a (partially) uploaded bitmap for a DataSourceSurface. It
 // uploads the minimum requirement and possibly downscales. It adjusts the
 // input Matrix to compensate.
-static TemporaryRef<ID2D1Bitmap>
+static inline already_AddRefed<ID2D1Bitmap>
 CreatePartialBitmapForSurface(DataSourceSurface *aSurface, const Matrix &aDestinationTransform,
                               const IntSize &aDestinationSize, ExtendMode aExtendMode,
-                              Matrix &aSourceTransform, ID2D1RenderTarget *aRT)
+                              Matrix &aSourceTransform, ID2D1RenderTarget *aRT,
+                              const IntRect* aSourceRect = nullptr)
 {
   RefPtr<ID2D1Bitmap> bitmap;
 
@@ -535,6 +579,9 @@ CreatePartialBitmapForSurface(DataSourceSurface *aSurface, const Matrix &aDestin
   IntSize size = aSurface->GetSize();
 
   Rect uploadRect(0, 0, Float(size.width), Float(size.height));
+  if (aSourceRect) {
+    uploadRect = Rect(aSourceRect->x, aSourceRect->y, aSourceRect->width, aSourceRect->height);
+  }
 
   // Limit the uploadRect as much as possible without supporting discontiguous uploads 
   //
@@ -569,18 +616,22 @@ CreatePartialBitmapForSurface(DataSourceSurface *aSurface, const Matrix &aDestin
     uploadRect.height = rect.height;
   }
 
-
-  int stride = aSurface->Stride();
-
   if (uploadRect.width <= aRT->GetMaximumBitmapSize() &&
       uploadRect.height <= aRT->GetMaximumBitmapSize()) {
+    {
+      // Scope to auto-Unmap() |mapping|.
+      DataSourceSurface::ScopedMap mapping(aSurface, DataSourceSurface::READ);
+      if (MOZ2D_WARN_IF(!mapping.IsMapped())) {
+        return nullptr;
+      }
 
-    // A partial upload will suffice.
-    aRT->CreateBitmap(D2D1::SizeU(uint32_t(uploadRect.width), uint32_t(uploadRect.height)),
-                      aSurface->GetData() + int(uploadRect.x) * 4 + int(uploadRect.y) * stride,
-                      stride,
-                      D2D1::BitmapProperties(D2DPixelFormat(aSurface->GetFormat())),
-                      byRef(bitmap));
+      // A partial upload will suffice.
+      aRT->CreateBitmap(D2D1::SizeU(uint32_t(uploadRect.width), uint32_t(uploadRect.height)),
+                        mapping.GetData() + int(uploadRect.x) * 4 + int(uploadRect.y) * mapping.GetStride(),
+                        mapping.GetStride(),
+                        D2D1::BitmapProperties(D2DPixelFormat(aSurface->GetFormat())),
+                        getter_AddRefs(bitmap));
+    }
 
     aSourceTransform.PreTranslate(uploadRect.x, uploadRect.y);
 
@@ -594,42 +645,53 @@ CreatePartialBitmapForSurface(DataSourceSurface *aSurface, const Matrix &aDestin
       return nullptr;
     }
 
-    ImageHalfScaler scaler(aSurface->GetData(), stride, size);
+    {
+      // Scope to auto-Unmap() |mapping|.
+      DataSourceSurface::ScopedMap mapping(aSurface, DataSourceSurface::READ);
+      if (MOZ2D_WARN_IF(!mapping.IsMapped())) {
+        return nullptr;
+      }
+      ImageHalfScaler scaler(mapping.GetData(), mapping.GetStride(), size);
 
-    // Calculate the maximum width/height of the image post transform.
-    Point topRight = transform * Point(Float(size.width), 0);
-    Point topLeft = transform * Point(0, 0);
-    Point bottomRight = transform * Point(Float(size.width), Float(size.height));
-    Point bottomLeft = transform * Point(0, Float(size.height));
-    
-    IntSize scaleSize;
+      // Calculate the maximum width/height of the image post transform.
+      Point topRight = transform * Point(Float(size.width), 0);
+      Point topLeft = transform * Point(0, 0);
+      Point bottomRight = transform * Point(Float(size.width), Float(size.height));
+      Point bottomLeft = transform * Point(0, Float(size.height));
 
-    scaleSize.width = int32_t(std::max(Distance(topRight, topLeft),
-                                       Distance(bottomRight, bottomLeft)));
-    scaleSize.height = int32_t(std::max(Distance(topRight, bottomRight),
-                                        Distance(topLeft, bottomLeft)));
+      IntSize scaleSize;
 
-    if (unsigned(scaleSize.width) > aRT->GetMaximumBitmapSize()) {
-      // Ok, in this case we'd really want a downscale of a part of the bitmap,
-      // perhaps we can do this later but for simplicity let's do something
-      // different here and assume it's good enough, this should be rare!
-      scaleSize.width = 4095;
+      scaleSize.width = int32_t(std::max(Distance(topRight, topLeft),
+                                         Distance(bottomRight, bottomLeft)));
+      scaleSize.height = int32_t(std::max(Distance(topRight, bottomRight),
+                                          Distance(topLeft, bottomLeft)));
+
+      if (unsigned(scaleSize.width) > aRT->GetMaximumBitmapSize()) {
+        // Ok, in this case we'd really want a downscale of a part of the bitmap,
+        // perhaps we can do this later but for simplicity let's do something
+        // different here and assume it's good enough, this should be rare!
+        scaleSize.width = 4095;
+      }
+      if (unsigned(scaleSize.height) > aRT->GetMaximumBitmapSize()) {
+        scaleSize.height = 4095;
+      }
+
+      scaler.ScaleForSize(scaleSize);
+
+      IntSize newSize = scaler.GetSize();
+
+      if (newSize.IsEmpty()) {
+        return nullptr;
+      }
+
+      aRT->CreateBitmap(D2D1::SizeU(newSize.width, newSize.height),
+                        scaler.GetScaledData(), scaler.GetStride(),
+                        D2D1::BitmapProperties(D2DPixelFormat(aSurface->GetFormat())),
+                        getter_AddRefs(bitmap));
+
+      aSourceTransform.PreScale(Float(size.width) / newSize.width,
+                                Float(size.height) / newSize.height);
     }
-    if (unsigned(scaleSize.height) > aRT->GetMaximumBitmapSize()) {
-      scaleSize.height = 4095;
-    }
-
-    scaler.ScaleForSize(scaleSize);
-
-    IntSize newSize = scaler.GetSize();
-    
-    aRT->CreateBitmap(D2D1::SizeU(newSize.width, newSize.height),
-                      scaler.GetScaledData(), scaler.GetStride(),
-                      D2D1::BitmapProperties(D2DPixelFormat(aSurface->GetFormat())),
-                      byRef(bitmap));
-
-    aSourceTransform.PreScale(Float(size.width / newSize.width),
-                              Float(size.height / newSize.height));
     return bitmap.forget();
   }
 }

@@ -11,16 +11,18 @@
  * related or neighboring rights to this work.
  */
 
-[Pref="dom.webnotifications.enabled",
- Constructor(DOMString title, optional NotificationOptions options)]
+[Constructor(DOMString title, optional NotificationOptions options),
+ Exposed=(Window,Worker),
+ Func="mozilla::dom::Notification::PrefEnabled",
+ UnsafeInPrerendering]
 interface Notification : EventTarget {
   [GetterThrows]
   static readonly attribute NotificationPermission permission;
 
-  [Throws]
+  [Throws, Func="mozilla::dom::Notification::RequestPermissionEnabledForScope"]
   static void requestPermission(optional NotificationPermissionCallback permissionCallback);
 
-  [Throws]
+  [Throws, Func="mozilla::dom::Notification::IsGetEnabled"]
   static Promise<sequence<Notification>> get(optional GetNotificationOptions filter);
 
   attribute EventHandler onclick;
@@ -66,12 +68,13 @@ dictionary NotificationOptions {
 };
 
 dictionary GetNotificationOptions {
-  DOMString tag;
+  DOMString tag = "";
 };
 
 dictionary NotificationBehavior {
   boolean noscreen = false;
   boolean noclear = false;
+  boolean showOnlyOnce = false;
   DOMString soundFile = "";
   sequence<unsigned long> vibrationPattern;
 };
@@ -90,3 +93,9 @@ enum NotificationDirection {
   "rtl"
 };
 
+partial interface ServiceWorkerRegistration {
+  [Throws, Func="mozilla::dom::ServiceWorkerNotificationAPIVisible"]
+  Promise<void> showNotification(DOMString title, optional NotificationOptions options);
+  [Throws, Func="mozilla::dom::ServiceWorkerNotificationAPIVisible"]
+  Promise<sequence<Notification>> getNotifications(optional GetNotificationOptions filter);
+};

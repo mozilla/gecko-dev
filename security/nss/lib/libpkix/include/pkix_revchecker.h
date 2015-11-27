@@ -65,12 +65,10 @@ extern "C" {
  * FUNCTION: PKIX_RevocationChecker_Create
  * DESCRIPTION:
  *
- * Creates revocation checker object with a given flags.
+ * Creates a revocation checker object with the given flags. Revocation will
+ * be checked at the current date.
  *
  * PARAMETERS:
- *  "revDate"
- *      Revocation will be checked at this date. Current date is taken if the
- *      parameter is not specified.
  *  "leafMethodListFlags"
  *      Defines a set of method independent flags that will be used to check
  *      revocation of the leaf cert in the chain.
@@ -117,7 +115,7 @@ PKIX_RevocationChecker_Create(
  *  "methodFlags"
  *      Set of flags for the method.
  *  "methodPriority"
- *      Method priority. (0 corresponds to a highest priority)
+ *      Method priority. (0 corresponds to the highest priority)
  *  "verificationFn"
  *      User call back function that will perform validation of fetched
  *      revocation information(new crl or ocsp response)
@@ -143,7 +141,7 @@ PKIX_RevocationChecker_CreateAndAddMethod(
     PKIX_ProcessingParams *params,
     PKIX_RevocationMethodType methodType,
     PKIX_UInt32 methodFlags,
-    PKIX_UInt32 mathodPriority,
+    PKIX_UInt32 methodPriority,
     PKIX_PL_VerifyCallback verificationFn,
     PKIX_Boolean isLeafMethod,
     void *plContext);

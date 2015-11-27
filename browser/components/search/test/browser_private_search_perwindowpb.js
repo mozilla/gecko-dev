@@ -5,7 +5,7 @@
 function test() {
   // Don't use about:home as the homepage for new windows
   Services.prefs.setIntPref("browser.startup.page", 0);
-  registerCleanupFunction(function() Services.prefs.clearUserPref("browser.startup.page"));
+  registerCleanupFunction(() => Services.prefs.clearUserPref("browser.startup.page"));
 
   waitForExplicitFinish();
 
@@ -51,13 +51,14 @@ function test() {
         ok(false, "failed to install engine: " + errorCode);
       }
     };
-    Services.search.addEngine(engineURL + "426329.xml",
-                              Ci.nsISearchEngine.DATA_XML,
+    Services.search.addEngine(engineURL + "426329.xml", null,
                               "data:image/x-icon,%00", false, installCallback);
   }
 
   function testOnWindow(aIsPrivate, aCallback) {
-    let win = whenNewWindowLoaded({ private: aIsPrivate }, aCallback);
+    let win = whenNewWindowLoaded({ private: aIsPrivate }, function() {
+      waitForFocus(aCallback, win);
+    });
     windowsToClose.push(win);
   }
 

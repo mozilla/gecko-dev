@@ -1,7 +1,7 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-MARIONETTE_TIMEOUT = 20000;
+MARIONETTE_TIMEOUT = 60000;
 MARIONETTE_HEAD_JS = 'head.js';
 
 function testReceiving_ETWS_MessageAttributes() {
@@ -23,7 +23,9 @@ function testReceiving_ETWS_MessageAttributes() {
     ok(aMessage.etws.emergencyUserAlert != null,
        "aMessage.etws.emergencyUserAlert");
     ok(aMessage.etws.popup != null, "aMessage.etws.popup");
-    ok(aMessage.cdmaServiceCategory != null, "aMessage.cdmaServiceCategory");
+
+    // cdmaServiceCategory shall always be unavailable in GMS/UMTS CB message.
+    ok(aMessage.cdmaServiceCategory == null, "aMessage.cdmaServiceCategory");
   };
 
   // Here we use a simple ETWS message for test.

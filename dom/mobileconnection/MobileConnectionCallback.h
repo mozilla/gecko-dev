@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
 * License, v. 2.0. If a copy of the MPL was not distributed with this file,
 * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -24,7 +26,7 @@ namespace mobileconnection {
  * - non-OOP mode: MobileConnectionService
  * The reference should be released after Notify*Success/Error is called.
  */
-class MobileConnectionCallback MOZ_FINAL : public nsIMobileConnectionCallback
+class MobileConnectionCallback final : public nsIMobileConnectionCallback
 {
 public:
   NS_DECL_ISUPPORTS
@@ -32,45 +34,17 @@ public:
 
   MobileConnectionCallback(nsPIDOMWindow* aWindow, DOMRequest* aRequest);
 
-  /**
-   * Notify Success for Send/CancelMmi.
-   */
-  nsresult
-  NotifySendCancelMmiSuccess(const nsAString& aServiceCode,
-                             const nsAString& aStatusMessage);
-  nsresult
-  NotifySendCancelMmiSuccess(const nsAString& aServiceCode,
-                             const nsAString& aStatusMessage,
-                             JS::Handle<JS::Value> aAdditionalInformation);
-  nsresult
-  NotifySendCancelMmiSuccess(const nsAString& aServiceCode,
-                             const nsAString& aStatusMessage,
-                             uint16_t aAdditionalInformation);
-  nsresult
-  NotifySendCancelMmiSuccess(const nsAString& aServiceCode,
-                             const nsAString& aStatusMessage,
-                             const nsTArray<nsString>& aAdditionalInformation);
-  nsresult
-  NotifySendCancelMmiSuccess(const nsAString& aServiceCode,
-                             const nsAString& aStatusMessage,
-                             const nsTArray<IPC::MozCallForwardingOptions>& aAdditionalInformation);
-  nsresult
-  NotifySendCancelMmiSuccess(const MozMMIResult& aResult);
-
-  /**
-   * Notify Success for GetCallForwarding.
-   */
-  nsresult
-  NotifyGetCallForwardingSuccess(const nsTArray<IPC::MozCallForwardingOptions>& aResults);
-
 private:
   ~MobileConnectionCallback() {}
 
   nsresult
   NotifySuccess(JS::Handle<JS::Value> aResult);
 
+  nsresult
+  NotifySuccessWithString(const nsAString& aResult);
+
   nsCOMPtr<nsPIDOMWindow> mWindow;
-  nsRefPtr<DOMRequest> mRequest;
+  RefPtr<DOMRequest> mRequest;
 };
 
 } // namespace mobileconnection

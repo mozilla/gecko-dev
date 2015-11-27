@@ -5,7 +5,7 @@
 // 1) network.cookie.lifetimePolicy = 0 (expire naturally)
 // 2) network.cookie.lifetimePolicy = 2 (expire at end of session)
 
-let test_generator = do_run_test();
+var test_generator = do_run_test();
 
 function run_test() {
   do_test_pending();
@@ -29,8 +29,8 @@ function do_run_test() {
   var spec2 = "http://bar.com/bar.html";
   var uri1 = NetUtil.newURI(spec1);
   var uri2 = NetUtil.newURI(spec2);
-  var channel1 = NetUtil.newChannel(uri1);
-  var channel2 = NetUtil.newChannel(uri2);
+  var channel1 = NetUtil.newChannel({uri: uri1, loadUsingSystemPrincipal: true});
+  var channel2 = NetUtil.newChannel({uri: uri2, loadUsingSystemPrincipal: true});
 
   // Force the channel URI to be used when determining the originating URI of
   // the channel.
@@ -60,15 +60,9 @@ function do_run_test() {
   do_check_eq(Services.cookies.countCookiesFromHost(uri1.host), 4);
   do_check_eq(Services.cookies.countCookiesFromHost(uri2.host), 0);
 
-  // cleanse them
-  do_close_profile(test_generator, "shutdown-cleanse");
-  yield;
-  do_load_profile();
-  do_check_eq(Services.cookies.countCookiesFromHost(uri1.host), 0);
-  do_check_eq(Services.cookies.countCookiesFromHost(uri2.host), 0);
-
   // test with cookies set to session-only
   Services.prefs.setIntPref("network.cookie.lifetimePolicy", 2);
+  Services.cookies.removeAll();
   do_set_cookies(uri1, channel1, false, [1, 2, 3, 4]);
   do_set_cookies(uri2, channel2, true, [1, 2, 3, 4]);
 

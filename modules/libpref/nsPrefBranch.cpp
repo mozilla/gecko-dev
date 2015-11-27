@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -18,7 +19,7 @@
 #include "nsPrintfCString.h"
 #include "nsIStringBundle.h"
 #include "prefapi.h"
-#include "pldhash.h"
+#include "PLDHashTable.h"
 
 #include "nsCRT.h"
 #include "mozilla/Services.h"
@@ -46,23 +47,12 @@
   }
 #endif
 
-// Definitions
-struct EnumerateData {
-  const char  *parent;
-  nsTArray<nsCString> *pref_list;
-};
-
-// Prototypes
-static PLDHashOperator
-  pref_enumChild(PLDHashTable *table, PLDHashEntryHdr *heh,
-                 uint32_t i, void *arg);
-
 using mozilla::dom::ContentChild;
 
 static ContentChild*
 GetContentChild()
 {
-  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+  if (XRE_IsContentProcess()) {
     ContentChild* cpc = ContentChild::GetSingleton();
     if (!cpc) {
       NS_RUNTIMEABORT("Content Protocol is NULL!  We're going to crash!");
@@ -330,7 +320,7 @@ NS_IMETHODIMP nsPrefBranch::GetComplexValue(const char *aPrefName, const nsIID &
       // Debugging to see why we end up with very long strings here with
       // some addons, see bug 836263.
       nsAutoString wdata;
-      if (!AppendUTF8toUTF16(utf8String, wdata, mozilla::fallible_t())) {
+      if (!AppendUTF8toUTF16(utf8String, wdata, mozilla::fallible)) {
 #ifdef MOZ_CRASHREPORTER
         nsCOMPtr<nsICrashReporter> cr =
           do_GetService("@mozilla.org/toolkit/crash-reporter;1");
@@ -378,7 +368,7 @@ nsresult nsPrefBranch::CheckSanityOfStringLength(const char* aPrefName, const ui
   }
   nsAutoCString message(nsPrintfCString("Warning: attempting to write %d bytes to preference %s. This is bad for general performance and memory usage. Such an amount of data should rather be written to an external file.",
                                         aLength,
-                                        aPrefName));
+                                        getPrefName(aPrefName)));
   rv = console->LogStringMessage(NS_ConvertUTF8toUTF16(message).get());
   if (NS_FAILED(rv)) {
     return rv;
@@ -526,7 +516,6 @@ NS_IMETHODIMP nsPrefBranch::UnlockPref(const char *aPrefName)
   return PREF_LockPref(pref, false);
 }
 
-/* void resetBranch (in string startingAt); */
 NS_IMETHODIMP nsPrefBranch::ResetBranch(const char *aStartingAt)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
@@ -545,7 +534,6 @@ NS_IMETHODIMP nsPrefBranch::GetChildList(const char *aStartingAt, uint32_t *aCou
   char            **outArray;
   int32_t         numPrefs;
   int32_t         dwIndex;
-  EnumerateData   ed;
   nsAutoTArray<nsCString, 32> prefArray;
 
   NS_ENSURE_ARG(aStartingAt);
@@ -555,22 +543,24 @@ NS_IMETHODIMP nsPrefBranch::GetChildList(const char *aStartingAt, uint32_t *aCou
   *aChildArray = nullptr;
   *aCount = 0;
 
-  if (!gHashTable.ops)
-    return NS_ERROR_NOT_INITIALIZED;
-
   // this will contain a list of all the pref name strings
   // allocate on the stack for speed
-  
-  ed.parent = getPrefName(aStartingAt);
-  ed.pref_list = &prefArray;
-  PL_DHashTableEnumerate(&gHashTable, pref_enumChild, &ed);
+
+  const char* parent = getPrefName(aStartingAt);
+  size_t parentLen = strlen(parent);
+  for (auto iter = gHashTable->Iter(); !iter.Done(); iter.Next()) {
+    auto entry = static_cast<PrefHashEntry*>(iter.Get());
+    if (strncmp(entry->key, parent, parentLen) == 0) {
+      prefArray.AppendElement(entry->key);
+    }
+  }
 
   // now that we've built up the list, run the callback on
   // all the matching elements
   numPrefs = prefArray.Length();
 
   if (numPrefs) {
-    outArray = (char **)nsMemory::Alloc(numPrefs * sizeof(char *));
+    outArray = (char **)moz_xmalloc(numPrefs * sizeof(char *));
     if (!outArray)
       return NS_ERROR_OUT_OF_MEMORY;
 
@@ -646,8 +636,8 @@ NS_IMETHODIMP nsPrefBranch::RemoveObserver(const char *aDomain, nsIObserver *aOb
   // it hasn't been already.
   //
   // It's important that we don't touch mObservers in any way -- even a Get()
-  // which retuns null might cause the hashtable to resize itself, which will
-  // break the Enumerator in freeObserverList.
+  // which returns null might cause the hashtable to resize itself, which will
+  // break the iteration in freeObserverList.
   if (mFreeingObserverList)
     return NS_OK;
 
@@ -697,32 +687,20 @@ void nsPrefBranch::NotifyObserver(const char *newpref, void *data)
                     NS_ConvertASCIItoUTF16(suffix).get());
 }
 
-PLDHashOperator
-FreeObserverFunc(PrefCallback *aKey,
-                 nsAutoPtr<PrefCallback> &aCallback,
-                 void *aArgs)
-{
-  // Calling NS_RELEASE below might trigger a call to
-  // nsPrefBranch::RemoveObserver, since some classes remove themselves from
-  // the pref branch on destruction.  We don't need to worry about this causing
-  // double-frees, however, because freeObserverList sets mFreeingObserverList
-  // to true, which prevents RemoveObserver calls from doing anything.
-
-  nsPrefBranch *prefBranch = aCallback->GetPrefBranch();
-  const char *pref = prefBranch->getPrefName(aCallback->GetDomain().get());
-  PREF_UnregisterCallback(pref, nsPrefBranch::NotifyObserver, aCallback);
-
-  return PL_DHASH_REMOVE;
-}
-
 void nsPrefBranch::freeObserverList(void)
 {
-  // We need to prevent anyone from modifying mObservers while we're
-  // enumerating over it.  In particular, some clients will call
-  // RemoveObserver() when they're destructed; we need to keep those calls from
-  // touching mObservers.
+  // We need to prevent anyone from modifying mObservers while we're iterating
+  // over it. In particular, some clients will call RemoveObserver() when
+  // they're removed and destructed via the iterator; we set
+  // mFreeingObserverList to keep those calls from touching mObservers.
   mFreeingObserverList = true;
-  mObservers.Enumerate(&FreeObserverFunc, nullptr);
+  for (auto iter = mObservers.Iter(); !iter.Done(); iter.Next()) {
+    nsAutoPtr<PrefCallback>& callback = iter.Data();
+    nsPrefBranch *prefBranch = callback->GetPrefBranch();
+    const char *pref = prefBranch->getPrefName(callback->GetDomain().get());
+    PREF_UnregisterCallback(pref, nsPrefBranch::NotifyObserver, callback);
+    iter.Remove();
+  }
   mFreeingObserverList = false;
 }
 
@@ -774,18 +752,6 @@ const char *nsPrefBranch::getPrefName(const char *aPrefName)
   mPrefRoot.Truncate(mPrefRootLength);
   mPrefRoot.Append(aPrefName);
   return mPrefRoot.get();
-}
-
-static PLDHashOperator
-pref_enumChild(PLDHashTable *table, PLDHashEntryHdr *heh,
-               uint32_t i, void *arg)
-{
-  PrefHashEntry *he = static_cast<PrefHashEntry*>(heh);
-  EnumerateData *d = reinterpret_cast<EnumerateData *>(arg);
-  if (strncmp(he->key, d->parent, strlen(d->parent)) == 0) {
-    d->pref_list->AppendElement(he->key);
-  }
-  return PL_DHASH_NEXT;
 }
 
 //----------------------------------------------------------------------------

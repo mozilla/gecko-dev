@@ -3,6 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "nsHTMLEditUtils.h"
+
 #include "mozilla/ArrayUtils.h"         // for ArrayLength
 #include "mozilla/Assertions.h"         // for MOZ_ASSERT, etc
 #include "mozilla/dom/Element.h"        // for Element, nsINode
@@ -13,7 +15,6 @@
 #include "nsEditor.h"                   // for nsEditor
 #include "nsError.h"                    // for NS_SUCCEEDED
 #include "nsGkAtoms.h"                  // for nsGkAtoms, nsGkAtoms::a, etc
-#include "nsHTMLEditUtils.h"
 #include "nsHTMLTags.h"
 #include "nsIAtom.h"                    // for nsIAtom
 #include "nsIDOMHTMLAnchorElement.h"    // for nsIDOMHTMLAnchorElement
@@ -26,18 +27,9 @@
 using namespace mozilla;
 
 ///////////////////////////////////////////////////////////////////////////
-//                  
-bool 
-nsHTMLEditUtils::IsBig(nsIDOMNode* aNode)
-{
-  return nsEditor::NodeIsType(aNode, nsGkAtoms::big);
-}
-
-
-///////////////////////////////////////////////////////////////////////////
 // IsInlineStyle true if node is an inline style
-//                  
-bool 
+//
+bool
 nsHTMLEditUtils::IsInlineStyle(nsIDOMNode* aNode)
 {
   NS_PRECONDITION(aNode, "null parent passed to nsHTMLEditUtils::IsInlineStyle");
@@ -49,23 +41,22 @@ bool
 nsHTMLEditUtils::IsInlineStyle(nsINode* aNode)
 {
   MOZ_ASSERT(aNode);
-  nsIAtom* nodeAtom = aNode->Tag();
-  return (nodeAtom == nsGkAtoms::b)
-      || (nodeAtom == nsGkAtoms::i)
-      || (nodeAtom == nsGkAtoms::u)
-      || (nodeAtom == nsGkAtoms::tt)
-      || (nodeAtom == nsGkAtoms::s)
-      || (nodeAtom == nsGkAtoms::strike)
-      || (nodeAtom == nsGkAtoms::big)
-      || (nodeAtom == nsGkAtoms::small)
-      || (nodeAtom == nsGkAtoms::sub)
-      || (nodeAtom == nsGkAtoms::sup)
-      || (nodeAtom == nsGkAtoms::font);
+  return aNode->IsAnyOfHTMLElements(nsGkAtoms::b,
+                                    nsGkAtoms::i,
+                                    nsGkAtoms::u,
+                                    nsGkAtoms::tt,
+                                    nsGkAtoms::s,
+                                    nsGkAtoms::strike,
+                                    nsGkAtoms::big,
+                                    nsGkAtoms::small,
+                                    nsGkAtoms::sub,
+                                    nsGkAtoms::sup,
+                                    nsGkAtoms::font);
 }
 
 ///////////////////////////////////////////////////////////////////////////
 // IsFormatNode true if node is a format node
-// 
+//
 bool
 nsHTMLEditUtils::IsFormatNode(nsIDOMNode* aNode)
 {
@@ -78,20 +69,19 @@ bool
 nsHTMLEditUtils::IsFormatNode(nsINode* aNode)
 {
   MOZ_ASSERT(aNode);
-  nsIAtom* nodeAtom = aNode->Tag();
-  return (nodeAtom == nsGkAtoms::p)
-      || (nodeAtom == nsGkAtoms::pre)
-      || (nodeAtom == nsGkAtoms::h1)
-      || (nodeAtom == nsGkAtoms::h2)
-      || (nodeAtom == nsGkAtoms::h3)
-      || (nodeAtom == nsGkAtoms::h4)
-      || (nodeAtom == nsGkAtoms::h5)
-      || (nodeAtom == nsGkAtoms::h6)
-      || (nodeAtom == nsGkAtoms::address);
+  return aNode->IsAnyOfHTMLElements(nsGkAtoms::p,
+                                    nsGkAtoms::pre,
+                                    nsGkAtoms::h1,
+                                    nsGkAtoms::h2,
+                                    nsGkAtoms::h3,
+                                    nsGkAtoms::h4,
+                                    nsGkAtoms::h5,
+                                    nsGkAtoms::h6,
+                                    nsGkAtoms::address);
 }
 
 ///////////////////////////////////////////////////////////////////////////
-// IsNodeThatCanOutdent true if node is a list, list item, or blockquote      
+// IsNodeThatCanOutdent true if node is a list, list item, or blockquote
 //
 bool
 nsHTMLEditUtils::IsNodeThatCanOutdent(nsIDOMNode* aNode)
@@ -107,40 +97,37 @@ nsHTMLEditUtils::IsNodeThatCanOutdent(nsIDOMNode* aNode)
       || (nodeAtom == nsGkAtoms::blockquote);
 }
 
-///////////////////////////////////////////////////////////////////////////
-//                  
-bool 
-nsHTMLEditUtils::IsSmall(nsIDOMNode* aNode)
-{
-  return nsEditor::NodeIsType(aNode, nsGkAtoms::small);
-}
-
-
 /********************************************************
  *  helper methods from nsHTMLEditRules
  ********************************************************/
- 
+
 ///////////////////////////////////////////////////////////////////////////
 // IsHeader: true if node an html header
-//                  
-bool 
+//
+bool
+nsHTMLEditUtils::IsHeader(nsINode& aNode)
+{
+  return aNode.IsAnyOfHTMLElements(nsGkAtoms::h1,
+                                   nsGkAtoms::h2,
+                                   nsGkAtoms::h3,
+                                   nsGkAtoms::h4,
+                                   nsGkAtoms::h5,
+                                   nsGkAtoms::h6);
+}
+
+bool
 nsHTMLEditUtils::IsHeader(nsIDOMNode* aNode)
 {
-  NS_PRECONDITION(aNode, "null parent passed to nsHTMLEditUtils::IsHeader");
-  nsCOMPtr<nsIAtom> nodeAtom = nsEditor::GetTag(aNode);
-  return (nodeAtom == nsGkAtoms::h1)
-      || (nodeAtom == nsGkAtoms::h2)
-      || (nodeAtom == nsGkAtoms::h3)
-      || (nodeAtom == nsGkAtoms::h4)
-      || (nodeAtom == nsGkAtoms::h5)
-      || (nodeAtom == nsGkAtoms::h6);
+  nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
+  NS_PRECONDITION(node, "null parent passed to nsHTMLEditUtils::IsHeader");
+  return IsHeader(*node);
 }
 
 
 ///////////////////////////////////////////////////////////////////////////
 // IsParagraph: true if node an html paragraph
-//                  
-bool 
+//
+bool
 nsHTMLEditUtils::IsParagraph(nsIDOMNode* aNode)
 {
   return nsEditor::NodeIsType(aNode, nsGkAtoms::p);
@@ -149,8 +136,8 @@ nsHTMLEditUtils::IsParagraph(nsIDOMNode* aNode)
 
 ///////////////////////////////////////////////////////////////////////////
 // IsHR: true if node an horizontal rule
-//                  
-bool 
+//
+bool
 nsHTMLEditUtils::IsHR(nsIDOMNode* aNode)
 {
   return nsEditor::NodeIsType(aNode, nsGkAtoms::hr);
@@ -159,8 +146,8 @@ nsHTMLEditUtils::IsHR(nsIDOMNode* aNode)
 
 ///////////////////////////////////////////////////////////////////////////
 // IsListItem: true if node an html list item
-//                  
-bool 
+//
+bool
 nsHTMLEditUtils::IsListItem(nsIDOMNode* aNode)
 {
   NS_PRECONDITION(aNode, "null parent passed to nsHTMLEditUtils::IsListItem");
@@ -169,19 +156,18 @@ nsHTMLEditUtils::IsListItem(nsIDOMNode* aNode)
 }
 
 bool
-nsHTMLEditUtils::IsListItem(nsINode* node)
+nsHTMLEditUtils::IsListItem(nsINode* aNode)
 {
-  MOZ_ASSERT(node);
-  nsCOMPtr<nsIAtom> nodeAtom = node->Tag();
-  return (nodeAtom == nsGkAtoms::li)
-      || (nodeAtom == nsGkAtoms::dd)
-      || (nodeAtom == nsGkAtoms::dt);
+  MOZ_ASSERT(aNode);
+  return aNode->IsAnyOfHTMLElements(nsGkAtoms::li,
+                                    nsGkAtoms::dd,
+                                    nsGkAtoms::dt);
 }
 
 
 ///////////////////////////////////////////////////////////////////////////
 // IsTableElement: true if node an html table, td, tr, ...
-//                  
+//
 bool
 nsHTMLEditUtils::IsTableElement(nsIDOMNode* aNode)
 {
@@ -191,24 +177,23 @@ nsHTMLEditUtils::IsTableElement(nsIDOMNode* aNode)
 }
 
 bool
-nsHTMLEditUtils::IsTableElement(nsINode* node)
+nsHTMLEditUtils::IsTableElement(nsINode* aNode)
 {
-  MOZ_ASSERT(node);
-  nsCOMPtr<nsIAtom> nodeAtom = node->Tag();
-  return (nodeAtom == nsGkAtoms::table)
-      || (nodeAtom == nsGkAtoms::tr)
-      || (nodeAtom == nsGkAtoms::td)
-      || (nodeAtom == nsGkAtoms::th)
-      || (nodeAtom == nsGkAtoms::thead)
-      || (nodeAtom == nsGkAtoms::tfoot)
-      || (nodeAtom == nsGkAtoms::tbody)
-      || (nodeAtom == nsGkAtoms::caption);
+  MOZ_ASSERT(aNode);
+  return aNode->IsAnyOfHTMLElements(nsGkAtoms::table,
+                                    nsGkAtoms::tr,
+                                    nsGkAtoms::td,
+                                    nsGkAtoms::th,
+                                    nsGkAtoms::thead,
+                                    nsGkAtoms::tfoot,
+                                    nsGkAtoms::tbody,
+                                    nsGkAtoms::caption);
 }
 
 ///////////////////////////////////////////////////////////////////////////
 // IsTableElementButNotTable: true if node an html td, tr, ... (doesn't include table)
-//                  
-bool 
+//
+bool
 nsHTMLEditUtils::IsTableElementButNotTable(nsIDOMNode* aNode)
 {
   NS_PRECONDITION(aNode, "null node passed to nsHTMLEditor::IsTableElementButNotTable");
@@ -220,19 +205,18 @@ bool
 nsHTMLEditUtils::IsTableElementButNotTable(nsINode* aNode)
 {
   MOZ_ASSERT(aNode);
-  nsCOMPtr<nsIAtom> nodeAtom = aNode->Tag();
-  return (nodeAtom == nsGkAtoms::tr)
-      || (nodeAtom == nsGkAtoms::td)
-      || (nodeAtom == nsGkAtoms::th)
-      || (nodeAtom == nsGkAtoms::thead)
-      || (nodeAtom == nsGkAtoms::tfoot)
-      || (nodeAtom == nsGkAtoms::tbody)
-      || (nodeAtom == nsGkAtoms::caption);
+  return aNode->IsAnyOfHTMLElements(nsGkAtoms::tr,
+                                     nsGkAtoms::td,
+                                     nsGkAtoms::th,
+                                     nsGkAtoms::thead,
+                                     nsGkAtoms::tfoot,
+                                     nsGkAtoms::tbody,
+                                     nsGkAtoms::caption);
 }
 
 ///////////////////////////////////////////////////////////////////////////
 // IsTable: true if node an html table
-//                  
+//
 bool
 nsHTMLEditUtils::IsTable(nsIDOMNode* aNode)
 {
@@ -242,13 +226,13 @@ nsHTMLEditUtils::IsTable(nsIDOMNode* aNode)
 bool
 nsHTMLEditUtils::IsTable(nsINode* aNode)
 {
-  return aNode && aNode->IsElement() && aNode->Tag() == nsGkAtoms::table;
+  return aNode && aNode->IsHTMLElement(nsGkAtoms::table);
 }
 
 ///////////////////////////////////////////////////////////////////////////
 // IsTableRow: true if node an html tr
-//                  
-bool 
+//
+bool
 nsHTMLEditUtils::IsTableRow(nsIDOMNode* aNode)
 {
   return nsEditor::NodeIsType(aNode, nsGkAtoms::tr);
@@ -257,8 +241,8 @@ nsHTMLEditUtils::IsTableRow(nsIDOMNode* aNode)
 
 ///////////////////////////////////////////////////////////////////////////
 // IsTableCell: true if node an html td or th
-//                  
-bool 
+//
+bool
 nsHTMLEditUtils::IsTableCell(nsIDOMNode* aNode)
 {
   NS_PRECONDITION(aNode, "null parent passed to nsHTMLEditUtils::IsTableCell");
@@ -267,19 +251,17 @@ nsHTMLEditUtils::IsTableCell(nsIDOMNode* aNode)
 }
 
 bool
-nsHTMLEditUtils::IsTableCell(nsINode* node)
+nsHTMLEditUtils::IsTableCell(nsINode* aNode)
 {
-  MOZ_ASSERT(node);
-  nsCOMPtr<nsIAtom> nodeAtom = node->Tag();
-  return (nodeAtom == nsGkAtoms::td)
-      || (nodeAtom == nsGkAtoms::th);
+  MOZ_ASSERT(aNode);
+  return aNode->IsAnyOfHTMLElements(nsGkAtoms::td, nsGkAtoms::th);
 }
 
 
 ///////////////////////////////////////////////////////////////////////////
 // IsTableCell: true if node an html td or th
-//                  
-bool 
+//
+bool
 nsHTMLEditUtils::IsTableCellOrCaption(nsIDOMNode* aNode)
 {
   NS_PRECONDITION(aNode, "null parent passed to nsHTMLEditUtils::IsTableCell");
@@ -292,7 +274,7 @@ nsHTMLEditUtils::IsTableCellOrCaption(nsIDOMNode* aNode)
 
 ///////////////////////////////////////////////////////////////////////////
 // IsList: true if node an html list
-//                  
+//
 bool
 nsHTMLEditUtils::IsList(nsIDOMNode* aNode)
 {
@@ -302,20 +284,19 @@ nsHTMLEditUtils::IsList(nsIDOMNode* aNode)
 }
 
 bool
-nsHTMLEditUtils::IsList(nsINode* node)
+nsHTMLEditUtils::IsList(nsINode* aNode)
 {
-  MOZ_ASSERT(node);
-  nsCOMPtr<nsIAtom> nodeAtom = node->Tag();
-  return (nodeAtom == nsGkAtoms::ul)
-      || (nodeAtom == nsGkAtoms::ol)
-      || (nodeAtom == nsGkAtoms::dl);
+  MOZ_ASSERT(aNode);
+  return aNode->IsAnyOfHTMLElements(nsGkAtoms::ul,
+                                    nsGkAtoms::ol,
+                                    nsGkAtoms::dl);
 }
 
 
 ///////////////////////////////////////////////////////////////////////////
 // IsOrderedList: true if node an html ordered list
-//                  
-bool 
+//
+bool
 nsHTMLEditUtils::IsOrderedList(nsIDOMNode* aNode)
 {
   return nsEditor::NodeIsType(aNode, nsGkAtoms::ol);
@@ -324,8 +305,8 @@ nsHTMLEditUtils::IsOrderedList(nsIDOMNode* aNode)
 
 ///////////////////////////////////////////////////////////////////////////
 // IsUnorderedList: true if node an html unordered list
-//                  
-bool 
+//
+bool
 nsHTMLEditUtils::IsUnorderedList(nsIDOMNode* aNode)
 {
   return nsEditor::NodeIsType(aNode, nsGkAtoms::ul);
@@ -334,8 +315,8 @@ nsHTMLEditUtils::IsUnorderedList(nsIDOMNode* aNode)
 
 ///////////////////////////////////////////////////////////////////////////
 // IsBlockquote: true if node an html blockquote node
-//                  
-bool 
+//
+bool
 nsHTMLEditUtils::IsBlockquote(nsIDOMNode* aNode)
 {
   return nsEditor::NodeIsType(aNode, nsGkAtoms::blockquote);
@@ -344,8 +325,8 @@ nsHTMLEditUtils::IsBlockquote(nsIDOMNode* aNode)
 
 ///////////////////////////////////////////////////////////////////////////
 // IsPre: true if node an html pre node
-//                  
-bool 
+//
+bool
 nsHTMLEditUtils::IsPre(nsIDOMNode* aNode)
 {
   return nsEditor::NodeIsType(aNode, nsGkAtoms::pre);
@@ -354,14 +335,20 @@ nsHTMLEditUtils::IsPre(nsIDOMNode* aNode)
 
 ///////////////////////////////////////////////////////////////////////////
 // IsImage: true if node an html image node
-//                  
-bool 
+//
+bool
+nsHTMLEditUtils::IsImage(nsINode* aNode)
+{
+  return aNode && aNode->IsHTMLElement(nsGkAtoms::img);
+}
+
+bool
 nsHTMLEditUtils::IsImage(nsIDOMNode* aNode)
 {
   return nsEditor::NodeIsType(aNode, nsGkAtoms::img);
 }
 
-bool 
+bool
 nsHTMLEditUtils::IsLink(nsIDOMNode *aNode)
 {
   nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
@@ -384,7 +371,7 @@ nsHTMLEditUtils::IsLink(nsINode* aNode)
   return false;
 }
 
-bool 
+bool
 nsHTMLEditUtils::IsNamedAnchor(nsIDOMNode *aNode)
 {
   nsCOMPtr<nsINode> node = do_QueryInterface(aNode);
@@ -395,7 +382,7 @@ bool
 nsHTMLEditUtils::IsNamedAnchor(nsINode* aNode)
 {
   MOZ_ASSERT(aNode);
-  if (!aNode->IsElement() || !aNode->AsElement()->IsHTML(nsGkAtoms::a)) {
+  if (!aNode->IsHTMLElement(nsGkAtoms::a)) {
     return false;
   }
 
@@ -407,8 +394,8 @@ nsHTMLEditUtils::IsNamedAnchor(nsINode* aNode)
 
 ///////////////////////////////////////////////////////////////////////////
 // IsDiv: true if node an html div node
-//                  
-bool 
+//
+bool
 nsHTMLEditUtils::IsDiv(nsIDOMNode* aNode)
 {
   return nsEditor::NodeIsType(aNode, nsGkAtoms::div);
@@ -417,8 +404,8 @@ nsHTMLEditUtils::IsDiv(nsIDOMNode* aNode)
 
 ///////////////////////////////////////////////////////////////////////////
 // IsMozDiv: true if node an html div node with type = _moz
-//                  
-bool 
+//
+bool
 nsHTMLEditUtils::IsMozDiv(nsIDOMNode* aNode)
 {
   if (IsDiv(aNode) && nsTextEditUtils::HasMozAttr(aNode)) return true;
@@ -429,14 +416,14 @@ bool
 nsHTMLEditUtils::IsMozDiv(nsINode* aNode)
 {
   MOZ_ASSERT(aNode);
-  return aNode->Tag() == nsGkAtoms::div &&
+  return aNode->IsHTMLElement(nsGkAtoms::div) &&
          nsTextEditUtils::HasMozAttr(GetAsDOMNode(aNode));
 }
 
 
 ///////////////////////////////////////////////////////////////////////////
 // IsMailCite: true if node an html blockquote with type=cite
-//                  
+//
 bool
 nsHTMLEditUtils::IsMailCite(nsIDOMNode* aNode)
 {
@@ -472,7 +459,7 @@ nsHTMLEditUtils::IsMailCite(nsINode* aNode)
 
 ///////////////////////////////////////////////////////////////////////////
 // IsFormWidget: true if node is a form widget of some kind
-//                  
+//
 bool
 nsHTMLEditUtils::IsFormWidget(nsIDOMNode* aNode)
 {
@@ -485,15 +472,14 @@ bool
 nsHTMLEditUtils::IsFormWidget(nsINode* aNode)
 {
   MOZ_ASSERT(aNode);
-  nsCOMPtr<nsIAtom> nodeAtom = aNode->Tag();
-  return (nodeAtom == nsGkAtoms::textarea)
-      || (nodeAtom == nsGkAtoms::select)
-      || (nodeAtom == nsGkAtoms::button)
-      || (nodeAtom == nsGkAtoms::output)
-      || (nodeAtom == nsGkAtoms::keygen)
-      || (nodeAtom == nsGkAtoms::progress)
-      || (nodeAtom == nsGkAtoms::meter)
-      || (nodeAtom == nsGkAtoms::input);
+  return aNode->IsAnyOfHTMLElements(nsGkAtoms::textarea,
+                                    nsGkAtoms::select,
+                                    nsGkAtoms::button,
+                                    nsGkAtoms::output,
+                                    nsGkAtoms::keygen,
+                                    nsGkAtoms::progress,
+                                    nsGkAtoms::meter,
+                                    nsGkAtoms::input);
 }
 
 bool
@@ -678,6 +664,7 @@ static const nsElementInfo kElements[eHTMLTag_userdefined] = {
   ELEM(dt, true, true, GROUP_DL_CONTENT, GROUP_INLINE_ELEMENT),
   ELEM(em, true, true, GROUP_PHRASE, GROUP_INLINE_ELEMENT),
   ELEM(embed, false, false, GROUP_NONE, GROUP_NONE),
+  ELEM(extapp, true, true, GROUP_NONE, GROUP_NONE),
   ELEM(fieldset, true, true, GROUP_BLOCK, GROUP_FLOW_ELEMENT),
   ELEM(figcaption, true, false, GROUP_FIGCAPTION, GROUP_FLOW_ELEMENT),
   ELEM(figure, true, true, GROUP_BLOCK,
@@ -861,7 +848,7 @@ nsHTMLEditUtils::CanContain(int32_t aParent, int32_t aChild)
 
   const nsElementInfo& child = kElements[aChild - 1];
   return (parent.mCanContainGroups & child.mGroup) != 0;
-} 
+}
 
 bool
 nsHTMLEditUtils::IsContainer(int32_t aTag)

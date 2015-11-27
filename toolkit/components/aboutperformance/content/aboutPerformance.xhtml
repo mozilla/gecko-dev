@@ -1,0 +1,113 @@
+<?xml version="1.0"?>
+
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>about:performance</title>
+    <script type="text/javascript;version=1.8" src="chrome://global/content/aboutPerformance.js"></script>
+    <style>
+      @import url("chrome://global/skin/in-content/common.css");
+      .hidden {
+        display: none;
+      }
+      .summary .title {
+        font-weight: bold;
+      }
+      a {
+        text-decoration: none;
+      }
+      a.more {
+        margin-left: 2ch;
+      }
+      ul.hidden_additional_items {
+        padding-top: 0;
+        margin-top: 0;
+      }
+      ul.visible_items {
+        padding-bottom: 0;
+        margin-bottom: 0;
+      }
+      li.delta {
+        margin-top: .5em;
+      }
+      h2 {
+        margin-top: 1cm;
+      }
+      button.show_all_items {
+        margin-top: .5cm;
+        margin-left: 1cm;
+      }
+      body {
+        margin-left: 1cm;
+      }
+      div.measuring {
+         background: url(chrome://global/skin/media/throbber.png) no-repeat center;
+         min-width: 36px;
+         min-height: 36px;
+      }
+      li.delta {
+        border-left-width: 5px;
+        border-left-style: solid;
+        padding-left: 1em;
+        list-style: none;
+      }
+      li.delta[impact="0"] {
+        border-left-color: rgb(0, 255, 0);
+      }
+      li.delta[impact="1"] {
+        border-left-color: rgb(24, 231, 0);
+      }
+      li.delta[impact="2"] {
+        border-left-color: rgb(48, 207, 0);
+      }
+      li.delta[impact="3"] {
+        border-left-color: rgb(72, 183, 0);
+      }
+      li.delta[impact="4"] {
+        border-left-color: rgb(96, 159, 0);
+      }
+      li.delta[impact="5"] {
+        border-left-color: rgb(120, 135, 0);
+      }
+      li.delta[impact="6"] {
+        border-left-color: rgb(144, 111, 0);
+      }
+      li.delta[impact="7"] {
+        border-left-color: rgb(168, 87, 0);
+      }
+      li.delta[impact="8"] {
+        border-left-color: rgb(192, 63, 0);
+      }
+      li.delta[impact="9"] {
+        border-left-color: rgb(216, 39, 0);
+      }
+      li.delta[impact="10"] {
+        border-left-color: rgb(240, 15, 0);
+      }
+      li.delta[impact="11"] {
+        border-left-color: rgb(255, 0, 0);
+      }
+    </style>
+  </head>
+  <body onload="go()">
+    <div>
+      <input type="checkbox" checked="false" id="check-display-recent"></input> 
+      <label for="check-display-recent" id="label-display-recent">Display only the last few seconds.</label>
+      <input type="checkbox" checked="true" id="check-autorefresh"></input>
+      <label for="check-autorefresh">Refresh automatically</label>
+    </div>
+    <div>
+      <h2>Performance of Add-ons</h2>
+      <div id="addons" class="measuring">
+      </div>
+    </div>
+    <div>
+      <h2>Performance of Web pages</h2>
+      <div id="webpages" class="measuring">
+      </div>
+    </div>
+  </body>
+</html>

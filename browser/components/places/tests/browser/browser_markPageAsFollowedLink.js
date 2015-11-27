@@ -11,10 +11,10 @@ const PAGE_URL = BASE_URL + "/framedPage.html";
 const LEFT_URL = BASE_URL + "/frameLeft.html";
 const RIGHT_URL = BASE_URL + "/frameRight.html";
 
-let gTabLoaded = false;
-let gLeftFrameVisited = false;
+var gTabLoaded = false;
+var gLeftFrameVisited = false;
 
-let observer = {
+var observer = {
   observe: function(aSubject, aTopic, aData)
   {
     let url = aSubject.QueryInterface(Ci.nsIURI).spec;
@@ -39,13 +39,13 @@ function test()
   waitForExplicitFinish();
   gBrowser.selectedTab = gBrowser.addTab(PAGE_URL);
   let frameCount = 0;
-  gBrowser.selectedTab.linkedBrowser.addEventListener("DOMContentLoaded",
+  gBrowser.selectedBrowser.addEventListener("DOMContentLoaded",
     function (event)
     {
       // Wait for all the frames.
       if (frameCount++ < 2)
         return;
-      gBrowser.selectedTab.linkedBrowser.removeEventListener("DOMContentLoaded", arguments.callee, false)
+      gBrowser.selectedBrowser.removeEventListener("DOMContentLoaded", arguments.callee, false)
       gTabLoaded = true;
       maybeClickLink();
     }, false

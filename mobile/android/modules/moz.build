@@ -9,14 +9,17 @@ EXTRA_JS_MODULES += [
     'AndroidLog.jsm',
     'ContactService.jsm',
     'dbg-browser-actors.js',
-    'FireflyApp.jsm',
+    'DelayedInit.jsm',
+    'DownloadNotifications.jsm',
     'HelperApps.jsm',
     'Home.jsm',
     'HomeProvider.jsm',
+    'JavaAddonManager.jsm',
     'JNI.jsm',
     'LightweightThemeConsumer.jsm',
     'MediaPlayerApp.jsm',
     'Messaging.jsm',
+    'MulticastDNS.jsm',
     'NetErrorHelper.jsm',
     'Notifications.jsm',
     'OrderedBroadcast.jsm',
@@ -24,11 +27,14 @@ EXTRA_JS_MODULES += [
     'Prompt.jsm',
     'Sanitizer.jsm',
     'SharedPreferences.jsm',
+    'Snackbars.jsm',
     'SSLExceptions.jsm',
     'TabMirror.jsm',
+    'WebappManager.jsm',
     'WebappManagerWorker.js',
 ]
 
-EXTRA_PP_JS_MODULES += [
-    'WebappManager.jsm',
-]
+if not CONFIG['MOZ_B2GDROID']:
+    EXTRA_JS_MODULES += [
+        'FxAccountsWebChannel.jsm',
+    ]

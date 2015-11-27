@@ -13,6 +13,7 @@
 #include "plstr.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/MemoryReporting.h"
+#include "nsISupports.h"
 
 #if !defined(XP_WIN)
 #include <arpa/inet.h>
@@ -125,16 +126,18 @@ public:
   NetAddr mAddress;
 };
 
-class AddrInfo {
+class AddrInfo final
+  : public nsISupports {
 public:
+  NS_DECL_THREADSAFE_ISUPPORTS
+
   // Creates an AddrInfo object. It calls the AddrInfo(const char*, const char*)
   // to initialize the host and the cname.
   AddrInfo(const char *host, const PRAddrInfo *prAddrInfo, bool disableIPv4,
-           const char *cname);
+           bool filterNameCollision, const char *cname);
 
   // Creates a basic AddrInfo object (initialize only the host and the cname).
   AddrInfo(const char *host, const char *cname);
-  ~AddrInfo();
 
   void AddAddress(NetAddrElement *address);
 
@@ -149,6 +152,7 @@ public:
 
 private:
   void Init(const char *host, const char *cname);
+  ~AddrInfo();
 };
 
 // Copies the contents of a PRNetAddr to a NetAddr.

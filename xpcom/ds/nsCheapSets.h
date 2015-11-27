@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,6 +10,12 @@
 #include "nsTHashtable.h"
 #include <stdint.h>
 
+enum nsCheapSetOperator
+{
+  OpNext = 0,   // enumerator says continue
+  OpRemove = 1, // enumerator says remove and continue
+};
+
 /**
  * A set that takes up minimal size when there are 0 or 1 entries in the set.
  * Use for cases where sizes of 0 and 1 are even slightly common.
@@ -18,7 +25,7 @@ class nsCheapSet
 {
 public:
   typedef typename EntryType::KeyType KeyType;
-  typedef PLDHashOperator (*Enumerator)(EntryType* aEntry, void* userArg);
+  typedef nsCheapSetOperator (*Enumerator)(EntryType* aEntry, void* userArg);
 
   nsCheapSet() : mState(ZERO) {}
   ~nsCheapSet() { Clear(); }
@@ -69,13 +76,21 @@ public:
       case ZERO:
         return 0;
       case ONE:
-        if (aEnumFunc(GetSingleEntry(), aUserArg) == PL_DHASH_REMOVE) {
+        if (aEnumFunc(GetSingleEntry(), aUserArg) == OpRemove) {
           GetSingleEntry()->~EntryType();
           mState = ZERO;
         }
         return 1;
-      case MANY:
-        return mUnion.table->EnumerateEntries(aEnumFunc, aUserArg);
+      case MANY: {
+        uint32_t n = mUnion.table->Count();
+        for (auto iter = mUnion.table->Iter(); !iter.Done(); iter.Next()) {
+          auto entry = static_cast<EntryType*>(iter.Get());
+          if (aEnumFunc(entry, aUserArg) == OpRemove) {
+            iter.Remove();
+          }
+        }
+        return n;
+      }
       default:
         NS_NOTREACHED("bogus state");
         return 0;
@@ -120,7 +135,8 @@ nsCheapSet<EntryType>::Put(const KeyType aVal)
       mUnion.table = table;
       mState = MANY;
     }
-    // Fall through.
+    MOZ_FALLTHROUGH;
+
     case MANY:
       mUnion.table->PutEntry(aVal);
       return NS_OK;

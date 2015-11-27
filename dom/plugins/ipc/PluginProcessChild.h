@@ -19,14 +19,15 @@ protected:
     typedef mozilla::ipc::ProcessChild ProcessChild;
 
 public:
-    explicit PluginProcessChild(ProcessHandle aParentHandle) : ProcessChild(aParentHandle)
+    explicit PluginProcessChild(ProcessId aParentPid)
+      : ProcessChild(aParentPid), mPlugin(true)
     { }
 
     virtual ~PluginProcessChild()
     { }
 
-    virtual bool Init() MOZ_OVERRIDE;
-    virtual void CleanUp() MOZ_OVERRIDE;
+    virtual bool Init() override;
+    virtual void CleanUp() override;
 
 protected:
     static PluginProcessChild* current() {
@@ -39,7 +40,7 @@ private:
     DISALLOW_EVIL_CONSTRUCTORS(PluginProcessChild);
 };
 
-}  // namespace plugins
-}  // namespace mozilla
+} // namespace plugins
+} // namespace mozilla
 
 #endif  // ifndef dom_plugins_PluginProcessChild_h

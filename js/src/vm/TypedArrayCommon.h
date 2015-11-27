@@ -13,6 +13,13 @@
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/PodOperations.h"
 
+#include "jsarray.h"
+#include "jscntxt.h"
+#include "jsnum.h"
+
+#include "jit/AtomicOperations.h"
+
+#include "js/Conversions.h"
 #include "js/Value.h"
 
 #include "vm/SharedTypedArrayObject.h"
@@ -29,7 +36,7 @@ namespace js {
 // but will disappear when that code is made spec-compliant.
 
 inline bool
-ValueIsLength(const Value &v, uint32_t *len)
+ValueIsLength(const Value& v, uint32_t* len)
 {
     if (v.isInt32()) {
         int32_t i = v.toInt32();
@@ -55,112 +62,138 @@ ValueIsLength(const Value &v, uint32_t *len)
     return false;
 }
 
-template<typename NativeType> static inline Scalar::Type TypeIDOfType();
-template<> inline Scalar::Type TypeIDOfType<int8_t>() { return Scalar::Int8; }
-template<> inline Scalar::Type TypeIDOfType<uint8_t>() { return Scalar::Uint8; }
-template<> inline Scalar::Type TypeIDOfType<int16_t>() { return Scalar::Int16; }
-template<> inline Scalar::Type TypeIDOfType<uint16_t>() { return Scalar::Uint16; }
-template<> inline Scalar::Type TypeIDOfType<int32_t>() { return Scalar::Int32; }
-template<> inline Scalar::Type TypeIDOfType<uint32_t>() { return Scalar::Uint32; }
-template<> inline Scalar::Type TypeIDOfType<float>() { return Scalar::Float32; }
-template<> inline Scalar::Type TypeIDOfType<double>() { return Scalar::Float64; }
-template<> inline Scalar::Type TypeIDOfType<uint8_clamped>() { return Scalar::Uint8Clamped; }
+template<typename NativeType> struct TypeIDOfType;
+template<> struct TypeIDOfType<int8_t> { static const Scalar::Type id = Scalar::Int8; };
+template<> struct TypeIDOfType<uint8_t> { static const Scalar::Type id = Scalar::Uint8; };
+template<> struct TypeIDOfType<int16_t> { static const Scalar::Type id = Scalar::Int16; };
+template<> struct TypeIDOfType<uint16_t> { static const Scalar::Type id = Scalar::Uint16; };
+template<> struct TypeIDOfType<int32_t> { static const Scalar::Type id = Scalar::Int32; };
+template<> struct TypeIDOfType<uint32_t> { static const Scalar::Type id = Scalar::Uint32; };
+template<> struct TypeIDOfType<float> { static const Scalar::Type id = Scalar::Float32; };
+template<> struct TypeIDOfType<double> { static const Scalar::Type id = Scalar::Float64; };
+template<> struct TypeIDOfType<uint8_clamped> { static const Scalar::Type id = Scalar::Uint8Clamped; };
 
 inline bool
-IsAnyTypedArray(HandleObject obj)
-{
-    return obj->is<TypedArrayObject>() || obj->is<SharedTypedArrayObject>();
-}
-
-inline bool
-IsAnyTypedArray(const JSObject *obj)
+IsAnyTypedArray(JSObject* obj)
 {
     return obj->is<TypedArrayObject>() || obj->is<SharedTypedArrayObject>();
 }
 
 inline uint32_t
-AnyTypedArrayLength(HandleObject obj)
+AnyTypedArrayLength(JSObject* obj)
 {
     if (obj->is<TypedArrayObject>())
-	return obj->as<TypedArrayObject>().length();
-    return obj->as<SharedTypedArrayObject>().length();
-}
-
-inline uint32_t
-AnyTypedArrayLength(const JSObject *obj)
-{
-    if (obj->is<TypedArrayObject>())
-	return obj->as<TypedArrayObject>().length();
+        return obj->as<TypedArrayObject>().length();
     return obj->as<SharedTypedArrayObject>().length();
 }
 
 inline Scalar::Type
-AnyTypedArrayType(HandleObject obj)
+AnyTypedArrayType(JSObject* obj)
 {
     if (obj->is<TypedArrayObject>())
-	return obj->as<TypedArrayObject>().type();
-    return obj->as<SharedTypedArrayObject>().type();
-}
-
-inline Scalar::Type
-AnyTypedArrayType(const JSObject *obj)
-{
-    if (obj->is<TypedArrayObject>())
-	return obj->as<TypedArrayObject>().type();
+        return obj->as<TypedArrayObject>().type();
     return obj->as<SharedTypedArrayObject>().type();
 }
 
 inline Shape*
-AnyTypedArrayShape(HandleObject obj)
+AnyTypedArrayShape(JSObject* obj)
 {
     if (obj->is<TypedArrayObject>())
-	return obj->as<TypedArrayObject>().lastProperty();
-    return obj->as<SharedTypedArrayObject>().lastProperty();
-}
-
-inline Shape*
-AnyTypedArrayShape(const JSObject *obj)
-{
-    if (obj->is<TypedArrayObject>())
-	return obj->as<TypedArrayObject>().lastProperty();
+        return obj->as<TypedArrayObject>().lastProperty();
     return obj->as<SharedTypedArrayObject>().lastProperty();
 }
 
 inline const TypedArrayLayout&
-AnyTypedArrayLayout(const JSObject *obj)
+AnyTypedArrayLayout(const JSObject* obj)
 {
     if (obj->is<TypedArrayObject>())
-	return obj->as<TypedArrayObject>().layout();
+        return obj->as<TypedArrayObject>().layout();
     return obj->as<SharedTypedArrayObject>().layout();
 }
 
-inline void *
-AnyTypedArrayViewData(const JSObject *obj)
+inline SharedMem<void*>
+AnyTypedArrayViewData(const JSObject* obj)
 {
     if (obj->is<TypedArrayObject>())
-	return obj->as<TypedArrayObject>().viewData();
-    return obj->as<SharedTypedArrayObject>().viewData();
+        return obj->as<TypedArrayObject>().viewDataShared();
+    return obj->as<SharedTypedArrayObject>().viewDataShared();
 }
 
 inline uint32_t
-AnyTypedArrayByteLength(const JSObject *obj)
+AnyTypedArrayBytesPerElement(const JSObject* obj)
 {
     if (obj->is<TypedArrayObject>())
-	return obj->as<TypedArrayObject>().byteLength();
+        return obj->as<TypedArrayObject>().bytesPerElement();
+    return obj->as<SharedTypedArrayObject>().bytesPerElement();
+}
+
+inline uint32_t
+AnyTypedArrayByteLength(const JSObject* obj)
+{
+    if (obj->is<TypedArrayObject>())
+        return obj->as<TypedArrayObject>().byteLength();
     return obj->as<SharedTypedArrayObject>().byteLength();
 }
 
 inline bool
-IsAnyTypedArrayClass(const Class *clasp)
+IsAnyTypedArrayClass(const Class* clasp)
 {
     return IsTypedArrayClass(clasp) || IsSharedTypedArrayClass(clasp);
 }
 
-template<class SpecificArray>
+class SharedOps
+{
+  public:
+    template<typename T>
+    static T load(SharedMem<T*> addr) {
+        return js::jit::AtomicOperations::loadSafeWhenRacy(addr);
+    }
+
+    template<typename T>
+    static void store(SharedMem<T*> addr, T value) {
+        js::jit::AtomicOperations::storeSafeWhenRacy(addr, value);
+    }
+
+    template<typename T>
+    static void memcpy(SharedMem<T*> dest, SharedMem<T*> src, size_t size) {
+        js::jit::AtomicOperations::memcpySafeWhenRacy(dest, src, size);
+    }
+
+    template<typename T>
+    static void memmove(SharedMem<T*> dest, SharedMem<T*> src, size_t size) {
+        js::jit::AtomicOperations::memmoveSafeWhenRacy(dest, src, size);
+    }
+};
+
+class UnsharedOps
+{
+  public:
+    template<typename T>
+    static T load(SharedMem<T*> addr) {
+        return *addr.unwrapUnshared();
+    }
+
+    template<typename T>
+    static void store(SharedMem<T*> addr, T value) {
+        *addr.unwrapUnshared() = value;
+    }
+
+    template<typename T>
+    static void memcpy(SharedMem<T*> dest, SharedMem<T*> src, size_t size) {
+        ::memcpy(dest.unwrapUnshared(), src.unwrapUnshared(), size);
+    }
+
+    template<typename T>
+    static void memmove(SharedMem<T*> dest, SharedMem<T*> src, size_t size) {
+        ::memmove(dest.unwrapUnshared(), src.unwrapUnshared(), size);
+    }
+};
+
+template<class SpecificArray, typename Ops>
 class ElementSpecific
 {
     typedef typename SpecificArray::ElementType T;
-    typedef typename SpecificArray::AnyTypedArray AnyTypedArray;
+    typedef typename SpecificArray::SomeTypedArray SomeTypedArray;
 
   public:
     /*
@@ -169,81 +202,93 @@ class ElementSpecific
      * case the two memory ranges overlap.
      */
     static bool
-    setFromTypedArray(JSContext *cx,
-                       Handle<AnyTypedArray*> target, Handle<AnyTypedArray*> source,
-                       uint32_t offset)
+    setFromAnyTypedArray(JSContext* cx,
+                         Handle<SomeTypedArray*> target, HandleObject source,
+                         uint32_t offset)
     {
         MOZ_ASSERT(SpecificArray::ArrayTypeID() == target->type(),
-                   "calling wrong setFromTypedArray specialization");
+                   "calling wrong setFromAnyTypedArray specialization");
 
         MOZ_ASSERT(offset <= target->length());
-        MOZ_ASSERT(source->length() <= target->length() - offset);
+        MOZ_ASSERT(AnyTypedArrayLength(source) <= target->length() - offset);
 
-        if (AnyTypedArray::sameBuffer(target, source))
-            return setFromOverlappingTypedArray(cx, target, source, offset);
+        if (source->is<SomeTypedArray>()) {
+            Rooted<SomeTypedArray*> src(cx, source.as<SomeTypedArray>());
+            if (SomeTypedArray::sameBuffer(target, src))
+                return setFromOverlappingTypedArray(cx, target, src, offset);
+        }
 
-        T *dest = static_cast<T*>(target->viewData()) + offset;
-        uint32_t count = source->length();
+        SharedMem<T*> dest = AnyTypedArrayViewData(target).template cast<T*>() + offset;
+        uint32_t count = AnyTypedArrayLength(source);
 
-        if (source->type() == target->type()) {
-            mozilla::PodCopy(dest, static_cast<T*>(source->viewData()), count);
+        if (AnyTypedArrayType(source) == target->type()) {
+            Ops::memcpy(dest.template cast<void*>(), AnyTypedArrayViewData(source), count*sizeof(T));
             return true;
         }
 
-        void *data = source->viewData();
-        switch (source->type()) {
+        // Inhibit unaligned accesses on ARM (bug 1097253, a compiler bug).
+#ifdef __arm__
+#  define JS_VOLATILE_ARM volatile
+#else
+#  define JS_VOLATILE_ARM
+#endif
+
+        SharedMem<void*> data = AnyTypedArrayViewData(source);
+        switch (AnyTypedArrayType(source)) {
           case Scalar::Int8: {
-            int8_t *src = static_cast<int8_t*>(data);
+            SharedMem<JS_VOLATILE_ARM int8_t*> src = data.cast<JS_VOLATILE_ARM int8_t*>();
             for (uint32_t i = 0; i < count; ++i)
-                *dest++ = T(*src++);
+                Ops::store(dest++, T(Ops::load(src++)));
             break;
           }
           case Scalar::Uint8:
           case Scalar::Uint8Clamped: {
-            uint8_t *src = static_cast<uint8_t*>(data);
+            SharedMem<JS_VOLATILE_ARM uint8_t*> src = data.cast<JS_VOLATILE_ARM uint8_t*>();
             for (uint32_t i = 0; i < count; ++i)
-                *dest++ = T(*src++);
+                Ops::store(dest++, T(Ops::load(src++)));
             break;
           }
           case Scalar::Int16: {
-            int16_t *src = static_cast<int16_t*>(data);
+            SharedMem<JS_VOLATILE_ARM int16_t*> src = data.cast<JS_VOLATILE_ARM int16_t*>();
             for (uint32_t i = 0; i < count; ++i)
-                *dest++ = T(*src++);
+                Ops::store(dest++, T(Ops::load(src++)));
             break;
           }
           case Scalar::Uint16: {
-            uint16_t *src = static_cast<uint16_t*>(data);
+            SharedMem<JS_VOLATILE_ARM uint16_t*> src = data.cast<JS_VOLATILE_ARM uint16_t*>();
             for (uint32_t i = 0; i < count; ++i)
-                *dest++ = T(*src++);
+                Ops::store(dest++, T(Ops::load(src++)));
             break;
           }
           case Scalar::Int32: {
-            int32_t *src = static_cast<int32_t*>(data);
+            SharedMem<JS_VOLATILE_ARM int32_t*> src = data.cast<JS_VOLATILE_ARM int32_t*>();
             for (uint32_t i = 0; i < count; ++i)
-                *dest++ = T(*src++);
+                Ops::store(dest++, T(Ops::load(src++)));
             break;
           }
           case Scalar::Uint32: {
-            uint32_t *src = static_cast<uint32_t*>(data);
+            SharedMem<JS_VOLATILE_ARM uint32_t*> src = data.cast<JS_VOLATILE_ARM uint32_t*>();
             for (uint32_t i = 0; i < count; ++i)
-                *dest++ = T(*src++);
+                Ops::store(dest++, T(Ops::load(src++)));
             break;
           }
           case Scalar::Float32: {
-            float *src = static_cast<float*>(data);
+            SharedMem<JS_VOLATILE_ARM float*> src = data.cast<JS_VOLATILE_ARM float*>();
             for (uint32_t i = 0; i < count; ++i)
-                *dest++ = T(*src++);
+                Ops::store(dest++, T(Ops::load(src++)));
             break;
           }
           case Scalar::Float64: {
-            double *src = static_cast<double*>(data);
+            SharedMem<JS_VOLATILE_ARM double*> src = data.cast<JS_VOLATILE_ARM double*>();
             for (uint32_t i = 0; i < count; ++i)
-                *dest++ = T(*src++);
+                Ops::store(dest++, T(Ops::load(src++)));
             break;
           }
           default:
-            MOZ_CRASH("setFromTypedArray with a typed array with bogus type");
+            MOZ_CRASH("setFromAnyTypedArray with a typed array with bogus type");
         }
+
+#undef JS_VOLATILE_ARM
 
         return true;
     }
@@ -254,30 +299,30 @@ class ElementSpecific
      * typed array.
      */
     static bool
-    setFromNonTypedArray(JSContext *cx, Handle<AnyTypedArray*> target, HandleObject source,
+    setFromNonTypedArray(JSContext* cx, Handle<SomeTypedArray*> target, HandleObject source,
                          uint32_t len, uint32_t offset = 0)
     {
         MOZ_ASSERT(target->type() == SpecificArray::ArrayTypeID(),
                    "target type and NativeType must match");
-        MOZ_ASSERT(!source->is<AnyTypedArray>(),
-                   "use setFromTypedArray instead of this method");
+        MOZ_ASSERT(!IsAnyTypedArray(source),
+                   "use setFromAnyTypedArray instead of this method");
 
         uint32_t i = 0;
         if (source->isNative()) {
             // Attempt fast-path infallible conversion of dense elements up to
             // the first potentially side-effectful lookup or conversion.
-            uint32_t bound = Min(source->getDenseInitializedLength(), len);
+            uint32_t bound = Min(source->as<NativeObject>().getDenseInitializedLength(), len);
 
-            T *dest = static_cast<T*>(target->viewData()) + offset;
+            SharedMem<T*> dest = AnyTypedArrayViewData(target).template cast<T*>() + offset;
 
             MOZ_ASSERT(!canConvertInfallibly(MagicValue(JS_ELEMENTS_HOLE)),
                        "the following loop must abort on holes");
 
-            const Value *srcValues = source->getDenseElements();
+            const Value* srcValues = source->as<NativeObject>().getDenseElements();
             for (; i < bound; i++) {
                 if (!canConvertInfallibly(srcValues[i]))
                     break;
-                dest[i] = infallibleValueToNative(srcValues[i]);
+                Ops::store(dest + i, infallibleValueToNative(srcValues[i]));
             }
             if (i == len)
                 return true;
@@ -286,7 +331,7 @@ class ElementSpecific
         // Convert and copy any remaining elements generically.
         RootedValue v(cx);
         for (; i < len; i++) {
-            if (!JSObject::getElement(cx, source, source, i, &v))
+            if (!GetElement(cx, source, source, i, &v))
                 return false;
 
             T n;
@@ -298,8 +343,7 @@ class ElementSpecific
                 break;
 
             // Compute every iteration in case getElement/valueToNative is wacky.
-            void *data = target->viewData();
-            static_cast<T*>(data)[offset + i] = n;
+            Ops::store(AnyTypedArrayViewData(target).template cast<T*>() + offset + i, n);
         }
 
         return true;
@@ -307,85 +351,85 @@ class ElementSpecific
 
   private:
     static bool
-    setFromOverlappingTypedArray(JSContext *cx,
-                                 Handle<AnyTypedArray*> target,
-                                 Handle<AnyTypedArray*> source,
+    setFromOverlappingTypedArray(JSContext* cx,
+                                 Handle<SomeTypedArray*> target,
+                                 Handle<SomeTypedArray*> source,
                                  uint32_t offset)
     {
         MOZ_ASSERT(SpecificArray::ArrayTypeID() == target->type(),
                    "calling wrong setFromTypedArray specialization");
-        MOZ_ASSERT(AnyTypedArray::sameBuffer(target, source),
+        MOZ_ASSERT(SomeTypedArray::sameBuffer(target, source),
                    "provided arrays don't actually overlap, so it's "
                    "undesirable to use this method");
 
         MOZ_ASSERT(offset <= target->length());
         MOZ_ASSERT(source->length() <= target->length() - offset);
 
-        T *dest = static_cast<T*>(target->viewData()) + offset;
+        SharedMem<T*> dest = AnyTypedArrayViewData(target).template cast<T*>() + offset;
         uint32_t len = source->length();
 
         if (source->type() == target->type()) {
-            mozilla::PodMove(dest, static_cast<T*>(source->viewData()), len);
+            Ops::memmove(dest, AnyTypedArrayViewData(source).template cast<T*>(), len*sizeof(T));
             return true;
         }
 
         // Copy |source| in case it overlaps the target elements being set.
         size_t sourceByteLen = len * source->bytesPerElement();
-        void *data = target->zone()->template pod_malloc<uint8_t>(sourceByteLen);
+        void* data = target->zone()->template pod_malloc<uint8_t>(sourceByteLen);
         if (!data)
             return false;
-        mozilla::PodCopy(static_cast<uint8_t*>(data),
-                         static_cast<uint8_t*>(source->viewData()),
-                         sourceByteLen);
+        Ops::memcpy(SharedMem<void*>::unshared(data),
+                    AnyTypedArrayViewData(source),
+                    sourceByteLen);
 
         switch (source->type()) {
           case Scalar::Int8: {
-            int8_t *src = static_cast<int8_t*>(data);
+            int8_t* src = static_cast<int8_t*>(data);
             for (uint32_t i = 0; i < len; ++i)
-                *dest++ = T(*src++);
+                Ops::store(dest++, T(*src++));
             break;
           }
           case Scalar::Uint8:
           case Scalar::Uint8Clamped: {
-            uint8_t *src = static_cast<uint8_t*>(data);
+            uint8_t* src = static_cast<uint8_t*>(data);
             for (uint32_t i = 0; i < len; ++i)
-                *dest++ = T(*src++);
+                Ops::store(dest++, T(*src++));
             break;
           }
           case Scalar::Int16: {
-            int16_t *src = static_cast<int16_t*>(data);
+            int16_t* src = static_cast<int16_t*>(data);
             for (uint32_t i = 0; i < len; ++i)
-                *dest++ = T(*src++);
+                Ops::store(dest++, T(*src++));
             break;
           }
           case Scalar::Uint16: {
-            uint16_t *src = static_cast<uint16_t*>(data);
+            uint16_t* src = static_cast<uint16_t*>(data);
             for (uint32_t i = 0; i < len; ++i)
-                *dest++ = T(*src++);
+                Ops::store(dest++, T(*src++));
             break;
           }
           case Scalar::Int32: {
-            int32_t *src = static_cast<int32_t*>(data);
+            int32_t* src = static_cast<int32_t*>(data);
             for (uint32_t i = 0; i < len; ++i)
-                *dest++ = T(*src++);
+                Ops::store(dest++, T(*src++));
             break;
           }
           case Scalar::Uint32: {
-            uint32_t *src = static_cast<uint32_t*>(data);
+            uint32_t* src = static_cast<uint32_t*>(data);
             for (uint32_t i = 0; i < len; ++i)
-                *dest++ = T(*src++);
+                Ops::store(dest++, T(*src++));
             break;
           }
           case Scalar::Float32: {
-            float *src = static_cast<float*>(data);
+            float* src = static_cast<float*>(data);
             for (uint32_t i = 0; i < len; ++i)
-                *dest++ = T(*src++);
+                Ops::store(dest++, T(*src++));
             break;
           }
           case Scalar::Float64: {
-            double *src = static_cast<double*>(data);
+            double* src = static_cast<double*>(data);
             for (uint32_t i = 0; i < len; ++i)
-                *dest++ = T(*src++);
+                Ops::store(dest++, T(*src++));
             break;
           }
           default:
@@ -397,13 +441,13 @@ class ElementSpecific
     }
 
     static bool
-    canConvertInfallibly(const Value &v)
+    canConvertInfallibly(const Value& v)
     {
         return v.isNumber() || v.isBoolean() || v.isNull() || v.isUndefined();
     }
 
     static T
-    infallibleValueToNative(const Value &v)
+    infallibleValueToNative(const Value& v)
     {
         if (v.isInt32())
             return T(v.toInt32());
@@ -419,7 +463,7 @@ class ElementSpecific
     }
 
     static bool
-    valueToNative(JSContext *cx, const Value &v, T *result)
+    valueToNative(JSContext* cx, const Value& v, T* result)
     {
         MOZ_ASSERT(!v.isMagic());
 
@@ -453,40 +497,68 @@ class ElementSpecific
         }
         if (MOZ_UNLIKELY(mozilla::IsNaN(d)))
             return T(0);
+        if (SpecificArray::ArrayTypeID() == Scalar::Uint8Clamped)
+            return T(d);
         if (TypeIsUnsigned<T>())
-            return T(ToUint32(d));
-        return T(ToInt32(d));
+            return T(JS::ToUint32(d));
+        return T(JS::ToInt32(d));
     }
 };
 
-template<typename AnyTypedArray>
+template<class SomeTypedArray>
+inline bool
+EitherShared(Handle<SomeTypedArray*> target, HandleObject source)
+{
+    return target->template is<SharedTypedArrayObject>() || source->is<SharedTypedArrayObject>();
+}
+
+template<>
+inline bool
+EitherShared(Handle<SharedTypedArrayObject*> target, HandleObject source)
+{
+    return true;
+}
+
+template<>
+inline bool
+EitherShared(Handle<TypedArrayObject*> target, HandleObject source)
+{
+    return source->is<SharedTypedArrayObject>();
+}
+
+template<typename SomeTypedArray>
 class TypedArrayMethods
 {
-    static_assert(mozilla::IsSame<AnyTypedArray, TypedArrayObject>::value ||
-                  mozilla::IsSame<AnyTypedArray, SharedTypedArrayObject>::value,
+    static_assert(mozilla::IsSame<SomeTypedArray, TypedArrayObject>::value ||
+                  mozilla::IsSame<SomeTypedArray, SharedTypedArrayObject>::value,
                   "methods must be shared/unshared-specific, not "
                   "element-type-specific");
 
-    typedef typename AnyTypedArray::BufferType BufferType;
+    typedef typename SomeTypedArray::BufferType BufferType;
 
-    typedef typename AnyTypedArray::template OfType<int8_t>::Type Int8ArrayType;
-    typedef typename AnyTypedArray::template OfType<uint8_t>::Type Uint8ArrayType;
-    typedef typename AnyTypedArray::template OfType<int16_t>::Type Int16ArrayType;
-    typedef typename AnyTypedArray::template OfType<uint16_t>::Type Uint16ArrayType;
-    typedef typename AnyTypedArray::template OfType<int32_t>::Type Int32ArrayType;
-    typedef typename AnyTypedArray::template OfType<uint32_t>::Type Uint32ArrayType;
-    typedef typename AnyTypedArray::template OfType<float>::Type Float32ArrayType;
-    typedef typename AnyTypedArray::template OfType<double>::Type Float64ArrayType;
-    typedef typename AnyTypedArray::template OfType<uint8_clamped>::Type Uint8ClampedArrayType;
+    typedef typename SomeTypedArray::template OfType<int8_t>::Type Int8ArrayType;
+    typedef typename SomeTypedArray::template OfType<uint8_t>::Type Uint8ArrayType;
+    typedef typename SomeTypedArray::template OfType<int16_t>::Type Int16ArrayType;
+    typedef typename SomeTypedArray::template OfType<uint16_t>::Type Uint16ArrayType;
+    typedef typename SomeTypedArray::template OfType<int32_t>::Type Int32ArrayType;
+    typedef typename SomeTypedArray::template OfType<uint32_t>::Type Uint32ArrayType;
+    typedef typename SomeTypedArray::template OfType<float>::Type Float32ArrayType;
+    typedef typename SomeTypedArray::template OfType<double>::Type Float64ArrayType;
+    typedef typename SomeTypedArray::template OfType<uint8_clamped>::Type Uint8ClampedArrayType;
 
   public:
-    /* subarray(start[, end]) */
+    // subarray(start[, end])
+    // %TypedArray%.prototype.subarray is a self-hosted method, so this code is
+    // only used for shared typed arrays.  We should self-host both methods
+    // eventually (but note TypedArraySubarray will require changes to be used
+    // with shared typed arrays), but we need to rejigger the shared typed
+    // array prototype chain before we can do that.
     static bool
-    subarray(JSContext *cx, CallArgs args)
+    subarray(JSContext* cx, const CallArgs& args)
     {
-        MOZ_ASSERT(AnyTypedArray::is(args.thisv()));
+        MOZ_ASSERT(SomeTypedArray::is(args.thisv()));
 
-        Rooted<AnyTypedArray*> tarray(cx, &args.thisv().toObject().as<AnyTypedArray>());
+        Rooted<SomeTypedArray*> tarray(cx, &args.thisv().toObject().as<SomeTypedArray>());
 
         // These are the default values.
         uint32_t initialLength = tarray->length();
@@ -506,12 +578,12 @@ class TypedArrayMethods
             begin = end;
 
         if (begin > tarray->length() || end > tarray->length() || begin > end) {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_BAD_INDEX);
+            JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_BAD_INDEX);
             return false;
         }
 
-        if (!AnyTypedArray::ensureHasBuffer(cx, tarray))
-            return nullptr;
+        if (!SomeTypedArray::ensureHasBuffer(cx, tarray))
+            return false;
 
         Rooted<BufferType*> bufobj(cx, tarray->buffer());
         MOZ_ASSERT(bufobj);
@@ -526,7 +598,7 @@ class TypedArrayMethods
 
         uint32_t byteOffset = arrayByteOffset + begin * elementSize;
 
-        JSObject *nobj = nullptr;
+        JSObject* nobj = nullptr;
         switch (tarray->type()) {
           case Scalar::Int8:
             nobj = Int8ArrayType::makeInstance(cx, bufobj, byteOffset, length);
@@ -568,13 +640,18 @@ class TypedArrayMethods
 
     /* copyWithin(target, start[, end]) */
     // ES6 draft rev 26, 22.2.3.5
+    // %TypedArray%.prototype.copyWithin is a self-hosted method, so this code
+    // is only used for shared typed arrays.  We should self-host both methods
+    // eventually (but note TypedArrayCopyWithin will require changes to be
+    // usable for shared typed arrays), but we need to rejigger the shared
+    // typed array prototype chain before we can do that.
     static bool
-    copyWithin(JSContext *cx, CallArgs args)
+    copyWithin(JSContext* cx, const CallArgs& args)
     {
-        MOZ_ASSERT(AnyTypedArray::is(args.thisv()));
+        MOZ_ASSERT(SomeTypedArray::is(args.thisv()));
 
         // Steps 1-2.
-        Rooted<AnyTypedArray*> obj(cx, &args.thisv().toObject().as<AnyTypedArray>());
+        Rooted<SomeTypedArray*> obj(cx, &args.thisv().toObject().as<SomeTypedArray>());
 
         // Steps 3-4.
         uint32_t len = obj->length();
@@ -621,7 +698,7 @@ class TypedArrayMethods
             count > lengthDuringMove - from ||
             count > lengthDuringMove - to)
         {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_TYPED_ARRAY_BAD_ARGS);
+            JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_TYPED_ARRAY_BAD_ARGS);
             return false;
         }
 
@@ -646,8 +723,8 @@ class TypedArrayMethods
         MOZ_ASSERT(byteSrc <= viewByteLength - byteSize);
 #endif
 
-        uint8_t *data = static_cast<uint8_t*>(obj->viewData());
-        mozilla::PodMove(&data[byteDest], &data[byteSrc], byteSize);
+        SharedMem<uint8_t*> data = AnyTypedArrayViewData(obj).template cast<uint8_t*>();
+        SharedOps::memmove(data + byteDest, data + byteSrc, byteSize);
 
         // Step 19.
         args.rval().set(args.thisv());
@@ -656,15 +733,15 @@ class TypedArrayMethods
 
     /* set(array[, offset]) */
     static bool
-    set(JSContext *cx, CallArgs args)
+    set(JSContext* cx, const CallArgs& args)
     {
-        MOZ_ASSERT(AnyTypedArray::is(args.thisv()));
+        MOZ_ASSERT(SomeTypedArray::is(args.thisv()));
 
-        Rooted<AnyTypedArray*> target(cx, &args.thisv().toObject().as<AnyTypedArray>());
+        Rooted<SomeTypedArray*> target(cx, &args.thisv().toObject().as<SomeTypedArray>());
 
         // The first argument must be either a typed array or arraylike.
         if (args.length() == 0 || !args[0].isObject()) {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_TYPED_ARRAY_BAD_ARGS);
+            JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_TYPED_ARRAY_BAD_ARGS);
             return false;
         }
 
@@ -675,21 +752,19 @@ class TypedArrayMethods
 
             if (offset < 0 || uint32_t(offset) > target->length()) {
                 // the given offset is bogus
-                JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr,
-                                     JSMSG_TYPED_ARRAY_BAD_INDEX, "2");
+                JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_BAD_INDEX);
                 return false;
             }
         }
 
         RootedObject arg0(cx, &args[0].toObject());
-        if (arg0->is<AnyTypedArray>()) {
-            Rooted<AnyTypedArray*> source(cx, &arg0->as<AnyTypedArray>());
-            if (source->length() > target->length() - offset) {
-                JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_BAD_ARRAY_LENGTH);
+        if (IsAnyTypedArray(arg0)) {
+            if (AnyTypedArrayLength(arg0) > target->length() - offset) {
+                JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_BAD_ARRAY_LENGTH);
                 return false;
             }
 
-            if (!setFromTypedArray(cx, target, source, offset))
+            if (!setFromAnyTypedArray(cx, target, arg0, offset))
                 return false;
         } else {
             uint32_t len;
@@ -697,7 +772,7 @@ class TypedArrayMethods
                 return false;
 
             if (uint32_t(offset) > target->length() || len > target->length() - offset) {
-                JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr, JSMSG_BAD_ARRAY_LENGTH);
+                JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_BAD_ARRAY_LENGTH);
                 return false;
             }
 
@@ -710,45 +785,67 @@ class TypedArrayMethods
     }
 
     static bool
-    setFromArrayLike(JSContext *cx, Handle<AnyTypedArray*> target, HandleObject source, uint32_t len,
+    setFromArrayLike(JSContext* cx, Handle<SomeTypedArray*> target, HandleObject source, uint32_t len,
                      uint32_t offset = 0)
     {
         MOZ_ASSERT(offset <= target->length());
         MOZ_ASSERT(len <= target->length() - offset);
 
-        if (source->is<AnyTypedArray>()) {
-            Rooted<AnyTypedArray*> src(cx, &source->as<AnyTypedArray>());
-            return setFromTypedArray(cx, target, src, offset);
-        }
+        if (IsAnyTypedArray(source))
+            return setFromAnyTypedArray(cx, target, source, offset);
 
         return setFromNonTypedArray(cx, target, source, len, offset);
     }
 
   private:
     static bool
-    setFromTypedArray(JSContext *cx, Handle<AnyTypedArray*> target, Handle<AnyTypedArray*> source,
-                      uint32_t offset)
+    setFromAnyTypedArray(JSContext* cx, Handle<SomeTypedArray*> target, HandleObject source,
+                         uint32_t offset)
     {
+        MOZ_ASSERT(IsAnyTypedArray(source), "use setFromNonTypedArray");
+
+        bool isShared = EitherShared(target, source);
+
         switch (target->type()) {
           case Scalar::Int8:
-            return ElementSpecific<Int8ArrayType>::setFromTypedArray(cx, target, source, offset);
+            if (isShared)
+                return ElementSpecific<Int8ArrayType, SharedOps>::setFromAnyTypedArray(cx, target, source, offset);
+            return ElementSpecific<Int8ArrayType, UnsharedOps>::setFromAnyTypedArray(cx, target, source, offset);
           case Scalar::Uint8:
-            return ElementSpecific<Uint8ArrayType>::setFromTypedArray(cx, target, source, offset);
+            if (isShared)
+                return ElementSpecific<Uint8ArrayType, SharedOps>::setFromAnyTypedArray(cx, target, source, offset);
+            return ElementSpecific<Uint8ArrayType, UnsharedOps>::setFromAnyTypedArray(cx, target, source, offset);
           case Scalar::Int16:
-            return ElementSpecific<Int16ArrayType>::setFromTypedArray(cx, target, source, offset);
+            if (isShared)
+                return ElementSpecific<Int16ArrayType, SharedOps>::setFromAnyTypedArray(cx, target, source, offset);
+            return ElementSpecific<Int16ArrayType, UnsharedOps>::setFromAnyTypedArray(cx, target, source, offset);
           case Scalar::Uint16:
-            return ElementSpecific<Uint16ArrayType>::setFromTypedArray(cx, target, source, offset);
+            if (isShared)
+                return ElementSpecific<Uint16ArrayType, SharedOps>::setFromAnyTypedArray(cx, target, source, offset);
+            return ElementSpecific<Uint16ArrayType, UnsharedOps>::setFromAnyTypedArray(cx, target, source, offset);
           case Scalar::Int32:
-            return ElementSpecific<Int32ArrayType>::setFromTypedArray(cx, target, source, offset);
+            if (isShared)
+                return ElementSpecific<Int32ArrayType, SharedOps>::setFromAnyTypedArray(cx, target, source, offset);
+            return ElementSpecific<Int32ArrayType, UnsharedOps>::setFromAnyTypedArray(cx, target, source, offset);
           case Scalar::Uint32:
-            return ElementSpecific<Uint32ArrayType>::setFromTypedArray(cx, target, source, offset);
+            if (isShared)
+                return ElementSpecific<Uint32ArrayType, SharedOps>::setFromAnyTypedArray(cx, target, source, offset);
+            return ElementSpecific<Uint32ArrayType, UnsharedOps>::setFromAnyTypedArray(cx, target, source, offset);
           case Scalar::Float32:
-            return ElementSpecific<Float32ArrayType>::setFromTypedArray(cx, target, source, offset);
+            if (isShared)
+                return ElementSpecific<Float32ArrayType, SharedOps>::setFromAnyTypedArray(cx, target, source, offset);
+            return ElementSpecific<Float32ArrayType, UnsharedOps>::setFromAnyTypedArray(cx, target, source, offset);
           case Scalar::Float64:
-            return ElementSpecific<Float64ArrayType>::setFromTypedArray(cx, target, source, offset);
+            if (isShared)
+                return ElementSpecific<Float64ArrayType, SharedOps>::setFromAnyTypedArray(cx, target, source, offset);
+            return ElementSpecific<Float64ArrayType, UnsharedOps>::setFromAnyTypedArray(cx, target, source, offset);
           case Scalar::Uint8Clamped:
-            return ElementSpecific<Uint8ClampedArrayType>::setFromTypedArray(cx, target, source, offset);
-          case Scalar::TypeMax:
+            if (isShared)
+                return ElementSpecific<Uint8ClampedArrayType, SharedOps>::setFromAnyTypedArray(cx, target, source, offset);
+            return ElementSpecific<Uint8ClampedArrayType, UnsharedOps>::setFromAnyTypedArray(cx, target, source, offset);
+          case Scalar::Float32x4:
+          case Scalar::Int32x4:
+          case Scalar::MaxTypedArrayViewType:
             break;
         }
 
@@ -756,31 +853,53 @@ class TypedArrayMethods
     }
 
     static bool
-    setFromNonTypedArray(JSContext *cx, Handle<AnyTypedArray*> target, HandleObject source,
+    setFromNonTypedArray(JSContext* cx, Handle<SomeTypedArray*> target, HandleObject source,
                          uint32_t len, uint32_t offset)
     {
-        MOZ_ASSERT(!source->is<AnyTypedArray>(), "use setFromTypedArray");
+        MOZ_ASSERT(!IsAnyTypedArray(source), "use setFromAnyTypedArray");
+
+        bool isShared = EitherShared(target, source);
 
         switch (target->type()) {
           case Scalar::Int8:
-            return ElementSpecific<Int8ArrayType>::setFromNonTypedArray(cx, target, source, len, offset);
+            if (isShared)
+                return ElementSpecific<Int8ArrayType, SharedOps>::setFromNonTypedArray(cx, target, source, len, offset);
+            return ElementSpecific<Int8ArrayType, UnsharedOps>::setFromNonTypedArray(cx, target, source, len, offset);
           case Scalar::Uint8:
-            return ElementSpecific<Uint8ArrayType>::setFromNonTypedArray(cx, target, source, len, offset);
+            if (isShared)
+                return ElementSpecific<Uint8ArrayType, SharedOps>::setFromNonTypedArray(cx, target, source, len, offset);
+            return ElementSpecific<Uint8ArrayType, UnsharedOps>::setFromNonTypedArray(cx, target, source, len, offset);
           case Scalar::Int16:
-            return ElementSpecific<Int16ArrayType>::setFromNonTypedArray(cx, target, source, len, offset);
+            if (isShared)
+                return ElementSpecific<Int16ArrayType, SharedOps>::setFromNonTypedArray(cx, target, source, len, offset);
+            return ElementSpecific<Int16ArrayType, UnsharedOps>::setFromNonTypedArray(cx, target, source, len, offset);
           case Scalar::Uint16:
-            return ElementSpecific<Uint16ArrayType>::setFromNonTypedArray(cx, target, source, len, offset);
+            if (isShared)
+                return ElementSpecific<Uint16ArrayType, SharedOps>::setFromNonTypedArray(cx, target, source, len, offset);
+            return ElementSpecific<Uint16ArrayType, UnsharedOps>::setFromNonTypedArray(cx, target, source, len, offset);
           case Scalar::Int32:
-            return ElementSpecific<Int32ArrayType>::setFromNonTypedArray(cx, target, source, len, offset);
+            if (isShared)
+                return ElementSpecific<Int32ArrayType, SharedOps>::setFromNonTypedArray(cx, target, source, len, offset);
+            return ElementSpecific<Int32ArrayType, UnsharedOps>::setFromNonTypedArray(cx, target, source, len, offset);
           case Scalar::Uint32:
-            return ElementSpecific<Uint32ArrayType>::setFromNonTypedArray(cx, target, source, len, offset);
+            if (isShared)
+                return ElementSpecific<Uint32ArrayType, SharedOps>::setFromNonTypedArray(cx, target, source, len, offset);
+            return ElementSpecific<Uint32ArrayType, UnsharedOps>::setFromNonTypedArray(cx, target, source, len, offset);
           case Scalar::Float32:
-            return ElementSpecific<Float32ArrayType>::setFromNonTypedArray(cx, target, source, len, offset);
+            if (isShared)
+                return ElementSpecific<Float32ArrayType, SharedOps>::setFromNonTypedArray(cx, target, source, len, offset);
+            return ElementSpecific<Float32ArrayType, UnsharedOps>::setFromNonTypedArray(cx, target, source, len, offset);
           case Scalar::Float64:
-            return ElementSpecific<Float64ArrayType>::setFromNonTypedArray(cx, target, source, len, offset);
+            if (isShared)
+                return ElementSpecific<Float64ArrayType, SharedOps>::setFromNonTypedArray(cx, target, source, len, offset);
+            return ElementSpecific<Float64ArrayType, UnsharedOps>::setFromNonTypedArray(cx, target, source, len, offset);
           case Scalar::Uint8Clamped:
-            return ElementSpecific<Uint8ClampedArrayType>::setFromNonTypedArray(cx, target, source, len, offset);
-          case Scalar::TypeMax:
+            if (isShared)
+                return ElementSpecific<Uint8ClampedArrayType, SharedOps>::setFromNonTypedArray(cx, target, source, len, offset);
+            return ElementSpecific<Uint8ClampedArrayType, UnsharedOps>::setFromNonTypedArray(cx, target, source, len, offset);
+          case Scalar::Float32x4:
+          case Scalar::Int32x4:
+          case Scalar::MaxTypedArrayViewType:
             break;
         }
 

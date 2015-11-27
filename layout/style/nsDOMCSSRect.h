@@ -16,8 +16,8 @@
 
 class nsROCSSPrimitiveValue;
 
-class nsDOMCSSRect : public nsIDOMRect,
-                     public nsWrapperCache
+class nsDOMCSSRect final : public nsIDOMRect,
+                           public nsWrapperCache
 {
 public:
   nsDOMCSSRect(nsROCSSPrimitiveValue* aTop,
@@ -37,17 +37,17 @@ public:
 
   nsISupports* GetParentObject() const { return nullptr; }
 
-  virtual JSObject* WrapObject(JSContext* cx)
-    MOZ_OVERRIDE MOZ_FINAL;
+  virtual JSObject* WrapObject(JSContext* cx, JS::Handle<JSObject*> aGivenProto)
+    override final;
 
 protected:
   virtual ~nsDOMCSSRect(void);
 
 private:
-  nsRefPtr<nsROCSSPrimitiveValue> mTop;
-  nsRefPtr<nsROCSSPrimitiveValue> mRight;
-  nsRefPtr<nsROCSSPrimitiveValue> mBottom;
-  nsRefPtr<nsROCSSPrimitiveValue> mLeft;
+  RefPtr<nsROCSSPrimitiveValue> mTop;
+  RefPtr<nsROCSSPrimitiveValue> mRight;
+  RefPtr<nsROCSSPrimitiveValue> mBottom;
+  RefPtr<nsROCSSPrimitiveValue> mLeft;
 };
 
 #endif /* nsDOMCSSRect_h_ */

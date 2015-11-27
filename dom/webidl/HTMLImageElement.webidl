@@ -29,6 +29,8 @@ interface HTMLImageElement : HTMLElement {
            attribute DOMString? crossOrigin;
            [SetterThrows]
            attribute DOMString useMap;
+           [SetterThrows, Pref="network.http.enablePerElementReferrer"]
+           attribute DOMString referrer;
            [SetterThrows]
            attribute boolean isMap;
            [SetterThrows]
@@ -62,7 +64,7 @@ partial interface HTMLImageElement {
            [SetterThrows, Pref="dom.image.picture.enabled"]
            attribute DOMString sizes;
            [Pref="dom.image.srcset.enabled"]
-  readonly attribute DOMString? currentSrc;
+  readonly attribute DOMString currentSrc;
 };
 
 // Mozilla extensions.
@@ -103,7 +105,7 @@ interface MozImageLoadingContent {
   [ChromeOnly,Throws]
   nsIStreamListener? loadImageWithChannel(MozChannel aChannel);
   [ChromeOnly,Throws]
-  void forceReload();
+  void forceReload(optional boolean aNotify);
   [ChromeOnly]
   void forceImageState(boolean aForce, unsigned long long aState);
 };

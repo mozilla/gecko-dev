@@ -10,7 +10,7 @@
 
 class nsCacheService;
 
-class nsApplicationCacheService MOZ_FINAL : public nsIApplicationCacheService
+class nsApplicationCacheService final : public nsIApplicationCacheService
 {
 public:
     nsApplicationCacheService();
@@ -22,7 +22,7 @@ public:
 
 private:
     ~nsApplicationCacheService();
-    nsRefPtr<nsCacheService> mCacheService;
+    RefPtr<nsCacheService> mCacheService;
 };
 
 #endif // _nsApplicationCacheService_h_

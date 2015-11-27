@@ -10,9 +10,9 @@
 #include "nsThreadUtils.h"
 #include "mozilla/Attributes.h"
 
-#if defined(PR_LOGGING)
-extern PRLogModuleInfo* gFTPLog;
-#endif /* PR_LOGGING */
+using namespace mozilla;
+using namespace mozilla::net;
+extern LazyLogModule gFTPLog;
 
 // There are two transport connections established for an 
 // ftp connection. One is used for the command channel , and
@@ -131,7 +131,7 @@ nsFtpChannel::OnCallbacksChanged()
 
 namespace {
 
-class FTPEventSinkProxy MOZ_FINAL : public nsIFTPEventSink
+class FTPEventSinkProxy final : public nsIFTPEventSink
 {
     ~FTPEventSinkProxy() {}
 
@@ -173,7 +173,7 @@ NS_IMPL_ISUPPORTS(FTPEventSinkProxy, nsIFTPEventSink)
 NS_IMETHODIMP
 FTPEventSinkProxy::OnFTPControlLog(bool aServer, const char* aMsg)
 {
-    nsRefPtr<OnFTPControlLogRunnable> r =
+    RefPtr<OnFTPControlLogRunnable> r =
         new OnFTPControlLogRunnable(mTarget, aServer, aMsg);
     return mTargetThread->Dispatch(r, NS_DISPATCH_NORMAL);
 }
@@ -185,7 +185,7 @@ FTPEventSinkProxy::OnFTPControlLogRunnable::Run()
     return NS_OK;
 }
 
-} // anonymous namespace
+} // namespace
 
 void
 nsFtpChannel::GetFTPEventSink(nsCOMPtr<nsIFTPEventSink> &aResult)

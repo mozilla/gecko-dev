@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -25,7 +26,7 @@ namespace dom {
 DOMStorageDBBridge* DOMStorageCache::sDatabase = nullptr;
 bool DOMStorageCache::sDatabaseDown = false;
 
-namespace { // anon
+namespace {
 
 const uint32_t kDefaultSet = 0;
 const uint32_t kPrivateSet = 1;
@@ -51,7 +52,7 @@ GetDataSetIndex(const DOMStorage* aStorage)
   return GetDataSetIndex(aStorage->IsPrivate(), aStorage->IsSessionOnly());
 }
 
-} // anon
+} // namespace
 
 // DOMStorageCacheBridge
 
@@ -108,7 +109,7 @@ DOMStorageCache::Release(void)
     return;
   }
 
-  nsRefPtr<nsRunnableMethod<DOMStorageCacheBridge, void, false> > event =
+  RefPtr<nsRunnableMethod<DOMStorageCacheBridge, void, false> > event =
     NS_NewNonOwningRunnableMethod(static_cast<DOMStorageCacheBridge*>(this),
                                   &DOMStorageCacheBridge::Release);
 
@@ -150,19 +151,6 @@ DOMStorageCache::Persist(const DOMStorage* aStorage) const
          !aStorage->IsPrivate();
 }
 
-namespace { // anon
-
-PLDHashOperator
-CloneSetData(const nsAString& aKey, const nsString aValue, void* aArg)
-{
-  DOMStorageCache::Data* target = static_cast<DOMStorageCache::Data*>(aArg);
-  target->mKeys.Put(aKey, aValue);
-
-  return PL_DHASH_NEXT;
-}
-
-} // anon
-
 DOMStorageCache::Data&
 DOMStorageCache::DataSet(const DOMStorage* aStorage)
 {
@@ -177,7 +165,9 @@ DOMStorageCache::DataSet(const DOMStorage* aStorage)
     Data& defaultSet = mData[kDefaultSet];
     Data& sessionSet = mData[kSessionSet];
 
-    defaultSet.mKeys.EnumerateRead(CloneSetData, &sessionSet);
+    for (auto iter = defaultSet.mKeys.Iter(); !iter.Done(); iter.Next()) {
+      sessionSet.mKeys.Put(iter.Key(), iter.UserData());
+    }
 
     mSessionOnlyDataSetActive = true;
 
@@ -236,7 +226,7 @@ DOMStorageCache::Preload()
   sDatabase->AsyncPreload(this);
 }
 
-namespace { // anon
+namespace {
 
 // This class is passed to timer as a tick observer.  It refers the cache
 // and keeps it alive for a time.
@@ -247,13 +237,13 @@ class DOMStorageCacheHolder : public nsITimerCallback
   NS_DECL_ISUPPORTS
 
   NS_IMETHODIMP
-  Notify(nsITimer* aTimer)
+  Notify(nsITimer* aTimer) override
   {
     mCache = nullptr;
     return NS_OK;
   }
 
-  nsRefPtr<DOMStorageCache> mCache;
+  RefPtr<DOMStorageCache> mCache;
 
 public:
   explicit DOMStorageCacheHolder(DOMStorageCache* aCache) : mCache(aCache) {}
@@ -261,7 +251,7 @@ public:
 
 NS_IMPL_ISUPPORTS(DOMStorageCacheHolder, nsITimerCallback)
 
-} // anon
+} // namespace
 
 void
 DOMStorageCache::KeepAlive()
@@ -274,7 +264,7 @@ DOMStorageCache::KeepAlive()
 
   if (!NS_IsMainThread()) {
     // Timer and the holder must be initialized on the main thread.
-    nsRefPtr<nsRunnableMethod<DOMStorageCache> > event =
+    RefPtr<nsRunnableMethod<DOMStorageCache> > event =
       NS_NewRunnableMethod(this, &DOMStorageCache::KeepAlive);
 
     NS_DispatchToMainThread(event);
@@ -286,14 +276,14 @@ DOMStorageCache::KeepAlive()
     return;
   }
 
-  nsRefPtr<DOMStorageCacheHolder> holder = new DOMStorageCacheHolder(this);
+  RefPtr<DOMStorageCacheHolder> holder = new DOMStorageCacheHolder(this);
   timer->InitWithCallback(holder, DOM_STORAGE_CACHE_KEEP_ALIVE_TIME_MS,
                           nsITimer::TYPE_ONE_SHOT);
 
   mKeepAliveTimer.swap(timer);
 }
 
-namespace { // anon
+namespace {
 
 // The AutoTimer provided by telemetry headers is only using static,
 // i.e. compile time known ID, but here we know the ID only at run time.
@@ -310,7 +300,7 @@ private:
   const TimeStamp start;
 };
 
-} // anon
+} // namespace
 
 void
 DOMStorageCache::WaitForPreload(Telemetry::ID aTelemetryID)
@@ -362,36 +352,6 @@ DOMStorageCache::GetLength(const DOMStorage* aStorage, uint32_t* aRetval)
   return NS_OK;
 }
 
-namespace { // anon
-
-class IndexFinderData
-{
-public:
-  IndexFinderData(uint32_t aIndex, nsAString& aRetval)
-    : mIndex(aIndex), mKey(aRetval)
-  {
-    mKey.SetIsVoid(true);
-  }
-
-  uint32_t mIndex;
-  nsAString& mKey;
-};
-
-PLDHashOperator
-FindKeyOrder(const nsAString& aKey, const nsString aValue, void* aArg)
-{
-  IndexFinderData* data = static_cast<IndexFinderData*>(aArg);
-
-  if (data->mIndex--) {
-    return PL_DHASH_NEXT;
-  }
-
-  data->mKey = aKey;
-  return PL_DHASH_STOP;
-}
-
-} // anon
-
 nsresult
 DOMStorageCache::GetKey(const DOMStorage* aStorage, uint32_t aIndex, nsAString& aRetval)
 {
@@ -406,23 +366,17 @@ DOMStorageCache::GetKey(const DOMStorage* aStorage, uint32_t aIndex, nsAString& 
     }
   }
 
-  IndexFinderData data(aIndex, aRetval);
-  DataSet(aStorage).mKeys.EnumerateRead(FindKeyOrder, &data);
+  aRetval.SetIsVoid(true);
+  for (auto iter = DataSet(aStorage).mKeys.Iter(); !iter.Done(); iter.Next()) {
+    if (aIndex == 0) {
+      aRetval = iter.Key();
+      break;
+    }
+    aIndex--;
+  }
+
   return NS_OK;
 }
-
-namespace { // anon
-
-static PLDHashOperator
-KeysArrayBuilder(const nsAString& aKey, const nsString aValue, void* aArg)
-{
-  nsTArray<nsString>* keys = static_cast<nsTArray<nsString>* >(aArg);
-
-  keys->AppendElement(aKey);
-  return PL_DHASH_NEXT;
-}
-
-} // anon
 
 void
 DOMStorageCache::GetKeys(const DOMStorage* aStorage, nsTArray<nsString>& aKeys)
@@ -435,7 +389,9 @@ DOMStorageCache::GetKeys(const DOMStorage* aStorage, nsTArray<nsString>& aKeys)
     return;
   }
 
-  DataSet(aStorage).mKeys.EnumerateRead(KeysArrayBuilder, &aKeys);
+  for (auto iter = DataSet(aStorage).mKeys.Iter(); !iter.Done(); iter.Next()) {
+    aKeys.AppendElement(iter.Key());
+  }
 }
 
 nsresult
@@ -464,6 +420,9 @@ nsresult
 DOMStorageCache::SetItem(const DOMStorage* aStorage, const nsAString& aKey,
                          const nsString& aValue, nsString& aOld)
 {
+  // Size of the cache that will change after this action.
+  int64_t delta = 0;
+
   if (Persist(aStorage)) {
     WaitForPreload(Telemetry::LOCALDOMSTORAGE_SETVALUE_BLOCKING_MS);
     if (NS_FAILED(mLoadResult)) {
@@ -474,11 +433,14 @@ DOMStorageCache::SetItem(const DOMStorage* aStorage, const nsAString& aKey,
   Data& data = DataSet(aStorage);
   if (!data.mKeys.Get(aKey, &aOld)) {
     SetDOMStringToNull(aOld);
+
+    // We only consider key size if the key doesn't exist before.
+    delta += static_cast<int64_t>(aKey.Length());
   }
 
-  // Check the quota first
-  const int64_t delta = static_cast<int64_t>(aValue.Length()) -
-                        static_cast<int64_t>(aOld.Length());
+  delta += static_cast<int64_t>(aValue.Length()) -
+           static_cast<int64_t>(aOld.Length());
+
   if (!ProcessUsageDelta(aStorage, delta)) {
     return NS_ERROR_DOM_QUOTA_REACHED;
   }
@@ -524,8 +486,9 @@ DOMStorageCache::RemoveItem(const DOMStorage* aStorage, const nsAString& aKey,
   }
 
   // Recalculate the cached data size
-  const int64_t delta = -(static_cast<int64_t>(aOld.Length()));
-  unused << ProcessUsageDelta(aStorage, delta);
+  const int64_t delta = -(static_cast<int64_t>(aOld.Length()) +
+                          static_cast<int64_t>(aKey.Length()));
+  Unused << ProcessUsageDelta(aStorage, delta);
   data.mKeys.Remove(aKey);
 
   if (Persist(aStorage)) {
@@ -564,7 +527,7 @@ DOMStorageCache::Clear(const DOMStorage* aStorage)
   bool hadData = !!data.mKeys.Count();
 
   if (hadData) {
-    unused << ProcessUsageDelta(aStorage, -data.mOriginQuotaUsage);
+    Unused << ProcessUsageDelta(aStorage, -data.mOriginQuotaUsage);
     data.mKeys.Clear();
   }
 
@@ -590,7 +553,9 @@ DOMStorageCache::CloneFrom(const DOMStorageCache* aThat)
   mSessionOnlyDataSetActive = aThat->mSessionOnlyDataSetActive;
 
   for (uint32_t i = 0; i < kDataSetCount; ++i) {
-    aThat->mData[i].mKeys.EnumerateRead(CloneSetData, &mData[i]);
+    for (auto it = aThat->mData[i].mKeys.ConstIter(); !it.Done(); it.Next()) {
+      mData[i].mKeys.Put(it.Key(), it.UserData());
+    }
     ProcessUsageDelta(i, aThat->mData[i].mOriginQuotaUsage);
   }
 }
@@ -699,7 +664,7 @@ DOMStorageUsage::DOMStorageUsage(const nsACString& aScope)
   mUsage[kDefaultSet] = mUsage[kPrivateSet] = mUsage[kSessionSet] = 0LL;
 }
 
-namespace { // anon
+namespace {
 
 class LoadUsageRunnable : public nsRunnable
 {
@@ -716,7 +681,7 @@ private:
   NS_IMETHOD Run() { *mTarget = mDelta; return NS_OK; }
 };
 
-} // anon
+} // namespace
 
 void
 DOMStorageUsage::LoadUsage(const int64_t aUsage)
@@ -725,7 +690,7 @@ DOMStorageUsage::LoadUsage(const int64_t aUsage)
   // stored in the database we have just loaded usage for.
   if (!NS_IsMainThread()) {
     // In single process scenario we get this call from the DB thread
-    nsRefPtr<LoadUsageRunnable> r =
+    RefPtr<LoadUsageRunnable> r =
       new LoadUsageRunnable(mUsage + kDefaultSet, aUsage);
     NS_DispatchToMainThread(r);
   } else {
@@ -760,7 +725,7 @@ DOMStorageCache::StartDatabase()
     return sDatabase;
   }
 
-  if (XRE_GetProcessType() == GeckoProcessType_Default) {
+  if (XRE_IsParentProcess()) {
     nsAutoPtr<DOMStorageDBThread> db(new DOMStorageDBThread());
 
     nsresult rv = db->Init();
@@ -770,8 +735,11 @@ DOMStorageCache::StartDatabase()
 
     sDatabase = db.forget();
   } else {
-    nsRefPtr<DOMStorageDBChild> db = new DOMStorageDBChild(
-        DOMLocalStorageManager::Self());
+    // Use DOMLocalStorageManager::Ensure in case we're called from
+    // DOMSessionStorageManager's initializer and we haven't yet initialized the
+    // local storage manager.
+    RefPtr<DOMStorageDBChild> db = new DOMStorageDBChild(
+        DOMLocalStorageManager::Ensure());
 
     nsresult rv = db->Init();
     if (NS_FAILED(rv)) {
@@ -802,7 +770,7 @@ DOMStorageCache::StopDatabase()
   sDatabaseDown = true;
 
   nsresult rv = sDatabase->Shutdown();
-  if (XRE_GetProcessType() == GeckoProcessType_Default) {
+  if (XRE_IsParentProcess()) {
     delete sDatabase;
   } else {
     DOMStorageDBChild* child = static_cast<DOMStorageDBChild*>(sDatabase);
@@ -813,5 +781,5 @@ DOMStorageCache::StopDatabase()
   return rv;
 }
 
-} // ::dom
-} // ::mozilla
+} // namespace dom
+} // namespace mozilla

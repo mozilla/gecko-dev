@@ -688,8 +688,8 @@ ne_read_int(nestegg_io * io, int64_t * val, uint64_t length)
     base = 1;
     base <<= length * 8 - 1;
     if (uval >= base) {
-        base = 1;
-        base <<= length * 8;
+      base = 1;
+      base <<= length * 8;
     } else {
       base = 0;
     }
@@ -736,9 +736,9 @@ ne_read_string(nestegg * ctx, char ** val, uint64_t length)
   if (!str)
     return -1;
   if (length) {
-      r = ne_io_read(ctx->io, (unsigned char *) str, length);
-      if (r != 1)
-        return r;
+    r = ne_io_read(ctx->io, (unsigned char *) str, length);
+    if (r != 1)
+      return r;
   }
   str[length] = '\0';
   *val = str;
@@ -1018,8 +1018,9 @@ ne_read_simple(nestegg * ctx, struct ebml_element_desc * desc, size_t length)
     break;
   case TYPE_MASTER:
   case TYPE_UNKNOWN:
-    assert(0);
+  default:
     r = 0;
+    assert(0);
     break;
   }
 
@@ -1114,25 +1115,6 @@ ne_parse(nestegg * ctx, struct ebml_element_desc * top_level, int64_t max_offset
       ne_ctx_pop(ctx);
 
   return r;
-}
-
-static uint64_t
-ne_xiph_lace_value(unsigned char ** np)
-{
-  uint64_t lace;
-  uint64_t value;
-  unsigned char * p = *np;
-
-  lace = *p++;
-  value = lace;
-  while (lace == 255) {
-    lace = *p++;
-    value += lace;
-  }
-
-  *np = p;
-
-  return value;
 }
 
 static int
@@ -1792,9 +1774,9 @@ struct sniff_buffer {
 };
 
 static int
-ne_buffer_read(void * buffer, size_t length, void * user_data)
+ne_buffer_read(void * buffer, size_t length, void * userdata)
 {
-  struct sniff_buffer * sb = user_data;
+  struct sniff_buffer * sb = userdata;
 
   int rv = 1;
   size_t available = sb->length - sb->offset;
@@ -1809,21 +1791,21 @@ ne_buffer_read(void * buffer, size_t length, void * user_data)
 }
 
 static int
-ne_buffer_seek(int64_t offset, int whence, void * user_data)
+ne_buffer_seek(int64_t offset, int whence, void * userdata)
 {
-  struct sniff_buffer * sb = user_data;
+  struct sniff_buffer * sb = userdata;
   int64_t o = sb->offset;
 
   switch(whence) {
-    case NESTEGG_SEEK_SET:
-      o = offset;
-      break;
-    case NESTEGG_SEEK_CUR:
-      o += offset;
-      break;
-    case NESTEGG_SEEK_END:
-      o = sb->length + offset;
-      break;
+  case NESTEGG_SEEK_SET:
+    o = offset;
+    break;
+  case NESTEGG_SEEK_CUR:
+    o += offset;
+    break;
+  case NESTEGG_SEEK_END:
+    o = sb->length + offset;
+    break;
   }
 
   if (o < 0 || o > (int64_t) sb->length)
@@ -1834,9 +1816,9 @@ ne_buffer_seek(int64_t offset, int whence, void * user_data)
 }
 
 static int64_t
-ne_buffer_tell(void * user_data)
+ne_buffer_tell(void * userdata)
 {
-  struct sniff_buffer * sb = user_data;
+  struct sniff_buffer * sb = userdata;
   return sb->offset;
 }
 
@@ -2069,7 +2051,7 @@ nestegg_get_cue_point(nestegg * ctx, unsigned int cluster_num, int64_t max_offse
     while (cue_pos_node) {
       assert(cue_pos_node->id == ID_CUE_TRACK_POSITIONS);
       pos = cue_pos_node->data;
-      for (track = 0; track < track_count; track++) {
+      for (track = 0; track < track_count; ++track) {
         if (ne_get_uint(pos->track, &track_number) != 0)
           return -1;
 
@@ -2080,12 +2062,12 @@ nestegg_get_cue_point(nestegg * ctx, unsigned int cluster_num, int64_t max_offse
           if (ne_get_uint(pos->cluster_position, &seek_pos) != 0)
             return -1;
           if (cluster_count == cluster_num) {
-            *start_pos = ctx->segment_offset+seek_pos;
+            *start_pos = ctx->segment_offset + seek_pos;
             if (ne_get_uint(cue_point->time, &time) != 0)
               return -1;
             *tstamp = time * tc_scale;
-          } else if (cluster_count == cluster_num+1) {
-            *end_pos = (ctx->segment_offset+seek_pos)-1;
+          } else if (cluster_count == cluster_num + 1) {
+            *end_pos = ctx->segment_offset + seek_pos - 1;
             range_obtained = 1;
             break;
           }
@@ -2104,6 +2086,9 @@ int
 nestegg_offset_seek(nestegg * ctx, uint64_t offset)
 {
   int r;
+
+  if (offset > INT64_MAX)
+    return -1;
 
   /* Seek and set up parser state for segment-level element (Cluster). */
   r = ne_io_seek(ctx->io, offset, NESTEGG_SEEK_SET);
@@ -2183,7 +2168,7 @@ nestegg_track_type(nestegg * ctx, unsigned int track)
   if (type & TRACK_TYPE_AUDIO)
     return NESTEGG_TRACK_AUDIO;
 
-  return -1;
+  return NESTEGG_TRACK_UNKNOWN;
 }
 
 int
@@ -2211,7 +2196,7 @@ nestegg_track_codec_id(nestegg * ctx, unsigned int track)
   if (strcmp(codec_id, TRACK_ID_OPUS) == 0)
     return NESTEGG_CODEC_OPUS;
 
-  return -1;
+  return NESTEGG_CODEC_UNKNOWN;
 }
 
 int
@@ -2220,6 +2205,7 @@ nestegg_track_codec_data_count(nestegg * ctx, unsigned int track,
 {
   struct track_entry * entry;
   struct ebml_binary codec_private;
+  int codec_id;
   unsigned char * p;
 
   *count = 0;
@@ -2228,7 +2214,14 @@ nestegg_track_codec_data_count(nestegg * ctx, unsigned int track,
   if (!entry)
     return -1;
 
-  if (nestegg_track_codec_id(ctx, track) != NESTEGG_CODEC_VORBIS)
+  codec_id = nestegg_track_codec_id(ctx, track);
+
+  if (codec_id == NESTEGG_CODEC_OPUS) {
+    *count = 1;
+    return 0;
+  }
+
+  if (codec_id != NESTEGG_CODEC_VORBIS)
     return -1;
 
   if (ne_get_binary(entry->codec_private, &codec_private) != 0)
@@ -2252,48 +2245,63 @@ nestegg_track_codec_data(nestegg * ctx, unsigned int track, unsigned int item,
 {
   struct track_entry * entry;
   struct ebml_binary codec_private;
-  uint64_t sizes[3], total;
+  uint64_t sizes[3], size, total, avail;
   unsigned char * p;
   unsigned int count, i;
 
   *data = NULL;
   *length = 0;
+  count = 1;
 
   entry = ne_find_track_entry(ctx, track);
   if (!entry)
     return -1;
 
   if (nestegg_track_codec_id(ctx, track) != NESTEGG_CODEC_VORBIS
-    && nestegg_track_codec_id(ctx, track) != NESTEGG_CODEC_OPUS)
+      && nestegg_track_codec_id(ctx, track) != NESTEGG_CODEC_OPUS)
     return -1;
 
   if (ne_get_binary(entry->codec_private, &codec_private) != 0)
     return -1;
 
   if (nestegg_track_codec_id(ctx, track) == NESTEGG_CODEC_VORBIS) {
-      p = codec_private.data;
-      count = *p++ + 1;
+    p = codec_private.data;
+    avail = codec_private.length;
+    if (avail < 1)
+      return -1;
 
-      if (count > 3)
-        return -1;
+    count = *p++ + 1;
+    avail -= 1;
 
-      i = 0;
-      total = 0;
-      while (--count) {
-        sizes[i] = ne_xiph_lace_value(&p);
-        total += sizes[i];
-        i += 1;
-      }
-      sizes[i] = codec_private.length - total - (p - codec_private.data);
+    if (count > 3 || item >= count)
+      return -1;
 
-      for (i = 0; i < item; ++i) {
-        if (sizes[i] > LIMIT_FRAME)
+    total = 0;
+    for (i = 0; i < count - 1; ++i) {
+      size = 0;
+      do {
+        if (avail - total <= size) {
           return -1;
-        p += sizes[i];
-      }
-      *data = p;
-      *length = sizes[item];
+        }
+        size += *p;
+        avail -= 1;
+      } while (*p++ == 255);
+      if (avail - total < size)
+        return -1;
+      sizes[i] = size;
+      total += size;
+    }
+    sizes[i] = avail - total;
+
+    for (i = 0; i < item; ++i) {
+      p += sizes[i];
+    }
+    *data = p;
+    *length = sizes[item];
   } else {
+    if (item >= count)
+      return -1;
+
     *data = codec_private.data;
     *length = codec_private.length;
   }
@@ -2494,7 +2502,7 @@ nestegg_free_packet(nestegg_packet * pkt)
     free(block_additional);
   }
 
- free(pkt);
+  free(pkt);
 }
 
 int
@@ -2588,28 +2596,31 @@ int
 nestegg_has_cues(nestegg * ctx)
 {
   return ctx->segment.cues.cue_point.head ||
-         ne_find_seek_for_id(ctx->segment.seek_head.head, ID_CUES);
+    ne_find_seek_for_id(ctx->segment.seek_head.head, ID_CUES);
 }
 
 int
 nestegg_sniff(unsigned char const * buffer, size_t length)
 {
   nestegg_io io;
-  struct sniff_buffer user_data;
+  struct sniff_buffer userdata;
 
-  user_data.buffer = buffer;
-  user_data.length = length;
-  user_data.offset = 0;
+  userdata.buffer = buffer;
+  userdata.length = length;
+  userdata.offset = 0;
 
   io.read = ne_buffer_read;
   io.seek = ne_buffer_seek;
   io.tell = ne_buffer_tell;
-  io.userdata = &user_data;
+  io.userdata = &userdata;
   return ne_match_webm(io, length);
 }
 
-void
+/* From halloc.c */
+int halloc_set_allocator(realloc_t realloc_func);
+
+int
 nestegg_set_halloc_func(void * (* realloc_func)(void *, size_t))
 {
-  halloc_allocator = realloc_func;
+  return halloc_set_allocator(realloc_func);
 }

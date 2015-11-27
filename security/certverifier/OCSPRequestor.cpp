@@ -9,36 +9,40 @@
 #include <limits>
 
 #include "mozilla/Base64.h"
+#include "mozilla/Scoped.h"
 #include "nsIURLParser.h"
 #include "nsNSSCallbacks.h"
 #include "nsNetCID.h"
 #include "nsServiceManagerUtils.h"
-#include "pkix/ScopedPtr.h"
 #include "secerr.h"
 
-#ifdef PR_LOGGING
 extern PRLogModuleInfo* gCertVerifierLog;
-#endif
 
-namespace mozilla { namespace psm {
-
-using mozilla::pkix::ScopedPtr;
+namespace mozilla {
 
 void
 ReleaseHttpServerSession(nsNSSHttpServerSession* httpServerSession)
 {
   delete httpServerSession;
 }
-typedef ScopedPtr<nsNSSHttpServerSession, ReleaseHttpServerSession>
-  ScopedHTTPServerSession;
 
 void
 ReleaseHttpRequestSession(nsNSSHttpRequestSession* httpRequestSession)
 {
   httpRequestSession->Release();
 }
-typedef ScopedPtr<nsNSSHttpRequestSession, ReleaseHttpRequestSession>
-  ScopedHTTPRequestSession;
+
+MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedHTTPServerSession,
+                                          nsNSSHttpServerSession,
+                                          ReleaseHttpServerSession)
+
+MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedHTTPRequestSession,
+                                          nsNSSHttpRequestSession,
+                                          ReleaseHttpRequestSession)
+
+} // namespace mozilla
+
+namespace mozilla { namespace psm {
 
 static nsresult
 AppendEscapedBase64Item(const SECItem* encodedRequest, nsACString& path)
@@ -52,7 +56,7 @@ AppendEscapedBase64Item(const SECItem* encodedRequest, nsACString& path)
     return rv;
   }
 
-  PR_LOG(gCertVerifierLog, PR_LOG_DEBUG,
+  MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
          ("Setting up OCSP GET path, pre path =%s\n",
           PromiseFlatCString(path).get()));
 
@@ -155,7 +159,7 @@ DoOCSPRequest(PLArenaPool* arena, const char* url,
   } else {
     path.Assign("/");
   }
-  PR_LOG(gCertVerifierLog, PR_LOG_DEBUG,
+  MOZ_LOG(gCertVerifierLog, LogLevel::Debug,
          ("Setting up OCSP request: pre all path =%s  pathlen=%d\n", path.get(),
           pathLen));
   nsAutoCString method("POST");

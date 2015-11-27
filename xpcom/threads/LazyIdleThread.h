@@ -32,7 +32,7 @@ namespace mozilla {
  * is created on the main thread then it will automatically join its thread on
  * XPCOM shutdown using the Observer Service.
  */
-class LazyIdleThread MOZ_FINAL
+class LazyIdleThread final
   : public nsIThread
   , public nsITimerCallback
   , public nsIThreadObserver
@@ -45,6 +45,10 @@ public:
   NS_DECL_NSITIMERCALLBACK
   NS_DECL_NSITHREADOBSERVER
   NS_DECL_NSIOBSERVER
+  // missing from NS_DECL_NSIEVENTTARGET because MSVC
+  nsresult Dispatch(nsIRunnable* aEvent, uint32_t aFlags) {
+    return Dispatch(nsCOMPtr<nsIRunnable>(aEvent).forget(), aFlags);
+  }
 
   enum ShutdownMethod
   {
@@ -162,7 +166,9 @@ private:
    * Idle observer. Called when the thread is about to be shut down. Released
    * only when Shutdown() is called.
    */
-  nsIObserver* mIdleObserver;
+  nsIObserver* MOZ_UNSAFE_REF("See the documentation for SetWeakIdleObserver for "
+                              "how the owner of LazyIdleThread should manage the "
+                              "lifetime information of this field") mIdleObserver;
 
   /**
    * Temporary storage for events that happen to be dispatched while we're in

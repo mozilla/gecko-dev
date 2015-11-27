@@ -42,8 +42,10 @@ if (typeof assertThrowsValue === 'undefined') {
 if (typeof assertDeepEq === 'undefined') {
     var assertDeepEq = (function(){
         var call = Function.prototype.call,
+            Array_isArray = Array.isArray,
             Map_ = Map,
             Error_ = Error,
+            Symbol_ = Symbol,
             Map_has = call.bind(Map.prototype.has),
             Map_get = call.bind(Map.prototype.get),
             Map_set = call.bind(Map.prototype.set),
@@ -118,6 +120,13 @@ if (typeof assertDeepEq === 'undefined') {
                     nb = Object_getOwnPropertyNames(b);
                 if (na.length !== nb.length)
                     failPropList(na, nb, msg);
+
+                // Ignore differences in whether Array elements are stored densely.
+                if (Array_isArray(a)) {
+                    na.sort();
+                    nb.sort();
+                }
+
                 for (var i = 0; i < na.length; i++) {
                     var name = na[i];
                     if (name !== nb[i])
@@ -142,8 +151,8 @@ if (typeof assertDeepEq === 'undefined') {
                 }
             };
 
-            var ab = Map_();
-            var bpath = Map_();
+            var ab = new Map_();
+            var bpath = new Map_();
 
             function check(a, b, path) {
                 if (typeof a === "symbol") {
@@ -194,4 +203,26 @@ if (typeof assertDeepEq === 'undefined') {
             check(a, b, "");
         };
     })();
+}
+
+if (typeof assertWarning === 'undefined') {
+    function assertWarning(func, name) {
+        enableLastWarning();
+        func();
+        var warning = getLastWarning();
+        assertEq(warning !== null, true);
+        assertEq(warning.name, name);
+        disableLastWarning();
+    }
+}
+
+function classesEnabled(testCode = "class Foo { constructor() {} }") {
+    try {
+        new Function(testCode);
+        return true;
+    } catch (e) {
+        if (!(e instanceof SyntaxError))
+            throw e;
+        return false;
+    }
 }

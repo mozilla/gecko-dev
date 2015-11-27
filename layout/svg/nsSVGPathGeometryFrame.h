@@ -15,25 +15,30 @@
 #include "nsQueryFrame.h"
 #include "nsSVGUtils.h"
 
+namespace mozilla {
+namespace gfx {
+class DrawTarget;
+} // namespace gfx
+} // namespace mozilla
+
 class gfxContext;
 class nsDisplaySVGPathGeometry;
 class nsIAtom;
 class nsIFrame;
 class nsIPresShell;
-class nsRenderingContext;
 class nsStyleContext;
 class nsSVGMarkerFrame;
 class nsSVGMarkerProperty;
 
-struct nsPoint;
 struct nsRect;
-struct nsIntRect;
 
 typedef nsFrame nsSVGPathGeometryFrameBase;
 
 class nsSVGPathGeometryFrame : public nsSVGPathGeometryFrameBase,
                                public nsISVGChildFrame
 {
+  typedef mozilla::gfx::DrawTarget DrawTarget;
+
   friend nsIFrame*
   NS_NewSVGPathGeometryFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
@@ -54,31 +59,31 @@ public:
   // nsIFrame interface:
   virtual void Init(nsIContent*       aContent,
                     nsContainerFrame* aParent,
-                    nsIFrame*         aPrevInFlow) MOZ_OVERRIDE;
+                    nsIFrame*         aPrevInFlow) override;
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const MOZ_OVERRIDE
+  virtual bool IsFrameOfType(uint32_t aFlags) const override
   {
     return nsSVGPathGeometryFrameBase::IsFrameOfType(aFlags & ~(nsIFrame::eSVG | nsIFrame::eSVGGeometry));
   }
 
   virtual nsresult  AttributeChanged(int32_t         aNameSpaceID,
                                      nsIAtom*        aAttribute,
-                                     int32_t         aModType) MOZ_OVERRIDE;
+                                     int32_t         aModType) override;
 
-  virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) MOZ_OVERRIDE;
+  virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) override;
 
   /**
    * Get the "type" of the frame
    *
    * @see nsGkAtoms::svgPathGeometryFrame
    */
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
 
   virtual bool IsSVGTransformed(Matrix *aOwnTransforms = nullptr,
-                                Matrix *aFromParentTransforms = nullptr) const MOZ_OVERRIDE;
+                                Matrix *aFromParentTransforms = nullptr) const override;
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE
+  virtual nsresult GetFrameName(nsAString& aResult) const override
   {
     return MakeFrameName(NS_LITERAL_STRING("SVGPathGeometry"), aResult);
   }
@@ -86,24 +91,23 @@ public:
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+                                const nsDisplayListSet& aLists) override;
 
   // nsSVGPathGeometryFrame methods
   gfxMatrix GetCanvasTM();
 protected:
   // nsISVGChildFrame interface:
-  virtual nsresult PaintSVG(nsRenderingContext *aContext,
+  virtual nsresult PaintSVG(gfxContext& aContext,
                             const gfxMatrix& aTransform,
-                            const nsIntRect* aDirtyRect = nullptr) MOZ_OVERRIDE;
-  virtual nsIFrame* GetFrameForPoint(const gfxPoint& aPoint) MOZ_OVERRIDE;
-  virtual nsRect GetCoveredRegion() MOZ_OVERRIDE;
-  virtual void ReflowSVG() MOZ_OVERRIDE;
-  virtual void NotifySVGChanged(uint32_t aFlags) MOZ_OVERRIDE;
+                            const nsIntRect* aDirtyRect = nullptr) override;
+  virtual nsIFrame* GetFrameForPoint(const gfxPoint& aPoint) override;
+  virtual nsRect GetCoveredRegion() override;
+  virtual void ReflowSVG() override;
+  virtual void NotifySVGChanged(uint32_t aFlags) override;
   virtual SVGBBox GetBBoxContribution(const Matrix &aToBBoxUserspace,
-                                      uint32_t aFlags) MOZ_OVERRIDE;
-  virtual bool IsDisplayContainer() MOZ_OVERRIDE { return false; }
+                                      uint32_t aFlags) override;
+  virtual bool IsDisplayContainer() override { return false; }
 
-  void GeneratePath(gfxContext *aContext, const Matrix &aTransform);
   /**
    * This function returns a set of bit flags indicating which parts of the
    * element (fill, stroke, bounds) should intercept pointer events. It takes
@@ -113,14 +117,14 @@ protected:
   virtual uint16_t GetHitTestFlags();
 private:
   enum { eRenderFill = 1, eRenderStroke = 2 };
-  void Render(nsRenderingContext *aContext, uint32_t aRenderComponents,
+  void Render(gfxContext* aContext, uint32_t aRenderComponents,
               const gfxMatrix& aTransform);
 
   /**
    * @param aMatrix The transform that must be multiplied onto aContext to
    *   establish this frame's SVG user space.
    */
-  void PaintMarkers(nsRenderingContext *aContext, const gfxMatrix& aMatrix);
+  void PaintMarkers(gfxContext& aContext, const gfxMatrix& aMatrix);
 
   struct MarkerProperties {
     nsSVGMarkerProperty* mMarkerStart;

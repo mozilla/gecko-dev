@@ -67,12 +67,13 @@ void ViEAutoTest::ViEBaseStandardTest() {
   ViETest::Log("You should shortly see a local preview from camera %s"
                " in window 1 and the remote video in window 2.", device_name);
   ::TestI420CallSetup(interfaces.codec, interfaces.video_engine,
-                      base_interface, interfaces.network, video_channel,
-                      device_name);
+                      base_interface, interfaces.network, interfaces.rtp_rtcp,
+                      video_channel, device_name);
 
   // ***************************************************************
   // Testing finished. Tear down Video Engine
   // ***************************************************************
+  EXPECT_EQ(0, capture_interface->DisconnectCaptureDevice(video_channel));
   EXPECT_EQ(0, capture_interface->StopCapture(capture_id));
   EXPECT_EQ(0, base_interface->StopReceive(video_channel));
 

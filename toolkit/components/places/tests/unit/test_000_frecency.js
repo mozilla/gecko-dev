@@ -52,7 +52,7 @@ var matchCount = 0;
 var now = Date.now();
 var prefPrefix = "places.frecency.";
 
-function task_initializeBucket(bucket) {
+function* task_initializeBucket(bucket) {
   let [cutoffName, weightName] = bucket;
   // get pref values
   var weight = 0, cutoff = 0, bonus = 0;
@@ -89,7 +89,7 @@ function task_initializeBucket(bucket) {
         }
         else {
           matchTitle = searchTerm + "UnvisitedTyped";
-          yield promiseAddVisits({
+          yield PlacesTestUtils.addVisits({
             uri: calculatedURI,
             title: matchTitle,
             transition: visitType,
@@ -126,7 +126,7 @@ function task_initializeBucket(bucket) {
       }
       else
         matchTitle = calculatedURI.spec.substr(calculatedURI.spec.lastIndexOf("/")+1);
-      yield promiseAddVisits({
+      yield PlacesTestUtils.addVisits({
         uri: calculatedURI,
         transition: visitType,
         visitDate: dateInPeriod
@@ -135,7 +135,7 @@ function task_initializeBucket(bucket) {
 
     if (calculatedURI && frecency) {
       results.push([calculatedURI, frecency, matchTitle]);
-      yield promiseAddVisits({
+      yield PlacesTestUtils.addVisits({
         uri: calculatedURI,
         title: matchTitle,
         transition: visitType,
@@ -202,21 +202,21 @@ function run_test()
   run_next_test();
 }
 
-add_task(function test_frecency()
+add_task(function* test_frecency()
 {
-  for (let [, bucket] in Iterator(bucketPrefs)) {
+  for (let bucket of bucketPrefs) {
     yield task_initializeBucket(bucket);
   }
 
   // sort results by frecency
-  results.sort(function(a,b) b[1] - a[1]);
+  results.sort((a,b) => b[1] - a[1]);
   // Make sure there's enough results returned
   prefs.setIntPref("browser.urlbar.maxRichResults", results.length);
 
   // DEBUG
   //results.every(function(el) { dump("result: " + el[1] + ": " + el[0].spec + " (" + el[2] + ")\n"); return true; })
 
-  yield promiseAsyncUpdates();
+  yield PlacesTestUtils.promiseAsyncUpdates();
 
   var controller = Components.classes["@mozilla.org/autocomplete/controller;1"].
                    getService(Components.interfaces.nsIAutoCompleteController);
@@ -258,7 +258,7 @@ add_task(function test_frecency()
         // frecency just in the wrong "order" (order of same frecency is
         // undefined), so check if frecency matches. This is okay because we
         // can still ensure the correct number of expected frecencies.
-        let getFrecency = function(aURL) aURL.match(/frecency:(-?\d+)$/)[1];
+        let getFrecency = aURL => aURL.match(/frecency:(-?\d+)$/)[1];
         print("### checking for same frecency between '" + searchURL +
               "' and '" + expectURL + "'");
         do_check_eq(getFrecency(searchURL), getFrecency(expectURL));

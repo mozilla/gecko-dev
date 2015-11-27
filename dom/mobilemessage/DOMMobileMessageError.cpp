@@ -1,16 +1,16 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
 * License, v. 2.0. If a copy of the MPL was not distributed with this file,
 * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "DOMMobileMessageError.h"
 #include "mozilla/dom/DOMMobileMessageErrorBinding.h"
-#include "mozilla/dom/UnionTypes.h"
-#include "nsIDOMMozMmsMessage.h"
-#include "nsIDOMMozSmsMessage.h"
+#include "MmsMessage.h"
+#include "SmsMessage.h"
 
-using namespace mozilla::dom;
+namespace mozilla {
+namespace dom {
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(DOMMobileMessageError)
 
@@ -32,7 +32,7 @@ NS_IMPL_RELEASE_INHERITED(DOMMobileMessageError, DOMError)
 
 DOMMobileMessageError::DOMMobileMessageError(nsPIDOMWindow* aWindow,
                                              const nsAString& aName,
-                                             nsIDOMMozSmsMessage* aSms)
+                                             SmsMessage* aSms)
   : DOMError(aWindow, aName)
   , mSms(aSms)
   , mMms(nullptr)
@@ -41,7 +41,7 @@ DOMMobileMessageError::DOMMobileMessageError(nsPIDOMWindow* aWindow,
 
 DOMMobileMessageError::DOMMobileMessageError(nsPIDOMWindow* aWindow,
                                              const nsAString& aName,
-                                             nsIDOMMozMmsMessage* aMms)
+                                             MmsMessage* aMms)
   : DOMError(aWindow, aName)
   , mSms(nullptr)
   , mMms(aMms)
@@ -49,15 +49,15 @@ DOMMobileMessageError::DOMMobileMessageError(nsPIDOMWindow* aWindow,
 }
 
 void
-DOMMobileMessageError::GetData(OwningMozSmsMessageOrMozMmsMessage& aRetVal) const
+DOMMobileMessageError::GetData(OwningSmsMessageOrMmsMessage& aRetVal) const
 {
   if (mSms) {
-    aRetVal.SetAsMozSmsMessage() = mSms;
+    aRetVal.SetAsSmsMessage() = mSms;
     return;
   }
 
   if (mMms) {
-    aRetVal.SetAsMozMmsMessage() = mMms;
+    aRetVal.SetAsMmsMessage() = mMms;
     return;
   }
 
@@ -65,7 +65,10 @@ DOMMobileMessageError::GetData(OwningMozSmsMessageOrMozMmsMessage& aRetVal) cons
 }
 
 JSObject*
-DOMMobileMessageError::WrapObject(JSContext* aCx)
+DOMMobileMessageError::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return DOMMobileMessageErrorBinding::Wrap(aCx, this);
+  return DOMMobileMessageErrorBinding::Wrap(aCx, this, aGivenProto);
 }
+
+} // namespace dom
+} // namespace mozilla

@@ -10,7 +10,7 @@ from collections import defaultdict
 import wptrunner
 import wpttest
 
-from mozlog.structured import commandline, reader
+from mozlog import commandline, reader
 
 logger = None
 
@@ -55,8 +55,9 @@ class Reducer(object):
         test_filter = wptrunner.TestFilter(include=kwargs["include"])
         self.test_loader = wptrunner.TestLoader(kwargs["tests_root"],
                                                 kwargs["metadata_root"],
-                                                test_filter,
-                                                run_info)
+                                                [self.test_type],
+                                                run_info,
+                                                manifest_filer=test_filter)
         if kwargs["repeat"] == 1:
             logger.critical("Need to specify --repeat with more than one repetition")
             sys.exit(1)
@@ -176,8 +177,7 @@ class Reducer(object):
     def get_initial_tests(self):
         # Need to pass in arguments
 
-        all_tests = self.test_loader.load_tests([self.test_type],
-                                                "none", 1, 1)[self.test_type]
+        all_tests = self.test_loader.tests[self.test_type]
         tests = []
         for item in all_tests:
             tests.append(item)

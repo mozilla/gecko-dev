@@ -3,7 +3,15 @@
 
 const {Cc: Cc, Ci: Ci, Cr: Cr, Cu: Cu} = SpecialPowers;
 
-let Promise = Cu.import("resource://gre/modules/Promise.jsm").Promise;
+// Emulate Promise.jsm semantics.
+Promise.defer = function() { return new Deferred(); }
+function Deferred()  {
+  this.promise = new Promise(function(resolve, reject) {
+    this.resolve = resolve;
+    this.reject = reject;
+  }.bind(this));
+  Object.freeze(this);
+}
 
 const PDU_DCS_CODING_GROUP_BITS          = 0xF0;
 const PDU_DCS_MSG_CODING_7BITS_ALPHABET  = 0x00;
@@ -30,6 +38,9 @@ GECKO_SMS_MESSAGE_CLASSES[PDU_DCS_MSG_CLASS_USER_2]       = "user-2";
 
 const CB_MESSAGE_SIZE_GSM  = 88;
 const CB_MESSAGE_SIZE_ETWS = 56;
+
+const CB_UMTS_MESSAGE_TYPE_CBS = 1;
+const CB_UMTS_MESSAGE_PAGE_SIZE = 82;
 
 const CB_GSM_MESSAGEID_ETWS_BEGIN = 0x1100;
 const CB_GSM_MESSAGEID_ETWS_END   = 0x1107;
@@ -181,7 +192,7 @@ function decodeGsmDataCodingScheme(aDcs) {
  *
  * @return A deferred promise.
  */
-let cbManager;
+var cbManager;
 function ensureCellBroadcast() {
   let deferred = Promise.defer();
 
@@ -193,18 +204,28 @@ function ensureCellBroadcast() {
   SpecialPowers.pushPermissions(permissions, function() {
     ok(true, "permissions pushed: " + JSON.stringify(permissions));
 
-    cbManager = window.navigator.mozCellBroadcast;
-    if (cbManager) {
-      log("navigator.mozCellBroadcast is instance of " + cbManager.constructor);
-    } else {
-      log("navigator.mozCellBroadcast is undefined.");
-    }
+    // Permission changes can't change existing Navigator.prototype
+    // objects, so grab our objects from a new Navigator.
+    let workingFrame = document.createElement("iframe");
+    workingFrame.addEventListener("load", function load() {
+      workingFrame.removeEventListener("load", load);
 
-    if (cbManager instanceof window.MozCellBroadcast) {
-      deferred.resolve(cbManager);
-    } else {
-      deferred.reject();
-    }
+      cbManager = workingFrame.contentWindow.navigator.mozCellBroadcast;
+
+      if (cbManager) {
+        log("navigator.mozCellBroadcast is instance of " + cbManager.constructor);
+      } else {
+        log("navigator.mozCellBroadcast is undefined.");
+      }
+
+      if (cbManager instanceof window.MozCellBroadcast) {
+        deferred.resolve(cbManager);
+      } else {
+        deferred.reject();
+      }
+    });
+
+    document.body.appendChild(workingFrame);
   });
 
   return deferred.promise;
@@ -225,7 +246,7 @@ function ensureCellBroadcast() {
  *
  * @return A deferred promise.
  */
-let pendingEmulatorCmdCount = 0;
+var pendingEmulatorCmdCount = 0;
 function runEmulatorCmdSafe(aCommand) {
   let deferred = Promise.defer();
 

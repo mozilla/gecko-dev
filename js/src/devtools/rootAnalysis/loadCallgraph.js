@@ -74,8 +74,9 @@ function loadCallgraph(file)
     var suppressedFieldCalls = {};
     var resolvedFunctions = {};
 
-    var textLines = snarf(file).split('\n');
-    for (var line of textLines) {
+    for (var line of readFileLines_gen(file)) {
+        line = line.replace(/\n/, "");
+
         var match;
         if (match = line.charAt(0) == "#" && /^\#(\d+) (.*)/.exec(line)) {
             assert(functionNames.length == match[1]);
@@ -160,7 +161,7 @@ function loadCallgraph(file)
         suppressedFunctions[name] = true;
     }
 
-    for (var gcName of [ 'void js::gc::GCRuntime::collect(uint8, int64, uint32, uint32)',
+    for (var gcName of [ 'void js::gc::GCRuntime::collect(uint8, js::SliceBudget, uint32)',
                          'void js::gc::GCRuntime::minorGC(uint32)',
                          'void js::gc::GCRuntime::minorGC(uint32)' ])
     {

@@ -56,7 +56,7 @@ nsSVGForeignObjectFrame::Init(nsIContent*       aContent,
                               nsContainerFrame* aParent,
                               nsIFrame*         aPrevInFlow)
 {
-  NS_ASSERTION(aContent->IsSVG(nsGkAtoms::foreignObject),
+  NS_ASSERTION(aContent->IsSVGElement(nsGkAtoms::foreignObject),
                "Content is not an SVG foreignObject!");
 
   nsSVGForeignObjectFrameBase::Init(aContent, aParent, aPrevInFlow);
@@ -91,7 +91,9 @@ nsSVGForeignObjectFrame::AttributeChanged(int32_t  aNameSpaceID,
   if (aNameSpaceID == kNameSpaceID_None) {
     if (aAttribute == nsGkAtoms::width ||
         aAttribute == nsGkAtoms::height) {
-      nsSVGEffects::InvalidateRenderingObservers(this);
+      nsLayoutUtils::PostRestyleEvent(
+        mContent->AsElement(), nsRestyleHint(0),
+        nsChangeHint_InvalidateRenderingObservers);
       nsSVGUtils::ScheduleReflowSVG(this);
       // XXXjwatt: why mark intrinsic widths dirty? can't we just use eResize?
       RequestReflow(nsIPresShell::eStyleChange);
@@ -99,7 +101,9 @@ nsSVGForeignObjectFrame::AttributeChanged(int32_t  aNameSpaceID,
                aAttribute == nsGkAtoms::y) {
       // make sure our cached transform matrix gets (lazily) updated
       mCanvasTM = nullptr;
-      nsSVGEffects::InvalidateRenderingObservers(this);
+      nsLayoutUtils::PostRestyleEvent(
+        mContent->AsElement(), nsRestyleHint(0),
+        nsChangeHint_InvalidateRenderingObservers);
       nsSVGUtils::ScheduleReflowSVG(this);
     } else if (aAttribute == nsGkAtoms::transform) {
       // We don't invalidate for transform changes (the layers code does that).
@@ -109,7 +113,9 @@ nsSVGForeignObjectFrame::AttributeChanged(int32_t  aNameSpaceID,
       mCanvasTM = nullptr;
     } else if (aAttribute == nsGkAtoms::viewBox ||
                aAttribute == nsGkAtoms::preserveAspectRatio) {
-      nsSVGEffects::InvalidateRenderingObservers(this);
+      nsLayoutUtils::PostRestyleEvent(
+        mContent->AsElement(), nsRestyleHint(0),
+        nsChangeHint_InvalidateRenderingObservers);
     }
   }
 
@@ -122,8 +128,8 @@ nsSVGForeignObjectFrame::Reflow(nsPresContext*           aPresContext,
                                 const nsHTMLReflowState& aReflowState,
                                 nsReflowStatus&          aStatus)
 {
-  NS_ABORT_IF_FALSE(!(GetStateBits() & NS_FRAME_IS_NONDISPLAY),
-                    "Should not have been called");
+  MOZ_ASSERT(!(GetStateBits() & NS_FRAME_IS_NONDISPLAY),
+             "Should not have been called");
 
   // Only InvalidateAndScheduleBoundsUpdate marks us with NS_FRAME_IS_DIRTY,
   // so if that bit is still set we still have a resize pending. If we hit
@@ -192,7 +198,7 @@ nsSVGForeignObjectFrame::IsSVGTransformed(Matrix *aOwnTransform,
 }
 
 nsresult
-nsSVGForeignObjectFrame::PaintSVG(nsRenderingContext *aContext,
+nsSVGForeignObjectFrame::PaintSVG(gfxContext& aContext,
                                   const gfxMatrix& aTransform,
                                   const nsIntRect* aDirtyRect)
 {
@@ -241,9 +247,7 @@ nsSVGForeignObjectFrame::PaintSVG(nsRenderingContext *aContext,
       return NS_OK;
   }
 
-  gfxContext *gfx = aContext->ThebesContext();
-
-  gfx->Save();
+  aContext.Save();
 
   if (StyleDisplay()->IsScrollableOverflow()) {
     float x, y, width, height;
@@ -252,7 +256,7 @@ nsSVGForeignObjectFrame::PaintSVG(nsRenderingContext *aContext,
 
     gfxRect clipRect =
       nsSVGUtils::GetClipRectForFrame(this, 0.0f, 0.0f, width, height);
-    nsSVGUtils::SetClipRect(gfx, aTransform, clipRect);
+    nsSVGUtils::SetClipRect(&aContext, aTransform, clipRect);
   }
 
   // SVG paints in CSS px, but normally frames paint in dev pixels. Here we
@@ -263,16 +267,17 @@ nsSVGForeignObjectFrame::PaintSVG(nsRenderingContext *aContext,
   gfxMatrix canvasTMForChildren = aTransform;
   canvasTMForChildren.Scale(cssPxPerDevPx, cssPxPerDevPx);
 
-  gfx->Multiply(canvasTMForChildren);
+  aContext.Multiply(canvasTMForChildren);
 
   uint32_t flags = nsLayoutUtils::PAINT_IN_TRANSFORM;
-  if (SVGAutoRenderState::IsPaintingToWindow(aContext)) {
+  if (SVGAutoRenderState::IsPaintingToWindow(aContext.GetDrawTarget())) {
     flags |= nsLayoutUtils::PAINT_TO_WINDOW;
   }
-  nsresult rv = nsLayoutUtils::PaintFrame(aContext, kid, nsRegion(kidDirtyRect),
+  nsRenderingContext rendCtx(&aContext);
+  nsresult rv = nsLayoutUtils::PaintFrame(&rendCtx, kid, nsRegion(kidDirtyRect),
                                           NS_RGBA(0,0,0,0), flags);
 
-  gfx->Restore();
+  aContext.Restore();
 
   return rv;
 }
@@ -330,8 +335,8 @@ nsSVGForeignObjectFrame::ReflowSVG()
   NS_ASSERTION(nsSVGUtils::OuterSVGIsCallingReflowSVG(this),
                "This call is probably a wasteful mistake");
 
-  NS_ABORT_IF_FALSE(!(GetStateBits() & NS_FRAME_IS_NONDISPLAY),
-                    "ReflowSVG mechanism not designed for this");
+  MOZ_ASSERT(!(GetStateBits() & NS_FRAME_IS_NONDISPLAY),
+             "ReflowSVG mechanism not designed for this");
 
   if (!nsSVGUtils::NeedsReflowSVG(this)) {
     return;
@@ -389,8 +394,8 @@ nsSVGForeignObjectFrame::ReflowSVG()
 void
 nsSVGForeignObjectFrame::NotifySVGChanged(uint32_t aFlags)
 {
-  NS_ABORT_IF_FALSE(aFlags & (TRANSFORM_CHANGED | COORD_CONTEXT_CHANGED),
-                    "Invalidation logic may need adjusting");
+  MOZ_ASSERT(aFlags & (TRANSFORM_CHANGED | COORD_CONTEXT_CHANGED),
+             "Invalidation logic may need adjusting");
 
   bool needNewBounds = false; // i.e. mRect or visual overflow rect
   bool needReflow = false;
@@ -514,6 +519,7 @@ void nsSVGForeignObjectFrame::RequestReflow(nsIPresShell::IntrinsicDirty aType)
 void
 nsSVGForeignObjectFrame::DoReflow()
 {
+  MarkInReflow();
   // Skip reflow if we're zero-sized, unless this is our first reflow.
   if (IsDisabled() &&
       !(GetStateBits() & NS_FRAME_FIRST_REFLOW))
@@ -525,15 +531,15 @@ nsSVGForeignObjectFrame::DoReflow()
     return;
 
   // initiate a synchronous reflow here and now:  
-  nsRefPtr<nsRenderingContext> renderingContext =
-    presContext->PresShell()->CreateReferenceRenderingContext();
+  nsRenderingContext renderingContext(
+    presContext->PresShell()->CreateReferenceRenderingContext());
 
   mInReflow = true;
 
   WritingMode wm = kid->GetWritingMode();
   nsHTMLReflowState reflowState(presContext, kid,
-                                renderingContext,
-                                LogicalSize(wm, GetLogicalSize(wm).ISize(wm),
+                                &renderingContext,
+                                LogicalSize(wm, ISize(wm),
                                             NS_UNCONSTRAINEDSIZE));
   nsHTMLReflowMetrics desiredSize(reflowState);
   nsReflowStatus status;
@@ -544,9 +550,9 @@ nsSVGForeignObjectFrame::DoReflow()
                reflowState.ComputedPhysicalMargin() == nsMargin(0, 0, 0, 0),
                "style system should ensure that :-moz-svg-foreign-content "
                "does not get styled");
-  NS_ASSERTION(reflowState.ComputedWidth() == mRect.width,
+  NS_ASSERTION(reflowState.ComputedISize() == ISize(wm),
                "reflow state made child wrong size");
-  reflowState.SetComputedHeight(mRect.height);
+  reflowState.SetComputedBSize(BSize(wm));
 
   ReflowChild(kid, presContext, desiredSize, reflowState, 0, 0,
               NS_FRAME_NO_MOVE_FRAME, status);

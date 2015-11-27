@@ -91,7 +91,7 @@ struct ScopedArrayBufferContentsTraits {
   }
 };
 
-struct ScopedArrayBufferContents: public Scoped<ScopedArrayBufferContentsTraits> {
+struct MOZ_NON_TEMPORARY_CLASS ScopedArrayBufferContents: public Scoped<ScopedArrayBufferContentsTraits> {
   explicit ScopedArrayBufferContents(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM):
     Scoped<ScopedArrayBufferContentsTraits>(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM_TO_PARENT)
   { }
@@ -114,7 +114,7 @@ struct ScopedArrayBufferContents: public Scoped<ScopedArrayBufferContentsTraits>
   bool Allocate(uint32_t length) {
     dispose();
     ArrayBufferContents& value = rwget();
-    void *ptr = calloc(1, length);
+    void *ptr = js_calloc(1, length);
     if (ptr) {
       value.data = (uint8_t *) ptr;
       value.nbytes = length;
@@ -123,8 +123,8 @@ struct ScopedArrayBufferContents: public Scoped<ScopedArrayBufferContentsTraits>
     return false;
   }
 private:
-  explicit ScopedArrayBufferContents(ScopedArrayBufferContents& source) MOZ_DELETE;
-  ScopedArrayBufferContents& operator=(ScopedArrayBufferContents& source) MOZ_DELETE;
+  explicit ScopedArrayBufferContents(ScopedArrayBufferContents& source) = delete;
+  ScopedArrayBufferContents& operator=(ScopedArrayBufferContents& source) = delete;
 };
 
 ///////// Cross-platform issues
@@ -274,7 +274,7 @@ AbstractResult::GetResult(JSContext *cx, JS::MutableHandleValue aResult)
  * In this implementation, attribute |result| is a string. Strings are
  * passed to JS without copy.
  */
-class StringResult MOZ_FINAL : public AbstractResult
+class StringResult final : public AbstractResult
 {
 public:
   explicit StringResult(TimeStamp aStartDate)
@@ -297,7 +297,7 @@ public:
   }
 
 protected:
-  nsresult GetCacheableResult(JSContext* cx, JS::MutableHandleValue aResult) MOZ_OVERRIDE;
+  nsresult GetCacheableResult(JSContext* cx, JS::MutableHandleValue aResult) override;
 
 private:
   nsString mContents;
@@ -325,7 +325,7 @@ StringResult::GetCacheableResult(JSContext* cx, JS::MutableHandleValue aResult)
  * In this implementation, attribute |result| is a Uint8Array. The array
  * is passed to JS without memory copy.
  */
-class TypedArrayResult MOZ_FINAL : public AbstractResult
+class TypedArrayResult final : public AbstractResult
 {
 public:
   explicit TypedArrayResult(TimeStamp aStartDate)
@@ -346,7 +346,7 @@ public:
   }
 
 protected:
-  nsresult GetCacheableResult(JSContext* cx, JS::MutableHandleValue aResult) MOZ_OVERRIDE;
+  nsresult GetCacheableResult(JSContext* cx, JS::MutableHandleValue aResult) override;
 private:
   ScopedArrayBufferContents mContents;
 };
@@ -390,7 +390,7 @@ TypedArrayResult::GetCacheableResult(JSContext* cx, JS::MutableHandle<JS::Value>
 /**
  * An event used to notify asynchronously of an error.
  */
-class ErrorEvent MOZ_FINAL : public nsRunnable {
+class ErrorEvent final : public nsRunnable {
 public:
   /**
    * @param aOnSuccess The success callback.
@@ -407,8 +407,8 @@ public:
    * alread_AddRefed to ensure that we do not manipulate main-thread
    * only refcounters off the main thread.
    */
-  ErrorEvent(already_AddRefed<nsINativeOSFileSuccessCallback>&& aOnSuccess,
-             already_AddRefed<nsINativeOSFileErrorCallback>&& aOnError,
+  ErrorEvent(nsMainThreadPtrHandle<nsINativeOSFileSuccessCallback>& aOnSuccess,
+             nsMainThreadPtrHandle<nsINativeOSFileErrorCallback>& aOnError,
              already_AddRefed<AbstractResult>& aDiscardedResult,
              const nsACString& aOperation,
              int32_t aOSError)
@@ -433,14 +433,14 @@ public:
     return NS_OK;
   }
  private:
-  // The callbacks. Maintained as nsRefPtr as they are generally
+  // The callbacks. Maintained as nsMainThreadPtrHandle as they are generally
   // xpconnect values, which cannot be manipulated with nsCOMPtr off
   // the main thread. We store both the success callback and the
   // error callback to ensure that they are safely released on the
   // main thread.
-  nsRefPtr<nsINativeOSFileSuccessCallback> mOnSuccess;
-  nsRefPtr<nsINativeOSFileErrorCallback> mOnError;
-  nsRefPtr<AbstractResult> mDiscardedResult;
+  nsMainThreadPtrHandle<nsINativeOSFileSuccessCallback> mOnSuccess;
+  nsMainThreadPtrHandle<nsINativeOSFileErrorCallback> mOnError;
+  RefPtr<AbstractResult> mDiscardedResult;
   int32_t mOSError;
   nsCString mOperation;
 };
@@ -448,7 +448,7 @@ public:
 /**
  * An event used to notify of a success.
  */
-class SuccessEvent MOZ_FINAL : public nsRunnable {
+class SuccessEvent final : public nsRunnable {
 public:
   /**
    * @param aOnSuccess The success callback.
@@ -461,8 +461,8 @@ public:
    * we do not manipulate xpconnect refcounters off the main thread
    * (which is illegal).
    */
-  SuccessEvent(already_AddRefed<nsINativeOSFileSuccessCallback>&& aOnSuccess,
-               already_AddRefed<nsINativeOSFileErrorCallback>&& aOnError,
+  SuccessEvent(nsMainThreadPtrHandle<nsINativeOSFileSuccessCallback>& aOnSuccess,
+               nsMainThreadPtrHandle<nsINativeOSFileErrorCallback>& aOnError,
                already_AddRefed<nsINativeOSFileResult>& aResult)
     : mOnSuccess(aOnSuccess)
     , mOnError(aOnError)
@@ -483,14 +483,14 @@ public:
     return NS_OK;
   }
  private:
-  // The callbacks. Maintained as nsRefPtr as they are generally
+  // The callbacks. Maintained as nsMainThreadPtrHandle as they are generally
   // xpconnect values, which cannot be manipulated with nsCOMPtr off
   // the main thread. We store both the success callback and the
   // error callback to ensure that they are safely released on the
   // main thread.
-  nsRefPtr<nsINativeOSFileSuccessCallback> mOnSuccess;
-  nsRefPtr<nsINativeOSFileErrorCallback> mOnError;
-  nsRefPtr<nsINativeOSFileResult> mResult;
+  nsMainThreadPtrHandle<nsINativeOSFileSuccessCallback> mOnSuccess;
+  nsMainThreadPtrHandle<nsINativeOSFileErrorCallback> mOnError;
+  RefPtr<nsINativeOSFileResult> mResult;
 };
 
 
@@ -501,8 +501,8 @@ public:
  */
 class AbstractDoEvent: public nsRunnable {
 public:
-  AbstractDoEvent(already_AddRefed<nsINativeOSFileSuccessCallback>& aOnSuccess,
-                  already_AddRefed<nsINativeOSFileErrorCallback>& aOnError)
+  AbstractDoEvent(nsMainThreadPtrHandle<nsINativeOSFileSuccessCallback>& aOnSuccess,
+                  nsMainThreadPtrHandle<nsINativeOSFileErrorCallback>& aOnError)
     : mOnSuccess(aOnSuccess)
     , mOnError(aOnError)
 #if defined(DEBUG)
@@ -519,8 +519,8 @@ public:
             already_AddRefed<AbstractResult>&& aDiscardedResult,
             int32_t aOSError = 0) {
     Resolve();
-    nsRefPtr<ErrorEvent> event = new ErrorEvent(mOnSuccess.forget(),
-                                                mOnError.forget(),
+    RefPtr<ErrorEvent> event = new ErrorEvent(mOnSuccess,
+                                                mOnError,
                                                 aDiscardedResult,
                                                 aOperation,
                                                 aOSError);
@@ -539,8 +539,8 @@ public:
    */
   void Succeed(already_AddRefed<nsINativeOSFileResult>&& aResult) {
     Resolve();
-    nsRefPtr<SuccessEvent> event = new SuccessEvent(mOnSuccess.forget(),
-                                                    mOnError.forget(),
+    RefPtr<SuccessEvent> event = new SuccessEvent(mOnSuccess,
+                                                    mOnError,
                                                     aResult);
     nsresult rv = NS_DispatchToMainThread(event);
     if (NS_FAILED(rv)) {
@@ -566,8 +566,8 @@ private:
   }
 
 private:
-  nsRefPtr<nsINativeOSFileSuccessCallback> mOnSuccess;
-  nsRefPtr<nsINativeOSFileErrorCallback> mOnError;
+  nsMainThreadPtrHandle<nsINativeOSFileSuccessCallback> mOnSuccess;
+  nsMainThreadPtrHandle<nsINativeOSFileErrorCallback> mOnError;
 #if defined(DEBUG)
   // |true| once the action is complete
   bool mResolved;
@@ -587,8 +587,8 @@ public:
    */
   AbstractReadEvent(const nsAString& aPath,
                     const uint64_t aBytes,
-                    already_AddRefed<nsINativeOSFileSuccessCallback>& aOnSuccess,
-                    already_AddRefed<nsINativeOSFileErrorCallback>& aOnError)
+                    nsMainThreadPtrHandle<nsINativeOSFileSuccessCallback>& aOnSuccess,
+                    nsMainThreadPtrHandle<nsINativeOSFileErrorCallback>& aOnError)
     : AbstractDoEvent(aOnSuccess, aOnError)
     , mPath(aPath)
     , mBytes(aBytes)
@@ -596,7 +596,7 @@ public:
     MOZ_ASSERT(NS_IsMainThread());
   }
 
-  NS_METHOD Run() MOZ_OVERRIDE {
+  NS_METHOD Run() override {
     MOZ_ASSERT(!NS_IsMainThread());
     TimeStamp dispatchDate = TimeStamp::Now();
 
@@ -732,12 +732,12 @@ protected:
  * An implementation of a Read event that provides the data
  * as a TypedArray.
  */
-class DoReadToTypedArrayEvent MOZ_FINAL : public AbstractReadEvent {
+class DoReadToTypedArrayEvent final : public AbstractReadEvent {
 public:
   DoReadToTypedArrayEvent(const nsAString& aPath,
                           const uint32_t aBytes,
-                          already_AddRefed<nsINativeOSFileSuccessCallback>&& aOnSuccess,
-                          already_AddRefed<nsINativeOSFileErrorCallback>&& aOnError)
+                          nsMainThreadPtrHandle<nsINativeOSFileSuccessCallback>& aOnSuccess,
+                          nsMainThreadPtrHandle<nsINativeOSFileErrorCallback>& aOnError)
     : AbstractReadEvent(aPath, aBytes,
                         aOnSuccess, aOnError)
     , mResult(new TypedArrayResult(TimeStamp::Now()))
@@ -755,27 +755,27 @@ public:
 
 protected:
   void AfterRead(TimeStamp aDispatchDate,
-                 ScopedArrayBufferContents& aBuffer) MOZ_OVERRIDE {
+                 ScopedArrayBufferContents& aBuffer) override {
     MOZ_ASSERT(!NS_IsMainThread());
     mResult->Init(aDispatchDate, TimeStamp::Now() - aDispatchDate, aBuffer.forget());
     Succeed(mResult.forget());
   }
 
  private:
-  nsRefPtr<TypedArrayResult> mResult;
+  RefPtr<TypedArrayResult> mResult;
 };
 
 /**
  * An implementation of a Read event that provides the data
  * as a JavaScript string.
  */
-class DoReadToStringEvent MOZ_FINAL : public AbstractReadEvent {
+class DoReadToStringEvent final : public AbstractReadEvent {
 public:
   DoReadToStringEvent(const nsAString& aPath,
                       const nsACString& aEncoding,
                       const uint32_t aBytes,
-                      already_AddRefed<nsINativeOSFileSuccessCallback>&& aOnSuccess,
-                      already_AddRefed<nsINativeOSFileErrorCallback>&& aOnError)
+                      nsMainThreadPtrHandle<nsINativeOSFileSuccessCallback>& aOnSuccess,
+                      nsMainThreadPtrHandle<nsINativeOSFileErrorCallback>& aOnError)
     : AbstractReadEvent(aPath, aBytes, aOnSuccess, aOnError)
     , mEncoding(aEncoding)
     , mResult(new StringResult(TimeStamp::Now()))
@@ -792,7 +792,7 @@ public:
   }
 
 protected:
-  nsresult BeforeRead() MOZ_OVERRIDE {
+  nsresult BeforeRead() override {
     // Obtain the decoder. We do this before reading to avoid doing
     // any unnecessary I/O in case the name of the encoding is incorrect.
     MOZ_ASSERT(!NS_IsMainThread());
@@ -811,7 +811,7 @@ protected:
   }
 
   void AfterRead(TimeStamp aDispatchDate,
-                 ScopedArrayBufferContents& aBuffer) MOZ_OVERRIDE {
+                 ScopedArrayBufferContents& aBuffer) override {
     MOZ_ASSERT(!NS_IsMainThread());
 
     int32_t maxChars;
@@ -853,10 +853,10 @@ protected:
  private:
   nsCString mEncoding;
   nsCOMPtr<nsIUnicodeDecoder> mDecoder;
-  nsRefPtr<StringResult> mResult;
+  RefPtr<StringResult> mResult;
 };
 
-} // osfile
+} // namespace
 
 // The OS.File service
 
@@ -890,17 +890,21 @@ NativeOSFileInternalsService::Read(const nsAString& aPath,
 
   // Prepare the off main thread event and dispatch it
   nsCOMPtr<nsINativeOSFileSuccessCallback> onSuccess(aOnSuccess);
+  nsMainThreadPtrHandle<nsINativeOSFileSuccessCallback> onSuccessHandle(
+    new nsMainThreadPtrHolder<nsINativeOSFileSuccessCallback>(onSuccess));
   nsCOMPtr<nsINativeOSFileErrorCallback> onError(aOnError);
+  nsMainThreadPtrHandle<nsINativeOSFileErrorCallback> onErrorHandle(
+    new nsMainThreadPtrHolder<nsINativeOSFileErrorCallback>(onError));
 
-  nsRefPtr<AbstractDoEvent> event;
+  RefPtr<AbstractDoEvent> event;
   if (encoding.IsEmpty()) {
     event = new DoReadToTypedArrayEvent(aPath, bytes,
-                                        onSuccess.forget(),
-                                        onError.forget());
+                                        onSuccessHandle,
+                                        onErrorHandle);
   } else {
     event = new DoReadToStringEvent(aPath, encoding, bytes,
-                                    onSuccess.forget(),
-                                    onError.forget());
+                                    onSuccessHandle,
+                                    onErrorHandle);
   }
 
   nsresult rv;

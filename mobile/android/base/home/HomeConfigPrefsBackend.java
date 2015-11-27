@@ -15,11 +15,13 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.mozilla.gecko.GeckoSharedPrefs;
+import org.mozilla.gecko.Restrictions;
 import org.mozilla.gecko.home.HomeConfig.HomeConfigBackend;
 import org.mozilla.gecko.home.HomeConfig.OnReloadListener;
 import org.mozilla.gecko.home.HomeConfig.PanelConfig;
 import org.mozilla.gecko.home.HomeConfig.PanelType;
 import org.mozilla.gecko.home.HomeConfig.State;
+import org.mozilla.gecko.restrictions.Restrictable;
 import org.mozilla.gecko.util.HardwareUtils;
 
 import android.content.BroadcastReceiver;
@@ -35,7 +37,7 @@ class HomeConfigPrefsBackend implements HomeConfigBackend {
     private static final String LOGTAG = "GeckoHomeConfigBackend";
 
     // Increment this to trigger a migration.
-    private static final int VERSION = 2;
+    private static final int VERSION = 3;
 
     // This key was originally used to store only an array of panel configs.
     private static final String PREFS_CONFIG_KEY_OLD = "home_panels";
@@ -72,28 +74,15 @@ class HomeConfigPrefsBackend implements HomeConfigBackend {
                                                   EnumSet.of(PanelConfig.Flags.DEFAULT_PANEL)));
 
         panelConfigs.add(createBuiltinPanelConfig(mContext, PanelType.BOOKMARKS));
+        panelConfigs.add(createBuiltinPanelConfig(mContext, PanelType.HISTORY));
 
-        // We disable reader mode support on low memory devices. Hence the
-        // reading list panel should not show up on such devices.
-        if (!HardwareUtils.isLowMemoryPlatform()) {
-            panelConfigs.add(createBuiltinPanelConfig(mContext, PanelType.READING_LIST));
+        // We disable Synced Tabs for guest mode / restricted profiles.
+        if (Restrictions.isAllowed(mContext, Restrictable.MODIFY_ACCOUNTS)) {
+            panelConfigs.add(createBuiltinPanelConfig(mContext, PanelType.REMOTE_TABS));
         }
 
-        final PanelConfig historyEntry = createBuiltinPanelConfig(mContext, PanelType.HISTORY);
-        final PanelConfig recentTabsEntry = createBuiltinPanelConfig(mContext, PanelType.RECENT_TABS);
-        final PanelConfig remoteTabsEntry = createBuiltinPanelConfig(mContext, PanelType.REMOTE_TABS);
-
-        // On tablets, we go [...|History|Recent Tabs|Synced Tabs].
-        // On phones, we go [Synced Tabs|Recent Tabs|History|...].
-        if (HardwareUtils.isTablet()) {
-            panelConfigs.add(historyEntry);
-            panelConfigs.add(recentTabsEntry);
-            panelConfigs.add(remoteTabsEntry);
-        } else {
-            panelConfigs.add(0, historyEntry);
-            panelConfigs.add(0, recentTabsEntry);
-            panelConfigs.add(0, remoteTabsEntry);
-        }
+        panelConfigs.add(createBuiltinPanelConfig(mContext, PanelType.RECENT_TABS));
+        panelConfigs.add(createBuiltinPanelConfig(mContext, PanelType.READING_LIST));
 
         return new State(panelConfigs, true);
     }
@@ -162,6 +151,31 @@ class HomeConfigPrefsBackend implements HomeConfigBackend {
     }
 
     /**
+     * Checks to see if the reading list panel already exists.
+     *
+     * @param jsonPanels JSONArray array representing the curent set of panel configs.
+     *
+     * @return boolean Whether or not the reading list panel exists.
+     */
+    private static boolean readingListPanelExists(JSONArray jsonPanels) {
+        final int count = jsonPanels.length();
+        for (int i = 0; i < count; i++) {
+            try {
+                final JSONObject jsonPanelConfig = jsonPanels.getJSONObject(i);
+                final PanelConfig panelConfig = new PanelConfig(jsonPanelConfig);
+                if (panelConfig.getType() == PanelType.READING_LIST) {
+                    return true;
+                }
+            } catch (Exception e) {
+                // It's okay to ignore this exception, since an invalid reading list
+                // panel config is equivalent to no reading list panel.
+                Log.e(LOGTAG, "Exception loading PanelConfig from JSON", e);
+            }
+        }
+        return false;
+    }
+
+    /**
      * Migrates JSON config data storage.
      *
      * @param context Context used to get shared preferences and create built-in panel.
@@ -218,6 +232,19 @@ class HomeConfigPrefsBackend implements HomeConfigBackend {
                     // Add "Remote Tabs"/"Synced Tabs" panel.
                     addBuiltinPanelConfig(context, jsonPanels,
                             PanelType.REMOTE_TABS, Position.FRONT, Position.BACK);
+                    break;
+
+                case 3:
+                    // Add the "Reading List" panel if it does not exist. At one time,
+                    // the Reading List panel was shown only to devices that were not
+                    // considered "low memory". Now, we expose the panel to all devices.
+                    // This migration should only occur for "low memory" devices.
+                    // Note: This will not agree with the default configuration, which
+                    // has REMOTE_TABS after READING_LIST on some devices.
+                    if (!readingListPanelExists(jsonPanels)) {
+                        addBuiltinPanelConfig(context, jsonPanels,
+                                PanelType.READING_LIST, Position.BACK, Position.BACK);
+                    }
                     break;
             }
         }

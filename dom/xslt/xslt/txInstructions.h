@@ -10,6 +10,7 @@
 #include "txCore.h"
 #include "nsString.h"
 #include "txXMLUtils.h"
+#include "txExpandedName.h"
 #include "txNamespaceMap.h"
 #include "nsAutoPtr.h"
 #include "txXSLTNumber.h"
@@ -78,7 +79,7 @@ public:
 
     nsAutoPtr<Expr> mName;
     nsAutoPtr<Expr> mNamespace;
-    nsRefPtr<txNamespaceMap> mMappings;
+    RefPtr<txNamespaceMap> mMappings;
 };
 
 class txCallTemplate : public txInstruction
@@ -351,7 +352,7 @@ public:
 
     nsAutoPtr<Expr> mName;
     nsAutoPtr<Expr> mNamespace;
-    nsRefPtr<txNamespaceMap> mMappings;
+    RefPtr<txNamespaceMap> mMappings;
 };
 
 class txStartLREElement : public txInstruction

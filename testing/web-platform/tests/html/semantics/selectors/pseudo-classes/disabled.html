@@ -2,7 +2,7 @@
 <meta charset=utf-8>
 <title>Selector: pseudo-classes (:disabled)</title>
 <link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org" id=link1>
-<link rel=help href="http://www.w3.org/html/wg/drafts/html/master/#pseudo-classes" id=link2>
+<link rel=help href="https://html.spec.whatwg.org/multipage/#pseudo-classes" id=link2>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="utils.js"></script>
@@ -47,6 +47,9 @@
 
   document.getElementById("button1").setAttribute("disabled", "disabled");
   testSelector(":disabled", ["button1", "input2", "select2", "optgroup2", "option2", "textarea2", "fieldset2", "clubname", "clubnum"], "':disabled' should also match elements whose disabled attribute has been set");
+
+  document.getElementById("button1").setAttribute("disabled", "disabled");
+  testSelector(":disabled", ["button1", "input2", "select2", "optgroup2", "option2", "textarea2", "fieldset2", "clubname", "clubnum"], "':disabled' should also match elements whose disabled attribute has been set twice");
 
   document.getElementById("input2").setAttribute("type", "submit"); // change input type to submit
   testSelector(":disabled", ["button1", "input2", "select2", "optgroup2", "option2", "textarea2", "fieldset2", "clubname", "clubnum"], "':disabled' should also match disabled elements whose type has changed");

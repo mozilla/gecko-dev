@@ -701,7 +701,7 @@
     </resources>
 
     <content>
-      <xul:hbox class="tab-middle box-inherit" xbl:inherits="align,dir,pack,orient,selected" flex="1">
+      <xul:hbox class="tab-middle box-inherit" xbl:inherits="align,dir,pack,orient,selected,visuallyselected" flex="1">
         <xul:image class="tab-icon"
                    xbl:inherits="validate,src=image"
                    role="presentation"/>
@@ -728,36 +728,45 @@
                 onget="return this.getAttribute('selected') == 'true';"/>
 
       <property name="_selected">
-        <setter>
-          <![CDATA[
-          if (val)
+        <setter><![CDATA[
+          if (val) {
             this.setAttribute("selected", "true");
-          else
+            this.setAttribute("visuallyselected", "true");
+          } else {
             this.removeAttribute("selected");
+            this.removeAttribute("visuallyselected");
+          }
 
+          this._setPositionAttributes(val);
+
+          return val;
+        ]]></setter>
+      </property>
+
+      <method name="_setPositionAttributes">
+        <parameter name="aSelected"/>
+        <body><![CDATA[
           if (this.previousSibling && this.previousSibling.localName == "tab") {
-            if (val)
+            if (aSelected)
               this.previousSibling.setAttribute("beforeselected", "true");
             else
               this.previousSibling.removeAttribute("beforeselected");
             this.removeAttribute("first-tab");
-          }
-          else
+          } else {
             this.setAttribute("first-tab", "true");
+          }
 
           if (this.nextSibling && this.nextSibling.localName == "tab") {
-            if (val)
+            if (aSelected)
               this.nextSibling.setAttribute("afterselected", "true");
             else
               this.nextSibling.removeAttribute("afterselected");
             this.removeAttribute("last-tab");
-          }
-          else
+          } else {
             this.setAttribute("last-tab", "true");
-          return val;
-        ]]>
-        </setter>
-      </property>
+          }
+        ]]></body>
+      </method>
 
       <property name="linkedPanel" onget="return this.getAttribute('linkedpanel')"
                                    onset="this.setAttribute('linkedpanel', val); return val;"/>
@@ -770,9 +779,11 @@
 #endif
       </field>
       <field name="TelemetryStopwatch" readonly="true">
-        let tmp = {};
-        Cu.import("resource://gre/modules/TelemetryStopwatch.jsm", tmp);
-        tmp.TelemetryStopwatch;
+        {
+          let tmp = {};
+          Cu.import("resource://gre/modules/TelemetryStopwatch.jsm", tmp);
+          tmp.TelemetryStopwatch;
+        }
       </field>
     </implementation>
 
@@ -803,7 +814,7 @@
           // '-moz-user-focus' so that tabs can be focused by keyboard again.
           if (!isTabFocused) {
             this.setAttribute("ignorefocus", "true");
-            setTimeout(function (tab) tab.removeAttribute("ignorefocus"), 0, this);
+            setTimeout(tab => tab.removeAttribute("ignorefocus"), 0, this);
           }
 
           if (stopwatchid) {

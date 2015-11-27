@@ -28,7 +28,9 @@ nsLookAndFeel::GetOperatingSystemVersion()
     return version;
   }
 
-  if (IsWin8OrLater()) {
+  if (IsWin10OrLater()) {
+    version = eOperatingSystemVersion_Windows10;
+  } else if (IsWin8OrLater()) {
     version = eOperatingSystemVersion_Windows8;
   } else if (IsWin7OrLater()) {
     version = eOperatingSystemVersion_Windows7;
@@ -59,26 +61,14 @@ static nsresult GetColorFromTheme(nsUXThemeClass cls,
 
 static int32_t GetSystemParam(long flag, int32_t def)
 {
-    DWORD value; 
+    DWORD value;
     return ::SystemParametersInfo(flag, 0, &value, 0) ? value : def;
 }
-
-namespace mozilla {
-namespace widget {
-// This is in use here and in dom/events/TouchEvent.cpp
-int32_t IsTouchDeviceSupportPresent()
-{
-  int32_t touchCapabilities;
-  touchCapabilities = ::GetSystemMetrics(SM_DIGITIZER);
-  return ((touchCapabilities & NID_READY) && 
-          (touchCapabilities & (NID_EXTERNAL_TOUCH | NID_INTEGRATED_TOUCH)));
-}
-} }
 
 nsLookAndFeel::nsLookAndFeel() : nsXPLookAndFeel()
 {
   mozilla::Telemetry::Accumulate(mozilla::Telemetry::TOUCH_ENABLED_DEVICE,
-                                 IsTouchDeviceSupportPresent());
+                                 WinUtils::IsTouchDeviceSupportPresent());
 }
 
 nsLookAndFeel::~nsLookAndFeel()
@@ -366,7 +356,7 @@ nsLookAndFeel::GetIntImpl(IntID aID, int32_t &aResult)
         aResult = ::GetSystemMetrics(SM_CYDRAG) - 1;
         break;
     case eIntID_UseAccessibilityTheme:
-        // High contrast is a misnomer under Win32 -- any theme can be used with it, 
+        // High contrast is a misnomer under Win32 -- any theme can be used with it,
         // e.g. normal contrast with large fonts, low contrast, etc.
         // The high contrast flag really means -- use this theme and don't override it.
         aResult = nsUXThemeData::IsHighContrastOn();
@@ -396,7 +386,7 @@ nsLookAndFeel::GetIntImpl(IntID aID, int32_t &aResult)
         aResult = !IsAppThemed();
         break;
     case eIntID_TouchEnabled:
-        aResult = IsTouchDeviceSupportPresent();
+        aResult = WinUtils::IsTouchDeviceSupportPresent();
         break;
     case eIntID_WindowsDefaultTheme:
         aResult = nsUXThemeData::IsDefaultWindowTheme();
@@ -480,11 +470,10 @@ nsLookAndFeel::GetIntImpl(IntID aID, int32_t &aResult)
         aResult = 0;
         break;
     case eIntID_ColorPickerAvailable:
-        // We don't have a color picker implemented on Metro yet (bug 895464)
-        aResult = (XRE_GetWindowsEnvironment() != WindowsEnvironmentType_Metro);
+        aResult = true;
         break;
     case eIntID_UseOverlayScrollbars:
-        aResult = (XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Metro);
+        aResult = false;
         break;
     case eIntID_AllowOverlayScrollbarsOverlap:
         aResult = 0;
@@ -497,6 +486,10 @@ nsLookAndFeel::GetIntImpl(IntID aID, int32_t &aResult)
         break;
     case eIntID_ScrollbarFadeDuration:
         aResult = 350;
+        break;
+    case eIntID_ContextMenuOffsetVertical:
+    case eIntID_ContextMenuOffsetHorizontal:
+        aResult = 2;
         break;
     default:
         aResult = 0;
@@ -535,10 +528,10 @@ GetSysFontInfo(HDC aHDC, LookAndFeel::FontID anID,
   LOGFONTW* ptrLogFont = nullptr;
   LOGFONTW logFont;
   NONCLIENTMETRICSW ncm;
-  HGDIOBJ hGDI;
   char16_t name[LF_FACESIZE];
+  bool useShellDlg = false;
 
-  // Depending on which stock font we want, there are three different
+  // Depending on which stock font we want, there are a couple of
   // places we might have to look it up.
   switch (anID) {
   case LookAndFeel::eFont_Icon:
@@ -549,11 +542,7 @@ GetSysFontInfo(HDC aHDC, LookAndFeel::FontID anID,
     ptrLogFont = &logFont;
     break;
 
-  case LookAndFeel::eFont_Menu:
-  case LookAndFeel::eFont_MessageBox:
-  case LookAndFeel::eFont_SmallCaption:
-  case LookAndFeel::eFont_StatusBar:
-  case LookAndFeel::eFont_Tooltips:
+  default:
     ncm.cbSize = sizeof(NONCLIENTMETRICSW);
     if (!::SystemParametersInfoW(SPI_GETNONCLIENTMETRICS,
                                  sizeof(ncm), (PVOID)&ncm, 0))
@@ -561,10 +550,11 @@ GetSysFontInfo(HDC aHDC, LookAndFeel::FontID anID,
 
     switch (anID) {
     case LookAndFeel::eFont_Menu:
+    case LookAndFeel::eFont_PullDownMenu:
       ptrLogFont = &ncm.lfMenuFont;
       break;
-    case LookAndFeel::eFont_MessageBox:
-      ptrLogFont = &ncm.lfMessageFont;
+    case LookAndFeel::eFont_Caption:
+      ptrLogFont = &ncm.lfCaptionFont;
       break;
     case LookAndFeel::eFont_SmallCaption:
       ptrLogFont = &ncm.lfSmCaptionFont;
@@ -573,29 +563,23 @@ GetSysFontInfo(HDC aHDC, LookAndFeel::FontID anID,
     case LookAndFeel::eFont_Tooltips:
       ptrLogFont = &ncm.lfStatusFont;
       break;
+    case LookAndFeel::eFont_Widget:
+    case LookAndFeel::eFont_Dialog:
+    case LookAndFeel::eFont_Button:
+    case LookAndFeel::eFont_Field:
+    case LookAndFeel::eFont_List:
+      // XXX It's not clear to me whether this is exactly the right
+      // set of LookAndFeel values to map to the dialog font; we may
+      // want to add or remove cases here after reviewing the visual
+      // results under various Windows versions.
+      useShellDlg = true;
+      // Fall through so that we can get size from lfMessageFont;
+      // but later we'll use the (virtual) "MS Shell Dlg 2" font name
+      // instead of the LOGFONT's.
+    default:
+      ptrLogFont = &ncm.lfMessageFont;
+      break;
     }
-    break;
-
-  case LookAndFeel::eFont_Widget:
-  case LookAndFeel::eFont_Window:      // css3
-  case LookAndFeel::eFont_Document:
-  case LookAndFeel::eFont_Workspace:
-  case LookAndFeel::eFont_Desktop:
-  case LookAndFeel::eFont_Info:
-  case LookAndFeel::eFont_Dialog:
-  case LookAndFeel::eFont_Button:
-  case LookAndFeel::eFont_PullDownMenu:
-  case LookAndFeel::eFont_List:
-  case LookAndFeel::eFont_Field:
-  case LookAndFeel::eFont_Caption:
-    hGDI = ::GetStockObject(DEFAULT_GUI_FONT);
-    if (!hGDI)
-      return false;
-
-    if (::GetObjectW(hGDI, sizeof(logFont), &logFont) <= 0)
-      return false;
-
-    ptrLogFont = &logFont;
     break;
   }
 
@@ -649,9 +633,12 @@ GetSysFontInfo(HDC aHDC, LookAndFeel::FontID anID,
 
   aFontStyle.systemFont = true;
 
-  name[0] = 0;
-  memcpy(name, ptrLogFont->lfFaceName, LF_FACESIZE*sizeof(char16_t));
-  aFontName = name;
+  if (useShellDlg) {
+    aFontName = NS_LITERAL_STRING("MS Shell Dlg 2");
+  } else {
+    memcpy(name, ptrLogFont->lfFaceName, LF_FACESIZE*sizeof(char16_t));
+    aFontName = name;
+  }
 
   return true;
 }

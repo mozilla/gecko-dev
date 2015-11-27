@@ -9,7 +9,9 @@
 #include "nsHttpNTLMAuth.h"
 #include "nsIAuthModule.h"
 #include "nsCOMPtr.h"
+#include "nsServiceManagerUtils.h"
 #include "plbase64.h"
+#include "plstr.h"
 #include "prnetdb.h"
 
 //-----------------------------------------------------------------------------
@@ -19,12 +21,12 @@
 #include "nsIHttpAuthenticableChannel.h"
 #include "nsIURI.h"
 #ifdef XP_WIN
+#include "nsIChannel.h"
 #include "nsIX509Cert.h"
 #include "nsISSLStatus.h"
 #include "nsISSLStatusProvider.h"
 #endif
 #include "mozilla/Attributes.h"
-#include "nsThreadUtils.h"
 
 namespace mozilla {
 namespace net {
@@ -33,8 +35,6 @@ static const char kAllowProxies[] = "network.automatic-ntlm-auth.allow-proxies";
 static const char kAllowNonFqdn[] = "network.automatic-ntlm-auth.allow-non-fqdn";
 static const char kTrustedURIs[]  = "network.automatic-ntlm-auth.trusted-uris";
 static const char kForceGeneric[] = "network.auth.force-generic-ntlm";
-static const char kAllowGenericHTTP[] = "network.negotiate-auth.allow-insecure-ntlm-v1";
-static const char kAllowGenericHTTPS[] = "network.negotiate-auth.allow-insecure-ntlm-v1-https";
 
 // XXX MatchesBaseURI and TestPref are duplicated in nsHttpNegotiateAuth.cpp,
 // but since that file lives in a separate library we cannot directly share it.
@@ -106,7 +106,7 @@ IsNonFqdn(nsIURI *uri)
         return false;
 
     // return true if host does not contain a dot and is not an ip address
-    return !host.IsEmpty() && host.FindChar('.') == kNotFound &&
+    return !host.IsEmpty() && !host.Contains('.') &&
            PR_StringToNetAddr(host.BeginReading(), &addr) != PR_SUCCESS;
 }
 
@@ -160,7 +160,7 @@ TestPref(nsIURI *uri, const char *pref)
         start = end + 1;
     }
 
-    nsMemory::Free(hostList);
+    free(hostList);
     return false;
 }
 
@@ -177,47 +177,6 @@ ForceGenericNTLM()
         flag = false;
 
     LOG(("Force use of generic ntlm auth module: %d\n", flag));
-    return flag;
-}
-
-// Check to see if we should use our generic (internal) NTLM auth module.
-static bool
-AllowGenericNTLM()
-{
-    MOZ_ASSERT(NS_IsMainThread());
-
-    nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
-    if (!prefs)
-        return false;
-
-    bool flag = false;
-    if (NS_FAILED(prefs->GetBoolPref(kAllowGenericHTTP, &flag)))
-        flag = false;
-
-    LOG(("Allow use of generic ntlm auth module: %d\n", flag));
-    return flag;
-}
-
-// Check to see if we should use our generic (internal) NTLM auth module.
-static bool
-AllowGenericNTLMforHTTPS(nsIHttpAuthenticableChannel *channel)
-{
-    bool isSSL = false;
-    channel->GetIsSSL(&isSSL);
-    if (!isSSL)
-        return false;
-
-    MOZ_ASSERT(NS_IsMainThread());
-
-    nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
-    if (!prefs)
-        return false;
-
-    bool flag = false;
-    if (NS_FAILED(prefs->GetBoolPref(kAllowGenericHTTPS, &flag)))
-        flag = false;
-
-    LOG(("Allow use of generic ntlm auth module for only https: %d\n", flag));
     return flag;
 }
 
@@ -256,7 +215,7 @@ CanUseDefaultCredentials(nsIHttpAuthenticableChannel *channel,
 
 // Dummy class for session state object.  This class doesn't hold any data.
 // Instead we use its existence as a flag.  See ChallengeReceived.
-class nsNTLMSessionState MOZ_FINAL : public nsISupports
+class nsNTLMSessionState final : public nsISupports
 {
     ~nsNTLMSessionState() {}
 public:
@@ -318,10 +277,8 @@ nsHttpNTLMAuth::ChallengeReceived(nsIHttpAuthenticableChannel *channel,
                 *identityInvalid = true;
             }
 #endif // XP_WIN
-#ifdef PR_LOGGING
             if (!module)
                 LOG(("Native sys-ntlm auth module not found.\n"));
-#endif
         }
 
 #ifdef XP_WIN
@@ -343,14 +300,8 @@ nsHttpNTLMAuth::ChallengeReceived(nsIHttpAuthenticableChannel *channel,
 
             // Use our internal NTLM implementation. Note, this is less secure,
             // see bug 520607 for details.
-
-            // For now with default preference settings (i.e. allow-insecure-ntlm-v1-https = true
-            // and allow-insecure-ntlm-v1 = false) we don't allow authentication to any proxy,
-            // either http or https.  This will be fixed in a followup bug.
-            if (AllowGenericNTLM() || (!isProxyAuth && AllowGenericNTLMforHTTPS(channel))) {
-                LOG(("Trying to fall back on internal ntlm auth.\n"));
-                module = do_CreateInstance(NS_AUTH_MODULE_CONTRACTID_PREFIX "ntlm");
-            }
+            LOG(("Trying to fall back on internal ntlm auth.\n"));
+            module = do_CreateInstance(NS_AUTH_MODULE_CONTRACTID_PREFIX "ntlm");
 	
             mUseNative = false;
 
@@ -496,12 +447,12 @@ nsHttpNTLMAuth::GenerateCredentials(nsIHttpAuthenticableChannel *authChannel,
 
         // decode into the input secbuffer
         inBufLen = (len * 3)/4;      // sufficient size (see plbase64.h)
-        inBuf = nsMemory::Alloc(inBufLen);
+        inBuf = moz_xmalloc(inBufLen);
         if (!inBuf)
             return NS_ERROR_OUT_OF_MEMORY;
 
         if (PL_Base64Decode(challenge, len, (char *) inBuf) == nullptr) {
-            nsMemory::Free(inBuf);
+            free(inBuf);
             return NS_ERROR_UNEXPECTED; // improper base64 encoding
         }
     }
@@ -510,7 +461,7 @@ nsHttpNTLMAuth::GenerateCredentials(nsIHttpAuthenticableChannel *authChannel,
     if (NS_SUCCEEDED(rv)) {
         // base64 encode data in output buffer and prepend "NTLM "
         int credsLen = 5 + ((outBufLen + 2)/3)*4;
-        *creds = (char *) nsMemory::Alloc(credsLen + 1);
+        *creds = (char *) moz_xmalloc(credsLen + 1);
         if (!*creds)
             rv = NS_ERROR_OUT_OF_MEMORY;
         else {
@@ -519,11 +470,11 @@ nsHttpNTLMAuth::GenerateCredentials(nsIHttpAuthenticableChannel *authChannel,
             (*creds)[credsLen] = '\0'; // null terminate
         }
         // OK, we are done with |outBuf|
-        nsMemory::Free(outBuf);
+        free(outBuf);
     }
 
     if (inBuf)
-        nsMemory::Free(inBuf);
+        free(inBuf);
 
     return rv;
 }
@@ -535,5 +486,5 @@ nsHttpNTLMAuth::GetAuthFlags(uint32_t *flags)
     return NS_OK;
 }
 
-} // namespace mozilla::net
+} // namespace net
 } // namespace mozilla

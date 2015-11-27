@@ -1,3 +1,4 @@
+/* -*- mode: js; indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,6 +10,7 @@ this.EXPORTED_SYMBOLS = [ "BrowserUtils" ];
 const {interfaces: Ci, utils: Cu, classes: Cc} = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.importGlobalProperties(['URL']);
 
 this.BrowserUtils = {
 
@@ -19,6 +21,27 @@ this.BrowserUtils = {
     for (let a of args)
       dump(a + " ");
     dump("\n");
+  },
+
+  /**
+   * restartApplication: Restarts the application, keeping it in
+   * safe mode if it is already in safe mode.
+   */
+  restartApplication: function() {
+    let appStartup = Cc["@mozilla.org/toolkit/app-startup;1"]
+                       .getService(Ci.nsIAppStartup);
+    let cancelQuit = Cc["@mozilla.org/supports-PRBool;1"]
+                       .createInstance(Ci.nsISupportsPRBool);
+    Services.obs.notifyObservers(cancelQuit, "quit-application-requested", "restart");
+    if (cancelQuit.data) { // The quit request has been canceled.
+      return false;
+    }
+    //if already in safe mode restart in safe mode
+    if (Services.appinfo.inSafeMode) {
+      appStartup.restartInSafeMode(Ci.nsIAppStartup.eAttemptQuit | Ci.nsIAppStartup.eRestart);
+      return;
+    }
+    appStartup.quit(Ci.nsIAppStartup.eAttemptQuit | Ci.nsIAppStartup.eRestart);
   },
 
   /**
@@ -73,29 +96,8 @@ this.BrowserUtils = {
     return Services.io.newFileURI(aFile);
   },
 
-  /**
-   * Return the current focus element and window. If the current focus
-   * is in a content process, then this function returns CPOWs
-   * (cross-process object wrappers) that refer to the focused
-   * items. Note that calling this function synchronously contacts the
-   * content process, which may block for a long time.
-   *
-   * @param document The document in question.
-   * @return [focusedElement, focusedWindow]
-   */
-  getFocusSync: function(document) {
-    let elt = document.commandDispatcher.focusedElement;
-    var window = document.commandDispatcher.focusedWindow;
-
-    const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
-    if (elt instanceof window.XULElement &&
-        elt.localName == "browser" &&
-        elt.namespaceURI == XUL_NS &&
-        elt.getAttribute("remote")) {
-      [elt, window] = elt.syncHandler.getFocusedElementAndWindow();
-    }
-
-    return [elt, window];
+  makeURIFromCPOW: function(aCPOWURI) {
+    return Services.io.newURI(aCPOWURI.spec, aCPOWURI.originCharset, null);
   },
 
   /**
@@ -178,5 +180,228 @@ this.BrowserUtils = {
       return originalTarget;
 
     return "_blank";
+  },
+
+  /**
+   * Map the plugin's name to a filtered version more suitable for UI.
+   *
+   * @param aName The full-length name string of the plugin.
+   * @return the simplified name string.
+   */
+  makeNicePluginName: function (aName) {
+    if (aName == "Shockwave Flash")
+      return "Adobe Flash";
+    // Regex checks if aName begins with "Java" + non-letter char
+    if (/^Java\W/.exec(aName))
+      return "Java";
+
+    // Clean up the plugin name by stripping off parenthetical clauses,
+    // trailing version numbers or "plugin".
+    // EG, "Foo Bar (Linux) Plugin 1.23_02" --> "Foo Bar"
+    // Do this by first stripping the numbers, etc. off the end, and then
+    // removing "Plugin" (and then trimming to get rid of any whitespace).
+    // (Otherwise, something like "Java(TM) Plug-in 1.7.0_07" gets mangled)
+    let newName = aName.replace(/\(.*?\)/g, "").
+                        replace(/[\s\d\.\-\_\(\)]+$/, "").
+                        replace(/\bplug-?in\b/i, "").trim();
+    return newName;
+  },
+
+  /**
+   * Return true if linkNode has a rel="noreferrer" attribute.
+   *
+   * @param linkNode The <a> element, or null.
+   * @return a boolean indicating if linkNode has a rel="noreferrer" attribute.
+   */
+  linkHasNoReferrer: function (linkNode) {
+    // A null linkNode typically means that we're checking a link that wasn't
+    // provided via an <a> link, like a text-selected URL.  Don't leak
+    // referrer information in this case.
+    if (!linkNode)
+      return true;
+
+    let rel = linkNode.getAttribute("rel");
+    if (!rel)
+      return false;
+
+    // The HTML spec says that rel should be split on spaces before looking
+    // for particular rel values.
+    let values = rel.split(/[ \t\r\n\f]/);
+    return values.indexOf('noreferrer') != -1;
+  },
+
+  /**
+   * Returns true if |mimeType| is text-based, or false otherwise.
+   *
+   * @param mimeType
+   *        The MIME type to check.
+   */
+  mimeTypeIsTextBased: function(mimeType) {
+    return mimeType.startsWith("text/") ||
+           mimeType.endsWith("+xml") ||
+           mimeType == "application/x-javascript" ||
+           mimeType == "application/javascript" ||
+           mimeType == "application/json" ||
+           mimeType == "application/xml" ||
+           mimeType == "mozilla.application/cached-xul";
+  },
+
+  /**
+   * Return true if we can/should FAYT for this node + window (could be CPOW):
+   *
+   * @param elt
+   *        The element that is focused
+   * @param win
+   *        The window that is focused
+   *
+   */
+  shouldFastFind: function(elt, win) {
+    if (elt) {
+      if (elt instanceof win.HTMLInputElement && elt.mozIsTextField(false))
+        return false;
+
+      if (elt.isContentEditable || win.document.designMode == "on")
+        return false;
+
+      if (elt instanceof win.HTMLTextAreaElement ||
+          elt instanceof win.HTMLSelectElement ||
+          elt instanceof win.HTMLObjectElement ||
+          elt instanceof win.HTMLEmbedElement)
+        return false;
+    }
+
+    if (win && !this.mimeTypeIsTextBased(win.document.contentType))
+      return false;
+
+    // disable FAYT in about:blank to prevent FAYT opening unexpectedly.
+    let loc = win.location;
+    if (loc.href == "about:blank")
+      return false;
+
+    // disable FAYT in documents that ask for it to be disabled.
+    if ((loc.protocol == "about:" || loc.protocol == "chrome:") &&
+        (win && win.document.documentElement &&
+         win.document.documentElement.getAttribute("disablefastfind") == "true"))
+      return false;
+
+    return true;
+  },
+
+  getSelectionDetails: function(topWindow, aCharLen) {
+    // selections of more than 150 characters aren't useful
+    const kMaxSelectionLen = 150;
+    const charLen = Math.min(aCharLen || kMaxSelectionLen, kMaxSelectionLen);
+
+    let focusedWindow = {};
+    let focusedElement = Services.focus.getFocusedElementForWindow(topWindow, true, focusedWindow);
+    focusedWindow = focusedWindow.value;
+
+    let selection = focusedWindow.getSelection();
+    let selectionStr = selection.toString();
+
+    let collapsed = selection.isCollapsed;
+
+    let url;
+    let linkText;
+    if (selectionStr) {
+      // Have some text, let's figure out if it looks like a URL that isn't
+      // actually a link.
+      linkText = selectionStr.trim();
+      if (/^(?:https?|ftp):/i.test(linkText)) {
+        try {
+          url = this.makeURI(linkText);
+        } catch (ex) {}
+      }
+      // Check if this could be a valid url, just missing the protocol.
+      else if (/^(?:[a-z\d-]+\.)+[a-z]+$/i.test(linkText)) {
+        // Now let's see if this is an intentional link selection. Our guess is
+        // based on whether the selection begins/ends with whitespace or is
+        // preceded/followed by a non-word character.
+
+        // selection.toString() trims trailing whitespace, so we look for
+        // that explicitly in the first and last ranges.
+        let beginRange = selection.getRangeAt(0);
+        let delimitedAtStart = /^\s/.test(beginRange);
+        if (!delimitedAtStart) {
+          let container = beginRange.startContainer;
+          let offset = beginRange.startOffset;
+          if (container.nodeType == container.TEXT_NODE && offset > 0)
+            delimitedAtStart = /\W/.test(container.textContent[offset - 1]);
+          else
+            delimitedAtStart = true;
+        }
+
+        let delimitedAtEnd = false;
+        if (delimitedAtStart) {
+          let endRange = selection.getRangeAt(selection.rangeCount - 1);
+          delimitedAtEnd = /\s$/.test(endRange);
+          if (!delimitedAtEnd) {
+            let container = endRange.endContainer;
+            let offset = endRange.endOffset;
+            if (container.nodeType == container.TEXT_NODE &&
+                offset < container.textContent.length)
+              delimitedAtEnd = /\W/.test(container.textContent[offset]);
+            else
+              delimitedAtEnd = true;
+          }
+        }
+
+        if (delimitedAtStart && delimitedAtEnd) {
+          let uriFixup = Cc["@mozilla.org/docshell/urifixup;1"]
+                           .getService(Ci.nsIURIFixup);
+          try {
+            url = uriFixup.createFixupURI(linkText, uriFixup.FIXUP_FLAG_NONE);
+          } catch (ex) {}
+        }
+      }
+    }
+
+    // try getting a selected text in text input.
+    if (!selectionStr && focusedElement instanceof Ci.nsIDOMNSEditableElement) {
+      // Don't get the selection for password fields. See bug 565717.
+      if (focusedElement instanceof Ci.nsIDOMHTMLTextAreaElement ||
+          (focusedElement instanceof Ci.nsIDOMHTMLInputElement &&
+           focusedElement.mozIsTextField(true))) {
+        selectionStr = focusedElement.editor.selection.toString();
+      }
+    }
+
+    if (selectionStr) {
+      if (selectionStr.length > charLen) {
+        // only use the first charLen important chars. see bug 221361
+        var pattern = new RegExp("^(?:\\s*.){0," + charLen + "}");
+        pattern.test(selectionStr);
+        selectionStr = RegExp.lastMatch;
+      }
+
+      selectionStr = selectionStr.trim().replace(/\s+/g, " ");
+
+      if (selectionStr.length > charLen) {
+        selectionStr = selectionStr.substr(0, charLen);
+      }
+    }
+
+    if (url && !url.host) {
+      url = null;
+    }
+
+    return { text: selectionStr, docSelectionIsCollapsed: collapsed,
+             linkURL: url ? url.spec : null, linkText: url ? linkText : "" };
+  },
+
+  // Iterates through every docshell in the window and calls PermitUnload.
+  canCloseWindow(window) {
+    let docShell = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                         .getInterface(Ci.nsIWebNavigation);
+    let node = docShell.QueryInterface(Ci.nsIDocShellTreeItem);
+    for (let i = 0; i < node.childCount; ++i) {
+      let docShell = node.getChildAt(i).QueryInterface(Ci.nsIDocShell);
+      let contentViewer = docShell.contentViewer;
+      if (contentViewer && !contentViewer.permitUnload()) {
+        return false;
+      }
+    }
+
+    return true;
   },
 };

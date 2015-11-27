@@ -7,10 +7,13 @@
 #ifndef mozilla_dom_telephony_telephony_h__
 #define mozilla_dom_telephony_telephony_h__
 
+#include "AudioChannelService.h"
+
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/telephony/TelephonyCommon.h"
 
+#include "nsITelephonyCallInfo.h"
 #include "nsITelephonyService.h"
 
 // Need to include TelephonyCall.h because we have inline methods that
@@ -23,14 +26,15 @@ namespace mozilla {
 namespace dom {
 namespace telephony {
 
-class TelephonyCallback;
+class TelephonyDialCallback;
 
 } // namespace telephony
 
 class OwningTelephonyCallOrTelephonyCallGroup;
 
-class Telephony MOZ_FINAL : public DOMEventTargetHelper,
-                            private nsITelephonyListener
+class Telephony final : public DOMEventTargetHelper,
+                        public nsIAudioChannelAgentCallback,
+                        private nsITelephonyListener
 {
   /**
    * Class Telephony doesn't actually expose nsITelephonyListener.
@@ -40,23 +44,28 @@ class Telephony MOZ_FINAL : public DOMEventTargetHelper,
    * also bug 775997 comment #51.
    */
   class Listener;
-  class EnumerationAck;
 
-  friend class EnumerationAck;
-  friend class telephony::TelephonyCallback;
+  friend class telephony::TelephonyDialCallback;
 
+  // The audio agent is needed to communicate with the audio channel service.
+  nsCOMPtr<nsIAudioChannelAgent> mAudioAgent;
   nsCOMPtr<nsITelephonyService> mService;
-  nsRefPtr<Listener> mListener;
+  RefPtr<Listener> mListener;
 
-  nsTArray<nsRefPtr<TelephonyCall> > mCalls;
-  nsRefPtr<CallsList> mCallsList;
+  nsTArray<RefPtr<TelephonyCall> > mCalls;
+  RefPtr<CallsList> mCallsList;
 
-  nsRefPtr<TelephonyCallGroup> mGroup;
+  RefPtr<TelephonyCallGroup> mGroup;
 
-  bool mEnumerated;
+  RefPtr<Promise> mReadyPromise;
+
+  bool mIsAudioStartPlaying;
+  bool mHaveDispatchedInterruptBeginEvent;
+  bool mMuted;
 
 public:
   NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_NSIAUDIOCHANNELAGENTCALLBACK
   NS_DECL_NSITELEPHONYLISTENER
   NS_REALLY_FORWARD_NSIDOMEVENTTARGET(DOMEventTargetHelper)
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(Telephony,
@@ -70,7 +79,7 @@ public:
 
   // WrapperCache
   virtual JSObject*
-  WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL
   already_AddRefed<Promise>
@@ -81,12 +90,28 @@ public:
   DialEmergency(const nsAString& aNumber, const Optional<uint32_t>& aServiceId,
                 ErrorResult& aRv);
 
+  already_AddRefed<Promise>
+  SendTones(const nsAString& aDTMFChars,
+            uint32_t aPauseDuration,
+            uint32_t aToneDuration,
+            const Optional<uint32_t>& aServiceId,
+            ErrorResult& aRv);
+
   void
   StartTone(const nsAString& aDTMFChar, const Optional<uint32_t>& aServiceId,
             ErrorResult& aRv);
 
   void
   StopTone(const Optional<uint32_t>& aServiceId, ErrorResult& aRv);
+
+  // In the audio channel architecture, the system app needs to know the state
+  // of every audio channel, including the telephony. Therefore, when a
+  // telephony call is activated , the audio channel service would notify the
+  // system app about that. And we need an agent to communicate with the audio
+  // channel service. We would follow the call states to make a correct
+  // notification.
+  void
+  OwnAudioChannel(ErrorResult& aRv);
 
   bool
   GetMuted(ErrorResult& aRv) const;
@@ -109,7 +134,9 @@ public:
   already_AddRefed<TelephonyCallGroup>
   ConferenceGroup() const;
 
-  IMPL_EVENT_HANDLER(ready)
+  already_AddRefed<Promise>
+  GetReady(ErrorResult& aRv) const;
+
   IMPL_EVENT_HANDLER(incoming)
   IMPL_EVENT_HANDLER(callschanged)
   IMPL_EVENT_HANDLER(remoteheld)
@@ -140,13 +167,11 @@ public:
     return mService;
   }
 
-  const nsTArray<nsRefPtr<TelephonyCall> >&
+  const nsTArray<RefPtr<TelephonyCall> >&
   CallsArray() const
   {
     return mCalls;
   }
-
-  virtual void EventListenerAdded(nsIAtom* aType) MOZ_OVERRIDE;
 
 private:
   explicit Telephony(nsPIDOMWindow* aOwner);
@@ -164,18 +189,16 @@ private:
   static bool
   IsValidServiceId(uint32_t aServiceId);
 
-  static bool
-  IsActiveState(uint16_t aCallState);
-
   uint32_t
-  ProvidedOrDefaultServiceId(const Optional<uint32_t>& aServiceId);
-
-  bool
-  HasDialingCall();
+  GetServiceId(const Optional<uint32_t>& aServiceId,
+               bool aGetIfActiveCall = false);
 
   already_AddRefed<Promise>
   DialInternal(uint32_t aServiceId, const nsAString& aNumber, bool aEmergency,
                ErrorResult& aRv);
+
+  already_AddRefed<TelephonyCallId>
+  CreateCallId(nsITelephonyCallInfo *aInfo);
 
   already_AddRefed<TelephonyCallId>
   CreateCallId(const nsAString& aNumber,
@@ -185,9 +208,13 @@ private:
 
   already_AddRefed<TelephonyCall>
   CreateCall(TelephonyCallId* aId,
-             uint32_t aServiceId, uint32_t aCallIndex, uint16_t aCallState,
-             bool aEmergency = false, bool aConference = false,
-             bool aSwitchable = true, bool aMergeable = true);
+             uint32_t aServiceId,
+             uint32_t aCallIndex,
+             TelephonyCallState aState,
+             bool aEmergency = false,
+             bool aConference = false,
+             bool aSwitchable = true,
+             bool aMergeable = true);
 
   nsresult
   NotifyEvent(const nsAString& aType);
@@ -198,14 +225,18 @@ private:
   nsresult
   DispatchCallEvent(const nsAString& aType, TelephonyCall* aCall);
 
-  void
-  EnqueueEnumerationAck(const nsAString& aType);
-
   already_AddRefed<TelephonyCall>
   GetCall(uint32_t aServiceId, uint32_t aCallIndex);
 
   already_AddRefed<TelephonyCall>
   GetCallFromEverywhere(uint32_t aServiceId, uint32_t aCallIndex);
+
+  nsresult
+  HandleCallInfo(nsITelephonyCallInfo* aInfo);
+
+  // Check the call states to decide whether need to send the notificaiton.
+  nsresult
+  HandleAudioAgentState();
 };
 
 } // namespace dom

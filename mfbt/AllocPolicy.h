@@ -12,7 +12,6 @@
 #ifndef mozilla_AllocPolicy_h
 #define mozilla_AllocPolicy_h
 
-#include "mozilla/NullPtr.h"
 #include "mozilla/TemplateLib.h"
 
 #include <stddef.h>
@@ -27,6 +26,13 @@ namespace mozilla {
  * mechanism when OOM occurs.  The concept modeled here is as follows:
  *
  *  - public copy constructor, assignment, destructor
+ *  - template <typename T> T* maybe_pod_malloc(size_t)
+ *      Fallible, but doesn't report an error on OOM.
+ *  - template <typename T> T* maybe_pod_calloc(size_t)
+ *      Fallible, but doesn't report an error on OOM.
+ *  - template <typename T> T* maybe_pod_realloc(T*, size_t, size_t)
+ *      Fallible, but doesn't report an error on OOM.  The old allocation
+ *      size is passed in, in addition to the new allocation size requested.
  *  - template <typename T> T* pod_malloc(size_t)
  *      Responsible for OOM reporting when null is returned.
  *  - template <typename T> T* pod_calloc(size_t)
@@ -40,6 +46,18 @@ namespace mozilla {
  *      to allocate more than the available memory space -- think allocating an
  *      array of large-size objects, where N * size overflows) before null is
  *      returned.
+ *  - bool checkSimulatedOOM() const
+ *      Some clients generally allocate memory yet in some circumstances won't
+ *      need to do so. For example, appending to a vector with a small amount of
+ *      inline storage generally allocates memory, but no allocation occurs
+ *      unless appending exceeds inline storage. But for testing purposes, it
+ *      can be useful to treat *every* operation as allocating.
+ *      Clients (such as this hypothetical append method implementation) should
+ *      call this method in situations that don't allocate, but could generally,
+ *      to support this. The default behavior should return true; more
+ *      complicated behavior might be to return false only after a certain
+ *      number of allocations-or-check-simulated-OOMs (coordinating with the
+ *      other AllocPolicy methods) have occurred.
  *
  * mfbt provides (and typically uses by default) only MallocAllocPolicy, which
  * does nothing more than delegate to the malloc/alloc/free functions.
@@ -53,25 +71,45 @@ class MallocAllocPolicy
 {
 public:
   template <typename T>
-  T* pod_malloc(size_t aNumElems)
+  T* maybe_pod_malloc(size_t aNumElems)
   {
-    if (aNumElems & mozilla::tl::MulOverflowMask<sizeof(T)>::value)
-        return nullptr;
+    if (aNumElems & mozilla::tl::MulOverflowMask<sizeof(T)>::value) {
+      return nullptr;
+    }
     return static_cast<T*>(malloc(aNumElems * sizeof(T)));
   }
 
   template <typename T>
-  T* pod_calloc(size_t aNumElems)
+  T* maybe_pod_calloc(size_t aNumElems)
   {
     return static_cast<T*>(calloc(aNumElems, sizeof(T)));
   }
 
   template <typename T>
+  T* maybe_pod_realloc(T* aPtr, size_t aOldSize, size_t aNewSize)
+  {
+    if (aNewSize & mozilla::tl::MulOverflowMask<sizeof(T)>::value) {
+      return nullptr;
+    }
+    return static_cast<T*>(realloc(aPtr, aNewSize * sizeof(T)));
+  }
+
+  template <typename T>
+  T* pod_malloc(size_t aNumElems)
+  {
+    return maybe_pod_malloc<T>(aNumElems);
+  }
+
+  template <typename T>
+  T* pod_calloc(size_t aNumElems)
+  {
+    return maybe_pod_calloc<T>(aNumElems);
+  }
+
+  template <typename T>
   T* pod_realloc(T* aPtr, size_t aOldSize, size_t aNewSize)
   {
-    if (aNewSize & mozilla::tl::MulOverflowMask<sizeof(T)>::value)
-        return nullptr;
-    return static_cast<T*>(realloc(aPtr, aNewSize * sizeof(T)));
+    return maybe_pod_realloc<T>(aPtr, aOldSize, aNewSize);
   }
 
   void free_(void* aPtr)
@@ -81,6 +119,11 @@ public:
 
   void reportAllocOverflow() const
   {
+  }
+
+  bool checkSimulatedOOM() const
+  {
+    return true;
   }
 };
 

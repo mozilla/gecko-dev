@@ -24,11 +24,11 @@ import org.mozilla.mozstumbler.service.utils.NetworkUtils;
 * preferences, do not call any code that isn't thread-safe. You will cause suffering.
 * An exception is made for AppGlobals.isDebug, a false reading is of no consequence. */
 public class AsyncUploader extends AsyncTask<Void, Void, SyncSummary> {
-    private static final String LOG_TAG = AppGlobals.LOG_PREFIX + AsyncUploader.class.getSimpleName();
-    private final UploadSettings mSettings;
+    private static final String LOG_TAG = AppGlobals.makeLogTag(AsyncUploader.class.getSimpleName());
+    private final AsyncUploadArgs mUploadArgs;
     private final Object mListenerLock = new Object();
     private AsyncUploaderListener mListener;
-    private static AtomicBoolean sIsUploading = new AtomicBoolean();
+    private static final AtomicBoolean sIsUploading = new AtomicBoolean();
     private String mNickname;
 
     public interface AsyncUploaderListener {
@@ -36,18 +36,22 @@ public class AsyncUploader extends AsyncTask<Void, Void, SyncSummary> {
         public void onUploadProgress();
     }
 
-    public static class UploadSettings {
+    public static class AsyncUploadArgs {
+        public final NetworkUtils mNetworkUtils;
         public final boolean mShouldIgnoreWifiStatus;
         public final boolean mUseWifiOnly;
-        public UploadSettings(boolean shouldIgnoreWifiStatus, boolean useWifiOnly) {
+        public AsyncUploadArgs(NetworkUtils networkUtils,
+                               boolean shouldIgnoreWifiStatus,
+                               boolean useWifiOnly) {
+            mNetworkUtils = networkUtils;
             mShouldIgnoreWifiStatus = shouldIgnoreWifiStatus;
             mUseWifiOnly = useWifiOnly;
         }
     }
 
-    public AsyncUploader(UploadSettings settings, AsyncUploaderListener listener) {
+    public AsyncUploader(AsyncUploadArgs args, AsyncUploaderListener listener) {
         mListener = listener;
-        mSettings = settings;
+        mUploadArgs = args;
     }
 
     public void setNickname(String name) {
@@ -112,10 +116,6 @@ public class AsyncUploader extends AsyncTask<Void, Void, SyncSummary> {
     private class Submitter extends AbstractCommunicator {
         private static final String SUBMIT_URL = "https://location.services.mozilla.com/v1/submit";
 
-        public Submitter() {
-            super(Prefs.getInstance().getUserAgent());
-        }
-
         @Override
         public String getUrlString() {
             return SUBMIT_URL;
@@ -150,7 +150,8 @@ public class AsyncUploader extends AsyncTask<Void, Void, SyncSummary> {
         long uploadedCells = 0;
         long uploadedWifis = 0;
 
-        if (!mSettings.mShouldIgnoreWifiStatus && mSettings.mUseWifiOnly && !NetworkUtils.getInstance().isWifiAvailable()) {
+        if (!mUploadArgs.mShouldIgnoreWifiStatus && mUploadArgs.mUseWifiOnly &&
+               !mUploadArgs.mNetworkUtils.isWifiAvailable()) {
             if (AppGlobals.isDebug) {
                 Log.d(LOG_TAG, "not on WiFi, not sending");
             }

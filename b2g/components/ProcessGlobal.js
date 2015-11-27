@@ -22,6 +22,10 @@ const Cu = Components.utils;
 Cu.import('resource://gre/modules/Services.jsm');
 Cu.import('resource://gre/modules/XPCOMUtils.jsm');
 
+XPCOMUtils.defineLazyServiceGetter(this, "settings",
+                                   "@mozilla.org/settingsService;1",
+                                   "nsISettingsService");
+
 function debug(msg) {
   log(msg);
 }
@@ -59,12 +63,24 @@ function ConsoleMessage(aMsg, aLevel) {
   }
 }
 
+function toggleUnrestrictedDevtools(unrestricted) {
+  Services.prefs.setBoolPref("devtools.debugger.forbid-certified-apps",
+    !unrestricted);
+  Services.prefs.setBoolPref("dom.apps.developer_mode", unrestricted);
+  // TODO: Remove once bug 1125916 is fixed.
+  Services.prefs.setBoolPref("network.disable.ipc.security", unrestricted);
+  Services.prefs.setBoolPref("dom.webcomponents.enabled", unrestricted);
+  let lock = settings.createLock();
+  lock.set("developer.menu.enabled", unrestricted, null);
+  lock.set("devtools.unrestricted", unrestricted, null);
+}
+
 ConsoleMessage.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIConsoleMessage]),
   toString: function() { return this.msg; }
 };
 
-const gFactoryResetFile = "/persist/__post_reset_cmd__";
+const gFactoryResetFile = "__post_reset_cmd__";
 
 function ProcessGlobal() {}
 ProcessGlobal.prototype = {
@@ -89,14 +105,23 @@ ProcessGlobal.prototype = {
     }
   },
 
-  processWipeFile: function(text) {
-    log("processWipeFile " + text);
+  processCommandsFile: function(text) {
+    log("processCommandsFile " + text);
     let lines = text.split("\n");
     lines.forEach((line) => {
       log(line);
       let params = line.split(" ");
-      if (params[0] == "wipe") {
-        this.wipeDir(params[1]);
+      switch (params[0]) {
+        case "root":
+          log("unrestrict devtools");
+          toggleUnrestrictedDevtools(true);
+          break;
+        case "wipe":
+          this.wipeDir(params[1]);
+        case "normal":
+          log("restrict devtools");
+          toggleUnrestrictedDevtools(false);
+          break;
       }
     });
   },
@@ -104,20 +129,28 @@ ProcessGlobal.prototype = {
   cleanupAfterFactoryReset: function() {
     log("cleanupAfterWipe start");
 
+    Cu.import("resource://gre/modules/osfile.jsm");
+    let dir = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
+    dir.initWithPath("/persist");
+    var postResetFile = dir.exists() ?
+                        OS.Path.join("/persist", gFactoryResetFile):
+                        OS.Path.join("/cache", gFactoryResetFile);
     let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
-    file.initWithPath(gFactoryResetFile);
+    file.initWithPath(postResetFile);
     if (!file.exists()) {
-      debug("Nothing to wipe.")
+      debug("No additional command.")
       return;
     }
 
-    Cu.import("resource://gre/modules/osfile.jsm");
-    let promise = OS.File.read(gFactoryResetFile);
+    let promise = OS.File.read(postResetFile);
     promise.then(
       (array) => {
         file.remove(false);
         let decoder = new TextDecoder();
-        this.processWipeFile(decoder.decode(array));
+        this.processCommandsFile(decoder.decode(array));
+      },
+      function onError(error) {
+        debug("Error: " + error);
       }
     );
 
@@ -132,9 +165,7 @@ ProcessGlobal.prototype = {
                        .getService(Ci.nsIXULRuntime)
                        .processType == Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT;
       if (inParent) {
-        let ppmm = Cc["@mozilla.org/parentprocessmessagemanager;1"]
-                     .getService(Ci.nsIMessageListenerManager);
-        ppmm.addMessageListener("getProfD", function(message) {
+        Services.ppmm.addMessageListener("getProfD", function(message) {
           return Services.dirsvc.get("ProfD", Ci.nsIFile).path;
         });
 
@@ -149,7 +180,8 @@ ProcessGlobal.prototype = {
       let args = message.arguments;
       let stackTrace = '';
 
-      if (message.level == 'assert' || message.level == 'error' || message.level == 'trace') {
+      if (message.stacktrace &&
+          (message.level == 'assert' || message.level == 'error' || message.level == 'trace')) {
         stackTrace = Array.map(message.stacktrace, formatStackFrame).join('\n');
       } else {
         stackTrace = formatStackFrame(message);

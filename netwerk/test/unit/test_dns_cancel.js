@@ -1,7 +1,13 @@
 var dns = Cc["@mozilla.org/network/dns-service;1"].getService(Ci.nsIDNSService);
 
-var hostname1 = "mozilla.org";
-var hostname2 = "mozilla.com";
+var hostname1 = "";
+var hostname2 = "";
+var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+for( var i=0; i < 20; i++ ) {
+  hostname1 += possible.charAt(Math.floor(Math.random() * possible.length));
+  hostname2 += possible.charAt(Math.floor(Math.random() * possible.length));
+}
 
 var requestList1Canceled1;
 var requestList1Canceled2;
@@ -13,13 +19,7 @@ var requestList2NotCanceled;
 var listener1 = {
   onLookupComplete: function(inRequest, inRecord, inStatus) {
     // One request should be resolved and two request should be canceled.
-    if (inRequest == requestList1Canceled1 ||
-        inRequest == requestList1Canceled2) {
-      // This request is canceled.
-      do_check_eq(inStatus, Cr.NS_ERROR_ABORT);
-
-      do_test_finished();
-    } else if (inRequest == requestList1NotCanceled) {
+    if (inRequest == requestList1NotCanceled) {
       // This request should not be canceled.
       do_check_neq(inStatus, Cr.NS_ERROR_ABORT);
 
@@ -38,12 +38,7 @@ var listener1 = {
 var listener2 = {
   onLookupComplete: function(inRequest, inRecord, inStatus) {
     // One request should be resolved and the other canceled.
-    if (inRequest == requestList2Canceled) {
-      // This request is canceled.
-      do_check_eq(inStatus, Cr.NS_ERROR_ABORT);
-
-      do_test_finished();
-    } else {
+    if (inRequest == requestList2NotCanceled) {
       // The request should not be canceled.
       do_check_neq(inStatus, Cr.NS_ERROR_ABORT);
 
@@ -83,9 +78,6 @@ function run_test() {
   requestList2Canceled = dns.asyncResolve(hostname2, flags, listener2, mainThread);
   requestList2Canceled.cancel(Cr.NS_ERROR_ABORT);
 
-  do_test_pending();
-  do_test_pending();
-  do_test_pending();
   do_test_pending();
   do_test_pending();
 }

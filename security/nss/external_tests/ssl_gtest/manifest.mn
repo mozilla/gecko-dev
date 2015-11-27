@@ -1,4 +1,4 @@
-# 
+#
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -6,10 +6,22 @@ CORE_DEPTH = ../..
 DEPTH      = ../..
 MODULE = nss
 
+# These sources have access to libssl internals
+CSRCS = \
+      libssl_internals.c \
+      $(NULL)
+
 CPPSRCS = \
+      ssl_agent_unittest.cc \
       ssl_loopback_unittest.cc \
+      ssl_extension_unittest.cc \
+      ssl_prf_unittest.cc \
+      ssl_skip_unittest.cc \
       ssl_gtest.cc \
       test_io.cc \
+      tls_agent.cc \
+      tls_connect.cc \
+      tls_filter.cc \
       tls_parser.cc \
       $(NULL)
 

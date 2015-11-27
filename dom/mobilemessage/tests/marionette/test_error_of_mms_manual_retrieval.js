@@ -9,18 +9,18 @@ MARIONETTE_CONTEXT = "chrome";
 
 Cu.import("resource://gre/modules/Promise.jsm");
 
-let MMS = {};
+var MMS = {};
 Cu.import("resource://gre/modules/MmsPduHelper.jsm", MMS);
 
-let gMobileMessageDatabaseService =
-  Cc["@mozilla.org/mobilemessage/rilmobilemessagedatabaseservice;1"]
-    .getService(Ci.nsIRilMobileMessageDatabaseService);
+var gMobileMessageDatabaseService =
+  Cc["@mozilla.org/mobilemessage/gonkmobilemessagedatabaseservice;1"]
+    .getService(Ci.nsIGonkMobileMessageDatabaseService);
 
-let gUuidGenerator =
+var gUuidGenerator =
   Cc["@mozilla.org/uuid-generator;1"]
     .getService(Ci.nsIUUIDGenerator);
 
-let gMmsService = Cc["@mozilla.org/mms/rilmmsservice;1"]
+var gMmsService = Cc["@mozilla.org/mms/gonkmmsservice;1"]
                        .getService(Ci.nsIMmsService);
 
 function saveMmsNotification() {
@@ -53,7 +53,7 @@ function saveMmsNotification() {
     .saveReceivedMessage(notification, function(aRv, aDomMessage) {
       log("saveReceivedMessage(): " + aRv);
       if (Components.isSuccessCode(aRv)) {
-        deferred.resolve(aDomMessage);
+        deferred.resolve(aDomMessage.QueryInterface(Ci.nsIMmsMessage));
       } else {
         deferred.reject();
       }
@@ -111,7 +111,7 @@ function testRetrieve(aCause, aInit, aCleanup) {
     .then(() => { if (aCleanup) aCleanup(); });
 }
 
-let setRadioDisabled = function(aDisabled) {
+var setRadioDisabled = function(aDisabled) {
     log("set ril.radio.disabled to " + aDisabled);
     Services.prefs.setBoolPref("ril.radio.disabled", aDisabled);
 };

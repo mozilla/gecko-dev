@@ -2,11 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "mp4_demuxer/ByteReader.h"
 #include "mp4_demuxer/Index.h"
 #include "mp4_demuxer/Interval.h"
 #include "mp4_demuxer/MoofParser.h"
-#include "media/stagefright/MediaSource.h"
-#include "MediaResource.h"
+#include "mp4_demuxer/SinfParser.h"
+#include "nsAutoPtr.h"
+#include "mozilla/RefPtr.h"
 
 #include <algorithm>
 #include <limits>
@@ -75,21 +77,188 @@ RangeFinder::Contains(MediaByteRange aByteRange)
   return false;
 }
 
-Index::Index(const stagefright::Vector<MediaSource::Indice>& aIndex,
-             Stream* aSource, uint32_t aTrackId)
+SampleIterator::SampleIterator(Index* aIndex)
+  : mIndex(aIndex)
+  , mCurrentMoof(0)
+  , mCurrentSample(0)
 {
-  if (aIndex.isEmpty()) {
-    mMoofParser = new MoofParser(aSource, aTrackId);
+}
+
+already_AddRefed<MediaRawData> SampleIterator::GetNext()
+{
+  Sample* s(Get());
+  if (!s) {
+    return nullptr;
+  }
+
+  int64_t length = std::numeric_limits<int64_t>::max();
+  mIndex->mSource->Length(&length);
+  if (s->mByteRange.mEnd > length) {
+    // We don't have this complete sample.
+    return nullptr;
+  }
+
+  RefPtr<MediaRawData> sample = new MediaRawData();
+  sample->mTimecode= s->mDecodeTime;
+  sample->mTime = s->mCompositionRange.start;
+  sample->mDuration = s->mCompositionRange.Length();
+  sample->mOffset = s->mByteRange.mStart;
+  sample->mKeyframe = s->mSync;
+
+  nsAutoPtr<MediaRawDataWriter> writer(sample->CreateWriter());
+  // Do the blocking read
+  if (!writer->SetSize(s->mByteRange.Length())) {
+    return nullptr;
+  }
+
+  size_t bytesRead;
+  if (!mIndex->mSource->ReadAt(sample->mOffset, writer->Data(), sample->Size(),
+                               &bytesRead) || bytesRead != sample->Size()) {
+    return nullptr;
+  }
+
+  if (!s->mCencRange.IsNull()) {
+    MoofParser* parser = mIndex->mMoofParser.get();
+
+    if (!parser || !parser->mSinf.IsValid()) {
+      return nullptr;
+    }
+
+    uint8_t ivSize = parser->mSinf.mDefaultIVSize;
+
+    // The size comes from an 8 bit field
+    nsAutoTArray<uint8_t, 256> cenc;
+    cenc.SetLength(s->mCencRange.Length());
+    if (!mIndex->mSource->ReadAt(s->mCencRange.mStart, cenc.Elements(), cenc.Length(),
+                                 &bytesRead) || bytesRead != cenc.Length()) {
+      return nullptr;
+    }
+    ByteReader reader(cenc);
+    writer->mCrypto.mValid = true;
+    writer->mCrypto.mIVSize = ivSize;
+
+    if (!reader.ReadArray(writer->mCrypto.mIV, ivSize)) {
+      return nullptr;
+    }
+
+    if (reader.CanRead16()) {
+      uint16_t count = reader.ReadU16();
+
+      if (reader.Remaining() < count * 6) {
+        return nullptr;
+      }
+
+      for (size_t i = 0; i < count; i++) {
+        writer->mCrypto.mPlainSizes.AppendElement(reader.ReadU16());
+        writer->mCrypto.mEncryptedSizes.AppendElement(reader.ReadU32());
+      }
+    } else {
+      // No subsample information means the entire sample is encrypted.
+      writer->mCrypto.mPlainSizes.AppendElement(0);
+      writer->mCrypto.mEncryptedSizes.AppendElement(sample->Size());
+    }
+  }
+
+  Next();
+
+  return sample.forget();
+}
+
+Sample* SampleIterator::Get()
+{
+  if (!mIndex->mMoofParser) {
+    MOZ_ASSERT(!mCurrentMoof);
+    return mCurrentSample < mIndex->mIndex.Length()
+      ? &mIndex->mIndex[mCurrentSample]
+      : nullptr;
+  }
+
+  nsTArray<Moof>& moofs = mIndex->mMoofParser->Moofs();
+  while (true) {
+    if (mCurrentMoof == moofs.Length()) {
+      if (!mIndex->mMoofParser->BlockingReadNextMoof()) {
+        return nullptr;
+      }
+      MOZ_ASSERT(mCurrentMoof < moofs.Length());
+    }
+    if (mCurrentSample < moofs[mCurrentMoof].mIndex.Length()) {
+      break;
+    }
+    mCurrentSample = 0;
+    ++mCurrentMoof;
+  }
+  return &moofs[mCurrentMoof].mIndex[mCurrentSample];
+}
+
+void SampleIterator::Next()
+{
+  ++mCurrentSample;
+}
+
+void SampleIterator::Seek(Microseconds aTime)
+{
+  size_t syncMoof = 0;
+  size_t syncSample = 0;
+  mCurrentMoof = 0;
+  mCurrentSample = 0;
+  Sample* sample;
+  while (!!(sample = Get())) {
+    if (sample->mCompositionRange.start > aTime) {
+      break;
+    }
+    if (sample->mSync) {
+      syncMoof = mCurrentMoof;
+      syncSample = mCurrentSample;
+    }
+    if (sample->mCompositionRange.start == aTime) {
+      break;
+    }
+    Next();
+  }
+  mCurrentMoof = syncMoof;
+  mCurrentSample = syncSample;
+}
+
+Microseconds
+SampleIterator::GetNextKeyframeTime()
+{
+  SampleIterator itr(*this);
+  Sample* sample;
+  while (!!(sample = itr.Get())) {
+    if (sample->mSync) {
+      return sample->mCompositionRange.start;
+    }
+    itr.Next();
+  }
+  return -1;
+}
+
+Index::Index(const nsTArray<Indice>& aIndex,
+             Stream* aSource,
+             uint32_t aTrackId,
+             bool aIsAudio,
+             Monitor* aMonitor)
+  : mSource(aSource)
+  , mMonitor(aMonitor)
+{
+  if (aIndex.IsEmpty()) {
+    mMoofParser = new MoofParser(aSource, aTrackId, aIsAudio, aMonitor);
   } else {
-    for (size_t i = 0; i < aIndex.size(); i++) {
-      const MediaSource::Indice& indice = aIndex[i];
+    if (!mIndex.SetCapacity(aIndex.Length(), fallible)) {
+      // OOM.
+      return;
+    }
+    for (size_t i = 0; i < aIndex.Length(); i++) {
+      const Indice& indice = aIndex[i];
       Sample sample;
       sample.mByteRange = MediaByteRange(indice.start_offset,
                                          indice.end_offset);
       sample.mCompositionRange = Interval<Microseconds>(indice.start_composition,
                                                         indice.end_composition);
+      sample.mDecodeTime = indice.start_decode;
       sample.mSync = indice.sync;
-      mIndex.AppendElement(sample);
+      // FIXME: Make this infallible after bug 968520 is done.
+      MOZ_ALWAYS_TRUE(mIndex.AppendElement(sample, fallible));
     }
   }
 }
@@ -109,12 +278,12 @@ Index::UpdateMoofIndex(const nsTArray<MediaByteRange>& aByteRanges)
 Microseconds
 Index::GetEndCompositionIfBuffered(const nsTArray<MediaByteRange>& aByteRanges)
 {
-  nsTArray<Sample>* index;
+  FallibleTArray<Sample>* index;
   if (mMoofParser) {
-    if (!mMoofParser->ReachedEnd() || mMoofParser->mMoofs.IsEmpty()) {
+    if (!mMoofParser->ReachedEnd() || mMoofParser->Moofs().IsEmpty()) {
       return 0;
     }
-    index = &mMoofParser->mMoofs.LastElement().mIndex;
+    index = &mMoofParser->Moofs().LastElement().mIndex;
   } else {
     index = &mIndex;
   }
@@ -142,13 +311,13 @@ Index::ConvertByteRangesToTimeRanges(
   RangeFinder rangeFinder(aByteRanges);
   nsTArray<Interval<Microseconds>> timeRanges;
 
-  nsTArray<nsTArray<Sample>*> indexes;
+  nsTArray<FallibleTArray<Sample>*> indexes;
   if (mMoofParser) {
     // We take the index out of the moof parser and move it into a local
     // variable so we don't get concurrency issues. It gets freed when we
     // exit this function.
-    for (int i = 0; i < mMoofParser->mMoofs.Length(); i++) {
-      Moof& moof = mMoofParser->mMoofs[i];
+    for (int i = 0; i < mMoofParser->Moofs().Length(); i++) {
+      Moof& moof = mMoofParser->Moofs()[i];
 
       // We need the entire moof in order to play anything
       if (rangeFinder.Contains(moof.mRange)) {
@@ -165,7 +334,7 @@ Index::ConvertByteRangesToTimeRanges(
 
   bool hasSync = false;
   for (size_t i = 0; i < indexes.Length(); i++) {
-    nsTArray<Sample>* index = indexes[i];
+    FallibleTArray<Sample>* index = indexes[i];
     for (size_t j = 0; j < index->Length(); j++) {
       const Sample& sample = (*index)[j];
       if (!rangeFinder.Contains(sample.mByteRange)) {
@@ -196,8 +365,8 @@ Index::GetEvictionOffset(Microseconds aTime)
   if (mMoofParser) {
     // We need to keep the whole moof if we're keeping any of it because the
     // parser doesn't keep parsed moofs.
-    for (int i = 0; i < mMoofParser->mMoofs.Length(); i++) {
-      Moof& moof = mMoofParser->mMoofs[i];
+    for (int i = 0; i < mMoofParser->Moofs().Length(); i++) {
+      Moof& moof = mMoofParser->Moofs()[i];
 
       if (moof.mTimeRange.Length() && moof.mTimeRange.end > aTime) {
         offset = std::min(offset, uint64_t(std::min(moof.mRange.mStart,

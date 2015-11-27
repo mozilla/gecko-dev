@@ -105,20 +105,8 @@ this.DataStoreChangeNotifier = {
       delete this.sysMsgOnChangeLongTimers[storeKey];
     }
 
-    // Get all the manifest URLs of the apps which can access the datastore.
-    var manifestURLs = dataStoreService.getAppManifestURLsForDataStore(aStore);
-    var enumerate = manifestURLs.enumerate();
-    while (enumerate.hasMoreElements()) {
-      var manifestURL = enumerate.getNext().QueryInterface(Ci.nsISupportsString);
-      debug("Notify app " + manifestURL + " of datastore updates");
-      // Send the system message 'datastore-update-{store name}' to all the
-      // pages for these apps. With the manifest URL of the owner in the message
-      // payload, it notifies the consumer a sync operation should be performed.
-      systemMessenger.sendMessage("datastore-update-" + aStore,
-                                  { owner: aOwner },
-                                  null,
-                                  Services.io.newURI(manifestURL, null, null));
-    }
+    systemMessenger.broadcastMessage("datastore-update-" + aStore,
+                                     { owner: aOwner });
   },
 
   // Use the following logic to broadcast system messages in a moderate pattern.
@@ -158,14 +146,7 @@ this.DataStoreChangeNotifier = {
 
     // No check has to be done when the message is 'child-process-shutdown'.
     if (aMessage.name != "child-process-shutdown") {
-      if (!("principal" in aMessage)) {
-        return;
-      }
-      let secMan = Cc["@mozilla.org/scriptsecuritymanager;1"]
-                     .getService(Ci.nsIScriptSecurityManager);
-      let uri = Services.io.newURI(aMessage.principal.origin, null, null);
-      let principal = secMan.getAppCodebasePrincipal(uri,
-        aMessage.principal.appId, aMessage.principal.isInBrowserElement);
+      let principal = aMessage.principal;
       if (!principal || !dataStoreService.checkPermission(principal)) {
         return;
       }

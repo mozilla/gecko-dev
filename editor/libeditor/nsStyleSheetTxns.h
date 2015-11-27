@@ -29,14 +29,14 @@ public:
   AddStyleSheetTxn();
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(AddStyleSheetTxn, EditTxn)
-  NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr);
+  NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr) override;
 
   NS_DECL_EDITTXN
 
 protected:
 
   nsIEditor* mEditor;                      // the editor that created this transaction
-  nsRefPtr<mozilla::CSSStyleSheet> mSheet; // the style sheet to add
+  RefPtr<mozilla::CSSStyleSheet> mSheet; // the style sheet to add
 
 };
 
@@ -54,14 +54,14 @@ public:
   RemoveStyleSheetTxn();
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(RemoveStyleSheetTxn, EditTxn)
-  NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr);
+  NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr) override;
 
   NS_DECL_EDITTXN
 
 protected:
 
   nsIEditor* mEditor;                      // the editor that created this transaction
-  nsRefPtr<mozilla::CSSStyleSheet> mSheet; // the style sheet to remove
+  RefPtr<mozilla::CSSStyleSheet> mSheet; // the style sheet to remove
 
 };
 

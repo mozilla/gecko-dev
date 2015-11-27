@@ -4,15 +4,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/**
- * Loads _HTTPD_JS_PATH file, which is dynamically defined by
- * <runxpcshelltests.py>.
- */
-load(_HTTPD_JS_PATH);
+var _HTTPD_JS_PATH = __LOCATION__.parent;
+_HTTPD_JS_PATH.append("httpd.js");
+load(_HTTPD_JS_PATH.path);
 
 // if these tests fail, we'll want the debug output
 DEBUG = true;
 
+Cu.import("resource://gre/modules/Services.jsm");
 
 /**
  * Constructs a new nsHttpServer instance.  This function is intended to
@@ -35,7 +34,14 @@ function makeChannel(url)
 {
   var ios = Cc["@mozilla.org/network/io-service;1"]
               .getService(Ci.nsIIOService);
-  var chan = ios.newChannel(url, null, null)
+  var chan = ios.newChannel2(url,
+                             null,
+                             null,
+                             null,      // aLoadingNode
+                             Services.scriptSecurityManager.getSystemPrincipal(),
+                             null,      // aTriggeringPrincipal
+                             Ci.nsILoadInfo.SEC_NORMAL,
+                             Ci.nsIContentPolicy.TYPE_OTHER)
                 .QueryInterface(Ci.nsIHttpChannel);
 
   return chan;

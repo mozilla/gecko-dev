@@ -7,10 +7,8 @@
  * http://www.whatwg.org/specs/web-apps/current-work/#messageevent
  */
 
-interface WindowProxy;
-
 [Constructor(DOMString type, optional MessageEventInit eventInitDict),
- Exposed=(Window,Worker)]
+ Exposed=(Window,Worker,System)]
 interface MessageEvent : Event {
   /**
    * Custom data associated with this event.
@@ -33,7 +31,7 @@ interface MessageEvent : Event {
   readonly attribute DOMString lastEventId;
 
   /**
-   * The window or the port which originated this event.
+   * The window or port which originated this event.
    */
   readonly attribute (WindowProxy or MessagePort)? source;
 
@@ -43,12 +41,17 @@ interface MessageEvent : Event {
    * data, origin, source, and lastEventId attributes of this appropriately.
    */
   readonly attribute MessagePortList? ports;
+
+  void initMessageEvent(DOMString type, boolean bubbles, boolean cancelable,
+                        any data, DOMString origin, DOMString lastEventId,
+                        (WindowProxy or MessagePort)? source,
+                        sequence<MessagePort>? ports);
 };
 
 dictionary MessageEventInit : EventInit {
   any data;
   DOMString origin;
   DOMString lastEventId;
-  (WindowProxy or MessagePort)? source = null;
+  (Window or MessagePort)? source = null;
   sequence<MessagePort>? ports;
 };

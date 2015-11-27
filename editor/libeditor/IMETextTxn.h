@@ -50,9 +50,15 @@ public:
 
   NS_DECL_EDITTXN
 
-  NS_IMETHOD Merge(nsITransaction* aTransaction, bool* aDidMerge) MOZ_OVERRIDE;
+  NS_IMETHOD Merge(nsITransaction* aTransaction, bool* aDidMerge) override;
 
   void MarkFixed();
+
+  static nsresult SetIMESelection(nsEditor& aEditor,
+                                  Text* aTextNode,
+                                  uint32_t aOffsetInNode,
+                                  uint32_t aLengthOfCompositionString,
+                                  const TextRangeArray* aRanges);
 
 private:
   ~IMETextTxn();
@@ -60,7 +66,7 @@ private:
   nsresult SetSelectionForRanges();
 
   /** The text element to operate upon */
-  nsRefPtr<Text> mTextNode;
+  RefPtr<Text> mTextNode;
 
   /** The offsets into mTextNode where the insertion should be placed */
   uint32_t mOffset;
@@ -68,7 +74,7 @@ private:
   uint32_t mReplaceLength;
 
   /** The range list **/
-  nsRefPtr<mozilla::TextRangeArray> mRanges;
+  RefPtr<TextRangeArray> mRanges;
 
   /** The text to insert into mTextNode at mOffset */
   nsString mStringToInsert;
@@ -81,7 +87,7 @@ private:
 
 NS_DEFINE_STATIC_IID_ACCESSOR(IMETextTxn, NS_IMETEXTTXN_IID)
 
-}
-}
+} // namespace dom
+} // namespace mozilla
 
 #endif

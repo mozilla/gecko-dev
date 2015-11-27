@@ -30,11 +30,10 @@
 #include "nsStringStream.h"
 #include "nsAlgorithm.h"
 #include "nsProxyRelease.h"
-#include "nsNetUtil.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
 #include "plbase64.h"
 #include "prmem.h"
@@ -43,13 +42,15 @@
 #include <algorithm>
 #include "nsDebug.h"
 
-extern PRLogModuleInfo* gRtspLog;
-#undef LOG
-#define LOG(args) PR_LOG(gRtspLog, PR_LOG_DEBUG, args)
-
 namespace mozilla {
 namespace net {
+extern LazyLogModule gRtspLog;
+#undef LOG
+#define LOG(args) MOZ_LOG(mozilla::net::gRtspLog, mozilla::LogLevel::Debug, args)
 
+//-----------------------------------------------------------------------------
+// RtspController
+//-----------------------------------------------------------------------------
 NS_IMPL_ISUPPORTS(RtspController,
                   nsIStreamingProtocolController)
 
@@ -67,6 +68,9 @@ RtspController::~RtspController()
   }
 }
 
+//-----------------------------------------------------------------------------
+// nsIStreamingProtocolController
+//-----------------------------------------------------------------------------
 NS_IMETHODIMP
 RtspController::GetTrackMetaData(uint8_t index,
                                  nsIStreamingProtocolMetaData * *_retval)
@@ -112,35 +116,13 @@ RtspController::Pause(void)
 NS_IMETHODIMP
 RtspController::Resume(void)
 {
-  LOG(("RtspController::Resume()"));
-  if (!mRtspSource.get()) {
-    MOZ_ASSERT(mRtspSource.get(), "mRtspSource should not be null!");
-    return NS_ERROR_NOT_INITIALIZED;
-  }
-
-  if (mState != CONNECTED) {
-    return NS_ERROR_NOT_CONNECTED;
-  }
-
-  mRtspSource->play();
-  return NS_OK;
+  return Play();
 }
 
 NS_IMETHODIMP
 RtspController::Suspend(void)
 {
-  LOG(("RtspController::Suspend()"));
-  if (!mRtspSource.get()) {
-    MOZ_ASSERT(mRtspSource.get(), "mRtspSource should not be null!");
-    return NS_ERROR_NOT_INITIALIZED;
-  }
-
-  if (mState != CONNECTED) {
-    return NS_ERROR_NOT_CONNECTED;
-  }
-
-  mRtspSource->pause();
-  return NS_OK;
+  return Pause();
 }
 
 NS_IMETHODIMP
@@ -210,6 +192,9 @@ RtspController::AsyncOpen(nsIStreamingProtocolListener *aListener)
   return NS_OK;
 }
 
+//-----------------------------------------------------------------------------
+// nsIStreamingProtocolListener
+//-----------------------------------------------------------------------------
 class SendMediaDataTask : public nsRunnable
 {
 public:
@@ -241,7 +226,7 @@ private:
   nsCString mData;
   uint32_t mLength;
   uint32_t mOffset;
-  nsRefPtr<nsIStreamingProtocolMetaData> mMetaData;
+  RefPtr<nsIStreamingProtocolMetaData> mMetaData;
   nsCOMPtr<nsIStreamingProtocolListener> mListener;
 };
 
@@ -253,7 +238,7 @@ RtspController::OnMediaDataAvailable(uint8_t index,
                                      nsIStreamingProtocolMetaData *meta)
 {
   if (mListener && mState == CONNECTED) {
-    nsRefPtr<SendMediaDataTask> task =
+    RefPtr<SendMediaDataTask> task =
       new SendMediaDataTask(mListener, index, data, length, offset, meta);
     return NS_DispatchToMainThread(task);
   }
@@ -281,7 +266,7 @@ public:
 private:
   nsCOMPtr<nsIStreamingProtocolListener> mListener;
   uint8_t mIndex;
-  nsRefPtr<nsIStreamingProtocolMetaData> mMetaData;
+  RefPtr<nsIStreamingProtocolMetaData> mMetaData;
 };
 
 
@@ -292,7 +277,7 @@ RtspController::OnConnected(uint8_t index,
   LOG(("RtspController::OnConnected()"));
   mState = CONNECTED;
   if (mListener) {
-    nsRefPtr<SendOnConnectedTask> task =
+    RefPtr<SendOnConnectedTask> task =
       new SendOnConnectedTask(mListener, index, meta);
     return NS_DispatchToMainThread(task);
   }
@@ -329,8 +314,9 @@ RtspController::OnDisconnected(uint8_t index,
 {
   LOG(("RtspController::OnDisconnected() for track %d reason = 0x%x", index, reason));
   mState = DISCONNECTED;
+
   if (mListener) {
-    nsRefPtr<SendOnDisconnectedTask> task =
+    RefPtr<SendOnDisconnectedTask> task =
       new SendOnDisconnectedTask(mListener, index, reason);
     // Break the cycle reference between the Listener (RtspControllerParent) and
     // us.

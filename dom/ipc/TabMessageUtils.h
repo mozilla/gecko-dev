@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -6,7 +7,6 @@
 #ifndef TABMESSAGE_UTILS_H
 #define TABMESSAGE_UTILS_H
 
-#include "AudioChannelCommon.h"
 #include "ipc/IPCMessageUtils.h"
 #include "mozilla/dom/AudioChannelBinding.h"
 #include "nsIDOMEvent.h"
@@ -34,8 +34,8 @@ typedef CrashReporter::ThreadId NativeThreadId;
 typedef int32_t NativeThreadId;
 #endif
 
-}
-}
+} // namespace dom
+} // namespace mozilla
 
 namespace IPC {
 
@@ -89,13 +89,19 @@ struct ParamTraits<mozilla::dom::AudioChannel>
 };
 
 template <>
-struct ParamTraits<mozilla::dom::AudioChannelState>
-  : public ContiguousEnumSerializer<mozilla::dom::AudioChannelState,
-                                    mozilla::dom::AUDIO_CHANNEL_STATE_NORMAL,
-                                    mozilla::dom::AUDIO_CHANNEL_STATE_LAST>
+struct ParamTraits<nsEventStatus>
+  : public ContiguousEnumSerializer<nsEventStatus,
+                                    nsEventStatus_eIgnore,
+                                    nsEventStatus_eSentinel>
 { };
 
-}
+template<>
+struct ParamTraits<nsSizeMode>
+  : public ContiguousEnumSerializer<nsSizeMode,
+                                    nsSizeMode_Normal,
+                                    nsSizeMode_Invalid>
+{ };
 
+} // namespace IPC
 
 #endif

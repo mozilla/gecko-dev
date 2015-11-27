@@ -32,9 +32,7 @@ _datagramLen(-1),
 _payloadLen(0),
 _rtpParsed(false),
 _receiveTime(0),
-_lost(false),
-_selectSSRC(0),
-_filterSSRC(false)
+_lost(false)
 {
     memset(&_rtpInfo, 0, sizeof(_rtpInfo));
     _blockList.clear();
@@ -107,7 +105,7 @@ int NETEQTEST_RTPpacket::readFromFile(FILE *fp)
 
     uint16_t length, plen;
     uint32_t offset;
-    int packetLen;
+    int packetLen = 0;
 
     bool readNextPacket = true;
     while (readNextPacket) {
@@ -162,13 +160,9 @@ int NETEQTEST_RTPpacket::readFromFile(FILE *fp)
         {
             readNextPacket = true;
         }
-
-        if (_filterSSRC && _selectSSRC != SSRC())
-        {
-            readNextPacket = true;
-        }
     }
 
+    _rtpParsed = false;
     return(packetLen);
 
 }
@@ -208,6 +202,7 @@ int NETEQTEST_RTPpacket::readFixedFromFile(FILE *fp, size_t length)
         return readFromFile(fp);
     }
 
+    _rtpParsed = false;
     return length;
 
 }
@@ -262,11 +257,6 @@ void NETEQTEST_RTPpacket::blockPT(uint8_t pt)
     _blockList[pt] = true;
 }
 
-void NETEQTEST_RTPpacket::selectSSRC(uint32_t ssrc)
-{
-    _selectSSRC = ssrc;
-    _filterSSRC = true;
-}
 
 void NETEQTEST_RTPpacket::parseHeader()
 {
@@ -290,18 +280,20 @@ void NETEQTEST_RTPpacket::parseHeader()
 
 }
 
-void NETEQTEST_RTPpacket::parseHeader(WebRtcNetEQ_RTPInfo & rtpInfo)
-{
-    if (!_rtpParsed)
-    {
-        // parse the header
-        parseHeader();
-    }
-
-    memcpy(&rtpInfo, &_rtpInfo, sizeof(WebRtcNetEQ_RTPInfo));
+void NETEQTEST_RTPpacket::parseHeader(webrtc::WebRtcRTPHeader* rtp_header) {
+  if (!_rtpParsed) {
+    parseHeader();
+  }
+  if (rtp_header) {
+    rtp_header->header.markerBit = _rtpInfo.header.markerBit;
+    rtp_header->header.payloadType = _rtpInfo.header.payloadType;
+    rtp_header->header.sequenceNumber = _rtpInfo.header.sequenceNumber;
+    rtp_header->header.timestamp = _rtpInfo.header.timestamp;
+    rtp_header->header.ssrc = _rtpInfo.header.ssrc;
+  }
 }
 
-WebRtcNetEQ_RTPInfo const * NETEQTEST_RTPpacket::RTPinfo() const
+const webrtc::WebRtcRTPHeader* NETEQTEST_RTPpacket::RTPinfo() const
 {
     if (_rtpParsed)
     {
@@ -337,7 +329,7 @@ uint8_t * NETEQTEST_RTPpacket::payload() const
     }
 }
 
-int16_t NETEQTEST_RTPpacket::payloadLen()
+size_t NETEQTEST_RTPpacket::payloadLen()
 {
     parseHeader();
     return _payloadLen;
@@ -360,82 +352,72 @@ bool NETEQTEST_RTPpacket::isLost() const
 
 uint8_t  NETEQTEST_RTPpacket::payloadType() const
 {
-    WebRtcNetEQ_RTPInfo tempRTPinfo;
-
     if(_datagram && _datagramLen >= _kBasicHeaderLen)
     {
+        webrtc::WebRtcRTPHeader tempRTPinfo;
         parseRTPheader(&tempRTPinfo);
+        return tempRTPinfo.header.payloadType;
     }
     else
     {
         return 0;
     }
-
-    return tempRTPinfo.payloadType;
 }
 
 uint16_t NETEQTEST_RTPpacket::sequenceNumber() const
 {
-    WebRtcNetEQ_RTPInfo tempRTPinfo;
-
     if(_datagram && _datagramLen >= _kBasicHeaderLen)
     {
+        webrtc::WebRtcRTPHeader tempRTPinfo;
         parseRTPheader(&tempRTPinfo);
+        return tempRTPinfo.header.sequenceNumber;
     }
     else
     {
         return 0;
     }
-
-    return tempRTPinfo.sequenceNumber;
 }
 
 uint32_t NETEQTEST_RTPpacket::timeStamp() const
 {
-    WebRtcNetEQ_RTPInfo tempRTPinfo;
-
     if(_datagram && _datagramLen >= _kBasicHeaderLen)
     {
+        webrtc::WebRtcRTPHeader tempRTPinfo;
         parseRTPheader(&tempRTPinfo);
+        return tempRTPinfo.header.timestamp;
     }
     else
     {
         return 0;
     }
-
-    return tempRTPinfo.timeStamp;
 }
 
 uint32_t NETEQTEST_RTPpacket::SSRC() const
 {
-    WebRtcNetEQ_RTPInfo tempRTPinfo;
-
     if(_datagram && _datagramLen >= _kBasicHeaderLen)
     {
+        webrtc::WebRtcRTPHeader tempRTPinfo;
         parseRTPheader(&tempRTPinfo);
+        return tempRTPinfo.header.ssrc;
     }
     else
     {
         return 0;
     }
-
-    return tempRTPinfo.SSRC;
 }
 
 uint8_t  NETEQTEST_RTPpacket::markerBit() const
 {
-    WebRtcNetEQ_RTPInfo tempRTPinfo;
-
     if(_datagram && _datagramLen >= _kBasicHeaderLen)
     {
+        webrtc::WebRtcRTPHeader tempRTPinfo;
         parseRTPheader(&tempRTPinfo);
+        return tempRTPinfo.header.markerBit;
     }
     else
     {
         return 0;
     }
-
-    return tempRTPinfo.markerBit;
 }
 
 
@@ -450,10 +432,10 @@ int NETEQTEST_RTPpacket::setPayloadType(uint8_t pt)
 
     if (!_rtpParsed)
     {
-        _rtpInfo.payloadType = pt;
+        _rtpInfo.header.payloadType = pt;
     }
 
-    _datagram[1]=(unsigned char)(pt & 0xFF);
+    _datagram[1] = pt;
 
     return 0;
 
@@ -469,7 +451,7 @@ int NETEQTEST_RTPpacket::setSequenceNumber(uint16_t sn)
 
     if (!_rtpParsed)
     {
-        _rtpInfo.sequenceNumber = sn;
+        _rtpInfo.header.sequenceNumber = sn;
     }
 
     _datagram[2]=(unsigned char)((sn>>8)&0xFF);
@@ -489,7 +471,7 @@ int NETEQTEST_RTPpacket::setTimeStamp(uint32_t ts)
 
     if (!_rtpParsed)
     {
-        _rtpInfo.timeStamp = ts;
+        _rtpInfo.header.timestamp = ts;
     }
 
     _datagram[4]=(unsigned char)((ts>>24)&0xFF);
@@ -511,7 +493,7 @@ int NETEQTEST_RTPpacket::setSSRC(uint32_t ssrc)
 
     if (!_rtpParsed)
     {
-        _rtpInfo.SSRC = ssrc;
+        _rtpInfo.header.ssrc = ssrc;
     }
 
     _datagram[8]=(unsigned char)((ssrc>>24)&0xFF);
@@ -533,7 +515,7 @@ int NETEQTEST_RTPpacket::setMarkerBit(uint8_t mb)
 
     if (_rtpParsed)
     {
-        _rtpInfo.markerBit = mb;
+        _rtpInfo.header.markerBit = mb;
     }
 
     if (mb)
@@ -549,7 +531,7 @@ int NETEQTEST_RTPpacket::setMarkerBit(uint8_t mb)
 
 }
 
-int NETEQTEST_RTPpacket::setRTPheader(const WebRtcNetEQ_RTPInfo *RTPinfo)
+int NETEQTEST_RTPpacket::setRTPheader(const webrtc::WebRtcRTPHeader* RTPinfo)
 {
     if (_datagramLen < 12)
     {
@@ -558,11 +540,11 @@ int NETEQTEST_RTPpacket::setRTPheader(const WebRtcNetEQ_RTPInfo *RTPinfo)
     }
 
     makeRTPheader(_datagram,
-        RTPinfo->payloadType,
-        RTPinfo->sequenceNumber,
-        RTPinfo->timeStamp,
-        RTPinfo->SSRC,
-        RTPinfo->markerBit);
+        RTPinfo->header.payloadType,
+        RTPinfo->header.sequenceNumber,
+        RTPinfo->header.timestamp,
+        RTPinfo->header.ssrc,
+        RTPinfo->header.markerBit);
 
     return 0;
 }
@@ -632,38 +614,31 @@ int NETEQTEST_RTPpacket::splitStereo(NETEQTEST_RTPpacket* slaveRtp,
 }
 
 
-void NETEQTEST_RTPpacket::makeRTPheader(unsigned char* rtp_data, uint8_t payloadType, uint16_t seqNo, uint32_t timestamp, uint32_t ssrc, uint8_t markerBit) const
+void NETEQTEST_RTPpacket::makeRTPheader(unsigned char* rtp_data,
+                                        uint8_t payloadType,
+                                        uint16_t seqNo,
+                                        uint32_t timestamp,
+                                        uint32_t ssrc,
+                                        uint8_t markerBit) const
 {
-    rtp_data[0]=(unsigned char)0x80;
-    if (markerBit)
-    {
-        rtp_data[0] |= 0x01;
-    }
-    else
-    {
-        rtp_data[0] &= 0xFE;
-    }
-    rtp_data[1]=(unsigned char)(payloadType & 0xFF);
-    rtp_data[2]=(unsigned char)((seqNo>>8)&0xFF);
-    rtp_data[3]=(unsigned char)((seqNo)&0xFF);
-    rtp_data[4]=(unsigned char)((timestamp>>24)&0xFF);
-    rtp_data[5]=(unsigned char)((timestamp>>16)&0xFF);
-
-    rtp_data[6]=(unsigned char)((timestamp>>8)&0xFF);
-    rtp_data[7]=(unsigned char)(timestamp & 0xFF);
-
-    rtp_data[8]=(unsigned char)((ssrc>>24)&0xFF);
-    rtp_data[9]=(unsigned char)((ssrc>>16)&0xFF);
-
-    rtp_data[10]=(unsigned char)((ssrc>>8)&0xFF);
-    rtp_data[11]=(unsigned char)(ssrc & 0xFF);
+    rtp_data[0] = markerBit ? 0x81 : 0x80;
+    rtp_data[1] = payloadType;
+    rtp_data[2] = seqNo >> 8;
+    rtp_data[3] = seqNo & 0xFF;
+    rtp_data[4] = timestamp >> 24;
+    rtp_data[5] = (timestamp >> 16) & 0xFF;
+    rtp_data[6] = (timestamp >> 8) & 0xFF;
+    rtp_data[7] = timestamp & 0xFF;
+    rtp_data[8] = ssrc >> 24;
+    rtp_data[9] = (ssrc >> 16) & 0xFF;
+    rtp_data[10] = (ssrc >> 8) & 0xFF;
+    rtp_data[11] = ssrc & 0xFF;
 }
 
-uint16_t
-    NETEQTEST_RTPpacket::parseRTPheader(WebRtcNetEQ_RTPInfo *RTPinfo,
-                                        uint8_t **payloadPtr) const
+uint16_t NETEQTEST_RTPpacket::parseRTPheader(webrtc::WebRtcRTPHeader* RTPinfo,
+                                             uint8_t **payloadPtr) const
 {
-    int16_t *rtp_data = (int16_t *) _datagram;
+    uint16_t* rtp_data = reinterpret_cast<uint16_t*>(_datagram);
     int i_P, i_X, i_CC;
 
     assert(_datagramLen >= 12);
@@ -675,60 +650,54 @@ uint16_t
 
     if (payloadPtr)
     {
-        *payloadPtr = (uint8_t*) &rtp_data[i_startPosition >> 1];
+        *payloadPtr =
+            reinterpret_cast<uint8_t*>(&rtp_data[i_startPosition >> 1]);
     }
 
-    return (uint16_t) (_datagramLen - i_startPosition - i_padlength);
+    return static_cast<uint16_t>(_datagramLen - i_startPosition - i_padlength);
 }
 
 
-void NETEQTEST_RTPpacket::parseBasicHeader(WebRtcNetEQ_RTPInfo *RTPinfo,
+void NETEQTEST_RTPpacket::parseBasicHeader(webrtc::WebRtcRTPHeader* RTPinfo,
                                            int *i_P, int *i_X, int *i_CC) const
 {
-    int16_t *rtp_data = (int16_t *) _datagram;
+    uint16_t* rtp_data = reinterpret_cast<uint16_t*>(_datagram);
     if (_datagramLen < 12)
     {
         assert(false);
         return;
     }
 
-    *i_P=(((uint16_t)(rtp_data[0] & 0x20))>>5); /* Extract the P bit */
-    *i_X=(((uint16_t)(rtp_data[0] & 0x10))>>4); /* Extract the X bit */
-    *i_CC=(uint16_t)(rtp_data[0] & 0xF); /* Get the CC number  */
-    /* Get the marker bit */
-    RTPinfo->markerBit = (uint8_t) ((rtp_data[0] >> 15) & 0x01);
-    /* Get the coder type */
-    RTPinfo->payloadType = (uint8_t) ((rtp_data[0] >> 8) & 0x7F);
-    /* Get the packet number */
-    RTPinfo->sequenceNumber = ((( ((uint16_t)rtp_data[1]) >> 8) & 0xFF) |
-        ( ((uint16_t)(rtp_data[1] & 0xFF)) << 8));
-    /* Get timestamp */
-    RTPinfo->timeStamp = ((((uint16_t)rtp_data[2]) & 0xFF) << 24) |
-        ((((uint16_t)rtp_data[2]) & 0xFF00) << 8) |
-        ((((uint16_t)rtp_data[3]) >> 8) & 0xFF) |
-        ((((uint16_t)rtp_data[3]) & 0xFF) << 8);
-    /* Get the SSRC */
-    RTPinfo->SSRC=((((uint16_t)rtp_data[4]) & 0xFF) << 24) |
-        ((((uint16_t)rtp_data[4]) & 0xFF00) << 8) |
-        ((((uint16_t)rtp_data[5]) >> 8) & 0xFF) |
-        ((((uint16_t)rtp_data[5]) & 0xFF) << 8);
+    *i_P = (rtp_data[0] >> 5) & 0x01;
+    *i_X = (rtp_data[0] >> 4) & 0x01;
+    *i_CC = rtp_data[0] & 0xF;
+    RTPinfo->header.markerBit = (rtp_data[0] >> 15) & 0x01;
+    RTPinfo->header.payloadType = (rtp_data[0] >> 8) & 0x7F;
+    RTPinfo->header.sequenceNumber =
+        (rtp_data[1] >> 8) | ((rtp_data[1] & 0xFF) << 8);
+    RTPinfo->header.timestamp =
+        ((rtp_data[2] & 0xFF) << 24) | ((rtp_data[2] & 0xFF00) << 8) |
+        (rtp_data[3] >> 8) | ((rtp_data[3] & 0xFF) << 8);
+    RTPinfo->header.ssrc =
+        ((rtp_data[4] & 0xFF) << 24) | ((rtp_data[4] & 0xFF00) << 8) |
+        (rtp_data[5] >> 8) | ((rtp_data[5] & 0xFF) << 8);
 }
 
 int NETEQTEST_RTPpacket::calcHeaderLength(int i_X, int i_CC) const
 {
     int i_extlength = 0;
-    int16_t *rtp_data = (int16_t *) _datagram;
+    uint16_t* rtp_data = reinterpret_cast<uint16_t*>(_datagram);
 
     if (i_X == 1)
     {
         // Extension header exists.
         // Find out how many int32_t it consists of.
-        assert(_datagramLen > 2 * (7 + 2 * i_CC));
-        if (_datagramLen > 2 * (7 + 2 * i_CC))
+        int offset = 7 + 2 * i_CC;
+        assert(_datagramLen > 2 * offset);
+        if (_datagramLen > 2 * offset)
         {
-            i_extlength = (((((uint16_t) rtp_data[7 + 2 * i_CC]) >> 8)
-                & 0xFF) | (((uint16_t) (rtp_data[7 + 2 * i_CC] & 0xFF))
-                << 8)) + 1;
+            i_extlength = 1 +
+                (((rtp_data[offset]) >> 8) | ((rtp_data[offset] & 0xFF) << 8));
         }
     }
 
@@ -737,7 +706,7 @@ int NETEQTEST_RTPpacket::calcHeaderLength(int i_X, int i_CC) const
 
 int NETEQTEST_RTPpacket::calcPadLength(int i_P) const
 {
-    int16_t *rtp_data = (int16_t *) _datagram;
+    uint16_t* rtp_data = reinterpret_cast<uint16_t*>(_datagram);
     if (i_P == 1)
     {
         /* Padding exists. Find out how many bytes the padding consists of. */
@@ -749,7 +718,7 @@ int NETEQTEST_RTPpacket::calcPadLength(int i_P) const
         else
         {
             /* even number of bytes => last byte in lower byte */
-            return ((uint16_t) rtp_data[(_datagramLen >> 1) - 1]) >> 8;
+            return rtp_data[(_datagramLen >> 1) - 1] >> 8;
         }
     }
     return 0;
@@ -759,7 +728,7 @@ void NETEQTEST_RTPpacket::splitStereoSample(NETEQTEST_RTPpacket* slaveRtp,
                                             int stride)
 {
     if(!_payloadPtr || !slaveRtp || !slaveRtp->_payloadPtr
-        || _payloadLen <= 0 || slaveRtp->_memSize < _memSize)
+        || _payloadLen == 0 || slaveRtp->_memSize < _memSize)
     {
         return;
     }
@@ -768,7 +737,7 @@ void NETEQTEST_RTPpacket::splitStereoSample(NETEQTEST_RTPpacket* slaveRtp,
     uint8_t *writeDataPtr = _payloadPtr;
     uint8_t *slaveData = slaveRtp->_payloadPtr;
 
-    while (readDataPtr - _payloadPtr < _payloadLen)
+    while (readDataPtr - _payloadPtr < static_cast<ptrdiff_t>(_payloadLen))
     {
         // master data
         for (int ix = 0; ix < stride; ix++) {
@@ -793,7 +762,7 @@ void NETEQTEST_RTPpacket::splitStereoSample(NETEQTEST_RTPpacket* slaveRtp,
 void NETEQTEST_RTPpacket::splitStereoFrame(NETEQTEST_RTPpacket* slaveRtp)
 {
     if(!_payloadPtr || !slaveRtp || !slaveRtp->_payloadPtr
-        || _payloadLen <= 0 || slaveRtp->_memSize < _memSize)
+        || _payloadLen == 0 || slaveRtp->_memSize < _memSize)
     {
         return;
     }
@@ -806,7 +775,7 @@ void NETEQTEST_RTPpacket::splitStereoFrame(NETEQTEST_RTPpacket* slaveRtp)
 void NETEQTEST_RTPpacket::splitStereoDouble(NETEQTEST_RTPpacket* slaveRtp)
 {
     if(!_payloadPtr || !slaveRtp || !slaveRtp->_payloadPtr
-        || _payloadLen <= 0 || slaveRtp->_memSize < _memSize)
+        || _payloadLen == 0 || slaveRtp->_memSize < _memSize)
     {
         return;
     }
@@ -817,7 +786,7 @@ void NETEQTEST_RTPpacket::splitStereoDouble(NETEQTEST_RTPpacket* slaveRtp)
 
 // Get the RTP header for the RED payload indicated by argument index.
 // The first RED payload is index = 0.
-int NETEQTEST_RTPpacket::extractRED(int index, WebRtcNetEQ_RTPInfo& red)
+int NETEQTEST_RTPpacket::extractRED(int index, webrtc::WebRtcRTPHeader& red)
 {
 //
 //  0                   1                    2                   3
@@ -844,12 +813,12 @@ int NETEQTEST_RTPpacket::extractRED(int index, WebRtcNetEQ_RTPInfo& red)
         if (num_encodings == index)
         {
             // Header found.
-            red.payloadType = ptr[0] & 0x7F;
-            uint32_t offset = (ptr[1] << 6) + ((ptr[2] & 0xFC) >> 2);
-            red.sequenceNumber = sequenceNumber();
-            red.timeStamp = timeStamp() - offset;
-            red.markerBit = markerBit();
-            red.SSRC = SSRC();
+            red.header.payloadType = ptr[0] & 0x7F;
+            uint32_t offset = (ptr[1] << 6) + (ptr[2] >> 2);
+            red.header.sequenceNumber = sequenceNumber();
+            red.header.timestamp = timeStamp() - offset;
+            red.header.markerBit = markerBit();
+            red.header.ssrc = SSRC();
             return len;
         }
         ++num_encodings;
@@ -859,11 +828,11 @@ int NETEQTEST_RTPpacket::extractRED(int index, WebRtcNetEQ_RTPInfo& red)
     if ((ptr < payloadEndPtr) && (num_encodings == index))
     {
         // Last header.
-        red.payloadType = ptr[0] & 0x7F;
-        red.sequenceNumber = sequenceNumber();
-        red.timeStamp = timeStamp();
-        red.markerBit = markerBit();
-        red.SSRC = SSRC();
+        red.header.payloadType = ptr[0] & 0x7F;
+        red.header.sequenceNumber = sequenceNumber();
+        red.header.timestamp = timeStamp();
+        red.header.markerBit = markerBit();
+        red.header.ssrc = SSRC();
         ++ptr;
         return payloadLen() - (ptr - payload()) - total_len;
     }
@@ -875,7 +844,7 @@ void NETEQTEST_RTPpacket::scramblePayload(void)
 {
     parseHeader();
 
-    for (int i = 0; i < _payloadLen; ++i)
+    for (size_t i = 0; i < _payloadLen; ++i)
     {
         _payloadPtr[i] = static_cast<uint8_t>(rand());
     }

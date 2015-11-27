@@ -9,7 +9,7 @@ function run_test()
   run_next_test();
 }
 
-add_task(function test_execute()
+add_task(function* test_execute()
 {
   try {
     var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
@@ -22,7 +22,7 @@ add_task(function test_execute()
 
   // add a visit
   var testURI = uri("http://test");
-  yield promiseAddVisits(testURI);
+  yield PlacesTestUtils.addVisits(testURI);
 
   // query for the visit
   var options = histsvc.getNewQueryOptions();

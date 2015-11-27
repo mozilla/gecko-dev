@@ -29,14 +29,14 @@ namespace net {
 // nsBaseChannel and have a new class that has only the common logic for
 // nsFTPChannel/FTPChannelChild.
 
-class FTPChannelChild : public PFTPChannelChild
-                      , public nsBaseChannel
-                      , public nsIFTPChannel
-                      , public nsIUploadChannel
-                      , public nsIResumableChannel
-                      , public nsIProxiedChannel
-                      , public nsIChildChannel
-                      , public nsIDivertableChannel
+class FTPChannelChild final : public PFTPChannelChild
+                            , public nsBaseChannel
+                            , public nsIFTPChannel
+                            , public nsIUploadChannel
+                            , public nsIResumableChannel
+                            , public nsIProxiedChannel
+                            , public nsIChildChannel
+                            , public nsIDivertableChannel
 {
 public:
   typedef ::nsIStreamListener nsIStreamListener;
@@ -49,24 +49,24 @@ public:
   NS_DECL_NSICHILDCHANNEL
   NS_DECL_NSIDIVERTABLECHANNEL
 
-  NS_IMETHOD Cancel(nsresult status);
-  NS_IMETHOD Suspend();
-  NS_IMETHOD Resume();
+  NS_IMETHOD Cancel(nsresult status) override;
+  NS_IMETHOD Suspend() override;
+  NS_IMETHOD Resume() override;
 
   explicit FTPChannelChild(nsIURI* uri);
 
   void AddIPDLReference();
   void ReleaseIPDLReference();
 
-  NS_IMETHOD AsyncOpen(nsIStreamListener* listener, nsISupports* aContext);
+  NS_IMETHOD AsyncOpen(nsIStreamListener* listener, nsISupports* aContext) override;
 
   // Note that we handle this ourselves, overriding the nsBaseChannel
   // default behavior, in order to be e10s-friendly.
-  NS_IMETHOD IsPending(bool* result);
+  NS_IMETHOD IsPending(bool* result) override;
 
   nsresult OpenContentStream(bool async,
                              nsIInputStream** stream,
-                             nsIChannel** channel) MOZ_OVERRIDE;
+                             nsIChannel** channel) override;
 
   bool IsSuspended();
 
@@ -80,16 +80,16 @@ protected:
                           const nsCString& aContentType,
                           const PRTime& aLastModified,
                           const nsCString& aEntityID,
-                          const URIParams& aURI) MOZ_OVERRIDE;
+                          const URIParams& aURI) override;
   bool RecvOnDataAvailable(const nsresult& channelStatus,
                            const nsCString& data,
                            const uint64_t& offset,
-                           const uint32_t& count) MOZ_OVERRIDE;
-  bool RecvOnStopRequest(const nsresult& channelStatus) MOZ_OVERRIDE;
-  bool RecvFailedAsyncOpen(const nsresult& statusCode) MOZ_OVERRIDE;
-  bool RecvFlushedForDiversion() MOZ_OVERRIDE;
-  bool RecvDivertMessages() MOZ_OVERRIDE;
-  bool RecvDeleteSelf() MOZ_OVERRIDE;
+                           const uint32_t& count) override;
+  bool RecvOnStopRequest(const nsresult& channelStatus) override;
+  bool RecvFailedAsyncOpen(const nsresult& statusCode) override;
+  bool RecvFlushedForDiversion() override;
+  bool RecvDivertMessages() override;
+  bool RecvDeleteSelf() override;
 
   void DoOnStartRequest(const nsresult& aChannelStatus,
                         const int64_t& aContentLength,
@@ -101,13 +101,19 @@ protected:
                          const nsCString& data,
                          const uint64_t& offset,
                          const uint32_t& count);
+  void MaybeDivertOnData(const nsCString& data,
+                         const uint64_t& offset,
+                         const uint32_t& count);
+  void MaybeDivertOnStop(const nsresult& statusCode);
   void DoOnStopRequest(const nsresult& statusCode);
   void DoFailedAsyncOpen(const nsresult& statusCode);
   void DoDeleteSelf();
 
   friend class FTPStartRequestEvent;
   friend class FTPDataAvailableEvent;
+  friend class MaybeDivertOnDataFTPEvent;
   friend class FTPStopRequestEvent;
+  friend class MaybeDivertOnStopFTPEvent;
   friend class FTPFailedAsyncOpenEvent;
   friend class FTPDeleteSelfEvent;
 
@@ -115,12 +121,18 @@ private:
   nsCOMPtr<nsIInputStream> mUploadStream;
 
   bool mIPCOpen;
-  nsRefPtr<ChannelEventQueue> mEventQ;
+  RefPtr<ChannelEventQueue> mEventQ;
+
+  // If nsUnknownDecoder is involved we queue onDataAvailable (and possibly
+  // OnStopRequest) so that we can divert them if needed when the listener's
+  // OnStartRequest is finally called
+  nsTArray<nsAutoPtr<ChannelEvent>> mUnknownDecoderEventQ;
+  bool mUnknownDecoderInvolved;
+
   bool mCanceled;
   uint32_t mSuspendCount;
   bool mIsPending;
-  bool mWasOpened;
-  
+
   PRTime mLastModifiedTime;
   uint64_t mStartPos;
   nsCString mEntityID;

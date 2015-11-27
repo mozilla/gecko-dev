@@ -59,7 +59,7 @@ ImageData::Constructor(const GlobalObject& aGlobal,
     aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return nullptr;
   }
-  nsRefPtr<ImageData> imageData = new ImageData(aWidth, aHeight, *data);
+  RefPtr<ImageData> imageData = new ImageData(aWidth, aHeight, *data);
   return imageData.forget();
 }
 
@@ -89,7 +89,7 @@ ImageData::Constructor(const GlobalObject& aGlobal,
     aRv.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
     return nullptr;
   }
-  nsRefPtr<ImageData> imageData = new ImageData(aWidth, height, *aData.Obj());
+  RefPtr<ImageData> imageData = new ImageData(aWidth, height, *aData.Obj());
   return imageData.forget();
 }
 
@@ -108,10 +108,10 @@ ImageData::DropData()
   }
 }
 
-JSObject*
-ImageData::WrapObject(JSContext* cx)
+bool
+ImageData::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto, JS::MutableHandle<JSObject*> aReflector)
 {
-  return ImageDataBinding::Wrap(cx, this);
+  return ImageDataBinding::Wrap(aCx, this, aGivenProto, aReflector);
 }
 
 } // namespace dom

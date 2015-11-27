@@ -1,11 +1,12 @@
 <head>
   <title>NPN_Get/PostURLNotify tests</title>
   <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
-  <script type="application/javascript" src="utils.js"></script>
+  <script type="application/javascript" src="plugin-utils.js"></script>
 
 <body onload="runTests()">
   <script class="testbody" type="application/javascript">
   SimpleTest.waitForExplicitFinish();
+  SimpleTest.requestFlakyTimeout("untriaged");
   setTestPluginEnabledState(SpecialPowers.Ci.nsIPluginTag.STATE_ENABLED);
 
   var pending = 5;

@@ -11,7 +11,7 @@ const kUniqueURI = Services.io.newURI("http://mochi.test:8888/#bug_680727",
 var gAsyncHistory = 
   Cc["@mozilla.org/browser/history;1"].getService(Ci.mozIAsyncHistory);
 
-let proxyPrefValue;
+var proxyPrefValue;
 
 function test() {
   waitForExplicitFinish();
@@ -55,7 +55,7 @@ function errorListener() {
      "Docshell URI is the original URI.");
 
   // Global history does not record URI of a failed request.
-  promiseAsyncUpdates().then(function() {
+  PlacesTestUtils.promiseAsyncUpdates().then(() => {
     gAsyncHistory.isURIVisited(kUniqueURI, errorAsyncListener);
   });
 }
@@ -91,14 +91,14 @@ function reloadListener() {
      "Document URI is not the offline-error page, but the original URI.");
 
   // Check if global history remembers the successfully-requested URI.
-  promiseAsyncUpdates().then(function() {
+  PlacesTestUtils.promiseAsyncUpdates().then(() => {
     gAsyncHistory.isURIVisited(kUniqueURI, reloadAsyncListener);
   });
 }
 
 function reloadAsyncListener(aURI, aIsVisited) {
   ok(kUniqueURI.equals(aURI) && aIsVisited, "We have visited the URI.");
-  promiseClearHistory().then(finish);
+  PlacesTestUtils.clearHistory().then(finish);
 }
 
 registerCleanupFunction(function() {

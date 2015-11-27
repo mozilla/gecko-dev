@@ -1,5 +1,5 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -27,8 +27,8 @@ class Promise;
 class RetrieveRevisionsCounter;
 class RevisionAddedEnableStoreCallback;
 
-class DataStoreService MOZ_FINAL : public nsIDataStoreService
-                                 , public nsIObserver
+class DataStoreService final : public nsIDataStoreService
+                             , public nsIObserver
 {
   friend class ContentChild;
   friend class FirstRevisionIdCallback;
@@ -56,6 +56,8 @@ public:
                                 const nsAString& aOwner,
                                 nsIPrincipal* aPrincipal,
                                 nsTArray<DataStoreSetting>* aValue);
+
+  void HomeScreenPrefChanged();
 
 private:
   DataStoreService();
@@ -96,6 +98,9 @@ private:
   already_AddRefed<RetrieveRevisionsCounter> GetCounter(uint32_t aId) const;
 
   void RemoveCounter(uint32_t aId);
+
+  void DeleteDataStoresIfNotAllowed(const nsAString& aManifestURL);
+  void AddDataStoresIfAllowed(const nsAString& aManifestURL);
 
   nsClassHashtable<nsStringHashKey, HashApp> mStores;
   nsClassHashtable<nsStringHashKey, HashApp> mAccessStores;

@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,95 +8,127 @@
 
 #include "IDBEvents.h"
 #include "IDBMutableFile.h"
-#include "mozilla/dom/FileService.h"
+#include "mozilla/Assertions.h"
 #include "mozilla/dom/IDBFileHandleBinding.h"
-#include "mozilla/dom/MetadataHelper.h"
+#include "mozilla/dom/filehandle/ActorsChild.h"
 #include "mozilla/EventDispatcher.h"
-#include "nsIAppShell.h"
 #include "nsServiceManagerUtils.h"
 #include "nsWidgetsCID.h"
-
-namespace {
-
-NS_DEFINE_CID(kAppShellCID2, NS_APPSHELL_CID);
-
-} // anonymous namespace
 
 namespace mozilla {
 namespace dom {
 namespace indexedDB {
 
 IDBFileHandle::IDBFileHandle(FileMode aMode,
-                             RequestMode aRequestMode,
                              IDBMutableFile* aMutableFile)
-  : FileHandleBase(aMode, aRequestMode)
+  : FileHandleBase(DEBUGONLY(aMutableFile->OwningThread(),)
+                   aMode)
   , mMutableFile(aMutableFile)
 {
-  SetIsDOMBinding();
+  AssertIsOnOwningThread();
 }
 
 IDBFileHandle::~IDBFileHandle()
 {
+  AssertIsOnOwningThread();
+
+  mMutableFile->UnregisterFileHandle(this);
 }
 
 // static
 already_AddRefed<IDBFileHandle>
-IDBFileHandle::Create(FileMode aMode,
-                      RequestMode aRequestMode,
-                      IDBMutableFile* aMutableFile)
+IDBFileHandle::Create(IDBMutableFile* aMutableFile,
+                      FileMode aMode)
 {
-  MOZ_ASSERT(NS_IsMainThread(), "Wrong thread!");
+  MOZ_ASSERT(aMutableFile);
+  aMutableFile->AssertIsOnOwningThread();
+  MOZ_ASSERT(aMode == FileMode::Readonly || aMode == FileMode::Readwrite);
 
-  nsRefPtr<IDBFileHandle> fileHandle =
-    new IDBFileHandle(aMode, aRequestMode, aMutableFile);
+  RefPtr<IDBFileHandle> fileHandle =
+    new IDBFileHandle(aMode, aMutableFile);
 
   fileHandle->BindToOwner(aMutableFile);
 
-  nsCOMPtr<nsIAppShell> appShell = do_GetService(kAppShellCID2);
-  if (NS_WARN_IF(!appShell)) {
-    return nullptr;
-  }
+  // XXX Fix!
+  MOZ_ASSERT(NS_IsMainThread(), "This won't work on non-main threads!");
 
-  nsresult rv = appShell->RunBeforeNextEvent(fileHandle);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return nullptr;
-  }
+  nsCOMPtr<nsIRunnable> runnable = do_QueryObject(fileHandle);
+  nsContentUtils::RunInMetastableState(runnable.forget());
 
   fileHandle->SetCreating();
 
-  FileService* service = FileService::GetOrCreate();
-  if (NS_WARN_IF(!service)) {
-    return nullptr;
-  }
-
-  rv = service->Enqueue(fileHandle, nullptr);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return nullptr;
-  }
+  aMutableFile->RegisterFileHandle(fileHandle);
 
   return fileHandle.forget();
 }
 
-mozilla::dom::MutableFileBase*
-IDBFileHandle::MutableFile() const
+already_AddRefed<IDBFileRequest>
+IDBFileHandle::GetMetadata(const IDBFileMetadataParameters& aParameters,
+                           ErrorResult& aRv)
 {
-  return mMutableFile;
+  AssertIsOnOwningThread();
+
+  // Common state checking
+  if (!CheckState(aRv)) {
+    return nullptr;
+  }
+
+  // Argument checking for get metadata.
+  if (!aParameters.mSize && !aParameters.mLastModified) {
+    aRv.ThrowTypeError<MSG_METADATA_NOT_CONFIGURED>();
+    return nullptr;
+  }
+
+ // Do nothing if the window is closed
+  if (!CheckWindow()) {
+    return nullptr;
+  }
+
+  FileRequestGetMetadataParams params;
+  params.size() = aParameters.mSize;
+  params.lastModified() = aParameters.mLastModified;
+
+  RefPtr<FileRequestBase> fileRequest = GenerateFileRequest();
+
+  StartRequest(fileRequest, params);
+
+  return fileRequest.forget().downcast<IDBFileRequest>();
 }
-
-NS_IMPL_CYCLE_COLLECTION_INHERITED(IDBFileHandle, DOMEventTargetHelper,
-                                   mMutableFile)
-
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(IDBFileHandle)
-  NS_INTERFACE_MAP_ENTRY(nsIRunnable)
-NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 NS_IMPL_ADDREF_INHERITED(IDBFileHandle, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(IDBFileHandle, DOMEventTargetHelper)
 
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(IDBFileHandle)
+  NS_INTERFACE_MAP_ENTRY(nsIRunnable)
+  NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
+NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
+
+NS_IMPL_CYCLE_COLLECTION_CLASS(IDBFileHandle)
+
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(IDBFileHandle,
+                                                  DOMEventTargetHelper)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mMutableFile)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(IDBFileHandle,
+                                                DOMEventTargetHelper)
+  // Don't unlink mMutableFile!
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+
+NS_IMETHODIMP
+IDBFileHandle::Run()
+{
+  AssertIsOnOwningThread();
+
+  OnReturnToEventLoop();
+
+  return NS_OK;
+}
+
 nsresult
 IDBFileHandle::PreHandleEvent(EventChainPreVisitor& aVisitor)
 {
-  MOZ_ASSERT(NS_IsMainThread(), "Wrong thread!");
+  AssertIsOnOwningThread();
 
   aVisitor.mCanHandle = true;
   aVisitor.mParentTarget = mMutableFile;
@@ -105,87 +137,58 @@ IDBFileHandle::PreHandleEvent(EventChainPreVisitor& aVisitor)
 
 // virtual
 JSObject*
-IDBFileHandle::WrapObject(JSContext* aCx)
+IDBFileHandle::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return IDBFileHandleBinding::Wrap(aCx, this);
+  AssertIsOnOwningThread();
+
+  return IDBFileHandleBinding::Wrap(aCx, this, aGivenProto);
 }
 
-already_AddRefed<IDBFileRequest>
-IDBFileHandle::GetMetadata(const IDBFileMetadataParameters& aParameters,
-                           ErrorResult& aRv)
+mozilla::dom::MutableFileBase*
+IDBFileHandle::MutableFile() const
 {
-  MOZ_ASSERT(NS_IsMainThread(), "Wrong thread!");
+  AssertIsOnOwningThread();
 
-  // Common state checking
-  if (!CheckState(aRv)) {
-    return nullptr;
-  }
-
-  // Do nothing if the window is closed
-  if (!CheckWindow()) {
-    return nullptr;
-  }
-
-  nsRefPtr<MetadataParameters> params =
-    new MetadataParameters(aParameters.mSize, aParameters.mLastModified);
-  if (!params->IsConfigured()) {
-    aRv.ThrowTypeError(MSG_METADATA_NOT_CONFIGURED);
-    return nullptr;
-  }
-
-  nsRefPtr<FileRequestBase> fileRequest = GenerateFileRequest();
-
-  nsRefPtr<MetadataHelper> helper =
-    new MetadataHelper(this, fileRequest, params);
-
-  if (NS_WARN_IF(NS_FAILED(helper->Enqueue()))) {
-    aRv.Throw(NS_ERROR_DOM_FILEHANDLE_UNKNOWN_ERR);
-    return nullptr;
-  }
-
-  return fileRequest.forget().downcast<IDBFileRequest>();
+  return mMutableFile;
 }
 
-NS_IMETHODIMP
-IDBFileHandle::Run()
+void
+IDBFileHandle::HandleCompleteOrAbort(bool aAborted)
 {
-  OnReturnToEventLoop();
-  return NS_OK;
-}
+  AssertIsOnOwningThread();
 
-nsresult
-IDBFileHandle::OnCompleteOrAbort(bool aAborted)
-{
+  FileHandleBase::HandleCompleteOrAbort(aAborted);
+
   nsCOMPtr<nsIDOMEvent> event;
   if (aAborted) {
-    event = CreateGenericEvent(this, NS_LITERAL_STRING(ABORT_EVT_STR),
+    event = CreateGenericEvent(this, nsDependentString(kAbortEventType),
                                eDoesBubble, eNotCancelable);
   } else {
-    event = CreateGenericEvent(this, NS_LITERAL_STRING(COMPLETE_EVT_STR),
+    event = CreateGenericEvent(this, nsDependentString(kCompleteEventType),
                                eDoesNotBubble, eNotCancelable);
   }
   if (NS_WARN_IF(!event)) {
-    return NS_ERROR_DOM_FILEHANDLE_UNKNOWN_ERR;
+    return;
   }
 
   bool dummy;
   if (NS_FAILED(DispatchEvent(event, &dummy))) {
-    NS_WARNING("Dispatch failed!");
+    NS_WARNING("DispatchEvent failed!");
   }
-
-  return NS_OK;
 }
 
 bool
 IDBFileHandle::CheckWindow()
 {
+  AssertIsOnOwningThread();
+
   return GetOwner();
 }
 
 already_AddRefed<mozilla::dom::FileRequestBase>
 IDBFileHandle::GenerateFileRequest()
 {
-  MOZ_ASSERT(NS_IsMainThread(), "Wrong thread!");
+  AssertIsOnOwningThread();
 
   return IDBFileRequest::Create(GetOwner(), this,
                                 /* aWrapAsDOMRequest */ false);

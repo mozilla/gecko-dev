@@ -13,7 +13,7 @@
 
 #include <stdio.h>
 
-#ifdef XP_WIN
+#if defined(_MSC_VER) && _MSC_VER < 1900
 #define snprintf _snprintf
 #endif
 
@@ -1308,3 +1308,5 @@ ParseString(const nsACString& aSource, char aDelimiter,
 
   return true;
 }
+
+#undef snprintf

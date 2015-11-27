@@ -14,6 +14,7 @@
 #include "js/Class.h"
 #include "vm/ArrayBufferObject.h"
 #include "vm/SharedArrayObject.h"
+#include "vm/SharedMem.h"
 #include "vm/TypedArrayObject.h"
 
 typedef struct JSProperty JSProperty;
@@ -24,7 +25,7 @@ namespace js {
 // same as the representation of a TypedArrayObject, see comments in
 // TypedArrayObject.h.
 
-class SharedTypedArrayObject : public JSObject
+class SharedTypedArrayObject : public NativeObject
 {
   protected:
     static const size_t BUFFER_SLOT      = TypedArrayLayout::BUFFER_SLOT;
@@ -34,12 +35,12 @@ class SharedTypedArrayObject : public JSObject
     static const size_t DATA_SLOT        = TypedArrayLayout::DATA_SLOT;
 
   public:
-    typedef SharedTypedArrayObject AnyTypedArray;
+    typedef SharedTypedArrayObject SomeTypedArray;
     typedef SharedArrayBufferObject BufferType;
 
     template<typename T> struct OfType;
 
-    static bool ensureHasBuffer(JSContext *cx, Handle<SharedTypedArrayObject*> tarray) {
+    static bool ensureHasBuffer(JSContext* cx, Handle<SharedTypedArrayObject*> tarray) {
         return true;
     }
 
@@ -50,34 +51,34 @@ class SharedTypedArrayObject : public JSObject
 
     static bool is(HandleValue v);
 
-    static const Class classes[Scalar::TypeMax];
-    static const Class protoClasses[Scalar::TypeMax];
+    static const Class classes[Scalar::MaxTypedArrayViewType];
+    static const Class protoClasses[Scalar::MaxTypedArrayViewType];
 
-    static SharedArrayBufferObject *bufferObject(JSContext *cx, Handle<SharedTypedArrayObject *> obj);
+    static SharedArrayBufferObject* bufferObject(JSContext* cx, Handle<SharedTypedArrayObject*> obj);
 
-    static Value bufferValue(SharedTypedArrayObject *tarr) {
+    static Value bufferValue(SharedTypedArrayObject* tarr) {
         return tarr->getFixedSlot(BUFFER_SLOT);
     }
-    static Value byteOffsetValue(SharedTypedArrayObject *tarr) {
+    static Value byteOffsetValue(SharedTypedArrayObject* tarr) {
         return tarr->getFixedSlot(BYTEOFFSET_SLOT);
     }
-    static inline Value byteLengthValue(SharedTypedArrayObject *tarr);
-    static Value lengthValue(SharedTypedArrayObject *tarr) {
+    static inline Value byteLengthValue(SharedTypedArrayObject* tarr);
+    static Value lengthValue(SharedTypedArrayObject* tarr) {
         return tarr->getFixedSlot(LENGTH_SLOT);
     }
 
-    static void setElement(SharedTypedArrayObject &obj, uint32_t index, double d);
+    static void setElement(SharedTypedArrayObject& obj, uint32_t index, double d);
 
     static bool isOriginalLengthGetter(Scalar::Type type, Native native);
 
-    SharedArrayBufferObject *buffer() const;
+    SharedArrayBufferObject* buffer() const;
 
     inline Scalar::Type type() const;
 
     inline size_t bytesPerElement() const;
 
-    void *viewData() const {
-        return getPrivate(DATA_SLOT);
+    SharedMem<void*> viewDataShared() const {
+        return SharedMem<void*>::shared(getPrivate(DATA_SLOT));
     }
     uint32_t byteOffset() const {
         return byteOffsetValue(const_cast<SharedTypedArrayObject*>(this)).toInt32();
@@ -101,23 +102,23 @@ class SharedTypedArrayObject : public JSObject
     static TypedArrayLayout layout_;
 
   public:
-    static const TypedArrayLayout &layout() {
+    static const TypedArrayLayout& layout() {
         return layout_;
     }
 };
 
 inline bool
-IsSharedTypedArrayClass(const Class *clasp)
+IsSharedTypedArrayClass(const Class* clasp)
 {
     return &SharedTypedArrayObject::classes[0] <= clasp &&
-           clasp < &SharedTypedArrayObject::classes[Scalar::TypeMax];
+           clasp < &SharedTypedArrayObject::classes[Scalar::MaxTypedArrayViewType];
 }
 
 inline bool
-IsSharedTypedArrayProtoClass(const Class *clasp)
+IsSharedTypedArrayProtoClass(const Class* clasp)
 {
     return &SharedTypedArrayObject::protoClasses[0] <= clasp &&
-           clasp < &SharedTypedArrayObject::protoClasses[Scalar::TypeMax];
+           clasp < &SharedTypedArrayObject::protoClasses[Scalar::MaxTypedArrayViewType];
 }
 
 bool
@@ -126,7 +127,7 @@ IsSharedTypedArrayConstructor(HandleValue v, uint32_t type);
 inline Scalar::Type
 SharedTypedArrayObject::type() const
 {
-    JS_ASSERT(IsSharedTypedArrayClass(getClass()));
+    MOZ_ASSERT(IsSharedTypedArrayClass(getClass()));
     return static_cast<Scalar::Type>(getClass() - &classes[0]);
 }
 
@@ -137,13 +138,13 @@ SharedTypedArrayObject::bytesPerElement() const
 }
 
 /* static */ inline Value
-SharedTypedArrayObject::byteLengthValue(SharedTypedArrayObject *tarr)
+SharedTypedArrayObject::byteLengthValue(SharedTypedArrayObject* tarr)
 {
     size_t size = tarr->bytesPerElement();
     return Int32Value(tarr->getFixedSlot(LENGTH_SLOT).toInt32() * size);
 }
 
-}  // namespace js
+} // namespace js
 
 template <>
 inline bool

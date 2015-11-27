@@ -5,11 +5,12 @@
 
 package org.mozilla.gecko.util;
 
-import org.mozilla.gecko.mozglue.RobocopTarget;
+import org.mozilla.gecko.annotation.RobocopTarget;
 
 import java.util.Map;
 
 import android.os.Handler;
+import android.os.Looper;
 import android.os.MessageQueue;
 import android.util.Log;
 
@@ -25,17 +26,16 @@ public final class ThreadUtils {
         THROW,
     }
 
-    private static volatile Thread sUiThread;
-    private static volatile Thread sBackgroundThread;
+    private static final Thread sUiThread = Looper.getMainLooper().getThread();
+    private static final Handler sUiHandler = new Handler(Looper.getMainLooper());
 
-    private static Handler sUiHandler;
+    private static volatile Thread sBackgroundThread;
 
     // Referenced directly from GeckoAppShell in highly performance-sensitive code (The extra
     // function call of the getter was harming performance. (Bug 897123))
     // Once Bug 709230 is resolved we should reconsider this as ProGuard should be able to optimise
     // this out at compile time.
     public static Handler sGeckoHandler;
-    public static MessageQueue sGeckoQueue;
     public static volatile Thread sGeckoThread;
 
     // Delayed Runnable that resets the Gecko thread priority.
@@ -79,11 +79,6 @@ public final class ThreadUtils {
         }
     }
 
-    public static void setUiThread(Thread thread, Handler handler) {
-        sUiThread = thread;
-        sUiHandler = handler;
-    }
-
     public static void setBackgroundThread(Thread thread) {
         sBackgroundThread = thread;
     }
@@ -98,6 +93,14 @@ public final class ThreadUtils {
 
     public static void postToUiThread(Runnable runnable) {
         sUiHandler.post(runnable);
+    }
+
+    public static void postDelayedToUiThread(Runnable runnable, long timeout) {
+        sUiHandler.postDelayed(runnable, timeout);
+    }
+
+    public static void removeCallbacksFromUiThread(Runnable runnable) {
+        sUiHandler.removeCallbacks(runnable);
     }
 
     public static Thread getBackgroundThread() {
@@ -193,6 +196,7 @@ public final class ThreadUtils {
         return isOnThread(getUiThread());
     }
 
+    @RobocopTarget
     public static boolean isOnBackgroundThread() {
         if (sBackgroundThread == null) {
             return false;
@@ -201,6 +205,7 @@ public final class ThreadUtils {
         return isOnThread(sBackgroundThread);
     }
 
+    @RobocopTarget
     public static boolean isOnThread(Thread thread) {
         return (Thread.currentThread().getId() == thread.getId());
     }

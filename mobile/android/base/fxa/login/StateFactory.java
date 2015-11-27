@@ -8,10 +8,10 @@ import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 
 import org.mozilla.gecko.background.common.log.Logger;
+import org.mozilla.gecko.background.fxa.FxAccountUtils;
 import org.mozilla.gecko.browserid.BrowserIDKeyPair;
 import org.mozilla.gecko.browserid.DSACryptoImplementation;
 import org.mozilla.gecko.browserid.RSACryptoImplementation;
-import org.mozilla.gecko.fxa.FxAccountConstants;
 import org.mozilla.gecko.fxa.login.State.StateLabel;
 import org.mozilla.gecko.sync.ExtendedJSONObject;
 import org.mozilla.gecko.sync.NonObjectJSONException;
@@ -54,8 +54,11 @@ public class StateFactory {
     }
 
     final int v = version.intValue();
-    if (v == 2) {
+    if (v == 3) {
       // The most common case is the most recent version.
+      return fromJSONObjectV3(stateLabel, o);
+    }
+    if (v == 2) {
       return fromJSONObjectV2(stateLabel, o);
     }
     if (v == 1) {
@@ -134,16 +137,33 @@ public class StateFactory {
     }
   }
 
+  /**
+   * Exactly the same as {@link fromJSONObjectV2}, except that there's a new
+   * MigratedFromSyncV11 state.
+   */
+  protected static State fromJSONObjectV3(StateLabel stateLabel, ExtendedJSONObject o) throws InvalidKeySpecException, NoSuchAlgorithmException, NonObjectJSONException {
+    switch (stateLabel) {
+    case MigratedFromSync11:
+      return new MigratedFromSync11(
+          o.getString("email"),
+          o.getString("uid"),
+          o.getBoolean("verified"),
+          o.getString("password"));
+    default:
+      return fromJSONObjectV2(stateLabel, o);
+    }
+  }
+
   protected static void logMigration(State from, State to) {
-    if (!FxAccountConstants.LOG_PERSONAL_INFORMATION) {
+    if (!FxAccountUtils.LOG_PERSONAL_INFORMATION) {
       return;
     }
     try {
-      FxAccountConstants.pii(LOG_TAG, "V1 persisted state is: " + from.toJSONObject().toJSONString());
+      FxAccountUtils.pii(LOG_TAG, "V1 persisted state is: " + from.toJSONObject().toJSONString());
     } catch (Exception e) {
       Logger.warn(LOG_TAG, "Error producing JSON representation of V1 state.", e);
     }
-    FxAccountConstants.pii(LOG_TAG, "Generated new V2 state: " + to.toJSONObject().toJSONString());
+    FxAccountUtils.pii(LOG_TAG, "Generated new V2 state: " + to.toJSONObject().toJSONString());
   }
 
   protected static State migrateV1toV2(StateLabel stateLabel, State state) throws NoSuchAlgorithmException {

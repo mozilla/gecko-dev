@@ -11,11 +11,11 @@ UNIFIED_SOURCES += [
     'nsDOMOfflineResourceList.cpp',
 ]
 
-FAIL_ON_WARNINGS = True
-
 LOCAL_INCLUDES += [
-    "/content/base/src",
-    "/dom/base",
+    '/dom/base',
 ]
 
 FINAL_LIBRARY = 'xul'
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wshadow']

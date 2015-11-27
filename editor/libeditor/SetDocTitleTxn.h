@@ -33,14 +33,14 @@ private:
 public:
   NS_DECL_EDITTXN
 
-  NS_IMETHOD RedoTransaction();
-  NS_IMETHOD GetIsTransient(bool *aIsTransient);
+  NS_IMETHOD RedoTransaction() override;
+  NS_IMETHOD GetIsTransient(bool *aIsTransient) override;
 
 protected:
 
   /** the editor that created this transaction */
   nsIHTMLEditor*  mEditor;
-  
+
   /** The new title string */
   nsString    mValue;
 

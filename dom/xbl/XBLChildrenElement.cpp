@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 sw=2 et tw=79: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -25,18 +25,6 @@ NS_INTERFACE_TABLE_HEAD(XBLChildrenElement)
 NS_INTERFACE_MAP_END_INHERITING(Element)
 
 NS_IMPL_ELEMENT_CLONE(XBLChildrenElement)
-
-nsIAtom*
-XBLChildrenElement::GetIDAttributeName() const
-{
-  return nullptr;
-}
-
-nsIAtom*
-XBLChildrenElement::DoGetID() const
-{
-  return nullptr;
-}
 
 nsresult
 XBLChildrenElement::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
@@ -69,8 +57,8 @@ XBLChildrenElement::ParseAttribute(int32_t aNamespaceID,
   return false;
 }
 
-} // namespace mozilla
 } // namespace dom
+} // namespace mozilla
 
 using namespace mozilla::dom;
 
@@ -211,7 +199,7 @@ nsAnonymousContentList::IndexOf(nsIContent* aContent)
 }
 
 JSObject*
-nsAnonymousContentList::WrapObject(JSContext *cx)
+nsAnonymousContentList::WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto)
 {
-  return mozilla::dom::NodeListBinding::Wrap(cx, this);
+  return mozilla::dom::NodeListBinding::Wrap(cx, this, aGivenProto);
 }

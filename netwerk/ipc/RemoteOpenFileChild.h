@@ -20,7 +20,7 @@ namespace mozilla {
 
 namespace ipc {
 class FileDescriptor;
-}
+} // namespace ipc
 
 namespace net {
 
@@ -45,7 +45,7 @@ namespace net {
  * This class should only be instantiated in a child process.
  *
  */
-class RemoteOpenFileChild MOZ_FINAL
+class RemoteOpenFileChild final
   : public PRemoteOpenFileChild
   , public nsIFile
   , public nsIHashable
@@ -95,10 +95,10 @@ protected:
     AddRef();
   }
 
-  virtual bool Recv__delete__(const FileDescriptor&) MOZ_OVERRIDE;
+  virtual bool Recv__delete__(const FileDescriptor&) override;
 
   virtual void OnCachedFileDescriptor(const nsAString& aPath,
-                                      const FileDescriptor& aFD) MOZ_OVERRIDE;
+                                      const FileDescriptor& aFD) override;
 
   void HandleFileDescriptorAndNotifyListener(const FileDescriptor&,
                                              bool aFromRecvDelete);
@@ -110,7 +110,7 @@ protected:
   nsCOMPtr<nsIURI> mURI;
   nsCOMPtr<nsIURI> mAppURI;
   nsCOMPtr<nsIRemoteOpenFileListener> mListener;
-  nsRefPtr<TabChild> mTabChild;
+  RefPtr<TabChild> mTabChild;
   PRFileDesc* mNSPRFileDesc;
   bool mAsyncOpenCalled;
   bool mNSPROpenCalled;

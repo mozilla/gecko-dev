@@ -4,9 +4,6 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-interface MozMmsMessage;
-interface MozSmsMessage;
-
 dictionary SmsSegmentInfo {
   /**
    * The number of total segments for the input string. The value is always
@@ -72,10 +69,51 @@ dictionary MobileMessageFilter
   boolean? read = null;
 
   // Filtering by a message's threadId attribute.
-  [EnforceRange] unsigned long long? threadId = 0;
+  [EnforceRange] unsigned long long? threadId = null;
 };
 
-[Pref="dom.sms.enabled"]
+/**
+ * TON defined in |Table 10.5.118: Called party BCD number| of 3GPP TS 24.008.
+ * It's used in SM-RL originator / destination address element as defined in
+ * |8.2.5.2 Destination address element| of 3GPP TS 24.011.
+ */
+enum TypeOfNumber { "unknown", "international", "national", "network-specific",
+  "dedicated-access-short-code" };
+
+/**
+ * NPI defined in |Table 10.5.118: Called party BCD number| of 3GPP TS 24.008.
+ * It's used in SM-RL originator / destination address element as defined in
+ * |8.2.5.2 Destination address element| of 3GPP TS 24.011.
+ */
+enum NumberPlanIdentification { "unknown", "isdn", "data", "telex", "national",
+  "private" };
+
+/**
+ * Type of address used in SmscAddress.
+ *
+ * As described in |3.1 Parameters Definitions| of 3GPP TS 27.005, the default
+ * value of <tosca> should be 129 (typeOfNumber=unknown,
+ * numberPlanIdentification=isdn) if the number does not begin with '+'.
+ *
+ * |setSmscAddress| updates typeOfNumber to international automatically if the
+ * given number begins with '+'.
+ */
+dictionary TypeOfAddress {
+  TypeOfNumber typeOfNumber = "unknown";
+  NumberPlanIdentification numberPlanIdentification = "isdn";
+};
+
+/**
+ * SMSC address.
+ */
+dictionary SmscAddress {
+  DOMString address;
+  TypeOfAddress typeOfAddress;
+};
+
+[Pref="dom.sms.enabled",
+ CheckAnyPermissions="sms",
+ AvailableIn="CertifiedApps"]
 interface MozMobileMessageManager : EventTarget
 {
   [Throws]
@@ -122,18 +160,18 @@ interface MozMobileMessageManager : EventTarget
   [Throws]
   DOMRequest getMessage(long id);
 
-  // The parameter can be either a message id, or a Moz{Mms,Sms}Message, or an
-  // array of Moz{Mms,Sms}Message objects.
+  // The parameter can be either a message id, or a {Mms,Sms}Message, or an
+  // array of {Mms,Sms}Message objects.
   [Throws]
   DOMRequest delete(long id);
   [Throws]
-  DOMRequest delete(MozSmsMessage message);
+  DOMRequest delete(SmsMessage message);
   [Throws]
-  DOMRequest delete(MozMmsMessage message);
+  DOMRequest delete(MmsMessage message);
   [Throws]
-  DOMRequest delete(sequence<(long or MozSmsMessage or MozMmsMessage)> params);
+  DOMRequest delete(sequence<(long or SmsMessage or MmsMessage)> params);
 
-  // Iterates through Moz{Mms,Sms}Message.
+  // Iterates through {Mms,Sms}Message.
   [Throws]
   DOMCursor getMessages(optional MobileMessageFilter filter,
                         optional boolean reverse = false);
@@ -143,17 +181,33 @@ interface MozMobileMessageManager : EventTarget
                              boolean read,
                              optional boolean sendReadReport = false);
 
-  // Iterates through nsIDOMMozMobileMessageThread.
+  // Iterates through MobileMessageThread.
   [Throws]
   DOMCursor getThreads();
 
   [Throws]
   DOMRequest retrieveMMS(long id);
   [Throws]
-  DOMRequest retrieveMMS(MozMmsMessage message);
+  DOMRequest retrieveMMS(MmsMessage message);
 
   [Throws]
-  DOMRequest getSmscAddress(optional unsigned long serviceId);
+  Promise<SmscAddress> getSmscAddress(optional unsigned long serviceId);
+
+  /**
+   * Set the SMSC address.
+   *
+   * @param smscAddress
+   *        SMSC address to use.
+   *        Reject if smscAddress.address does not present.
+   * @param serviceId (optional)
+   *        The ID of the RIL service which needs to be specified under
+   *        the multi-sim scenario.
+   * @return a Promise
+   *         Resolve if success. Otherwise, reject with error cause.
+   */
+  [NewObject]
+  Promise<void> setSmscAddress(optional SmscAddress smscAddress,
+                               optional unsigned long serviceId);
 
   attribute EventHandler onreceived;
   attribute EventHandler onretrieving;

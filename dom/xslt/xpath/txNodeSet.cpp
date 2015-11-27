@@ -84,7 +84,7 @@ txNodeSet::~txNodeSet()
     if (mStartBuffer) {
         destroyElements(mStart, mEnd);
 
-        nsMemory::Free(mStartBuffer);
+        free(mStartBuffer);
     }
 }
 
@@ -137,7 +137,7 @@ nsresult txNodeSet::addAndTransfer(txNodeSet* aNodes)
 
 #ifdef TX_DONT_RECYCLE_BUFFER
     if (aNodes->mStartBuffer) {
-        nsMemory::Free(aNodes->mStartBuffer);
+        free(aNodes->mStartBuffer);
         aNodes->mStartBuffer = aNodes->mEndBuffer = nullptr;
     }
 #endif
@@ -353,7 +353,6 @@ txNodeSet::mark(int32_t aIndex)
     if (!mMarks) {
         int32_t length = size();
         mMarks = new bool[length];
-        NS_ENSURE_TRUE(mMarks, NS_ERROR_OUT_OF_MEMORY);
         memset(mMarks, 0, length * sizeof(bool));
     }
     if (mDirection == kForward) {
@@ -412,7 +411,7 @@ txNodeSet::clear()
     destroyElements(mStart, mEnd);
 #ifdef TX_DONT_RECYCLE_BUFFER
     if (mStartBuffer) {
-        nsMemory::Free(mStartBuffer);
+        free(mStartBuffer);
         mStartBuffer = mEndBuffer = nullptr;
     }
 #endif
@@ -527,7 +526,7 @@ bool txNodeSet::ensureGrowSize(int32_t aSize)
     }
 
     txXPathNode* newArr = static_cast<txXPathNode*>
-                                     (nsMemory::Alloc(newLength *
+                                     (moz_xmalloc(newLength *
                                                          sizeof(txXPathNode)));
     if (!newArr) {
         return false;
@@ -548,7 +547,7 @@ bool txNodeSet::ensureGrowSize(int32_t aSize)
         memset(mStartBuffer, 0,
                (mEndBuffer - mStartBuffer) * sizeof(txXPathNode));
 #endif
-        nsMemory::Free(mStartBuffer);
+        free(mStartBuffer);
     }
 
     mStartBuffer = newArr;

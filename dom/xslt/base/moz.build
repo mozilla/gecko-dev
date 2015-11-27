@@ -6,13 +6,12 @@
 
 UNIFIED_SOURCES += [
     'txDouble.cpp',
+    'txExpandedName.cpp',
     'txExpandedNameMap.cpp',
     'txList.cpp',
     'txNamespaceMap.cpp',
     'txURIUtils.cpp',
 ]
-
-FAIL_ON_WARNINGS = True
 
 LOCAL_INCLUDES += [
     '..',

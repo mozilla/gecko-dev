@@ -19,13 +19,10 @@ EXPORTS += [
     'sandboxBroker.h',
 ]
 
-for var in ('UNICODE', '_UNICODE', 'NS_NO_XPCOM', 'NOMINMAX',
-            'SANDBOX_EXPORTS'):
+for var in ('UNICODE', '_UNICODE', 'NS_NO_XPCOM', 'SANDBOX_EXPORTS'):
     DEFINES[var] = True
 
 LOCAL_INCLUDES += [
-    '/security',
-    '/security/sandbox',
     '/security/sandbox/chromium',
 ]
 
@@ -34,3 +31,8 @@ DISABLE_STL_WRAPPING = True
 OS_LIBS += [
     'dbghelp',
 ]
+
+if CONFIG['_MSC_VER']:
+    CXXFLAGS += [
+        '-wd4275', # non dll-interface class exception used as base for dll-interface class
+    ]

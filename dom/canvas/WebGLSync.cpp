@@ -5,40 +5,48 @@
 
 #include "WebGLSync.h"
 
+#include "GLContext.h"
 #include "mozilla/dom/WebGL2RenderingContextBinding.h"
+#include "WebGLContext.h"
 
-using namespace mozilla;
+namespace mozilla {
 
-WebGLSync::WebGLSync(WebGLContext* context) :
-    WebGLContextBoundObject(context)
+WebGLSync::WebGLSync(WebGLContext* webgl, GLenum condition, GLbitfield flags)
+    : WebGLContextBoundObject(webgl)
 {
-    MOZ_CRASH("Not Implemented.");
+   mGLName = mContext->gl->fFenceSync(condition, flags);
 }
 
 WebGLSync::~WebGLSync()
-{}
+{
+    DeleteOnce();
+}
 
 void
 WebGLSync::Delete()
 {
-    MOZ_CRASH("Not Implemented.");
+    mContext->MakeContextCurrent();
+    mContext->gl->fDeleteSync(mGLName);
+    mGLName = 0;
+    LinkedListElement<WebGLSync>::remove();
 }
 
 WebGLContext*
 WebGLSync::GetParentObject() const
 {
-    MOZ_CRASH("Not Implemented.");
-    return nullptr;
+    return mContext;
 }
 
 // -------------------------------------------------------------------------
 // IMPLEMENT NS
 JSObject*
-WebGLSync::WrapObject(JSContext *cx)
+WebGLSync::WrapObject(JSContext* cx, JS::Handle<JSObject*> givenProto)
 {
-    return dom::WebGLSyncBinding::Wrap(cx, this);
+    return dom::WebGLSyncBinding::Wrap(cx, this, givenProto);
 }
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_0(WebGLSync)
 NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(WebGLSync, AddRef)
 NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(WebGLSync, Release);
+
+} // namespace mozilla

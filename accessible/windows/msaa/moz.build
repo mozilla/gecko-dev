@@ -12,6 +12,7 @@ EXPORTS.mozilla.a11y += [
     'AccessibleWrap.h',
     'Compatibility.h',
     'HyperTextAccessibleWrap.h',
+    'IDSet.h',
 ]
 
 UNIFIED_SOURCES += [
@@ -48,14 +49,19 @@ LOCAL_INCLUDES += [
     '/accessible/base',
     '/accessible/generic',
     '/accessible/html',
+    '/accessible/windows',
     '/accessible/windows/ia2',
     '/accessible/windows/sdn',
     '/accessible/windows/uia',
     '/accessible/xpcom',
     '/accessible/xul',
-    '/content/base/src',
+    '/dom/base',
+    '/layout/style',
 ]
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
 FINAL_LIBRARY = 'xul'
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wshadow']

@@ -63,41 +63,6 @@ var gFontsDialog = {
     return undefined;
   },
   
-  readFontSelection: function (aElement)
-  {
-    // Determine the appropriate value to select, for the following cases:
-    // - there is no setting 
-    // - the font selected by the user is no longer present (e.g. deleted from
-    //   fonts folder)
-    var preference = document.getElementById(aElement.getAttribute("preference"));
-    if (preference.value) {
-      var fontItems = aElement.getElementsByAttribute("value", preference.value);
-    
-      // There is a setting that actually is in the list. Respect it.
-      if (fontItems.length > 0)
-        return undefined;
-    }
-    
-    var defaultValue = aElement.firstChild.firstChild.getAttribute("value");
-    var languagePref = document.getElementById("font.language.group");
-    preference = document.getElementById("font.name-list." + aElement.id + "." + languagePref.value);
-    if (!preference || !preference.hasUserValue)
-      return defaultValue;
-    
-    var fontNames = preference.value.split(",");
-    var stripWhitespace = /^\s*(.*)\s*$/;
-    
-    for (var i = 0; i < fontNames.length; ++i) {
-      var fontName = fontNames[i].replace(stripWhitespace, "$1");
-      fontItems = aElement.getElementsByAttribute("value", fontName);
-      if (fontItems.length)
-        break;
-    }
-    if (fontItems.length)
-      return fontItems[0].getAttribute("value");
-    return defaultValue;
-  },
-  
   readUseDocumentFonts: function ()
   {
     var preference = document.getElementById("browser.display.use_document_fonts");
@@ -108,6 +73,37 @@ var gFontsDialog = {
   {
     var useDocumentFonts = document.getElementById("useDocumentFonts");
     return useDocumentFonts.checked ? 1 : 0;
-  }
+  },
+
+  onBeforeAccept: function ()
+  {
+    // Only care in in-content prefs
+    if (!window.frameElement) {
+      return true;
+    }
+
+    let preferences = document.querySelectorAll("preference[id*='font.minimum-size']");
+    // It would be good if we could avoid touching languages the pref pages won't use, but
+    // unfortunately the language group APIs (deducing language groups from language codes)
+    // are C++ - only. So we just check all the things the user touched:
+    // Don't care about anything up to 24px, or if this value is the same as set previously:
+    preferences = Array.filter(preferences, prefEl => {
+      return prefEl.value > 24 && prefEl.value != prefEl.valueFromPreferences;
+    });
+    if (!preferences.length) {
+      return;
+    }
+
+    let strings = document.getElementById("bundlePreferences");
+    let title = strings.getString("veryLargeMinimumFontTitle");
+    let confirmLabel = strings.getString("acceptVeryLargeMinimumFont");
+    let warningMessage = strings.getString("veryLargeMinimumFontWarning");
+    let {Services} = Components.utils.import("resource://gre/modules/Services.jsm", {});
+    let flags = Services.prompt.BUTTON_POS_1 * Services.prompt.BUTTON_TITLE_CANCEL |
+                Services.prompt.BUTTON_POS_0 * Services.prompt.BUTTON_TITLE_IS_STRING |
+                Services.prompt.BUTTON_POS_1_DEFAULT;
+    let buttonChosen = Services.prompt.confirmEx(window, title, warningMessage, flags, confirmLabel, null, "", "", {});
+    return buttonChosen == 0;
+  },
 };
 

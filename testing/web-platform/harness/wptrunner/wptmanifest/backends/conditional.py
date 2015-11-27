@@ -4,7 +4,7 @@
 
 import operator
 
-from ..node import NodeVisitor, DataNode, ConditionalNode, KeyValueNode, ValueNode
+from ..node import NodeVisitor, DataNode, ConditionalNode, KeyValueNode, ListNode, ValueNode
 from ..parser import parse
 
 
@@ -17,13 +17,16 @@ class ConditionalValue(object):
             self.condition_node = self.node.children[0]
             self.value_node = self.node.children[1]
         else:
-            assert isinstance(node, ValueNode)
+            assert isinstance(node, (ValueNode, ListNode))
             self.condition_node = None
             self.value_node = self.node
 
     @property
     def value(self):
-        return self.value_node.data
+        if isinstance(self.value_node, ValueNode):
+            return self.value_node.data
+        else:
+            return [item.data for item in self.value_node.children]
 
     @value.setter
     def value(self, value):
@@ -106,7 +109,13 @@ class Compiler(NodeVisitor):
 
         self.output_node._add_key_value(node, key_values)
 
+    def visit_ListNode(self, node):
+        return (lambda x:True, [self.visit(child) for child in node.children])
+
     def visit_ValueNode(self, node):
+        return (lambda x: True, node.data)
+
+    def visit_AtomNode(self, node):
         return (lambda x: True, node.data)
 
     def visit_ConditionalNode(self, node):

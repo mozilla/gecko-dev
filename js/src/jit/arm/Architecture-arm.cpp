@@ -6,7 +6,7 @@
 
 #include "jit/arm/Architecture-arm.h"
 
-#ifndef JS_ARM_SIMULATOR
+#if !defined(JS_ARM_SIMULATOR) && !defined(__APPLE__)
 #include <elf.h>
 #endif
 
@@ -16,7 +16,7 @@
 #include "jit/arm/Assembler-arm.h"
 #include "jit/RegisterSets.h"
 
-#if defined(ANDROID) || defined(JS_ARM_SIMULATOR)
+#if !defined(__linux__) || defined(ANDROID) || defined(JS_SIMULATOR_ARM)
 // The Android NDK and B2G do not include the hwcap.h kernel header, and it is not
 // defined when building the simulator, so inline the header defines we need.
 # define HWCAP_VFP        (1 << 6)
@@ -38,20 +38,6 @@
 # endif
 #endif
 
-// Not part of the HWCAP flag, but we need to know these and these bits are not used.
-
-// A bit to flag the use of the ARMv7 arch, otherwise ARMv6.
-#define HWCAP_ARMv7 (1 << 28)
-
-// A bit to flag the use of the hardfp ABI.
-#define HWCAP_USE_HARDFP_ABI (1 << 27)
-
-// A bit to flag when alignment faults are enabled and signal.
-#define HWCAP_ALIGNMENT_FAULT (1 << 26)
-
-// A bit to flag when the flags are uninitialized, so they can be atomically set.
-#define HWCAP_UNINITIALIZED (1 << 25)
-
 namespace js {
 namespace jit {
 
@@ -59,12 +45,12 @@ namespace jit {
 // Parse the Linux kernel cpuinfo features. This is also used to parse the
 // override features which has some extensions: 'armv7', 'align' and 'hardfp'.
 static uint32_t
-ParseARMCpuFeatures(const char *features, bool override = false)
+ParseARMCpuFeatures(const char* features, bool override = false)
 {
     uint32_t flags = 0;
 
     for (;;) {
-        char  ch = *features;
+        char ch = *features;
         if (!ch) {
             // End of string.
             break;
@@ -75,7 +61,7 @@ ParseARMCpuFeatures(const char *features, bool override = false)
             continue;
         }
         // Find the end of the token.
-        const char *end = features + 1;
+        const char* end = features + 1;
         for (; ; end++) {
             ch = *end;
             if (!ch || ch == ' ' || ch == ',')
@@ -102,7 +88,7 @@ ParseARMCpuFeatures(const char *features, bool override = false)
             flags |= HWCAP_ARMv7;
         else if (count == 5 && strncmp(features, "align", 5) == 0)
             flags |= HWCAP_ALIGNMENT_FAULT;
-#if defined(JS_ARM_SIMULATOR)
+#if defined(JS_SIMULATOR_ARM)
         else if (count == 6 && strncmp(features, "hardfp", 6) == 0)
             flags |= HWCAP_USE_HARDFP_ABI;
 #endif
@@ -142,10 +128,10 @@ CanonicalizeARMHwCapFlags(uint32_t flags)
 
 // The override flags parsed from the ARMHWCAP environment variable or from the
 // --arm-hwcap js shell argument.
-volatile static uint32_t armHwCapFlags = HWCAP_UNINITIALIZED;
+volatile uint32_t armHwCapFlags = HWCAP_UNINITIALIZED;
 
 bool
-ParseARMHwCapFlags(const char *armHwCap)
+ParseARMHwCapFlags(const char* armHwCap)
 {
     uint32_t flags = 0;
 
@@ -168,7 +154,7 @@ ParseARMHwCapFlags(const char *armHwCap)
                "  vfpd32   \n"
                "  armv7    \n"
                "  align    \n"
-#if defined(JS_ARM_SIMULATOR)
+#ifdef JS_SIMULATOR_ARM
                "  hardfp   \n"
 #endif
                "\n"
@@ -196,11 +182,11 @@ InitARMFlags()
     if (armHwCapFlags != HWCAP_UNINITIALIZED)
         return;
 
-    const char *env = getenv("ARMHWCAP");
+    const char* env = getenv("ARMHWCAP");
     if (ParseARMHwCapFlags(env))
         return;
 
-#ifdef JS_ARM_SIMULATOR
+#ifdef JS_SIMULATOR_ARM
     flags = HWCAP_ARMv7 | HWCAP_VFP | HWCAP_VFPv3 | HWCAP_VFPv4 | HWCAP_NEON;
 #else
 
@@ -222,16 +208,16 @@ InitARMFlags()
 
     if (!readAuxv) {
         // Read the cpuinfo Features if the auxv is not available.
-        FILE *fp = fopen("/proc/cpuinfo", "r");
+        FILE* fp = fopen("/proc/cpuinfo", "r");
         if (fp) {
             char buf[1024];
             memset(buf, 0, sizeof(buf));
             size_t len = fread(buf, sizeof(char), sizeof(buf) - 1, fp);
             fclose(fp);
             buf[len] = '\0';
-            char *featureList = strstr(buf, "Features");
+            char* featureList = strstr(buf, "Features");
             if (featureList) {
-                if (char *featuresEnd = strstr(featureList, "\n"))
+                if (char* featuresEnd = strstr(featureList, "\n"))
                     *featuresEnd = '\0';
                 flags = ParseARMCpuFeatures(featureList + 8);
             }
@@ -259,7 +245,16 @@ InitARMFlags()
     flags |= HWCAP_ARMv7;
 #endif
 
-#endif // JS_ARM_SIMULATOR
+#if defined(__APPLE__)
+    #if defined(__ARM_NEON__)
+        flags |= HWCAP_NEON;
+    #endif
+    #if defined(__ARMVFPV3__)
+        flags |= HWCAP_VFPv3 | HWCAP_VFPD32
+    #endif
+#endif
+
+#endif // JS_SIMULATOR_ARM
 
     armHwCapFlags = CanonicalizeARMHwCapFlags(flags);
 
@@ -317,16 +312,8 @@ bool HasIDIV()
     return armHwCapFlags & HWCAP_IDIVA;
 }
 
-// Returns true when cpu alignment faults are enabled and signaled, and thus we
-// should ensure loads and stores are aligned.
-bool HasAlignmentFault()
-{
-    MOZ_ASSERT(armHwCapFlags != HWCAP_UNINITIALIZED);
-    return armHwCapFlags & HWCAP_ALIGNMENT_FAULT;
-}
-
 // This is defined in the header and inlined when not using the simulator.
-#if defined(JS_ARM_SIMULATOR)
+#ifdef JS_SIMULATOR_ARM
 bool UseHardFpABI()
 {
     MOZ_ASSERT(armHwCapFlags != HWCAP_UNINITIALIZED);
@@ -335,7 +322,7 @@ bool UseHardFpABI()
 #endif
 
 Registers::Code
-Registers::FromName(const char *name)
+Registers::FromName(const char* name)
 {
     // Check for some register aliases first.
     if (strcmp(name, "ip") == 0)
@@ -356,7 +343,7 @@ Registers::FromName(const char *name)
 }
 
 FloatRegisters::Code
-FloatRegisters::FromName(const char *name)
+FloatRegisters::FromName(const char* name)
 {
     for (size_t i = 0; i < Total; i++) {
         if (strcmp(GetName(i), name) == 0)
@@ -367,10 +354,10 @@ FloatRegisters::FromName(const char *name)
 }
 
 FloatRegisterSet
-VFPRegister::ReduceSetForPush(const FloatRegisterSet &s)
+VFPRegister::ReduceSetForPush(const FloatRegisterSet& s)
 {
-    FloatRegisterSet mod;
-    for (TypedRegisterIterator<FloatRegister> iter(s); iter.more(); iter++) {
+    LiveFloatRegisterSet mod;
+    for (FloatRegisterIterator iter(s); iter.more(); iter++) {
         if ((*iter).isSingle()) {
             // Add in just this float.
             mod.addUnchecked(*iter);
@@ -383,19 +370,11 @@ VFPRegister::ReduceSetForPush(const FloatRegisterSet &s)
             mod.addUnchecked(*iter);
         }
     }
-    return mod;
+    return mod.set();
 }
 
 uint32_t
-VFPRegister::GetSizeInBytes(const FloatRegisterSet &s)
-{
-    uint64_t bits = s.bits();
-    uint32_t ret = mozilla::CountPopulation32(bits&0xffffffff) * sizeof(float);
-    ret +=  mozilla::CountPopulation32(bits >> 32) * sizeof(double);
-    return ret;
-}
-uint32_t
-VFPRegister::GetPushSizeInBytes(const FloatRegisterSet &s)
+VFPRegister::GetPushSizeInBytes(const FloatRegisterSet& s)
 {
     FloatRegisterSet ss = s.reduceSetForPush();
     uint64_t bits = ss.bits();

@@ -9,7 +9,9 @@
 #include "DataSurfaceHelpers.h"
 #include "mozilla/Types.h" // for decltype
 
+#ifdef MOZ_WIDGET_COCOA
 #include "MacIOSurface.h"
+#endif
 #include "Tools.h"
 
 namespace mozilla {
@@ -36,7 +38,7 @@ SourceSurfaceCG::GetFormat() const
   return mFormat;
 }
 
-TemporaryRef<DataSourceSurface>
+already_AddRefed<DataSourceSurface>
 SourceSurfaceCG::GetDataSurface()
 {
   //XXX: we should be more disciplined about who takes a reference and where
@@ -45,7 +47,7 @@ SourceSurfaceCG::GetDataSurface()
 
   // We also need to make sure that the returned surface has
   // surface->GetType() == SurfaceType::DATA.
-  return new DataSourceSurfaceWrapper(dataSurf);
+  return MakeAndAddRef<DataSourceSurfaceWrapper>(dataSurf);
 }
 
 static void releaseCallback(void *info, const void *data, size_t size) {
@@ -360,12 +362,31 @@ SourceSurfaceCGBitmapContext::DrawTargetWillChange()
   }
 }
 
+void
+SourceSurfaceCGBitmapContext::DrawTargetWillGoAway()
+{
+  if (mDrawTarget) {
+    if (mDrawTarget->mData != CGBitmapContextGetData(mCg)) {
+      DrawTargetWillChange();
+      return;
+    }
+
+    // Instead of copying the data over, we can just swap it.
+    mDataHolder.Swap(mDrawTarget->mData);
+    mData = mDataHolder;
+    mCg = nullptr;
+    mDrawTarget = nullptr;
+    // mImage is still valid because it still points to the same data.
+  }
+}
+
 SourceSurfaceCGBitmapContext::~SourceSurfaceCGBitmapContext()
 {
   if (mImage)
     CGImageRelease(mImage);
 }
 
+#ifdef MOZ_WIDGET_COCOA
 SourceSurfaceCGIOSurfaceContext::SourceSurfaceCGIOSurfaceContext(DrawTargetCG *aDrawTarget)
 {
   CGContextRef cg = (CGContextRef)aDrawTarget->GetNativeSurface(NativeSurfaceType::CGCONTEXT_ACCELERATED);
@@ -434,6 +455,7 @@ SourceSurfaceCGIOSurfaceContext::GetData()
 {
   return (unsigned char*)mData;
 }
+#endif
 
-}
-}
+} // namespace gfx
+} // namespace mozilla

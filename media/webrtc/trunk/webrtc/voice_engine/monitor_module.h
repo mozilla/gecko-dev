@@ -40,20 +40,14 @@ public:
 
     virtual ~MonitorModule();
 public:	// module
-    int32_t Version(char* version,
-                    uint32_t& remainingBufferInBytes,
-                    uint32_t& position) const;
+ int64_t TimeUntilNextProcess() override;
 
-    int32_t ChangeUniqueId(int32_t id);
+ int32_t Process() override;
 
-    int32_t TimeUntilNextProcess();
-
-    int32_t Process();
 private:
-    enum { kAverageProcessUpdateTimeMs = 1000 };
     MonitorObserver* _observerPtr;
     CriticalSectionWrapper&	_callbackCritSect;
-    int32_t _lastProcessTime;
+    int64_t _lastProcessTime;
 };
 
 }  // namespace voe

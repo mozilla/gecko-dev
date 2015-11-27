@@ -48,7 +48,9 @@ public:
 
   virtual nsresult Init();
 
-  virtual uint32_t OperatingSystemVersion() MOZ_OVERRIDE { return mWindowsVersion; }
+  virtual uint32_t OperatingSystemVersion() override { return mWindowsVersion; }
+
+  nsresult FindMonitors(JSContext* cx, JS::HandleObject array) override;
 
 #ifdef DEBUG
   NS_DECL_ISUPPORTS_INHERITED
@@ -64,9 +66,12 @@ protected:
                                         OperatingSystem* aOS = nullptr);
   virtual const nsTArray<GfxDriverInfo>& GetGfxDriverInfo();
 
+  void DescribeFeatures(JSContext* cx, JS::Handle<JSObject*> aOut) override;
+
 private:
 
   void AddCrashReportAnnotations();
+
   nsString mDeviceString;
   nsString mDeviceID;
   nsString mDriverVersion;

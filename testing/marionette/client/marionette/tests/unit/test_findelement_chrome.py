@@ -2,10 +2,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from marionette_test import MarionetteTestCase
-from marionette import HTMLElement
-from by import By
-from errors import NoSuchElementException
+from marionette import MarionetteTestCase
+from marionette_driver.marionette import HTMLElement
+from marionette_driver.by import By
+from marionette_driver.errors import NoSuchElementException
 
 
 class TestElementsChrome(MarionetteTestCase):
@@ -26,6 +26,12 @@ class TestElementsChrome(MarionetteTestCase):
     def test_id(self):
         el = self.marionette.execute_script("return window.document.getElementById('textInput');")
         found_el = self.marionette.find_element(By.ID, "textInput")
+        self.assertEqual(HTMLElement, type(found_el))
+        self.assertEqual(el, found_el)
+
+    def test_that_we_can_find_elements_from_css_selectors(self):
+        el = self.marionette.execute_script("return window.document.getElementById('textInput');")
+        found_el = self.marionette.find_element(By.CSS_SELECTOR, "#textInput")
         self.assertEqual(HTMLElement, type(found_el))
         self.assertEqual(el, found_el)
 

@@ -34,10 +34,17 @@ struct cubeb_ops {
                                     cubeb_device ** const device);
   int (* stream_device_destroy)(cubeb_stream * stream,
                                 cubeb_device * device);
-  int (*stream_register_device_changed_callback)(cubeb_stream * stream,
-                                                 cubeb_device_changed_callback device_changed_callback);
+  int (* stream_register_device_changed_callback)(cubeb_stream * stream,
+                                                  cubeb_device_changed_callback device_changed_callback);
 
 };
 
-#endif /* CUBEB_INTERNAL_0eb56756_4e20_4404_a76d_42bf88cd15a5 */
+#define XASSERT(expr) do {                                              \
+    if (!(expr)) {                                                      \
+      fprintf(stderr, "%s:%d - fatal error: %s\n", __FILE__, __LINE__, #expr); \
+      *((volatile int *) NULL) = 0;                                     \
+      abort();                                                          \
+    }                                                                   \
+  } while (0)
 
+#endif /* CUBEB_INTERNAL_0eb56756_4e20_4404_a76d_42bf88cd15a5 */

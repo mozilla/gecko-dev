@@ -39,3 +39,9 @@ for var in ('MOZ_APP_NAME', 'MOZ_MACBUNDLE_NAME'):
 LOCAL_INCLUDES += [
     '../build',
 ]
+
+with Files('**'):
+    BUG_COMPONENT = ('Firefox', 'RSS Discovery and Preview')
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wshadow']

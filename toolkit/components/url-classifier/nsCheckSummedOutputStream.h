@@ -12,7 +12,7 @@
 #include "nsICryptoHash.h"
 #include "nsNetCID.h"
 #include "nsString.h"
-#include "../../../netwerk/base/src/nsFileStreams.h"
+#include "../../../netwerk/base/nsFileStreams.h"
 #include "nsToolkitCompsCID.h"
 
 class nsCheckSummedOutputStream : public nsSafeFileOutputStream
@@ -25,9 +25,9 @@ public:
 
   nsCheckSummedOutputStream() {}
 
-  NS_IMETHOD Finish();
-  NS_IMETHOD Write(const char *buf, uint32_t count, uint32_t *result);
-  NS_IMETHOD Init(nsIFile* file, int32_t ioFlags, int32_t perm, int32_t behaviorFlags);
+  NS_IMETHOD Finish() override;
+  NS_IMETHOD Write(const char *buf, uint32_t count, uint32_t *result) override;
+  NS_IMETHOD Init(nsIFile* file, int32_t ioFlags, int32_t perm, int32_t behaviorFlags) override;
 
 protected:
   virtual ~nsCheckSummedOutputStream() { nsSafeFileOutputStream::Close(); }
@@ -46,8 +46,9 @@ NS_NewCheckSummedOutputStream(nsIOutputStream **result,
 {
     nsCOMPtr<nsIFileOutputStream> out = new nsCheckSummedOutputStream();
     nsresult rv = out->Init(file, ioFlags, perm, behaviorFlags);
-    if (NS_SUCCEEDED(rv))
-      NS_ADDREF(*result = out);  // cannot use nsCOMPtr::swap
+    if (NS_SUCCEEDED(rv)) {
+      out.forget(result);
+    }
     return rv;
 }
 

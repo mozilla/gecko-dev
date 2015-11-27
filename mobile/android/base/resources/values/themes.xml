@@ -9,10 +9,16 @@
         Base application theme. This could be overridden by GeckoBaseTheme
         in other res/values-XXX/themes.xml.
     -->
-    <style name="GeckoBase" parent="@android:style/Theme.Light">
-        <item name="android:windowNoTitle">true</item>
+    <style name="GeckoBase" parent="Theme.AppCompat.Light.DarkActionBar">
+        <item name="windowNoTitle">true</item>
         <item name="android:windowContentOverlay">@null</item>
-        <item name="arrowPopupWidth">match_parent</item>
+
+        <!-- Gingerbread "More" menu background color; AppCompat sets this to
+             transparent by default: http://stackoverflow.com/a/31777488.
+             This color is set anecdotally to make all text colors, which change
+             by device, visible. Standard colors are #8D8D8D & #C8C8C8 (disabled)
+             and #000000 has also been seen. -->
+        <item name="android:panelBackground">@color/text_and_tabs_tray_grey</item>
     </style>
 
     <style name="GeckoDialogBase" parent="@android:style/Theme.Dialog">
@@ -22,8 +28,9 @@
 
     <style name="GeckoTitleDialogBase" parent="@android:style/Theme.Dialog" />
 
-    <style name="GeckoPreferencesBase" parent="GeckoBase">
+    <style name="GeckoPreferencesBase" parent="@android:style/Theme.Light">
         <item name="android:windowNoTitle">false</item>
+        <item name="android:windowContentOverlay">@null</item>
     </style>
 
     <!--
@@ -49,7 +56,7 @@
         <item name="android:textColorHintInverse">@color/text_color_hint_inverse</item>
 
         <!-- Highlight colors -->
-        <item name="android:textColorHighlight">@color/text_color_highlight</item>
+        <item name="android:textColorHighlight">@color/fennec_ui_orange</item>
         <item name="android:textColorHighlightInverse">@color/text_color_highlight_inverse</item>
 
         <!-- Link colors -->
@@ -64,6 +71,8 @@
         <item name="android:textAppearanceLargeInverse">@style/TextAppearance.Large.Inverse</item>
         <item name="android:textAppearanceMediumInverse">@style/TextAppearance.Medium.Inverse</item>
         <item name="android:textAppearanceSmallInverse">@style/TextAppearance.Small.Inverse</item>
+
+        <item name="colorAccent">@color/action_orange</item>
     </style>
 
     <style name="Gecko.Dialog" parent="GeckoDialogBase"/>
@@ -95,7 +104,6 @@
         <item name="menuItemActionBarStyle">@style/Widget.MenuItemActionBar</item>
         <item name="menuItemActionModeStyle">@style/GeckoActionBar.Button</item>
         <item name="menuItemShareActionButtonStyle">@style/Widget.MenuItemSecondaryActionBar</item>
-        <item name="panelGridViewStyle">@style/Widget.PanelGridView</item>
         <item name="topSitesGridItemViewStyle">@style/Widget.TopSitesGridItemView</item>
         <item name="topSitesGridViewStyle">@style/Widget.TopSitesGridView</item>
         <item name="topSitesThumbnailViewStyle">@style/Widget.TopSitesThumbnailView</item>
@@ -105,6 +113,19 @@
         <item name="floatingHintEditTextStyle">@style/FloatingHintEditText</item>
     </style>
 
-    <style name="GeckoStartPane" parent="GeckoBase"/>
+    <!-- Make an activity appear like an overlay. -->
+    <style name="OverlayActivity" parent="Gecko">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:backgroundDimEnabled">true</item>
+
+        <!-- Set the app's title bar color in the recent app switcher.
+
+             Note: We'd prefer not to show up in the recent app switcher (bug 1137928). -->
+        <item name="android:colorPrimary">@color/text_and_tabs_tray_grey</item>
+        <!-- We display the overlay on top of other Activities so show their status bar. -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+    </style>
 
 </resources>

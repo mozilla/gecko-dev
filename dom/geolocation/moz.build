@@ -5,22 +5,26 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 EXPORTS += [
+    'nsGeolocationSettings.h',
     'nsGeoPosition.h',
     'nsGeoPositionIPCSerialiser.h',
 ]
 
-UNIFIED_SOURCES += [
+SOURCES += [
     'nsGeolocation.cpp',
-    'nsGeoPosition.cpp',
 ]
 
-FAIL_ON_WARNINGS = True
+UNIFIED_SOURCES += [
+    'MLSFallback.cpp',
+    'nsGeoGridFuzzer.cpp',
+    'nsGeolocationSettings.cpp',
+    'nsGeoPosition.cpp',
+]
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
 FINAL_LIBRARY = 'xul'
 LOCAL_INCLUDES += [
-    '/content/base/src',
     '/dom/base',
     '/dom/ipc',
 ]
@@ -43,4 +47,10 @@ elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
     LOCAL_INCLUDES += [
         '/dom/system/mac',
     ]
+elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
+    LOCAL_INCLUDES += [
+        '/dom/system/windows',
+    ]
 
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wshadow']

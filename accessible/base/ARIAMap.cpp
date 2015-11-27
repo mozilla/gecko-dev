@@ -30,12 +30,8 @@ static const uint32_t kGenericAccType = 0;
  *
  *  Definition of nsRoleMapEntry contains comments explaining this table.
  *
- *  When no nsIAccessibleRole enum mapping exists for an ARIA role, the
- *  role will be exposed via the object attribute "xml-roles".
- *  In addition, in MSAA, the unmapped role will also be exposed as a BSTR string role.
- *
- *  There are no nsIAccessibleRole enums for the following landmark roles:
- *    banner, contentinfo, main, navigation, note, search, secondary, seealso, breadcrumbs
+ *  When no Role enum mapping exists for an ARIA role, the role will be exposed
+ *  via the object attribute "xml-roles".
  */
 
 static nsRoleMapEntry sWAIRoleMaps[] =
@@ -67,7 +63,7 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eNoValue,
     eNoAction,
     eNoLiveAttr,
-    kGenericAccType,
+    eLandmark,
     kNoReqStates
   },
   { // article
@@ -81,6 +77,16 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     kNoReqStates,
     eReadonlyUntilEditable
   },
+  { // banner
+    &nsGkAtoms::banner,
+    roles::NOTHING,
+    kUseNativeRole,
+    eNoValue,
+    eNoAction,
+    eNoLiveAttr,
+    eLandmark,
+    kNoReqStates
+  },
   { // button
     &nsGkAtoms::button,
     roles::PUSHBUTTON,
@@ -91,6 +97,16 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eButton,
     kNoReqStates
     // eARIAPressed is auto applied on any button
+  },
+  { // cell
+    &nsGkAtoms::cell,
+    roles::CELL,
+    kUseMapRole,
+    eNoValue,
+    eNoAction,
+    eNoLiveAttr,
+    eTableCell,
+    kNoReqStates
   },
   { // checkbox
     &nsGkAtoms::checkbox,
@@ -128,6 +144,26 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eARIAAutoComplete,
     eARIAReadonly,
     eARIAOrientation
+  },
+  { // complementary
+    &nsGkAtoms::complementary,
+    roles::NOTHING,
+    kUseNativeRole,
+    eNoValue,
+    eNoAction,
+    eNoLiveAttr,
+    eLandmark,
+    kNoReqStates
+  },
+  { // contentinfo
+    &nsGkAtoms::contentinfo,
+    roles::NOTHING,
+    kUseNativeRole,
+    eNoValue,
+    eNoAction,
+    eNoLiveAttr,
+    eLandmark,
+    kNoReqStates
   },
   { // dialog
     &nsGkAtoms::dialog,
@@ -167,7 +203,7 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eNoValue,
     eNoAction,
     eNoLiveAttr,
-    kGenericAccType,
+    eLandmark,
     kNoReqStates
   },
   { // grid
@@ -290,6 +326,16 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     kGenericAccType,
     kNoReqStates
   },
+  { // main
+    &nsGkAtoms::main,
+    roles::NOTHING,
+    kUseNativeRole,
+    eNoValue,
+    eNoAction,
+    eNoLiveAttr,
+    eLandmark,
+    kNoReqStates
+  },
   { // marquee
     &nsGkAtoms::marquee,
     roles::ANIMATION,
@@ -366,6 +412,26 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     kNoReqStates,
     eARIACheckableBool
   },
+  { // navigation
+    &nsGkAtoms::navigation,
+    roles::NOTHING,
+    kUseNativeRole,
+    eNoValue,
+    eNoAction,
+    eNoLiveAttr,
+    eLandmark,
+    kNoReqStates
+  },
+  { // none
+    &nsGkAtoms::none,
+    roles::NOTHING,
+    kUseMapRole,
+    eNoValue,
+    eNoAction,
+    eNoLiveAttr,
+    kGenericAccType,
+    kNoReqStates
+  },
   { // note
     &nsGkAtoms::note_,
     roles::NOTE,
@@ -422,7 +488,7 @@ static nsRoleMapEntry sWAIRoleMaps[] =
   },
   { // radiogroup
     &nsGkAtoms::radiogroup,
-    roles::GROUPING,
+    roles::RADIO_GROUP,
     kUseMapRole,
     eNoValue,
     eNoAction,
@@ -486,6 +552,29 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eARIAOrientation,
     eARIAReadonly
   },
+  { // search
+    &nsGkAtoms::search,
+    roles::NOTHING,
+    kUseNativeRole,
+    eNoValue,
+    eNoAction,
+    eNoLiveAttr,
+    eLandmark,
+    kNoReqStates
+  },
+  { // searchbox
+    &nsGkAtoms::searchbox,
+    roles::ENTRY,
+    kUseMapRole,
+    eNoValue,
+    eActivateAction,
+    eNoLiveAttr,
+    kGenericAccType,
+    kNoReqStates,
+    eARIAAutoComplete,
+    eARIAMultiline,
+    eARIAReadonlyOrEditable
+  },
   { // separator
     &nsGkAtoms::separator_,
     roles::SEPARATOR,
@@ -530,6 +619,17 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     kGenericAccType,
     kNoReqStates
   },
+  { // switch
+    &nsGkAtoms::_switch,
+    roles::SWITCH,
+    kUseMapRole,
+    eNoValue,
+    eCheckUncheckAction,
+    eNoLiveAttr,
+    kGenericAccType,
+    kNoReqStates,
+    eARIACheckableBool
+  },
   { // tab
     &nsGkAtoms::tab,
     roles::PAGETAB,
@@ -538,6 +638,17 @@ static nsRoleMapEntry sWAIRoleMaps[] =
     eSwitchAction,
     eNoLiveAttr,
     kGenericAccType,
+    kNoReqStates,
+    eARIASelectable
+  },
+  { // table
+    &nsGkAtoms::table,
+    roles::TABLE,
+    kUseMapRole,
+    eNoValue,
+    eNoAction,
+    eNoLiveAttr,
+    eTable,
     kNoReqStates,
     eARIASelectable
   },
@@ -681,6 +792,7 @@ static const EStateRule sWAIUnivStateMap[] = {
   eARIAExpanded,  // Currently under spec review but precedent exists
   eARIAHasPopup,  // Note this is technically a "property"
   eARIAInvalid,
+  eARIAModal,
   eARIARequired,  // XXX not global, Bug 553117
   eARIANone
 };
@@ -710,12 +822,13 @@ static const AttrCharacteristics gWAIUnivAttrMap[] = {
   {&nsGkAtoms::aria_flowto,            ATTR_BYPASSOBJ                 | ATTR_GLOBAL },
   {&nsGkAtoms::aria_grabbed,                            ATTR_VALTOKEN | ATTR_GLOBAL },
   {&nsGkAtoms::aria_haspopup,          ATTR_BYPASSOBJ | ATTR_VALTOKEN | ATTR_GLOBAL },
-  {&nsGkAtoms::aria_hidden,   ATTR_BYPASSOBJ_IF_FALSE | ATTR_VALTOKEN | ATTR_GLOBAL },
+  {&nsGkAtoms::aria_hidden,            ATTR_BYPASSOBJ | ATTR_VALTOKEN | ATTR_GLOBAL }, /* handled special way */
   {&nsGkAtoms::aria_invalid,           ATTR_BYPASSOBJ | ATTR_VALTOKEN | ATTR_GLOBAL },
   {&nsGkAtoms::aria_label,             ATTR_BYPASSOBJ                 | ATTR_GLOBAL },
   {&nsGkAtoms::aria_labelledby,        ATTR_BYPASSOBJ                 | ATTR_GLOBAL },
   {&nsGkAtoms::aria_level,             ATTR_BYPASSOBJ                               }, /* handled via groupPosition */
   {&nsGkAtoms::aria_live,                               ATTR_VALTOKEN | ATTR_GLOBAL },
+  {&nsGkAtoms::aria_modal,             ATTR_BYPASSOBJ | ATTR_VALTOKEN | ATTR_GLOBAL },
   {&nsGkAtoms::aria_multiline,         ATTR_BYPASSOBJ | ATTR_VALTOKEN               },
   {&nsGkAtoms::aria_multiselectable,   ATTR_BYPASSOBJ | ATTR_VALTOKEN               },
   {&nsGkAtoms::aria_owns,              ATTR_BYPASSOBJ                 | ATTR_GLOBAL },
@@ -739,7 +852,7 @@ namespace {
 struct RoleComparator
 {
   const nsDependentSubstring& mRole;
-  RoleComparator(const nsDependentSubstring& aRole) : mRole(aRole) {}
+  explicit RoleComparator(const nsDependentSubstring& aRole) : mRole(aRole) {}
   int operator()(const nsRoleMapEntry& aEntry) const {
     return Compare(mRole, aEntry.ARIARoleString());
   }
@@ -794,6 +907,15 @@ aria::AttrCharacteristicsFor(nsIAtom* aAtom)
       return gWAIUnivAttrMap[i].characteristics;
 
   return 0;
+}
+
+bool
+aria::HasDefinedARIAHidden(nsIContent* aContent)
+{
+  return aContent &&
+    nsAccUtils::HasDefinedARIAToken(aContent, nsGkAtoms::aria_hidden) &&
+    !aContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::aria_hidden,
+                           nsGkAtoms::_false, eCaseMatters);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -10,45 +10,14 @@
 #include <vector>
 #include "nsAutoPtr.h"
 #include "nsISupportsImpl.h"  // for NS_INLINE_DECL_REFCOUNTING
+#include "APZUtils.h"         // for CancelAnimationFlags
+#include "Layers.h"           // for Layer::ScrollDirection
 #include "Units.h"            // for ScreenPoint
 
 namespace mozilla {
 namespace layers {
 
 class AsyncPanZoomController;
-
-/**
- * A variant of NS_INLINE_DECL_THREADSAFE_REFCOUNTING which makes the refcount
- * variable |mutable|, and the AddRef and Release methods |const|, to allow
- * using an |nsRefPtr<const T>|, and thereby enforcing better const-correctness.
- * This is currently here because OverscrollHandoffChain is the only thing
- * currently using it. As a follow-up, we can move this to xpcom/glue, write
- * a corresponding version for non-threadsafe refcounting, and perhaps
- * transition other clients of NS_INLINE_DECL_[THREADSAFE_]REFCOUNTING to the
- * mutable versions.
- */
-#define NS_INLINE_DECL_THREADSAFE_MUTABLE_REFCOUNTING(_class)                 \
-public:                                                                       \
-  NS_METHOD_(MozExternalRefCountType) AddRef(void) const {                    \
-    MOZ_ASSERT_TYPE_OK_FOR_REFCOUNTING(_class)                                \
-    MOZ_ASSERT(int32_t(mRefCnt) >= 0, "illegal refcnt");                      \
-    nsrefcnt count = ++mRefCnt;                                               \
-    NS_LOG_ADDREF(const_cast<_class*>(this), count, #_class, sizeof(*this));  \
-    return (nsrefcnt) count;                                                  \
-  }                                                                           \
-  NS_METHOD_(MozExternalRefCountType) Release(void) const {                   \
-    MOZ_ASSERT(int32_t(mRefCnt) > 0, "dup release");                          \
-    nsrefcnt count = --mRefCnt;                                               \
-    NS_LOG_RELEASE(const_cast<_class*>(this), count, #_class);                \
-    if (count == 0) {                                                         \
-      delete (this);                                                          \
-      return 0;                                                               \
-    }                                                                         \
-    return count;                                                             \
-  }                                                                           \
-protected:                                                                    \
-  mutable ::mozilla::ThreadSafeAutoRefCnt mRefCnt;                            \
-public:
 
 /**
  * This class represents the chain of APZCs along which overscroll is handed off.
@@ -66,9 +35,9 @@ public:
   // Threadsafe so that the controller and compositor threads can both maintain
   // nsRefPtrs to the same handoff chain.
   // Mutable so that we can pass around the class by
-  // nsRefPtr<const OverscrollHandoffChain> and thus enforce that, once built,
+  // RefPtr<const OverscrollHandoffChain> and thus enforce that, once built,
   // the chain is not modified.
-  NS_INLINE_DECL_THREADSAFE_MUTABLE_REFCOUNTING(OverscrollHandoffChain)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(OverscrollHandoffChain)
 
   /*
    * Methods for building the handoff chain.
@@ -81,7 +50,7 @@ public:
    * Methods for accessing the handoff chain.
    */
   uint32_t Length() const { return mChain.size(); }
-  const nsRefPtr<AsyncPanZoomController>& GetApzcAtIndex(uint32_t aIndex) const;
+  const RefPtr<AsyncPanZoomController>& GetApzcAtIndex(uint32_t aIndex) const;
   // Returns Length() if |aApzc| is not on this chain.
   uint32_t IndexOf(const AsyncPanZoomController* aApzc) const;
 
@@ -93,22 +62,42 @@ public:
   void FlushRepaints() const;
 
   // Cancel animations all the way up the chain.
-  void CancelAnimations() const;
+  void CancelAnimations(CancelAnimationFlags aFlags = Default) const;
 
   // Clear overscroll all the way up the chain.
   void ClearOverscroll() const;
 
-  // Snap back the APZC that is overscrolled, if any.
-  void SnapBackOverscrolledApzc() const;
+  // Snap back the APZC that is overscrolled on the subset of the chain from
+  // |aStart| onwards, if any.
+  void SnapBackOverscrolledApzc(const AsyncPanZoomController* aStart) const;
+
+  // Request snap on APZCs that cannot scroll on the opposing axis to |aAxis|.
+  void RequestSnapOnLock(Layer::ScrollDirection aAxis) const;
 
   // Determine whether the given APZC, or any APZC further in the chain,
   // has room to be panned.
   bool CanBePanned(const AsyncPanZoomController* aApzc) const;
+
+  // Determine whether the given APZC, or any APZC further in the chain,
+  // can scroll in the given direction.
+  bool CanScrollInDirection(const AsyncPanZoomController* aApzc,
+                            Layer::ScrollDirection aDirection) const;
+
+  // Determine whether any APZC along this handoff chain is panned into overscroll.
+  bool HasApzcPannedIntoOverscroll() const;
+
+  // Determine whether any APZC along this handoff chain has been flung fast.
+  bool HasFastFlungApzc() const;
+
+  RefPtr<AsyncPanZoomController> FindFirstScrollable(const InputData& aInput) const;
+
 private:
-  std::vector<nsRefPtr<AsyncPanZoomController>> mChain;
+  std::vector<RefPtr<AsyncPanZoomController>> mChain;
 
   typedef void (AsyncPanZoomController::*APZCMethod)();
+  typedef bool (AsyncPanZoomController::*APZCPredicate)() const;
   void ForEachApzc(APZCMethod aMethod) const;
+  bool AnyApzc(APZCPredicate aPredicate) const;
 };
 
 /**
@@ -116,8 +105,13 @@ private:
  */
 struct OverscrollHandoffState {
   OverscrollHandoffState(const OverscrollHandoffChain& aChain,
-                         const ScreenPoint& aPanDistance)
-      : mChain(aChain), mChainIndex(0), mPanDistance(aPanDistance) {}
+                         const ScreenPoint& aPanDistance,
+                         ScrollSource aScrollSource)
+    : mChain(aChain),
+      mChainIndex(0),
+      mPanDistance(aPanDistance),
+      mScrollSource(aScrollSource)
+  {}
 
   // The chain of APZCs along which we hand off scroll.
   // This is const to indicate that the chain does not change over the
@@ -131,12 +125,15 @@ struct OverscrollHandoffState {
   // The total distance since touch-start of the pan that triggered the
   // handoff. This is const to indicate that it does not change over the
   // course of handoff.
+  // The x/y components of this are non-negative.
   const ScreenPoint mPanDistance;
+
+  ScrollSource mScrollSource;
 };
 // Don't pollute other files with this macro for now.
 #undef NS_INLINE_DECL_THREADSAFE_MUTABLE_REFCOUNTING
 
-}
-}
+} // namespace layers
+} // namespace mozilla
 
 #endif /* mozilla_layers_OverscrollHandoffChain_h */

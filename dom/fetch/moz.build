@@ -5,17 +5,47 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 EXPORTS.mozilla.dom += [
+    'ChannelInfo.h',
+    'Fetch.h',
+    'FetchDriver.h',
+    'FetchUtil.h',
     'Headers.h',
+    'InternalHeaders.h',
+    'InternalRequest.h',
+    'InternalResponse.h',
+    'Request.h',
+    'Response.h',
 ]
 
 UNIFIED_SOURCES += [
+    'ChannelInfo.cpp',
+    'Fetch.cpp',
+    'FetchDriver.cpp',
+    'FetchUtil.cpp',
     'Headers.cpp',
+    'InternalHeaders.cpp',
+    'InternalRequest.cpp',
+    'InternalResponse.cpp',
+    'Request.cpp',
+    'Response.cpp',
+]
+
+IPDL_SOURCES += [
+    'ChannelInfo.ipdlh',
 ]
 
 LOCAL_INCLUDES += [
     '../workers',
+    # For nsJARChannel.h
+    '/modules/libjar',
+    # For HttpBaseChannel.h dependencies
+    '/netwerk/base',
+    # For nsDataHandler.h
+    '/netwerk/protocol/data',
+    # For HttpBaseChannel.h
+    '/netwerk/protocol/http',
 ]
 
-FAIL_ON_WARNINGS = True
-MSVC_ENABLE_PGO = True
 FINAL_LIBRARY = 'xul'
+
+include('/ipc/chromium/chromium-config.mozbuild')

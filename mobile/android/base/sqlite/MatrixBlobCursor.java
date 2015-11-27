@@ -20,8 +20,8 @@ package org.mozilla.gecko.sqlite;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
+import org.mozilla.gecko.annotation.WrapForJNI;
 import org.mozilla.gecko.AppConstants;
-import org.mozilla.gecko.mozglue.generatorannotations.WrapElementForJNI;
 
 import android.database.AbstractCursor;
 import android.database.CursorIndexOutOfBoundsException;
@@ -45,6 +45,7 @@ public class MatrixBlobCursor extends AbstractCursor {
     private final int columnCount;
 
     private int rowCount;
+    private Throwable allocationStack;
 
     Object[] data;
 
@@ -55,7 +56,7 @@ public class MatrixBlobCursor extends AbstractCursor {
      *  determines column ordering elsewhere in this cursor
      * @param initialCapacity in rows
      */
-    @WrapElementForJNI
+    @WrapForJNI
     public MatrixBlobCursor(String[] columnNames, int initialCapacity) {
         this.columnNames = columnNames;
         this.columnCount = columnNames.length;
@@ -65,6 +66,9 @@ public class MatrixBlobCursor extends AbstractCursor {
         }
 
         this.data = new Object[columnCount * initialCapacity];
+        if (AppConstants.DEBUG_BUILD) {
+            this.allocationStack = new Throwable("allocationStack");
+        }
     }
 
     /**
@@ -73,9 +77,18 @@ public class MatrixBlobCursor extends AbstractCursor {
      * @param columnNames names of the columns, the ordering of which
      *  determines column ordering elsewhere in this cursor
      */
-    @WrapElementForJNI
+    @WrapForJNI
     public MatrixBlobCursor(String[] columnNames) {
         this(columnNames, 16);
+    }
+
+    /**
+     * Closes the Cursor, releasing all of its resources.
+     */
+    public void close() {
+        this.allocationStack = null;
+        this.data = null;
+        super.close();
     }
 
     /**
@@ -119,7 +132,7 @@ public class MatrixBlobCursor extends AbstractCursor {
      * @param columnValues in the same order as the the column names specified
      *  at cursor construction time
      */
-    @WrapElementForJNI
+    @WrapForJNI
     public void addRow(Object[] columnValues) {
         if (columnValues.length != columnCount) {
             throw new IllegalArgumentException("columnNames.length = "
@@ -141,7 +154,7 @@ public class MatrixBlobCursor extends AbstractCursor {
      * @param columnValues in the same order as the the column names specified
      *  at cursor construction time
      */
-    @WrapElementForJNI
+    @WrapForJNI
     public void addRow(Iterable<?> columnValues) {
         final int start = rowCount * columnCount;
 
@@ -175,7 +188,7 @@ public class MatrixBlobCursor extends AbstractCursor {
     }
 
     /** Optimization for {@link ArrayList}. */
-    @WrapElementForJNI
+    @WrapForJNI
     private void addRow(ArrayList<?> columnValues, int start) {
         final int size = columnValues.size();
         if (size != columnCount) {
@@ -344,7 +357,7 @@ public class MatrixBlobCursor extends AbstractCursor {
     protected void finalize() {
         if (AppConstants.DEBUG_BUILD) {
             if (!isClosed()) {
-                Log.e(LOGTAG, "Cursor finalized without being closed", new RuntimeException("stack"));
+                Log.e(LOGTAG, "Cursor finalized without being closed", this.allocationStack);
             }
         }
 

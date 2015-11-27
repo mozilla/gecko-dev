@@ -29,10 +29,12 @@ ReadStructuredCloneImageData(JSContext* aCx, JSStructuredCloneReader* aReader)
   JS::Rooted<JSObject*> result(aCx);
   {
     // Construct the ImageData.
-    nsRefPtr<ImageData> imageData = new ImageData(width, height,
+    RefPtr<ImageData> imageData = new ImageData(width, height,
                                                   dataArray.toObject());
     // Wrap it in a JS::Value.
-    result = imageData->WrapObject(aCx);
+    if (!imageData->WrapObject(aCx, nullptr, &result)) {
+      return nullptr;
+    }
   }
   return result;
 }

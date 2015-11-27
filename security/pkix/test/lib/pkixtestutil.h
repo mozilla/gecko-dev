@@ -22,21 +22,22 @@
  * limitations under the License.
  */
 
-#ifndef mozilla_pkix_test__pkixtestutils_h
-#define mozilla_pkix_test__pkixtestutils_h
+#ifndef mozilla_pkix_test_pkixtestutils_h
+#define mozilla_pkix_test_pkixtestutils_h
 
 #include <ctime>
 #include <stdint.h> // Some Mozilla-supported compilers lack <cstdint>
 #include <string>
+#include <cstring>
 
-#include "pkix/enumclass.h"
 #include "pkix/pkixtypes.h"
-#include "pkix/ScopedPtr.h"
+#include "../../lib/ScopedPtr.h"
 
 namespace mozilla { namespace pkix { namespace test {
 
 typedef std::basic_string<uint8_t> ByteString;
-extern const ByteString ENCODING_FAILED;
+
+inline bool ENCODING_FAILED(const ByteString& bs) { return bs.empty(); }
 
 // XXX: Ideally, we should define this instead:
 //
@@ -53,15 +54,8 @@ extern const ByteString ENCODING_FAILED;
 // XXX: Evaluates its argument twice
 #define MOZILLA_PKIX_ARRAY_LENGTH(x) (sizeof(x) / sizeof((x)[0]))
 
-class TestInput : public Input
-{
-public:
-  template <size_t N>
-  explicit TestInput(const char (&valueString)[N])
-    : Input(reinterpret_cast<const uint8_t(&)[N-1]>(valueString))
-  {
-  }
-};
+bool InputEqualsByteString(Input input, const ByteString& bs);
+ByteString InputToByteString(Input input);
 
 // python DottedOIDToCode.py --tlv id-kp-OCSPSigning 1.3.6.1.5.5.7.3.9
 static const uint8_t tlv_id_kp_OCSPSigning[] = {
@@ -73,19 +67,221 @@ static const uint8_t tlv_id_kp_serverAuth[] = {
   0x06, 0x08, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x03, 0x01
 };
 
-extern const Input sha256WithRSAEncryption;
+enum class TestDigestAlgorithmID
+{
+  MD2,
+  MD5,
+  SHA1,
+  SHA224,
+  SHA256,
+  SHA384,
+  SHA512,
+};
+
+struct TestPublicKeyAlgorithm
+{
+  explicit TestPublicKeyAlgorithm(const ByteString& algorithmIdentifier)
+    : algorithmIdentifier(algorithmIdentifier) { }
+  bool operator==(const TestPublicKeyAlgorithm& other) const
+  {
+    return algorithmIdentifier == other.algorithmIdentifier;
+  }
+  ByteString algorithmIdentifier;
+};
+
+ByteString DSS_P();
+ByteString DSS_Q();
+ByteString DSS_G();
+
+TestPublicKeyAlgorithm DSS();
+TestPublicKeyAlgorithm RSA_PKCS1();
+
+struct TestSignatureAlgorithm
+{
+  TestSignatureAlgorithm(const TestPublicKeyAlgorithm& publicKeyAlg,
+                         TestDigestAlgorithmID digestAlg,
+                         const ByteString& algorithmIdentifier,
+                         bool accepted);
+
+  TestPublicKeyAlgorithm publicKeyAlg;
+  TestDigestAlgorithmID digestAlg;
+  ByteString algorithmIdentifier;
+  bool accepted;
+};
+
+TestSignatureAlgorithm md2WithRSAEncryption();
+TestSignatureAlgorithm md5WithRSAEncryption();
+TestSignatureAlgorithm sha1WithRSAEncryption();
+TestSignatureAlgorithm sha256WithRSAEncryption();
 
 // e.g. YMDHMS(2016, 12, 31, 1, 23, 45) => 2016-12-31:01:23:45 (GMT)
-mozilla::pkix::Time YMDHMS(int16_t year, int16_t month, int16_t day,
-                           int16_t hour, int16_t minutes, int16_t seconds);
+mozilla::pkix::Time YMDHMS(uint16_t year, uint16_t month, uint16_t day,
+                           uint16_t hour, uint16_t minutes, uint16_t seconds);
 
+ByteString TLV(uint8_t tag, size_t length, const ByteString& value);
 
-ByteString CNToDERName(const char* cn);
+inline ByteString
+TLV(uint8_t tag, const ByteString& value)
+{
+  return TLV(tag, value.length(), value);
+}
+
+// Although we can't enforce it without relying on Cuser-defined literals,
+// which aren't supported by all of our compilers yet, you should only pass
+// string literals as the last parameter to the following two functions.
+
+template <size_t N>
+inline ByteString
+TLV(uint8_t tag, const char(&value)[N])
+{
+  static_assert(N > 0, "cannot have string literal of size 0");
+  assert(value[N - 1] == 0);
+  return TLV(tag, ByteString(reinterpret_cast<const uint8_t*>(&value), N - 1));
+}
+
+template <size_t N>
+inline ByteString
+TLV(uint8_t tag, size_t length, const char(&value)[N])
+{
+  static_assert(N > 0, "cannot have string literal of size 0");
+  assert(value[N - 1] == 0);
+  return TLV(tag, length,
+             ByteString(reinterpret_cast<const uint8_t*>(&value), N - 1));
+}
+
+ByteString Boolean(bool value);
+ByteString Integer(long value);
+
+ByteString CN(const ByteString&, uint8_t encodingTag = 0x0c /*UTF8String*/);
+
+inline ByteString
+CN(const char* value, uint8_t encodingTag = 0x0c /*UTF8String*/)
+{
+  return CN(ByteString(reinterpret_cast<const uint8_t*>(value),
+                       std::strlen(value)), encodingTag);
+}
+
+ByteString OU(const ByteString&, uint8_t encodingTag = 0x0c /*UTF8String*/);
+
+inline ByteString
+OU(const char* value, uint8_t encodingTag = 0x0c /*UTF8String*/)
+{
+  return OU(ByteString(reinterpret_cast<const uint8_t*>(value),
+                       std::strlen(value)), encodingTag);
+}
+
+ByteString emailAddress(const ByteString&);
+
+inline ByteString
+emailAddress(const char* value)
+{
+  return emailAddress(ByteString(reinterpret_cast<const uint8_t*>(value),
+                                 std::strlen(value)));
+}
+
+// RelativeDistinguishedName ::=
+//   SET SIZE (1..MAX) OF AttributeTypeAndValue
+//
+ByteString RDN(const ByteString& avas);
+
+// Name ::= CHOICE { -- only one possibility for now --
+//   rdnSequence  RDNSequence }
+//
+// RDNSequence ::= SEQUENCE OF RelativeDistinguishedName
+//
+ByteString Name(const ByteString& rdns);
+
+inline ByteString
+CNToDERName(const ByteString& cn)
+{
+  return Name(RDN(CN(cn)));
+}
+
+inline ByteString
+CNToDERName(const char* cn)
+{
+  return Name(RDN(CN(cn)));
+}
+
+// GeneralName ::= CHOICE {
+//      otherName                       [0]     OtherName,
+//      rfc822Name                      [1]     IA5String,
+//      dNSName                         [2]     IA5String,
+//      x400Address                     [3]     ORAddress,
+//      directoryName                   [4]     Name,
+//      ediPartyName                    [5]     EDIPartyName,
+//      uniformResourceIdentifier       [6]     IA5String,
+//      iPAddress                       [7]     OCTET STRING,
+//      registeredID                    [8]     OBJECT IDENTIFIER }
+
+inline ByteString
+RFC822Name(const ByteString& name)
+{
+  // (2 << 6) means "context-specific", 1 is the GeneralName tag.
+  return TLV((2 << 6) | 1, name);
+}
+
+template <size_t L>
+inline ByteString
+RFC822Name(const char (&bytes)[L])
+{
+  return RFC822Name(ByteString(reinterpret_cast<const uint8_t*>(&bytes),
+                               L - 1));
+}
+
+inline ByteString
+DNSName(const ByteString& name)
+{
+  // (2 << 6) means "context-specific", 2 is the GeneralName tag.
+  return TLV((2 << 6) | 2, name);
+}
+
+template <size_t L>
+inline ByteString
+DNSName(const char (&bytes)[L])
+{
+  return DNSName(ByteString(reinterpret_cast<const uint8_t*>(&bytes),
+                            L - 1));
+}
+
+inline ByteString
+DirectoryName(const ByteString& name)
+{
+  // (2 << 6) means "context-specific", (1 << 5) means "constructed", and 4 is
+  // the DirectoryName tag.
+  return TLV((2 << 6) | (1 << 5) | 4, name);
+}
+
+inline ByteString
+IPAddress()
+{
+  // (2 << 6) means "context-specific", 7 is the GeneralName tag.
+  return TLV((2 << 6) | 7, ByteString());
+}
+
+template <size_t L>
+inline ByteString
+IPAddress(const uint8_t (&bytes)[L])
+{
+  // (2 << 6) means "context-specific", 7 is the GeneralName tag.
+  return TLV((2 << 6) | 7, ByteString(bytes, L));
+}
+
+// Names should be zero or more GeneralNames, like DNSName and IPAddress return,
+// concatenated together.
+//
+// CreatedEncodedSubjectAltName(ByteString()) results in a SAN with an empty
+// sequence. CreateEmptyEncodedSubjectName() results in a SAN without any
+// sequence.
+ByteString CreateEncodedSubjectAltName(const ByteString& names);
+ByteString CreateEncodedEmptySubjectAltName();
 
 class TestKeyPair
 {
 public:
   virtual ~TestKeyPair() { }
+
+  const TestPublicKeyAlgorithm publicKeyAlg;
 
   // The DER encoding of the entire SubjectPublicKeyInfo structure. This is
   // what is encoded in certificates.
@@ -96,32 +292,28 @@ public:
   const ByteString subjectPublicKey;
 
   virtual Result SignData(const ByteString& tbs,
-                          SignatureAlgorithm signatureAlgorithm,
+                          const TestSignatureAlgorithm& signatureAlgorithm,
                           /*out*/ ByteString& signature) const = 0;
 
   virtual TestKeyPair* Clone() const = 0;
 protected:
-  TestKeyPair(const ByteString& spki, const ByteString& spk)
-    : subjectPublicKeyInfo(spki)
-    , subjectPublicKey(spk)
-  {
-  }
-
-  TestKeyPair(const TestKeyPair&) /*= delete*/;
-  void operator=(const TestKeyPair&) /*= delete*/;
+  TestKeyPair(const TestPublicKeyAlgorithm& publicKeyAlg, const ByteString& spk);
+  TestKeyPair(const TestKeyPair&) = delete;
+  void operator=(const TestKeyPair&) = delete;
 };
 
+TestKeyPair* CloneReusedKeyPair();
 TestKeyPair* GenerateKeyPair();
+TestKeyPair* GenerateDSSKeyPair();
 inline void DeleteTestKeyPair(TestKeyPair* keyPair) { delete keyPair; }
 typedef ScopedPtr<TestKeyPair, DeleteTestKeyPair> ScopedTestKeyPair;
 
-ByteString SHA1(const ByteString& toHash);
-
-Result TestCheckPublicKey(Input subjectPublicKeyInfo);
-Result TestVerifySignedData(const SignedDataWithSignature& signedData,
-                            Input subjectPublicKeyInfo);
-Result TestDigestBuf(Input item, /*out*/ uint8_t* digestBuf,
-                     size_t digestBufLen);
+Result TestVerifyECDSASignedDigest(const SignedDigest& signedDigest,
+                                   Input subjectPublicKeyInfo);
+Result TestVerifyRSAPKCS1SignedDigest(const SignedDigest& signedDigest,
+                                      Input subjectPublicKeyInfo);
+Result TestDigestBuf(Input item, DigestAlgorithm digestAlg,
+                     /*out*/ uint8_t* digestBuf, size_t digestBufLen);
 
 // Replace one substring in item with another of the same length, but only if
 // the substring was found exactly once. The "same length" restriction is
@@ -139,43 +331,42 @@ Result TamperOnce(/*in/out*/ ByteString& item, const ByteString& from,
 
 enum Version { v1 = 0, v2 = 1, v3 = 2 };
 
-// signature is assumed to be the DER encoding of an AlgorithmIdentifer.
+// signature is assumed to be the DER encoding of an AlgorithmIdentifer. It is
+// put into the signature field of the TBSCertificate. In most cases, it will
+// be the same as signatureAlgorithm, which is the algorithm actually used
+// to sign the certificate.
 // serialNumber is assumed to be the DER encoding of an INTEGER.
 //
 // If extensions is null, then no extensions will be encoded. Otherwise,
 // extensions must point to an array of ByteStrings, terminated with an empty
 // ByteString. (If the first item of the array is empty then an empty
 // Extensions sequence will be encoded.)
-//
-// If issuerPrivateKey is null, then the certificate will be self-signed.
-// Parameter order is based on the order of the attributes of the certificate
-// in RFC 5280.
-ByteString CreateEncodedCertificate(long version, Input signature,
+ByteString CreateEncodedCertificate(long version,
+                                    const TestSignatureAlgorithm& signature,
                                     const ByteString& serialNumber,
                                     const ByteString& issuerNameDER,
                                     time_t notBefore, time_t notAfter,
                                     const ByteString& subjectNameDER,
+                                    const TestKeyPair& subjectKeyPair,
                                     /*optional*/ const ByteString* extensions,
-                                    /*optional*/ TestKeyPair* issuerKeyPair,
-                                    SignatureAlgorithm signatureAlgorithm,
-                                    /*out*/ ScopedTestKeyPair& keyPairResult);
+                                    const TestKeyPair& issuerKeyPair,
+                                    const TestSignatureAlgorithm& signatureAlgorithm);
 
 ByteString CreateEncodedSerialNumber(long value);
 
-MOZILLA_PKIX_ENUM_CLASS ExtensionCriticality { NotCritical = 0, Critical = 1 };
+enum class Critical { No = 0, Yes = 1 };
 
 ByteString CreateEncodedBasicConstraints(bool isCA,
                                          /*optional*/ long* pathLenConstraint,
-                                         ExtensionCriticality criticality);
+                                         Critical critical);
 
 // Creates a DER-encoded extKeyUsage extension with one EKU OID.
-ByteString CreateEncodedEKUExtension(Input eku,
-                                     ExtensionCriticality criticality);
+ByteString CreateEncodedEKUExtension(Input eku, Critical critical);
 
 ///////////////////////////////////////////////////////////////////////////////
 // Encode OCSP responses
 
-class OCSPResponseExtension
+class OCSPResponseExtension final
 {
 public:
   ByteString id;
@@ -184,7 +375,7 @@ public:
   OCSPResponseExtension* next;
 };
 
-class OCSPResponseContext
+class OCSPResponseContext final
 {
 public:
   OCSPResponseContext(const CertID& certID, std::time_t time);
@@ -194,7 +385,8 @@ public:
 
   // The fields below are in the order that they appear in an OCSP response.
 
-  enum OCSPResponseStatus {
+  enum OCSPResponseStatus
+  {
     successful = 0,
     malformedRequest = 1,
     internalError = 2,
@@ -218,12 +410,14 @@ public:
                                // regardless of if there are any actual
                                // extensions.
   ScopedTestKeyPair signerKeyPair;
+  TestSignatureAlgorithm signatureAlgorithm;
   bool badSignature; // If true, alter the signature to fail verification
   const ByteString* certs; // optional; array terminated by an empty string
 
   // The following fields are on a per-SingleResponse basis. In the future we
   // may support including multiple SingleResponses per response.
-  enum CertStatus {
+  enum CertStatus
+  {
     good = 0,
     revoked = 1,
     unknown = 2,
@@ -239,4 +433,4 @@ ByteString CreateEncodedOCSPResponse(OCSPResponseContext& context);
 
 } } } // namespace mozilla::pkix::test
 
-#endif // mozilla_pkix_test__pkixtestutils_h
+#endif // mozilla_pkix_test_pkixtestutils_h

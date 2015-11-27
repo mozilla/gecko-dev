@@ -7,6 +7,8 @@
 include protocol PTelephony;
 include TelephonyTypes;
 
+using nsTelephonyCallInfo from "mozilla/dom/telephony/TelephonyIPCSerializer.h";
+
 namespace mozilla {
 namespace dom {
 namespace telephony {
@@ -16,13 +18,19 @@ struct EnumerateCallsResponse
   // empty.
 };
 
-struct DialResponseError
+struct SuccessResponse
+{
+  // empty.
+};
+
+struct ErrorResponse
 {
   nsString name;
 };
 
 struct DialResponseCallSuccess
 {
+  uint32_t clientId;
   uint32_t callIndex;
   nsString number;
 };
@@ -42,8 +50,12 @@ struct DialResponseMMIError
 union IPCTelephonyResponse
 {
   EnumerateCallsResponse;
+
+  // General.
+  SuccessResponse;
+  ErrorResponse;
+
   // dial
-  DialResponseError;
   DialResponseCallSuccess;
   DialResponseMMISuccess;
   DialResponseMMIError;
@@ -54,7 +66,7 @@ protocol PTelephonyRequest
   manager PTelephony;
 
 child:
-  NotifyEnumerateCallState(uint32_t aClientId, IPCCallStateData aData);
+  NotifyEnumerateCallState(nsTelephonyCallInfo aInfo);
 
   NotifyDialMMI(nsString aServiceCode);
 

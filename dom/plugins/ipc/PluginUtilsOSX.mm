@@ -220,26 +220,32 @@ NPError mozilla::plugins::PluginUtilsOSX::ShowCocoaContextMenu(void* aMenu, int 
   // change to an arrow cursor automatically -- as it does in Chrome.
   [[NSCursor arrowCursor] set];
 
-  // Create a timer to process browser events while waiting
-  // on the menu. This prevents the browser from hanging
-  // during the lifetime of the menu.
-  EventProcessor* eventProcessor = [[EventProcessor alloc] init];
-  [eventProcessor setRemoteEvents:remoteEvent pluginModule:pluginModule];
-  NSTimer *eventTimer = [NSTimer timerWithTimeInterval:EVENT_PROCESS_DELAY
-                             target:eventProcessor selector:@selector(onTick) 
-                             userInfo:nil repeats:TRUE];
-  // Use NSEventTrackingRunLoopMode otherwise the timer will
-  // not fire during the right click menu.
-  [[NSRunLoop currentRunLoop] addTimer:eventTimer 
-                              forMode:NSEventTrackingRunLoopMode];
+  EventProcessor* eventProcessor = nullptr;
+  NSTimer *eventTimer = nullptr;
+  if (pluginModule) {
+    // Create a timer to process browser events while waiting
+    // on the menu. This prevents the browser from hanging
+    // during the lifetime of the menu.
+    eventProcessor = [[EventProcessor alloc] init];
+    [eventProcessor setRemoteEvents:remoteEvent pluginModule:pluginModule];
+    eventTimer = [NSTimer timerWithTimeInterval:EVENT_PROCESS_DELAY
+                                   target:eventProcessor selector:@selector(onTick)
+                                   userInfo:nil repeats:TRUE];
+    // Use NSEventTrackingRunLoopMode otherwise the timer will
+    // not fire during the right click menu.
+    [[NSRunLoop currentRunLoop] addTimer:eventTimer
+                                 forMode:NSEventTrackingRunLoopMode];
+  }
 
   NSMenu* nsmenu = reinterpret_cast<NSMenu*>(aMenu);
   NSPoint screen_point = ::NSMakePoint(aX, aY);
 
   [nsmenu popUpMenuPositioningItem:nil atLocation:screen_point inView:nil];
 
-  [eventTimer invalidate];
-  [eventProcessor release];
+  if (pluginModule) {
+    [eventTimer invalidate];
+    [eventProcessor release];
+  }
 
   return NPERR_NO_ERROR;
 
@@ -260,9 +266,9 @@ namespace plugins {
 namespace PluginUtilsOSX {
   static void *sApplicationASN = NULL;
   static void *sApplicationInfoItem = NULL;
-}
-}
-}
+} // namespace PluginUtilsOSX
+} // namespace plugins
+} // namespace mozilla
 
 bool mozilla::plugins::PluginUtilsOSX::SetProcessName(const char* aProcessName) {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
@@ -505,7 +511,7 @@ void nsDoubleBufferCARenderer::ClearBackSurface() {
   }
 }
 
-} //PluginUtilsOSX
-} //plugins
-} //mozilla
+} // namespace PluginUtilsOSX
+} // namespace plugins
+} // namespace mozilla
 

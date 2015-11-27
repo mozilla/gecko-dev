@@ -101,14 +101,14 @@ const DAY_IN_MS  = 86400000; // 1 day in milliseconds
 const MAX_SEARCH_TOKENS = 10;
 const NOOP = function noop() {};
 
-let supportsDeletedTable =
+var supportsDeletedTable =
 #ifdef ANDROID
   true;
 #else
   false;
 #endif
 
-let Prefs = {
+var Prefs = {
   initialized: false,
 
   get debug() { this.ensureInitialized(); return this._debug; },
@@ -371,7 +371,7 @@ function generateGUID() {
  * Database creation and access
  */
 
-let _dbConnection = null;
+var _dbConnection = null;
 XPCOMUtils.defineLazyGetter(this, "dbConnection", function() {
   let dbFile;
 
@@ -392,7 +392,7 @@ XPCOMUtils.defineLazyGetter(this, "dbConnection", function() {
 });
 
 
-let dbStmts = new Map();
+var dbStmts = new Map();
 
 /*
  * dbCreateAsyncStatement
@@ -601,7 +601,7 @@ function dbClose(aShutdown) {
   dbStmts = new Map();
 
   let closed = false;
-  _dbConnection.asyncClose(function () closed = true);
+  _dbConnection.asyncClose(() => closed = true);
 
   if (!aShutdown) {
     let thread = Services.tm.currentThread;
@@ -631,7 +631,7 @@ function updateFormHistoryWrite(aChanges, aCallbacks) {
   let notifications = [];
   let bindingArrays = new Map();
 
-  for each (let change in aChanges) {
+  for (let change of aChanges) {
     let operation = change.op;
     delete change.op;
     let stmt;
@@ -773,7 +773,9 @@ function expireOldEntriesVacuum(aExpireTime, aBeginningCount) {
 }
 
 this.FormHistory = {
-  get enabled() Prefs.enabled,
+  get enabled() {
+    return Prefs.enabled;
+  },
 
   search : function formHistorySearch(aSelectTerms, aSearchData, aCallbacks) {
     // if no terms selected, select everything
@@ -787,7 +789,7 @@ this.FormHistory = {
         let formHistoryFields = dbSchema.tables.moz_formhistory;
         for (let row = aResultSet.getNextRow(); row; row = aResultSet.getNextRow()) {
           let result = {};
-          for each (let field in aSelectTerms) {
+          for (let field of aSelectTerms) {
             result[field] = row.getResultByName(field);
           }
 
@@ -860,7 +862,7 @@ this.FormHistory = {
     if (!("length" in aChanges))
       aChanges = [aChanges];
 
-    for each (let change in aChanges) {
+    for (let change of aChanges) {
       switch (change.op) {
         case "remove":
           validateSearchData(change, "Remove");

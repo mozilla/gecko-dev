@@ -24,7 +24,7 @@
 #include "nsWeakReference.h"
 #include "nsIFactory.h"
 #include "nsCOMPtr.h"
-#include "pldhash.h"
+#include "PLDHashTable.h"
 #include "nsString.h"
 
 struct PLHashTable;
@@ -33,8 +33,8 @@ class nsIRDFInt;
 class nsIRDFDate;
 class BlobImpl;
 
-class RDFServiceImpl MOZ_FINAL : public nsIRDFService,
-                                 public nsSupportsWeakReference
+class RDFServiceImpl final : public nsIRDFService,
+                             public nsSupportsWeakReference
 {
 protected:
     PLHashTable* mNamedDataSources;

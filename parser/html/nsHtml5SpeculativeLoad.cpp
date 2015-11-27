@@ -27,19 +27,35 @@ nsHtml5SpeculativeLoad::Perform(nsHtml5TreeOpExecutor* aExecutor)
     case eSpeculativeLoadBase:
       aExecutor->SetSpeculationBase(mUrl);
       break;
+    case eSpeculativeLoadCSP:
+      aExecutor->AddSpeculationCSP(mMetaCSP);
+      break;
+    case eSpeculativeLoadMetaReferrer:
+      aExecutor->SetSpeculationReferrerPolicy(mReferrerPolicy);
+      break;
     case eSpeculativeLoadImage:
-      aExecutor->PreloadImage(mUrl, mCrossOrigin);
+      aExecutor->PreloadImage(mUrl, mCrossOrigin, mSrcset, mSizes, mReferrerPolicy);
+      break;
+    case eSpeculativeLoadOpenPicture:
+      aExecutor->PreloadOpenPicture();
+      break;
+    case eSpeculativeLoadEndPicture:
+      aExecutor->PreloadEndPicture();
+      break;
+    case eSpeculativeLoadPictureSource:
+      aExecutor->PreloadPictureSource(mSrcset, mSizes, mTypeOrCharsetSource,
+                                      mMedia);
       break;
     case eSpeculativeLoadScript:
       aExecutor->PreloadScript(mUrl, mCharset, mTypeOrCharsetSource,
-                               mCrossOrigin, false);
+                               mCrossOrigin, mIntegrity, false);
       break;
     case eSpeculativeLoadScriptFromHead:
       aExecutor->PreloadScript(mUrl, mCharset, mTypeOrCharsetSource,
-                               mCrossOrigin, true);
+                               mCrossOrigin, mIntegrity, true);
       break;
     case eSpeculativeLoadStyle:
-      aExecutor->PreloadStyle(mUrl, mCharset, mCrossOrigin);
+      aExecutor->PreloadStyle(mUrl, mCharset, mCrossOrigin, mIntegrity);
       break;
     case eSpeculativeLoadManifest:  
       aExecutor->ProcessOfflineManifest(mUrl);
@@ -53,6 +69,9 @@ nsHtml5SpeculativeLoad::Perform(nsHtml5TreeOpExecutor* aExecutor)
         aExecutor->SetDocumentCharsetAndSource(narrowName,
                                                intSource);
       }
+      break;
+    case eSpeculativeLoadPreconnect:
+      aExecutor->Preconnect(mUrl, mCrossOrigin);
       break;
     default:
       NS_NOTREACHED("Bogus speculative load.");

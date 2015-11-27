@@ -4,9 +4,9 @@
 
 "use strict";
 
-let bookmarksToolbar = document.getElementById("PersonalToolbar");
-let navbar = document.getElementById("nav-bar");
-let tabsToolbar = document.getElementById("TabsToolbar");
+var bookmarksToolbar = document.getElementById("PersonalToolbar");
+var navbar = document.getElementById("nav-bar");
+var tabsToolbar = document.getElementById("TabsToolbar");
 
 // Customization reset should restore visibility to default-visible toolbars.
 add_task(function() {
@@ -36,7 +36,7 @@ add_task(function() {
 
   yield startCustomizing();
   gCustomizeMode.reset();
-  yield waitForCondition(function() !gCustomizeMode.resetting);
+  yield waitForCondition(() => !gCustomizeMode.resetting);
   yield endCustomizing();
 
   is(bookmarksToolbar.collapsed, true, "Customization reset should restore collapsed-state to the bookmarks toolbar");
@@ -60,7 +60,7 @@ add_task(function() {
 
   yield startCustomizing();
   gCustomizeMode.reset();
-  yield waitForCondition(function() !gCustomizeMode.resetting);
+  yield waitForCondition(() => !gCustomizeMode.resetting);
 
   is(menubar.getAttribute("autohide"), "true", "The menubar should have autohide=true after reset in customization mode");
   is(menubar.getBoundingClientRect().height, 0, "The menubar should have height=0 after reset in customization mode");
@@ -88,7 +88,7 @@ add_task(function() {
   ok(!tabsToolbar.collapsed, "TabsToolbar should not be collapsed");
 
   gCustomizeMode.reset();
-  yield waitForCondition(function() !gCustomizeMode.resetting);
+  yield waitForCondition(() => !gCustomizeMode.resetting);
 
   ok(bookmarksToolbar.collapsed, "The bookmarksToolbar should be collapsed after reset");
   ok(!tabsToolbar.collapsed, "TabsToolbar should not be collapsed");

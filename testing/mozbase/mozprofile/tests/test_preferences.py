@@ -106,6 +106,29 @@ browser.startup.homepage = http://github.com/
             # cleanup
             os.remove(name)
 
+    def test_ini_keep_case(self):
+        """
+        Read a preferences config file with a preference in camel-case style.
+        Check that the read preference name has not been lower-cased
+        """
+        # write the .ini file
+        _ini = """[DEFAULT]
+general.warnOnAboutConfig = False
+"""
+        try:
+            fd, name = tempfile.mkstemp(suffix='.ini')
+            os.write(fd, _ini)
+            os.close(fd)
+            commandline = ["--preferences", name]
+
+             # test the [DEFAULT] section
+            _prefs = {'general.warnOnAboutConfig': 'False'}
+            self.compare_generated(_prefs, commandline)
+
+        finally:
+            # cleanup
+            os.remove(name)
+
     def test_reset_should_remove_added_prefs(self):
         """Check that when we call reset the items we expect are updated"""
         profile = Profile()
@@ -241,12 +264,12 @@ user_pref("webgl.force-enabled", true);
         json = '{"browser.startup.homepage": "http://planet.mozilla.org/"}'
 
         # just repr it...could use the json module but we don't need it here
-        fd, name = tempfile.mkstemp(suffix='.json')
-        os.write(fd, json)
-        os.close(fd)
+        with mozfile.NamedTemporaryFile(suffix='.json') as f:
+            f.write(json)
+            f.flush()
 
-        commandline = ["--preferences", name]
-        self.compare_generated(_prefs, commandline)
+            commandline = ["--preferences", f.name]
+            self.compare_generated(_prefs, commandline)
 
     def test_prefs_write(self):
         """test that the Preferences.write() method correctly serializes preferences"""

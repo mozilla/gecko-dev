@@ -7,7 +7,6 @@
 
 #include "DocAccessible.h"
 #include "nsAccUtils.h"
-#include "nsIAccessibleRelation.h"
 #include "nsIPersistentProperties2.h"
 #include "nsTextEquivUtils.h"
 #include "Relation.h"
@@ -69,17 +68,11 @@ HTMLLabelAccessible::RelationByType(RelationType aType)
 {
   Relation rel = AccessibleWrap::RelationByType(aType);
   if (aType == RelationType::LABEL_FOR) {
-    nsRefPtr<dom::HTMLLabelElement> label = dom::HTMLLabelElement::FromContent(mContent);
+    dom::HTMLLabelElement* label = dom::HTMLLabelElement::FromContent(mContent);
     rel.AppendTarget(mDoc, label->GetControl());
   }
 
   return rel;
-}
-
-role
-HTMLLabelAccessible::NativeRole()
-{
-  return roles::LABEL;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -97,21 +90,3 @@ HTMLOutputAccessible::RelationByType(RelationType aType)
 
   return rel;
 }
-
-role
-HTMLOutputAccessible::NativeRole()
-{
-  return roles::SECTION;
-}
-
-already_AddRefed<nsIPersistentProperties>
-HTMLOutputAccessible::NativeAttributes()
-{
-  nsCOMPtr<nsIPersistentProperties> attributes =
-    AccessibleWrap::NativeAttributes();
-  nsAccUtils::SetAccAttr(attributes, nsGkAtoms::live,
-                         NS_LITERAL_STRING("polite"));
-
-  return attributes.forget();
-}
-

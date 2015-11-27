@@ -244,27 +244,52 @@ this.BasePromiseWorker.prototype = {
    * @param {string} fun The name of the function to call.
    * @param {Array} args The arguments to pass to `fun`. If any
    * of the arguments is a Promise, it is resolved before posting the
-   * message. By convention, the last argument may be an object `options`
+   * message. If any of the arguments needs to be transfered instead
+   * of copied, this may be specified by making the argument an instance
+   * of `BasePromiseWorker.Meta` or by using the `transfers` argument.
+   * By convention, the last argument may be an object `options`
    * with some of the following fields:
    * - {number|null} outExecutionDuration A parameter to be filled with the
    *   duration of the off main thread execution for this call.
    * @param {*=} closure An object holding references that should not be
    * garbage-collected before the message treatment is complete.
+   * @param {Array=} transfers An array of objects that should be transfered
+   * to the worker instead of being copied. If any of the objects is a Promise,
+   * it is resolved before posting the message.
    *
    * @return {promise}
    */
-  post: function(fun, args, closure) {
+  post: function(fun, args, closure, transfers) {
     return Task.spawn(function* postMessage() {
       // Normalize in case any of the arguments is a promise
       if (args) {
         args = yield Promise.resolve(Promise.all(args));
+      }
+      if (transfers) {
+        transfers = yield Promise.resolve(Promise.all(transfers));
+      } else {
+        transfers = [];
+      }
+
+      if (args) {
+        // Extract `Meta` data
+        args = args.map(arg => {
+          if (arg instanceof BasePromiseWorker.Meta) {
+            if (arg.meta && "transfers" in arg.meta) {
+              transfers.push(...arg.meta.transfers);
+            }
+            return arg.data;
+          } else {
+            return arg;
+          }
+        });
       }
 
       let id = ++this._id;
       let message = {fun: fun, args: args, id: id};
       this.log("Posting message", message);
       try {
-        this._worker.postMessage(message);
+        this._worker.postMessage(message, ...[transfers]);
       } catch (ex if typeof ex == "number") {
         this.log("Could not post message", message, "due to xpcom error", ex);
         // handle raw xpcom errors (see eg bug 961317)
@@ -345,4 +370,22 @@ this.BasePromiseWorker.prototype = {
  */
 function WorkerError(data) {
   this.data = data;
+};
+
+/**
+ * A constructor used to send data to the worker thread while
+ * with special treatment (e.g. transmitting data instead of
+ * copying it).
+ *
+ * @param {object=} data The data to send to the caller thread.
+ * @param {object=} meta Additional instructions, as an object
+ * that may contain the following fields:
+ * - {Array} transfers An array of objects that should be transferred
+ *   instead of being copied.
+ *
+ * @constructor
+ */
+this.BasePromiseWorker.Meta = function(data, meta) {
+  this.data = data;
+  this.meta = meta;
 };

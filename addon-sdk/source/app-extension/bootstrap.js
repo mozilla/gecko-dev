@@ -34,12 +34,12 @@ const REASON = [ 'unknown', 'startup', 'shutdown', 'enable', 'disable',
 
 const bind = Function.call.bind(Function.bind);
 
-let loader = null;
-let unload = null;
-let cuddlefishSandbox = null;
-let nukeTimer = null;
+var loader = null;
+var unload = null;
+var cuddlefishSandbox = null;
+var nukeTimer = null;
 
-let resourceDomains = [];
+var resourceDomains = [];
 function setResourceSubstitution(domain, uri) {
   resourceDomains.push(domain);
   resourceHandler.setSubstitution(domain, uri);
@@ -50,7 +50,15 @@ function setResourceSubstitution(domain, uri) {
 function readURI(uri) {
   let ioservice = Cc['@mozilla.org/network/io-service;1'].
     getService(Ci.nsIIOService);
-  let channel = ioservice.newChannel(uri, 'UTF-8', null);
+
+  let channel = ioservice.newChannel2(uri,
+                                      'UTF-8',
+                                      null,
+                                      null,      // aLoadingNode
+                                      systemPrincipal,
+                                      null,      // aTriggeringPrincipal
+                                      Ci.nsILoadInfo.SEC_NORMAL,
+                                      Ci.nsIContentPolicy.TYPE_OTHER);
   let stream = channel.open();
 
   let cstream = Cc['@mozilla.org/intl/converter-input-stream;1'].
@@ -229,6 +237,10 @@ function startup(data, reasonCode) {
       resultFile: options.resultFile,
       // Arguments passed as --static-args
       staticArgs: options.staticArgs,
+
+      // Option to prevent automatic kill of firefox during tests
+      noQuit: options.no_quit,
+
       // Add-on preferences branch name
       preferencesBranch: options.preferencesBranch,
 
@@ -342,7 +354,6 @@ function nukeModules() {
   // the addon is unload.
 
   unloadSandbox(cuddlefishSandbox.loaderSandbox);
-  unloadSandbox(cuddlefishSandbox.xulappSandbox);
 
   // Bug 764840: We need to unload cuddlefish otherwise it will stay alive
   // and keep a reference to this compartment.

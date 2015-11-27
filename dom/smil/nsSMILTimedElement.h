@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -6,6 +7,7 @@
 #ifndef NS_SMILTIMEDELEMENT_H_
 #define NS_SMILTIMEDELEMENT_H_
 
+#include "mozilla/EventForwards.h"
 #include "mozilla/Move.h"
 #include "nsSMILInterval.h"
 #include "nsSMILInstanceTime.h"
@@ -27,8 +29,8 @@ class nsIAtom;
 namespace mozilla {
 namespace dom {
 class SVGAnimationElement;
-}
-}
+} // namespace dom
+} // namespace mozilla
 
 //----------------------------------------------------------------------
 // nsSMILTimedElement
@@ -351,7 +353,7 @@ public:
 protected:
   // Typedefs
   typedef nsTArray<nsAutoPtr<nsSMILTimeValueSpec> > TimeValueSpecList;
-  typedef nsTArray<nsRefPtr<nsSMILInstanceTime> >   InstanceTimeList;
+  typedef nsTArray<RefPtr<nsSMILInstanceTime> >   InstanceTimeList;
   typedef nsTArray<nsAutoPtr<nsSMILInterval> >      IntervalList;
   typedef nsPtrHashKey<nsSMILTimeValueSpec> TimeValueSpecPtrKey;
   typedef nsTHashtable<TimeValueSpecPtrKey> TimeValueSpecHashSet;
@@ -363,11 +365,6 @@ protected:
                     const nsSMILInstanceTime* aElem2) const;
       bool LessThan(const nsSMILInstanceTime* aElem1,
                       const nsSMILInstanceTime* aElem2) const;
-  };
-
-  struct NotifyTimeDependentsParams {
-    nsSMILTimedElement*  mTimedElement;
-    nsSMILTimeContainer* mTimeContainer;
   };
 
   // Templated helper functions
@@ -543,7 +540,8 @@ protected:
                                           bool aBeginObjectChanged,
                                           bool aEndObjectChanged);
 
-  void              FireTimeEventAsync(uint32_t aMsg, int32_t aDetail);
+  void              FireTimeEventAsync(mozilla::EventMessage aMsg,
+                                       int32_t aDetail);
   const nsSMILInstanceTime* GetEffectiveBeginInstance() const;
   const nsSMILInterval* GetPreviousInterval() const;
   bool              HasPlayed() const { return !mOldIntervals.IsEmpty(); }
@@ -563,10 +561,6 @@ protected:
       interval->Unlink();
     }
   }
-
-  // Hashtable callback methods
-  static PLDHashOperator NotifyNewIntervalCallback(
-      TimeValueSpecPtrKey* aKey, void* aData);
 
   //
   // Members

@@ -19,22 +19,21 @@
 
 class nsIDOMElement;
 class nsIDOMNode;
-class nsISelection;
 namespace mozilla {
 namespace dom {
 class Selection;
-}  // namespace dom
-}  // namespace mozilla
+} // namespace dom
+} // namespace mozilla
 
 /** Object that encapsulates HTML text-specific editing rules.
-  *  
+  *
   * To be a good citizen, edit rules must live by these restrictions:
-  * 1. All data manipulation is through the editor.  
+  * 1. All data manipulation is through the editor.
   *    Content nodes in the document tree must <B>not</B> be manipulated directly.
   *    Content nodes in document fragments that are not part of the document itself
   *    may be manipulated at will.  Operations on document fragments must <B>not</B>
   *    go through the editor.
-  * 2. Selection must not be explicitly set by the rule method.  
+  * 2. Selection must not be explicitly set by the rule method.
   *    Any manipulation of Selection must be done by the editor.
   */
 class nsTextEditRules : public nsIEditRules, public nsITimerCallback
@@ -47,18 +46,19 @@ public:
   nsTextEditRules();
 
   // nsIEditRules methods
-  NS_IMETHOD Init(nsPlaintextEditor *aEditor);
-  NS_IMETHOD SetInitialValue(const nsAString& aValue);
-  NS_IMETHOD DetachEditor();
+  NS_IMETHOD Init(nsPlaintextEditor *aEditor) override;
+  NS_IMETHOD SetInitialValue(const nsAString& aValue) override;
+  NS_IMETHOD DetachEditor() override;
   NS_IMETHOD BeforeEdit(EditAction action,
-                        nsIEditor::EDirection aDirection);
+                        nsIEditor::EDirection aDirection) override;
   NS_IMETHOD AfterEdit(EditAction action,
-                       nsIEditor::EDirection aDirection);
+                       nsIEditor::EDirection aDirection) override;
   NS_IMETHOD WillDoAction(mozilla::dom::Selection* aSelection,
-                          nsRulesInfo* aInfo, bool* aCancel, bool* aHandled);
-  NS_IMETHOD DidDoAction(nsISelection *aSelection, nsRulesInfo *aInfo, nsresult aResult);
-  NS_IMETHOD DocumentIsEmpty(bool *aDocumentIsEmpty);
-  NS_IMETHOD DocumentModified();
+                          nsRulesInfo* aInfo, bool* aCancel, bool* aHandled) override;
+  NS_IMETHOD DidDoAction(mozilla::dom::Selection* aSelection,
+                         nsRulesInfo* aInfo, nsresult aResult) override;
+  NS_IMETHOD DocumentIsEmpty(bool *aDocumentIsEmpty) override;
+  NS_IMETHOD DocumentModified() override;
 
 protected:
   virtual ~nsTextEditRules();
@@ -114,35 +114,43 @@ protected:
                             const nsAString *inString,
                             nsAString       *outString,
                             int32_t          aMaxLength);
-  nsresult DidInsertText(nsISelection *aSelection, nsresult aResult);
+  nsresult DidInsertText(mozilla::dom::Selection* aSelection,
+                         nsresult aResult);
   nsresult GetTopEnclosingPre(nsIDOMNode *aNode, nsIDOMNode** aOutPreNode);
 
   nsresult WillInsertBreak(mozilla::dom::Selection* aSelection, bool* aCancel,
                            bool *aHandled, int32_t aMaxLength);
-  nsresult DidInsertBreak(nsISelection *aSelection, nsresult aResult);
+  nsresult DidInsertBreak(mozilla::dom::Selection* aSelection,
+                          nsresult aResult);
 
-  nsresult WillInsert(nsISelection *aSelection, bool *aCancel);
-  nsresult DidInsert(nsISelection *aSelection, nsresult aResult);
+  nsresult WillInsert(mozilla::dom::Selection* aSelection, bool* aCancel);
+  nsresult DidInsert(mozilla::dom::Selection* aSelection, nsresult aResult);
 
   nsresult WillDeleteSelection(mozilla::dom::Selection* aSelection,
-                               nsIEditor::EDirection aCollapsedAction, 
+                               nsIEditor::EDirection aCollapsedAction,
                                bool *aCancel,
                                bool *aHandled);
-  nsresult DidDeleteSelection(nsISelection *aSelection, 
-                              nsIEditor::EDirection aCollapsedAction, 
+  nsresult DidDeleteSelection(mozilla::dom::Selection* aSelection,
+                              nsIEditor::EDirection aCollapsedAction,
                               nsresult aResult);
 
-  nsresult WillSetTextProperty(nsISelection *aSelection, bool *aCancel, bool *aHandled);
-  nsresult DidSetTextProperty(nsISelection *aSelection, nsresult aResult);
+  nsresult WillSetTextProperty(mozilla::dom::Selection* aSelection,
+                               bool* aCancel, bool* aHandled);
+  nsresult DidSetTextProperty(mozilla::dom::Selection* aSelection,
+                              nsresult aResult);
 
-  nsresult WillRemoveTextProperty(nsISelection *aSelection, bool *aCancel, bool *aHandled);
-  nsresult DidRemoveTextProperty(nsISelection *aSelection, nsresult aResult);
+  nsresult WillRemoveTextProperty(mozilla::dom::Selection* aSelection,
+                                  bool* aCancel, bool* aHandled);
+  nsresult DidRemoveTextProperty(mozilla::dom::Selection* aSelection,
+                                 nsresult aResult);
 
-  nsresult WillUndo(nsISelection *aSelection, bool *aCancel, bool *aHandled);
-  nsresult DidUndo(nsISelection *aSelection, nsresult aResult);
+  nsresult WillUndo(mozilla::dom::Selection* aSelection, bool* aCancel,
+                    bool* aHandled);
+  nsresult DidUndo(mozilla::dom::Selection* aSelection, nsresult aResult);
 
-  nsresult WillRedo(nsISelection *aSelection, bool *aCancel, bool *aHandled);
-  nsresult DidRedo(nsISelection *aSelection, nsresult aResult);
+  nsresult WillRedo(mozilla::dom::Selection* aSelection, bool* aCancel,
+                    bool* aHandled);
+  nsresult DidRedo(mozilla::dom::Selection* aSelection, nsresult aResult);
 
   /** called prior to nsIEditor::OutputToString
     * @param aSelection
@@ -151,25 +159,25 @@ protected:
     * @param aOutCancel if set to true, the caller should cancel the operation
     *                   and use aOutText as the result.
     */
-  nsresult WillOutputText(nsISelection *aSelection,
+  nsresult WillOutputText(mozilla::dom::Selection* aSelection,
                           const nsAString  *aInFormat,
-                          nsAString *aOutText, 
-                          bool     *aOutCancel, 
+                          nsAString *aOutText,
+                          bool     *aOutCancel,
                           bool *aHandled);
 
-  nsresult DidOutputText(nsISelection *aSelection, nsresult aResult);
+  nsresult DidOutputText(mozilla::dom::Selection* aSelection, nsresult aResult);
 
 
   // helper functions
 
   /** check for and replace a redundant trailing break */
   nsresult RemoveRedundantTrailingBR();
-  
+
   /** creates a trailing break in the text doc if there is not one already */
   nsresult CreateTrailingBRIfNeeded();
-  
+
  /** creates a bogus text node if the document has no editable content */
-  nsresult CreateBogusNodeIfNeeded(nsISelection *aSelection);
+  nsresult CreateBogusNodeIfNeeded(mozilla::dom::Selection* aSelection);
 
   /** returns a truncated insertion string if insertion would place us
       over aMaxLength */
@@ -185,15 +193,17 @@ protected:
   nsresult CreateMozBR(nsIDOMNode* inParent, int32_t inOffset,
                        nsIDOMNode** outBRNode = nullptr);
 
-  nsresult CheckBidiLevelForDeletion(nsISelection         *aSelection,
-                                     nsIDOMNode           *aSelNode, 
-                                     int32_t               aSelOffset, 
+  void UndefineCaretBidiLevel(mozilla::dom::Selection* aSelection);
+
+  nsresult CheckBidiLevelForDeletion(mozilla::dom::Selection* aSelection,
+                                     nsIDOMNode           *aSelNode,
+                                     int32_t               aSelOffset,
                                      nsIEditor::EDirection aAction,
                                      bool                 *aCancel);
 
   nsresult HideLastPWInput();
 
-  nsresult CollapseSelectionToTrailingBRIfNeeded(nsISelection *aSelection);
+  nsresult CollapseSelectionToTrailingBRIfNeeded(mozilla::dom::Selection* aSelection);
 
   bool IsPasswordEditor() const
   {
@@ -236,7 +246,7 @@ protected:
   bool                 mLockRulesSniffing;
   bool                 mDidExplicitlySetInterline;
   bool                 mDeleteBidiImmediately; // in bidirectional text, delete
-                                               // characters not visually 
+                                               // characters not visually
                                                // adjacent to the caret without
                                                // moving the caret first.
   EditAction mTheAction;     // the top level editor action
@@ -253,7 +263,7 @@ protected:
 class nsTextRulesInfo : public nsRulesInfo
 {
  public:
- 
+
   explicit nsTextRulesInfo(EditAction aAction) :
     nsRulesInfo(aAction),
     inString(0),
@@ -271,17 +281,17 @@ class nsTextRulesInfo : public nsRulesInfo
     {}
 
   virtual ~nsTextRulesInfo() {}
-  
+
   // kInsertText
   const nsAString *inString;
   nsAString *outString;
   const nsAString *outputFormat;
   int32_t maxLength;
-  
+
   // kDeleteSelection
   nsIEditor::EDirection collapsedAction;
   nsIEditor::EStripWrappers stripWrappers;
-  
+
   // kMakeList
   bool bOrdered;
   bool entireList;
@@ -289,10 +299,10 @@ class nsTextRulesInfo : public nsRulesInfo
 
   // kAlign
   const nsAString *alignType;
-  
+
   // kMakeBasicBlock
   const nsAString *blockType;
-  
+
   // kInsertElement
   const nsIDOMElement* insertElement;
 };
@@ -301,17 +311,17 @@ class nsTextRulesInfo : public nsRulesInfo
 /***************************************************************************
  * stack based helper class for StartOperation()/EndOperation() sandwich.
  * this class sets a bool letting us know to ignore any rules sniffing
- * that tries to occur reentrantly. 
+ * that tries to occur reentrantly.
  */
 class nsAutoLockRulesSniffing
 {
   public:
-  
-  explicit nsAutoLockRulesSniffing(nsTextEditRules *rules) : mRules(rules) 
+
+  explicit nsAutoLockRulesSniffing(nsTextEditRules *rules) : mRules(rules)
                  {if (mRules) mRules->mLockRulesSniffing = true;}
-  ~nsAutoLockRulesSniffing() 
+  ~nsAutoLockRulesSniffing()
                  {if (mRules) mRules->mLockRulesSniffing = false;}
-  
+
   protected:
   nsTextEditRules *mRules;
 };
@@ -324,12 +334,12 @@ class nsAutoLockRulesSniffing
 class nsAutoLockListener
 {
   public:
-  
+
   explicit nsAutoLockListener(bool *enabled) : mEnabled(enabled)
                  {if (mEnabled) { mOldState=*mEnabled; *mEnabled = false;}}
-  ~nsAutoLockListener() 
+  ~nsAutoLockListener()
                  {if (mEnabled) *mEnabled = mOldState;}
-  
+
   protected:
   bool *mEnabled;
   bool mOldState;

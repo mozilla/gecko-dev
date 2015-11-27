@@ -7,9 +7,7 @@
  */
 add_task(function test_close_last_nonpopup_window() {
   // Purge the list of closed windows.
-  while (ss.getClosedWindowCount()) {
-    ss.forgetClosedWindow(0);
-  }
+  forgetClosedWindows();
 
   let oldState = ss.getWindowState(window);
 
@@ -21,16 +19,16 @@ add_task(function test_close_last_nonpopup_window() {
   ss.setWindowState(window, JSON.stringify(popupState), true);
 
   // Open a new window with a tab.
-  let win = yield promiseNewWindowLoaded({private: false});
+  let win = yield BrowserTestUtils.openNewBrowserWindow({private: false});
   let tab = win.gBrowser.addTab("http://example.com/");
-  yield promiseBrowserLoaded(tab.linkedBrowser);
+  yield BrowserTestUtils.browserLoaded(tab.linkedBrowser);
 
   // Make sure sessionstore sees this window.
   let state = JSON.parse(ss.getBrowserState());
   is(state.windows.length, 2, "sessionstore knows about this window");
 
   // Closed the window and check the closed window count.
-  yield promiseWindowClosed(win);
+  yield BrowserTestUtils.closeWindow(win);
   is(ss.getClosedWindowCount(), 1, "correct closed window count");
 
   // Cleanup.

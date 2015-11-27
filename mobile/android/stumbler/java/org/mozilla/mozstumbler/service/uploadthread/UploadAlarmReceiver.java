@@ -30,7 +30,7 @@ import org.mozilla.mozstumbler.service.utils.NetworkUtils;
 // - triggered from the main thread
 // - actual work is done the upload thread (AsyncUploader)
 public class UploadAlarmReceiver extends BroadcastReceiver {
-    private static final String LOG_TAG = AppGlobals.LOG_PREFIX + UploadAlarmReceiver.class.getSimpleName();
+    private static final String LOG_TAG = AppGlobals.makeLogTag(UploadAlarmReceiver.class.getSimpleName());
     private static final String EXTRA_IS_REPEATING = "is_repeating";
     private static boolean sIsAlreadyScheduled;
 
@@ -40,14 +40,19 @@ public class UploadAlarmReceiver extends BroadcastReceiver {
 
         public UploadAlarmService(String name) {
             super(name);
+            // makes the service START_NOT_STICKY, that is, the service is not auto-restarted
+            setIntentRedelivery(false);
         }
 
         public UploadAlarmService() {
-            super(LOG_TAG);
+            this(LOG_TAG);
         }
 
         @Override
         protected void onHandleIntent(Intent intent) {
+            if (intent == null) {
+                return;
+            }
             boolean isRepeating = intent.getBooleanExtra(EXTRA_IS_REPEATING, true);
             if (DataStorageManager.getInstance() == null) {
                 DataStorageManager.createGlobalInstance(this, null);
@@ -73,13 +78,16 @@ public class UploadAlarmReceiver extends BroadcastReceiver {
                 }
             }
 
-            if (NetworkUtils.getInstance().isWifiAvailable() &&
+            NetworkUtils networkUtils = new NetworkUtils(this);
+            if (networkUtils.isWifiAvailable() &&
                 !AsyncUploader.isUploading()) {
                 Log.d(LOG_TAG, "Alarm upload(), call AsyncUploader");
-                AsyncUploader.UploadSettings settings =
-                    new AsyncUploader.UploadSettings(Prefs.getInstance().getWifiScanAlways(), Prefs.getInstance().getUseWifiOnly());
+                AsyncUploader.AsyncUploadArgs settings =
+                    new AsyncUploader.AsyncUploadArgs(networkUtils,
+                            Prefs.getInstance(this).getWifiScanAlways(),
+                            Prefs.getInstance(this).getUseWifiOnly());
                 AsyncUploader uploader = new AsyncUploader(settings, null);
-                uploader.setNickname(Prefs.getInstance().getNickname());
+                uploader.setNickname(Prefs.getInstance(this).getNickname());
                 uploader.execute();
                 // we could listen for completion and cancel, instead, cancel on next alarm when db empty
             }

@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -10,7 +10,9 @@
 #include "nsIInputStream.h"
 #include "zlib.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/dom/File.h"
 
+using namespace mozilla::dom;
 USING_ARCHIVEREADER_NAMESPACE
 
 #define ZIP_CHUNK 16384
@@ -18,8 +20,8 @@ USING_ARCHIVEREADER_NAMESPACE
 /**
  * Input stream object for zip files
  */
-class ArchiveInputStream MOZ_FINAL : public nsIInputStream,
-                                     public nsISeekableStream
+class ArchiveInputStream final : public nsIInputStream,
+                                 public nsISeekableStream
 {
 public:
   ArchiveInputStream(uint64_t aParentSize,
@@ -102,7 +104,8 @@ ArchiveInputStream::Init()
   uint32_t offset = ArchiveZipItem::StrToInt32(mCentral.localhdr_offset);
 
   // The file is corrupt
-  if (offset + ZIPLOCAL_SIZE > mData.parentSize) {
+  if (mData.parentSize < ZIPLOCAL_SIZE ||
+      offset > mData.parentSize - ZIPLOCAL_SIZE) {
     return NS_ERROR_UNEXPECTED;
   }
 
@@ -137,7 +140,8 @@ ArchiveInputStream::Init()
             ArchiveZipItem::StrToInt16(local.extrafield_len);
 
   // The file is corrupt if there is not enough data
-  if (offset + mData.sizeToBeRead > mData.parentSize) {
+  if (mData.parentSize < mData.sizeToBeRead ||
+      offset > mData.parentSize - mData.sizeToBeRead) {
     return NS_ERROR_UNEXPECTED;
   }
 
@@ -351,61 +355,48 @@ ArchiveInputStream::SetEOF()
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-// ArchiveZipFileImpl
+// ArchiveZipBlobImpl
 
-nsresult
-ArchiveZipFileImpl::GetInternalStream(nsIInputStream** aStream)
+void
+ArchiveZipBlobImpl::GetInternalStream(nsIInputStream** aStream,
+                                      ErrorResult& aRv)
 {
   if (mLength > INT32_MAX) {
-    return NS_ERROR_FAILURE;
+    aRv.Throw(NS_ERROR_FAILURE);
+    return;
   }
 
-  uint64_t size;
-  nsresult rv = mArchiveReader->GetSize(&size);
-  NS_ENSURE_SUCCESS(rv, rv);
+  uint64_t size = mBlobImpl->GetSize(aRv);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return;
+  }
 
   nsCOMPtr<nsIInputStream> inputStream;
-  rv = mArchiveReader->GetInputStream(getter_AddRefs(inputStream));
-  if (NS_FAILED(rv) || !inputStream) {
-    return NS_ERROR_UNEXPECTED;
+  mBlobImpl->GetInternalStream(getter_AddRefs(inputStream), aRv);
+  if (NS_WARN_IF(aRv.Failed())) {
+    return;
   }
 
-  nsRefPtr<ArchiveInputStream> stream = new ArchiveInputStream(size,
+  RefPtr<ArchiveInputStream> stream = new ArchiveInputStream(size,
                                                                inputStream,
                                                                mFilename,
                                                                mStart,
                                                                mLength,
                                                                mCentral);
-  NS_ADDREF(stream);
 
-  *aStream = stream;
-  return NS_OK;
+  stream.forget(aStream);
 }
 
-void
-ArchiveZipFileImpl::Unlink()
-{
-  ArchiveZipFileImpl* tmp = this;
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mArchiveReader);
-}
-
-void
-ArchiveZipFileImpl::Traverse(nsCycleCollectionTraversalCallback &cb)
-{
-  ArchiveZipFileImpl* tmp = this;
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mArchiveReader);
-}
-
-already_AddRefed<nsIDOMBlob>
-ArchiveZipFileImpl::CreateSlice(uint64_t aStart,
+already_AddRefed<mozilla::dom::BlobImpl>
+ArchiveZipBlobImpl::CreateSlice(uint64_t aStart,
                                 uint64_t aLength,
-                                const nsAString& aContentType)
+                                const nsAString& aContentType,
+                                mozilla::ErrorResult& aRv)
 {
-  nsCOMPtr<nsIDOMBlob> t =
-    new DOMFile(new ArchiveZipFileImpl(mFilename, mContentType,
-                                       aStart, mLength, mCentral,
-                                       mArchiveReader));
-  return t.forget();
+  RefPtr<BlobImpl> impl =
+    new ArchiveZipBlobImpl(mFilename, mContentType, aStart, mLength, mCentral,
+                           mBlobImpl);
+  return impl.forget();
 }
 
-NS_IMPL_ISUPPORTS_INHERITED0(ArchiveZipFileImpl, DOMFileImpl)
+NS_IMPL_ISUPPORTS_INHERITED0(ArchiveZipBlobImpl, BlobImpl)

@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 #include "nsAutoPtr.h"
+#include "nsQueryObject.h"
 #include "nsIServiceManager.h"
 #include "nsIPrintOptions.h"
 #include "nsPrintSettingsX.h"
@@ -43,7 +44,7 @@ NS_IMETHODIMP nsDeviceContextSpecX::Init(nsIWidget *aWidget,
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
 
-  nsRefPtr<nsPrintSettingsX> settings(do_QueryObject(aPS));
+  RefPtr<nsPrintSettingsX> settings(do_QueryObject(aPS));
   if (!settings)
     return NS_ERROR_NO_INTERFACE;
 
@@ -147,16 +148,16 @@ NS_IMETHODIMP nsDeviceContextSpecX::GetSurfaceForPrinter(gfxASurface **surface)
     CGContextRef context;
     ::PMSessionGetCGGraphicsContext(mPrintSession, &context);
 
-    nsRefPtr<gfxASurface> newSurface;
+    RefPtr<gfxASurface> newSurface;
 
     if (context) {
         // Initially, origin is at bottom-left corner of the paper.
         // Here, we translate it to top-left corner of the paper.
         CGContextTranslateCTM(context, 0, height);
         CGContextScaleCTM(context, 1.0, -1.0);
-        newSurface = new gfxQuartzSurface(context, gfxSize(width, height), true);
+        newSurface = new gfxQuartzSurface(context, gfxSize(width, height));
     } else {
-        newSurface = new gfxQuartzSurface(gfxSize((int32_t)width, (int32_t)height), gfxImageFormat::ARGB32, true);
+        newSurface = new gfxQuartzSurface(gfxSize((int32_t)width, (int32_t)height), gfxImageFormat::ARGB32);
     }
 
     if (!newSurface)

@@ -32,8 +32,8 @@ protected:
   void ProcessEventQueue();
 
 private:
-  EventQueue(const EventQueue&) MOZ_DELETE;
-  EventQueue& operator = (const EventQueue&) MOZ_DELETE;
+  EventQueue(const EventQueue&) = delete;
+  EventQueue& operator = (const EventQueue&) = delete;
 
   // Event queue processing
   /**
@@ -79,7 +79,7 @@ protected:
    * Pending events array. Don't make this an nsAutoTArray; we use
    * SwapElements() on it.
    */
-  nsTArray<nsRefPtr<AccEvent> > mEvents;
+  nsTArray<RefPtr<AccEvent> > mEvents;
 };
 
 } // namespace a11y

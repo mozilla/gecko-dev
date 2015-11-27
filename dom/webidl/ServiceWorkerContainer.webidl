@@ -8,7 +8,7 @@
  *
  */
 
-[Pref="dom.serviceWorkers.enabled",
+[Func="ServiceWorkerContainer::IsEnabled",
  Exposed=Window]
 interface ServiceWorkerContainer : EventTarget {
   // FIXME(nsm):
@@ -16,36 +16,30 @@ interface ServiceWorkerContainer : EventTarget {
   // and discussion at https://etherpad.mozilla.org/serviceworker07apr
   [Unforgeable] readonly attribute ServiceWorker? controller;
 
-  [Throws]
+  [SameObject, Throws]
   readonly attribute Promise<ServiceWorkerRegistration> ready;
 
-  [Throws]
-  Promise<ServiceWorkerRegistration> register(ScalarValueString scriptURL,
-                                              optional RegistrationOptionList options);
+  [NewObject]
+  Promise<ServiceWorkerRegistration> register(USVString scriptURL,
+                                              optional RegistrationOptions options);
 
-  [Throws]
-  Promise<ServiceWorkerRegistration> getRegistration(optional ScalarValueString documentURL = "");
+  [NewObject]
+  Promise<ServiceWorkerRegistration> getRegistration(optional USVString documentURL = "");
 
-  [Throws]
-   Promise<sequence<ServiceWorkerRegistration>> getRegistrations();
+  [NewObject]
+  Promise<sequence<ServiceWorkerRegistration>> getRegistrations();
 
   attribute EventHandler oncontrollerchange;
-  attribute EventHandler onreloadpage;
   attribute EventHandler onerror;
+  attribute EventHandler onmessage;
 };
 
 // Testing only.
 partial interface ServiceWorkerContainer {
   [Throws,Pref="dom.serviceWorkers.testing.enabled"]
-  Promise<any> clearAllServiceWorkerData();
-
-  [Throws,Pref="dom.serviceWorkers.testing.enabled"]
   DOMString getScopeForUrl(DOMString url);
-
-  [Throws,Pref="dom.serviceWorkers.testing.enabled"]
-  DOMString getControllingWorkerScriptURLForPath(DOMString path);
 };
 
-dictionary RegistrationOptionList {
-  ScalarValueString scope = "/";
+dictionary RegistrationOptions {
+  USVString scope;
 };

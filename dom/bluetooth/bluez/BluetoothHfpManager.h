@@ -1,11 +1,11 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_bluetooth_bluetoothhfpmanager_h__
-#define mozilla_dom_bluetooth_bluetoothhfpmanager_h__
+#ifndef mozilla_dom_bluetooth_bluez_BluetoothHfpManager_h
+#define mozilla_dom_bluetooth_bluez_BluetoothHfpManager_h
 
 #include "BluetoothCommon.h"
 #include "BluetoothHfpManagerBase.h"
@@ -13,7 +13,7 @@
 #include "BluetoothRilListener.h"
 #endif
 #include "BluetoothSocketObserver.h"
-#include "mozilla/ipc/UnixSocket.h"
+#include "mozilla/ipc/SocketBase.h"
 #include "mozilla/Hal.h"
 
 BEGIN_BLUETOOTH_NAMESPACE
@@ -80,23 +80,15 @@ class BluetoothHfpManager : public BluetoothSocketObserver
 {
 public:
   BT_DECL_HFP_MGR_BASE
+  BT_DECL_SOCKET_OBSERVER
   virtual void GetName(nsACString& aName)
   {
     aName.AssignLiteral("HFP/HSP");
   }
 
   static BluetoothHfpManager* Get();
-  ~BluetoothHfpManager();
-
-  // The following functions are inherited from BluetoothSocketObserver
-  virtual void ReceiveSocketData(
-    BluetoothSocket* aSocket,
-    nsAutoPtr<mozilla::ipc::UnixSocketRawData>& aMessage) MOZ_OVERRIDE;
-  virtual void OnSocketConnectSuccess(BluetoothSocket* aSocket) MOZ_OVERRIDE;
-  virtual void OnSocketConnectError(BluetoothSocket* aSocket) MOZ_OVERRIDE;
-  virtual void OnSocketDisconnect(BluetoothSocket* aSocket) MOZ_OVERRIDE;
-
   bool Listen();
+
   /**
    * This function set up a Synchronous Connection (SCO) link for HFP.
    * Service Level Connection (SLC) should be established before SCO setup
@@ -131,7 +123,13 @@ public:
   void ToggleCalls();
 #endif
 
+protected:
+  ~BluetoothHfpManager();
+
 private:
+  void ParseAtCommand(const nsACString& aAtCommand, const int aStart,
+                      nsTArray<nsCString>& aRetValues);
+
   class CloseScoTask;
   class GetVolumeTask;
 #ifdef MOZ_B2G_RIL
@@ -149,7 +147,7 @@ private:
 
   BluetoothHfpManager();
   void HandleShutdown();
-  void HandleVolumeChanged(const nsAString& aData);
+  void HandleVolumeChanged(nsISupports* aSubject);
 
   bool Init();
   void Notify(const hal::BatteryInformation& aBatteryInfo);
@@ -199,7 +197,7 @@ private:
 #ifdef MOZ_B2G_RIL
   bool mDialingRequestProcessed;
 #endif
-  nsString mDeviceAddress;
+  BluetoothAddress mDeviceAddress;
 #ifdef MOZ_B2G_RIL
   nsString mMsisdn;
   nsString mOperatorName;
@@ -207,21 +205,21 @@ private:
   nsTArray<Call> mCurrentCallArray;
   nsAutoPtr<BluetoothRilListener> mListener;
 #endif
-  nsRefPtr<BluetoothProfileController> mController;
-  nsRefPtr<BluetoothReplyRunnable> mScoRunnable;
+  RefPtr<BluetoothProfileController> mController;
+  RefPtr<BluetoothReplyRunnable> mScoRunnable;
 
   // If a connection has been established, mSocket will be the socket
   // communicating with the remote socket. We maintain the invariant that if
   // mSocket is non-null, mHandsfreeSocket and mHeadsetSocket must be null (and
   // vice versa).
-  nsRefPtr<BluetoothSocket> mSocket;
+  RefPtr<BluetoothSocket> mSocket;
 
   // Server sockets. Once an inbound connection is established, it will hand
   // over the ownership to mSocket, and get a new server socket while Listen()
   // is called.
-  nsRefPtr<BluetoothSocket> mHandsfreeSocket;
-  nsRefPtr<BluetoothSocket> mHeadsetSocket;
-  nsRefPtr<BluetoothSocket> mScoSocket;
+  RefPtr<BluetoothSocket> mHandsfreeSocket;
+  RefPtr<BluetoothSocket> mHeadsetSocket;
+  RefPtr<BluetoothSocket> mScoSocket;
   mozilla::ipc::SocketConnectionStatus mScoSocketStatus;
 
 #ifdef MOZ_B2G_RIL
@@ -232,4 +230,4 @@ private:
 
 END_BLUETOOTH_NAMESPACE
 
-#endif
+#endif // mozilla_dom_bluetooth_bluez_BluetoothHfpManager_h

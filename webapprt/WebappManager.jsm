@@ -6,9 +6,9 @@
 
 this.EXPORTED_SYMBOLS = ["WebappManager"];
 
-let Cc = Components.classes;
-let Ci = Components.interfaces;
-let Cu = Components.utils;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
@@ -16,7 +16,9 @@ Cu.import("resource://gre/modules/Webapps.jsm");
 Cu.import("resource://gre/modules/AppsUtils.jsm");
 Cu.import("resource://gre/modules/NativeApp.jsm");
 Cu.import("resource://gre/modules/WebappOSUtils.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://webapprt/modules/WebappRT.jsm");
+
 
 this.WebappManager = {
   observe: function(aSubject, aTopic, aData) {
@@ -40,7 +42,7 @@ this.WebappManager = {
         WebappOSUtils.launch(data);
         break;
       case "webapps-uninstall":
-        WebappOSUtils.uninstall(data);
+        WebappOSUtils.uninstall(data).then(null, Cu.reportError);
         break;
     }
   },
@@ -120,7 +122,7 @@ this.WebappManager = {
     // Perform the uninstall if the user allows it
     if (choice == 0) {
       DOMApplicationRegistry.confirmUninstall(aData).then((aApp) => {
-        WebappOSUtils.uninstall(aApp);
+        WebappOSUtils.uninstall(aApp).then(null, Cu.reportError);
       });
     } else {
       DOMApplicationRegistry.denyUninstall(aData);

@@ -7,6 +7,7 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/SplayTree.h"
+#include "mozilla/unused.h"
 
 using mozilla::SplayTree;
 using mozilla::SplayTreeNode;
@@ -105,9 +106,21 @@ struct SplayInt : SplayTreeNode<SplayInt>
   int mValue;
 };
 
+struct SplayNoCopy : SplayTreeNode<SplayNoCopy>
+{
+  SplayNoCopy(const SplayNoCopy&) = delete;
+  SplayNoCopy(SplayNoCopy&&) = delete;
+
+  static int compare(const SplayNoCopy&, const SplayNoCopy&) { return 0; }
+};
+
+static SplayTree<SplayNoCopy, SplayNoCopy> testNoCopy;
+
 int
 main()
 {
+  mozilla::Unused << testNoCopy;
+
   SplayTree<SplayInt, SplayInt> tree;
 
   MOZ_RELEASE_ASSERT(tree.empty());
@@ -119,13 +132,47 @@ main()
   // Insert the values, and check each one is findable just after insertion.
   for (int i = 0; i < N; i++) {
     tree.insert(new SplayInt(gValues[i]));
-    MOZ_RELEASE_ASSERT(tree.find(SplayInt(gValues[i])));
+    SplayInt* inserted = tree.find(SplayInt(gValues[i]));
+    MOZ_RELEASE_ASSERT(inserted);
+    MOZ_RELEASE_ASSERT(tree.findOrInsert(SplayInt(gValues[i])) == inserted);
     tree.checkCoherency();
   }
 
   // Check they're all findable after all insertions.
   for (int i = 0; i < N; i++) {
     MOZ_RELEASE_ASSERT(tree.find(SplayInt(gValues[i])));
+    MOZ_RELEASE_ASSERT(tree.findOrInsert(SplayInt(gValues[i])));
+    tree.checkCoherency();
+  }
+
+  // Check that non-inserted values cannot be found.
+  MOZ_RELEASE_ASSERT(!tree.find(SplayInt(-1)));
+  MOZ_RELEASE_ASSERT(!tree.find(SplayInt(N)));
+  MOZ_RELEASE_ASSERT(!tree.find(SplayInt(0x7fffffff)));
+
+  // Remove the values, and check each one is not findable just after removal.
+  for (int i = 0; i < N; i++) {
+    SplayInt* removed = tree.remove(SplayInt(gValues[i]));
+    MOZ_RELEASE_ASSERT(removed->mValue == gValues[i]);
+    MOZ_RELEASE_ASSERT(!tree.find(*removed));
+    delete removed;
+    tree.checkCoherency();
+  }
+
+  MOZ_RELEASE_ASSERT(tree.empty());
+
+  // Insert the values, and check each one is findable just after insertion.
+  for (int i = 0; i < N; i++) {
+    SplayInt* inserted = tree.findOrInsert(SplayInt(gValues[i]));
+    MOZ_RELEASE_ASSERT(tree.find(SplayInt(gValues[i])) == inserted);
+    MOZ_RELEASE_ASSERT(tree.findOrInsert(SplayInt(gValues[i])) == inserted);
+    tree.checkCoherency();
+  }
+
+  // Check they're all findable after all insertions.
+  for (int i = 0; i < N; i++) {
+    MOZ_RELEASE_ASSERT(tree.find(SplayInt(gValues[i])));
+    MOZ_RELEASE_ASSERT(tree.findOrInsert(SplayInt(gValues[i])));
     tree.checkCoherency();
   }
 

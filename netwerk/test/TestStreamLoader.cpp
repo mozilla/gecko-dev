@@ -1,20 +1,19 @@
 #include <stdio.h>
 #include "TestCommon.h"
 #include "nsNetUtil.h"
+#include "nsServiceManagerUtils.h"
 #include "nsThreadUtils.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "mozilla/Attributes.h"
 #include "nsIScriptSecurityManager.h"
 
-#if defined(PR_LOGGING)
 //
 // set NSPR_LOG_MODULES=Test:5
 //
 static PRLogModuleInfo *gTestLog = nullptr;
-#endif
-#define LOG(args) PR_LOG(gTestLog, PR_LOG_DEBUG, args)
+#define LOG(args) MOZ_LOG(gTestLog, mozilla::LogLevel::Debug, args)
 
-class MyStreamLoaderObserver MOZ_FINAL : public nsIStreamLoaderObserver
+class MyStreamLoaderObserver final : public nsIStreamLoaderObserver
 {
   ~MyStreamLoaderObserver() {}
 
@@ -52,9 +51,7 @@ int main(int argc, char **argv)
     return -1;
   }
 
-#if defined(PR_LOGGING)
   gTestLog = PR_NewLogModule("Test");
-#endif
 
   nsresult rv = NS_InitXPCOM2(nullptr, nullptr, nullptr);
   if (NS_FAILED(rv))
@@ -77,7 +74,7 @@ int main(int argc, char **argv)
     rv = NS_NewChannel(getter_AddRefs(chan),
                        uri,
                        systemPrincipal,
-                       nsILoadInfo::SEC_NORMAL,
+                       nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_INHERITS,
                        nsIContentPolicy::TYPE_OTHER);
 
     if (NS_FAILED(rv))
@@ -92,7 +89,7 @@ int main(int argc, char **argv)
     if (NS_FAILED(rv))
       return -1;
 
-    rv = chan->AsyncOpen(loader, nullptr);
+    rv = chan->AsyncOpen2(loader);
     if (NS_FAILED(rv))
       return -1;
 

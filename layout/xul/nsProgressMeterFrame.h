@@ -27,19 +27,19 @@ public:
 
   friend nsIFrame* NS_NewProgressMeterFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
-  NS_IMETHOD DoLayout(nsBoxLayoutState& aBoxLayoutState) MOZ_OVERRIDE;
+  NS_IMETHOD DoLayout(nsBoxLayoutState& aBoxLayoutState) override;
 
   virtual nsresult AttributeChanged(int32_t aNameSpaceID,
                                     nsIAtom* aAttribute,
-                                    int32_t aModType) MOZ_OVERRIDE;
+                                    int32_t aModType) override;
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
+  virtual nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
 protected:
-  nsProgressMeterFrame(nsIPresShell* aPresShell, nsStyleContext* aContext) :
-    nsBoxFrame(aPresShell, aContext), mNeedsReflowCallback(true) {}
+  explicit nsProgressMeterFrame(nsStyleContext* aContext) :
+    nsBoxFrame(aContext), mNeedsReflowCallback(true) {}
   virtual ~nsProgressMeterFrame();
 
   bool mNeedsReflowCallback;

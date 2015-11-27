@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -5,7 +7,6 @@
 #include "jsfriendapi.h"
 #include "nsCOMPtr.h"
 #include "nsIRandomGenerator.h"
-#include "nsPIDOMWindow.h"
 #include "MainThreadUtils.h"
 #include "nsXULAppAPI.h"
 
@@ -27,12 +28,11 @@ NS_INTERFACE_MAP_END
 NS_IMPL_CYCLE_COLLECTING_ADDREF(Crypto)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(Crypto)
 
-NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(Crypto, mWindow, mSubtle)
+NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(Crypto, mParent, mSubtle)
 
 Crypto::Crypto()
 {
   MOZ_COUNT_CTOR(Crypto);
-  SetIsDOMBinding();
 }
 
 Crypto::~Crypto()
@@ -41,24 +41,24 @@ Crypto::~Crypto()
 }
 
 void
-Crypto::Init(nsIDOMWindow* aWindow)
+Crypto::Init(nsIGlobalObject* aParent)
 {
-  mWindow = do_QueryInterface(aWindow);
-  MOZ_ASSERT(mWindow);
+  mParent = do_QueryInterface(aParent);
+  MOZ_ASSERT(mParent);
 }
 
 /* virtual */ JSObject*
-Crypto::WrapObject(JSContext* aCx)
+Crypto::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return CryptoBinding::Wrap(aCx, this);
+  return CryptoBinding::Wrap(aCx, this, aGivenProto);
 }
 
 void
 Crypto::GetRandomValues(JSContext* aCx, const ArrayBufferView& aArray,
-			JS::MutableHandle<JSObject*> aRetval,
-			ErrorResult& aRv)
+                        JS::MutableHandle<JSObject*> aRetval,
+                        ErrorResult& aRv)
 {
-  NS_ABORT_IF_FALSE(NS_IsMainThread(), "Called on the wrong thread");
+  MOZ_ASSERT(NS_IsMainThread(), "Called on the wrong thread");
 
   JS::Rooted<JSObject*> view(aCx, aArray.Obj());
 
@@ -91,7 +91,7 @@ Crypto::GetRandomValues(JSContext* aCx, const ArrayBufferView& aArray,
 
   uint8_t* data = aArray.Data();
 
-  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+  if (!XRE_IsParentProcess()) {
     InfallibleTArray<uint8_t> randomValues;
     // Tell the parent process to generate random values via PContent
     ContentChild* cc = ContentChild::GetSingleton();
@@ -112,7 +112,7 @@ Crypto::GetRandomValues(JSContext* aCx, const ArrayBufferView& aArray,
     }
 
     memcpy(data, buf, dataLen);
-    NS_Free(buf);
+    free(buf);
   }
 
   aRetval.set(view);

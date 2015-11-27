@@ -5,6 +5,8 @@
 
 #include "OfflineCacheUpdateParent.h"
 
+#include "BackgroundUtils.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/dom/TabParent.h"
 #include "mozilla/ipc/URIUtils.h"
 #include "mozilla/unused.h"
@@ -12,29 +14,29 @@
 #include "nsIApplicationCache.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsNetUtil.h"
-#include "nsContentUtils.h"
 
 using namespace mozilla::ipc;
+using mozilla::BasePrincipal;
+using mozilla::DocShellOriginAttributes;
+using mozilla::PrincipalOriginAttributes;
 using mozilla::dom::TabParent;
 
-#if defined(PR_LOGGING)
 //
 // To enable logging (see prlog.h for full details):
 //
 //    set NSPR_LOG_MODULES=nsOfflineCacheUpdate:5
 //    set NSPR_LOG_FILE=offlineupdate.log
 //
-// this enables PR_LOG_ALWAYS level information and places all output in
+// this enables LogLevel::Debug level information and places all output in
 // the file offlineupdate.log
 //
 extern PRLogModuleInfo *gOfflineCacheUpdateLog;
-#endif
 
 #undef LOG
-#define LOG(args) PR_LOG(gOfflineCacheUpdateLog, 4, args)
+#define LOG(args) MOZ_LOG(gOfflineCacheUpdateLog, mozilla::LogLevel::Debug, args)
 
 #undef LOG_ENABLED
-#define LOG_ENABLED() PR_LOG_TEST(gOfflineCacheUpdateLog, 4)
+#define LOG_ENABLED() MOZ_LOG_TEST(gOfflineCacheUpdateLog, mozilla::LogLevel::Debug)
 
 namespace mozilla {
 namespace docshell {
@@ -51,11 +53,9 @@ NS_IMPL_ISUPPORTS(OfflineCacheUpdateParent,
 // OfflineCacheUpdateParent <public>
 //-----------------------------------------------------------------------------
 
-OfflineCacheUpdateParent::OfflineCacheUpdateParent(uint32_t aAppId,
-                                                   bool aIsInBrowser)
+OfflineCacheUpdateParent::OfflineCacheUpdateParent(const DocShellOriginAttributes& aAttrs)
     : mIPCClosed(false)
-    , mIsInBrowserElement(aIsInBrowser)
-    , mAppId(aAppId)
+    , mOriginAttributes(aAttrs)
 {
     // Make sure the service has been initialized
     nsOfflineCacheUpdateService::EnsureService();
@@ -77,11 +77,12 @@ OfflineCacheUpdateParent::ActorDestroy(ActorDestroyReason why)
 nsresult
 OfflineCacheUpdateParent::Schedule(const URIParams& aManifestURI,
                                    const URIParams& aDocumentURI,
+                                   const PrincipalInfo& aLoadingPrincipalInfo,
                                    const bool& stickDocument)
 {
     LOG(("OfflineCacheUpdateParent::RecvSchedule [%p]", this));
 
-    nsRefPtr<nsOfflineCacheUpdate> update;
+    RefPtr<nsOfflineCacheUpdate> update;
     nsCOMPtr<nsIURI> manifestURI = DeserializeURI(aManifestURI);
     if (!manifestURI)
         return NS_ERROR_FAILURE;
@@ -93,10 +94,10 @@ OfflineCacheUpdateParent::Schedule(const URIParams& aManifestURI,
 
     bool offlinePermissionAllowed = false;
 
-    nsCOMPtr<nsIPrincipal> principal;
-    nsContentUtils::GetSecurityManager()->
-        GetAppCodebasePrincipal(manifestURI, mAppId, mIsInBrowserElement,
-                                getter_AddRefs(principal));
+    PrincipalOriginAttributes principalAttrs;
+    principalAttrs.InheritFromDocShellToDoc(mOriginAttributes, manifestURI);
+    nsCOMPtr<nsIPrincipal> principal =
+      BasePrincipal::CreateCodebasePrincipal(manifestURI, principalAttrs);
 
     nsresult rv = service->OfflineAppAllowed(
         principal, nullptr, &offlinePermissionAllowed);
@@ -112,15 +113,23 @@ OfflineCacheUpdateParent::Schedule(const URIParams& aManifestURI,
     if (!NS_SecurityCompareURIs(manifestURI, documentURI, false))
         return NS_ERROR_DOM_SECURITY_ERR;
 
-    service->FindUpdate(manifestURI, mAppId, mIsInBrowserElement, nullptr,
+    // TODO: Bug 1197093 - add originAttributes to nsIOfflineCacheUpdate
+    service->FindUpdate(manifestURI,
+                        mOriginAttributes.mAppId,
+                        mOriginAttributes.mInBrowser,
+                        nullptr,
                         getter_AddRefs(update));
     if (!update) {
         update = new nsOfflineCacheUpdate();
 
+        nsCOMPtr<nsIPrincipal> loadingPrincipal =
+          PrincipalInfoToPrincipal(aLoadingPrincipalInfo, &rv);
+        NS_ENSURE_SUCCESS(rv, rv);
+
         // Leave aDocument argument null. Only glues and children keep 
         // document instances.
-        rv = update->Init(manifestURI, documentURI, nullptr, nullptr,
-                          mAppId, mIsInBrowserElement);
+        rv = update->Init(manifestURI, documentURI, loadingPrincipal, nullptr, nullptr,
+                          mOriginAttributes.mAppId, mOriginAttributes.mInBrowser);
         NS_ENSURE_SUCCESS(rv, rv);
 
         rv = update->Schedule();
@@ -148,7 +157,7 @@ OfflineCacheUpdateParent::UpdateStateChanged(nsIOfflineCacheUpdate *aUpdate, uin
 
     uint64_t byteProgress;
     aUpdate->GetByteProgress(&byteProgress);
-    unused << SendNotifyStateEvent(state, byteProgress);
+    Unused << SendNotifyStateEvent(state, byteProgress);
 
     if (state == nsIOfflineCacheUpdateObserver::STATE_FINISHED) {
         // Tell the child the particulars after the update has finished.
@@ -159,7 +168,7 @@ OfflineCacheUpdateParent::UpdateStateChanged(nsIOfflineCacheUpdate *aUpdate, uin
         bool succeeded;
         aUpdate->GetSucceeded(&succeeded);
 
-        unused << SendFinish(succeeded, isUpgrade);
+        Unused << SendFinish(succeeded, isUpgrade);
     }
 
     return NS_OK;
@@ -178,7 +187,7 @@ OfflineCacheUpdateParent::ApplicationCacheAvailable(nsIApplicationCache *aApplic
     nsCString cacheGroupId;
     aApplicationCache->GetGroupID(cacheGroupId);
 
-    unused << SendAssociateDocuments(cacheGroupId, cacheClientId);
+    Unused << SendAssociateDocuments(cacheGroupId, cacheClientId);
     return NS_OK;
 }
 
@@ -254,16 +263,27 @@ OfflineCacheUpdateParent::SetRemoteTabs(bool aUseRemoteTabs)
 NS_IMETHODIMP
 OfflineCacheUpdateParent::GetIsInBrowserElement(bool *aIsInBrowserElement)
 {
-    *aIsInBrowserElement = mIsInBrowserElement;
+    *aIsInBrowserElement = mOriginAttributes.mInBrowser;
     return NS_OK;
 }
 
 NS_IMETHODIMP
 OfflineCacheUpdateParent::GetAppId(uint32_t *aAppId)
 {
-    *aAppId = mAppId;
+    *aAppId = mOriginAttributes.mAppId;
     return NS_OK;
 }
 
-} // docshell
-} // mozilla
+NS_IMETHODIMP
+OfflineCacheUpdateParent::GetOriginAttributes(JS::MutableHandleValue aAttrs)
+{
+    JSContext* cx = nsContentUtils::GetCurrentJSContext();
+    MOZ_ASSERT(cx);
+
+    bool ok = ToJSValue(cx, mOriginAttributes, aAttrs);
+    NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
+    return NS_OK;
+}
+
+} // namespace docshell
+} // namespace mozilla

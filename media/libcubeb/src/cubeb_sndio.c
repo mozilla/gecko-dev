@@ -4,9 +4,11 @@
  * This program is made available under an ISC-style license.  See the
  * accompanying file LICENSE for details.
  */
+#include <math.h>
 #include <poll.h>
 #include <pthread.h>
 #include <sndio.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -48,9 +50,16 @@ float_to_s16(void *ptr, long nsamp)
 {
   int16_t *dst = ptr;
   float *src = ptr;
+  int s;
 
-  while (nsamp-- > 0)
-    *(dst++) = *(src++) * 32767;
+  while (nsamp-- > 0) {
+    s = lrintf(*(src++) * 32768);
+    if (s < -32768)
+      s = -32768;
+    else if (s > 32767)
+      s = 32767;
+    *(dst++) = s;
+  }
 }
 
 static void
@@ -341,13 +350,6 @@ sndio_stream_get_latency(cubeb_stream * stm, uint32_t * latency)
   return CUBEB_OK;
 }
 
-int
-sndio_stream_set_panning(cubeb_stream * stm, float panning)
-{
-  assert(false && "not implemented");
-  return CUBEB_OK;
-}
-
 static struct cubeb_ops const sndio_ops = {
   .init = sndio_init,
   .get_backend_id = sndio_get_backend_id,
@@ -362,7 +364,7 @@ static struct cubeb_ops const sndio_ops = {
   .stream_get_position = sndio_stream_get_position,
   .stream_get_latency = sndio_stream_get_latency,
   .stream_set_volume = sndio_stream_set_volume,
-  .stream_set_panning = sndio_stream_set_panning,
+  .stream_set_panning = NULL,
   .stream_get_current_device = NULL,
   .stream_device_destroy = NULL,
   .stream_register_device_changed_callback = NULL

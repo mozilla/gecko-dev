@@ -18,12 +18,12 @@ add_test(function test_load_linear_fixed_ef() {
 
   io.getResponse = function fakeGetResponse(options) {
     // When recordSize is provided, loadLinearFixedEF should call iccIO directly.
-    do_check_true(false);
+    ok(false);
     run_next_test();
   };
 
   ril.iccIO = function fakeIccIO(options) {
-    do_check_true(true);
+    ok(true);
     run_next_test();
   };
 
@@ -40,13 +40,13 @@ add_test(function test_load_linear_fixed_ef() {
   let io = context.ICCIOHelper;
 
   io.getResponse = function fakeGetResponse(options) {
-    do_check_true(true);
+    ok(true);
     run_next_test();
   };
 
   ril.iccIO = function fakeIccIO(options) {
     // When recordSize is not provided, loadLinearFixedEF should call getResponse.
-    do_check_true(false);
+    ok(false);
     run_next_test();
   };
 
@@ -54,31 +54,40 @@ add_test(function test_load_linear_fixed_ef() {
 });
 
 /**
- * Verify ICCIOHelper.processICCIOError.
+ * Verify ICC IO Error.
  */
 add_test(function test_process_icc_io_error() {
   let worker = newUint8Worker();
   let context = worker.ContextPool._contexts[0];
-  let ioHelper = context.ICCIOHelper;
+  let buf = context.Buf;
 
-  function do_test(errorCode, expectedErrorMsg) {
+  function do_test(sw1, sw2, expectedErrorMsg) {
     let called = false;
     function errorCb(errorMsg) {
       called = true;
-      do_check_eq(errorMsg, expectedErrorMsg);
+      equal(errorMsg, expectedErrorMsg);
     }
 
-    ioHelper.processICCIOError({rilRequestError: errorCode,
-                                fileId: 0xffff,
-                                command: 0xff,
-                                sw1: 0xff,
-                                sw2: 0xff,
-                                onerror: errorCb});
-    do_check_true(called);
+    // Write sw1 and sw2 to buffer.
+    buf.writeInt32(sw1);
+    buf.writeInt32(sw2);
+
+    context.RIL[REQUEST_SIM_IO](0, {fileId: 0xffff,
+                                    command: 0xff,
+                                    onerror: errorCb});
+
+    // onerror callback should be triggered.
+    ok(called);
   }
 
-  for (let i = 0; i < ERROR_REJECTED_BY_REMOTE + 1; i++) {
-    do_test(i, RIL_ERROR_TO_GECKO_ERROR[i]);
+  let TEST_DATA = [
+    // [sw1, sw2, expectError]
+    [ICC_STATUS_ERROR_COMMAND_NOT_ALLOWED, 0xff, GECKO_ERROR_GENERIC_FAILURE],
+    [ICC_STATUS_ERROR_WRONG_PARAMETERS, 0xff, GECKO_ERROR_GENERIC_FAILURE],
+  ];
+
+  for (let i = 0; i < TEST_DATA.length; i++) {
+    do_test.apply(null, TEST_DATA[i]);
   }
 
   run_next_test();
@@ -113,10 +122,10 @@ add_test(function test_icc_io_get_response_for_transparent_structure() {
     buf.writeStringDelimiter(strLen);
 
     let options = {fileId: ICC_EF_ICCID,
-                   type: EF_TYPE_TRANSPARENT};
+                   structure: EF_STRUCTURE_TRANSPARENT};
     iccioHelper.processICCIOGetResponse(options);
 
-    do_check_eq(options.fileSize, 0x0A);
+    equal(options.fileSize, 0x0A);
   }
 
   run_next_test();
@@ -151,12 +160,12 @@ add_test(function test_icc_io_get_response_for_linear_fixed_structure() {
     buf.writeStringDelimiter(strLen);
 
     let options = {fileId: ICC_EF_MSISDN,
-                   type: EF_TYPE_LINEAR_FIXED};
+                   structure: EF_STRUCTURE_LINEAR_FIXED};
     iccioHelper.processICCIOGetResponse(options);
 
-    do_check_eq(options.fileSize, 0x1A);
-    do_check_eq(options.recordSize, 0x1A);
-    do_check_eq(options.totalRecords, 0x01);
+    equal(options.fileSize, 0x1A);
+    equal(options.recordSize, 0x1A);
+    equal(options.totalRecords, 0x01);
   }
 
   run_next_test();

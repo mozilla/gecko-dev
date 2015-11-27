@@ -57,7 +57,7 @@ nsCoreUtils::HasClickListener(nsIContent *aContent)
 void
 nsCoreUtils::DispatchClickEvent(nsITreeBoxObject *aTreeBoxObj,
                                 int32_t aRowIndex, nsITreeColumn *aColumn,
-                                const nsCString& aPseudoElt)
+                                const nsAString& aPseudoElt)
 {
   nsCOMPtr<nsIDOMElement> tcElm;
   aTreeBoxObj->GetTreeBody(getter_AddRefs(tcElm));
@@ -102,7 +102,7 @@ nsCoreUtils::DispatchClickEvent(nsITreeBoxObject *aTreeBoxObj,
   nsIWidget *rootWidget =
     rootFrame->GetViewExternal()->GetNearestWidget(&offset);
 
-  nsRefPtr<nsPresContext> presContext = presShell->GetPresContext();
+  RefPtr<nsPresContext> presContext = presShell->GetPresContext();
 
   int32_t cnvdX = presContext->CSSPixelsToDevPixels(tcX + x + 1) +
     presContext->AppUnitsToDevPixels(offset.x);
@@ -110,19 +110,19 @@ nsCoreUtils::DispatchClickEvent(nsITreeBoxObject *aTreeBoxObj,
     presContext->AppUnitsToDevPixels(offset.y);
 
   // XUL is just desktop, so there is no real reason for senfing touch events.
-  DispatchMouseEvent(NS_MOUSE_BUTTON_DOWN, cnvdX, cnvdY,
+  DispatchMouseEvent(eMouseDown, cnvdX, cnvdY,
                      tcContent, tcFrame, presShell, rootWidget);
 
-  DispatchMouseEvent(NS_MOUSE_BUTTON_UP, cnvdX, cnvdY,
+  DispatchMouseEvent(eMouseUp, cnvdX, cnvdY,
                      tcContent, tcFrame, presShell, rootWidget);
 }
 
 void
-nsCoreUtils::DispatchMouseEvent(uint32_t aEventType, int32_t aX, int32_t aY,
+nsCoreUtils::DispatchMouseEvent(EventMessage aMessage, int32_t aX, int32_t aY,
                                 nsIContent *aContent, nsIFrame *aFrame,
                                 nsIPresShell *aPresShell, nsIWidget *aRootWidget)
 {
-  WidgetMouseEvent event(true, aEventType, aRootWidget,
+  WidgetMouseEvent event(true, aMessage, aRootWidget,
                          WidgetMouseEvent::eReal, WidgetMouseEvent::eNormal);
 
   event.refPoint = LayoutDeviceIntPoint(aX, aY);
@@ -137,20 +137,20 @@ nsCoreUtils::DispatchMouseEvent(uint32_t aEventType, int32_t aX, int32_t aY,
 }
 
 void
-nsCoreUtils::DispatchTouchEvent(uint32_t aEventType, int32_t aX, int32_t aY,
+nsCoreUtils::DispatchTouchEvent(EventMessage aMessage, int32_t aX, int32_t aY,
                                 nsIContent* aContent, nsIFrame* aFrame,
                                 nsIPresShell* aPresShell, nsIWidget* aRootWidget)
 {
   if (!dom::TouchEvent::PrefEnabled())
     return;
 
-  WidgetTouchEvent event(true, aEventType, aRootWidget);
+  WidgetTouchEvent event(true, aMessage, aRootWidget);
 
   event.time = PR_IntervalNow();
 
   // XXX: Touch has an identifier of -1 to hint that it is synthesized.
-  nsRefPtr<dom::Touch> t = new dom::Touch(-1, nsIntPoint(aX, aY),
-                                          nsIntPoint(1, 1), 0.0f, 1.0f);
+  RefPtr<dom::Touch> t = new dom::Touch(-1, LayoutDeviceIntPoint(aX, aY),
+                                        LayoutDeviceIntPoint(1, 1), 0.0f, 1.0f);
   t->SetTarget(aContent);
   event.touches.AppendElement(t);
   nsEventStatus status = nsEventStatus_eIgnore;
@@ -300,7 +300,7 @@ nsCoreUtils::ScrollFrameToPoint(nsIFrame *aScrollableFrame,
     return;
 
   nsPoint point =
-    aPoint.ToAppUnits(aFrame->PresContext()->AppUnitsPerDevPixel());
+    ToAppUnits(aPoint, aFrame->PresContext()->AppUnitsPerDevPixel());
   nsRect frameRect = aFrame->GetScreenRectInAppUnits();
   nsPoint deltaPoint(point.x - frameRect.x, point.y - frameRect.y);
 
@@ -425,7 +425,7 @@ nsCoreUtils::IsTabDocument(nsIDocument* aDocumentNode)
   treeItem->GetParent(getter_AddRefs(parentTreeItem));
 
   // Tab document running in own process doesn't have parent.
-  if (XRE_GetProcessType() == GeckoProcessType_Content)
+  if (XRE_IsContentProcess())
     return !parentTreeItem;
 
   // Parent of docshell for tab document running in chrome process is root.

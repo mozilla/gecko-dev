@@ -9,14 +9,14 @@ include protocol PBrowser;
 
 include "mozilla/GfxMessageUtils.h";
 
-using mozilla::dom::ScreenOrientation from "mozilla/dom/ScreenOrientation.h";
+using mozilla::dom::ScreenOrientationInternal from "mozilla/dom/ScreenOrientation.h";
 using mozilla::hal::SensorType from "mozilla/HalSensor.h";
 using mozilla::hal::SensorAccuracyType from "mozilla/HalSensor.h";
 using mozilla::hal::WakeLockControl from "mozilla/HalTypes.h";
 using mozilla::hal::SwitchState from "mozilla/HalTypes.h";
 using mozilla::hal::SwitchDevice from "mozilla/HalTypes.h";
 using mozilla::hal::ProcessPriority from "mozilla/HalTypes.h";
-using struct nsIntRect from "nsRect.h";
+using nsIntRect from "nsRect.h";
 using PRTime from "prtime.h";
 using mozilla::hal::FMRadioCountry from "mozilla/HalTypes.h";
 using mozilla::hal::FMRadioOperation from "mozilla/HalTypes.h";
@@ -58,7 +58,8 @@ struct WakeLockInformation {
 
 struct ScreenConfiguration {
   nsIntRect rect;
-  ScreenOrientation orientation;
+  ScreenOrientationInternal orientation;
+  uint16_t angle;
   uint32_t colorDepth;
   uint32_t pixelDepth;
 };
@@ -67,6 +68,13 @@ struct FMRadioOperationInformation {
   FMRadioOperation operation;
   FMRadioOperationStatus status;
   uint32_t frequency;
+};
+
+struct FMRadioRDSGroup {
+  uint16_t blockA;
+  uint16_t blockB;
+  uint16_t blockC;
+  uint16_t blockD;
 };
 
 struct FMRadioSettings {
@@ -88,7 +96,7 @@ struct SystemTimezoneChangeInformation {
 
 namespace hal_sandbox {
 
-sync protocol PHal {
+prio(normal upto urgent) sync protocol PHal {
     manager PContent;
 
 child:
@@ -148,9 +156,9 @@ parent:
 
     EnableScreenConfigurationNotifications();
     DisableScreenConfigurationNotifications();
-    sync GetCurrentScreenConfiguration()
+    prio(urgent) sync GetCurrentScreenConfiguration()
       returns (ScreenConfiguration aScreenConfiguration);
-    sync LockScreenOrientation(ScreenOrientation aOrientation)
+    sync LockScreenOrientation(ScreenOrientationInternal aOrientation)
       returns (bool allowed);
     UnlockScreenOrientation();
  

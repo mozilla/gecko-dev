@@ -2,6 +2,46 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#errorPageContainer {
-  background-image: url("chrome://global/skin/icons/information-64.png");
+.title {
+  background-image: url("chrome://browser/skin/welcome-back.svg");
+}
+
+.radioRestoreContainer:not(:last-child) {
+  margin-bottom: 0.2em;
+}
+
+/* tablist starts out hidden, but JS may make it visible in response to
+   clicks on the radio buttons by setting an "available" attribute.
+*/
+.tree-container:not([available]) {
+  display: none;
+}
+
+treechildren::-moz-tree-image(icon),
+treechildren::-moz-tree-image(noicon) {
+  padding-right: 2px;
+  margin: 0 2px;
+  width: 16px;
+  height: 16px;
+}
+
+treechildren::-moz-tree-image(noicon) {
+  list-style-image: url("chrome://mozapps/skin/places/defaultFavicon.png");
+}
+treechildren::-moz-tree-image(container, noicon) {
+  list-style-image: url("chrome://browser/skin/aboutSessionRestore-window-icon.png");
+}
+
+treechildren::-moz-tree-image(checked) {
+  list-style-image: url("chrome://global/skin/in-content/check.svg#check");
+}
+treechildren::-moz-tree-image(checked, selected) {
+  list-style-image: url("chrome://global/skin/in-content/check.svg#check-inverted");
+}
+
+treechildren::-moz-tree-image(partial) {
+  list-style-image: url("chrome://global/skin/in-content/check-partial.svg#check-partial");
+}
+treechildren::-moz-tree-image(partial, selected) {
+  list-style-image: url("chrome://global/skin/in-content/check-partial.svg#check-partial-inverted");
 }

@@ -92,10 +92,10 @@ ExhaustiveTest(const char funcode[])
             ClearElements(elems);
             CHECK(argsobj->maybeGetElements(i, j, elems.begin()));
             for (size_t k = 0; k < j; k++)
-                CHECK_SAME(elems[k], INT_TO_JSVAL(i + k));
+                CHECK(elems[k].isInt32(i + k));
             for (size_t k = j; k < MAX_ELEMS - 1; k++)
-                CHECK_SAME(elems[k], JSVAL_NULL);
-            CHECK_SAME(elems[MAX_ELEMS - 1], INT_TO_JSVAL(42));
+                CHECK(elems[k].isNull());
+            CHECK(elems[MAX_ELEMS - 1].isInt32(42));
         }
     }
 
@@ -104,7 +104,7 @@ ExhaustiveTest(const char funcode[])
 
 template <size_t N>
 static void
-ClearElements(JS::AutoValueArray<N> &elems)
+ClearElements(JS::AutoValueArray<N>& elems)
 {
     for (size_t i = 0; i < elems.length() - 1; i++)
         elems[i].setNull();

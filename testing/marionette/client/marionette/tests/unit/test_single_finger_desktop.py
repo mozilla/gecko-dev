@@ -1,6 +1,5 @@
-from marionette_test import MarionetteTestCase
-from marionette import Actions
-from errors import MarionetteException
+from marionette import MarionetteTestCase
+from marionette_driver.errors import MarionetteException
 #add this directory to the path
 import os
 import sys
@@ -76,6 +75,8 @@ prefs.setIntPref("ui.click_hold_context_menus.delay", arguments[0]);
     def test_wait_with_value(self):
         wait_with_value(self.marionette, self.wait_for_condition, "button1-mousemove-mousedown-mouseup-click")
 
+    """
+    // Skipping due to Bug 1191066
     def test_context_menu(self):
         context_menu(self.marionette, self.wait_for_condition, "button1-mousemove-mousedown-contextmenu", "button1-mousemove-mousedown-contextmenu-mouseup-click")
 
@@ -84,7 +85,8 @@ prefs.setIntPref("ui.click_hold_context_menus.delay", arguments[0]);
 
     def test_long_press_on_xy_action(self):
         long_press_on_xy_action(self.marionette, self.wait_for_condition, "button1-mousemove-mousedown-contextmenu-mouseup-click")
-
+    """
+    
     """
     //Skipping due to Bug 865334
     def test_long_press_fail(self):

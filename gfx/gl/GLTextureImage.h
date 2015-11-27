@@ -11,7 +11,6 @@
 #include "nsTArray.h"
 #include "gfxTypes.h"
 #include "GLContextTypes.h"
-#include "GraphicsFilter.h"
 #include "mozilla/gfx/Rect.h"
 #include "mozilla/RefPtr.h"
 
@@ -21,8 +20,8 @@ namespace mozilla {
 namespace gfx {
 class DataSourceSurface;
 class DrawTarget;
-}
-}
+} // namespace gfx
+} // namespace mozilla
 
 namespace mozilla {
 namespace gl {
@@ -58,7 +57,7 @@ public:
     enum Flags {
         NoFlags          = 0x0,
         UseNearestFilter = 0x1,
-        NeedsYFlip       = 0x2,
+        OriginBottomLeft = 0x2,
         DisallowBigImage = 0x4
     };
 
@@ -153,7 +152,7 @@ public:
      */
     virtual void Resize(const gfx::IntSize& aSize) {
         mSize = aSize;
-        nsIntRegion r(nsIntRect(0, 0, aSize.width, aSize.height));
+        nsIntRegion r(gfx::IntRect(0, 0, aSize.width, aSize.height));
         BeginUpdate(r);
         EndUpdate();
     }
@@ -196,11 +195,10 @@ public:
 
     gfx::IntSize GetSize() const;
     ContentType GetContentType() const { return mContentType; }
-    ImageFormat GetImageFormat() const { return mImageFormat; }
     virtual bool InUpdate() const = 0;
     GLenum GetWrapMode() const { return mWrapMode; }
 
-    void SetFilter(GraphicsFilter aFilter) { mFilter = aFilter; }
+    void SetFilter(gfx::Filter aFilter) { mFilter = aFilter; }
 
 protected:
     friend class GLContext;
@@ -211,22 +209,10 @@ protected:
      * TextureImage from GLContext::CreateTextureImage().  That is,
      * clients must not be given partially-constructed TextureImages.
      */
-    TextureImage(const nsIntSize& aSize,
-                 GLenum aWrapMode, ContentType aContentType,
-                 Flags aFlags = NoFlags,
-                 ImageFormat aImageFormat = gfxImageFormat::Unknown)
-        : mSize(aSize.ToIntSize())
-        , mWrapMode(aWrapMode)
-        , mContentType(aContentType)
-        , mImageFormat(aImageFormat)
-        , mFilter(GraphicsFilter::FILTER_GOOD)
-        , mFlags(aFlags)
-    {}
-
-    // Moz2D equivalent...
     TextureImage(const gfx::IntSize& aSize,
                  GLenum aWrapMode, ContentType aContentType,
-                 Flags aFlags = NoFlags);
+                 Flags aFlags = NoFlags,
+                 ImageFormat aImageFormat = gfxImageFormat::Unknown);
 
     // Protected destructor, to discourage deletion outside of Release():
     virtual ~TextureImage() {}
@@ -236,9 +222,8 @@ protected:
     gfx::IntSize mSize;
     GLenum mWrapMode;
     ContentType mContentType;
-    ImageFormat mImageFormat;
     gfx::SurfaceFormat mTextureFormat;
-    GraphicsFilter mFilter;
+    gfx::Filter mFilter;
     Flags mFlags;
 };
 
@@ -258,13 +243,6 @@ public:
     virtual ~BasicTextureImage();
 
     BasicTextureImage(GLuint aTexture,
-                      const nsIntSize& aSize,
-                      GLenum aWrapMode,
-                      ContentType aContentType,
-                      GLContext* aContext,
-                      TextureImage::Flags aFlags = TextureImage::NoFlags,
-                      TextureImage::ImageFormat aImageFormat = gfxImageFormat::Unknown);
-    BasicTextureImage(GLuint aTexture,
                       const gfx::IntSize& aSize,
                       GLenum aWrapMode,
                       ContentType aContentType,
@@ -279,7 +257,7 @@ public:
     virtual void EndUpdate();
     virtual bool DirectUpdate(gfx::DataSourceSurface* aSurf, const nsIntRegion& aRegion, const gfx::IntPoint& aFrom = gfx::IntPoint(0,0));
     virtual GLuint GetTextureID() { return mTexture; }
-    virtual TemporaryRef<gfx::DrawTarget>
+    virtual already_AddRefed<gfx::DrawTarget>
       GetDrawTargetForUpdate(const gfx::IntSize& aSize, gfx::SurfaceFormat aFmt);
 
     virtual void MarkValid() { mTextureState = Valid; }
@@ -299,7 +277,7 @@ public:
 protected:
     GLuint mTexture;
     TextureState mTextureState;
-    nsRefPtr<GLContext> mGLContext;
+    RefPtr<GLContext> mGLContext;
     RefPtr<gfx::DrawTarget> mUpdateDrawTarget;
     nsIntRegion mUpdateRegion;
 
@@ -312,7 +290,7 @@ protected:
  * Aims to behave just like the real thing.
  */
 
-class TiledTextureImage MOZ_FINAL
+class TiledTextureImage final
     : public TextureImage
 {
 public:
@@ -346,9 +324,8 @@ protected:
     unsigned int mCurrentImage;
     BigImageIterationCallback mIterationCallback;
     void* mIterationCallbackData;
-    nsTArray< nsRefPtr<TextureImage> > mImages;
+    nsTArray< RefPtr<TextureImage> > mImages;
     bool mInUpdate;
-    gfx::IntSize mSize;
     unsigned int mTileSize;
     unsigned int mRows, mColumns;
     GLContext* mGL;
@@ -381,7 +358,8 @@ CreateBasicTextureImage(GLContext* aGL,
   * |aWrapMode| (usually GL_CLAMP_TO_EDGE or GL_REPEAT) and by
   * default, GL_LINEAR filtering.  Specify
   * |aFlags=UseNearestFilter| for GL_NEAREST filtering. Specify
-  * |aFlags=NeedsYFlip| if the image is flipped. Return
+  * |aFlags=OriginBottomLeft| if the image is origin-bottom-left, instead of the
+  * default origin-top-left. Return
   * nullptr if creating the TextureImage fails.
   *
   * The returned TextureImage may only be used with this GLContext.

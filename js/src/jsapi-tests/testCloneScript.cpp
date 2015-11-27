@@ -8,7 +8,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "jsfriendapi.h"
-#include "js/OldDebugAPI.h"
 #include "jsapi-tests/tests.h"
 
 BEGIN_TEST(test_cloneScript)
@@ -19,7 +18,7 @@ BEGIN_TEST(test_cloneScript)
     CHECK(A);
     CHECK(B);
 
-    const char *source =
+    const char* source =
         "var i = 0;\n"
         "var sum = 0;\n"
         "while (i < 10) {\n"
@@ -36,43 +35,43 @@ BEGIN_TEST(test_cloneScript)
         JS::RootedFunction fun(cx);
         JS::CompileOptions options(cx);
         options.setFileAndLine(__FILE__, 1);
-        CHECK(JS_CompileFunction(cx, A, "f", 0, nullptr, source,
-                                 strlen(source), options, &fun));
+        JS::AutoObjectVector emptyScopeChain(cx);
+        CHECK(JS::CompileFunction(cx, emptyScopeChain, options, "f", 0, nullptr,
+                                  source, strlen(source), &fun));
         CHECK(obj = JS_GetFunctionObject(fun));
     }
 
     // clone into B
     {
         JSAutoCompartment b(cx, B);
-        CHECK(JS_CloneFunctionObject(cx, obj, B));
+        CHECK(JS::CloneFunctionObject(cx, obj));
     }
 
     return true;
 }
 END_TEST(test_cloneScript)
 
-static void
-DestroyPrincipals(JSPrincipals *principals)
-{
-    delete principals;
-}
-
-struct Principals : public JSPrincipals
+struct Principals final : public JSPrincipals
 {
   public:
     Principals()
     {
         refcount = 0;
     }
+
+    bool write(JSContext* cx, JSStructuredCloneWriter* writer) override {
+        MOZ_ASSERT(false, "not imlemented");
+        return false;
+    }
 };
 
 class AutoDropPrincipals
 {
-    JSRuntime *rt;
-    JSPrincipals *principals;
+    JSRuntime* rt;
+    JSPrincipals* principals;
 
   public:
-    AutoDropPrincipals(JSRuntime *rt, JSPrincipals *principals)
+    AutoDropPrincipals(JSRuntime* rt, JSPrincipals* principals)
       : rt(rt), principals(principals)
     {
         JS_HoldPrincipals(principals);
@@ -84,13 +83,20 @@ class AutoDropPrincipals
     }
 };
 
+static void
+DestroyPrincipals(JSPrincipals* principals)
+{
+    auto p = static_cast<Principals*>(principals);
+    delete p;
+}
+
 BEGIN_TEST(test_cloneScriptWithPrincipals)
 {
     JS_InitDestroyPrincipalsCallback(rt, DestroyPrincipals);
 
-    JSPrincipals *principalsA = new Principals();
+    JSPrincipals* principalsA = new Principals();
     AutoDropPrincipals dropA(rt, principalsA);
-    JSPrincipals *principalsB = new Principals();
+    JSPrincipals* principalsB = new Principals();
     AutoDropPrincipals dropB(rt, principalsB);
 
     JS::RootedObject A(cx, createGlobal(principalsA));
@@ -99,8 +105,8 @@ BEGIN_TEST(test_cloneScriptWithPrincipals)
     CHECK(A);
     CHECK(B);
 
-    const char *argnames[] = { "arg" };
-    const char *source = "return function() { return arg; }";
+    const char* argnames[] = { "arg" };
+    const char* source = "return function() { return arg; }";
 
     JS::RootedObject obj(cx);
 
@@ -110,12 +116,13 @@ BEGIN_TEST(test_cloneScriptWithPrincipals)
         JS::CompileOptions options(cx);
         options.setFileAndLine(__FILE__, 1);
         JS::RootedFunction fun(cx);
-        JS_CompileFunction(cx, A, "f",
+        JS::AutoObjectVector emptyScopeChain(cx);
+        JS::CompileFunction(cx, emptyScopeChain, options, "f",
                            mozilla::ArrayLength(argnames), argnames, source,
-                           strlen(source), options, &fun);
+                           strlen(source), &fun);
         CHECK(fun);
 
-        JSScript *script;
+        JSScript* script;
         CHECK(script = JS_GetFunctionScript(cx, fun));
 
         CHECK(JS_GetScriptPrincipals(script) == principalsA);
@@ -126,13 +133,13 @@ BEGIN_TEST(test_cloneScriptWithPrincipals)
     {
         JSAutoCompartment b(cx, B);
         JS::RootedObject cloned(cx);
-        CHECK(cloned = JS_CloneFunctionObject(cx, obj, B));
+        CHECK(cloned = JS::CloneFunctionObject(cx, obj));
 
         JS::RootedFunction fun(cx);
         JS::RootedValue clonedValue(cx, JS::ObjectValue(*cloned));
         CHECK(fun = JS_ValueToFunction(cx, clonedValue));
 
-        JSScript *script;
+        JSScript* script;
         CHECK(script = JS_GetFunctionScript(cx, fun));
 
         CHECK(JS_GetScriptPrincipals(script) == principalsB);
@@ -142,7 +149,7 @@ BEGIN_TEST(test_cloneScriptWithPrincipals)
         CHECK(JS_CallFunctionValue(cx, B, clonedValue, JS::HandleValueArray(arg), &v));
         CHECK(v.isObject());
 
-        JSObject *funobj = &v.toObject();
+        JSObject* funobj = &v.toObject();
         CHECK(JS_ObjectIsFunction(cx, funobj));
         CHECK(fun = JS_ValueToFunction(cx, v));
         CHECK(script = JS_GetFunctionScript(cx, fun));

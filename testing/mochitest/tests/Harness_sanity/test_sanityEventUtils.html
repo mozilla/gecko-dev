@@ -124,24 +124,24 @@ function starttest() {
       check = false;
       window.addEventListener("compositionupdate", function() { check = true; }, false);
       synthesizeComposition({ type: "compositionupdate", data: "a" });
-      is(check, true, 'synthesizeComposition() should dispatch compositionupdate');
+      is(check, false, 'synthesizeComposition() should not dispatch compositionupdate without error');
 
       check = false;
       window.addEventListener("text", function() { check = true; }, false);
-      synthesizeText(
+      synthesizeCompositionChange(
         { "composition":
           { "string": "a",
             "clauses":
             [
-              { "length": 1, "attr": COMPOSITION_ATTR_RAWINPUT }
+              { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
             ]
           },
           "caret": { "start": 1, "length": 0 }
         }
       );
-      is(check, true, "synthesizeText should dispatch text event");
+      is(check, true, "synthesizeCompositionChange should cause dispatching a DOM text event");
 
-      synthesizeText(
+      synthesizeCompositionChange(
         { "composition":
           { "string": "a",
             "clauses":
@@ -156,6 +156,9 @@ function starttest() {
       check = false;
       window.addEventListener("compositionend", function() { check = true; }, false);
       synthesizeComposition({ type: "compositionend", data: "a" });
+      is(check, false, 'synthesizeComposition() should not dispatch compositionend');
+
+      synthesizeComposition({ type: "compositioncommit", data: "a" });
       is(check, true, 'synthesizeComposition() should dispatch compositionend');
 
       var querySelectedText = synthesizeQuerySelectedText();

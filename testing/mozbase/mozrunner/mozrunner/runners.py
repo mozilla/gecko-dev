@@ -24,6 +24,8 @@ def Runner(*args, **kwargs):
     :param process_class: Class used to launch the binary.
     :param process_args: Arguments to pass into process_class.
     :param symbols_path: Path to symbol files used for crash analysis.
+    :param show_crash_reporter: allow the crash reporter window to pop up.
+        Defaults to False.
     :returns: A generic GeckoRuntimeRunner.
     """
     return GeckoRuntimeRunner(*args, **kwargs)
@@ -41,6 +43,8 @@ def FirefoxRunner(*args, **kwargs):
     :param process_class: Class used to launch the binary.
     :param process_args: Arguments to pass into process_class.
     :param symbols_path: Path to symbol files used for crash analysis.
+    :param show_crash_reporter: allow the crash reporter window to pop up.
+        Defaults to False.
     :returns: A GeckoRuntimeRunner for Firefox.
     """
     kwargs['app_ctx'] = get_app_context('firefox')()
@@ -59,27 +63,11 @@ def ThunderbirdRunner(*args, **kwargs):
     :param process_class: Class used to launch the binary.
     :param process_args: Arguments to pass into process_class.
     :param symbols_path: Path to symbol files used for crash analysis.
+    :param show_crash_reporter: allow the crash reporter window to pop up.
+        Defaults to False.
     :returns: A GeckoRuntimeRunner for Thunderbird.
     """
     kwargs['app_ctx'] = get_app_context('thunderbird')()
-    return GeckoRuntimeRunner(*args, **kwargs)
-
-
-def MetroRunner(*args, **kwargs):
-    """
-    Create a Windows metro Firefox runner.
-
-    :param binary: Path to metro Firefox binary.
-    :param cmdargs: Arguments to pass into binary.
-    :param profile: Profile object to use.
-    :param env: Environment variables to pass into the gecko process.
-    :param clean_profile: If True, restores profile back to original state.
-    :param process_class: Class used to launch the binary.
-    :param process_args: Arguments to pass into process_class.
-    :param symbols_path: Path to symbol files used for crash analysis.
-    :returns: A GeckoRuntimeRunner for metro Firefox.
-    """
-    kwargs['app_ctx'] = get_app_context('metro')()
     return GeckoRuntimeRunner(*args, **kwargs)
 
 
@@ -95,6 +83,8 @@ def B2GDesktopRunner(*args, **kwargs):
     :param process_class: Class used to launch the binary.
     :param process_args: Arguments to pass into process_class.
     :param symbols_path: Path to symbol files used for crash analysis.
+    :param show_crash_reporter: allow the crash reporter window to pop up.
+        Defaults to False.
     :returns: A GeckoRuntimeRunner for b2g desktop.
     """
     # There is no difference between a generic and b2g desktop runner,
@@ -177,7 +167,6 @@ runners = {
  'b2g_emulator': B2GEmulatorRunner,
  'b2g_device': B2GDeviceRunner,
  'firefox': FirefoxRunner,
- 'metro': MetroRunner,
  'thunderbird': ThunderbirdRunner,
 }
 

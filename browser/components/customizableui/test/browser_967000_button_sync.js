@@ -8,8 +8,8 @@
 
 XPCOMUtils.defineLazyModuleGetter(this, "UITour", "resource:///modules/UITour.jsm");
 
-let initialLocation = gBrowser.currentURI.spec;
-let newTab = null;
+var initialLocation = gBrowser.currentURI.spec;
+var newTab = null;
 
 function openAboutAccountsFromMenuPanel(entryPoint) {
   info("Check Sync button functionality");
@@ -22,8 +22,8 @@ function openAboutAccountsFromMenuPanel(entryPoint) {
   yield PanelUI.show();
 
   if (entryPoint == "uitour") {
-    UITour.originTabs.set(window, new Set());
-    UITour.originTabs.get(window).add(gBrowser.selectedTab);
+    UITour.tourBrowsersByWindow.set(window, new Set());
+    UITour.tourBrowsersByWindow.get(window).add(gBrowser.selectedBrowser);
   }
 
   let syncButton = document.getElementById("sync-button");
@@ -31,22 +31,22 @@ function openAboutAccountsFromMenuPanel(entryPoint) {
 
   let deferred = Promise.defer();
   let handler = (e) => {
-    if (e.originalTarget != gBrowser.selectedTab.linkedBrowser.contentDocument ||
+    if (e.originalTarget != gBrowser.selectedBrowser.contentDocument ||
         e.target.location.href == "about:blank") {
       info("Skipping spurious 'load' event for " + e.target.location.href);
       return;
     }
-    gBrowser.selectedTab.linkedBrowser.removeEventListener("load", handler, true);
+    gBrowser.selectedBrowser.removeEventListener("load", handler, true);
     deferred.resolve();
   }
-  gBrowser.selectedTab.linkedBrowser.addEventListener("load", handler, true);
+  gBrowser.selectedBrowser.addEventListener("load", handler, true);
 
   syncButton.click();
   yield deferred.promise;
   newTab = gBrowser.selectedTab;
 
-  is(gBrowser.currentURI.spec, "about:accounts?entrypoint=" + entryPoint,
-    "Firefox Sync page opened with `menupanel` entrypoint");
+  is(gBrowser.currentURI.spec, "about:preferences?entrypoint=" + entryPoint + "#sync",
+    "Firefox Sync preference page opened with `menupanel` entrypoint");
   ok(!isPanelUIOpen(), "The panel closed");
 
   if(isPanelUIOpen()) {
@@ -65,7 +65,7 @@ function asyncCleanup() {
   // restore the tabs
   gBrowser.addTab(initialLocation);
   gBrowser.removeTab(newTab);
-  UITour.originTabs.delete(window);
+  UITour.tourBrowsersByWindow.delete(window);
 }
 
 add_task(() => openAboutAccountsFromMenuPanel("syncbutton"));

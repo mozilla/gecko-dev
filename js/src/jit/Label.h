@@ -21,7 +21,7 @@ struct LabelBase
     bool bound_   : 1;
 
     // Disallow assignment.
-    void operator =(const LabelBase &label);
+    void operator =(const LabelBase& label);
   public:
     static const int32_t INVALID_OFFSET = -1;
 
@@ -34,8 +34,15 @@ struct LabelBase
         return bound_;
     }
     int32_t offset() const {
-        JS_ASSERT(bound() || used());
+        MOZ_ASSERT(bound() || used());
         return offset_;
+    }
+    void offsetBy(int32_t delta) {
+        MOZ_ASSERT(bound() || used());
+        MOZ_ASSERT(offset() + delta >= offset(), "no overflow");
+        mozilla::DebugOnly<int32_t> oldOffset(offset());
+        offset_ += delta;
+        MOZ_ASSERT(offset_ == delta + oldOffset, "new offset fits in 31 bits");
     }
     // Returns whether the label is not bound, but has incoming uses.
     bool used() const {
@@ -43,10 +50,10 @@ struct LabelBase
     }
     // Binds the label, fixing its final position in the code stream.
     void bind(int32_t offset) {
-        JS_ASSERT(!bound());
+        MOZ_ASSERT(!bound());
         offset_ = offset;
         bound_ = true;
-        JS_ASSERT(offset_ == offset);
+        MOZ_ASSERT(offset_ == offset, "offset fits in 31 bits");
     }
     // Marks the label as neither bound nor used.
     void reset() {
@@ -56,11 +63,11 @@ struct LabelBase
     // Sets the label's latest used position, returning the old use position in
     // the process.
     int32_t use(int32_t offset) {
-        JS_ASSERT(!bound());
+        MOZ_ASSERT(!bound());
 
         int32_t old = offset_;
         offset_ = offset;
-        JS_ASSERT(offset_ == offset);
+        MOZ_ASSERT(offset_ == offset, "offset fits in 31 bits");
 
         return old;
     }
@@ -81,14 +88,10 @@ class Label : public LabelBase
     {
 #ifdef DEBUG
         // The assertion below doesn't hold if an error occurred.
-        if (OOM_counter > OOM_maxAllocations)
-            return;
-        if (IonContext *context = MaybeGetIonContext()) {
-            if (context->runtime->hadOutOfMemory())
-                return;
-        }
-
-        MOZ_ASSERT(!used());
+        JitContext* context = MaybeGetJitContext();
+        bool hadError = OOM_counter >= OOM_maxAllocations ||
+                        (context && context->runtime->hadOutOfMemory());
+        MOZ_ASSERT_IF(!hadError, !used());
 #endif
     }
 };
@@ -108,6 +111,7 @@ class NonAssertingLabel : public Label
     }
 };
 
-} } // namespace js::jit
+} // namespace jit
+} // namespace js
 
 #endif // jit_Label_h

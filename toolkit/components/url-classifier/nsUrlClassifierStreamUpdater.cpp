@@ -10,11 +10,14 @@
 #include "nsIUploadChannel.h"
 #include "nsIURI.h"
 #include "nsIUrlClassifierDBService.h"
+#include "nsNetUtil.h"
 #include "nsStreamUtils.h"
 #include "nsStringStream.h"
 #include "nsToolkitCompsCID.h"
 #include "nsUrlClassifierStreamUpdater.h"
-#include "prlog.h"
+#include "mozilla/BasePrincipal.h"
+#include "mozilla/ErrorNames.h"
+#include "mozilla/Logging.h"
 #include "nsIInterfaceRequestor.h"
 #include "mozilla/LoadContext.h"
 #include "nsContentUtils.h"
@@ -24,13 +27,8 @@ static const char* gQuitApplicationMessage = "quit-application";
 #undef LOG
 
 // NSPR_LOG_MODULES=UrlClassifierStreamUpdater:5
-#if defined(PR_LOGGING)
 static const PRLogModuleInfo *gUrlClassifierStreamUpdaterLog = nullptr;
-#define LOG(args) PR_LOG(gUrlClassifierStreamUpdaterLog, PR_LOG_DEBUG, args)
-#else
-#define LOG(args)
-#endif
-
+#define LOG(args) MOZ_LOG(gUrlClassifierStreamUpdaterLog, mozilla::LogLevel::Debug, args)
 
 // This class does absolutely nothing, except pass requests onto the DBService.
 
@@ -42,10 +40,8 @@ nsUrlClassifierStreamUpdater::nsUrlClassifierStreamUpdater()
   : mIsUpdating(false), mInitialized(false), mDownloadError(false),
     mBeganStream(false), mChannel(nullptr)
 {
-#if defined(PR_LOGGING)
   if (!gUrlClassifierStreamUpdaterLog)
     gUrlClassifierStreamUpdaterLog = PR_NewLogModule("UrlClassifierStreamUpdater");
-#endif
   LOG(("nsUrlClassifierStreamUpdater init [this=%p]", this));
 }
 
@@ -97,14 +93,16 @@ nsUrlClassifierStreamUpdater::FetchUpdate(nsIURI *aUpdateUrl,
   rv = NS_NewChannel(getter_AddRefs(mChannel),
                      aUpdateUrl,
                      nsContentUtils::GetSystemPrincipal(),
-                     nsILoadInfo::SEC_NORMAL,
+                     nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                      nsIContentPolicy::TYPE_OTHER,
-                     nullptr,  // aChannelPolicy
                      nullptr,  // aLoadGroup
                      this,     // aInterfaceRequestor
                      loadFlags);
 
   NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsILoadInfo> loadInfo = mChannel->GetLoadInfo();
+  loadInfo->SetOriginAttributes(mozilla::NeckoOriginAttributes(NECKO_SAFEBROWSING_APP_ID, false));
 
   mBeganStream = false;
 
@@ -121,18 +119,26 @@ nsUrlClassifierStreamUpdater::FetchUpdate(nsIURI *aUpdateUrl,
   if ((NS_SUCCEEDED(aUpdateUrl->SchemeIs("file", &match)) && match) ||
       (NS_SUCCEEDED(aUpdateUrl->SchemeIs("data", &match)) && match)) {
     mChannel->SetContentType(NS_LITERAL_CSTRING("application/vnd.google.safebrowsing-update"));
+  } else {
+    // We assume everything else is an HTTP request.
+
+    // Disable keepalive.
+    nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(mChannel, &rv);
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = httpChannel->SetRequestHeader(NS_LITERAL_CSTRING("Connection"), NS_LITERAL_CSTRING("close"), false);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
 
-   // Create a custom LoadContext for SafeBrowsing, so we can use callbacks on
-   // the channel to query the appId which allows separation of safebrowsing
-   // cookies in a separate jar.
+  // Create a custom LoadContext for SafeBrowsing, so we can use callbacks on
+  // the channel to query the appId which allows separation of safebrowsing
+  // cookies in a separate jar.
   nsCOMPtr<nsIInterfaceRequestor> sbContext =
     new mozilla::LoadContext(NECKO_SAFEBROWSING_APP_ID);
   rv = mChannel->SetNotificationCallbacks(sbContext);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // Make the request
-  rv = mChannel->AsyncOpen(this, nullptr);
+  // Make the request.
+  rv = mChannel->AsyncOpen2(this);
   NS_ENSURE_SUCCESS(rv, rv);
 
   mStreamTable = aStreamTable;
@@ -333,14 +339,19 @@ NS_IMETHODIMP
 nsUrlClassifierStreamUpdater::StreamFinished(nsresult status,
                                              uint32_t requestedDelay)
 {
+  // We are a service and may not be reset with Init between calls, so reset
+  // mBeganStream manually.
+  mBeganStream = false;
   LOG(("nsUrlClassifierStreamUpdater::StreamFinished [%x, %d]", status, requestedDelay));
   if (NS_FAILED(status) || mPendingUpdates.Length() == 0) {
     // We're done.
+    LOG(("nsUrlClassifierStreamUpdater::Done [this=%p]", this));
     mDBService->FinishUpdate();
     return NS_OK;
   }
 
   // Wait the requested amount of time before starting a new stream.
+  // This appears to be a duplicate timer (see bug 1110891)
   nsresult rv;
   mTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
   if (NS_SUCCEEDED(rv)) {
@@ -371,7 +382,12 @@ nsUrlClassifierStreamUpdater::UpdateSuccess(uint32_t requestedTimeout)
   nsAutoCString strTimeout;
   strTimeout.AppendInt(requestedTimeout);
   if (successCallback) {
+    LOG(("nsUrlClassifierStreamUpdater::UpdateSuccess callback [this=%p]",
+         this));
     successCallback->HandleEvent(strTimeout);
+  } else {
+    LOG(("nsUrlClassifierStreamUpdater::UpdateSuccess skipping callback [this=%p]",
+         this));
   }
   // Now fetch the next request
   LOG(("stream updater: calling into fetch next request"));
@@ -447,26 +463,34 @@ nsUrlClassifierStreamUpdater::OnStartRequest(nsIRequest *request,
     rv = httpChannel->GetStatus(&status);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    if (NS_ERROR_CONNECTION_REFUSED == status ||
-        NS_ERROR_NET_TIMEOUT == status) {
-      // Assume we're overloading the server and trigger backoff.
-      downloadError = true;
+    if (MOZ_LOG_TEST(gUrlClassifierStreamUpdaterLog, mozilla::LogLevel::Debug)) {
+      nsAutoCString errorName, spec;
+      mozilla::GetErrorName(status, errorName);
+      nsCOMPtr<nsIURI> uri;
+      rv = httpChannel->GetURI(getter_AddRefs(uri));
+      if (NS_SUCCEEDED(rv) && uri) {
+        uri->GetAsciiSpec(spec);
+      }
+      LOG(("nsUrlClassifierStreamUpdater::OnStartRequest "
+           "(status=%s, uri=%s, this=%p)", errorName.get(),
+           spec.get(), this));
     }
 
-    if (NS_SUCCEEDED(status)) {
+    if (NS_FAILED(status)) {
+      // Assume we're overloading the server and trigger backoff.
+      downloadError = true;
+    } else {
       bool succeeded = false;
       rv = httpChannel->GetRequestSucceeded(&succeeded);
       NS_ENSURE_SUCCESS(rv, rv);
 
+      uint32_t requestStatus;
+      rv = httpChannel->GetResponseStatus(&requestStatus);
+      NS_ENSURE_SUCCESS(rv, rv);
+      LOG(("nsUrlClassifierStreamUpdater::OnStartRequest %s (%d)", succeeded ?
+           "succeeded" : "failed", requestStatus));
       if (!succeeded) {
         // 404 or other error, pass error status back
-        LOG(("HTTP request returned failure code."));
-
-        uint32_t requestStatus;
-        rv = httpChannel->GetResponseStatus(&requestStatus);
-        LOG(("HTTP request returned failure code: %d.", requestStatus));
-        NS_ENSURE_SUCCESS(rv, rv);
-
         strStatus.AppendInt(requestStatus);
         downloadError = true;
       }
@@ -474,11 +498,19 @@ nsUrlClassifierStreamUpdater::OnStartRequest(nsIRequest *request,
   }
 
   if (downloadError) {
-    mDownloadErrorCallback->HandleEvent(strStatus);
+    LOG(("nsUrlClassifierStreamUpdater::Download error [this=%p]", this));
+
+    // It's possible for mDownloadErrorCallback to be null on shutdown.
+    if (mDownloadErrorCallback) {
+      mDownloadErrorCallback->HandleEvent(strStatus);
+    }
+
     mDownloadError = true;
     status = NS_ERROR_ABORT;
   } else if (NS_SUCCEEDED(status)) {
+    MOZ_ASSERT(mDownloadErrorCallback);
     mBeganStream = true;
+    LOG(("nsUrlClassifierStreamUpdater::Beginning stream [this=%p]", this));
     rv = mDBService->BeginStream(mStreamTable);
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -521,7 +553,8 @@ nsUrlClassifierStreamUpdater::OnStopRequest(nsIRequest *request, nsISupports* co
   if (!mDBService)
     return NS_ERROR_NOT_INITIALIZED;
 
-  LOG(("OnStopRequest (status %x)", aStatus));
+  LOG(("OnStopRequest (status %x, beganStream %s, this=%p)", aStatus,
+       mBeganStream ? "true" : "false", this));
 
   nsresult rv;
 
@@ -529,10 +562,12 @@ nsUrlClassifierStreamUpdater::OnStopRequest(nsIRequest *request, nsISupports* co
     // Success, finish this stream and move on to the next.
     rv = mDBService->FinishStream();
   } else if (mBeganStream) {
+    LOG(("OnStopRequest::Canceling update [this=%p]", this));
     // We began this stream and couldn't finish it.  We have to cancel the
     // update, it's not in a consistent state.
     rv = mDBService->CancelUpdate();
   } else {
+    LOG(("OnStopRequest::Finishing update [this=%p]", this));
     // The fetch failed, but we didn't start the stream (probably a
     // server or connection error).  We can commit what we've applied
     // so far, and request again later.
@@ -541,7 +576,12 @@ nsUrlClassifierStreamUpdater::OnStopRequest(nsIRequest *request, nsISupports* co
 
   mChannel = nullptr;
 
-  return rv;
+  // If the fetch failed, return the network status rather than NS_OK, the
+  // result of finishing a possibly-empty update
+  if (NS_SUCCEEDED(aStatus)) {
+    return rv;
+  }
+  return aStatus;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

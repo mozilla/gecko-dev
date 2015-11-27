@@ -7,39 +7,34 @@ package org.mozilla.gecko.home;
 
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.ThumbnailHelper;
+import org.mozilla.gecko.util.ColorUtils;
+import org.mozilla.gecko.widget.CropImageView;
 
 import android.content.Context;
+import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.PorterDuff.Mode;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
-import android.widget.ImageView;
 
 /**
- * A height constrained ImageView to show thumbnails of top and pinned sites.
+ * A width constrained ImageView to show thumbnails of top and pinned sites.
  */
-public class TopSitesThumbnailView extends ImageView {
+public class TopSitesThumbnailView extends CropImageView {
     private static final String LOGTAG = "GeckoTopSitesThumbnailView";
 
     // 27.34% opacity filter for the dominant color.
     private static final int COLOR_FILTER = 0x46FFFFFF;
 
     // Default filter color for "Add a bookmark" views.
-    private static final int DEFAULT_COLOR = 0xFFECF0F3;
+    private final int mDefaultColor = ColorUtils.getColor(getContext(), R.color.top_site_default);
 
     // Stroke width for the border.
     private final float mStrokeWidth = getResources().getDisplayMetrics().density * 2;
 
     // Paint for drawing the border.
-    private static Paint sBorderPaint;
-
-    // Initializing the static border paint.
-    static {
-        sBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        sBorderPaint.setColor(0xFFCFD9E1);
-        sBorderPaint.setStyle(Paint.Style.STROKE);
-    }
+    private final Paint mBorderPaint;
 
     public TopSitesThumbnailView(Context context) {
         this(context, null);
@@ -54,24 +49,17 @@ public class TopSitesThumbnailView extends ImageView {
 
     public TopSitesThumbnailView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
+
+        // Initialize the border paint.
+        final Resources res = getResources();
+        mBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        mBorderPaint.setColor(ColorUtils.getColor(context, R.color.top_site_border));
+        mBorderPaint.setStyle(Paint.Style.STROKE);
     }
 
-    /**
-     * Measure the view to determine the measured width and height.
-     * The height is constrained by the measured width.
-     *
-     * @param widthMeasureSpec horizontal space requirements as imposed by the parent.
-     * @param heightMeasureSpec vertical space requirements as imposed by the parent, but ignored.
-     */
     @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        // Default measuring.
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-
-        // Force the height based on the aspect ratio.
-        final int width = getMeasuredWidth();
-        final int height = (int) (width * ThumbnailHelper.THUMBNAIL_ASPECT_RATIO);
-        setMeasuredDimension(width, height);
+    protected float getAspectRatio() {
+        return ThumbnailHelper.TOP_SITES_THUMBNAIL_ASPECT_RATIO;
     }
 
     /**
@@ -82,8 +70,8 @@ public class TopSitesThumbnailView extends ImageView {
         super.onDraw(canvas);
 
         if (getBackground() == null) {
-            sBorderPaint.setStrokeWidth(mStrokeWidth);
-            canvas.drawRect(0, 0, getWidth(), getHeight(), sBorderPaint);
+            mBorderPaint.setStrokeWidth(mStrokeWidth);
+            canvas.drawRect(0, 0, getWidth(), getHeight(), mBorderPaint);
         }
     }
 
@@ -104,7 +92,7 @@ public class TopSitesThumbnailView extends ImageView {
     @Override
     public void setBackgroundColor(int color) {
         if (color == 0) {
-            color = DEFAULT_COLOR;
+            color = mDefaultColor;
         }
 
         Drawable drawable = getResources().getDrawable(R.drawable.top_sites_thumbnail_bg);

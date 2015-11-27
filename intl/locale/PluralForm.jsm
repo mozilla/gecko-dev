@@ -35,41 +35,41 @@ const kIntlProperties = "chrome://global/locale/intl.properties";
 // These are the available plural functions that give the appropriate index
 // based on the plural rule number specified. The first element is the number
 // of plural forms and the second is the function to figure out the index.
-let gFunctions = [
+var gFunctions = [
   // 0: Chinese
-  [1, function(n) 0],
+  [1, (n) => 0],
   // 1: English
-  [2, function(n) n!=1?1:0],
+  [2, (n) => n!=1?1:0],
   // 2: French
-  [2, function(n) n>1?1:0],
+  [2, (n) => n>1?1:0],
   // 3: Latvian
-  [3, function(n) n%10==1&&n%100!=11?1:n!=0?2:0],
+  [3, (n) => n%10==1&&n%100!=11?1:n!=0?2:0],
   // 4: Scottish Gaelic
-  [4, function(n) n==1||n==11?0:n==2||n==12?1:n>0&&n<20?2:3],
+  [4, (n) => n==1||n==11?0:n==2||n==12?1:n>0&&n<20?2:3],
   // 5: Romanian
-  [3, function(n) n==1?0:n==0||n%100>0&&n%100<20?1:2],
+  [3, (n) => n==1?0:n==0||n%100>0&&n%100<20?1:2],
   // 6: Lithuanian
-  [3, function(n) n%10==1&&n%100!=11?0:n%10>=2&&(n%100<10||n%100>=20)?2:1],
+  [3, (n) => n%10==1&&n%100!=11?0:n%10>=2&&(n%100<10||n%100>=20)?2:1],
   // 7: Russian
-  [3, function(n) n%10==1&&n%100!=11?0:n%10>=2&&n%10<=4&&(n%100<10||n%100>=20)?1:2],
+  [3, (n) => n%10==1&&n%100!=11?0:n%10>=2&&n%10<=4&&(n%100<10||n%100>=20)?1:2],
   // 8: Slovak
-  [3, function(n) n==1?0:n>=2&&n<=4?1:2],
+  [3, (n) => n==1?0:n>=2&&n<=4?1:2],
   // 9: Polish
-  [3, function(n) n==1?0:n%10>=2&&n%10<=4&&(n%100<10||n%100>=20)?1:2],
+  [3, (n) => n==1?0:n%10>=2&&n%10<=4&&(n%100<10||n%100>=20)?1:2],
   // 10: Slovenian
-  [4, function(n) n%100==1?0:n%100==2?1:n%100==3||n%100==4?2:3],
+  [4, (n) => n%100==1?0:n%100==2?1:n%100==3||n%100==4?2:3],
   // 11: Irish Gaeilge
-  [5, function(n) n==1?0:n==2?1:n>=3&&n<=6?2:n>=7&&n<=10?3:4],
+  [5, (n) => n==1?0:n==2?1:n>=3&&n<=6?2:n>=7&&n<=10?3:4],
   // 12: Arabic
-  [6, function(n) n==0?5:n==1?0:n==2?1:n%100>=3&&n%100<=10?2:n%100>=11&&n%100<=99?3:4],
+  [6, (n) => n==0?5:n==1?0:n==2?1:n%100>=3&&n%100<=10?2:n%100>=11&&n%100<=99?3:4],
   // 13: Maltese
-  [4, function(n) n==1?0:n==0||n%100>0&&n%100<=10?1:n%100>10&&n%100<20?2:3],
+  [4, (n) => n==1?0:n==0||n%100>0&&n%100<=10?1:n%100>10&&n%100<20?2:3],
   // 14: Macedonian
-  [3, function(n) n%10==1?0:n%10==2?1:2],
+  [3, (n) => n%10==1?0:n%10==2?1:2],
   // 15: Icelandic
-  [2, function(n) n%10==1&&n%100!=11?0:1],
+  [2, (n) => n%10==1&&n%100!=11?0:1],
   // 16: Breton
-  [5, function(n) n%10==1&&n%100!=11&&n%100!=71&&n%100!=91?0:n%10==2&&n%100!=12&&n%100!=72&&n%100!=92?1:(n%10==3||n%10==4||n%10==9)&&n%100!=13&&n%100!=14&&n%100!=19&&n%100!=73&&n%100!=74&&n%100!=79&&n%100!=93&&n%100!=94&&n%100!=99?2:n%1000000==0&&n!=0?3:4],
+  [5, (n) => n%10==1&&n%100!=11&&n%100!=71&&n%100!=91?0:n%10==2&&n%100!=12&&n%100!=72&&n%100!=92?1:(n%10==3||n%10==4||n%10==9)&&n%100!=13&&n%100!=14&&n%100!=19&&n%100!=73&&n%100!=74&&n%100!=79&&n%100!=93&&n%100!=94&&n%100!=99?2:n%1000000==0&&n!=0?3:4],
 ];
 
 this.PluralForm = {
@@ -93,13 +93,8 @@ this.PluralForm = {
     delete PluralForm.numForms;
     delete PluralForm.get;
 
-    // Get the plural rule number from the intl stringbundle
-    let ruleNum = Number(Cc["@mozilla.org/intl/stringbundle;1"].
-      getService(Ci.nsIStringBundleService).createBundle(kIntlProperties).
-      GetStringFromName("pluralRule"));
-
     // Make the plural form get function and set it as the default get
-    [PluralForm.get, PluralForm.numForms] = PluralForm.makeGetter(ruleNum);
+    [PluralForm.get, PluralForm.numForms] = PluralForm.makeGetter(PluralForm.ruleNum);
     return PluralForm.get;
   },
 
@@ -135,7 +130,7 @@ this.PluralForm = {
       // Check for array out of bounds or empty strings
       if ((ret == undefined) || (ret == "")) {
         // Report the caller to help figure out who is causing badness
-        let caller = PluralForm.get.caller ? PluralForm.get.caller.name : "top";
+        let caller = Components.stack.caller ? Components.stack.caller.name : "top";
 
         // Display a message in the error console
         log(["Index #", index, " of '", aWords, "' for value ", aNum,
@@ -146,7 +141,7 @@ this.PluralForm = {
       }
 
       return ret;
-    }, function() numForms];
+    }, () => numForms];
   },
 
   /**
@@ -160,6 +155,18 @@ this.PluralForm = {
     PluralForm.get();
     return PluralForm.numForms;
   },
+
+  /**
+   * Get the plural rule number from the intl stringbundle
+   *
+   * @return The plural rule number
+   */
+  get ruleNum()
+  {
+    return Number(Cc["@mozilla.org/intl/stringbundle;1"].
+      getService(Ci.nsIStringBundleService).createBundle(kIntlProperties).
+      GetStringFromName("pluralRule"));
+  }
 };
 
 /**

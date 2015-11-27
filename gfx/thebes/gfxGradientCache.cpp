@@ -5,7 +5,7 @@
 
 #include "mozilla/gfx/2D.h"
 #include "nsTArray.h"
-#include "pldhash.h"
+#include "PLDHashTable.h"
 #include "nsExpirationTracker.h"
 #include "nsClassHashtable.h"
 #include "mozilla/Telemetry.h"
@@ -118,11 +118,12 @@ struct GradientCacheData {
  * entry is in the cache, all the references it has are guaranteed to be valid:
  * the nsStyleRect for the key, the gfxPattern for the value.
  */
-class GradientCache MOZ_FINAL : public nsExpirationTracker<GradientCacheData,4>
+class GradientCache final : public nsExpirationTracker<GradientCacheData,4>
 {
   public:
     GradientCache()
-      : nsExpirationTracker<GradientCacheData, 4>(MAX_GENERATION_MS)
+      : nsExpirationTracker<GradientCacheData,4>(MAX_GENERATION_MS,
+                                                 "GradientCache")
     {
       srand(time(nullptr));
       mTimerPeriod = rand() % MAX_GENERATION_MS + 1;
@@ -178,18 +179,26 @@ class GradientCache MOZ_FINAL : public nsExpirationTracker<GradientCacheData,4>
 static GradientCache* gGradientCache = nullptr;
 
 GradientStops *
-gfxGradientCache::GetGradientStops(DrawTarget *aDT, nsTArray<GradientStop>& aStops, ExtendMode aExtend)
+gfxGradientCache::GetGradientStops(const DrawTarget *aDT, nsTArray<GradientStop>& aStops, ExtendMode aExtend)
 {
   if (!gGradientCache) {
     gGradientCache = new GradientCache();
   }
   GradientCacheData* cached =
     gGradientCache->Lookup(aStops, aExtend, aDT->GetBackendType());
-  return cached ? cached->mStops : nullptr;
+  if (cached && cached->mStops) {
+    if (!cached->mStops->IsValid()) {
+      gGradientCache->NotifyExpired(cached);
+    } else {
+      return cached->mStops;
+    }
+  }
+
+  return nullptr;
 }
 
 GradientStops *
-gfxGradientCache::GetOrCreateGradientStops(DrawTarget *aDT, nsTArray<GradientStop>& aStops, ExtendMode aExtend)
+gfxGradientCache::GetOrCreateGradientStops(const DrawTarget *aDT, nsTArray<GradientStop>& aStops, ExtendMode aExtend)
 {
   RefPtr<GradientStops> gs = GetGradientStops(aDT, aStops, aExtend);
   if (!gs) {
@@ -222,5 +231,5 @@ gfxGradientCache::Shutdown()
   gGradientCache = nullptr;
 }
 
-}
-}
+} // namespace gfx
+} // namespace mozilla

@@ -21,9 +21,9 @@
 
 #include <iostream>
 
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/common_types.h"
 #include "webrtc/modules/video_coding/codecs/vp8/include/vp8.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/test/channel_transport/include/channel_transport.h"
 #include "webrtc/video_engine/include/vie_base.h"
 #include "webrtc/video_engine/include/vie_capture.h"
@@ -158,7 +158,7 @@ int VideoEngineSampleCode(void* window1, void* window2)
         printf("Error in scanf()\n");
         return -1;
     }
-    getchar();
+    getc(stdin);
     captureIdx = captureIdx - 1; // Compensate for idx start at 1.
 #endif
     error = ptrViECapture->GetCaptureDevice(captureIdx, deviceName,
@@ -350,7 +350,7 @@ int VideoEngineSampleCode(void* window1, void* window2)
         printf("Error in scanf()\n");
         return -1;
     }
-    getchar();
+    getc(stdin);
     codecIdx = codecIdx - 1; // Compensate for idx start at 1.
 #endif
     // VP8 over generic transport gets this special one.
@@ -427,13 +427,17 @@ int VideoEngineSampleCode(void* window1, void* window2)
 
     // Set number of temporal layers.
     std::cout << std::endl;
-    std::cout << "Choose number of temporal layers (1 to 4).";
-    std::cout << "Press enter for default: \n";
+    std::cout << "Choose number of temporal layers for VP8 (1 to 4). ";
+    std::cout << "Press enter for default (=1) for other codecs: \n";
     std::getline(std::cin, str);
     int numTemporalLayers = atoi(str.c_str());
-    if(numTemporalLayers != 0)
-    {
-        videoCodec.codecSpecific.VP8.numberOfTemporalLayers = numTemporalLayers;
+    if (numTemporalLayers != 0 &&
+        videoCodec.codecType == webrtc::kVideoCodecVP8) {
+      videoCodec.codecSpecific.VP8.numberOfTemporalLayers = numTemporalLayers;
+    } else if (videoCodec.codecType == webrtc::kVideoCodecVP9) {
+      // Temporal layers for vp9 not yet supported in webrtc.
+      numTemporalLayers = 1;
+      videoCodec.codecSpecific.VP9.numberOfTemporalLayers = 1;
     }
 
     // Set start bit rate
@@ -624,7 +628,7 @@ int VideoEngineSampleCode(void* window1, void* window2)
     // Call started
     printf("\nLoopback call started\n\n");
     printf("Press enter to stop...");
-    while ((getchar()) != '\n')
+    while ((getc(stdin)) != '\n')
         ;
 
     //********************************************************

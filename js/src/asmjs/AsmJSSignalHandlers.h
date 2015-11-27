@@ -19,36 +19,37 @@
 #ifndef asmjs_AsmJSSignalHandlers_h
 #define asmjs_AsmJSSignalHandlers_h
 
-struct JSRuntime;
-
-#ifdef XP_MACOSX
+#if defined(XP_DARWIN) && defined(ASMJS_MAY_USE_SIGNAL_HANDLERS_FOR_OOB)
 # include <mach/mach.h>
 # include "jslock.h"
 #endif
 
+struct JSRuntime;
+
 namespace js {
 
-// Returns whether signal handlers for asm.js and for JitRuntime access
-// violations have been installed.
+// Set up any signal/exception handlers needed to execute code in the given
+// runtime. Return whether runtime can:
+//  - rely on fault handler support for avoiding asm.js heap bounds checks
+//  - rely on InterruptRunningJitCode to halt running Ion/asm.js from any thread
 bool
-EnsureAsmJSSignalHandlersInstalled(JSRuntime *rt);
+EnsureSignalHandlersInstalled(JSRuntime* rt);
 
-// Force any currently-executing asm.js code to call
-// js::HandleExecutionInterrupt.
+// Force any currently-executing asm.js code to call HandleExecutionInterrupt.
 extern void
-RequestInterruptForAsmJSCode(JSRuntime *rt, int interruptMode);
+InterruptRunningJitCode(JSRuntime* rt);
 
+#if defined(XP_DARWIN) && defined(ASMJS_MAY_USE_SIGNAL_HANDLERS_FOR_OOB)
 // On OSX we are forced to use the lower-level Mach exception mechanism instead
 // of Unix signals. Mach exceptions are not handled on the victim's stack but
 // rather require an extra thread. For simplicity, we create one such thread
 // per JSRuntime (upon the first use of asm.js in the JSRuntime). This thread
 // and related resources are owned by AsmJSMachExceptionHandler which is owned
 // by JSRuntime.
-#ifdef XP_MACOSX
 class AsmJSMachExceptionHandler
 {
     bool installed_;
-    PRThread *thread_;
+    PRThread* thread_;
     mach_port_t port_;
 
     void uninstall();
@@ -58,7 +59,7 @@ class AsmJSMachExceptionHandler
     ~AsmJSMachExceptionHandler() { uninstall(); }
     mach_port_t port() const { return port_; }
     bool installed() const { return installed_; }
-    bool install(JSRuntime *rt);
+    bool install(JSRuntime* rt);
 };
 #endif
 

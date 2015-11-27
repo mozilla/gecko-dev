@@ -1,34 +1,27 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
-
-const Telemetry = Cc["@mozilla.org/base/telemetry;1"]
-                  .getService(Ci.nsITelemetry);
-
-let tmpScope = {};
+var tmpScope = {};
 Cu.import("resource://gre/modules/TelemetryStopwatch.jsm", tmpScope);
-let TelemetryStopwatch = tmpScope.TelemetryStopwatch;
+var TelemetryStopwatch = tmpScope.TelemetryStopwatch;
 
 // We can't create a histogram here since the ones created with
 // newHistogram are not seen by getHistogramById that the module uses.
 const HIST_NAME = "TELEMETRY_PING";
 const HIST_NAME2 = "RANGE_CHECKSUM_ERRORS";
 
-let refObj = {}, refObj2 = {};
+var refObj = {}, refObj2 = {};
 
-let originalCount1, originalCount2;
+var originalCount1, originalCount2;
 
 function run_test() {
   let histogram = Telemetry.getHistogramById(HIST_NAME);
   let snapshot = histogram.snapshot();
-  originalCount1 = snapshot.counts.reduce(function (a,b) a += b);
+  originalCount1 = snapshot.counts.reduce((a,b) => a += b);
 
   histogram = Telemetry.getHistogramById(HIST_NAME2);
   snapshot = histogram.snapshot();
-  originalCount2 = snapshot.counts.reduce(function (a,b) a += b);
+  originalCount2 = snapshot.counts.reduce((a,b) => a += b);
 
   do_check_false(TelemetryStopwatch.start(3));
   do_check_false(TelemetryStopwatch.start({}));
@@ -110,13 +103,13 @@ function run_test() {
 function finishTest() {
   let histogram = Telemetry.getHistogramById(HIST_NAME);
   let snapshot = histogram.snapshot();
-  let newCount = snapshot.counts.reduce(function (a,b) a += b);
+  let newCount = snapshot.counts.reduce((a,b) => a += b);
 
   do_check_eq(newCount - originalCount1, 5, "The correct number of histograms were added for histogram 1.");
 
   histogram = Telemetry.getHistogramById(HIST_NAME2);
   snapshot = histogram.snapshot();
-  newCount = snapshot.counts.reduce(function (a,b) a += b);
+  newCount = snapshot.counts.reduce((a,b) => a += b);
 
   do_check_eq(newCount - originalCount2, 3, "The correct number of histograms were added for histogram 2.");
 }

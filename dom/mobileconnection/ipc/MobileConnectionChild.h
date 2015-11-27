@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
 * License, v. 2.0. If a copy of the MPL was not distributed with this file,
 * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -25,8 +27,8 @@ namespace mobileconnection {
  * shutdown. For multi-sim device, more than one instance will
  * be created and each instance represents a sim slot.
  */
-class MobileConnectionChild MOZ_FINAL : public PMobileConnectionChild
-                                      , public nsIMobileConnection
+class MobileConnectionChild final : public PMobileConnectionChild
+                                  , public nsIMobileConnection
 {
 public:
   NS_DECL_ISUPPORTS
@@ -41,9 +43,9 @@ public:
   Shutdown();
 
 private:
-  MobileConnectionChild() MOZ_DELETE;
+  MobileConnectionChild() = delete;
 
-  // MOZ_FINAL suppresses -Werror,-Wdelete-non-virtual-dtor
+  // final suppresses -Werror,-Wdelete-non-virtual-dtor
   ~MobileConnectionChild()
   {
     MOZ_COUNT_DTOR(MobileConnectionChild);
@@ -55,69 +57,61 @@ protected:
               nsIMobileConnectionCallback* aCallback);
 
   virtual void
-  ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
+  ActorDestroy(ActorDestroyReason why) override;
 
   virtual PMobileConnectionRequestChild*
-  AllocPMobileConnectionRequestChild(const MobileConnectionRequest& request) MOZ_OVERRIDE;
+  AllocPMobileConnectionRequestChild(const MobileConnectionRequest& request) override;
 
   virtual bool
-  DeallocPMobileConnectionRequestChild(PMobileConnectionRequestChild* aActor) MOZ_OVERRIDE;
+  DeallocPMobileConnectionRequestChild(PMobileConnectionRequestChild* aActor) override;
 
   virtual bool
-  RecvNotifyVoiceInfoChanged(nsIMobileConnectionInfo* const& aInfo) MOZ_OVERRIDE;
+  RecvNotifyVoiceInfoChanged(nsIMobileConnectionInfo* const& aInfo) override;
 
   virtual bool
-  RecvNotifyDataInfoChanged(nsIMobileConnectionInfo* const& aInfo) MOZ_OVERRIDE;
+  RecvNotifyDataInfoChanged(nsIMobileConnectionInfo* const& aInfo) override;
 
   virtual bool
-  RecvNotifyUssdReceived(const nsString& aMessage,
-                         const bool& aSessionEnd) MOZ_OVERRIDE;
+  RecvNotifyDataError(const nsString& aMessage) override;
 
   virtual bool
-  RecvNotifyDataError(const nsString& aMessage) MOZ_OVERRIDE;
-
-  virtual bool
-  RecvNotifyCFStateChanged(const bool& aSuccess, const uint16_t& aAction,
-                           const uint16_t& aReason, const nsString& aNumber,
-                           const uint16_t& aTimeSeconds, const uint16_t& aServiceClass) MOZ_OVERRIDE;
+  RecvNotifyCFStateChanged(const uint16_t& aAction, const uint16_t& aReason,
+                           const nsString& aNumber, const uint16_t& aTimeSeconds,
+                           const uint16_t& aServiceClass) override;
 
   virtual bool
   RecvNotifyEmergencyCbModeChanged(const bool& aActive,
-                                   const uint32_t& aTimeoutMs) MOZ_OVERRIDE;
+                                   const uint32_t& aTimeoutMs) override;
 
   virtual bool
-  RecvNotifyOtaStatusChanged(const nsString& aStatus) MOZ_OVERRIDE;
+  RecvNotifyOtaStatusChanged(const nsString& aStatus) override;
 
   virtual bool
-  RecvNotifyIccChanged(const nsString& aIccId) MOZ_OVERRIDE;
+  RecvNotifyRadioStateChanged(const int32_t& aRadioState) override;
 
   virtual bool
-  RecvNotifyRadioStateChanged(const nsString& aRadioState) MOZ_OVERRIDE;
+  RecvNotifyClirModeChanged(const uint32_t& aMode) override;
 
   virtual bool
-  RecvNotifyClirModeChanged(const uint32_t& aMode) MOZ_OVERRIDE;
+  RecvNotifyLastNetworkChanged(const nsString& aNetwork) override;
 
   virtual bool
-  RecvNotifyLastNetworkChanged(const nsString& aNetwork) MOZ_OVERRIDE;
+  RecvNotifyLastHomeNetworkChanged(const nsString& aNetwork) override;
 
   virtual bool
-  RecvNotifyLastHomeNetworkChanged(const nsString& aNetwork) MOZ_OVERRIDE;
-
-  virtual bool
-  RecvNotifyNetworkSelectionModeChanged(const nsString& aMode) MOZ_OVERRIDE;
+  RecvNotifyNetworkSelectionModeChanged(const int32_t& aMode) override;
 
 private:
   uint32_t mServiceId;
   bool mLive;
   nsCOMArray<nsIMobileConnectionListener> mListeners;
-  nsRefPtr<MobileConnectionInfo> mVoice;
-  nsRefPtr<MobileConnectionInfo> mData;
-  nsString mIccId;
-  nsString mRadioState;
+  RefPtr<MobileConnectionInfo> mVoice;
+  RefPtr<MobileConnectionInfo> mData;
+  int32_t mRadioState;
   nsString mLastNetwork;
   nsString mLastHomeNetwork;
-  nsString mNetworkSelectionMode;
-  nsTArray<nsString> mSupportedNetworkTypes;
+  int32_t mNetworkSelectionMode;
+  nsTArray<int32_t> mSupportedNetworkTypes;
 };
 
 /******************************************************************************
@@ -143,16 +137,10 @@ public:
   DoReply(const MobileConnectionReplySuccess& aReply);
 
   bool
-  DoReply(const MobileConnectionReplySuccessString& aReply);
-
-  bool
   DoReply(const MobileConnectionReplySuccessBoolean& aReply);
 
   bool
   DoReply(const MobileConnectionReplySuccessNetworks& aReply);
-
-  bool
-  DoReply(const MobileConnectionReplySuccessMmi& aReply);
 
   bool
   DoReply(const MobileConnectionReplySuccessCallForwarding& aReply);
@@ -161,13 +149,19 @@ public:
   DoReply(const MobileConnectionReplySuccessCallBarring& aReply);
 
   bool
+  DoReply(const MobileConnectionReplySuccessCallWaiting& aReply);
+
+  bool
   DoReply(const MobileConnectionReplySuccessClirStatus& aReply);
 
   bool
-  DoReply(const MobileConnectionReplyError& aReply);
+  DoReply(const MobileConnectionReplySuccessPreferredNetworkType& aReply);
 
   bool
-  DoReply(const MobileConnectionReplyErrorMmi& aReply);
+  DoReply(const MobileConnectionReplySuccessRoamingPreference& aMode);
+
+  bool
+  DoReply(const MobileConnectionReplyError& aReply);
 
 protected:
   virtual
@@ -177,10 +171,10 @@ protected:
   }
 
   virtual void
-  ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
+  ActorDestroy(ActorDestroyReason why) override;
 
   virtual bool
-  Recv__delete__(const MobileConnectionReply& aReply) MOZ_OVERRIDE;
+  Recv__delete__(const MobileConnectionReply& aReply) override;
 
 private:
   nsCOMPtr<nsIMobileConnectionCallback> mRequestCallback;

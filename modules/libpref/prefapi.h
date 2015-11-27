@@ -10,7 +10,7 @@
 #define PREFAPI_H
 
 #include "nscore.h"
-#include "pldhash.h"
+#include "PLDHashTable.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,7 +42,7 @@ struct PrefHashEntry : PLDHashEntryHdr
 // the preference hashtable.
 // </font>
 */
-nsresult    PREF_Init();
+void        PREF_Init();
 
 /*
 // Cleanup should be called at program exit to free the 
@@ -61,6 +61,8 @@ typedef enum { PREF_INVALID = 0,
                PREF_LOCKED = 1, PREF_USERSET = 2, PREF_CONFIG = 4, PREF_REMOTE = 8,
                PREF_LILOCAL = 16, PREF_STRING = 32, PREF_INT = 64, PREF_BOOL = 128,
                PREF_HAS_DEFAULT = 256,
+               // pref is default pref with "sticky" semantics
+               PREF_STICKY_DEFAULT = 512,
                PREF_VALUETYPE_MASK = (PREF_STRING | PREF_INT | PREF_BOOL)
              } PrefType;
 
@@ -183,7 +185,8 @@ void PREF_ReaderCallback( void *closure,
                           const char *pref,
                           PrefValue   value,
                           PrefType    type,
-                          bool        isDefault);
+                          bool        isDefault,
+                          bool        isStickyDefault);
 
 #ifdef __cplusplus
 }

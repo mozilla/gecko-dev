@@ -76,14 +76,14 @@ import org.mozilla.gecko.R;
  */
 public class SwipeDismissListViewTouchListener implements View.OnTouchListener {
     // Cached ViewConfiguration and system-wide constant values
-    private int mSlop;
-    private int mMinFlingVelocity;
-    private int mMaxFlingVelocity;
-    private long mAnimationTime;
+    private final int mSlop;
+    private final int mMinFlingVelocity;
+    private final int mMaxFlingVelocity;
+    private final long mAnimationTime;
 
     // Fixed properties
-    private ListView mListView;
-    private OnDismissCallback mCallback;
+    private final ListView mListView;
+    private final OnDismissCallback mCallback;
     private int mViewWidth = 1; // 1 and not 0 to prevent dividing by zero
 
     // Transient properties
@@ -326,9 +326,9 @@ public class SwipeDismissListViewTouchListener implements View.OnTouchListener {
      */
     private void performDismiss(final View dismissView, final int dismissPosition) {
         final ViewGroup.LayoutParams lp = dismissView.getLayoutParams();
-        final int originalHeight = dismissView.getHeight();
+        final int originalHeight = lp.height;
 
-        ValueAnimator animator = ValueAnimator.ofInt(originalHeight, 1).setDuration(mAnimationTime);
+        ValueAnimator animator = ValueAnimator.ofInt(dismissView.getHeight(), 1).setDuration(mAnimationTime);
 
         animator.addListener(new AnimatorListenerAdapter() {
             @Override

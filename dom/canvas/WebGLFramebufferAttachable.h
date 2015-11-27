@@ -3,41 +3,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef WEBGLFRAMEBUFFERATTACHABLE_H_
-#define WEBGLFRAMEBUFFERATTACHABLE_H_
+#ifndef WEBGL_FRAMEBUFFER_ATTACHABLE_H_
+#define WEBGL_FRAMEBUFFER_ATTACHABLE_H_
 
-#include "GLDefs.h"
 #include "nsTArray.h"
-#include "mozilla/WeakPtr.h"
-#include "WebGLFramebuffer.h"
 
 namespace mozilla {
+class WebGLFBAttachPoint;
 
 class WebGLFramebufferAttachable
 {
-    struct AttachmentPoint
-    {
-        AttachmentPoint(const WebGLFramebuffer* fb, GLenum attachment)
-            : mFB(fb)
-            , mAttachment(attachment)
-        {}
-
-        WeakPtr<const WebGLFramebuffer> mFB;
-        GLenum mAttachment;
-
-        bool operator==(const AttachmentPoint& o) const {
-          return mFB == o.mFB && mAttachment == o.mAttachment;
-        }
-    };
-
-    nsTArray<AttachmentPoint> mAttachmentPoints;
+    nsTArray<const WebGLFBAttachPoint*> mAttachmentPoints;
 
 public:
-
     // Track FBO/Attachment combinations
-    void AttachTo(WebGLFramebuffer* fb, GLenum attachment);
-    void DetachFrom(WebGLFramebuffer* fb, GLenum attachment);
-    void NotifyFBsStatusChanged();
+    void MarkAttachment(const WebGLFBAttachPoint& attachment);
+    void UnmarkAttachment(const WebGLFBAttachPoint& attachment);
+    void InvalidateStatusOfAttachedFBs() const;
 };
 
 } // namespace mozilla

@@ -7,14 +7,17 @@
 if CONFIG['OS_TARGET'] in ('Android', 'Linux'):
     UNIFIED_SOURCES += [
         'LulTest.cpp',
+        'LulTestDwarf.cpp',
+        'LulTestInfrastructure.cpp',
     ]
 
 LOCAL_INCLUDES += [
-    '/tools/profiler',
+    '/tools/profiler/core',
+    '/tools/profiler/gecko',
+    '/tools/profiler/lul',
 ]
 
 UNIFIED_SOURCES += [
-    'JSStreamWriterTest.cpp',
     'ThreadProfileTest.cpp',
 ]
 

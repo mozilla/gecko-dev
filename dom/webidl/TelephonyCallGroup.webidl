@@ -8,28 +8,35 @@
 interface TelephonyCallGroup : EventTarget {
   readonly attribute CallsList calls;
 
-  [Throws]
-  void add(TelephonyCall call);
+  [NewObject, Throws]
+  Promise<void> add(TelephonyCall call);
 
-  [Throws]
-  void add(TelephonyCall call, TelephonyCall secondCall);
+  [NewObject, Throws]
+  Promise<void> add(TelephonyCall call, TelephonyCall secondCall);
 
-  [Throws]
-  void remove(TelephonyCall call);
+  [NewObject, Throws]
+  Promise<void> remove(TelephonyCall call);
 
-  [Throws]
-  void hold();
+  [NewObject]
+  Promise<void> hangUp();
 
-  [Throws]
-  void resume();
+  [NewObject, Throws]
+  Promise<void> hold();
 
-  readonly attribute DOMString state;
+  [NewObject, Throws]
+  Promise<void> resume();
+
+  readonly attribute TelephonyCallGroupState state;
 
   attribute EventHandler onstatechange;
   attribute EventHandler onconnected;
-  attribute EventHandler onholding;
   attribute EventHandler onheld;
-  attribute EventHandler onresuming;
   attribute EventHandler oncallschanged;
   attribute EventHandler onerror;
+};
+
+enum TelephonyCallGroupState {
+  "",
+  "connected",
+  "held",
 };

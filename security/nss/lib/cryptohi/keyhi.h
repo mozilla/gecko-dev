@@ -37,6 +37,11 @@ extern SECStatus SECKEY_CopySubjectPublicKeyInfo(PLArenaPool *arena,
 extern SECStatus
 SECKEY_UpdateCertPQG(CERTCertificate * subjectCert);
 
+/*
+** Return the number of bits in the provided big integer.  This assumes that the
+** SECItem contains a big-endian number and counts from the first non-zero bit.
+*/
+extern unsigned SECKEY_BigIntegerBitLength(const SECItem *number);
 
 /*
 ** Return the strength of the public key in bytes
@@ -254,6 +259,14 @@ extern int SECKEY_ECParamsToKeySize(const SECItem *params);
  * Return 0 on failure (unknown EC domain parameters).
  */
 extern int SECKEY_ECParamsToBasePointOrderLen(const SECItem *params);
+
+/*
+ * Returns the object identifier of the curve, of the provided
+ * elliptic curve parameters structures.
+ *
+ * Return 0 on failure (unknown EC domain parameters).
+ */
+SECOidTag SECKEY_GetECCOid(const SECKEYECParams * params);
 
 SEC_END_PROTOS
 

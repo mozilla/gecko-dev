@@ -4,9 +4,6 @@
 
 dist_dest   = $(DIST)/$(MOZ_MACBUNDLE_NAME)
 
-PREF_JS_EXPORTS = $(srcdir)/profile/firefox.js \
-		  $(NULL)
-
 # hardcode en-US for the moment
 AB_CD = en-US
 
@@ -18,14 +15,10 @@ DEFINES += \
   -DPBMODE_ICO='"$(DIST)/branding/pbmode.ico"' \
   $(NULL)
 
-ifdef LIBXUL_SDK #{
-PREF_JS_EXPORTS += $(srcdir)/profile/channel-prefs.js
-endif #} LIBXUL_SDK
-
 # Build a binary bootstrapping with XRE_main
 
 ifndef MOZ_WINCONSOLE
-ifdef MOZ_DEBUG
+ifneq (,$(MOZ_DEBUG)$(MOZ_ASAN))
 MOZ_WINCONSOLE = 1
 else
 MOZ_WINCONSOLE = 0
@@ -69,18 +62,10 @@ libs::
 	$(INSTALL) $(IFLAGS1) $(DIST)/branding/default48.png  $(FINAL_TARGET)/chrome/icons/default
 endif
 
-libs:: $(srcdir)/profile/prefs.js
-	$(INSTALL) $(IFLAGS1) $^ $(FINAL_TARGET)/defaults/profile
-
-ifndef LIBXUL_SDK
 # channel-prefs.js is handled separate from other prefs due to bug 756325
 libs:: $(srcdir)/profile/channel-prefs.js
 	$(NSINSTALL) -D $(DIST)/bin/defaults/pref
-	$(call py_action,preprocessor,$(PREF_PPFLAGS) $(ACDEFINES) $^ -o $(DIST)/bin/defaults/pref/channel-prefs.js)
-endif
-
-libs:: $(srcdir)/blocklist.xml
-	$(INSTALL) $(IFLAGS1) $^ $(FINAL_TARGET)
+	$(call py_action,preprocessor,-Fsubstitution $(PREF_PPFLAGS) $(ACDEFINES) $^ -o $(DIST)/bin/defaults/pref/channel-prefs.js)
 
 ifeq (cocoa,$(MOZ_WIDGET_TOOLKIT))
 
@@ -92,41 +77,31 @@ endif
 
 AB_CD = $(MOZ_UI_LOCALE)
 
-AB := $(firstword $(subst -, ,$(AB_CD)))
+ifeq (zh-TW,$(AB_CD))
+LPROJ_ROOT := $(subst -,_,$(AB_CD))
+else
+LPROJ_ROOT := $(firstword $(subst -, ,$(AB_CD)))
+endif
+LPROJ := Contents/Resources/$(LPROJ_ROOT).lproj
 
 clean clobber repackage::
 	$(RM) -r $(dist_dest)
-
-ifdef LIBXUL_SDK
-APPFILES = Resources
-else
-APPFILES = MacOS
-endif
 
 MAC_BUNDLE_VERSION = $(shell $(PYTHON) $(srcdir)/macversion.py --version=$(MOZ_APP_VERSION) --buildid=$(DEPTH)/config/buildid)
 
 .PHONY: repackage
 tools repackage:: $(PROGRAM)
 	$(MKDIR) -p $(dist_dest)/Contents/MacOS
-	$(MKDIR) -p $(dist_dest)/Contents/Resources/$(AB).lproj
+	$(MKDIR) -p $(dist_dest)/$(LPROJ)
 	rsync -a --exclude '*.in' $(srcdir)/macbuild/Contents $(dist_dest) --exclude English.lproj
-	rsync -a --exclude '*.in' $(srcdir)/macbuild/Contents/Resources/English.lproj/ $(dist_dest)/Contents/Resources/$(AB).lproj
+	rsync -a --exclude '*.in' $(srcdir)/macbuild/Contents/Resources/English.lproj/ $(dist_dest)/$(LPROJ)
 	sed -e 's/%APP_VERSION%/$(MOZ_APP_VERSION)/' -e 's/%MAC_APP_NAME%/$(MAC_APP_NAME)/' -e 's/%MOZ_MACBUNDLE_ID%/$(MOZ_MACBUNDLE_ID)/' -e 's/%MAC_BUNDLE_VERSION%/$(MAC_BUNDLE_VERSION)/' $(srcdir)/macbuild/Contents/Info.plist.in > $(dist_dest)/Contents/Info.plist
-	sed -e 's/%MAC_APP_NAME%/$(MAC_APP_NAME)/' $(srcdir)/macbuild/Contents/Resources/English.lproj/InfoPlist.strings.in | iconv -f UTF-8 -t UTF-16 > $(dist_dest)/Contents/Resources/$(AB).lproj/InfoPlist.strings
-	rsync -a $(DIST)/bin/ $(dist_dest)/Contents/$(APPFILES)
+	sed -e 's/%MAC_APP_NAME%/$(MAC_APP_NAME)/' $(srcdir)/macbuild/Contents/Resources/English.lproj/InfoPlist.strings.in | iconv -f UTF-8 -t UTF-16 > $(dist_dest)/$(LPROJ)/InfoPlist.strings
+	rsync -a --exclude-from='$(srcdir)/macbuild/Contents/MacOS-files.in' $(DIST)/bin/ $(dist_dest)/Contents/Resources
+	rsync -a --include-from='$(srcdir)/macbuild/Contents/MacOS-files.in' --exclude '*' $(DIST)/bin/ $(dist_dest)/Contents/MacOS
 	$(RM) $(dist_dest)/Contents/MacOS/$(PROGRAM)
 	rsync -aL $(PROGRAM) $(dist_dest)/Contents/MacOS
 	cp -RL $(DIST)/branding/firefox.icns $(dist_dest)/Contents/Resources/firefox.icns
 	cp -RL $(DIST)/branding/document.icns $(dist_dest)/Contents/Resources/document.icns
 	printf APPLMOZB > $(dist_dest)/Contents/PkgInfo
 endif
-
-ifdef LIBXUL_SDK #{
-libs::
-ifeq (cocoa,$(MOZ_WIDGET_TOOLKIT)) #{
-	rsync -a --copy-unsafe-links $(LIBXUL_DIST)/XUL.framework $(dist_dest)/Contents/Frameworks
-else
-	$(NSINSTALL) -D $(DIST)/bin/xulrunner
-	(cd $(LIBXUL_SDK)/bin && tar $(TAR_CREATE_FLAGS) - .) | (cd $(DIST)/bin/xulrunner && tar -xf -)
-endif #} cocoa
-endif #} LIBXUL_SDK

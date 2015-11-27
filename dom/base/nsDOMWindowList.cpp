@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -82,10 +83,8 @@ nsDOMWindowList::GetLength(uint32_t* aLength)
 }
 
 already_AddRefed<nsIDOMWindow>
-nsDOMWindowList::IndexedGetter(uint32_t aIndex, bool& aFound)
+nsDOMWindowList::IndexedGetter(uint32_t aIndex)
 {
-  aFound = false;
-
   nsCOMPtr<nsIDocShellTreeItem> item = GetDocShellTreeItemAt(aIndex);
   if (!item) {
     return nullptr;
@@ -94,15 +93,13 @@ nsDOMWindowList::IndexedGetter(uint32_t aIndex, bool& aFound)
   nsCOMPtr<nsIDOMWindow> window = item->GetWindow();
   MOZ_ASSERT(window);
 
-  aFound = true;
   return window.forget();
 }
 
 NS_IMETHODIMP 
 nsDOMWindowList::Item(uint32_t aIndex, nsIDOMWindow** aReturn)
 {
-  bool found;
-  nsCOMPtr<nsIDOMWindow> window = IndexedGetter(aIndex, found);
+  nsCOMPtr<nsIDOMWindow> window = IndexedGetter(aIndex);
   window.forget(aReturn);
   return NS_OK;
 }

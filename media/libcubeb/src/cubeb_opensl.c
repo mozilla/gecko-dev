@@ -11,6 +11,7 @@
 #include <pthread.h>
 #include <SLES/OpenSLES.h>
 #include <math.h>
+#include <time.h>
 #if defined(__ANDROID__)
 #include <sys/system_properties.h>
 #include "android/sles_definitions.h"
@@ -70,23 +71,29 @@ struct cubeb_stream {
   unsigned int inputrate;
   unsigned int outputrate;
   unsigned int latency;
+  int64_t lastPosition;
+  int64_t lastPositionTimeStamp;
+  int64_t lastCompensativePosition;
 };
 
 static void
 play_callback(SLPlayItf caller, void * user_ptr, SLuint32 event)
 {
   cubeb_stream * stm = user_ptr;
+  int draining;
   assert(stm);
   switch (event) {
-    case SL_PLAYEVENT_HEADATMARKER:
-      pthread_mutex_lock(&stm->mutex);
-      assert(stm->draining);
-      pthread_mutex_unlock(&stm->mutex);
+  case SL_PLAYEVENT_HEADATMARKER:
+    pthread_mutex_lock(&stm->mutex);
+    draining = stm->draining;
+    pthread_mutex_unlock(&stm->mutex);
+    if (draining) {
       stm->state_callback(stm, stm->user_ptr, CUBEB_STATE_DRAINED);
-      (*stm->play)->SetPlayState(stm->play, SL_PLAYSTATE_STOPPED);
-      break;
-    default:
-      break;
+      (*stm->play)->SetPlayState(stm->play, SL_PLAYSTATE_PAUSED);
+    }
+    break;
+  default:
+    break;
   }
 }
 
@@ -114,9 +121,9 @@ bufferqueue_callback(SLBufferQueueItf caller, void * user_ptr)
 
     if (!draining) {
       written = cubeb_resampler_fill(stm->resampler, buf,
-                                        stm->queuebuf_len / stm->framesize);
+                                     stm->queuebuf_len / stm->framesize);
       if (written < 0 || written * stm->framesize > stm->queuebuf_len) {
-        (*stm->play)->SetPlayState(stm->play, SL_PLAYSTATE_STOPPED);
+        (*stm->play)->SetPlayState(stm->play, SL_PLAYSTATE_PAUSED);
         return;
       }
     }
@@ -151,22 +158,22 @@ static SLuint32
 convert_stream_type_to_sl_stream(cubeb_stream_type stream_type)
 {
   switch(stream_type) {
-    case CUBEB_STREAM_TYPE_SYSTEM:
-      return SL_ANDROID_STREAM_SYSTEM;
-    case CUBEB_STREAM_TYPE_MUSIC:
-      return SL_ANDROID_STREAM_MEDIA;
-    case CUBEB_STREAM_TYPE_NOTIFICATION:
-      return SL_ANDROID_STREAM_NOTIFICATION;
-    case CUBEB_STREAM_TYPE_ALARM:
-      return SL_ANDROID_STREAM_ALARM;
-    case CUBEB_STREAM_TYPE_VOICE_CALL:
-      return SL_ANDROID_STREAM_VOICE;
-    case CUBEB_STREAM_TYPE_RING:
-      return SL_ANDROID_STREAM_RING;
-    case CUBEB_STREAM_TYPE_SYSTEM_ENFORCED:
-      return SL_ANDROID_STREAM_SYSTEM_ENFORCED;
-    default:
-      return 0xFFFFFFFF;
+  case CUBEB_STREAM_TYPE_SYSTEM:
+    return SL_ANDROID_STREAM_SYSTEM;
+  case CUBEB_STREAM_TYPE_MUSIC:
+    return SL_ANDROID_STREAM_MEDIA;
+  case CUBEB_STREAM_TYPE_NOTIFICATION:
+    return SL_ANDROID_STREAM_NOTIFICATION;
+  case CUBEB_STREAM_TYPE_ALARM:
+    return SL_ANDROID_STREAM_ALARM;
+  case CUBEB_STREAM_TYPE_VOICE_CALL:
+    return SL_ANDROID_STREAM_VOICE;
+  case CUBEB_STREAM_TYPE_RING:
+    return SL_ANDROID_STREAM_RING;
+  case CUBEB_STREAM_TYPE_SYSTEM_ENFORCED:
+    return SL_ANDROID_STREAM_SYSTEM_ENFORCED;
+  default:
+    return 0xFFFFFFFF;
   }
 }
 #endif
@@ -317,7 +324,7 @@ opensl_get_max_channel_count(cubeb * ctx, uint32_t * max_channels)
 {
   assert(ctx && max_channels);
   /* The android mixer handles up to two channels, see
-  http://androidxref.com/4.2.2_r1/xref/frameworks/av/services/audioflinger/AudioFlinger.h#67 */
+     http://androidxref.com/4.2.2_r1/xref/frameworks/av/services/audioflinger/AudioFlinger.h#67 */
   *max_channels = 2;
 
   return CUBEB_OK;
@@ -329,7 +336,7 @@ opensl_get_preferred_sample_rate(cubeb * ctx, uint32_t * rate)
   /* https://android.googlesource.com/platform/ndk.git/+/master/docs/opensles/index.html
    * We don't want to deal with JNI here (and we don't have Java on b2g anyways),
    * so we just dlopen the library and get the two symbols we need. */
-  int rv;
+  int r;
   void * libmedia;
   uint32_t (*get_primary_output_samplingrate)();
   uint32_t (*get_output_samplingrate)(int * samplingRate, int streamType);
@@ -364,8 +371,8 @@ opensl_get_preferred_sample_rate(cubeb * ctx, uint32_t * rate)
     *rate = get_primary_output_samplingrate();
   } else {
     /* We don't really know about the type, here, so we just pass music. */
-    rv = get_output_samplingrate((int *) rate, AUDIO_STREAM_TYPE_MUSIC);
-    if (rv) {
+    r = get_output_samplingrate((int *) rate, AUDIO_STREAM_TYPE_MUSIC);
+    if (r) {
       dlclose(libmedia);
       return CUBEB_ERROR;
     }
@@ -391,16 +398,16 @@ opensl_get_min_latency(cubeb * ctx, cubeb_stream_params params, uint32_t * laten
    * We don't want to deal with JNI here (and we don't have Java on b2g anyways),
    * so we just dlopen the library and get the two symbols we need. */
 
-  int rv;
+  int r;
   void * libmedia;
   size_t (*get_primary_output_frame_count)(void);
   int (*get_output_frame_count)(size_t * frameCount, int streamType);
   uint32_t primary_sampling_rate;
   size_t primary_buffer_size;
 
-  rv = opensl_get_preferred_sample_rate(ctx, &primary_sampling_rate);
+  r = opensl_get_preferred_sample_rate(ctx, &primary_sampling_rate);
 
-  if (rv) {
+  if (r) {
     return CUBEB_ERROR;
   }
 
@@ -458,9 +465,9 @@ static void opensl_stream_destroy(cubeb_stream * stm);
 
 static int
 opensl_stream_init(cubeb * ctx, cubeb_stream ** stream, char const * stream_name,
-                  cubeb_stream_params stream_params, unsigned int latency,
-                  cubeb_data_callback data_callback, cubeb_state_callback state_callback,
-                  void * user_ptr)
+                   cubeb_stream_params stream_params, unsigned int latency,
+                   cubeb_data_callback data_callback, cubeb_state_callback state_callback,
+                   void * user_ptr)
 {
   cubeb_stream * stm;
 
@@ -482,8 +489,8 @@ opensl_stream_init(cubeb * ctx, cubeb_stream ** stream, char const * stream_name
   format.bitsPerSample = SL_PCMSAMPLEFORMAT_FIXED_16;
   format.containerSize = SL_PCMSAMPLEFORMAT_FIXED_16;
   format.channelMask = stream_params.channels == 1 ?
-                       SL_SPEAKER_FRONT_CENTER :
-                       SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT;
+    SL_SPEAKER_FRONT_CENTER :
+    SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT;
 
   switch (stream_params.format) {
   case CUBEB_SAMPLE_S16LE:
@@ -508,6 +515,9 @@ opensl_stream_init(cubeb * ctx, cubeb_stream ** stream, char const * stream_name
   stm->latency = latency;
   stm->stream_type = stream_params.stream_type;
   stm->framesize = stream_params.channels * sizeof(int16_t);
+  stm->lastPosition = -1;
+  stm->lastPositionTimeStamp = 0;
+  stm->lastCompensativePosition = -1;
 
   int r = pthread_mutex_init(&stm->mutex, NULL);
   assert(r == 0);
@@ -588,9 +598,9 @@ opensl_stream_init(cubeb * ctx, cubeb_stream ** stream, char const * stream_name
   if (stream_type != 0xFFFFFFFF) {
     SLAndroidConfigurationItf playerConfig;
     res = (*stm->playerObj)->GetInterface(stm->playerObj,
-          ctx->SL_IID_ANDROIDCONFIGURATION, &playerConfig);
+                                          ctx->SL_IID_ANDROIDCONFIGURATION, &playerConfig);
     res = (*playerConfig)->SetConfiguration(playerConfig,
-          SL_ANDROID_KEY_STREAM_TYPE, &stream_type, sizeof(SLint32));
+                                            SL_ANDROID_KEY_STREAM_TYPE, &stream_type, sizeof(SLint32));
     if (res != SL_RESULT_SUCCESS) {
       opensl_stream_destroy(stm);
       return CUBEB_ERROR;
@@ -611,7 +621,7 @@ opensl_stream_init(cubeb * ctx, cubeb_stream ** stream, char const * stream_name
   }
 
   res = (*stm->playerObj)->GetInterface(stm->playerObj, ctx->SL_IID_BUFFERQUEUE,
-                                    &stm->bufq);
+                                        &stm->bufq);
   if (res != SL_RESULT_SUCCESS) {
     opensl_stream_destroy(stm);
     return CUBEB_ERROR;
@@ -631,6 +641,9 @@ opensl_stream_init(cubeb * ctx, cubeb_stream ** stream, char const * stream_name
     return CUBEB_ERROR;
   }
 
+  // Work around wilhelm/AudioTrack badness, bug 1221228
+  (*stm->play)->SetMarkerPosition(stm->play, (SLmillisecond)0);
+
   res = (*stm->play)->SetCallbackEventsMask(stm->play, (SLuint32)SL_PLAYEVENT_HEADATMARKER);
   if (res != SL_RESULT_SUCCESS) {
     opensl_stream_destroy(stm);
@@ -641,6 +654,17 @@ opensl_stream_init(cubeb * ctx, cubeb_stream ** stream, char const * stream_name
   if (res != SL_RESULT_SUCCESS) {
     opensl_stream_destroy(stm);
     return CUBEB_ERROR;
+  }
+
+  {
+    // Enqueue a silent frame so once the player becomes playing, the frame
+    // will be consumed and kick off the buffer queue callback.
+    // Note the duration of a single frame is less than 1ms. We don't bother
+    // adjusting the playback position.
+    uint8_t *buf = stm->queuebuf[stm->queuebuf_idx++];
+    memset(buf, 0, stm->framesize);
+    res = (*stm->bufq)->Enqueue(stm->bufq, buf, stm->framesize);
+    assert(res == SL_RESULT_SUCCESS);
   }
 
   *stream = stm;
@@ -666,9 +690,6 @@ opensl_stream_destroy(cubeb_stream * stm)
 static int
 opensl_stream_start(cubeb_stream * stm)
 {
-  /* To refill the queues before starting playback in order to avoid racing
-  * with refills started by SetPlayState on OpenSLES ndk threads. */
-  bufferqueue_callback(NULL, stm);
   SLresult res = (*stm->play)->SetPlayState(stm->play, SL_PLAYSTATE_PLAYING);
   if (res != SL_RESULT_SUCCESS)
     return CUBEB_ERROR;
@@ -692,17 +713,28 @@ opensl_stream_get_position(cubeb_stream * stm, uint64_t * position)
   SLmillisecond msec;
   uint64_t samplerate;
   SLresult res;
-  int rv;
+  int r;
   uint32_t mixer_latency;
+  uint32_t compensation_msec = 0;
 
   res = (*stm->play)->GetPosition(stm->play, &msec);
   if (res != SL_RESULT_SUCCESS)
     return CUBEB_ERROR;
 
+  struct timespec t;
+  clock_gettime(CLOCK_MONOTONIC, &t);
+  if(stm->lastPosition == msec) {
+    compensation_msec =
+      (t.tv_sec*1000000000LL + t.tv_nsec - stm->lastPositionTimeStamp) / 1000000;
+  } else {
+    stm->lastPositionTimeStamp = t.tv_sec*1000000000LL + t.tv_nsec;
+    stm->lastPosition = msec;
+  }
+
   samplerate = stm->inputrate;
 
-  rv = stm->context->get_output_latency(&mixer_latency, stm->stream_type);
-  if (rv) {
+  r = stm->context->get_output_latency(&mixer_latency, stm->stream_type);
+  if (r) {
     return CUBEB_ERROR;
   }
 
@@ -712,9 +744,18 @@ opensl_stream_get_position(cubeb_stream * stm, uint64_t * position)
   assert(maximum_position >= 0);
 
   if (msec > mixer_latency) {
-    int64_t unadjusted_position = samplerate * (msec - mixer_latency) / 1000;
+    int64_t unadjusted_position;
+    if (stm->lastCompensativePosition > msec + compensation_msec) {
+      // Over compensation, use lastCompensativePosition.
+      unadjusted_position =
+        samplerate * (stm->lastCompensativePosition - mixer_latency) / 1000;
+    } else {
+      unadjusted_position =
+        samplerate * (msec - mixer_latency + compensation_msec) / 1000;
+      stm->lastCompensativePosition = msec + compensation_msec;
+    }
     *position = unadjusted_position < maximum_position ?
-                unadjusted_position : maximum_position;
+      unadjusted_position : maximum_position;
   } else {
     *position = 0;
   }
@@ -724,17 +765,17 @@ opensl_stream_get_position(cubeb_stream * stm, uint64_t * position)
 int
 opensl_stream_get_latency(cubeb_stream * stm, uint32_t * latency)
 {
-  int rv;
+  int r;
   uint32_t mixer_latency; // The latency returned by AudioFlinger is in ms.
 
   /* audio_stream_type_t is an int, so this is okay. */
-  rv = stm->context->get_output_latency(&mixer_latency, stm->stream_type);
-  if (rv) {
+  r = stm->context->get_output_latency(&mixer_latency, stm->stream_type);
+  if (r) {
     return CUBEB_ERROR;
   }
 
   *latency = stm->latency * stm->inputrate / 1000 + // OpenSL latency
-             mixer_latency * stm->inputrate / 1000; // AudioFlinger latency
+    mixer_latency * stm->inputrate / 1000; // AudioFlinger latency
 
   return CUBEB_OK;
 }
@@ -770,14 +811,6 @@ opensl_stream_set_volume(cubeb_stream * stm, float volume)
   return CUBEB_OK;
 }
 
-int
-opensl_stream_set_panning(cubeb_stream * stream, float panning)
-{
-  assert(0 && "not implemented.");
-
-  return CUBEB_OK;
-}
-
 static struct cubeb_ops const opensl_ops = {
   .init = opensl_init,
   .get_backend_id = opensl_get_backend_id,
@@ -792,7 +825,7 @@ static struct cubeb_ops const opensl_ops = {
   .stream_get_position = opensl_stream_get_position,
   .stream_get_latency = opensl_stream_get_latency,
   .stream_set_volume = opensl_stream_set_volume,
-  .stream_set_panning = opensl_stream_set_panning,
+  .stream_set_panning = NULL,
   .stream_get_current_device = NULL,
   .stream_device_destroy = NULL,
   .stream_register_device_changed_callback = NULL

@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -22,6 +23,13 @@
 class nsIContent;
 class nsIDocShellTreeItem;
 class nsPIDOMWindow;
+class nsIMessageBroadcaster;
+
+namespace mozilla {
+namespace dom {
+class TabParent;
+}
+}
 
 struct nsDelayedBlurOrFocusEvent;
 
@@ -30,9 +38,9 @@ struct nsDelayedBlurOrFocusEvent;
  * which receives key events.
  */
 
-class nsFocusManager MOZ_FINAL : public nsIFocusManager,
-                                 public nsIObserver,
-                                 public nsSupportsWeakReference
+class nsFocusManager final : public nsIFocusManager,
+                             public nsIObserver,
+                             public nsSupportsWeakReference
 {
   typedef mozilla::widget::InputContextAction InputContextAction;
 
@@ -133,6 +141,17 @@ protected:
    * focused at the widget level.
    */
   void EnsureCurrentWidgetFocused();
+
+  /**
+   * Iterate over the children of the message broadcaster and notify them
+   * of the activation change.
+   */
+  void ActivateOrDeactivateChildren(nsIMessageBroadcaster* aManager, bool aActive);
+
+  /**
+   * Activate or deactivate the window and send the activate/deactivate events.
+   */
+  void ActivateOrDeactivate(nsPIDOMWindow* aWindow, bool aActive);
 
   /**
    * Blur whatever is currently focused and focus aNewContent. aFlags is a
@@ -261,12 +280,12 @@ protected:
   /**
    * Fires a focus or blur event at aTarget.
    *
-   * aType should be either NS_FOCUS_CONTENT or NS_BLUR_CONTENT. For blur
-   * events, aFocusMethod should normally be non-zero.
+   * aEventMessage should be either eFocus or eBlur.
+   * For blur events, aFocusMethod should normally be non-zero.
    *
    * aWindowRaised should only be true if called from WindowRaised.
    */
-  void SendFocusOrBlurEvent(uint32_t aType,
+  void SendFocusOrBlurEvent(mozilla::EventMessage aEventMessage,
                             nsIPresShell* aPresShell,
                             nsIDocument* aDocument,
                             nsISupports* aTarget,
@@ -374,6 +393,7 @@ protected:
                                   bool aForward,
                                   int32_t aCurrentTabIndex,
                                   bool aIgnoreTabIndex,
+                                  bool aForDocumentNavigation,
                                   nsIContent** aResultContent);
 
   /**
@@ -403,64 +423,31 @@ protected:
                           bool aForward);
 
   /**
+   * Focus the first focusable content within the document with a root node of
+   * aRootContent. For content documents, this will be aRootContent itself, but
+   * for chrome documents, this will locate the next focusable content.
+   */
+  nsresult FocusFirst(nsIContent* aRootContent, nsIContent** aNextContent);
+
+  /**
    * Retrieves and returns the root node from aDocument to be focused. Will
    * return null if the root node cannot be focused. There are several reasons
    * for this:
    *
-   * - if aIsForDocNavigation is true, and aWindow is in an <iframe>.
-   * - if aIsForDocNavigation is false, and aWindow is a chrome shell.
+   * - if aForDocumentNavigation is false and aWindow is a chrome shell.
    * - if aCheckVisibility is true and the aWindow is not visible.
    * - if aDocument is a frameset document.
    */
   nsIContent* GetRootForFocus(nsPIDOMWindow* aWindow,
                               nsIDocument* aDocument,
-                              bool aIsForDocNavigation,
+                              bool aForDocumentNavigation,
                               bool aCheckVisibility);
 
   /**
-   * Get the last docshell child of aItem and return it in aResult.
+   * Retrieves and returns the root node as with GetRootForFocus but only if
+   * aContent is a frame with a valid child document.
    */
-  void GetLastDocShell(nsIDocShellTreeItem* aItem,
-                       nsIDocShellTreeItem** aResult);
-
-  /**
-   * Get the next docshell child of aItem and return it in aResult.
-   */
-  void GetNextDocShell(nsIDocShellTreeItem* aItem,
-                       nsIDocShellTreeItem** aResult);
-
-  /**
-   * Get the previous docshell child of aItem and return it in aResult.
-   */
-  void GetPreviousDocShell(nsIDocShellTreeItem* aItem,
-                           nsIDocShellTreeItem** aResult);
-
-  /**
-   * Determine the first panel with focusable content in document tab order
-   * from the given document. aForward indicates the direction to scan. If
-   * aCurrentPopup is set to a panel, the next or previous popup after
-   * aCurrentPopup after it is used. If aCurrentPopup is null, then the first
-   * or last popup is used. If a panel has no focusable content, it is skipped.
-   * Null is returned if no panel is open or no open panel contains a focusable
-   * element.
-   */
-  nsIContent* GetNextTabbablePanel(nsIDocument* aDocument, nsIFrame* aCurrentPopup, bool aForward);
-
-  /**
-   * Get the tabbable next document from aStartContent or, if null, the
-   * currently focused frame if aForward is true, or the previously tabbable
-   * document if aForward is false. If this document is a chrome or frameset
-   * document, returns the first focusable element within this document,
-   * otherwise, returns the root node of the document.
-   *
-   *
-   * Panels with focusable content are also placed in the cycling order, just
-   * after the document containing that panel.
-   *
-   * This method would be used for document navigation, which is typically
-   * invoked by pressing F6.
-   */
-  nsIContent* GetNextTabbableDocument(nsIContent* aStartContent, bool aForward);
+  nsIContent* GetRootForChildDocument(nsIContent* aContent);
 
   /**
    * Retreives a focusable element within the current selection of aWindow.

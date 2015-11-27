@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-let TabView = {
+var TabView = {
   _deck: null,
   _iframe: null,
   _window: null,
@@ -225,7 +225,7 @@ let TabView = {
         self._SSWindowStateReadyListener = null;
       }
 
-      self._initFrameCallbacks.forEach(function (cb) cb());
+      self._initFrameCallbacks.forEach(cb => cb());
       self._initFrameCallbacks = [];
     }, false);
 

@@ -11,7 +11,7 @@
 #include "nsWeakReference.h"
 #include "nsCOMPtr.h"
 
-class nsWeakReference MOZ_FINAL : public nsIWeakReference
+class nsWeakReference final : public nsIWeakReference
 {
 public:
   // nsISupports...
@@ -19,7 +19,7 @@ public:
 
   // nsIWeakReference...
   NS_DECL_NSIWEAKREFERENCE
-  virtual size_t SizeOfOnlyThis(mozilla::MallocSizeOf aMallocSizeOf) const;
+  virtual size_t SizeOfOnlyThis(mozilla::MallocSizeOf aMallocSizeOf) const override;
 
 private:
   friend class nsSupportsWeakReference;
@@ -45,7 +45,7 @@ private:
     mReferent = 0;
   }
 
-  nsSupportsWeakReference*  mReferent;
+  nsSupportsWeakReference* MOZ_NON_OWNING_REF mReferent;
 };
 
 nsresult

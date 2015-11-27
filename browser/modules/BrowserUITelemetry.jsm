@@ -49,6 +49,7 @@ XPCOMUtils.defineLazyGetter(this, "DEFAULT_AREA_PLACEMENTS", function() {
       "urlbar-container",
       "search-container",
       "bookmarks-menu-button",
+      "pocket-button",
       "downloads-button",
       "home-button",
       "social-share-button",
@@ -77,10 +78,6 @@ XPCOMUtils.defineLazyGetter(this, "DEFAULT_AREA_PLACEMENTS", function() {
     result["PanelUI-contents"].push("characterencoding-button");
   }
 
-  if (Services.metro && Services.metro.supported) {
-    result["PanelUI-contents"].push("switch-to-metro-button");
-  }
-
   return result;
 });
 
@@ -96,11 +93,16 @@ XPCOMUtils.defineLazyGetter(this, "PALETTE_ITEMS", function() {
     "email-link-button",
     "sync-button",
     "tabview-button",
+    "web-apps-button",
   ];
 
   let panelPlacements = DEFAULT_AREA_PLACEMENTS["PanelUI-contents"];
   if (panelPlacements.indexOf("characterencoding-button") == -1) {
     result.push("characterencoding-button");
+  }
+
+  if (Services.prefs.getBoolPref("privacy.panicButton.enabled")) {
+    result.push("panic-button");
   }
 
   return result;
@@ -133,6 +135,7 @@ XPCOMUtils.defineLazyGetter(this, "ALL_BUILTIN_ITEMS", function() {
     "BMB_bookmarksPopup",
     "BMB_unsortedBookmarksPopup",
     "BMB_bookmarksToolbarPopup",
+    "search-go-button",
   ]
   return DEFAULT_ITEMS.concat(PALETTE_ITEMS)
                       .concat(SPECIAL_CASES);
@@ -280,9 +283,13 @@ this.BrowserUITelemetry = {
       allowPopups: false,
     });
 
-    // If there are no such windows, we're out of luck. :(
-    this._firstWindowMeasurements = win ? this._getWindowMeasurements(win)
-                                        : {};
+    Services.search.init(rv => {
+      // If there are no such windows (or we've just about found one
+      // but it's closed already), we're out of luck. :(
+      let hasWindow = win && !win.closed;
+      this._firstWindowMeasurements = hasWindow ? this._getWindowMeasurements(win, rv)
+                                                : {};
+    });
   },
 
   _registerWindow: function(aWindow) {
@@ -434,6 +441,12 @@ this.BrowserUITelemetry = {
   _checkForBuiltinItem: function(aEvent) {
     let item = aEvent.originalTarget;
 
+    // We don't want to count clicks on the private browsing
+    // button for privacy reasons. See bug 1176391.
+    if (item.id == "privatebrowsing-button") {
+      return;
+    }
+
     // We special-case the bookmarks-menu-button, since we want to
     // monitor more than just clicks on it.
     if (item.id == "bookmarks-menu-button" ||
@@ -451,6 +464,13 @@ this.BrowserUITelemetry = {
       return;
     }
 
+    // If not, we need to check if the item's anonid is in our list
+    // of built-in items to check.
+    if (ALL_BUILTIN_ITEMS.indexOf(item.getAttribute("anonid")) != -1) {
+      this._countMouseUpEvent("click-builtin-item", item.getAttribute("anonid"), aEvent.button);
+      return;
+    }
+
     // If not, we need to check if one of the ancestors of the clicked
     // item is in our list of built-in items to check.
     let candidate = getIDBasedOnFirstIDedAncestor(item);
@@ -459,7 +479,7 @@ this.BrowserUITelemetry = {
     }
   },
 
-  _getWindowMeasurements: function(aWindow) {
+  _getWindowMeasurements: function(aWindow, searchResult) {
     let document = aWindow.document;
     let result = {};
 
@@ -548,6 +568,10 @@ this.BrowserUITelemetry = {
     result.visibleTabs = visibleTabs;
     result.hiddenTabs = hiddenTabs;
 
+    if (Components.isSuccessCode(searchResult)) {
+      result.currentSearchEngine = Services.search.currentEngine.name;
+    }
+
     return result;
   },
 
@@ -570,6 +594,18 @@ this.BrowserUITelemetry = {
     if (selection) {
       this._countEvent(["search", "selection", source, selection.index, selection.kind]);
     }
+  },
+
+  countOneoffSearchEvent: function(id, type, where) {
+    this._countEvent(["search-oneoff", id, type, where]);
+  },
+
+  countSearchSettingsEvent: function(source) {
+    this._countEvent(["click-builtin-item", source, "search-settings"]);
+  },
+
+  countPanicEvent: function(timeId) {
+    this._countEvent(["forget-button", timeId]);
   },
 
   _logAwesomeBarSearchResult: function (url) {
@@ -621,7 +657,9 @@ this.BrowserUITelemetry = {
     "navigation", "back", "forward", "reload", "stop", "bookmarkpage",
     "spell-no-suggestions", "spell-add-to-dictionary",
     "spell-undo-add-to-dictionary", "openlinkincurrent", "openlinkintab",
-    "openlink", "openlinkprivate", "bookmarklink", "sharelink", "savelink",
+    "openlink",
+    // "openlinkprivate" intentionally omitted for privacy reasons. See bug 1176391.
+    "bookmarklink", "sharelink", "savelink",
     "marklinkMenu", "copyemail", "copylink", "media-play", "media-pause",
     "media-mute", "media-unmute", "media-playbackrate",
     "media-playbackrate-050x", "media-playbackrate-100x",
@@ -632,7 +670,7 @@ this.BrowserUITelemetry = {
     "copyvideourl", "copyaudiourl", "saveimage", "shareimage", "sendimage",
     "setDesktopBackground", "viewimageinfo", "viewimagedesc", "savevideo",
     "sharevideo", "saveaudio", "video-saveimage", "sendvideo", "sendaudio",
-    "ctp-play", "ctp-hide", "sharepage", "savepage", "markpageMenu",
+    "ctp-play", "ctp-hide", "sharepage", "savepage", "pocket", "markpageMenu",
     "viewbgimage", "undo", "cut", "copy", "paste", "delete", "selectall",
     "keywordfield", "searchselect", "shareselect", "frame", "showonlythisframe",
     "openframeintab", "openframe", "reloadframe", "bookmarkframe", "saveframe",
@@ -642,12 +680,20 @@ this.BrowserUITelemetry = {
     "spell-add-dictionaries-main", "spell-dictionaries",
     "spell-dictionaries-menu", "spell-add-dictionaries",
     "bidi-text-direction-toggle", "bidi-page-direction-toggle", "inspect",
+    "media-eme-learn-more"
   ]),
 
   _contextMenuInteractions: {},
 
   registerContextMenuInteraction: function(keys, itemID) {
     if (itemID) {
+      if (itemID == "openlinkprivate") {
+        // Don't record anything, not even an other-item count
+        // if the user chose to open in a private window. See
+        // bug 1176391.
+        return;
+      }
+
       if (!this._contextMenuItemWhitelist.has(itemID)) {
         itemID = "other-item";
       }
@@ -667,18 +713,24 @@ this.BrowserUITelemetry = {
   /**
    * Default bucket name, when no other bucket is active.
    */
-  get BUCKET_DEFAULT() BUCKET_DEFAULT,
+  get BUCKET_DEFAULT() {
+    return BUCKET_DEFAULT;
+  },
 
   /**
    * Bucket prefix, for named buckets.
    */
-  get BUCKET_PREFIX() BUCKET_PREFIX,
+  get BUCKET_PREFIX() {
+    return BUCKET_PREFIX;
+  },
 
   /**
    * Standard separator to use between different parts of a bucket name, such
    * as primary name and the time step string.
    */
-  get BUCKET_SEPARATOR() BUCKET_SEPARATOR,
+  get BUCKET_SEPARATOR() {
+    return BUCKET_SEPARATOR;
+  },
 
   get currentBucket() {
     return this._bucket;

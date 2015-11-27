@@ -152,7 +152,7 @@ parser_groups = (
                                       "thunderbird"),
                                 metavar=None,
                                 type="choice",
-                                choices=["firefox", "fennec",
+                                choices=["firefox",
                                          "fennec-on-device", "thunderbird",
                                          "xulrunner"],
                                 default="firefox",
@@ -186,6 +186,12 @@ parser_groups = (
                                            "for doing so.  Use this to launch "
                                            "the application in a debugger like "
                                            "gdb."),
+                                     action="store_true",
+                                     default=False,
+                                     cmds=['run', 'test'])),
+        (("", "--no-quit",), dict(dest="no_quit",
+                                     help=("Prevent from killing Firefox when"
+                                           "running tests"),
                                      action="store_true",
                                      default=False,
                                      cmds=['run', 'test'])),
@@ -228,10 +234,6 @@ parser_groups = (
                                              'testall'])),
         (("", "--output-file",), dict(dest="output_file",
                                       help="Where to put the finished .xpi",
-                                      default=None,
-                                      cmds=['xpi'])),
-        (("", "--manifest-overload",), dict(dest="manifest_overload",
-                                      help="JSON file to overload package.json properties",
                                       default=None,
                                       cmds=['xpi'])),
         (("", "--abort-on-missing-module",), dict(dest="abort_on_missing",
@@ -655,16 +657,12 @@ def run(arguments=sys.argv[1:], target_cfg=None, pkg_cfg=None,
         target_cfg_json = os.path.join(options.pkgdir, 'package.json')
         target_cfg = packaging.get_config_in_dir(options.pkgdir)
 
-    if options.manifest_overload:
-        for k, v in packaging.load_json_file(options.manifest_overload).items():
-            target_cfg[k] = v
-
     # At this point, we're either building an XPI or running Jetpack code in
     # a Mozilla application (which includes running tests).
 
     use_main = False
     inherited_options = ['verbose', 'enable_e10s', 'parseable', 'check_memory',
-                         'abort_on_missing']
+                         'no_quit', 'abort_on_missing']
     enforce_timeouts = False
 
     if command == "xpi":
@@ -936,6 +934,7 @@ def run(arguments=sys.argv[1:], target_cfg=None, pkg_cfg=None,
                              args=options.cmdargs,
                              extra_environment=extra_environment,
                              norun=options.no_run,
+                             noquit=options.no_quit,
                              used_files=used_files,
                              enable_mobile=options.enable_mobile,
                              mobile_app_name=options.mobile_app_name,

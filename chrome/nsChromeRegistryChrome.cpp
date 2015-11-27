@@ -226,24 +226,7 @@ nsChromeRegistryChrome::IsLocaleRTL(const nsACString& package, bool *aResult)
   if (locale.Length() < 2)
     return NS_OK;
 
-  // first check the intl.uidirection.<locale> preference, and if that is not
-  // set, check the same preference but with just the first two characters of
-  // the locale. If that isn't set, default to left-to-right.
-  nsAutoCString prefString = NS_LITERAL_CSTRING("intl.uidirection.") + locale;
-  nsCOMPtr<nsIPrefBranch> prefBranch (do_GetService(NS_PREFSERVICE_CONTRACTID));
-  if (!prefBranch)
-    return NS_OK;
-
-  nsXPIDLCString dir;
-  prefBranch->GetCharPref(prefString.get(), getter_Copies(dir));
-  if (dir.IsEmpty()) {
-    int32_t hyphen = prefString.FindChar('-');
-    if (hyphen >= 1) {
-      nsAutoCString shortPref(Substring(prefString, 0, hyphen));
-      prefBranch->GetCharPref(shortPref.get(), getter_Copies(dir));
-    }
-  }
-  *aResult = dir.EqualsLiteral("rtl");
+  *aResult = GetDirectionForLocale(locale);
   return NS_OK;
 }
 
@@ -413,59 +396,46 @@ SerializeURI(nsIURI* aURI,
   aURI->GetOriginCharset(aSerializedURI.charset);
 }
 
-static PLDHashOperator
-EnumerateOverride(nsIURI* aURIKey,
-                  nsIURI* aURI,
-                  void* aArg)
-{
-  nsTArray<OverrideMapping>* overrides =
-      static_cast<nsTArray<OverrideMapping>*>(aArg);
-
-  SerializedURI chromeURI, overrideURI;
-
-  SerializeURI(aURIKey, chromeURI);
-  SerializeURI(aURI, overrideURI);
-
-  OverrideMapping override = {
-    chromeURI, overrideURI
-  };
-  overrides->AppendElement(override);
-  return (PLDHashOperator)PL_DHASH_NEXT;
-}
-
-struct EnumerationArgs
-{
-  InfallibleTArray<ChromePackage>& packages;
-  const nsCString& selectedLocale;
-  const nsCString& selectedSkin;
-};
-
 void
 nsChromeRegistryChrome::SendRegisteredChrome(
     mozilla::dom::PContentParent* aParent)
 {
   InfallibleTArray<ChromePackage> packages;
-  InfallibleTArray<ResourceMapping> resources;
+  InfallibleTArray<SubstitutionMapping> resources;
   InfallibleTArray<OverrideMapping> overrides;
 
-  EnumerationArgs args = {
-    packages, mSelectedLocale, mSelectedSkin
-  };
-  mPackagesHash.EnumerateRead(CollectPackages, &args);
+  for (auto iter = mPackagesHash.Iter(); !iter.Done(); iter.Next()) {
+    ChromePackage chromePackage;
+    ChromePackageFromPackageEntry(iter.Key(), iter.UserData(), &chromePackage,
+                                  mSelectedLocale, mSelectedSkin);
+    packages.AppendElement(chromePackage);
+  }
 
-  nsCOMPtr<nsIIOService> io (do_GetIOService());
-  NS_ENSURE_TRUE_VOID(io);
+  // If we were passed a parent then a new child process has been created and
+  // has requested all of the chrome so send it the resources too. Otherwise
+  // resource mappings are sent by the resource protocol handler dynamically.
+  if (aParent) {
+    nsCOMPtr<nsIIOService> io (do_GetIOService());
+    NS_ENSURE_TRUE_VOID(io);
 
-  nsCOMPtr<nsIProtocolHandler> ph;
-  nsresult rv = io->GetProtocolHandler("resource", getter_AddRefs(ph));
-  NS_ENSURE_SUCCESS_VOID(rv);
+    nsCOMPtr<nsIProtocolHandler> ph;
+    nsresult rv = io->GetProtocolHandler("resource", getter_AddRefs(ph));
+    NS_ENSURE_SUCCESS_VOID(rv);
 
-  //FIXME: Some substitutions are set up lazily and might not exist yet
-  nsCOMPtr<nsIResProtocolHandler> irph (do_QueryInterface(ph));
-  nsResProtocolHandler* rph = static_cast<nsResProtocolHandler*>(irph.get());
-  rph->CollectSubstitutions(resources);
+    nsCOMPtr<nsIResProtocolHandler> irph (do_QueryInterface(ph));
+    nsResProtocolHandler* rph = static_cast<nsResProtocolHandler*>(irph.get());
+    rph->CollectSubstitutions(resources);
+  }
 
-  mOverrideTable.EnumerateRead(&EnumerateOverride, &overrides);
+  for (auto iter = mOverrideTable.Iter(); !iter.Done(); iter.Next()) {
+    SerializedURI chromeURI, overrideURI;
+
+    SerializeURI(iter.Key(), chromeURI);
+    SerializeURI(iter.UserData(), overrideURI);
+
+    OverrideMapping override = { chromeURI, overrideURI };
+    overrides.AppendElement(override);
+  }
 
   if (aParent) {
     bool success = aParent->SendRegisterChrome(packages, resources, overrides,
@@ -501,20 +471,6 @@ nsChromeRegistryChrome::ChromePackageFromPackageEntry(const nsACString& aPackage
                aChromePackage->skinBaseURI);
   aChromePackage->package = aPackageName;
   aChromePackage->flags = aPackage->flags;
-}
-
-PLDHashOperator
-nsChromeRegistryChrome::CollectPackages(const nsACString &aKey,
-                                        PackageEntry *package,
-                                        void *arg)
-{
-  EnumerationArgs* args = static_cast<EnumerationArgs*>(arg);
-
-  ChromePackage chromePackage;
-  ChromePackageFromPackageEntry(aKey, package, &chromePackage,
-                                args->selectedLocale, args->selectedSkin);
-  args->packages.AppendElement(chromePackage);
-  return PL_DHASH_NEXT;
 }
 
 static bool
@@ -762,14 +718,13 @@ SendManifestEntry(const ChromeRegistryItem &aItem)
     return;
 
   for (uint32_t i = 0; i < parents.Length(); i++) {
-    unused << parents[i]->SendRegisterChromeItem(aItem);
+    Unused << parents[i]->SendRegisterChromeItem(aItem);
   }
 }
 
 void
 nsChromeRegistryChrome::ManifestContent(ManifestProcessingContext& cx, int lineno,
-                                        char *const * argv, bool platform,
-                                        bool contentaccessible)
+                                        char *const * argv, int flags)
 {
   char* package = argv[0];
   char* uri = argv[1];
@@ -793,11 +748,7 @@ nsChromeRegistryChrome::ManifestContent(ManifestProcessingContext& cx, int linen
   nsDependentCString packageName(package);
   PackageEntry* entry = mPackagesHash.LookupOrAdd(packageName);
   entry->baseURI = resolved;
-
-  if (platform)
-    entry->flags |= PLATFORM_PACKAGE;
-  if (contentaccessible)
-    entry->flags |= CONTENT_ACCESSIBLE;
+  entry->flags = flags;
 
   if (mDynamicRegistration) {
     ChromePackage chromePackage;
@@ -809,8 +760,7 @@ nsChromeRegistryChrome::ManifestContent(ManifestProcessingContext& cx, int linen
 
 void
 nsChromeRegistryChrome::ManifestLocale(ManifestProcessingContext& cx, int lineno,
-                                       char *const * argv, bool platform,
-                                       bool contentaccessible)
+                                       char *const * argv, int flags)
 {
   char* package = argv[0];
   char* provider = argv[1];
@@ -846,8 +796,7 @@ nsChromeRegistryChrome::ManifestLocale(ManifestProcessingContext& cx, int lineno
 
 void
 nsChromeRegistryChrome::ManifestSkin(ManifestProcessingContext& cx, int lineno,
-                                     char *const * argv, bool platform,
-                                     bool contentaccessible)
+                                     char *const * argv, int flags)
 {
   char* package = argv[0];
   char* provider = argv[1];
@@ -883,8 +832,7 @@ nsChromeRegistryChrome::ManifestSkin(ManifestProcessingContext& cx, int lineno,
 
 void
 nsChromeRegistryChrome::ManifestOverlay(ManifestProcessingContext& cx, int lineno,
-                                        char *const * argv, bool platform,
-                                        bool contentaccessible)
+                                        char *const * argv, int flags)
 {
   char* base = argv[0];
   char* overlay = argv[1];
@@ -911,8 +859,7 @@ nsChromeRegistryChrome::ManifestOverlay(ManifestProcessingContext& cx, int linen
 
 void
 nsChromeRegistryChrome::ManifestStyle(ManifestProcessingContext& cx, int lineno,
-                                      char *const * argv, bool platform,
-                                      bool contentaccessible)
+                                      char *const * argv, int flags)
 {
   char* base = argv[0];
   char* overlay = argv[1];
@@ -939,8 +886,7 @@ nsChromeRegistryChrome::ManifestStyle(ManifestProcessingContext& cx, int lineno,
 
 void
 nsChromeRegistryChrome::ManifestOverride(ManifestProcessingContext& cx, int lineno,
-                                         char *const * argv, bool platform,
-                                         bool contentaccessible)
+                                         char *const * argv, int flags)
 {
   char* chrome = argv[0];
   char* resolved = argv[1];
@@ -951,6 +897,29 @@ nsChromeRegistryChrome::ManifestOverride(ManifestProcessingContext& cx, int line
     LogMessageWithContext(cx.GetManifestURI(), lineno, nsIScriptError::warningFlag,
                           "During chrome registration, unable to create URI.");
     return;
+  }
+
+  if (cx.mType == NS_SKIN_LOCATION) {
+    bool chromeSkinOnly = false;
+    nsresult rv = chromeuri->SchemeIs("chrome", &chromeSkinOnly);
+    chromeSkinOnly = chromeSkinOnly && NS_SUCCEEDED(rv);
+    if (chromeSkinOnly) {
+      rv = resolveduri->SchemeIs("chrome", &chromeSkinOnly);
+      chromeSkinOnly = chromeSkinOnly && NS_SUCCEEDED(rv);
+    }
+    if (chromeSkinOnly) {
+      nsAutoCString chromePath, resolvedPath;
+      chromeuri->GetPath(chromePath);
+      resolveduri->GetPath(resolvedPath);
+      chromeSkinOnly = StringBeginsWith(chromePath, NS_LITERAL_CSTRING("/skin/")) &&
+                       StringBeginsWith(resolvedPath, NS_LITERAL_CSTRING("/skin/"));
+    }
+    if (!chromeSkinOnly) {
+      LogMessageWithContext(cx.GetManifestURI(), lineno, nsIScriptError::warningFlag,
+                            "Cannot register non-chrome://.../skin/ URIs '%s' and '%s' as overrides and/or to be overridden from a skin manifest.",
+                            chrome, resolved);
+      return;
+    }
   }
 
   if (!CanLoadResource(resolveduri)) {
@@ -974,8 +943,7 @@ nsChromeRegistryChrome::ManifestOverride(ManifestProcessingContext& cx, int line
 
 void
 nsChromeRegistryChrome::ManifestResource(ManifestProcessingContext& cx, int lineno,
-                                         char *const * argv, bool platform,
-                                         bool contentaccessible)
+                                         char *const * argv, int flags)
 {
   char* package = argv[0];
   char* uri = argv[1];
@@ -995,14 +963,6 @@ nsChromeRegistryChrome::ManifestResource(ManifestProcessingContext& cx, int line
     return;
 
   nsCOMPtr<nsIResProtocolHandler> rph = do_QueryInterface(ph);
-
-  bool exists = false;
-  rv = rph->HasSubstitution(host, &exists);
-  if (exists) {
-    LogMessageWithContext(cx.GetManifestURI(), lineno, nsIScriptError::warningFlag,
-                          "Duplicate resource declaration for '%s' ignored.", package);
-    return;
-  }
 
   nsCOMPtr<nsIURI> resolved = cx.ResolveURI(uri);
   if (!resolved) {

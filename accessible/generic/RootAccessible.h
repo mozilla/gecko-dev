@@ -26,14 +26,14 @@ public:
                  nsIPresShell* aPresShell);
 
   // nsIDOMEventListener
-  NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);
+  NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent) override;
 
   // Accessible
-  virtual void Shutdown();
-  virtual mozilla::a11y::ENameValueFlag Name(nsString& aName);
-  virtual Relation RelationByType(RelationType aType) MOZ_OVERRIDE;
-  virtual mozilla::a11y::role NativeRole();
-  virtual uint64_t NativeState() MOZ_OVERRIDE;
+  virtual void Shutdown() override;
+  virtual mozilla::a11y::ENameValueFlag Name(nsString& aName) override;
+  virtual Relation RelationByType(RelationType aType) override;
+  virtual mozilla::a11y::role NativeRole() override;
+  virtual uint64_t NativeState() override;
 
   // RootAccessible
 
@@ -42,14 +42,19 @@ public:
    */
   virtual void DocumentActivated(DocAccessible* aDocument);
 
+  /**
+   * Return the primary remote top level document if any.
+   */
+  ProxyAccessible* GetPrimaryRemoteTopLevelContentDoc() const;
+
 protected:
   virtual ~RootAccessible();
 
   /**
    * Add/remove DOM event listeners.
    */
-  virtual nsresult AddEventListeners();
-  virtual nsresult RemoveEventListeners();
+  virtual nsresult AddEventListeners() override;
+  virtual nsresult RemoveEventListeners() override;
 
   /**
    * Process the DOM event.

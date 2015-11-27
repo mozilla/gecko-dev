@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2007 Henri Sivonen
- * Copyright (c) 2007-2011 Mozilla Foundation
+ * Copyright (c) 2007-2015 Mozilla Foundation
  * Portions of comments Copyright 2004-2008 Apple Computer, Inc., Mozilla
  * Foundation, and Opera Software ASA.
  *
@@ -119,7 +119,7 @@ class nsHtml5TreeBuilder : public nsAHtml5TreeBuilderState
     bool isTemplateModeStackEmpty();
     bool isSpecialParentInForeign(nsHtml5StackNode* stackNode);
   public:
-    static nsString* extractCharsetFromContent(nsString* attributeValue);
+    static nsString* extractCharsetFromContent(nsString* attributeValue, nsHtml5TreeBuilder* tb);
   private:
     void checkMetaCharset(nsHtml5HtmlAttributes* attributes);
   public:
@@ -177,6 +177,8 @@ class nsHtml5TreeBuilder : public nsAHtml5TreeBuilderState
     void pushHeadPointerOntoStack();
     void reconstructTheActiveFormattingElements();
     void insertIntoFosterParent(nsIContentHandle* child);
+    nsIContentHandle* createAndInsertFosterParentedElement(int32_t ns, nsIAtom* name, nsHtml5HtmlAttributes* attributes);
+    nsIContentHandle* createAndInsertFosterParentedElement(int32_t ns, nsIAtom* name, nsHtml5HtmlAttributes* attributes, nsIContentHandle* form);
     bool isInStack(nsHtml5StackNode* node);
     void popTemplateMode();
     void pop();
@@ -204,15 +206,16 @@ class nsHtml5TreeBuilder : public nsAHtml5TreeBuilderState
   protected:
     void accumulateCharacters(const char16_t* buf, int32_t start, int32_t length);
     void requestSuspension();
-    nsIContentHandle* createElement(int32_t ns, nsIAtom* name, nsHtml5HtmlAttributes* attributes);
-    nsIContentHandle* createElement(int32_t ns, nsIAtom* name, nsHtml5HtmlAttributes* attributes, nsIContentHandle* form);
+    nsIContentHandle* createElement(int32_t ns, nsIAtom* name, nsHtml5HtmlAttributes* attributes, nsIContentHandle* intendedParent);
+    nsIContentHandle* createElement(int32_t ns, nsIAtom* name, nsHtml5HtmlAttributes* attributes, nsIContentHandle* form, nsIContentHandle* intendedParent);
     nsIContentHandle* createHtmlElementSetAsRoot(nsHtml5HtmlAttributes* attributes);
     void detachFromParent(nsIContentHandle* element);
     bool hasChildren(nsIContentHandle* element);
     void appendElement(nsIContentHandle* child, nsIContentHandle* newParent);
     void appendChildrenToNewParent(nsIContentHandle* oldParent, nsIContentHandle* newParent);
     void insertFosterParentedChild(nsIContentHandle* child, nsIContentHandle* table, nsIContentHandle* stackParent);
-    void insertFosterParentedCharacters(char16_t* buf, int32_t start, int32_t length, nsIContentHandle* table, nsIContentHandle* stackParent);
+    nsIContentHandle* createAndInsertFosterParentedElement(int32_t ns, nsIAtom* name, nsHtml5HtmlAttributes* attributes, nsIContentHandle* form, nsIContentHandle* table, nsIContentHandle* stackParent);
+    ;void insertFosterParentedCharacters(char16_t* buf, int32_t start, int32_t length, nsIContentHandle* table, nsIContentHandle* stackParent);
     void appendCharacters(nsIContentHandle* parent, char16_t* buf, int32_t start, int32_t length);
     void appendIsindexPrompt(nsIContentHandle* parent);
     void appendComment(nsIContentHandle* parent, char16_t* buf, int32_t start, int32_t length);

@@ -543,6 +543,15 @@ ECDH_Derive(SECItem  *publicValue,
 	return SECFailure;
     }
 
+    /*
+     * We fail if the public value is the point at infinity, since
+     * this produces predictable results.
+     */
+    if (ec_point_at_infinity(publicValue)) {
+	PORT_SetError(SEC_ERROR_BAD_KEY);
+	return SECFailure;
+    }
+
     MP_DIGITS(&k) = 0;
     memset(derivedSecret, 0, sizeof *derivedSecret);
     len = (ecParams->fieldID.size + 7) >> 3;  
@@ -870,6 +879,11 @@ cleanup:
 
 /*
 ** Checks the signature on the given digest using the key provided.
+**
+** The key argument must represent a valid EC public key (a point on
+** the relevant curve).  If it is not a valid point, then the behavior
+** of this function is undefined.  In cases where a public key might
+** not be valid, use EC_ValidatePublicKey to check.
 */
 SECStatus 
 ECDSA_VerifyDigest(ECPublicKey *key, const SECItem *signature, 

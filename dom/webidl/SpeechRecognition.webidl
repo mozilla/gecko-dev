@@ -11,24 +11,21 @@
  */
 
 [Constructor,
- Pref="media.webspeech.recognition.enable"]
+ Pref="media.webspeech.recognition.enable",
+ Func="SpeechRecognition::IsAuthorized"]
 interface SpeechRecognition : EventTarget {
     // recognition parameters
-    [Throws]
     attribute SpeechGrammarList grammars;
-    [Throws]
     attribute DOMString lang;
     [Throws]
     attribute boolean continuous;
-    [Throws]
     attribute boolean interimResults;
-    [Throws]
     attribute unsigned long maxAlternatives;
     [Throws]
     attribute DOMString serviceURI;
 
     // methods to drive the speech interaction
-    [Throws]
+    [Throws, UnsafeInPrerendering]
     void start(optional MediaStream stream);
     void stop();
     void abort();

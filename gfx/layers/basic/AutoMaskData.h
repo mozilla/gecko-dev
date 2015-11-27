@@ -50,11 +50,11 @@ private:
   gfx::Matrix mTransform;
   RefPtr<gfx::SourceSurface> mSurface;
 
-  AutoMoz2DMaskData(const AutoMoz2DMaskData&) MOZ_DELETE;
-  AutoMoz2DMaskData& operator=(const AutoMoz2DMaskData&) MOZ_DELETE;
+  AutoMoz2DMaskData(const AutoMoz2DMaskData&) = delete;
+  AutoMoz2DMaskData& operator=(const AutoMoz2DMaskData&) = delete;
 };
 
-}
-}
+} // namespace layers
+} // namespace mozilla
 
 #endif // GFX_AUTOMASKDATA_H_

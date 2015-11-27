@@ -10,14 +10,15 @@
 
 #include "webrtc/modules/remote_bitrate_estimator/test/bwe_test_baselinefile.h"
 
+#include <stdio.h>
+
 #include <algorithm>
-#include <cstdio>
 #include <vector>
 
+#include "webrtc/base/constructormagic.h"
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/modules/remote_bitrate_estimator/test/bwe_test_fileutils.h"
 #include "webrtc/modules/remote_bitrate_estimator/test/bwe_test_logging.h"
-#include "webrtc/system_wrappers/interface/constructor_magic.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/test/testsupport/fileutils.h"
 
 namespace webrtc {
@@ -43,7 +44,7 @@ class BaseLineFileVerify : public BaseLineFileInterface {
   BaseLineFileVerify(const std::string& filepath, bool allow_missing_file)
       : reader_(),
         fail_to_read_response_(false) {
-    scoped_ptr<ResourceFileReader> reader;
+    rtc::scoped_ptr<ResourceFileReader> reader;
     reader.reset(ResourceFileReader::Create(filepath, "bin"));
     if (!reader.get()) {
       printf("WARNING: Missing baseline file for BWE test: %s.bin\n",
@@ -90,7 +91,7 @@ class BaseLineFileVerify : public BaseLineFileInterface {
   }
 
  private:
-  scoped_ptr<ResourceFileReader> reader_;
+  rtc::scoped_ptr<ResourceFileReader> reader_;
   bool fail_to_read_response_;
 
   DISALLOW_IMPLICIT_CONSTRUCTORS(BaseLineFileVerify);
@@ -117,11 +118,11 @@ class BaseLineFileUpdate : public BaseLineFileInterface {
   virtual bool VerifyOrWrite() {
     if (!verifier_->VerifyOrWrite()) {
       std::string dir_path = webrtc::test::OutputPath() + kResourceSubDir;
-      if (!webrtc::test::CreateDirectory(dir_path)) {
+      if (!webrtc::test::CreateDir(dir_path)) {
         printf("WARNING: Cannot create output dir: %s\n", dir_path.c_str());
         return false;
       }
-      scoped_ptr<OutputFileWriter> writer;
+      rtc::scoped_ptr<OutputFileWriter> writer;
       writer.reset(OutputFileWriter::Create(filepath_, "bin"));
       if (!writer.get()) {
         printf("WARNING: Cannot create output file: %s.bin\n",
@@ -141,7 +142,7 @@ class BaseLineFileUpdate : public BaseLineFileInterface {
   }
 
  private:
-  scoped_ptr<BaseLineFileInterface> verifier_;
+  rtc::scoped_ptr<BaseLineFileInterface> verifier_;
   std::vector<uint32_t> output_content_;
   std::string filepath_;
 
@@ -154,7 +155,7 @@ BaseLineFileInterface* BaseLineFileInterface::Create(
   std::replace(filepath.begin(), filepath.end(), '/', '_');
   filepath = std::string(kResourceSubDir) + "/" + filepath;
 
-  scoped_ptr<BaseLineFileInterface> result;
+  rtc::scoped_ptr<BaseLineFileInterface> result;
   result.reset(new BaseLineFileVerify(filepath, !write_output_file));
   if (write_output_file) {
     // Takes ownership of the |verifier| instance.

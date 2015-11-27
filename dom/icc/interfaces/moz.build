@@ -5,8 +5,17 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 XPIDL_SOURCES += [
-    'nsIDOMIccInfo.idl',
-    'nsIIccProvider.idl',
+    'nsIIccContact.idl',
+    'nsIIccInfo.idl',
+    'nsIIccService.idl',
+    'nsIStkCmdFactory.idl',
+    'nsIStkProactiveCmd.idl',
 ]
+
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk' and CONFIG['MOZ_B2G_RIL']:
+    XPIDL_SOURCES += [
+        'nsIGonkIccService.idl',
+        'nsIIccMessenger.idl',
+    ]
 
 XPIDL_MODULE = 'dom_icc'

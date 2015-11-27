@@ -113,7 +113,7 @@ e.setAttribute("style", "font: medium serif");
 isnot(e.style.font, "", "should have font shorthand");
 e.setAttribute("style", "font: medium serif; font-size-adjust: 0.45");
 is(e.style.font, "", "should not have font shorthand");
-e.setAttribute("style", "font: medium serif; font-stretch: condensed");
+e.setAttribute("style", "font: medium serif; font-feature-settings: 'liga' off");
 is(e.style.font, "", "should not have font shorthand");
 
 // Test that all combinations of background-clip and background-origin
@@ -212,6 +212,18 @@ e.setAttribute("style", '-moz-border-left-colors: fuchsia blue; border: medium s
 is(e.style.cssText,
    'border: medium solid green;',
    "border DOES reset -moz-border-left-colors");
+
+// Test that the color goes at the beginning of the last item of the
+// background shorthand.
+// FIXME: Really the "repeat scroll 0% 0%" shouldn't be there.
+e.setAttribute("style", "background: url(foo.png) blue");
+is(e.style.cssText,
+   "background: blue url(\"foo.png\") repeat scroll 0% 0%;",
+   "color should be at start of single-item background");
+e.setAttribute("style", "background: url(bar.png), url(foo.png) blue");
+is(e.style.cssText,
+   "background: url(\"bar.png\") repeat scroll 0% 0%, blue url(\"foo.png\") repeat scroll 0% 0%;",
+   "color should be at start of single-item background");
 
 </script>
 </pre>

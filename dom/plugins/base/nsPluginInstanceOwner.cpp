@@ -23,7 +23,7 @@ using mozilla::DefaultXDisplay;
 #include "nsDisplayList.h"
 #include "ImageLayers.h"
 #include "GLImages.h"
-#include "nsObjectFrame.h"
+#include "nsPluginFrame.h"
 #include "nsIPluginDocument.h"
 #include "nsIStringStream.h"
 #include "nsNetUtil.h"
@@ -44,6 +44,7 @@ using mozilla::DefaultXDisplay;
 #include "nsIFocusManager.h"
 #include "nsFocusManager.h"
 #include "nsIDOMDragEvent.h"
+#include "nsIScriptSecurityManager.h"
 #include "nsIScrollableFrame.h"
 #include "nsIDocShell.h"
 #include "ImageContainer.h"
@@ -55,7 +56,10 @@ using mozilla::DefaultXDisplay;
 #include "mozilla/MouseEvents.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/dom/HTMLObjectElementBinding.h"
+#include "mozilla/dom/TabChild.h"
 #include "nsFrameSelection.h"
+#include "PuppetWidget.h"
+#include "nsPIWindowRoot.h"
 
 #include "nsContentCID.h"
 #include "nsWidgetsCID.h"
@@ -65,11 +69,18 @@ static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
 #ifdef XP_WIN
 #include <wtypes.h>
 #include <winuser.h>
+#ifndef WM_MOUSEHWHEEL
+#define WM_MOUSEHWHEEL (0x020E)
+#endif
+#ifndef SPI_GETWHEELSCROLLCHARS
+#define SPI_GETWHEELSCROLLCHARS (0x006C)
+#endif
 #endif
 
 #ifdef XP_MACOSX
-#include <Carbon/Carbon.h>
-#include "nsPluginUtilsOSX.h"
+#include "ComplexTextInputPanel.h"
+#include "nsIDOMXULDocument.h"
+#include "nsIDOMXULCommandDispatcher.h"
 #endif
 
 #ifdef MOZ_WIDGET_GTK
@@ -93,6 +104,10 @@ using namespace mozilla::dom;
 using namespace mozilla;
 using namespace mozilla::dom;
 using namespace mozilla::layers;
+
+static inline nsPoint AsNsPoint(const nsIntPoint &p) {
+  return nsPoint(p.x, p.y);
+}
 
 // special class for handeling DOM context menu events because for
 // some reason it starves other mouse events if implemented on the
@@ -141,7 +156,8 @@ nsPluginInstanceOwner::NotifyPaintWaiter(nsDisplayListBuilder* aBuilder)
 {
   // This is notification for reftests about async plugin paint start
   if (!mWaitingForPaint && !IsUpToDate() && aBuilder->ShouldSyncDecodeImages()) {
-    nsCOMPtr<nsIRunnable> event = new AsyncPaintWaitEvent(mContent, false);
+    nsCOMPtr<nsIContent> content = do_QueryReferent(mContent);
+    nsCOMPtr<nsIRunnable> event = new AsyncPaintWaitEvent(content, false);
     // Run this event as soon as it's safe to do so, since listeners need to
     // receive it immediately
     mWaitingForPaint = nsContentUtils::AddScriptRunner(event);
@@ -153,7 +169,7 @@ static void
 AttachToContainerAsEGLImage(ImageContainer* container,
                             nsNPAPIPluginInstance* instance,
                             const LayoutDeviceRect& rect,
-                            nsRefPtr<Image>* out_image)
+                            RefPtr<Image>* out_image)
 {
   MOZ_ASSERT(out_image);
   MOZ_ASSERT(!*out_image);
@@ -163,16 +179,10 @@ AttachToContainerAsEGLImage(ImageContainer* container,
     return;
   }
 
-  nsRefPtr<Image> img = container->CreateImage(ImageFormat::EGLIMAGE);
-
-  EGLImageImage::Data data;
-  data.mImage = image;
-  data.mSize = gfx::IntSize(rect.width, rect.height);
-  data.mInverted = instance->Inverted();
-
-  EGLImageImage* typedImg = static_cast<EGLImageImage*>(img.get());
-  typedImg->SetData(data);
-
+  RefPtr<EGLImageImage> img = new EGLImageImage(
+    image, nullptr,
+    gfx::IntSize(rect.width, rect.height), instance->OriginPos(),
+    false /* owns */);
   *out_image = img;
 }
 
@@ -180,26 +190,20 @@ static void
 AttachToContainerAsSurfaceTexture(ImageContainer* container,
                                   nsNPAPIPluginInstance* instance,
                                   const LayoutDeviceRect& rect,
-                                  nsRefPtr<Image>* out_image)
+                                  RefPtr<Image>* out_image)
 {
   MOZ_ASSERT(out_image);
   MOZ_ASSERT(!*out_image);
 
-  nsSurfaceTexture* surfTex = instance->AsSurfaceTexture();
+  mozilla::gl::AndroidSurfaceTexture* surfTex = instance->AsSurfaceTexture();
   if (!surfTex) {
     return;
   }
 
-  nsRefPtr<Image> img = container->CreateImage(ImageFormat::SURFACE_TEXTURE);
-
-  SurfaceTextureImage::Data data;
-  data.mSurfTex = surfTex;
-  data.mSize = gfx::IntSize(rect.width, rect.height);
-  data.mInverted = instance->Inverted();
-
-  SurfaceTextureImage* typedImg = static_cast<SurfaceTextureImage*>(img.get());
-  typedImg->SetData(data);
-
+  RefPtr<Image> img = new SurfaceTextureImage(
+    surfTex,
+    gfx::IntSize(rect.width, rect.height),
+    instance->OriginPos());
   *out_image = img;
 }
 #endif
@@ -210,7 +214,7 @@ nsPluginInstanceOwner::GetImageContainer()
   if (!mInstance)
     return nullptr;
 
-  nsRefPtr<ImageContainer> container;
+  RefPtr<ImageContainer> container;
 
 #if MOZ_WIDGET_ANDROID
   // Right now we only draw with Gecko layers on Honeycomb and higher. See Paint()
@@ -222,14 +226,14 @@ nsPluginInstanceOwner::GetImageContainer()
 
   // NotifySize() causes Flash to do a bunch of stuff like ask for surfaces to render
   // into, set y-flip flags, etc, so we do this at the beginning.
-  gfxSize resolution = mObjectFrame->PresContext()->PresShell()->GetCumulativeResolution();
-  ScreenSize screenSize = (r * LayoutDeviceToScreenScale(resolution.width, resolution.height)).Size();
+  float resolution = mPluginFrame->PresContext()->PresShell()->GetCumulativeResolution();
+  ScreenSize screenSize = (r * LayoutDeviceToScreenScale(resolution)).Size();
   mInstance->NotifySize(nsIntSize(screenSize.width, screenSize.height));
 
   container = LayerManager::CreateImageContainer();
 
   // Try to get it as an EGLImage first.
-  nsRefPtr<Image> img;
+  RefPtr<Image> img;
   AttachToContainerAsEGLImage(container, mInstance, r, &img);
   if (!img) {
     AttachToContainerAsSurfaceTexture(container, mInstance, r, &img);
@@ -256,7 +260,7 @@ already_AddRefed<gfxContext>
 nsPluginInstanceOwner::BeginUpdateBackground(const nsIntRect& aRect)
 {
   nsIntRect rect = aRect;
-  nsRefPtr<gfxContext> ctx;
+  RefPtr<gfxContext> ctx;
   if (mInstance &&
       NS_SUCCEEDED(mInstance->BeginUpdateBackground(&rect, getter_AddRefs(ctx)))) {
     return ctx.forget();
@@ -322,15 +326,14 @@ nsPluginInstanceOwner::nsPluginInstanceOwner()
   else
     mPluginWindow = nullptr;
 
-  mObjectFrame = nullptr;
-  mContent = nullptr;
+  mPluginFrame = nullptr;
   mWidgetCreationComplete = false;
 #ifdef XP_MACOSX
-  memset(&mCGPluginPortCopy, 0, sizeof(NP_CGContext));
-  mInCGPaintLevel = 0;
   mSentInitialTopLevelWindowEvent = false;
-  mColorProfile = nullptr;
-  mPluginPortChanged = false;
+  mLastWindowIsActive = false;
+  mLastContentFocused = false;
+  mLastScaleFactor = 1.0;
+  mShouldBlurOnActivate = false;
 #endif
   mContentFocused = false;
   mWidgetVisible = true;
@@ -359,13 +362,16 @@ nsPluginInstanceOwner::nsPluginInstanceOwner()
 nsPluginInstanceOwner::~nsPluginInstanceOwner()
 {
   if (mWaitingForPaint) {
-    // We don't care when the event is dispatched as long as it's "soon",
-    // since whoever needs it will be waiting for it.
-    nsCOMPtr<nsIRunnable> event = new AsyncPaintWaitEvent(mContent, true);
-    NS_DispatchToMainThread(event);
+    nsCOMPtr<nsIContent> content = do_QueryReferent(mContent);
+    if (content) {
+      // We don't care when the event is dispatched as long as it's "soon",
+      // since whoever needs it will be waiting for it.
+      nsCOMPtr<nsIRunnable> event = new AsyncPaintWaitEvent(content, true);
+      NS_DispatchToMainThread(event);
+    }
   }
 
-  mObjectFrame = nullptr;
+  mPluginFrame = nullptr;
 
   PLUG_DeletePluginNativeWindow(mPluginWindow);
   mPluginWindow = nullptr;
@@ -441,7 +447,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetMode(int32_t *aMode)
 
 void nsPluginInstanceOwner::GetAttributes(nsTArray<MozPluginParameter>& attributes)
 {
-  nsCOMPtr<nsIObjectLoadingContent> content = do_QueryInterface(mContent);
+  nsCOMPtr<nsIObjectLoadingContent> content = do_QueryReferent(mContent);
   nsObjectLoadingContent *loadingContent =
     static_cast<nsObjectLoadingContent*>(content.get());
 
@@ -450,7 +456,7 @@ void nsPluginInstanceOwner::GetAttributes(nsTArray<MozPluginParameter>& attribut
 
 NS_IMETHODIMP nsPluginInstanceOwner::GetDOMElement(nsIDOMElement* *result)
 {
-  return CallQueryInterface(mContent, result);
+  return CallQueryReferent(mContent.get(), result);
 }
 
 nsresult nsPluginInstanceOwner::GetInstance(nsNPAPIPluginInstance **aInstance)
@@ -466,15 +472,19 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetURL(const char *aURL,
                                             const char *aTarget,
                                             nsIInputStream *aPostStream,
                                             void *aHeadersData,
-                                            uint32_t aHeadersDataLen)
+                                            uint32_t aHeadersDataLen,
+                                            bool aDoCheckLoadURIChecks)
 {
-  NS_ENSURE_TRUE(mContent, NS_ERROR_NULL_POINTER);
+  nsCOMPtr<nsIContent> content = do_QueryReferent(mContent);
+  if (!content) {
+    return NS_ERROR_NULL_POINTER;
+  }
 
-  if (mContent->IsEditable()) {
+  if (content->IsEditable()) {
     return NS_OK;
   }
 
-  nsIDocument *doc = mContent->GetCurrentDoc();
+  nsIDocument *doc = content->GetCurrentDoc();
   if (!doc) {
     return NS_ERROR_FAILURE;
   }
@@ -495,16 +505,34 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetURL(const char *aURL,
   nsCOMPtr<nsILinkHandler> lh = do_QueryInterface(container);
   NS_ENSURE_TRUE(lh, NS_ERROR_FAILURE);
 
-  nsAutoString  unitarget;
-  unitarget.AssignASCII(aTarget); // XXX could this be nonascii?
+  nsAutoString unitarget;
+  if ((0 == PL_strcmp(aTarget, "newwindow")) ||
+      (0 == PL_strcmp(aTarget, "_new"))) {
+    unitarget.AssignASCII("_blank");
+  }
+  else if (0 == PL_strcmp(aTarget, "_current")) {
+    unitarget.AssignASCII("_self");
+  }
+  else {
+    unitarget.AssignASCII(aTarget); // XXX could this be nonascii?
+  }
 
   nsCOMPtr<nsIURI> baseURI = GetBaseURI();
 
   // Create an absolute URL
   nsCOMPtr<nsIURI> uri;
   nsresult rv = NS_NewURI(getter_AddRefs(uri), aURL, baseURI);
-
   NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
+
+  if (aDoCheckLoadURIChecks) {
+    nsCOMPtr<nsIScriptSecurityManager> secMan(
+      do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv));
+    NS_ENSURE_TRUE(secMan, NS_ERROR_FAILURE);
+
+    rv = secMan->CheckLoadURIWithPrincipal(content->NodePrincipal(), uri,
+                                           nsIScriptSecurityManager::STANDARD);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   nsCOMPtr<nsIInputStream> headersDataStream;
   if (aPostStream && aHeadersData) {
@@ -524,57 +552,22 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetURL(const char *aURL,
     Preferences::GetInt("privacy.popups.disable_from_plugins");
   nsAutoPopupStatePusher popupStatePusher((PopupControlState)blockPopups);
 
-  rv = lh->OnLinkClick(mContent, uri, unitarget.get(), NullString(),
+  rv = lh->OnLinkClick(content, uri, unitarget.get(), NullString(),
                        aPostStream, headersDataStream, true);
-
-  return rv;
-}
-
-NS_IMETHODIMP nsPluginInstanceOwner::ShowStatus(const char *aStatusMsg)
-{
-  nsresult  rv = NS_ERROR_FAILURE;
-
-  rv = this->ShowStatus(NS_ConvertUTF8toUTF16(aStatusMsg).get());
-
-  return rv;
-}
-
-NS_IMETHODIMP nsPluginInstanceOwner::ShowStatus(const char16_t *aStatusMsg)
-{
-  nsresult  rv = NS_ERROR_FAILURE;
-
-  if (!mObjectFrame) {
-    return rv;
-  }
-  nsCOMPtr<nsIDocShellTreeItem> docShellItem = mObjectFrame->PresContext()->GetDocShell();
-  if (NS_FAILED(rv) || !docShellItem) {
-    return rv;
-  }
-
-  nsCOMPtr<nsIDocShellTreeOwner> treeOwner;
-  rv = docShellItem->GetTreeOwner(getter_AddRefs(treeOwner));
-  if (NS_FAILED(rv) || !treeOwner) {
-    return rv;
-  }
-
-  nsCOMPtr<nsIWebBrowserChrome> browserChrome(do_GetInterface(treeOwner, &rv));
-  if (NS_FAILED(rv) || !browserChrome) {
-    return rv;
-  }
-  rv = browserChrome->SetStatus(nsIWebBrowserChrome::STATUS_SCRIPT,
-                                aStatusMsg);
 
   return rv;
 }
 
 NS_IMETHODIMP nsPluginInstanceOwner::GetDocument(nsIDocument* *aDocument)
 {
-  if (!aDocument)
+  nsCOMPtr<nsIContent> content = do_QueryReferent(mContent);
+  if (!aDocument || !content) {
     return NS_ERROR_NULL_POINTER;
+  }
 
   // XXX sXBL/XBL2 issue: current doc or owner doc?
   // But keep in mind bug 322414 comment 33
-  NS_IF_ADDREF(*aDocument = mContent->OwnerDoc());
+  NS_IF_ADDREF(*aDocument = content->OwnerDoc());
   return NS_OK;
 }
 
@@ -582,22 +575,23 @@ NS_IMETHODIMP nsPluginInstanceOwner::InvalidateRect(NPRect *invalidRect)
 {
   // If our object frame has gone away, we won't be able to determine
   // up-to-date-ness, so just fire off the event.
-  if (mWaitingForPaint && (!mObjectFrame || IsUpToDate())) {
+  if (mWaitingForPaint && (!mPluginFrame || IsUpToDate())) {
+    nsCOMPtr<nsIContent> content = do_QueryReferent(mContent);
     // We don't care when the event is dispatched as long as it's "soon",
     // since whoever needs it will be waiting for it.
-    nsCOMPtr<nsIRunnable> event = new AsyncPaintWaitEvent(mContent, true);
+    nsCOMPtr<nsIRunnable> event = new AsyncPaintWaitEvent(content, true);
     NS_DispatchToMainThread(event);
     mWaitingForPaint = false;
   }
 
-  if (!mObjectFrame || !invalidRect || !mWidgetVisible)
+  if (!mPluginFrame || !invalidRect || !mWidgetVisible)
     return NS_ERROR_FAILURE;
 
 #if defined(XP_MACOSX) || defined(MOZ_WIDGET_ANDROID)
   // Each time an asynchronously-drawing plugin sends a new surface to display,
   // the image in the ImageContainer is updated and InvalidateRect is called.
   // There are different side effects for (sync) Android plugins.
-  nsRefPtr<ImageContainer> container;
+  RefPtr<ImageContainer> container;
   mInstance->GetImageContainer(getter_AddRefs(container));
 #endif
 
@@ -621,7 +615,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::InvalidateRect(NPRect *invalidRect)
   double scaleFactor = 1.0;
   GetContentsScaleFactor(&scaleFactor);
   rect.ScaleRoundOut(scaleFactor);
-  mObjectFrame->InvalidateLayer(nsDisplayItem::TYPE_PLUGIN, &rect);
+  mPluginFrame->InvalidateLayer(nsDisplayItem::TYPE_PLUGIN, &rect);
   return NS_OK;
 }
 
@@ -633,30 +627,23 @@ NS_IMETHODIMP nsPluginInstanceOwner::InvalidateRegion(NPRegion invalidRegion)
 NS_IMETHODIMP
 nsPluginInstanceOwner::RedrawPlugin()
 {
-  if (mObjectFrame) {
-    mObjectFrame->InvalidateLayer(nsDisplayItem::TYPE_PLUGIN);
+  if (mPluginFrame) {
+    mPluginFrame->InvalidateLayer(nsDisplayItem::TYPE_PLUGIN);
   }
   return NS_OK;
 }
 
-NS_IMETHODIMP nsPluginInstanceOwner::GetNetscapeWindow(void *value)
+#if defined(XP_WIN)
+nsIWidget*
+nsPluginInstanceOwner::GetContainingWidgetIfOffset()
 {
-  if (!mObjectFrame) {
-    NS_WARNING("plugin owner has no owner in getting doc's window handle");
-    return NS_ERROR_FAILURE;
-  }
+  MOZ_ASSERT(mPluginFrame, "Caller should have checked for null mPluginFrame.");
 
-#if defined(XP_WIN)
-  void** pvalue = (void**)value;
-  nsViewManager* vm = mObjectFrame->PresContext()->GetPresShell()->GetViewManager();
-  if (!vm)
-    return NS_ERROR_FAILURE;
-#if defined(XP_WIN)
   // This property is provided to allow a "windowless" plugin to determine the window it is drawing
   // in, so it can translate mouse coordinates it receives directly from the operating system
   // to coordinates relative to itself.
 
-  // The original code (outside this #if) returns the document's window, which is OK if the window the "windowless" plugin
+  // The original code returns the document's window, which is OK if the window the "windowless" plugin
   // is drawing into has the same origin as the document's window, but this is not the case for "windowless" plugins inside of scrolling DIVs etc
 
   // To make sure "windowless" plugins always get the right origin for translating mouse coordinates, this code
@@ -670,7 +657,8 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetNetscapeWindow(void *value)
   // we only attempt to get the nearest window if this really is a "windowless" plugin so as not
   // to change any behaviour for the much more common windowed plugins,
   // though why this method would even be being called for a windowed plugin escapes me.
-  if (mPluginWindow && mPluginWindow->type == NPWindowTypeDrawable) {
+  if (!XRE_IsContentProcess() &&
+      mPluginWindow && mPluginWindow->type == NPWindowTypeDrawable) {
     // it turns out that flash also uses this window for determining focus, and is currently
     // unable to show a caret correctly if we return the enclosing window. Therefore for
     // now we only return the enclosing window when there is an actual offset which
@@ -680,7 +668,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetNetscapeWindow(void *value)
     // fixing both the caret and ability to interact issues for a windowless control in a non document aligned windw
     // does not seem to be possible without a change to the flash plugin
 
-    nsIWidget* win = mObjectFrame->GetNearestWidget();
+    nsIWidget* win = mPluginFrame->GetNearestWidget();
     if (win) {
       nsView *view = nsView::GetViewFor(win);
       NS_ASSERTION(view, "No view for widget");
@@ -689,18 +677,53 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetNetscapeWindow(void *value)
       if (offset.x || offset.y) {
         // in the case the two windows are offset from eachother, we do go ahead and return the correct enclosing window
         // so that mouse co-ordinates are not messed up.
-        *pvalue = (void*)win->GetNativeData(NS_NATIVE_WINDOW);
-        if (*pvalue)
-          return NS_OK;
+        return win;
       }
     }
   }
+
+  return nullptr;
+}
+
+static already_AddRefed<nsIWidget>
+GetRootWidgetForPluginFrame(const nsPluginFrame* aPluginFrame)
+{
+  MOZ_ASSERT(aPluginFrame);
+
+  nsViewManager* vm =
+    aPluginFrame->PresContext()->GetPresShell()->GetViewManager();
+  if (!vm) {
+    NS_WARNING("Could not find view manager for plugin frame.");
+    return nullptr;
+  }
+
+  nsCOMPtr<nsIWidget> rootWidget;
+  vm->GetRootWidget(getter_AddRefs(rootWidget));
+  return rootWidget.forget();
+}
 #endif
+
+NS_IMETHODIMP nsPluginInstanceOwner::GetNetscapeWindow(void *value)
+{
+  if (!mPluginFrame) {
+    NS_WARNING("plugin owner has no owner in getting doc's window handle");
+    return NS_ERROR_FAILURE;
+  }
+
+#if defined(XP_WIN)
+  void** pvalue = (void**)value;
+  nsIWidget* offsetContainingWidget = GetContainingWidgetIfOffset();
+  if (offsetContainingWidget) {
+    *pvalue = (void*)offsetContainingWidget->GetNativeData(NS_NATIVE_WINDOW);
+    if (*pvalue) {
+      return NS_OK;
+    }
+  }
+
   // simply return the topmost document window
-  nsCOMPtr<nsIWidget> widget;
-  vm->GetRootWidget(getter_AddRefs(widget));
+  nsCOMPtr<nsIWidget> widget = GetRootWidgetForPluginFrame(mPluginFrame);
   if (widget) {
-    *pvalue = (void*)widget->GetNativeData(NS_NATIVE_WINDOW);
+    *pvalue = widget->GetNativeData(NS_NATIVE_SHAREABLE_WINDOW);
   } else {
     NS_ASSERTION(widget, "couldn't get doc's widget in getting doc's window handle");
   }
@@ -708,7 +731,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetNetscapeWindow(void *value)
   return NS_OK;
 #elif (defined(MOZ_WIDGET_GTK) || defined(MOZ_WIDGET_QT)) && defined(MOZ_X11)
   // X11 window managers want the toplevel window for WM_TRANSIENT_FOR.
-  nsIWidget* win = mObjectFrame->GetNearestWidget();
+  nsIWidget* win = mPluginFrame->GetNearestWidget();
   if (!win)
     return NS_ERROR_FAILURE;
   *static_cast<Window*>(value) = (long unsigned int)win->GetNativeData(NS_NATIVE_SHAREABLE_WINDOW);
@@ -717,6 +740,48 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetNetscapeWindow(void *value)
   return NS_ERROR_NOT_IMPLEMENTED;
 #endif
 }
+
+#if defined(XP_WIN)
+void
+nsPluginInstanceOwner::SetWidgetWindowAsParent(HWND aWindowToAdopt)
+{
+  if (!mWidget) {
+    NS_ERROR("mWidget should exist before this gets called.");
+    return;
+  }
+
+  mWidget->SetNativeData(NS_NATIVE_CHILD_WINDOW,
+                         reinterpret_cast<uintptr_t>(aWindowToAdopt));
+}
+
+nsresult
+nsPluginInstanceOwner::SetNetscapeWindowAsParent(HWND aWindowToAdopt)
+{
+  if (!mPluginFrame) {
+    NS_WARNING("Plugin owner has no plugin frame.");
+    return NS_ERROR_FAILURE;
+  }
+
+  // If there is a containing window that is offset then ask that to adopt.
+  nsIWidget* offsetWidget = GetContainingWidgetIfOffset();
+  if (offsetWidget) {
+    offsetWidget->SetNativeData(NS_NATIVE_CHILD_WINDOW,
+                                reinterpret_cast<uintptr_t>(aWindowToAdopt));
+    return NS_OK;
+  }
+
+  // Otherwise ask the topmost document window to adopt.
+  nsCOMPtr<nsIWidget> rootWidget = GetRootWidgetForPluginFrame(mPluginFrame);
+  if (!rootWidget) {
+    NS_ASSERTION(rootWidget, "Couldn't get topmost document's widget.");
+    return NS_ERROR_FAILURE;
+  }
+
+  rootWidget->SetNativeData(NS_NATIVE_CHILD_OF_SHAREABLE_WINDOW,
+                            reinterpret_cast<uintptr_t>(aWindowToAdopt));
+  return NS_OK;
+}
+#endif
 
 NS_IMETHODIMP nsPluginInstanceOwner::SetEventModel(int32_t eventModel)
 {
@@ -728,50 +793,246 @@ NS_IMETHODIMP nsPluginInstanceOwner::SetEventModel(int32_t eventModel)
 #endif
 }
 
-NPError nsPluginInstanceOwner::ShowNativeContextMenu(NPMenu* menu, void* event)
-{
-  if (!menu || !event)
-    return NPERR_GENERIC_ERROR;
-
 #ifdef XP_MACOSX
-  if (GetEventModel() != NPEventModelCocoa)
-    return NPERR_INCOMPATIBLE_VERSION_ERROR;
+NPBool nsPluginInstanceOwner::ConvertPointPuppet(PuppetWidget *widget,
+                                                 nsPluginFrame* pluginFrame,
+                                                 double sourceX, double sourceY,
+                                                 NPCoordinateSpace sourceSpace,
+                                                 double *destX, double *destY,
+                                                 NPCoordinateSpace destSpace)
+{
+  NS_ENSURE_TRUE(widget && widget->GetOwningTabChild() && pluginFrame, false);
+  // Caller has to want a result.
+  NS_ENSURE_TRUE(destX || destY, false);
 
-  return NS_NPAPI_ShowCocoaContextMenu(static_cast<void*>(menu), mWidget,
-                                       static_cast<NPCocoaEvent*>(event));
-#else
-  return NPERR_INCOMPATIBLE_VERSION_ERROR;
-#endif
+  if (sourceSpace == destSpace) {
+    if (destX) {
+      *destX = sourceX;
+    }
+    if (destY) {
+      *destY = sourceY;
+    }
+    return true;
+  }
+
+  nsPresContext* presContext = pluginFrame->PresContext();
+  double scaleFactor = double(nsPresContext::AppUnitsPerCSSPixel())/
+    presContext->DeviceContext()->AppUnitsPerDevPixelAtUnitFullZoom();
+
+  PuppetWidget *puppetWidget = static_cast<PuppetWidget*>(widget);
+  PuppetWidget *rootWidget = static_cast<PuppetWidget*>(widget->GetTopLevelWidget());
+  if (!rootWidget) {
+    return false;
+  }
+  nsPoint chromeSize = AsNsPoint(rootWidget->GetChromeDimensions()) / scaleFactor;
+  nsIntSize intScreenDims = rootWidget->GetScreenDimensions();
+  nsSize screenDims = nsSize(intScreenDims.width / scaleFactor,
+                             intScreenDims.height / scaleFactor);
+  int32_t screenH = screenDims.height;
+  nsPoint windowPosition = AsNsPoint(rootWidget->GetWindowPosition()) / scaleFactor;
+
+  // Window size is tab size + chrome size.
+  nsIntRect tabContentBounds;
+  NS_ENSURE_SUCCESS(puppetWidget->GetBoundsUntyped(tabContentBounds), false);
+  tabContentBounds.ScaleInverseRoundOut(scaleFactor);
+  int32_t windowH = tabContentBounds.height + int(chromeSize.y);
+
+  nsPoint pluginPosition = AsNsPoint(pluginFrame->GetScreenRect().TopLeft());
+
+  // Convert (sourceX, sourceY) to 'real' (not PuppetWidget) screen space.
+  // In OSX, the Y-axis increases upward, which is the reverse of ours.
+  // We want OSX coordinates for window and screen so those equations are swapped.
+  nsPoint sourcePoint(sourceX, sourceY);
+  nsPoint screenPoint;
+  switch (sourceSpace) {
+    case NPCoordinateSpacePlugin:
+      screenPoint = sourcePoint + pluginPosition +
+        pluginFrame->GetContentRectRelativeToSelf().TopLeft() / nsPresContext::AppUnitsPerCSSPixel();
+      break;
+    case NPCoordinateSpaceWindow:
+      screenPoint = nsPoint(sourcePoint.x, windowH-sourcePoint.y) +
+        windowPosition;
+      break;
+    case NPCoordinateSpaceFlippedWindow:
+      screenPoint = sourcePoint + windowPosition;
+      break;
+    case NPCoordinateSpaceScreen:
+      screenPoint = nsPoint(sourcePoint.x, screenH-sourcePoint.y);
+      break;
+    case NPCoordinateSpaceFlippedScreen:
+      screenPoint = sourcePoint;
+      break;
+    default:
+      return false;
+  }
+
+  // Convert from screen to dest space.
+  nsPoint destPoint;
+  switch (destSpace) {
+    case NPCoordinateSpacePlugin:
+      destPoint = screenPoint - pluginPosition -
+        pluginFrame->GetContentRectRelativeToSelf().TopLeft() / nsPresContext::AppUnitsPerCSSPixel();
+      break;
+    case NPCoordinateSpaceWindow:
+      destPoint = screenPoint - windowPosition;
+      destPoint.y = windowH - destPoint.y;
+      break;
+    case NPCoordinateSpaceFlippedWindow:
+      destPoint = screenPoint - windowPosition;
+      break;
+    case NPCoordinateSpaceScreen:
+      destPoint = nsPoint(screenPoint.x, screenH-screenPoint.y);
+      break;
+    case NPCoordinateSpaceFlippedScreen:
+      destPoint = screenPoint;
+      break;
+    default:
+      return false;
+  }
+
+  if (destX) {
+    *destX = destPoint.x;
+  }
+  if (destY) {
+    *destY = destPoint.y;
+  }
+
+  return true;
 }
+
+NPBool nsPluginInstanceOwner::ConvertPointNoPuppet(nsIWidget *widget,
+                                                   nsPluginFrame* pluginFrame,
+                                                   double sourceX, double sourceY,
+                                                   NPCoordinateSpace sourceSpace,
+                                                   double *destX, double *destY,
+                                                   NPCoordinateSpace destSpace)
+{
+  NS_ENSURE_TRUE(widget && pluginFrame, false);
+  // Caller has to want a result.
+  NS_ENSURE_TRUE(destX || destY, false);
+
+  if (sourceSpace == destSpace) {
+    if (destX) {
+      *destX = sourceX;
+    }
+    if (destY) {
+      *destY = sourceY;
+    }
+    return true;
+  }
+
+  nsPresContext* presContext = pluginFrame->PresContext();
+  double scaleFactor = double(nsPresContext::AppUnitsPerCSSPixel())/
+    presContext->DeviceContext()->AppUnitsPerDevPixelAtUnitFullZoom();
+
+  nsCOMPtr<nsIScreenManager> screenMgr = do_GetService("@mozilla.org/gfx/screenmanager;1");
+  if (!screenMgr) {
+    return false;
+  }
+  nsCOMPtr<nsIScreen> screen;
+  screenMgr->ScreenForNativeWidget(widget->GetNativeData(NS_NATIVE_WINDOW), getter_AddRefs(screen));
+  if (!screen) {
+    return false;
+  }
+
+  int32_t screenX, screenY, screenWidth, screenHeight;
+  screen->GetRect(&screenX, &screenY, &screenWidth, &screenHeight);
+  screenHeight /= scaleFactor;
+
+  LayoutDeviceIntRect windowScreenBounds;
+  NS_ENSURE_SUCCESS(widget->GetScreenBounds(windowScreenBounds), false);
+  windowScreenBounds.ScaleInverseRoundOut(scaleFactor);
+  int32_t windowX = windowScreenBounds.x;
+  int32_t windowY = windowScreenBounds.y;
+  int32_t windowHeight = windowScreenBounds.height;
+
+  nsIntRect pluginScreenRect = pluginFrame->GetScreenRect();
+
+  double screenXGecko, screenYGecko;
+  switch (sourceSpace) {
+    case NPCoordinateSpacePlugin:
+      screenXGecko = pluginScreenRect.x + sourceX;
+      screenYGecko = pluginScreenRect.y + sourceY;
+      break;
+    case NPCoordinateSpaceWindow:
+      screenXGecko = windowX + sourceX;
+      screenYGecko = windowY + (windowHeight - sourceY);
+      break;
+    case NPCoordinateSpaceFlippedWindow:
+      screenXGecko = windowX + sourceX;
+      screenYGecko = windowY + sourceY;
+      break;
+    case NPCoordinateSpaceScreen:
+      screenXGecko = sourceX;
+      screenYGecko = screenHeight - sourceY;
+      break;
+    case NPCoordinateSpaceFlippedScreen:
+      screenXGecko = sourceX;
+      screenYGecko = sourceY;
+      break;
+    default:
+      return false;
+  }
+
+  double destXCocoa, destYCocoa;
+  switch (destSpace) {
+    case NPCoordinateSpacePlugin:
+      destXCocoa = screenXGecko - pluginScreenRect.x;
+      destYCocoa = screenYGecko - pluginScreenRect.y;
+      break;
+    case NPCoordinateSpaceWindow:
+      destXCocoa = screenXGecko - windowX;
+      destYCocoa = windowHeight - (screenYGecko - windowY);
+      break;
+    case NPCoordinateSpaceFlippedWindow:
+      destXCocoa = screenXGecko - windowX;
+      destYCocoa = screenYGecko - windowY;
+      break;
+    case NPCoordinateSpaceScreen:
+      destXCocoa = screenXGecko;
+      destYCocoa = screenHeight - screenYGecko;
+      break;
+    case NPCoordinateSpaceFlippedScreen:
+      destXCocoa = screenXGecko;
+      destYCocoa = screenYGecko;
+      break;
+    default:
+      return false;
+  }
+
+  if (destX) {
+    *destX = destXCocoa;
+  }
+  if (destY) {
+    *destY = destYCocoa;
+  }
+
+  return true;
+}
+#endif // XP_MACOSX
 
 NPBool nsPluginInstanceOwner::ConvertPoint(double sourceX, double sourceY, NPCoordinateSpace sourceSpace,
                                            double *destX, double *destY, NPCoordinateSpace destSpace)
 {
 #ifdef XP_MACOSX
-  if (!mWidget)
+  if (!mPluginFrame) {
     return false;
+  }
 
-  return NS_NPAPI_ConvertPointCocoa(mWidget->GetNativeData(NS_NATIVE_WIDGET),
-                                    sourceX, sourceY, sourceSpace, destX, destY, destSpace);
+  MOZ_ASSERT(mPluginFrame->GetNearestWidget());
+
+  if (nsIWidget::UsePuppetWidgets()) {
+    return ConvertPointPuppet(static_cast<PuppetWidget*>(mPluginFrame->GetNearestWidget()),
+                               mPluginFrame, sourceX, sourceY, sourceSpace,
+                               destX, destY, destSpace);
+  }
+
+  return ConvertPointNoPuppet(mPluginFrame->GetNearestWidget(),
+                              mPluginFrame, sourceX, sourceY, sourceSpace,
+                              destX, destY, destSpace);
 #else
-  // we should implement this for all platforms
   return false;
 #endif
-}
-
-NPError nsPluginInstanceOwner::InitAsyncSurface(NPSize *size, NPImageFormat format,
-                                                void *initData, NPAsyncSurface *surface)
-{
-  return NPERR_INCOMPATIBLE_VERSION_ERROR;
-}
-
-NPError nsPluginInstanceOwner::FinalizeAsyncSurface(NPAsyncSurface *)
-{
-  return NPERR_INCOMPATIBLE_VERSION_ERROR;
-}
-
-void nsPluginInstanceOwner::SetCurrentAsyncSurface(NPAsyncSurface *, NPRect*)
-{
 }
 
 NS_IMETHODIMP nsPluginInstanceOwner::GetTagType(nsPluginTagType *result)
@@ -780,13 +1041,12 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetTagType(nsPluginTagType *result)
 
   *result = nsPluginTagType_Unknown;
 
-  nsIAtom *atom = mContent->Tag();
-
-  if (atom == nsGkAtoms::applet)
+  nsCOMPtr<nsIContent> content = do_QueryReferent(mContent);
+  if (content->IsHTMLElement(nsGkAtoms::applet))
     *result = nsPluginTagType_Applet;
-  else if (atom == nsGkAtoms::embed)
+  else if (content->IsHTMLElement(nsGkAtoms::embed))
     *result = nsPluginTagType_Embed;
-  else if (atom == nsGkAtoms::object)
+  else if (content->IsHTMLElement(nsGkAtoms::object))
     *result = nsPluginTagType_Object;
 
   return NS_OK;
@@ -794,7 +1054,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetTagType(nsPluginTagType *result)
 
 void nsPluginInstanceOwner::GetParameters(nsTArray<MozPluginParameter>& parameters)
 {
-  nsCOMPtr<nsIObjectLoadingContent> content = do_QueryInterface(mContent);
+  nsCOMPtr<nsIObjectLoadingContent> content = do_QueryReferent(mContent);
   nsObjectLoadingContent *loadingContent =
     static_cast<nsObjectLoadingContent*>(content.get());
 
@@ -882,17 +1142,14 @@ void nsPluginInstanceOwner::AddToCARefreshTimer() {
 
   // Flash invokes InvalidateRect for us.
   const char* mime = nullptr;
-  if (NS_SUCCEEDED(mInstance->GetMIMEType(&mime)) && mime) {
-    if (strcmp(mime, "application/x-shockwave-flash") == 0) {
-      return;
-    }
+  if (NS_SUCCEEDED(mInstance->GetMIMEType(&mime)) && mime &&
+      nsPluginHost::GetSpecialType(nsDependentCString(mime)) ==
+      nsPluginHost::eSpecialType_Flash) {
+    return;
   }
 
   if (!sCARefreshListeners) {
     sCARefreshListeners = new nsTArray<nsPluginInstanceOwner*>();
-    if (!sCARefreshListeners) {
-      return;
-    }
   }
 
   if (sCARefreshListeners->Contains(this)) {
@@ -903,9 +1160,6 @@ void nsPluginInstanceOwner::AddToCARefreshTimer() {
 
   if (!sCATimer) {
     sCATimer = new nsCOMPtr<nsITimer>();
-    if (!sCATimer) {
-      return;
-    }
   }
 
   if (sCARefreshListeners->Length() == 1) {
@@ -933,126 +1187,13 @@ void nsPluginInstanceOwner::RemoveFromCARefreshTimer() {
   }
 }
 
-void nsPluginInstanceOwner::RenderCoreAnimation(CGContextRef aCGContext,
-                                                int aWidth, int aHeight)
+void nsPluginInstanceOwner::SetPluginPort()
 {
-  if (aWidth == 0 || aHeight == 0)
+  void* pluginPort = GetPluginPort();
+  if (!pluginPort || !mPluginWindow)
     return;
-
-  if (!mCARenderer) {
-    mCARenderer = new nsCARenderer();
-  }
-
-  // aWidth and aHeight are in "display pixels".  In non-HiDPI modes
-  // "display pixels" are device pixels.  But in HiDPI modes each
-  // display pixel corresponds to more than one device pixel.
-  double scaleFactor = 1.0;
-  GetContentsScaleFactor(&scaleFactor);
-
-  if (!mIOSurface ||
-      (mIOSurface->GetWidth() != (size_t)aWidth ||
-       mIOSurface->GetHeight() != (size_t)aHeight ||
-       mIOSurface->GetContentsScaleFactor() != scaleFactor)) {
-    mIOSurface = nullptr;
-
-    // If the renderer is backed by an IOSurface, resize it as required.
-    mIOSurface = MacIOSurface::CreateIOSurface(aWidth, aHeight, scaleFactor);
-    if (mIOSurface) {
-      RefPtr<MacIOSurface> attachSurface = MacIOSurface::LookupSurface(
-                                              mIOSurface->GetIOSurfaceID(),
-                                              scaleFactor);
-      if (attachSurface) {
-        mCARenderer->AttachIOSurface(attachSurface);
-      } else {
-        NS_ERROR("IOSurface attachment failed");
-        mIOSurface = nullptr;
-      }
-    }
-  }
-
-  if (!mColorProfile) {
-    mColorProfile = CreateSystemColorSpace();
-  }
-
-  if (mCARenderer->isInit() == false) {
-    void *caLayer = nullptr;
-    nsresult rv = mInstance->GetValueFromPlugin(NPPVpluginCoreAnimationLayer, &caLayer);
-    if (NS_FAILED(rv) || !caLayer) {
-      return;
-    }
-
-    // We don't run Flash in-process so we can unconditionally disallow
-    // the offliner renderer.
-    mCARenderer->SetupRenderer(caLayer, aWidth, aHeight, scaleFactor,
-                               DISALLOW_OFFLINE_RENDERER);
-
-    // Setting up the CALayer requires resetting the painting otherwise we
-    // get garbage for the first few frames.
-    FixUpPluginWindow(ePluginPaintDisable);
-    FixUpPluginWindow(ePluginPaintEnable);
-  }
-
-  CGImageRef caImage = nullptr;
-  nsresult rt = mCARenderer->Render(aWidth, aHeight, scaleFactor, &caImage);
-  if (rt == NS_OK && mIOSurface && mColorProfile) {
-    nsCARenderer::DrawSurfaceToCGContext(aCGContext, mIOSurface, mColorProfile,
-                                         0, 0, aWidth, aHeight);
-  } else if (rt == NS_OK && caImage != nullptr) {
-    // Significant speed up by resetting the scaling
-    ::CGContextSetInterpolationQuality(aCGContext, kCGInterpolationNone );
-    ::CGContextTranslateCTM(aCGContext, 0, (double) aHeight * scaleFactor);
-    ::CGContextScaleCTM(aCGContext, scaleFactor, -scaleFactor);
-
-    ::CGContextDrawImage(aCGContext, CGRectMake(0,0,aWidth,aHeight), caImage);
-  } else {
-    NS_NOTREACHED("nsCARenderer::Render failure");
-  }
-}
-
-void* nsPluginInstanceOwner::GetPluginPortCopy()
-{
-  if (GetDrawingModel() == NPDrawingModelCoreGraphics ||
-      GetDrawingModel() == NPDrawingModelCoreAnimation ||
-      GetDrawingModel() == NPDrawingModelInvalidatingCoreAnimation)
-    return &mCGPluginPortCopy;
-  return nullptr;
-}
-
-// Currently (on OS X in Cocoa widgets) any changes made as a result of
-// calling GetPluginPortFromWidget() are immediately reflected in the NPWindow
-// structure that has been passed to the plugin via SetWindow().  This is
-// because calls to nsChildView::GetNativeData(NS_NATIVE_PLUGIN_PORT_CG)
-// always return a pointer to the same internal (private) object, but may
-// make changes inside that object.  All calls to GetPluginPortFromWidget() made while
-// the plugin is active (i.e. excluding those made at our initialization)
-// need to take this into account.  The easiest way to do so is to replace
-// them with calls to SetPluginPortAndDetectChange().  This method keeps track
-// of when calls to GetPluginPortFromWidget() result in changes, and sets a flag to make
-// sure SetWindow() gets called the next time through FixUpPluginWindow(), so
-// that the plugin is notified of these changes.
-void* nsPluginInstanceOwner::SetPluginPortAndDetectChange()
-{
-  if (!mPluginWindow)
-    return nullptr;
-  void* pluginPort = GetPluginPortFromWidget();
-  if (!pluginPort)
-    return nullptr;
   mPluginWindow->window = pluginPort;
-
-  return mPluginWindow->window;
 }
-
-void nsPluginInstanceOwner::BeginCGPaint()
-{
-  ++mInCGPaintLevel;
-}
-
-void nsPluginInstanceOwner::EndCGPaint()
-{
-  --mInCGPaintLevel;
-  NS_ASSERTION(mInCGPaintLevel >= 0, "Mismatched call to nsPluginInstanceOwner::EndCGPaint()!");
-}
-
 #endif
 
 // static
@@ -1111,7 +1252,7 @@ GetOffsetRootContent(nsIFrame* aFrame)
       int32_t newAPD = f ? f->PresContext()->AppUnitsPerDevPixel() : 0;
       if (!f || newAPD != currAPD) {
         // Convert docOffset to the right APD and add it to offset.
-        offset += docOffset.ConvertAppUnits(currAPD, apd);
+        offset += docOffset.ScaleToOtherAppUnits(currAPD, apd);
         docOffset.x = docOffset.y = 0;
       }
       currAPD = newAPD;
@@ -1119,7 +1260,7 @@ GetOffsetRootContent(nsIFrame* aFrame)
     }
   }
 
-  offset += docOffset.ConvertAppUnits(currAPD, apd);
+  offset += docOffset.ScaleToOtherAppUnits(currAPD, apd);
 
   return offset;
 }
@@ -1127,8 +1268,8 @@ GetOffsetRootContent(nsIFrame* aFrame)
 LayoutDeviceRect nsPluginInstanceOwner::GetPluginRect()
 {
   // Get the offset of the content relative to the page
-  nsRect bounds = mObjectFrame->GetContentRectRelativeToSelf() + GetOffsetRootContent(mObjectFrame);
-  LayoutDeviceIntRect rect = LayoutDeviceIntRect::FromAppUnitsToNearest(bounds, mObjectFrame->PresContext()->AppUnitsPerDevPixel());
+  nsRect bounds = mPluginFrame->GetContentRectRelativeToSelf() + GetOffsetRootContent(mPluginFrame);
+  LayoutDeviceIntRect rect = LayoutDeviceIntRect::FromAppUnitsToNearest(bounds, mPluginFrame->PresContext()->AppUnitsPerDevPixel());
   return LayoutDeviceRect(rect);
 }
 
@@ -1140,7 +1281,7 @@ bool nsPluginInstanceOwner::AddPluginView(const LayoutDeviceRect& aRect /* = Lay
     if (!mJavaView)
       return false;
 
-    mJavaView = (void*)AndroidBridge::GetJNIEnv()->NewGlobalRef((jobject)mJavaView);
+    mJavaView = (void*)jni::GetGeckoThreadEnv()->NewGlobalRef((jobject)mJavaView);
   }
 
   if (AndroidBridge::Bridge())
@@ -1157,8 +1298,9 @@ void nsPluginInstanceOwner::RemovePluginView()
   if (!mInstance || !mJavaView)
     return;
 
-  mozilla::widget::android::GeckoAppShell::RemovePluginView((jobject)mJavaView, mFullScreen);
-  AndroidBridge::GetJNIEnv()->DeleteGlobalRef((jobject)mJavaView);
+  widget::GeckoAppShell::RemovePluginView(
+      jni::Object::Ref::From(jobject(mJavaView)), mFullScreen);
+  jni::GetGeckoThreadEnv()->DeleteGlobalRef((jobject)mJavaView);
   mJavaView = nullptr;
 
   if (mFullScreen)
@@ -1177,22 +1319,12 @@ nsPluginInstanceOwner::GetVideos(nsTArray<nsNPAPIPluginInstance::VideoInfo*>& aV
 already_AddRefed<ImageContainer>
 nsPluginInstanceOwner::GetImageContainerForVideo(nsNPAPIPluginInstance::VideoInfo* aVideoInfo)
 {
-  nsRefPtr<ImageContainer> container = LayerManager::CreateImageContainer();
+  RefPtr<ImageContainer> container = LayerManager::CreateImageContainer();
 
-  nsRefPtr<Image> img = container->CreateImage(ImageFormat::SURFACE_TEXTURE);
-
-  SurfaceTextureImage::Data data;
-
-  data.mSurfTex = aVideoInfo->mSurfaceTexture;
-
-  // The logic below for Honeycomb is just a guess, but seems to work. We don't have a separate
-  // inverted flag for video.
-  data.mInverted = AndroidBridge::Bridge()->IsHoneycomb() ? true : mInstance->Inverted();
-  data.mSize = gfx::IntSize(aVideoInfo->mDimensions.width, aVideoInfo->mDimensions.height);
-
-  SurfaceTextureImage* typedImg = static_cast<SurfaceTextureImage*>(img.get());
-  typedImg->SetData(data);
-
+  RefPtr<Image> img = new SurfaceTextureImage(
+    aVideoInfo->mSurfaceTexture,
+    gfx::IntSize(aVideoInfo->mDimensions.width, aVideoInfo->mDimensions.height),
+    gl::OriginPos::BottomLeft);
   container->SetCurrentImageInTransaction(img);
 
   return container.forget();
@@ -1243,7 +1375,7 @@ void nsPluginInstanceOwner::ExitFullScreen() {
 }
 
 void nsPluginInstanceOwner::ExitFullScreen(jobject view) {
-  JNIEnv* env = AndroidBridge::GetJNIEnv();
+  JNIEnv* env = jni::GetGeckoThreadEnv();
 
   if (sFullScreenInstance && sFullScreenInstance->mInstance &&
       env->IsSameObject(view, (jobject)sFullScreenInstance->mInstance->GetJavaSurface())) {
@@ -1252,6 +1384,45 @@ void nsPluginInstanceOwner::ExitFullScreen(jobject view) {
 }
 
 #endif
+
+void
+nsPluginInstanceOwner::NotifyHostAsyncInitFailed()
+{
+  nsCOMPtr<nsIObjectLoadingContent> content = do_QueryReferent(mContent);
+  content->StopPluginInstance();
+}
+
+void
+nsPluginInstanceOwner::NotifyHostCreateWidget()
+{
+  mPluginHost->CreateWidget(this);
+#ifdef XP_MACOSX
+  FixUpPluginWindow(ePluginPaintEnable);
+#else
+  if (mPluginFrame) {
+    mPluginFrame->InvalidateFrame();
+  } else {
+    CallSetWindow();
+  }
+#endif
+}
+
+void
+nsPluginInstanceOwner::NotifyDestroyPending()
+{
+  if (!mInstance) {
+    return;
+  }
+  bool isOOP = false;
+  if (NS_FAILED(mInstance->GetIsOOP(&isOOP)) || !isOOP) {
+    return;
+  }
+  NPP npp = nullptr;
+  if (NS_FAILED(mInstance->GetNPP(&npp)) || !npp) {
+    return;
+  }
+  PluginAsyncSurrogate::NotifyDestroyPending(npp);
+}
 
 nsresult nsPluginInstanceOwner::DispatchFocusToPlugin(nsIDOMEvent* aFocusEvent)
 {
@@ -1285,8 +1456,7 @@ nsresult nsPluginInstanceOwner::DispatchFocusToPlugin(nsIDOMEvent* aFocusEvent)
 
   WidgetEvent* theEvent = aFocusEvent->GetInternalNSEvent();
   if (theEvent) {
-    // we only care about the message in ProcessEvent
-    WidgetGUIEvent focusEvent(theEvent->mFlags.mIsTrusted, theEvent->message,
+    WidgetGUIEvent focusEvent(theEvent->mFlags.mIsTrusted, theEvent->mMessage,
                               nullptr);
     nsEventStatus rv = ProcessEvent(focusEvent);
     if (nsEventStatus_eConsumeNoDefault == rv) {
@@ -1350,12 +1520,12 @@ nsPluginInstanceOwner::ProcessMouseDown(nsIDOMEvent* aMouseEvent)
 
   // if the plugin is windowless, we need to set focus ourselves
   // otherwise, we might not get key events
-  if (mObjectFrame && mPluginWindow &&
+  if (mPluginFrame && mPluginWindow &&
       mPluginWindow->type == NPWindowTypeDrawable) {
 
     nsIFocusManager* fm = nsFocusManager::GetFocusManager();
     if (fm) {
-      nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(mContent);
+      nsCOMPtr<nsIDOMElement> elem = do_QueryReferent(mContent);
       fm->SetFocus(elem, 0);
     }
   }
@@ -1395,7 +1565,7 @@ nsresult nsPluginInstanceOwner::DispatchMouseToPlugin(nsIDOMEvent* aMouseEvent,
         aMouseEvent->StopPropagation();
       }
     }
-    if (mouseEvent->message == NS_MOUSE_BUTTON_UP) {
+    if (mouseEvent->mMessage == eMouseUp) {
       mLastMouseDownButtonType = -1;
     }
   }
@@ -1409,6 +1579,23 @@ nsPluginInstanceOwner::HandleEvent(nsIDOMEvent* aEvent)
 
   nsAutoString eventType;
   aEvent->GetType(eventType);
+
+#ifdef XP_MACOSX
+  if (eventType.EqualsLiteral("activate") ||
+      eventType.EqualsLiteral("deactivate")) {
+    WindowFocusMayHaveChanged();
+    return NS_OK;
+  }
+  if (eventType.EqualsLiteral("MozPerformDelayedBlur")) {
+    if (mShouldBlurOnActivate) {
+      WidgetGUIEvent blurEvent(true, eBlur, nullptr);
+      ProcessEvent(blurEvent);
+      mShouldBlurOnActivate = false;
+    }
+    return NS_OK;
+  }
+#endif
+
   if (eventType.EqualsLiteral("focus")) {
     mContentFocused = true;
     return DispatchFocusToPlugin(aEvent);
@@ -1421,18 +1608,6 @@ nsPluginInstanceOwner::HandleEvent(nsIDOMEvent* aEvent)
     return ProcessMouseDown(aEvent);
   }
   if (eventType.EqualsLiteral("mouseup")) {
-    // Don't send a mouse-up event to the plugin if its button type doesn't
-    // match that of the preceding mouse-down event (if any).  This kind of
-    // mismatch can happen if the previous mouse-down event was sent to a DOM
-    // element above the plugin, the mouse is still above the plugin, and the
-    // mouse-down event caused the element to disappear.  See bug 627649 and
-    // bug 909678.
-    WidgetMouseEvent* mouseEvent = aEvent->GetInternalNSEvent()->AsMouseEvent();
-    if (mouseEvent &&
-        static_cast<int>(mouseEvent->button) != mLastMouseDownButtonType) {
-      aEvent->PreventDefault();
-      return NS_OK;
-    }
     return DispatchMouseToPlugin(aEvent);
   }
   if (eventType.EqualsLiteral("mousemove")) {
@@ -1455,8 +1630,8 @@ nsPluginInstanceOwner::HandleEvent(nsIDOMEvent* aEvent)
   nsCOMPtr<nsIDOMDragEvent> dragEvent(do_QueryInterface(aEvent));
   if (dragEvent && mInstance) {
     WidgetEvent* ievent = aEvent->GetInternalNSEvent();
-    if ((ievent && ievent->mFlags.mIsTrusted) &&
-         ievent->message != NS_DRAGDROP_ENTER && ievent->message != NS_DRAGDROP_OVER) {
+    if (ievent && ievent->mFlags.mIsTrusted &&
+        ievent->mMessage != eDragEnter && ievent->mMessage != eDragOver) {
       aEvent->PreventDefault();
     }
 
@@ -1478,113 +1653,276 @@ static unsigned int XInputEventState(const WidgetInputEvent& anEvent)
 }
 #endif
 
+#ifdef XP_MACOSX
+
+// Returns whether or not content is the content that is or would be
+// focused if the top-level chrome window was active.
+static bool
+ContentIsFocusedWithinWindow(nsIContent* aContent)
+{
+  nsPIDOMWindow* outerWindow = aContent->OwnerDoc()->GetWindow();
+  if (!outerWindow) {
+    return false;
+  }
+
+  nsPIDOMWindow* rootWindow = outerWindow->GetPrivateRoot();
+  if (!rootWindow) {
+    return false;
+  }
+
+  nsFocusManager* fm = nsFocusManager::GetFocusManager();
+  if (!fm) {
+    return false;
+  }
+
+  nsCOMPtr<nsPIDOMWindow> focusedFrame;
+  nsCOMPtr<nsIContent> focusedContent = fm->GetFocusedDescendant(rootWindow, true, getter_AddRefs(focusedFrame));
+  return (focusedContent.get() == aContent);
+}
+
+static NPCocoaEventType
+CocoaEventTypeForEvent(const WidgetGUIEvent& anEvent, nsIFrame* aObjectFrame)
+{
+  const NPCocoaEvent* event = static_cast<const NPCocoaEvent*>(anEvent.mPluginEvent);
+  if (event) {
+    return event->type;
+  }
+
+  switch (anEvent.mMessage) {
+    case eMouseOver:
+      return NPCocoaEventMouseEntered;
+    case eMouseOut:
+      return NPCocoaEventMouseExited;
+    case eMouseMove: {
+      // We don't know via information on events from the widget code whether or not
+      // we're dragging. The widget code just generates mouse move events from native
+      // drag events. If anybody is capturing, this is a drag event.
+      if (nsIPresShell::GetCapturingContent()) {
+        return NPCocoaEventMouseDragged;
+      }
+
+      return NPCocoaEventMouseMoved;
+    }
+    case eMouseDown:
+      return NPCocoaEventMouseDown;
+    case eMouseUp:
+      return NPCocoaEventMouseUp;
+    case eKeyDown:
+      return NPCocoaEventKeyDown;
+    case eKeyUp:
+      return NPCocoaEventKeyUp;
+    case eFocus:
+    case eBlur:
+      return NPCocoaEventFocusChanged;
+    case eLegacyMouseLineOrPageScroll:
+      return NPCocoaEventScrollWheel;
+    default:
+      return (NPCocoaEventType)0;
+  }
+}
+
+static NPCocoaEvent
+TranslateToNPCocoaEvent(WidgetGUIEvent* anEvent, nsIFrame* aObjectFrame)
+{
+  NPCocoaEvent cocoaEvent;
+  InitializeNPCocoaEvent(&cocoaEvent);
+  cocoaEvent.type = CocoaEventTypeForEvent(*anEvent, aObjectFrame);
+
+  if (anEvent->mMessage == eMouseMove ||
+      anEvent->mMessage == eMouseDown ||
+      anEvent->mMessage == eMouseUp ||
+      anEvent->mMessage == eLegacyMouseLineOrPageScroll ||
+      anEvent->mMessage == eMouseOver ||
+      anEvent->mMessage == eMouseOut)
+  {
+    nsPoint pt = nsLayoutUtils::GetEventCoordinatesRelativeTo(anEvent, aObjectFrame) -
+                 aObjectFrame->GetContentRectRelativeToSelf().TopLeft();
+    nsPresContext* presContext = aObjectFrame->PresContext();
+    // Plugin event coordinates need to be translated from device pixels
+    // into "display pixels" in HiDPI modes.
+    double scaleFactor = double(nsPresContext::AppUnitsPerCSSPixel())/
+      aObjectFrame->PresContext()->DeviceContext()->AppUnitsPerDevPixelAtUnitFullZoom();
+    size_t intScaleFactor = ceil(scaleFactor);
+    nsIntPoint ptPx(presContext->AppUnitsToDevPixels(pt.x) / intScaleFactor,
+                    presContext->AppUnitsToDevPixels(pt.y) / intScaleFactor);
+    cocoaEvent.data.mouse.pluginX = double(ptPx.x);
+    cocoaEvent.data.mouse.pluginY = double(ptPx.y);
+  }
+
+  switch (anEvent->mMessage) {
+    case eMouseDown:
+    case eMouseUp: {
+      WidgetMouseEvent* mouseEvent = anEvent->AsMouseEvent();
+      if (mouseEvent) {
+        switch (mouseEvent->button) {
+          case WidgetMouseEvent::eLeftButton:
+            cocoaEvent.data.mouse.buttonNumber = 0;
+            break;
+          case WidgetMouseEvent::eRightButton:
+            cocoaEvent.data.mouse.buttonNumber = 1;
+            break;
+          case WidgetMouseEvent::eMiddleButton:
+            cocoaEvent.data.mouse.buttonNumber = 2;
+            break;
+          default:
+            NS_WARNING("Mouse button we don't know about?");
+        }
+        cocoaEvent.data.mouse.clickCount = mouseEvent->clickCount;
+      } else {
+        NS_WARNING("eMouseUp/DOWN is not a WidgetMouseEvent?");
+      }
+      break;
+    }
+    case eLegacyMouseLineOrPageScroll: {
+      WidgetWheelEvent* wheelEvent = anEvent->AsWheelEvent();
+      if (wheelEvent) {
+        cocoaEvent.data.mouse.deltaX = wheelEvent->lineOrPageDeltaX;
+        cocoaEvent.data.mouse.deltaY = wheelEvent->lineOrPageDeltaY;
+      } else {
+        NS_WARNING("eLegacyMouseLineOrPageScroll is not a WidgetWheelEvent? "
+                   "(could be, haven't checked)");
+      }
+      break;
+    }
+    case eKeyDown:
+    case eKeyUp:
+    {
+      WidgetKeyboardEvent* keyEvent = anEvent->AsKeyboardEvent();
+
+      // That keyEvent->mPluginTextEventString is non-empty is a signal that we should
+      // create a text event for the plugin, instead of a key event.
+      if (anEvent->mMessage == eKeyDown &&
+          !keyEvent->mPluginTextEventString.IsEmpty()) {
+        cocoaEvent.type = NPCocoaEventTextInput;
+        const char16_t* pluginTextEventString = keyEvent->mPluginTextEventString.get();
+        cocoaEvent.data.text.text = (NPNSString*)
+          ::CFStringCreateWithCharacters(NULL,
+                                         reinterpret_cast<const UniChar*>(pluginTextEventString),
+                                         keyEvent->mPluginTextEventString.Length());
+      } else {
+        cocoaEvent.data.key.keyCode = keyEvent->mNativeKeyCode;
+        cocoaEvent.data.key.isARepeat = keyEvent->mIsRepeat;
+        cocoaEvent.data.key.modifierFlags = keyEvent->mNativeModifierFlags;
+        const char16_t* nativeChars = keyEvent->mNativeCharacters.get();
+        cocoaEvent.data.key.characters = (NPNSString*)
+          ::CFStringCreateWithCharacters(NULL,
+                                         reinterpret_cast<const UniChar*>(nativeChars),
+                                         keyEvent->mNativeCharacters.Length());
+        const char16_t* nativeCharsIgnoringModifiers = keyEvent->mNativeCharactersIgnoringModifiers.get();
+        cocoaEvent.data.key.charactersIgnoringModifiers = (NPNSString*)
+          ::CFStringCreateWithCharacters(NULL,
+                                         reinterpret_cast<const UniChar*>(nativeCharsIgnoringModifiers),
+                                         keyEvent->mNativeCharactersIgnoringModifiers.Length());
+      }
+      break;
+    }
+    case eFocus:
+    case eBlur:
+      cocoaEvent.data.focus.hasFocus = (anEvent->mMessage == eFocus);
+      break;
+    default:
+      break;
+  }
+  return cocoaEvent;
+}
+
+void nsPluginInstanceOwner::PerformDelayedBlurs()
+{
+  nsCOMPtr<nsIContent> content = do_QueryReferent(mContent);
+  nsCOMPtr<EventTarget> windowRoot = content->OwnerDoc()->GetWindow()->GetTopWindowRoot();
+  nsContentUtils::DispatchTrustedEvent(content->OwnerDoc(),
+                                       windowRoot,
+                                       NS_LITERAL_STRING("MozPerformDelayedBlur"),
+                                       false, false, nullptr);
+}
+
+#endif
+
 nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
 {
   nsEventStatus rv = nsEventStatus_eIgnore;
 
-  if (!mInstance || !mObjectFrame)   // if mInstance is null, we shouldn't be here
+  if (!mInstance || !mPluginFrame) {
     return nsEventStatus_eIgnore;
+  }
 
 #ifdef XP_MACOSX
-  if (!mWidget)
-    return nsEventStatus_eIgnore;
-
-  // we never care about synthesized mouse enter
-  if (anEvent.message == NS_MOUSE_ENTER_SYNTH)
-    return nsEventStatus_eIgnore;
-
-  nsCOMPtr<nsIPluginWidget> pluginWidget = do_QueryInterface(mWidget);
-  if (!pluginWidget || NS_FAILED(pluginWidget->StartDrawPlugin()))
-    return nsEventStatus_eIgnore;
-
   NPEventModel eventModel = GetEventModel();
+  if (eventModel != NPEventModelCocoa) {
+    return nsEventStatus_eIgnore;
+  }
 
-  // If we have to synthesize an event we'll use one of these.
-  NPCocoaEvent synthCocoaEvent;
-  const NPCocoaEvent* event = static_cast<const NPCocoaEvent*>(anEvent.mPluginEvent);
-  nsPoint pt =
-  nsLayoutUtils::GetEventCoordinatesRelativeTo(&anEvent, mObjectFrame) -
-  mObjectFrame->GetContentRectRelativeToSelf().TopLeft();
-  nsPresContext* presContext = mObjectFrame->PresContext();
-  // Plugin event coordinates need to be translated from device pixels
-  // into "display pixels" in HiDPI modes.
-  double scaleFactor = 1.0;
-  GetContentsScaleFactor(&scaleFactor);
-  size_t intScaleFactor = ceil(scaleFactor);
-  nsIntPoint ptPx(presContext->AppUnitsToDevPixels(pt.x) / intScaleFactor,
-                  presContext->AppUnitsToDevPixels(pt.y) / intScaleFactor);
+  // In the Cocoa event model, focus is per-window. Don't tell a plugin it lost
+  // focus unless it lost focus within the window. For example, ignore a blur
+  // event if it's coming due to the plugin's window deactivating.
+  nsCOMPtr<nsIContent> content = do_QueryReferent(mContent);
+  if (anEvent.mMessage == eBlur && ContentIsFocusedWithinWindow(content)) {
+    mShouldBlurOnActivate = true;
+    return nsEventStatus_eIgnore;
+  }
 
-  if (!event) {
-    InitializeNPCocoaEvent(&synthCocoaEvent);
-    switch (anEvent.message) {
-      case NS_MOUSE_MOVE:
-      {
-        // Ignore mouse-moved events that happen as part of a dragging
-        // operation that started over another frame.  See bug 525078.
-        nsRefPtr<nsFrameSelection> frameselection = mObjectFrame->GetFrameSelection();
-        if (!frameselection->GetDragState() ||
-          (nsIPresShell::GetCapturingContent() == mObjectFrame->GetContent())) {
-          synthCocoaEvent.type = NPCocoaEventMouseMoved;
-          synthCocoaEvent.data.mouse.pluginX = static_cast<double>(ptPx.x);
-          synthCocoaEvent.data.mouse.pluginY = static_cast<double>(ptPx.y);
-          event = &synthCocoaEvent;
-        }
-      }
-        break;
-      case NS_MOUSE_BUTTON_DOWN:
-        synthCocoaEvent.type = NPCocoaEventMouseDown;
-        synthCocoaEvent.data.mouse.pluginX = static_cast<double>(ptPx.x);
-        synthCocoaEvent.data.mouse.pluginY = static_cast<double>(ptPx.y);
-        event = &synthCocoaEvent;
-        break;
-      case NS_MOUSE_BUTTON_UP:
-        // If we're in a dragging operation that started over another frame,
-        // convert it into a mouse-entered event (in the Cocoa Event Model).
-        // See bug 525078.
-        if (anEvent.AsMouseEvent()->button == WidgetMouseEvent::eLeftButton &&
-            (nsIPresShell::GetCapturingContent() != mObjectFrame->GetContent())) {
-          synthCocoaEvent.type = NPCocoaEventMouseEntered;
-          synthCocoaEvent.data.mouse.pluginX = static_cast<double>(ptPx.x);
-          synthCocoaEvent.data.mouse.pluginY = static_cast<double>(ptPx.y);
-          event = &synthCocoaEvent;
-        } else {
-          synthCocoaEvent.type = NPCocoaEventMouseUp;
-          synthCocoaEvent.data.mouse.pluginX = static_cast<double>(ptPx.x);
-          synthCocoaEvent.data.mouse.pluginY = static_cast<double>(ptPx.y);
-          event = &synthCocoaEvent;
-        }
-        break;
-      default:
-        break;
-    }
+  // Also, don't tell the plugin it gained focus again after we've already given
+  // it focus. This might happen if it has focus, its window is blurred, then the
+  // window is made active again. The plugin never lost in-window focus, so it
+  // shouldn't get a focus event again.
+  if (anEvent.mMessage == eFocus && mLastContentFocused == true) {
+    mShouldBlurOnActivate = false;
+    return nsEventStatus_eIgnore;
+  }
 
-    // If we still don't have an event, bail.
-    if (!event) {
-      pluginWidget->EndDrawPlugin();
-      return nsEventStatus_eIgnore;
-    }
+  // Now, if we're going to send a focus event, update mLastContentFocused and
+  // tell any plugins in our window that we have taken focus, so they should
+  // perform any delayed blurs.
+  if (anEvent.mMessage == eFocus || anEvent.mMessage == eBlur) {
+    mLastContentFocused = (anEvent.mMessage == eFocus);
+    mShouldBlurOnActivate = false;
+    PerformDelayedBlurs();
+  }
+
+  NPCocoaEvent cocoaEvent = TranslateToNPCocoaEvent(const_cast<WidgetGUIEvent*>(&anEvent), mPluginFrame);
+  if (cocoaEvent.type == (NPCocoaEventType)0) {
+    return nsEventStatus_eIgnore;
+  }
+
+  if (cocoaEvent.type == NPCocoaEventTextInput) {
+    mInstance->HandleEvent(&cocoaEvent, nullptr);
+    return nsEventStatus_eConsumeNoDefault;
   }
 
   int16_t response = kNPEventNotHandled;
-  void* window = FixUpPluginWindow(ePluginPaintEnable);
-  if (window || (eventModel == NPEventModelCocoa)) {
-    mInstance->HandleEvent(const_cast<NPCocoaEvent*>(event),
-                           &response,
-                           NS_PLUGIN_CALL_SAFE_TO_REENTER_GECKO);
+  mInstance->HandleEvent(&cocoaEvent,
+                         &response,
+                         NS_PLUGIN_CALL_SAFE_TO_REENTER_GECKO);
+  if ((response == kNPEventStartIME) && (cocoaEvent.type == NPCocoaEventKeyDown)) {
+    nsIWidget* widget = mPluginFrame->GetNearestWidget();
+    if (widget) {
+      const WidgetKeyboardEvent* keyEvent = anEvent.AsKeyboardEvent();
+      double screenX, screenY;
+      ConvertPoint(0.0, mPluginFrame->GetScreenRect().height,
+                   NPCoordinateSpacePlugin, &screenX, &screenY,
+                   NPCoordinateSpaceScreen);
+      nsAutoString outText;
+      if (NS_SUCCEEDED(widget->StartPluginIME(*keyEvent, screenX, screenY, outText)) &&
+          !outText.IsEmpty()) {
+        CFStringRef cfString =
+          ::CFStringCreateWithCharacters(kCFAllocatorDefault,
+                                         reinterpret_cast<const UniChar*>(outText.get()),
+                                         outText.Length());
+        NPCocoaEvent textEvent;
+        InitializeNPCocoaEvent(&textEvent);
+        textEvent.type = NPCocoaEventTextInput;
+        textEvent.data.text.text = (NPNSString*)cfString;
+        mInstance->HandleEvent(&textEvent, nullptr);
+      }
+    }
   }
 
-  if (eventModel == NPEventModelCocoa && response == kNPEventStartIME) {
-    pluginWidget->StartComplexTextInputForCurrentEvent();
-  }
-
-  if ((response == kNPEventHandled || response == kNPEventStartIME) &&
-      !(anEvent.message == NS_MOUSE_BUTTON_DOWN &&
-        anEvent.AsMouseEvent()->button == WidgetMouseEvent::eLeftButton &&
-        !mContentFocused)) {
+  bool handled = (response == kNPEventHandled || response == kNPEventStartIME);
+  bool leftMouseButtonDown = (anEvent.mMessage == eMouseDown) &&
+                             (anEvent.AsMouseEvent()->button == WidgetMouseEvent::eLeftButton);
+  if (handled && !(leftMouseButtonDown && !mContentFocused)) {
     rv = nsEventStatus_eConsumeNoDefault;
   }
-
-  pluginWidget->EndDrawPlugin();
 #endif
 
 #ifdef XP_WIN
@@ -1593,21 +1931,24 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
   // we can get synthetic events from the EventStateManager... these
   // have no pluginEvent
   NPEvent pluginEvent;
-  if (anEvent.mClass == eMouseEventClass) {
+  if (anEvent.mClass == eMouseEventClass ||
+      anEvent.mClass == eWheelEventClass) {
     if (!pPluginEvent) {
       // XXX Should extend this list to synthesize events for more event
       // types
       pluginEvent.event = 0;
-      const WidgetMouseEvent* mouseEvent = anEvent.AsMouseEvent();
-      switch (anEvent.message) {
-      case NS_MOUSE_MOVE:
+      bool initWParamWithCurrentState = true;
+      switch (anEvent.mMessage) {
+      case eMouseMove: {
         pluginEvent.event = WM_MOUSEMOVE;
         break;
-      case NS_MOUSE_BUTTON_DOWN: {
+      }
+      case eMouseDown: {
         static const int downMsgs[] =
           { WM_LBUTTONDOWN, WM_MBUTTONDOWN, WM_RBUTTONDOWN };
         static const int dblClickMsgs[] =
           { WM_LBUTTONDBLCLK, WM_MBUTTONDBLCLK, WM_RBUTTONDBLCLK };
+        const WidgetMouseEvent* mouseEvent = anEvent.AsMouseEvent();
         if (mouseEvent->clickCount == 2) {
           pluginEvent.event = dblClickMsgs[mouseEvent->button];
         } else {
@@ -1615,19 +1956,102 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
         }
         break;
       }
-      case NS_MOUSE_BUTTON_UP: {
+      case eMouseUp: {
         static const int upMsgs[] =
           { WM_LBUTTONUP, WM_MBUTTONUP, WM_RBUTTONUP };
+        const WidgetMouseEvent* mouseEvent = anEvent.AsMouseEvent();
         pluginEvent.event = upMsgs[mouseEvent->button];
         break;
       }
-      // don't synthesize anything for NS_MOUSE_DOUBLECLICK, since that
+      // For plugins which don't support high-resolution scroll, we should
+      // generate legacy resolution wheel messages.  I.e., the delta value
+      // should be WHEEL_DELTA * n.
+      case eWheel: {
+        const WidgetWheelEvent* wheelEvent = anEvent.AsWheelEvent();
+        int32_t delta = 0;
+        if (wheelEvent->lineOrPageDeltaY) {
+          switch (wheelEvent->deltaMode) {
+            case nsIDOMWheelEvent::DOM_DELTA_PAGE:
+              pluginEvent.event = WM_MOUSEWHEEL;
+              delta = -WHEEL_DELTA * wheelEvent->lineOrPageDeltaY;
+              break;
+            case nsIDOMWheelEvent::DOM_DELTA_LINE: {
+              UINT linesPerWheelDelta = 0;
+              if (NS_WARN_IF(!::SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0,
+                                                     &linesPerWheelDelta, 0))) {
+                // Use system default scroll amount, 3, when
+                // SPI_GETWHEELSCROLLLINES isn't available.
+                linesPerWheelDelta = 3;
+              }
+              if (!linesPerWheelDelta) {
+                break;
+              }
+              pluginEvent.event = WM_MOUSEWHEEL;
+              delta = -WHEEL_DELTA / linesPerWheelDelta *
+                        wheelEvent->lineOrPageDeltaY;
+              break;
+            }
+            case nsIDOMWheelEvent::DOM_DELTA_PIXEL:
+            default:
+              // We don't support WM_GESTURE with this path.
+              MOZ_ASSERT(!pluginEvent.event);
+              break;
+          }
+        } else if (wheelEvent->lineOrPageDeltaX) {
+          switch (wheelEvent->deltaMode) {
+            case nsIDOMWheelEvent::DOM_DELTA_PAGE:
+              pluginEvent.event = WM_MOUSEHWHEEL;
+              delta = -WHEEL_DELTA * wheelEvent->lineOrPageDeltaX;
+              break;
+            case nsIDOMWheelEvent::DOM_DELTA_LINE: {
+              pluginEvent.event = WM_MOUSEHWHEEL;
+              UINT charsPerWheelDelta = 0;
+              // FYI: SPI_GETWHEELSCROLLCHARS is available on Vista or later.
+              if (::SystemParametersInfo(SPI_GETWHEELSCROLLCHARS, 0,
+                                         &charsPerWheelDelta, 0)) {
+                // Use system default scroll amount, 3, when
+                // SPI_GETWHEELSCROLLCHARS isn't available.
+                charsPerWheelDelta = 3;
+              }
+              if (!charsPerWheelDelta) {
+                break;
+              }
+              delta =
+                WHEEL_DELTA / charsPerWheelDelta * wheelEvent->lineOrPageDeltaX;
+              break;
+            }
+            case nsIDOMWheelEvent::DOM_DELTA_PIXEL:
+            default:
+              // We don't support WM_GESTURE with this path.
+              MOZ_ASSERT(!pluginEvent.event);
+              break;
+          }
+        }
+
+        if (!pluginEvent.event) {
+          break;
+        }
+
+        initWParamWithCurrentState = false;
+        int32_t modifiers =
+          (wheelEvent->IsControl() ?             MK_CONTROL  : 0) |
+          (wheelEvent->IsShift() ?               MK_SHIFT    : 0) |
+          (wheelEvent->IsLeftButtonPressed() ?   MK_LBUTTON  : 0) |
+          (wheelEvent->IsMiddleButtonPressed() ? MK_MBUTTON  : 0) |
+          (wheelEvent->IsRightButtonPressed() ?  MK_RBUTTON  : 0) |
+          (wheelEvent->Is4thButtonPressed() ?    MK_XBUTTON1 : 0) |
+          (wheelEvent->Is5thButtonPressed() ?    MK_XBUTTON2 : 0);
+        pluginEvent.wParam = MAKEWPARAM(modifiers, delta);
+        pPluginEvent = &pluginEvent;
+        break;
+      }
+      // don't synthesize anything for eMouseDoubleClick, since that
       // is a synthetic event generated on mouse-up, and Windows WM_*DBLCLK
       // messages are sent on mouse-down
       default:
         break;
       }
-      if (pluginEvent.event) {
+      if (pluginEvent.event && initWParamWithCurrentState) {
         pPluginEvent = &pluginEvent;
         pluginEvent.wParam =
           (::GetKeyState(VK_CONTROL) ? MK_CONTROL : 0) |
@@ -1644,43 +2068,46 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
       // not the widget they were received on.
       // See use of NPEvent in widget/windows/nsWindow.cpp
       // for why this assert should be safe
-      NS_ASSERTION(anEvent.message == NS_MOUSE_BUTTON_DOWN ||
-                   anEvent.message == NS_MOUSE_BUTTON_UP ||
-                   anEvent.message == NS_MOUSE_DOUBLECLICK ||
-                   anEvent.message == NS_MOUSE_ENTER_SYNTH ||
-                   anEvent.message == NS_MOUSE_EXIT_SYNTH ||
-                   anEvent.message == NS_MOUSE_MOVE,
+      NS_ASSERTION(anEvent.mMessage == eMouseDown ||
+                   anEvent.mMessage == eMouseUp ||
+                   anEvent.mMessage == eMouseDoubleClick ||
+                   anEvent.mMessage == eMouseOver ||
+                   anEvent.mMessage == eMouseOut ||
+                   anEvent.mMessage == eMouseMove ||
+                   anEvent.mMessage == eWheel,
                    "Incorrect event type for coordinate translation");
       nsPoint pt =
-        nsLayoutUtils::GetEventCoordinatesRelativeTo(&anEvent, mObjectFrame) -
-        mObjectFrame->GetContentRectRelativeToSelf().TopLeft();
-      nsPresContext* presContext = mObjectFrame->PresContext();
+        nsLayoutUtils::GetEventCoordinatesRelativeTo(&anEvent, mPluginFrame) -
+        mPluginFrame->GetContentRectRelativeToSelf().TopLeft();
+      nsPresContext* presContext = mPluginFrame->PresContext();
       nsIntPoint ptPx(presContext->AppUnitsToDevPixels(pt.x),
                       presContext->AppUnitsToDevPixels(pt.y));
-      nsIntPoint widgetPtPx = ptPx + mObjectFrame->GetWindowOriginInPixels(true);
+      nsIntPoint widgetPtPx = ptPx + mPluginFrame->GetWindowOriginInPixels(true);
       const_cast<NPEvent*>(pPluginEvent)->lParam = MAKELPARAM(widgetPtPx.x, widgetPtPx.y);
     }
   }
   else if (!pPluginEvent) {
-    switch (anEvent.message) {
-      case NS_FOCUS_CONTENT:
+    switch (anEvent.mMessage) {
+      case eFocus:
         pluginEvent.event = WM_SETFOCUS;
         pluginEvent.wParam = 0;
         pluginEvent.lParam = 0;
         pPluginEvent = &pluginEvent;
         break;
-      case NS_BLUR_CONTENT:
+      case eBlur:
         pluginEvent.event = WM_KILLFOCUS;
         pluginEvent.wParam = 0;
         pluginEvent.lParam = 0;
         pPluginEvent = &pluginEvent;
+        break;
+      default:
         break;
     }
   }
 
   if (pPluginEvent && !pPluginEvent->event) {
     // Don't send null events to plugins.
-    NS_WARNING("nsObjectFrame ProcessEvent: trying to send null event to plugin.");
+    NS_WARNING("nsPluginFrame ProcessEvent: trying to send null event to plugin.");
     return rv;
   }
 
@@ -1703,27 +2130,27 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
   switch(anEvent.mClass) {
     case eMouseEventClass:
       {
-        switch (anEvent.message)
-          {
-          case NS_MOUSE_CLICK:
-          case NS_MOUSE_DOUBLECLICK:
+        switch (anEvent.mMessage) {
+          case eMouseClick:
+          case eMouseDoubleClick:
             // Button up/down events sent instead.
             return rv;
+          default:
+            break;
           }
 
         // Get reference point relative to plugin origin.
-        const nsPresContext* presContext = mObjectFrame->PresContext();
+        const nsPresContext* presContext = mPluginFrame->PresContext();
         nsPoint appPoint =
-          nsLayoutUtils::GetEventCoordinatesRelativeTo(&anEvent, mObjectFrame) -
-          mObjectFrame->GetContentRectRelativeToSelf().TopLeft();
+          nsLayoutUtils::GetEventCoordinatesRelativeTo(&anEvent, mPluginFrame) -
+          mPluginFrame->GetContentRectRelativeToSelf().TopLeft();
         nsIntPoint pluginPoint(presContext->AppUnitsToDevPixels(appPoint.x),
                                presContext->AppUnitsToDevPixels(appPoint.y));
         const WidgetMouseEvent& mouseEvent = *anEvent.AsMouseEvent();
         // Get reference point relative to screen:
         LayoutDeviceIntPoint rootPoint(-1, -1);
         if (widget)
-          rootPoint = anEvent.refPoint +
-            LayoutDeviceIntPoint::FromUntyped(widget->WidgetToScreenOffset());
+          rootPoint = anEvent.refPoint + widget->WidgetToScreenOffset();
 #ifdef MOZ_WIDGET_GTK
         Window root = GDK_ROOT_WINDOW();
 #elif defined(MOZ_WIDGET_QT)
@@ -1732,13 +2159,12 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
         Window root = None; // Could XQueryTree, but this is not important.
 #endif
 
-        switch (anEvent.message)
-          {
-          case NS_MOUSE_ENTER_SYNTH:
-          case NS_MOUSE_EXIT_SYNTH:
+        switch (anEvent.mMessage) {
+          case eMouseOver:
+          case eMouseOut:
             {
               XCrossingEvent& event = pluginEvent.xcrossing;
-              event.type = anEvent.message == NS_MOUSE_ENTER_SYNTH ?
+              event.type = anEvent.mMessage == eMouseOver ?
                 EnterNotify : LeaveNotify;
               event.root = root;
               event.time = anEvent.time;
@@ -1755,7 +2181,7 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
               event.focus = mContentFocused;
             }
             break;
-          case NS_MOUSE_MOVE:
+          case eMouseMove:
             {
               XMotionEvent& event = pluginEvent.xmotion;
               event.type = MotionNotify;
@@ -1772,11 +2198,11 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
               event.same_screen = True;
             }
             break;
-          case NS_MOUSE_BUTTON_DOWN:
-          case NS_MOUSE_BUTTON_UP:
+          case eMouseDown:
+          case eMouseUp:
             {
               XButtonEvent& event = pluginEvent.xbutton;
-              event.type = anEvent.message == NS_MOUSE_BUTTON_DOWN ?
+              event.type = anEvent.mMessage == eMouseDown ?
                 ButtonPress : ButtonRelease;
               event.root = root;
               event.time = anEvent.time;
@@ -1802,6 +2228,8 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
               event.same_screen = True;
             }
             break;
+          default:
+            break;
           }
       }
       break;
@@ -1819,19 +2247,21 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
             static_cast<const GdkEventKey*>(anEvent.mPluginEvent);
           event.keycode = gdkEvent->hardware_keycode;
           event.state = gdkEvent->state;
-          switch (anEvent.message)
+          switch (anEvent.mMessage)
             {
-            case NS_KEY_DOWN:
-              // Handle NS_KEY_DOWN for modifier key presses
-              // For non-modifiers we get NS_KEY_PRESS
+            case eKeyDown:
+              // Handle eKeyDown for modifier key presses
+              // For non-modifiers we get eKeyPress
               if (gdkEvent->is_modifier)
                 event.type = XKeyPress;
               break;
-            case NS_KEY_PRESS:
+            case eKeyPress:
               event.type = XKeyPress;
               break;
-            case NS_KEY_UP:
+            case eKeyUp:
               event.type = KeyRelease;
+              break;
+            default:
               break;
             }
 #endif
@@ -1856,20 +2286,20 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
       break;
 
     default:
-      switch (anEvent.message)
-        {
-        case NS_FOCUS_CONTENT:
-        case NS_BLUR_CONTENT:
+      switch (anEvent.mMessage) {
+        case eFocus:
+        case eBlur:
           {
             XFocusChangeEvent &event = pluginEvent.xfocus;
-            event.type =
-              anEvent.message == NS_FOCUS_CONTENT ? FocusIn : FocusOut;
+            event.type = anEvent.mMessage == eFocus ? FocusIn : FocusOut;
             // information lost:
             event.mode = -1;
             event.detail = NotifyDetailNone;
           }
           break;
-        }
+        default:
+          break;
+      }
     }
 
   if (!pluginEvent.type) {
@@ -1897,39 +2327,39 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
     // The plugin needs focus to receive keyboard and touch events
     nsIFocusManager* fm = nsFocusManager::GetFocusManager();
     if (fm) {
-      nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(mContent);
+      nsCOMPtr<nsIDOMElement> elem = do_QueryReferent(mContent);
       fm->SetFocus(elem, 0);
     }
   }
   switch(anEvent.mClass) {
     case eMouseEventClass:
       {
-        switch (anEvent.message)
-          {
-          case NS_MOUSE_CLICK:
-          case NS_MOUSE_DOUBLECLICK:
+        switch (anEvent.mMessage) {
+          case eMouseClick:
+          case eMouseDoubleClick:
             // Button up/down events sent instead.
             return rv;
+          default:
+            break;
           }
 
         // Get reference point relative to plugin origin.
-        const nsPresContext* presContext = mObjectFrame->PresContext();
+        const nsPresContext* presContext = mPluginFrame->PresContext();
         nsPoint appPoint =
-          nsLayoutUtils::GetEventCoordinatesRelativeTo(&anEvent, mObjectFrame) -
-          mObjectFrame->GetContentRectRelativeToSelf().TopLeft();
+          nsLayoutUtils::GetEventCoordinatesRelativeTo(&anEvent, mPluginFrame) -
+          mPluginFrame->GetContentRectRelativeToSelf().TopLeft();
         nsIntPoint pluginPoint(presContext->AppUnitsToDevPixels(appPoint.x),
                                presContext->AppUnitsToDevPixels(appPoint.y));
 
-        switch (anEvent.message)
-          {
-          case NS_MOUSE_MOVE:
+        switch (anEvent.mMessage) {
+          case eMouseMove:
             {
               // are these going to be touch events?
               // pluginPoint.x;
               // pluginPoint.y;
             }
             break;
-          case NS_MOUSE_BUTTON_DOWN:
+          case eMouseDown:
             {
               ANPEvent event;
               event.inSize = sizeof(ANPEvent);
@@ -1940,7 +2370,7 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
               mInstance->HandleEvent(&event, nullptr, NS_PLUGIN_CALL_SAFE_TO_REENTER_GECKO);
             }
             break;
-          case NS_MOUSE_BUTTON_UP:
+          case eMouseUp:
             {
               ANPEvent event;
               event.inSize = sizeof(ANPEvent);
@@ -1950,6 +2380,8 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(const WidgetGUIEvent& anEvent)
               event.data.mouse.y = pluginPoint.y;
               mInstance->HandleEvent(&event, nullptr, NS_PLUGIN_CALL_SAFE_TO_REENTER_GECKO);
             }
+            break;
+          default:
             break;
           }
       }
@@ -1988,38 +2420,38 @@ nsPluginInstanceOwner::Destroy()
 
 #ifdef XP_MACOSX
   RemoveFromCARefreshTimer();
-  if (mColorProfile)
-    ::CGColorSpaceRelease(mColorProfile);
 #endif
+
+  nsCOMPtr<nsIContent> content = do_QueryReferent(mContent);
 
   // unregister context menu listener
   if (mCXMenuListener) {
-    mCXMenuListener->Destroy(mContent);
+    mCXMenuListener->Destroy(content);
     mCXMenuListener = nullptr;
   }
 
-  mContent->RemoveEventListener(NS_LITERAL_STRING("focus"), this, false);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("blur"), this, false);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("mouseup"), this, false);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("mousedown"), this, false);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("mousemove"), this, false);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("click"), this, false);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("dblclick"), this, false);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("mouseover"), this, false);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("mouseout"), this, false);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("keypress"), this, true);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("keydown"), this, true);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("keyup"), this, true);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("drop"), this, true);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("dragdrop"), this, true);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("drag"), this, true);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("dragenter"), this, true);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("dragover"), this, true);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("dragleave"), this, true);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("dragexit"), this, true);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("dragstart"), this, true);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("draggesture"), this, true);
-  mContent->RemoveEventListener(NS_LITERAL_STRING("dragend"), this, true);
+  content->RemoveEventListener(NS_LITERAL_STRING("focus"), this, false);
+  content->RemoveEventListener(NS_LITERAL_STRING("blur"), this, false);
+  content->RemoveEventListener(NS_LITERAL_STRING("mouseup"), this, false);
+  content->RemoveEventListener(NS_LITERAL_STRING("mousedown"), this, false);
+  content->RemoveEventListener(NS_LITERAL_STRING("mousemove"), this, false);
+  content->RemoveEventListener(NS_LITERAL_STRING("click"), this, false);
+  content->RemoveEventListener(NS_LITERAL_STRING("dblclick"), this, false);
+  content->RemoveEventListener(NS_LITERAL_STRING("mouseover"), this, false);
+  content->RemoveEventListener(NS_LITERAL_STRING("mouseout"), this, false);
+  content->RemoveEventListener(NS_LITERAL_STRING("keypress"), this, true);
+  content->RemoveEventListener(NS_LITERAL_STRING("keydown"), this, true);
+  content->RemoveEventListener(NS_LITERAL_STRING("keyup"), this, true);
+  content->RemoveEventListener(NS_LITERAL_STRING("drop"), this, true);
+  content->RemoveEventListener(NS_LITERAL_STRING("dragdrop"), this, true);
+  content->RemoveEventListener(NS_LITERAL_STRING("drag"), this, true);
+  content->RemoveEventListener(NS_LITERAL_STRING("dragenter"), this, true);
+  content->RemoveEventListener(NS_LITERAL_STRING("dragover"), this, true);
+  content->RemoveEventListener(NS_LITERAL_STRING("dragleave"), this, true);
+  content->RemoveEventListener(NS_LITERAL_STRING("dragexit"), this, true);
+  content->RemoveEventListener(NS_LITERAL_STRING("dragstart"), this, true);
+  content->RemoveEventListener(NS_LITERAL_STRING("draggesture"), this, true);
+  content->RemoveEventListener(NS_LITERAL_STRING("dragend"), this, true);
 
 #if MOZ_WIDGET_ANDROID
   RemovePluginView();
@@ -2045,7 +2477,7 @@ nsPluginInstanceOwner::Destroy()
 #ifdef XP_MACOSX
 void nsPluginInstanceOwner::Paint(const gfxRect& aDirtyRect, CGContextRef cgContext)
 {
-  if (!mInstance || !mObjectFrame)
+  if (!mInstance || !mPluginFrame)
     return;
 
   gfxRect dirtyRectCopy = aDirtyRect;
@@ -2058,16 +2490,12 @@ void nsPluginInstanceOwner::Paint(const gfxRect& aDirtyRect, CGContextRef cgCont
     dirtyRectCopy.ScaleRoundOut(1.0 / scaleFactor);
   }
 
-  nsCOMPtr<nsIPluginWidget> pluginWidget = do_QueryInterface(mWidget);
-  if (pluginWidget && NS_SUCCEEDED(pluginWidget->StartDrawPlugin())) {
-    DoCocoaEventDrawRect(dirtyRectCopy, cgContext);
-    pluginWidget->EndDrawPlugin();
-  }
+  DoCocoaEventDrawRect(dirtyRectCopy, cgContext);
 }
 
 void nsPluginInstanceOwner::DoCocoaEventDrawRect(const gfxRect& aDrawRect, CGContextRef cgContext)
 {
-  if (!mInstance || !mObjectFrame)
+  if (!mInstance || !mPluginFrame)
     return;
 
   // The context given here is only valid during the HandleEvent call.
@@ -2087,7 +2515,7 @@ void nsPluginInstanceOwner::DoCocoaEventDrawRect(const gfxRect& aDrawRect, CGCon
 #ifdef XP_WIN
 void nsPluginInstanceOwner::Paint(const RECT& aDirty, HDC aDC)
 {
-  if (!mInstance || !mObjectFrame)
+  if (!mInstance || !mPluginFrame)
     return;
 
   NPEvent pluginEvent;
@@ -2104,7 +2532,7 @@ void nsPluginInstanceOwner::Paint(gfxContext* aContext,
                                   const gfxRect& aFrameRect,
                                   const gfxRect& aDirtyRect)
 {
-  if (!mInstance || !mObjectFrame || !mPluginDocumentActiveState || mFullScreen)
+  if (!mInstance || !mPluginFrame || !mPluginDocumentActiveState || mFullScreen)
     return;
 
   int32_t model = mInstance->GetANPDrawingModel();
@@ -2120,13 +2548,13 @@ void nsPluginInstanceOwner::Paint(gfxContext* aContext,
     return;
 
 #ifdef ANP_BITMAP_DRAWING_MODEL
-  static nsRefPtr<gfxImageSurface> pluginSurface;
+  static RefPtr<gfxImageSurface> pluginSurface;
 
   if (pluginSurface == nullptr ||
       aFrameRect.width  != pluginSurface->Width() ||
       aFrameRect.height != pluginSurface->Height()) {
 
-    pluginSurface = new gfxImageSurface(gfxIntSize(aFrameRect.width, aFrameRect.height),
+    pluginSurface = new gfxImageSurface(gfx::IntSize(aFrameRect.width, aFrameRect.height),
                                         gfxImageFormat::ARGB32);
     if (!pluginSurface)
       return;
@@ -2156,7 +2584,7 @@ void nsPluginInstanceOwner::Paint(gfxContext* aContext,
 
   mInstance->HandleEvent(&event, nullptr);
 
-  aContext->SetOperator(gfxContext::OPERATOR_SOURCE);
+  aContext->SetOp(gfx::CompositionOp::OP_SOURCE);
   aContext->SetSource(pluginSurface, gfxPoint(aFrameRect.x, aFrameRect.y));
   aContext->Clip(aFrameRect);
   aContext->Paint();
@@ -2169,7 +2597,7 @@ void nsPluginInstanceOwner::Paint(gfxContext* aContext,
                                   const gfxRect& aFrameRect,
                                   const gfxRect& aDirtyRect)
 {
-  if (!mInstance || !mObjectFrame)
+  if (!mInstance || !mPluginFrame)
     return;
 
   // to provide crisper and faster drawing.
@@ -2366,13 +2794,13 @@ nsresult nsPluginInstanceOwner::Init(nsIContent* aContent)
 {
   mLastEventloopNestingLevel = GetEventloopNestingLevel();
 
-  mContent = aContent;
+  mContent = do_GetWeakReference(aContent);
 
   // Get a frame, don't reflow. If a reflow was necessary it should have been
   // done at a higher level than this (content).
   nsIFrame* frame = aContent->GetPrimaryFrame();
   nsIObjectFrame* iObjFrame = do_QueryFrame(frame);
-  nsObjectFrame* objFrame =  static_cast<nsObjectFrame*>(iObjFrame);
+  nsPluginFrame* objFrame =  static_cast<nsPluginFrame*>(iObjFrame);
   if (objFrame) {
     SetFrame(objFrame);
     // Some plugins require a specific sequence of shutdown and startup when
@@ -2388,42 +2816,42 @@ nsresult nsPluginInstanceOwner::Init(nsIContent* aContent)
   // register context menu listener
   mCXMenuListener = new nsPluginDOMContextMenuListener(aContent);
 
-  mContent->AddEventListener(NS_LITERAL_STRING("focus"), this, false,
+  aContent->AddEventListener(NS_LITERAL_STRING("focus"), this, false,
                              false);
-  mContent->AddEventListener(NS_LITERAL_STRING("blur"), this, false,
+  aContent->AddEventListener(NS_LITERAL_STRING("blur"), this, false,
                              false);
-  mContent->AddEventListener(NS_LITERAL_STRING("mouseup"), this, false,
+  aContent->AddEventListener(NS_LITERAL_STRING("mouseup"), this, false,
                              false);
-  mContent->AddEventListener(NS_LITERAL_STRING("mousedown"), this, false,
+  aContent->AddEventListener(NS_LITERAL_STRING("mousedown"), this, false,
                              false);
-  mContent->AddEventListener(NS_LITERAL_STRING("mousemove"), this, false,
+  aContent->AddEventListener(NS_LITERAL_STRING("mousemove"), this, false,
                              false);
-  mContent->AddEventListener(NS_LITERAL_STRING("click"), this, false,
+  aContent->AddEventListener(NS_LITERAL_STRING("click"), this, false,
                              false);
-  mContent->AddEventListener(NS_LITERAL_STRING("dblclick"), this, false,
+  aContent->AddEventListener(NS_LITERAL_STRING("dblclick"), this, false,
                              false);
-  mContent->AddEventListener(NS_LITERAL_STRING("mouseover"), this, false,
+  aContent->AddEventListener(NS_LITERAL_STRING("mouseover"), this, false,
                              false);
-  mContent->AddEventListener(NS_LITERAL_STRING("mouseout"), this, false,
+  aContent->AddEventListener(NS_LITERAL_STRING("mouseout"), this, false,
                              false);
-  mContent->AddEventListener(NS_LITERAL_STRING("keypress"), this, true);
-  mContent->AddEventListener(NS_LITERAL_STRING("keydown"), this, true);
-  mContent->AddEventListener(NS_LITERAL_STRING("keyup"), this, true);
-  mContent->AddEventListener(NS_LITERAL_STRING("drop"), this, true);
-  mContent->AddEventListener(NS_LITERAL_STRING("dragdrop"), this, true);
-  mContent->AddEventListener(NS_LITERAL_STRING("drag"), this, true);
-  mContent->AddEventListener(NS_LITERAL_STRING("dragenter"), this, true);
-  mContent->AddEventListener(NS_LITERAL_STRING("dragover"), this, true);
-  mContent->AddEventListener(NS_LITERAL_STRING("dragleave"), this, true);
-  mContent->AddEventListener(NS_LITERAL_STRING("dragexit"), this, true);
-  mContent->AddEventListener(NS_LITERAL_STRING("dragstart"), this, true);
-  mContent->AddEventListener(NS_LITERAL_STRING("draggesture"), this, true);
-  mContent->AddEventListener(NS_LITERAL_STRING("dragend"), this, true);
+  aContent->AddEventListener(NS_LITERAL_STRING("keypress"), this, true);
+  aContent->AddEventListener(NS_LITERAL_STRING("keydown"), this, true);
+  aContent->AddEventListener(NS_LITERAL_STRING("keyup"), this, true);
+  aContent->AddEventListener(NS_LITERAL_STRING("drop"), this, true);
+  aContent->AddEventListener(NS_LITERAL_STRING("dragdrop"), this, true);
+  aContent->AddEventListener(NS_LITERAL_STRING("drag"), this, true);
+  aContent->AddEventListener(NS_LITERAL_STRING("dragenter"), this, true);
+  aContent->AddEventListener(NS_LITERAL_STRING("dragover"), this, true);
+  aContent->AddEventListener(NS_LITERAL_STRING("dragleave"), this, true);
+  aContent->AddEventListener(NS_LITERAL_STRING("dragexit"), this, true);
+  aContent->AddEventListener(NS_LITERAL_STRING("dragstart"), this, true);
+  aContent->AddEventListener(NS_LITERAL_STRING("draggesture"), this, true);
+  aContent->AddEventListener(NS_LITERAL_STRING("dragend"), this, true);
 
   return NS_OK;
 }
 
-void* nsPluginInstanceOwner::GetPluginPortFromWidget()
+void* nsPluginInstanceOwner::GetPluginPort()
 {
 //!!! Port must be released for windowless plugins on Windows, because it is HDC !!!
 
@@ -2431,18 +2859,12 @@ void* nsPluginInstanceOwner::GetPluginPortFromWidget()
   if (mWidget) {
 #ifdef XP_WIN
     if (mPluginWindow && (mPluginWindow->type == NPWindowTypeDrawable))
-      result = mWidget->GetNativeData(NS_NATIVE_GRAPHIC);
+      result = mWidget->GetNativeData(NS_NATIVE_GRAPHIC); // HDC
     else
 #endif
-#ifdef XP_MACOSX
-    if (GetDrawingModel() == NPDrawingModelCoreGraphics ||
-        GetDrawingModel() == NPDrawingModelCoreAnimation ||
-        GetDrawingModel() == NPDrawingModelInvalidatingCoreAnimation)
-      result = mWidget->GetNativeData(NS_NATIVE_PLUGIN_PORT_CG);
-    else
-#endif
-      result = mWidget->GetNativeData(NS_NATIVE_PLUGIN_PORT);
+      result = mWidget->GetNativeData(NS_NATIVE_PLUGIN_PORT); // HWND/gdk window
   }
+
   return result;
 }
 
@@ -2470,63 +2892,68 @@ NS_IMETHODIMP nsPluginInstanceOwner::CreateWidget(void)
 
   bool windowless = false;
   mInstance->IsWindowless(&windowless);
-  if (!windowless
-// Mac plugins use the widget for setting up the plugin window and event handling.
-// We want to use the puppet widgets there with e10s
-#ifndef XP_MACOSX
-      && !nsIWidget::UsePuppetWidgets()
-#endif
-      ) {
+  if (!windowless) {
     // Try to get a parent widget, on some platforms widget creation will fail without
     // a parent.
     nsCOMPtr<nsIWidget> parentWidget;
     nsIDocument *doc = nullptr;
-    if (mContent) {
-      doc = mContent->OwnerDoc();
+    nsCOMPtr<nsIContent> content = do_QueryReferent(mContent);
+    if (content) {
+      doc = content->OwnerDoc();
       parentWidget = nsContentUtils::WidgetForDocument(doc);
+#ifndef XP_MACOSX
+      // If we're running in the content process, we need a remote widget created in chrome.
+      if (XRE_IsContentProcess()) {
+        if (nsCOMPtr<nsPIDOMWindow> window = doc->GetWindow()) {
+          if (nsCOMPtr<nsPIDOMWindow> topWindow = window->GetTop()) {
+            dom::TabChild* tc = dom::TabChild::GetFrom(topWindow);
+            if (tc) {
+              // This returns a PluginWidgetProxy which remotes a number of calls.
+              rv = tc->CreatePluginWidget(parentWidget.get(), getter_AddRefs(mWidget));
+              if (NS_FAILED(rv)) {
+                return rv;
+              }
+            }
+          }
+        }
+      }
+#endif // XP_MACOSX
     }
 
-    mWidget = do_CreateInstance(kWidgetCID, &rv);
-    if (NS_FAILED(rv)) {
-      return rv;
+#ifndef XP_MACOSX
+    // A failure here is terminal since we can't fall back on the non-e10s code
+    // path below.
+    if (!mWidget && XRE_IsContentProcess()) {
+      return NS_ERROR_UNEXPECTED;
+    }
+#endif // XP_MACOSX
+
+    if (!mWidget) {
+      // native (single process)
+      mWidget = do_CreateInstance(kWidgetCID, &rv);
+      nsWidgetInitData initData;
+      initData.mWindowType = eWindowType_plugin;
+      initData.mUnicode = false;
+      initData.clipChildren = true;
+      initData.clipSiblings = true;
+      rv = mWidget->Create(parentWidget.get(), nullptr, nsIntRect(0,0,0,0),
+                           &initData);
+      if (NS_FAILED(rv)) {
+        mWidget->Destroy();
+        mWidget = nullptr;
+        return rv;
+      }
     }
 
-    nsWidgetInitData initData;
-    initData.mWindowType = eWindowType_plugin;
-    initData.mUnicode = false;
-    initData.clipChildren = true;
-    initData.clipSiblings = true;
-    rv = mWidget->Create(parentWidget.get(), nullptr, nsIntRect(0,0,0,0),
-                         nullptr, &initData);
-    if (NS_FAILED(rv)) {
-      mWidget->Destroy();
-      mWidget = nullptr;
-      return rv;
-    }
 
     mWidget->EnableDragDrop(true);
     mWidget->Show(false);
     mWidget->Enable(false);
-
-#ifdef XP_MACOSX
-    // Now that we have a widget we want to set the event model before
-    // any events are processed.
-    nsCOMPtr<nsIPluginWidget> pluginWidget = do_QueryInterface(mWidget);
-    if (!pluginWidget) {
-      return NS_ERROR_FAILURE;
-    }
-    pluginWidget->SetPluginEventModel(GetEventModel());
-    pluginWidget->SetPluginDrawingModel(GetDrawingModel());
-
-    if (GetDrawingModel() == NPDrawingModelCoreAnimation) {
-      AddToCARefreshTimer();
-    }
-#endif
   }
 
-  if (mObjectFrame) {
+  if (mPluginFrame) {
     // nullptr widget is fine, will result in windowless setup.
-    mObjectFrame->PrepForDrawing(mWidget);
+    mPluginFrame->PrepForDrawing(mWidget);
   }
 
   if (windowless) {
@@ -2552,7 +2979,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::CreateWidget(void)
     // mPluginWindow->type is used in |GetPluginPort| so it must
     // be initialized first
     mPluginWindow->type = NPWindowTypeWindow;
-    mPluginWindow->window = GetPluginPortFromWidget();
+    mPluginWindow->window = GetPluginPort();
     // tell the plugin window about the widget
     mPluginWindow->SetPluginWidget(mWidget);
 
@@ -2563,6 +2990,12 @@ NS_IMETHODIMP nsPluginInstanceOwner::CreateWidget(void)
     }
   }
 
+#ifdef XP_MACOSX
+  if (GetDrawingModel() == NPDrawingModelCoreAnimation) {
+    AddToCARefreshTimer();
+  }
+#endif
+
   mWidgetCreationComplete = true;
 
   return NS_OK;
@@ -2571,75 +3004,30 @@ NS_IMETHODIMP nsPluginInstanceOwner::CreateWidget(void)
 // Mac specific code to fix up the port location and clipping region
 #ifdef XP_MACOSX
 
-void* nsPluginInstanceOwner::FixUpPluginWindow(int32_t inPaintState)
+void nsPluginInstanceOwner::FixUpPluginWindow(int32_t inPaintState)
 {
-  if (!mWidget || !mPluginWindow || !mInstance || !mObjectFrame)
-    return nullptr;
-
-  nsCOMPtr<nsIPluginWidget> pluginWidget = do_QueryInterface(mWidget);
-  if (!pluginWidget)
-    return nullptr;
-
-  // If we've already set up a CGContext in nsObjectFrame::PaintPlugin(), we
-  // don't want calls to SetPluginPortAndDetectChange() to step on our work.
-  if (mInCGPaintLevel < 1) {
-    SetPluginPortAndDetectChange();
+  if (!mPluginWindow || !mInstance || !mPluginFrame) {
+    return;
   }
 
-  // We'll need the top-level Cocoa window for the Cocoa event model.
-  nsIWidget* widget = mObjectFrame->GetNearestWidget();
-  if (!widget)
-    return nullptr;
-  void *cocoaTopLevelWindow = widget->GetNativeData(NS_NATIVE_WINDOW);
-  // We don't expect to have a top level window in a content process
-  if (!cocoaTopLevelWindow && XRE_GetProcessType() == GeckoProcessType_Default) {
-    return nullptr;
-  }
+  SetPluginPort();
 
-  nsIntPoint pluginOrigin;
-  nsIntRect widgetClip;
-  bool widgetVisible;
-  pluginWidget->GetPluginClipRect(widgetClip, pluginOrigin, widgetVisible);
-  // TODO: Detect visibility for e10s mac plugins
-  if (XRE_GetProcessType() != GeckoProcessType_Default) {
-    widgetVisible = true;
-  }
-  mWidgetVisible = widgetVisible;
+  nsIntSize widgetClip = mPluginFrame->GetWidgetlessClipRect().Size();
 
-  // printf("GetPluginClipRect returning visible %d\n", widgetVisible);
-
-  // This would be a lot easier if we could use obj-c here,
-  // but we can't. Since we have only nsIWidget and we can't
-  // use its native widget (an obj-c object) we have to go
-  // from the widget's screen coordinates to its window coords
-  // instead of straight to window coords.
-  nsIntPoint geckoScreenCoords = mWidget->WidgetToScreenOffset();
-
-  nsRect windowRect;
-  if (cocoaTopLevelWindow) {
-    NS_NPAPI_CocoaWindowFrame(cocoaTopLevelWindow, windowRect);
-  }
-
-  double scaleFactor = 1.0;
-  GetContentsScaleFactor(&scaleFactor);
-  int intScaleFactor = ceil(scaleFactor);
-
-  // Convert geckoScreenCoords from device pixels to "display pixels"
-  // for HiDPI modes.
-  mPluginWindow->x = geckoScreenCoords.x/intScaleFactor - windowRect.x;
-  mPluginWindow->y = geckoScreenCoords.y/intScaleFactor - windowRect.y;
+  mPluginWindow->x = 0;
+  mPluginWindow->y = 0;
 
   NPRect oldClipRect = mPluginWindow->clipRect;
 
   // fix up the clipping region
-  mPluginWindow->clipRect.top    = widgetClip.y;
-  mPluginWindow->clipRect.left   = widgetClip.x;
+  mPluginWindow->clipRect.top  = 0;
+  mPluginWindow->clipRect.left = 0;
 
-  if (!mWidgetVisible || inPaintState == ePluginPaintDisable) {
+  if (inPaintState == ePluginPaintDisable) {
     mPluginWindow->clipRect.bottom = mPluginWindow->clipRect.top;
     mPluginWindow->clipRect.right  = mPluginWindow->clipRect.left;
   }
-  else if (XRE_GetProcessType() != GeckoProcessType_Default)
+  else if (!XRE_IsParentProcess())
   {
     // For e10s we only support async windowless plugin. This means that
     // we're always going to allocate a full window for the plugin to draw
@@ -2659,8 +3047,7 @@ void* nsPluginInstanceOwner::FixUpPluginWindow(int32_t inPaintState)
   if (mPluginWindow->clipRect.left    != oldClipRect.left   ||
       mPluginWindow->clipRect.top     != oldClipRect.top    ||
       mPluginWindow->clipRect.right   != oldClipRect.right  ||
-      mPluginWindow->clipRect.bottom  != oldClipRect.bottom ||
-      mPluginPortChanged)
+      mPluginWindow->clipRect.bottom  != oldClipRect.bottom)
   {
     if (UseAsyncRendering()) {
       mInstance->AsyncSetWindow(mPluginWindow);
@@ -2668,7 +3055,6 @@ void* nsPluginInstanceOwner::FixUpPluginWindow(int32_t inPaintState)
     else {
       mPluginWindow->CallSetWindow(mInstance);
     }
-    mPluginPortChanged = false;
   }
 
   // After the first NPP_SetWindow call we need to send an initial
@@ -2677,16 +3063,62 @@ void* nsPluginInstanceOwner::FixUpPluginWindow(int32_t inPaintState)
     // Set this before calling ProcessEvent to avoid endless recursion.
     mSentInitialTopLevelWindowEvent = true;
 
-    WidgetPluginEvent pluginEvent(true, NS_PLUGIN_FOCUS_EVENT, nullptr);
-    NPCocoaEvent cocoaEvent;
-    InitializeNPCocoaEvent(&cocoaEvent);
-    cocoaEvent.type = NPCocoaEventWindowFocusChanged;
-    cocoaEvent.data.focus.hasFocus = cocoaTopLevelWindow ? NS_NPAPI_CocoaWindowIsMain(cocoaTopLevelWindow) : true;
-    pluginEvent.mPluginEvent.Copy(cocoaEvent);
-    ProcessEvent(pluginEvent);
+    bool isActive = WindowIsActive();
+    SendWindowFocusChanged(isActive);
+    mLastWindowIsActive = isActive;
+  }
+}
+
+void
+nsPluginInstanceOwner::WindowFocusMayHaveChanged()
+{
+  if (!mSentInitialTopLevelWindowEvent) {
+    return;
   }
 
-  return nullptr;
+  bool isActive = WindowIsActive();
+  if (isActive != mLastWindowIsActive) {
+    SendWindowFocusChanged(isActive);
+    mLastWindowIsActive = isActive;
+  }
+}
+
+bool
+nsPluginInstanceOwner::WindowIsActive()
+{
+  if (!mPluginFrame) {
+    return false;
+  }
+
+  EventStates docState = mPluginFrame->GetContent()->OwnerDoc()->GetDocumentState();
+  return !docState.HasState(NS_DOCUMENT_STATE_WINDOW_INACTIVE);
+}
+
+void
+nsPluginInstanceOwner::SendWindowFocusChanged(bool aIsActive)
+{
+  if (!mInstance) {
+    return;
+  }
+
+  NPCocoaEvent cocoaEvent;
+  InitializeNPCocoaEvent(&cocoaEvent);
+  cocoaEvent.type = NPCocoaEventWindowFocusChanged;
+  cocoaEvent.data.focus.hasFocus = aIsActive;
+  mInstance->HandleEvent(&cocoaEvent,
+                         nullptr,
+                         NS_PLUGIN_CALL_SAFE_TO_REENTER_GECKO);
+}
+
+void
+nsPluginInstanceOwner::ResolutionMayHaveChanged()
+{
+  double scaleFactor = 1.0;
+  GetContentsScaleFactor(&scaleFactor);
+  if (scaleFactor != mLastScaleFactor) {
+    ContentsScaleFactorChanged(scaleFactor);
+    mLastScaleFactor = scaleFactor;
+   }
 }
 
 void
@@ -2722,7 +3154,7 @@ void nsPluginInstanceOwner::UpdateWindowPositionAndClipRect(bool aSetWindow)
   const NPWindow oldWindow = *mPluginWindow;
 
   bool windowless = (mPluginWindow->type == NPWindowTypeDrawable);
-  nsIntPoint origin = mObjectFrame->GetWindowOriginInPixels(windowless);
+  nsIntPoint origin = mPluginFrame->GetWindowOriginInPixels(windowless);
 
   mPluginWindow->x = origin.x;
   mPluginWindow->y = origin.y;
@@ -2757,17 +3189,20 @@ nsPluginInstanceOwner::UpdateWindowVisibility(bool aVisible)
   mPluginWindowVisible = aVisible;
   UpdateWindowPositionAndClipRect(true);
 }
+#endif // XP_MACOSX
 
 void
 nsPluginInstanceOwner::UpdateDocumentActiveState(bool aIsActive)
 {
   mPluginDocumentActiveState = aIsActive;
+#ifndef XP_MACOSX
   UpdateWindowPositionAndClipRect(true);
 
 #ifdef MOZ_WIDGET_ANDROID
   if (mInstance) {
-    if (!mPluginDocumentActiveState)
+    if (!mPluginDocumentActiveState) {
       RemovePluginView();
+    }
 
     mInstance->NotifyOnScreen(mPluginDocumentActiveState);
 
@@ -2779,15 +3214,29 @@ nsPluginInstanceOwner::UpdateDocumentActiveState(bool aIsActive)
     // that's why we call it here.
     mInstance->NotifyForeground(mPluginDocumentActiveState);
   }
-#endif
+#endif // #ifdef MOZ_WIDGET_ANDROID
+
+  // We don't have a connection to PluginWidgetParent in the chrome
+  // process when dealing with tab visibility changes, so this needs
+  // to be forwarded over after the active state is updated. If we
+  // don't hide plugin widgets in hidden tabs, the native child window
+  // in chrome will remain visible after a tab switch.
+  if (mWidget && XRE_IsContentProcess()) {
+    mWidget->Show(aIsActive);
+    mWidget->Enable(aIsActive);
+  }
+#endif // #ifndef XP_MACOSX
 }
-#endif // XP_MACOSX
 
 NS_IMETHODIMP
 nsPluginInstanceOwner::CallSetWindow()
 {
-  if (mObjectFrame) {
-    mObjectFrame->CallSetWindow(false);
+  if (!mWidgetCreationComplete) {
+    // No widget yet, we can't run this code
+    return NS_OK;
+  }
+  if (mPluginFrame) {
+    mPluginFrame->CallSetWindow(false);
   } else if (mInstance) {
     if (UseAsyncRendering()) {
       mInstance->AsyncSetWindow(mPluginWindow);
@@ -2808,54 +3257,82 @@ nsPluginInstanceOwner::GetContentsScaleFactor(double *result)
   // for plugins. On other platforms, plugin coordinates are always in device
   // pixels.
 #if defined(XP_MACOSX)
-  nsIPresShell* presShell = nsContentUtils::FindPresShellForDocument(mContent->OwnerDoc());
+  nsCOMPtr<nsIContent> content = do_QueryReferent(mContent);
+  nsIPresShell* presShell = nsContentUtils::FindPresShellForDocument(content->OwnerDoc());
   if (presShell) {
     scaleFactor = double(nsPresContext::AppUnitsPerCSSPixel())/
-      presShell->GetPresContext()->DeviceContext()->UnscaledAppUnitsPerDevPixel();
+      presShell->GetPresContext()->DeviceContext()->AppUnitsPerDevPixelAtUnitFullZoom();
   }
 #endif
   *result = scaleFactor;
   return NS_OK;
 }
 
-void nsPluginInstanceOwner::SetFrame(nsObjectFrame *aFrame)
+void nsPluginInstanceOwner::SetFrame(nsPluginFrame *aFrame)
 {
   // Don't do anything if the frame situation hasn't changed.
-  if (mObjectFrame == aFrame) {
+  if (mPluginFrame == aFrame) {
     return;
   }
 
+  nsCOMPtr<nsIContent> content = do_QueryReferent(mContent);
+
   // If we already have a frame that is changing or going away...
-  if (mObjectFrame) {
+  if (mPluginFrame) {
+    if (content && content->OwnerDoc() && content->OwnerDoc()->GetWindow()) {
+      nsCOMPtr<EventTarget> windowRoot = content->OwnerDoc()->GetWindow()->GetTopWindowRoot();
+      if (windowRoot) {
+        windowRoot->RemoveEventListener(NS_LITERAL_STRING("activate"),
+                                              this, false);
+        windowRoot->RemoveEventListener(NS_LITERAL_STRING("deactivate"),
+                                              this, false);
+        windowRoot->RemoveEventListener(NS_LITERAL_STRING("MozPerformDelayedBlur"),
+                                              this, false);
+      }
+    }
+
     // Make sure the old frame isn't holding a reference to us.
-    mObjectFrame->SetInstanceOwner(nullptr);
+    mPluginFrame->SetInstanceOwner(nullptr);
   }
 
   // Swap in the new frame (or no frame)
-  mObjectFrame = aFrame;
+  mPluginFrame = aFrame;
 
   // Set up a new frame
-  if (mObjectFrame) {
-    mObjectFrame->SetInstanceOwner(this);
+  if (mPluginFrame) {
+    mPluginFrame->SetInstanceOwner(this);
     // Can only call PrepForDrawing on an object frame once. Don't do it here unless
     // widget creation is complete. Doesn't matter if we actually have a widget.
     if (mWidgetCreationComplete) {
-      mObjectFrame->PrepForDrawing(mWidget);
+      mPluginFrame->PrepForDrawing(mWidget);
     }
-    mObjectFrame->FixupWindow(mObjectFrame->GetContentRectRelativeToSelf().Size());
-    mObjectFrame->InvalidateFrame();
+    mPluginFrame->FixupWindow(mPluginFrame->GetContentRectRelativeToSelf().Size());
+    mPluginFrame->InvalidateFrame();
 
     nsFocusManager* fm = nsFocusManager::GetFocusManager();
     const nsIContent* content = aFrame->GetContent();
     if (fm && content) {
       mContentFocused = (content == fm->GetFocusedContent());
     }
+
+    // Register for widget-focus events on the window root.
+    if (content && content->OwnerDoc() && content->OwnerDoc()->GetWindow()) {
+      nsCOMPtr<EventTarget> windowRoot = content->OwnerDoc()->GetWindow()->GetTopWindowRoot();
+      if (windowRoot) {
+        windowRoot->AddEventListener(NS_LITERAL_STRING("activate"),
+                                           this, false, false);
+        windowRoot->AddEventListener(NS_LITERAL_STRING("deactivate"),
+                                           this, false, false);
+        windowRoot->AddEventListener(NS_LITERAL_STRING("MozPerformDelayedBlur"),
+                                           this, false, false);
+      }
+    }
   }
 }
 
-nsObjectFrame* nsPluginInstanceOwner::GetFrame()
+nsPluginFrame* nsPluginInstanceOwner::GetFrame()
 {
-  return mObjectFrame;
+  return mPluginFrame;
 }
 
 NS_IMETHODIMP nsPluginInstanceOwner::PrivateModeChanged(bool aEnabled)
@@ -2865,10 +3342,11 @@ NS_IMETHODIMP nsPluginInstanceOwner::PrivateModeChanged(bool aEnabled)
 
 already_AddRefed<nsIURI> nsPluginInstanceOwner::GetBaseURI() const
 {
-  if (!mContent) {
+  nsCOMPtr<nsIContent> content = do_QueryReferent(mContent);
+  if (!content) {
     return nullptr;
   }
-  return mContent->GetBaseURI();
+  return content->GetBaseURI();
 }
 
 // nsPluginDOMContextMenuListener class implementation

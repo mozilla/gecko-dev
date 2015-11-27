@@ -22,16 +22,57 @@
  * limitations under the License.
  */
 
-#ifndef mozilla_pkix__Result_h
-#define mozilla_pkix__Result_h
+#ifndef mozilla_pkix_Result_h
+#define mozilla_pkix_Result_h
 
 #include <cassert>
-
-#include "pkix/enumclass.h"
 
 namespace mozilla { namespace pkix {
 
 static const unsigned int FATAL_ERROR_FLAG = 0x800;
+
+// ----------------------------------------------------------------------------
+// SELECTED ERROR CODE EXPLANATIONS
+//
+// Result::ERROR_UNTRUSTED_CERT
+//         means that the end-entity certificate was actively distrusted.
+// Result::ERROR_UNTRUSTED_ISSUER
+//         means that path building failed because of active distrust.
+// Result::ERROR_INVALID_DER_TIME
+//         means the DER-encoded time was unexpected, such as being before the
+//         UNIX epoch (allowed by X500, but not valid here).
+// Result::ERROR_EXPIRED_CERTIFICATE
+//         means the end entity certificate expired.
+// Result::ERROR_EXPIRED_ISSUER_CERTIFICATE
+//         means the CA certificate expired.
+// Result::ERROR_UNKNOWN_ISSUER
+//         means that the CA could not be found in the root store.
+// Result::ERROR_POLICY_VALIDATION_FAILED
+//         means that an encoded policy could not be applied or wasn't present
+//         when expected. Usually this is in the context of Extended Validation.
+// Result::ERROR_BAD_CERT_DOMAIN
+//         means that the certificate's name couldn't be matched to the
+//         reference identifier.
+// Result::ERROR_CERT_NOT_IN_NAME_SPACE
+//         typically means the certificate violates name constraints applied
+//         by the issuer.
+// Result::ERROR_BAD_DER
+//         means the input was improperly encoded.
+// Result::ERROR_UNKNOWN_ERROR
+//         means that an external library (NSS) provided an error we didn't
+//         anticipate. See the map below in Result.h to add new ones.
+// Result::FATAL_ERROR_LIBRARY_FAILURE
+//         is an unexpected fatal error indicating a library had an unexpected
+//         failure, and we can't proceed.
+// Result::FATAL_ERROR_INVALID_ARGS
+//         means that we violated our own expectations on inputs and there's a
+//         bug somewhere.
+// Result::FATAL_ERROR_INVALID_STATE
+//         means that we violated our own expectations on state and there's a
+//         bug somewhere.
+// Result::FATAL_ERROR_NO_MEMORY
+//         means a memory allocation failed, prohibiting validation.
+// ----------------------------------------------------------------------------
 
 // The first argument to MOZILLA_PKIX_MAP() is used for building the mapping
 // from error code to error name in MapResultToName.
@@ -68,7 +109,7 @@ static const unsigned int FATAL_ERROR_FLAG = 0x800;
                      SEC_ERROR_INADEQUATE_KEY_USAGE) \
     MOZILLA_PKIX_MAP(ERROR_INVALID_ALGORITHM, 12, \
                      SEC_ERROR_INVALID_ALGORITHM) \
-    MOZILLA_PKIX_MAP(ERROR_INVALID_TIME, 13, \
+    MOZILLA_PKIX_MAP(ERROR_INVALID_DER_TIME, 13, \
                      SEC_ERROR_INVALID_TIME) \
     MOZILLA_PKIX_MAP(ERROR_KEY_PINNING_FAILURE, 14, \
                      MOZILLA_PKIX_ERROR_KEY_PINNING_FAILURE) \
@@ -124,6 +165,28 @@ static const unsigned int FATAL_ERROR_FLAG = 0x800;
                      MOZILLA_PKIX_ERROR_CA_CERT_USED_AS_END_ENTITY) \
     MOZILLA_PKIX_MAP(ERROR_INADEQUATE_KEY_SIZE, 40, \
                      MOZILLA_PKIX_ERROR_INADEQUATE_KEY_SIZE) \
+    MOZILLA_PKIX_MAP(ERROR_V1_CERT_USED_AS_CA, 41, \
+                     MOZILLA_PKIX_ERROR_V1_CERT_USED_AS_CA) \
+    MOZILLA_PKIX_MAP(ERROR_BAD_CERT_DOMAIN, 42, \
+                     SSL_ERROR_BAD_CERT_DOMAIN) \
+    MOZILLA_PKIX_MAP(ERROR_NO_RFC822NAME_MATCH, 43, \
+                     MOZILLA_PKIX_ERROR_NO_RFC822NAME_MATCH) \
+    MOZILLA_PKIX_MAP(ERROR_UNSUPPORTED_ELLIPTIC_CURVE, 44, \
+                     SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE) \
+    MOZILLA_PKIX_MAP(ERROR_NOT_YET_VALID_CERTIFICATE, 45, \
+                     MOZILLA_PKIX_ERROR_NOT_YET_VALID_CERTIFICATE) \
+    MOZILLA_PKIX_MAP(ERROR_NOT_YET_VALID_ISSUER_CERTIFICATE, 46, \
+                     MOZILLA_PKIX_ERROR_NOT_YET_VALID_ISSUER_CERTIFICATE) \
+    MOZILLA_PKIX_MAP(ERROR_UNSUPPORTED_EC_POINT_FORM, 47, \
+                     SEC_ERROR_UNSUPPORTED_EC_POINT_FORM) \
+    MOZILLA_PKIX_MAP(ERROR_SIGNATURE_ALGORITHM_MISMATCH, 48, \
+                     MOZILLA_PKIX_ERROR_SIGNATURE_ALGORITHM_MISMATCH) \
+    MOZILLA_PKIX_MAP(ERROR_OCSP_RESPONSE_FOR_CERT_MISSING, 49, \
+                     MOZILLA_PKIX_ERROR_OCSP_RESPONSE_FOR_CERT_MISSING) \
+    MOZILLA_PKIX_MAP(ERROR_VALIDITY_TOO_LONG, 50, \
+                     MOZILLA_PKIX_ERROR_VALIDITY_TOO_LONG) \
+    MOZILLA_PKIX_MAP(ERROR_REQUIRED_TLS_FEATURE_MISSING, 51, \
+                     MOZILLA_PKIX_ERROR_REQUIRED_TLS_FEATURE_MISSING) \
     MOZILLA_PKIX_MAP(FATAL_ERROR_INVALID_ARGS, FATAL_ERROR_FLAG | 1, \
                      SEC_ERROR_INVALID_ARGS) \
     MOZILLA_PKIX_MAP(FATAL_ERROR_INVALID_STATE, FATAL_ERROR_FLAG | 2, \
@@ -134,7 +197,7 @@ static const unsigned int FATAL_ERROR_FLAG = 0x800;
                      SEC_ERROR_NO_MEMORY) \
     /* nothing here */
 
-MOZILLA_PKIX_ENUM_CLASS Result
+enum class Result
 {
 #define MOZILLA_PKIX_MAP(name, value, nss_name) name = value,
   MOZILLA_PKIX_MAP_LIST
@@ -148,13 +211,7 @@ const char* MapResultToName(Result result);
 // We write many comparisons as (x != Success), and this shortened name makes
 // those comparisons clearer, especially because the shortened name often
 // results in less line wrapping.
-//
-// Visual Studio before VS2013 does not support "enum class," so
-// Result::Success will already be visible in this scope, and compilation will
-// fail if we try to define a variable with that name here.
-#if !defined(_MSC_VER) || (_MSC_VER >= 1700)
 static const Result Success = Result::Success;
-#endif
 
 inline bool
 IsFatalError(Result rv)
@@ -171,4 +228,4 @@ NotReached(const char* /*explanation*/, Result result)
 
 } } // namespace mozilla::pkix
 
-#endif // mozilla_pkix__Result_h
+#endif // mozilla_pkix_Result_h

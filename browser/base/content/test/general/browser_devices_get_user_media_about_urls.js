@@ -12,6 +12,7 @@ const kObservedTopics = [
 ];
 
 const PREF_PERMISSION_FAKE = "media.navigator.permission.fake";
+const PREF_LOOP_CSP = "loop.CSP";
 
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -20,6 +21,37 @@ XPCOMUtils.defineLazyServiceGetter(this, "MediaManagerService",
                                    "nsIMediaManagerService");
 
 var gTab;
+
+// Taken from dom/media/tests/mochitest/head.js
+function isMacOSX10_6orOlder() {
+  var is106orOlder = false;
+
+  if (navigator.platform.indexOf("Mac") == 0) {
+    var version = Cc["@mozilla.org/system-info;1"]
+                    .getService(Ci.nsIPropertyBag2)
+                    .getProperty("version");
+    // the next line is correct: Mac OS 10.6 corresponds to Darwin version 10.x !
+    // Mac OS 10.7 is Darwin version 11.x. the |version| string we've got here
+    // is the Darwin version.
+    is106orOlder = (parseFloat(version) < 11.0);
+  }
+  return is106orOlder;
+}
+
+// Screensharing is disabled on older platforms (WinXP and Mac 10.6).
+function isOldPlatform() {
+  const isWinXP = navigator.userAgent.indexOf("Windows NT 5.1") != -1;
+  if (isMacOSX10_6orOlder() || isWinXP) {
+    info(true, "Screensharing disabled for OSX10.6 and WinXP");
+    return true;
+  }
+  return false;
+}
+
+// Linux prompts aren't working for screensharing.
+function isLinux() {
+  return navigator.platform.indexOf("Linux") != -1;
+}
 
 var gObservedTopics = {};
 function observer(aSubject, aTopic, aData) {
@@ -96,20 +128,45 @@ function expectNoObserverCalled() {
   gObservedTopics = {};
 }
 
+function promiseMessage(aMessage, aAction) {
+  let deferred = Promise.defer();
+
+  content.addEventListener("message", function messageListener(event) {
+    content.removeEventListener("message", messageListener);
+    is(event.data, aMessage, "received " + aMessage);
+    if (event.data == aMessage)
+      deferred.resolve();
+    else
+      deferred.reject();
+  });
+
+  if (aAction)
+    aAction();
+
+  return deferred.promise;
+}
+
 function getMediaCaptureState() {
   let hasVideo = {};
   let hasAudio = {};
-  MediaManagerService.mediaCaptureWindowState(content, hasVideo, hasAudio);
+  let hasScreenShare = {};
+  let hasWindowShare = {};
+  MediaManagerService.mediaCaptureWindowState(content, hasVideo, hasAudio,
+                                              hasScreenShare, hasWindowShare);
   if (hasVideo.value && hasAudio.value)
     return "CameraAndMicrophone";
   if (hasVideo.value)
     return "Camera";
   if (hasAudio.value)
     return "Microphone";
+  if (hasScreenShare)
+    return "Screen";
+  if (hasWindowShare)
+    return "Window";
   return "none";
 }
 
-function closeStream(aAlreadyClosed) {
+function* closeStream(aAlreadyClosed) {
   expectNoObserverCalled();
 
   info("closing the stream");
@@ -122,7 +179,7 @@ function closeStream(aAlreadyClosed) {
   if (!aAlreadyClosed)
     expectObserverCalled("recording-window-ended");
 
-  assertWebRTCIndicatorStatus(null);
+  yield* assertWebRTCIndicatorStatus(null);
 }
 
 function loadPage(aUrl) {
@@ -146,9 +203,11 @@ function fakeLoopAboutModule() {
 
 fakeLoopAboutModule.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIAboutModule]),
-  newChannel: function (aURI) {
+  newChannel: function (aURI, aLoadInfo) {
     let rootDir = getRootDirectory(gTestPath);
-    let chan = Services.io.newChannel(rootDir + "get_user_media.html", null, null);
+    let uri = Services.io.newURI(rootDir + "get_user_media.html", null, null);
+    let chan = Services.io.newChannelFromURIWithLoadInfo(uri, aLoadInfo);
+
     chan.owner = Services.scriptSecurityManager.getSystemPrincipal();
     return chan;
   },
@@ -159,23 +218,28 @@ fakeLoopAboutModule.prototype = {
   }
 };
 
-let factory = XPCOMUtils._getFactory(fakeLoopAboutModule);
-let registrar = Components.manager.QueryInterface(Ci.nsIComponentRegistrar);
+var factory = XPCOMUtils._getFactory(fakeLoopAboutModule);
+var registrar = Components.manager.QueryInterface(Ci.nsIComponentRegistrar);
 
+var originalLoopCsp = Services.prefs.getCharPref(PREF_LOOP_CSP);
 registerCleanupFunction(function() {
   gBrowser.removeCurrentTab();
   kObservedTopics.forEach(topic => {
     Services.obs.removeObserver(observer, topic);
   });
   Services.prefs.clearUserPref(PREF_PERMISSION_FAKE);
+  Services.prefs.setCharPref(PREF_LOOP_CSP, originalLoopCsp);
 });
 
+const permissionError = "error: SecurityError: The operation is insecure.";
 
-let gTests = [
+var gTests = [
 
 {
   desc: "getUserMedia about:loopconversation shouldn't prompt",
   run: function checkAudioVideoLoop() {
+    Services.prefs.setCharPref(PREF_LOOP_CSP, "default-src 'unsafe-inline'");
+
     let classID = Cc["@mozilla.org/uuid-generator;1"]
                     .getService(Ci.nsIUUIDGenerator).generateUUID();
     registrar.registerFactory(classID, "",
@@ -198,6 +262,47 @@ let gTests = [
     yield closeStream();
 
     registrar.unregisterFactory(classID, factory);
+    Services.prefs.setCharPref(PREF_LOOP_CSP, originalLoopCsp);
+  }
+},
+
+{
+  desc: "getUserMedia about:loopconversation should prompt for window sharing",
+  run: function checkShareScreenLoop() {
+    if (isOldPlatform() || isLinux()) {
+      return;
+    }
+
+    Services.prefs.setCharPref(PREF_LOOP_CSP, "default-src 'unsafe-inline'");
+
+    let classID = Cc["@mozilla.org/uuid-generator;1"]
+                    .getService(Ci.nsIUUIDGenerator).generateUUID();
+    registrar.registerFactory(classID, "",
+                              "@mozilla.org/network/protocol/about;1?what=loopconversation",
+                              factory);
+
+    yield loadPage("about:loopconversation");
+
+    yield promiseObserverCalled("getUserMedia:request", () => {
+      info("requesting screen");
+      content.wrappedJSObject.requestDevice(false, true, "window");
+    });
+    // Wait for the devices to actually be captured and running before
+    // proceeding.
+    yield promisePopupNotification("webRTC-shareDevices");
+
+    isnot(getMediaCaptureState(), "Window",
+       "expected camera and microphone not to be shared");
+
+    yield promiseMessage(permissionError, () => {
+      PopupNotifications.panel.firstChild.button.click();
+    });
+
+    expectObserverCalled("getUserMedia:response:deny");
+    expectObserverCalled("recording-window-ended");
+
+    registrar.unregisterFactory(classID, factory);
+    Services.prefs.setCharPref(PREF_LOOP_CSP, originalLoopCsp);
   }
 },
 
@@ -230,6 +335,8 @@ function test() {
   waitForExplicitFinish();
 
   Services.prefs.setBoolPref(PREF_PERMISSION_FAKE, true);
+  // Ensure this is always true
+  Services.prefs.setBoolPref("media.getusermedia.screensharing.enabled", true);
 
   gTab = gBrowser.addTab();
   gBrowser.selectedTab = gTab;

@@ -35,7 +35,7 @@ struct MatchPair
       : start(start), limit(limit)
     { }
 
-    size_t length()      const { JS_ASSERT(!isUndefined()); return limit - start; }
+    size_t length()      const { MOZ_ASSERT(!isUndefined()); return limit - start; }
     bool isEmpty()       const { return length() == 0; }
     bool isUndefined()   const { return start < 0; }
 
@@ -45,9 +45,9 @@ struct MatchPair
     }
 
     inline bool check() const {
-        JS_ASSERT(limit >= start);
-        JS_ASSERT_IF(start < 0, start == -1);
-        JS_ASSERT_IF(limit < 0, limit == -1);
+        MOZ_ASSERT(limit >= start);
+        MOZ_ASSERT_IF(start < 0, start == -1);
+        MOZ_ASSERT_IF(limit < 0, limit == -1);
         return true;
     }
 };
@@ -60,7 +60,7 @@ class MatchPairs
     uint32_t pairCount_;
 
     /* Raw pointer into an allocated MatchPair buffer. */
-    MatchPair *pairs_;
+    MatchPair* pairs_;
 
   protected:
     /* Not used directly: use ScopedMatchPairs or VectorMatchPairs. */
@@ -76,19 +76,17 @@ class MatchPairs
     /* MatchPair buffer allocator: set pairs_ and pairCount_. */
     virtual bool allocOrExpandArray(size_t pairCount) = 0;
 
-    bool initArray(size_t pairCount);
-    bool initArrayFrom(MatchPairs &copyFrom);
+    bool initArrayFrom(MatchPairs& copyFrom);
     void forgetArray() { pairs_ = nullptr; }
 
-    void displace(size_t disp);
     void checkAgainst(size_t inputLength) {
 #ifdef DEBUG
         for (size_t i = 0; i < pairCount_; i++) {
-            const MatchPair &p = (*this)[i];
-            JS_ASSERT(p.check());
+            const MatchPair& p = (*this)[i];
+            MOZ_ASSERT(p.check());
             if (p.isUndefined())
                 continue;
-            JS_ASSERT(size_t(p.limit) <= inputLength);
+            MOZ_ASSERT(size_t(p.limit) <= inputLength);
         }
 #endif
     }
@@ -96,23 +94,23 @@ class MatchPairs
   public:
     /* Querying functions in the style of RegExpStatics. */
     bool   empty() const           { return pairCount_ == 0; }
-    size_t pairCount() const       { JS_ASSERT(pairCount_ > 0); return pairCount_; }
+    size_t pairCount() const       { MOZ_ASSERT(pairCount_ > 0); return pairCount_; }
     size_t parenCount() const      { return pairCount_ - 1; }
 
     static size_t offsetOfPairs() { return offsetof(MatchPairs, pairs_); }
     static size_t offsetOfPairCount() { return offsetof(MatchPairs, pairCount_); }
 
-    int32_t *pairsRaw() { return reinterpret_cast<int32_t *>(pairs_); }
+    int32_t* pairsRaw() { return reinterpret_cast<int32_t*>(pairs_); }
 
   public:
     size_t length() const { return pairCount_; }
 
-    const MatchPair &operator[](size_t i) const {
-        JS_ASSERT(i < pairCount_);
+    const MatchPair& operator[](size_t i) const {
+        MOZ_ASSERT(i < pairCount_);
         return pairs_[i];
     }
-    MatchPair &operator[](size_t i) {
-        JS_ASSERT(i < pairCount_);
+    MatchPair& operator[](size_t i) {
+        MOZ_ASSERT(i < pairCount_);
         return pairs_[i];
     }
 };
@@ -124,7 +122,7 @@ class ScopedMatchPairs : public MatchPairs
 
   public:
     /* Constructs an implicit LifoAllocScope. */
-    explicit ScopedMatchPairs(LifoAlloc *lifoAlloc)
+    explicit ScopedMatchPairs(LifoAlloc* lifoAlloc)
       : lifoScope_(lifoAlloc)
     { }
 

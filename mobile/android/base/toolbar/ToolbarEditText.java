@@ -5,12 +5,15 @@
 
 package org.mozilla.gecko.toolbar;
 
+import org.mozilla.gecko.AboutPages;
 import org.mozilla.gecko.AppConstants.Versions;
 import org.mozilla.gecko.CustomEditText;
 import org.mozilla.gecko.InputMethods;
+import org.mozilla.gecko.R;
 import org.mozilla.gecko.toolbar.BrowserToolbar.OnCommitListener;
 import org.mozilla.gecko.toolbar.BrowserToolbar.OnDismissListener;
 import org.mozilla.gecko.toolbar.BrowserToolbar.OnFilterListener;
+import org.mozilla.gecko.toolbar.ToolbarEditLayout.OnSearchStateChangeListener;
 import org.mozilla.gecko.util.GamepadUtils;
 import org.mozilla.gecko.util.StringUtils;
 
@@ -32,6 +35,7 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputConnectionWrapper;
 import android.view.inputmethod.InputMethodManager;
+import android.view.accessibility.AccessibilityEvent;
 import android.widget.TextView;
 
 /**
@@ -50,6 +54,7 @@ public class ToolbarEditText extends CustomEditText
     private OnCommitListener mCommitListener;
     private OnDismissListener mDismissListener;
     private OnFilterListener mFilterListener;
+    private OnSearchStateChangeListener mSearchStateChangeListener;
 
     private ToolbarPrefs mPrefs;
 
@@ -81,6 +86,10 @@ public class ToolbarEditText extends CustomEditText
         mFilterListener = listener;
     }
 
+    void setOnSearchStateChangeListener(OnSearchStateChangeListener listener) {
+        mSearchStateChangeListener = listener;
+    }
+
     @Override
     public void onAttachedToWindow() {
         setOnKeyListener(new KeyListener());
@@ -92,6 +101,13 @@ public class ToolbarEditText extends CustomEditText
     @Override
     public void onFocusChanged(boolean gainFocus, int direction, Rect previouslyFocusedRect) {
         super.onFocusChanged(gainFocus, direction, previouslyFocusedRect);
+
+        // Make search icon inactive when edit toolbar search term isn't a user entered
+        // search term
+        final boolean isActive = !TextUtils.isEmpty(getText());
+        if (mSearchStateChangeListener != null) {
+            mSearchStateChangeListener.onSearchStateChange(isActive);
+        }
 
         if (gainFocus) {
             resetAutocompleteState();
@@ -112,10 +128,35 @@ public class ToolbarEditText extends CustomEditText
 
     @Override
     public void setText(final CharSequence text, final TextView.BufferType type) {
-        super.setText(text, type);
+        final String textString = (text == null) ? "" : text.toString();
+
+        // If we're on the home or private browsing page, we don't set the "about" url.
+        final CharSequence finalText;
+        if (AboutPages.isAboutHome(textString) || AboutPages.isAboutPrivateBrowsing(textString)) {
+            finalText = "";
+        } else {
+            finalText = text;
+        }
+
+        super.setText(finalText, type);
 
         // Any autocomplete text would have been overwritten, so reset our autocomplete states.
         resetAutocompleteState();
+    }
+
+    @Override
+    public void sendAccessibilityEventUnchecked(AccessibilityEvent event) {
+        // We need to bypass the isShown() check in the default implementation
+        // for TYPE_VIEW_TEXT_SELECTION_CHANGED events so that accessibility
+        // services could detect a url change.
+        if (event.getEventType() == AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED &&
+            getParent() != null && !isShown()) {
+            onInitializeAccessibilityEvent(event);
+            dispatchPopulateAccessibilityEvent(event);
+            getParent().requestSendAccessibilityEvent(this, event);
+        } else {
+            super.sendAccessibilityEventUnchecked(event);
+        }
     }
 
     void setToolbarPrefs(final ToolbarPrefs prefs) {
@@ -158,6 +199,10 @@ public class ToolbarEditText extends CustomEditText
 
         // Show the cursor.
         setCursorVisible(true);
+    }
+
+    protected String getNonAutocompleteText() {
+        return getNonAutocompleteText(getText());
     }
 
     /**
@@ -494,6 +539,11 @@ public class ToolbarEditText extends CustomEditText
                 removeAutocomplete(editable);
             }
 
+            // Update search icon with an active state since user is typing
+            if (mSearchStateChangeListener != null) {
+                mSearchStateChangeListener.onSearchStateChange(textLength > 0);
+            }
+
             if (mFilterListener != null) {
                 mFilterListener.onFilter(text, doAutocomplete ? ToolbarEditText.this : null);
             }
@@ -556,7 +606,9 @@ public class ToolbarEditText extends CustomEditText
                 }
 
                 return true;
-            } else if (GamepadUtils.isBackKey(event)) {
+            }
+
+            if (GamepadUtils.isBackKey(event)) {
                 if (mDismissListener != null) {
                     mDismissListener.onDismiss();
                 }

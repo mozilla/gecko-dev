@@ -1,4 +1,5 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -14,6 +15,12 @@
 #include "nsCOMPtr.h"
 #include "nsDebug.h"
 #include "nsString.h"
+#include "nsTArray.h"
+
+#include "nsILoadContext.h"
+#include "nsIWeakReferenceUtils.h"
+#include "nsIInterfaceRequestor.h"
+#include "mozilla/dom/ChannelInfo.h"
 
 #define BEGIN_WORKERS_NAMESPACE \
   namespace mozilla { namespace dom { namespace workers {
@@ -24,8 +31,34 @@
 
 #define WORKERS_SHUTDOWN_TOPIC "web-workers-shutdown"
 
+class nsIContentSecurityPolicy;
 class nsIScriptContext;
+class nsIGlobalObject;
 class nsPIDOMWindow;
+class nsIPrincipal;
+class nsILoadGroup;
+class nsITabChild;
+class nsIChannel;
+class nsIRunnable;
+class nsIURI;
+
+namespace mozilla {
+namespace ipc {
+class PrincipalInfo;
+} // namespace ipc
+
+namespace dom {
+// If you change this, the corresponding list in nsIWorkerDebugger.idl needs to
+// be updated too.
+enum WorkerType
+{
+  WorkerTypeDedicated,
+  WorkerTypeShared,
+  WorkerTypeService
+};
+
+} // namespace dom
+} // namespace mozilla
 
 BEGIN_WORKERS_NAMESPACE
 
@@ -164,21 +197,96 @@ struct JSSettings
 
 enum WorkerPreference
 {
-  WORKERPREF_DUMP = 0, // browser.dom.window.dump.enabled
-  WORKERPREF_DOM_FETCH,// dom.fetch.enabled
+#define WORKER_SIMPLE_PREF(name, getter, NAME) WORKERPREF_ ## NAME,
+#define WORKER_PREF(name, callback)
+#include "mozilla/dom/WorkerPrefs.h"
+#undef WORKER_SIMPLE_PREF
+#undef WORKER_PREF
   WORKERPREF_COUNT
+};
+
+// Implemented in WorkerPrivate.cpp
+
+struct WorkerLoadInfo
+{
+  // All of these should be released in WorkerPrivateParent::ForgetMainThreadObjects.
+  nsCOMPtr<nsIURI> mBaseURI;
+  nsCOMPtr<nsIURI> mResolvedScriptURI;
+  nsCOMPtr<nsIPrincipal> mPrincipal;
+  nsCOMPtr<nsIScriptContext> mScriptContext;
+  nsCOMPtr<nsPIDOMWindow> mWindow;
+  nsCOMPtr<nsIContentSecurityPolicy> mCSP;
+  nsCOMPtr<nsIChannel> mChannel;
+  nsCOMPtr<nsILoadGroup> mLoadGroup;
+
+  // mLoadFailedAsyncRunnable will execute on main thread if script loading
+  // fails during script loading.  If script loading is never started due to
+  // a synchronous error, then the runnable is never executed.  The runnable
+  // is guaranteed to be released on the main thread.
+  nsCOMPtr<nsIRunnable> mLoadFailedAsyncRunnable;
+
+  class InterfaceRequestor final : public nsIInterfaceRequestor
+  {
+    NS_DECL_ISUPPORTS
+
+  public:
+    InterfaceRequestor(nsIPrincipal* aPrincipal, nsILoadGroup* aLoadGroup);
+    void MaybeAddTabChild(nsILoadGroup* aLoadGroup);
+    NS_IMETHOD GetInterface(const nsIID& aIID, void** aSink) override;
+
+  private:
+    ~InterfaceRequestor() { }
+
+    already_AddRefed<nsITabChild> GetAnyLiveTabChild();
+
+    nsCOMPtr<nsILoadContext> mLoadContext;
+    nsCOMPtr<nsIInterfaceRequestor> mOuterRequestor;
+
+    // Array of weak references to nsITabChild.  We do not want to keep TabChild
+    // actors alive for long after their ActorDestroy() methods are called.
+    nsTArray<nsWeakPtr> mTabChildList;
+  };
+
+  // Only set if we have a custom overriden load group
+  RefPtr<InterfaceRequestor> mInterfaceRequestor;
+
+  nsAutoPtr<mozilla::ipc::PrincipalInfo> mPrincipalInfo;
+  nsCString mDomain;
+
+  nsString mServiceWorkerCacheName;
+
+  ChannelInfo mChannelInfo;
+
+  uint64_t mWindowID;
+  uint64_t mServiceWorkerID;
+
+  bool mFromWindow;
+  bool mEvalAllowed;
+  bool mReportCSPViolations;
+  bool mXHRParamsAllowed;
+  bool mPrincipalIsSystem;
+  bool mIsInPrivilegedApp;
+  bool mIsInCertifiedApp;
+  bool mStorageAllowed;
+  bool mPrivateBrowsing;
+  bool mServiceWorkersTestingInWindow;
+
+  WorkerLoadInfo();
+  ~WorkerLoadInfo();
+
+  void StealFrom(WorkerLoadInfo& aOther);
 };
 
 // All of these are implemented in RuntimeService.cpp
 
-// Resolves all of the worker classes onto |aObjp| if one of them matches |aId|
-// or if |aId| is JSID_VOID.
-bool
-ResolveWorkerClasses(JSContext* aCx, JS::Handle<JSObject*> aObj, JS::Handle<jsid> aId,
-                     JS::MutableHandle<JSObject*> aObjp);
-
 void
 CancelWorkersForWindow(nsPIDOMWindow* aWindow);
+
+void
+FreezeWorkersForWindow(nsPIDOMWindow* aWindow);
+
+void
+ThawWorkersForWindow(nsPIDOMWindow* aWindow);
 
 void
 SuspendWorkersForWindow(nsPIDOMWindow* aWindow);
@@ -235,7 +343,7 @@ public:
 };
 
 WorkerCrossThreadDispatcher*
-GetWorkerCrossThreadDispatcher(JSContext* aCx, jsval aWorker);
+GetWorkerCrossThreadDispatcher(JSContext* aCx, JS::Value aWorker);
 
 // Random unique constant to facilitate JSPrincipal debugging
 const uint32_t kJSPrincipalsDebugToken = 0x7e2df9d2;
@@ -247,6 +355,18 @@ void
 ThrowDOMExceptionForNSResult(JSContext* aCx, nsresult aNSResult);
 
 } // namespace exceptions
+
+nsIGlobalObject*
+GetGlobalObjectForGlobal(JSObject* global);
+
+bool
+IsWorkerGlobal(JSObject* global);
+
+bool
+IsDebuggerGlobal(JSObject* global);
+
+bool
+IsDebuggerSandbox(JSObject* object);
 
 // Throws the JSMSG_GETTER_ONLY exception.  This shouldn't be used going
 // forward -- getter-only properties should just use JS_PSG for the setter

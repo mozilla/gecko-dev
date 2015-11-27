@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,6 +9,7 @@
 
 #include "pk11pub.h"
 #include "nsString.h"
+#include "nsContentUtils.h"
 #include "mozilla/dom/CryptoBuffer.h"
 #include "js/StructuredClone.h"
 
@@ -23,10 +24,11 @@
 #define WEBCRYPTO_ALG_SHA512        "SHA-512"
 #define WEBCRYPTO_ALG_HMAC          "HMAC"
 #define WEBCRYPTO_ALG_PBKDF2        "PBKDF2"
-#define WEBCRYPTO_ALG_RSAES_PKCS1   "RSAES-PKCS1-v1_5"
 #define WEBCRYPTO_ALG_RSASSA_PKCS1  "RSASSA-PKCS1-v1_5"
 #define WEBCRYPTO_ALG_RSA_OAEP      "RSA-OAEP"
 #define WEBCRYPTO_ALG_ECDH          "ECDH"
+#define WEBCRYPTO_ALG_ECDSA         "ECDSA"
+#define WEBCRYPTO_ALG_DH            "DH"
 
 // WebCrypto key formats
 #define WEBCRYPTO_KEY_FORMAT_RAW    "raw"
@@ -84,6 +86,9 @@
 #define JWK_ALG_RSA_OAEP_256        "RSA-OAEP-256"
 #define JWK_ALG_RSA_OAEP_384        "RSA-OAEP-384"
 #define JWK_ALG_RSA_OAEP_512        "RSA-OAEP-512"
+#define JWK_ALG_ECDSA_P_256         "ES256"
+#define JWK_ALG_ECDSA_P_384         "ES384"
+#define JWK_ALG_ECDSA_P_521         "ES521"
 
 // JWK usages
 #define JWK_USE_ENC                 "enc"
@@ -96,6 +101,14 @@
 static const uint8_t id_ecDH[] = { 0x2b, 0x81, 0x04, 0x70 };
 const SECItem SEC_OID_DATA_EC_DH = { siBuffer, (unsigned char*)id_ecDH,
                                      PR_ARRAY_SIZE(id_ecDH) };
+
+// python security/pkix/tools/DottedOIDToCode.py dhKeyAgreement 1.2.840.113549.1.3.1
+static const uint8_t dhKeyAgreement[] = {
+  0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x03, 0x01
+};
+const SECItem SEC_OID_DATA_DH_KEY_AGREEMENT = { siBuffer,
+                                                (unsigned char*)dhKeyAgreement,
+                                                PR_ARRAY_SIZE(dhKeyAgreement) };
 
 namespace mozilla {
 namespace dom {
@@ -139,7 +152,7 @@ ReadBuffer(JSStructuredCloneReader* aReader, CryptoBuffer& aBuffer)
   }
 
   if (length > 0) {
-    if (!aBuffer.SetLength(length)) {
+    if (!aBuffer.SetLength(length, fallible)) {
       return false;
     }
     ret = JS_ReadBytes(aReader, aBuffer.Elements(), aBuffer.Length());
@@ -148,13 +161,19 @@ ReadBuffer(JSStructuredCloneReader* aReader, CryptoBuffer& aBuffer)
 }
 
 inline bool
-WriteBuffer(JSStructuredCloneWriter* aWriter, const CryptoBuffer& aBuffer)
+WriteBuffer(JSStructuredCloneWriter* aWriter, const uint8_t* aBuffer, size_t aLength)
 {
-  bool ret = JS_WriteUint32Pair(aWriter, aBuffer.Length(), 0);
-  if (ret && aBuffer.Length() > 0) {
-    ret = JS_WriteBytes(aWriter, aBuffer.Elements(), aBuffer.Length());
+  bool ret = JS_WriteUint32Pair(aWriter, aLength, 0);
+  if (ret && aLength > 0) {
+    ret = JS_WriteBytes(aWriter, aBuffer, aLength);
   }
   return ret;
+}
+
+inline bool
+WriteBuffer(JSStructuredCloneWriter* aWriter, const CryptoBuffer& aBuffer)
+{
+  return WriteBuffer(aWriter, aBuffer.Elements(), aBuffer.Length());
 }
 
 inline CK_MECHANISM_TYPE
@@ -181,27 +200,62 @@ MapAlgorithmNameToMechanism(const nsString& aName)
     mechanism = CKM_SHA512;
   } else if (aName.EqualsLiteral(WEBCRYPTO_ALG_PBKDF2)) {
     mechanism = CKM_PKCS5_PBKD2;
-  } else if (aName.EqualsLiteral(WEBCRYPTO_ALG_RSAES_PKCS1)) {
-    mechanism = CKM_RSA_PKCS;
   } else if (aName.EqualsLiteral(WEBCRYPTO_ALG_RSASSA_PKCS1)) {
     mechanism = CKM_RSA_PKCS;
   } else if (aName.EqualsLiteral(WEBCRYPTO_ALG_RSA_OAEP)) {
     mechanism = CKM_RSA_PKCS_OAEP;
   } else if (aName.EqualsLiteral(WEBCRYPTO_ALG_ECDH)) {
     mechanism = CKM_ECDH1_DERIVE;
+  } else if (aName.EqualsLiteral(WEBCRYPTO_ALG_DH)) {
+    mechanism = CKM_DH_PKCS_DERIVE;
   }
 
   return mechanism;
 }
 
+#define NORMALIZED_EQUALS(aTest, aConst) \
+        nsContentUtils::EqualsIgnoreASCIICase(aTest, NS_LITERAL_STRING(aConst))
+
 inline bool
-NormalizeNamedCurveValue(const nsString& aNamedCurve, nsString& aDest)
+NormalizeToken(const nsString& aName, nsString& aDest)
 {
-  if (aNamedCurve.EqualsIgnoreCase(WEBCRYPTO_NAMED_CURVE_P256)) {
+  // Algorithm names
+  if (NORMALIZED_EQUALS(aName, WEBCRYPTO_ALG_AES_CBC)) {
+    aDest.AssignLiteral(WEBCRYPTO_ALG_AES_CBC);
+  } else if (NORMALIZED_EQUALS(aName, WEBCRYPTO_ALG_AES_CTR)) {
+    aDest.AssignLiteral(WEBCRYPTO_ALG_AES_CTR);
+  } else if (NORMALIZED_EQUALS(aName, WEBCRYPTO_ALG_AES_GCM)) {
+    aDest.AssignLiteral(WEBCRYPTO_ALG_AES_GCM);
+  } else if (NORMALIZED_EQUALS(aName, WEBCRYPTO_ALG_AES_KW)) {
+    aDest.AssignLiteral(WEBCRYPTO_ALG_AES_KW);
+  } else if (NORMALIZED_EQUALS(aName, WEBCRYPTO_ALG_SHA1)) {
+    aDest.AssignLiteral(WEBCRYPTO_ALG_SHA1);
+  } else if (NORMALIZED_EQUALS(aName, WEBCRYPTO_ALG_SHA256)) {
+    aDest.AssignLiteral(WEBCRYPTO_ALG_SHA256);
+  } else if (NORMALIZED_EQUALS(aName, WEBCRYPTO_ALG_SHA384)) {
+    aDest.AssignLiteral(WEBCRYPTO_ALG_SHA384);
+  } else if (NORMALIZED_EQUALS(aName, WEBCRYPTO_ALG_SHA512)) {
+    aDest.AssignLiteral(WEBCRYPTO_ALG_SHA512);
+  } else if (NORMALIZED_EQUALS(aName, WEBCRYPTO_ALG_HMAC)) {
+    aDest.AssignLiteral(WEBCRYPTO_ALG_HMAC);
+  } else if (NORMALIZED_EQUALS(aName, WEBCRYPTO_ALG_PBKDF2)) {
+    aDest.AssignLiteral(WEBCRYPTO_ALG_PBKDF2);
+  } else if (NORMALIZED_EQUALS(aName, WEBCRYPTO_ALG_RSASSA_PKCS1)) {
+    aDest.AssignLiteral(WEBCRYPTO_ALG_RSASSA_PKCS1);
+  } else if (NORMALIZED_EQUALS(aName, WEBCRYPTO_ALG_RSA_OAEP)) {
+    aDest.AssignLiteral(WEBCRYPTO_ALG_RSA_OAEP);
+  } else if (NORMALIZED_EQUALS(aName, WEBCRYPTO_ALG_ECDH)) {
+    aDest.AssignLiteral(WEBCRYPTO_ALG_ECDH);
+  } else if (NORMALIZED_EQUALS(aName, WEBCRYPTO_ALG_ECDSA)) {
+    aDest.AssignLiteral(WEBCRYPTO_ALG_ECDSA);
+  } else if (NORMALIZED_EQUALS(aName, WEBCRYPTO_ALG_DH)) {
+    aDest.AssignLiteral(WEBCRYPTO_ALG_DH);
+  // Named curve values
+  } else if (NORMALIZED_EQUALS(aName, WEBCRYPTO_NAMED_CURVE_P256)) {
     aDest.AssignLiteral(WEBCRYPTO_NAMED_CURVE_P256);
-  } else if (aNamedCurve.EqualsIgnoreCase(WEBCRYPTO_NAMED_CURVE_P384)) {
+  } else if (NORMALIZED_EQUALS(aName, WEBCRYPTO_NAMED_CURVE_P384)) {
     aDest.AssignLiteral(WEBCRYPTO_NAMED_CURVE_P384);
-  } else if (aNamedCurve.EqualsIgnoreCase(WEBCRYPTO_NAMED_CURVE_P521)) {
+  } else if (NORMALIZED_EQUALS(aName, WEBCRYPTO_NAMED_CURVE_P521)) {
     aDest.AssignLiteral(WEBCRYPTO_NAMED_CURVE_P521);
   } else {
     return false;
@@ -239,6 +293,7 @@ CheckEncodedECParameters(const SECItem* aEcParams)
 inline SECItem*
 CreateECParamsForCurve(const nsString& aNamedCurve, PLArenaPool* aArena)
 {
+  MOZ_ASSERT(aArena);
   SECOidTag curveOIDTag;
 
   if (aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_P256)) {

@@ -82,8 +82,6 @@ var supported_properties = {
     "-moz-outline-radius-bottomright": [ test_radius_transition ],
     "-moz-outline-radius-topleft": [ test_radius_transition ],
     "-moz-outline-radius-topright": [ test_radius_transition ],
-    "-moz-text-decoration-color": [ test_color_transition,
-                                    test_border_color_transition ],
     "background-color": [ test_color_transition ],
     "background-position": [ test_background_position_transition,
                              // FIXME: We don't currently test clamping,
@@ -144,6 +142,8 @@ var supported_properties = {
                           /* test_float_zeroToOne_clamped */ ],
     "font-stretch": [ test_font_stretch ],
     "font-weight": [ test_font_weight ],
+    "grid-column-gap": [ test_grid_gap ],
+    "grid-row-gap": [ test_grid_gap ],
     "height": [ test_length_transition, test_percent_transition,
                 test_length_percent_calc_transition,
                 test_length_clamped, test_percent_clamped ],
@@ -231,6 +231,10 @@ var supported_properties = {
     // test_length_percent_calc_transition.
     "stroke-width": [ test_length_transition_svg, test_percent_transition,
                       test_length_clamped_svg, test_percent_clamped ],
+    "text-decoration": [ test_color_shorthand_transition,
+                         test_border_color_shorthand_transition ],
+    "text-decoration-color": [ test_color_transition,
+                               test_border_color_transition ],
     "text-indent": [ test_length_transition, test_percent_transition,
                      test_length_percent_calc_transition,
                      test_length_unclamped, test_percent_unclamped ],
@@ -641,21 +645,21 @@ var filterTests = [
     expected: ["contrast", 0.375] },
   // hue-rotate with different angle values
   { start: "hue-rotate(0deg)", end: "hue-rotate(720deg)",
-    expected: ["hue-rotate", Math.PI.toFixed(5)] },
+    expected: ["hue-rotate", "180deg"] },
   { start: "hue-rotate(0rad)", end: "hue-rotate("+4*Math.PI+"rad)",
-    expected: ["hue-rotate", Math.PI.toFixed(5)] },
+    expected: ["hue-rotate", Math.PI.toFixed(5)+"rad"] },
   { start: "hue-rotate(0grad)", end: "hue-rotate(800grad)",
-    expected: ["hue-rotate", Math.PI.toFixed(5)] },
+    expected: ["hue-rotate", "200grad"] },
   { start: "hue-rotate(0turn)", end: "hue-rotate(2turn)",
-    expected: ["hue-rotate", Math.PI.toFixed(5)] },
+    expected: ["hue-rotate", "0.5turn"] },
   { start: "hue-rotate(0deg)", end: "hue-rotate("+4*Math.PI+"rad)",
-    expected: ["hue-rotate", Math.PI.toFixed(5)] },
+    expected: ["hue-rotate", Math.PI.toFixed(5)+"rad"] },
   { start: "hue-rotate(0turn)", end: "hue-rotate(800grad)",
-    expected: ["hue-rotate", Math.PI.toFixed(5)] },
+    expected: ["hue-rotate", Math.PI.toFixed(5)+"rad"] },
   { start: "hue-rotate(0grad)", end: "hue-rotate("+4*Math.PI+"rad)",
-    expected: ["hue-rotate", Math.PI.toFixed(5)] },
+    expected: ["hue-rotate", Math.PI.toFixed(5)+"rad"] },
   { start: "hue-rotate(0grad)", end: "hue-rotate(0turn)",
-    expected: ["hue-rotate", 0] },
+    expected: ["hue-rotate", "0rad"] },
   // multiple matching functions, same length
   { start: "contrast(25%) brightness(0.25) blur(25px) sepia(75%)",
     end: "contrast(75%) brightness(0.75) blur(75px) sepia(25%)",
@@ -1081,30 +1085,33 @@ function test_length_percent_calc_transition(prop) {
                        "calc(50% + 50px)");
 }
 
-function test_color_transition(prop) {
+function test_color_transition(prop, get_color=(x => x), is_shorthand=false) {
   div.style.setProperty("transition-property", "none", "");
   div.style.setProperty(prop, "rgb(255, 28, 0)", "");
-  is(cs.getPropertyValue(prop), "rgb(255, 28, 0)",
+  is(get_color(cs.getPropertyValue(prop)), "rgb(255, 28, 0)",
      "color-valued property " + prop + ": computed value before transition");
   div.style.setProperty("transition-property", prop, "");
   div.style.setProperty(prop, "rgb(75, 84, 128)", "");
-  is(cs.getPropertyValue(prop), "rgb(210, 42, 32)",
+  is(get_color(cs.getPropertyValue(prop)), "rgb(210, 42, 32)",
      "color-valued property " + prop + ": interpolation of colors");
 
   div.style.setProperty("transition-property", "none", "");
   div.style.setProperty(prop, "rgb(128, 64, 0)", "");
   (prop == "color" ? div.parentNode : div).style.
     setProperty("color", "rgb(0, 0, 128)", "");
-  is(cs.getPropertyValue(prop), "rgb(128, 64, 0)",
+  is(get_color(cs.getPropertyValue(prop)), "rgb(128, 64, 0)",
      "color-valued property " + prop + ": computed value before transition");
   div.style.setProperty("transition-property", prop, "");
   div.style.setProperty(prop, "currentColor", "");
-  is(cs.getPropertyValue(prop), "rgb(96, 48, 32)",
+  is(get_color(cs.getPropertyValue(prop)), "rgb(96, 48, 32)",
      "color-valued property " + prop + ": interpolation of currentColor");
 
-  check_distance(prop, "rgb(255, 28, 0)", "rgb(210, 42, 32)",
-                       "rgb(75, 84, 128)");
-  check_distance(prop, "rgb(128, 64, 0)", "rgb(96, 48, 32)", "currentColor");
+  if (!is_shorthand) {
+    check_distance(prop, "rgb(255, 28, 0)", "rgb(210, 42, 32)",
+                         "rgb(75, 84, 128)");
+    check_distance(prop, "rgb(128, 64, 0)", "rgb(96, 48, 32)",
+                         "currentColor");
+  }
 
   (prop == "color" ? div.parentNode : div).style.removeProperty("color");
 
@@ -1135,20 +1142,36 @@ function test_color_transition(prop) {
   div.style.setProperty("transition-timing-function", "linear", "");
 }
 
-function test_border_color_transition(prop) {
+function test_border_color_transition(prop, get_color=(x => x), is_shorthand=false) {
   div.style.setProperty("transition-property", "none", "");
   div.style.setProperty(prop, "rgb(128, 64, 0)", "");
   div.style.setProperty("color", "rgb(0, 0, 128)", "");
-  is(cs.getPropertyValue(prop), "rgb(128, 64, 0)",
+  is(get_color(cs.getPropertyValue(prop)), "rgb(128, 64, 0)",
      "color-valued property " + prop + ": computed value before transition");
   div.style.setProperty("transition-property", prop, "");
   div.style.removeProperty(prop);
-  is(cs.getPropertyValue(prop), "rgb(96, 48, 32)",
+  is(get_color(cs.getPropertyValue(prop)), "rgb(96, 48, 32)",
      "color-valued property " + prop + ": interpolation of initial value");
 
-  check_distance(prop, "rgb(128, 64, 0)", "rgb(96, 48, 32)", "initial");
+  if (!is_shorthand) {
+    check_distance(prop, "rgb(128, 64, 0)", "rgb(96, 48, 32)", "initial");
+  }
 
   div.style.removeProperty("color");
+}
+
+function get_color_from_shorthand_value(value) {
+  var m = value.match(/rgb\([^, ]*, [^, ]*, [^, ]*\)/);
+  isnot(m, null, "shorthand property value should contain color");
+  return m[0];
+}
+
+function test_color_shorthand_transition(prop) {
+  test_color_transition(prop, get_color_from_shorthand_value, true);
+}
+
+function test_border_color_shorthand_transition(prop) {
+  test_border_color_transition(prop, get_color_from_shorthand_value, true);
 }
 
 function filter_function_list_equals(computedValStr, expectedList)
@@ -1194,12 +1217,8 @@ function filter_function_list_equals(computedValStr, expectedList)
       }
       functionValue = functionValue.substring(0, functionValue.length - 2);
     } else if (functionName == "hue-rotate") {
-      // Last two characters must be "rad".
-      if (functionValue.search("rad") != functionValue.length - 3) {
-        return false;
-      }
-      tolerance = 0.001;
-      functionValue = functionValue.substring(0, functionValue.length - 3);
+      // Just check for string equality.
+      return functionValue == expected;
     } else if (functionName == "drop-shadow" || functionName == "url") {
       if (functionValue != expected) {
         return false;
@@ -1582,6 +1601,14 @@ function test_font_weight(prop) {
   is(cs.getPropertyValue(prop), "900",
      "font-weight property " + prop + ": clamping of values");
   div.style.setProperty("transition-timing-function", "linear", "");
+}
+
+function test_grid_gap(prop) {
+  if (!SpecialPowers.getBoolPref("layout.css.grid.enabled")) {
+    return;
+  }
+  test_length_transition(prop);
+  test_length_clamped(prop);
 }
 
 function test_pos_integer_or_auto_transition(prop) {

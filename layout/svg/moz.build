@@ -4,6 +4,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+with Files('**'):
+    BUG_COMPONENT = ('Core', 'SVG')
+
 EXPORTS += [
     'nsFilterInstance.h',
     'nsSVGEffects.h',
@@ -33,7 +36,6 @@ UNIFIED_SOURCES += [
     'nsSVGMarkerFrame.cpp',
     'nsSVGMaskFrame.cpp',
     'nsSVGOuterSVGFrame.cpp',
-    'nsSVGPaintServerFrame.cpp',
     'nsSVGPathGeometryFrame.cpp',
     'nsSVGPatternFrame.cpp',
     'nsSVGStopFrame.cpp',
@@ -48,17 +50,19 @@ UNIFIED_SOURCES += [
     'SVGViewFrame.cpp',
 ]
 
-FAIL_ON_WARNINGS = True
+if CONFIG['CPU_ARCH'] == 'arm' and CONFIG['BUILD_ARM_NEON']:
+    SOURCES += ['nsSVGMaskFrameNEON.cpp']
+    SOURCES['nsSVGMaskFrameNEON.cpp'].flags += ['-mfpu=neon']
 
 FINAL_LIBRARY = 'xul'
 LOCAL_INCLUDES += [
-    '../../content/base/src',
-    '../../content/svg/content/src',
     '../../widget',
     '../base',
     '../generic',
     '../style',
     '../xul',
+    '/dom/base',
+    '/dom/svg',
 ]
 
 RESOURCE_FILES += [

@@ -11,6 +11,7 @@
 #include "nsMathUtils.h"
 #include <math.h>
 #include <float.h>
+#include <stdlib.h>
 
 #include "nsDebug.h"
 #include <algorithm>
@@ -54,6 +55,22 @@ inline void VERIFY_COORD(nscoord aCoord) {
 #ifdef NS_COORD_IS_FLOAT
   NS_ASSERTION(floorf(aCoord) == aCoord,
                "Coords cannot have fractions");
+#endif
+}
+
+/**
+ * Divide aSpace by aN.  Assign the resulting quotient to aQuotient and
+ * return the remainder.
+ */
+inline nscoord NSCoordDivRem(nscoord aSpace, size_t aN, nscoord* aQuotient)
+{
+#ifdef NS_COORD_IS_FLOAT
+  *aQuotient = aSpace / aN;
+  return 0.0f;
+#else
+  div_t result = div(aSpace, aN);
+  *aQuotient = nscoord(result.quot);
+  return nscoord(result.rem);
 #endif
 }
 
@@ -107,8 +124,8 @@ inline nscoord _nscoordSaturatingMultiply(nscoord aCoord, float aScale,
                                           bool requireNotNegative) {
   VERIFY_COORD(aCoord);
   if (requireNotNegative) {
-    NS_ABORT_IF_FALSE(aScale >= 0.0f,
-                      "negative scaling factors must be handled manually");
+    MOZ_ASSERT(aScale >= 0.0f,
+               "negative scaling factors must be handled manually");
   }
 #ifdef NS_COORD_IS_FLOAT
   return floorf(aCoord * aScale);
@@ -213,8 +230,8 @@ NSCoordSaturatingSubtract(nscoord a, nscoord b,
       // Cap the result, in case we're dealing with numbers near nscoord_MAX
       return std::min(nscoord_MAX, a - b);
     }
-  }
 #endif
+  }
 }
 
 inline float NSCoordToFloat(nscoord aCoord) {

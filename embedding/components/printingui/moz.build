@@ -6,9 +6,12 @@
 
 toolkit = CONFIG['MOZ_WIDGET_TOOLKIT']
 
-if toolkit == 'windows':
-    DIRS += ['win']
-elif toolkit == 'cocoa':
-    DIRS += ['mac']
-elif CONFIG['MOZ_PDF_PRINTING']:
-    DIRS += ['unixshared']
+DIRS += ['ipc']
+
+if CONFIG['NS_PRINTING']:
+    if toolkit == 'windows':
+        DIRS += ['win']
+    elif toolkit == 'cocoa':
+        DIRS += ['mac']
+    elif CONFIG['MOZ_PDF_PRINTING']:
+        DIRS += ['unixshared']

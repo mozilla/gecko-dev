@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -59,13 +60,13 @@ public:
 
 private:
   // A loader object. Exists only long enough to load resources, and then it dies.
-  nsRefPtr<nsXBLResourceLoader> mLoader;
+  RefPtr<nsXBLResourceLoader> mLoader;
 
   // A list of loaded stylesheets for this binding.
-  nsTArray<nsRefPtr<mozilla::CSSStyleSheet>> mStyleSheetList;
+  nsTArray<RefPtr<mozilla::CSSStyleSheet>> mStyleSheetList;
 
   // The list of stylesheets converted to a rule processor.
-  nsRefPtr<nsCSSRuleProcessor> mRuleProcessor;
+  RefPtr<nsCSSRuleProcessor> mRuleProcessor;
 };
 
 #endif

@@ -46,7 +46,7 @@ this.MozSocialAPI = {
 function injectController(doc, topic, data) {
   try {
     let window = doc.defaultView;
-    if (!window || PrivateBrowsingUtils.isWindowPrivate(window))
+    if (!window || PrivateBrowsingUtils.isContentWindowPrivate(window))
       return;
 
     // Do not attempt to load the API into about: error pages
@@ -108,12 +108,27 @@ function attachToWindow(provider, targetWindow) {
       configurable: true,
       writable: true,
       value: function() {
-        return {
-          port: port,
-          __exposedProps__: {
-            port: "r"
+
+        // We do a bunch of hacky stuff to expose this API to content without
+        // relying on ChromeObjectWrapper functionality that is now unsupported.
+        // The content-facing API here should really move to JS-Implemented
+        // WebIDL.
+        let workerAPI = Cu.cloneInto({
+          port: {
+            postMessage: port.postMessage.bind(port),
+            close: port.close.bind(port),
+            toString: port.toString.bind(port)
           }
-        };
+        }, targetWindow, {cloneFunctions: true});
+
+        // Jump through hoops to define the accessor property.
+        let abstractPortPrototype = Object.getPrototypeOf(Object.getPrototypeOf(port));
+        let desc = Object.getOwnPropertyDescriptor(port.__proto__.__proto__, 'onmessage');
+        desc.get = Cu.exportFunction(desc.get.bind(port), targetWindow);
+        desc.set = Cu.exportFunction(desc.set.bind(port), targetWindow);
+        Object.defineProperty(workerAPI.wrappedJSObject.port, 'onmessage', desc);
+
+        return workerAPI;
       }
     },
     hasBeenIdleFor: {
@@ -283,16 +298,8 @@ this.openChatWindow =
     return;
   }
 
-  let thisCallback = function(chatbox) {
-    // All social chat windows get a special error listener.
-    Social.setErrorListener(chatbox.content, function(aBrowser) {
-      aBrowser.webNavigation.loadURI("about:socialerror?mode=compactInfo&origin=" +
-                             encodeURIComponent(aBrowser.getAttribute("origin")),
-                             null, null, null, null);
-    });
-  }
   let chatbox = Chat.open(contentWindow, provider.origin, provider.name,
-                          fullURI.spec, mode, undefined, thisCallback);
+                          fullURI.spec, mode);
   if (callback) {
     chatbox.promiseChatLoaded.then(() => {
       callback(chatbox.contentWindow);

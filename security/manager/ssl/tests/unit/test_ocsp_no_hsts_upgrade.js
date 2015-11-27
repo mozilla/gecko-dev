@@ -14,10 +14,10 @@ function run_test() {
 
   // We don't actually make use of stapling in this test. This is just how we
   // get a TLS connection.
-  add_tls_server_setup("OCSPStaplingServer");
+  add_tls_server_setup("OCSPStaplingServer", "ocsp_certs");
 
-  let args = [["good", "localhostAndExampleCom", "unused"]];
-  let ocspResponses = generateOCSPResponses(args, "tlsserver");
+  let args = [["good", "default-ee", "unused"]];
+  let ocspResponses = generateOCSPResponses(args, "ocsp_certs");
   let goodOCSPResponse = ocspResponses[0];
 
   let ocspResponder = new HttpServer();
@@ -26,7 +26,7 @@ function run_test() {
     response.setHeader("Content-Type", "application/ocsp-response");
     response.write(goodOCSPResponse);
   });
-  ocspResponder.start(8080);
+  ocspResponder.start(8888);
 
   // ocsp-stapling-none.example.com does not staple an OCSP response in the
   // handshake, so the revocation checking code will attempt to fetch one.
@@ -34,7 +34,7 @@ function run_test() {
   // (as added in the setup of this test, below), a buggy implementation would
   // upgrade the OCSP request to HTTPS. We specifically prevent this. This
   // test demonstrates that our implementation is correct in this regard.
-  add_connection_test("ocsp-stapling-none.example.com", Cr.NS_OK);
+  add_connection_test("ocsp-stapling-none.example.com", PRErrorCodeSuccess);
   add_test(function () { run_next_test(); });
 
   add_test(function () { ocspResponder.stop(run_next_test); });
@@ -42,10 +42,13 @@ function run_test() {
   let SSService = Cc["@mozilla.org/ssservice;1"]
                     .getService(Ci.nsISiteSecurityService);
   let uri = Services.io.newURI("http://localhost", null, null);
+  let sslStatus = new FakeSSLStatus();
   SSService.processHeader(Ci.nsISiteSecurityService.HEADER_HSTS, uri,
-                          "max-age=10000", 0);
-  do_check_true(SSService.isSecureHost(Ci.nsISiteSecurityService.HEADER_HSTS,
-                                       "localhost", 0));
+                          "max-age=10000", sslStatus, 0);
+  ok(SSService.isSecureHost(Ci.nsISiteSecurityService.HEADER_HSTS,
+                            "localhost", 0),
+     "Domain for the OCSP AIA URI should be considered a HSTS host, otherwise" +
+     " we wouldn't be testing what we think we're testing");
 
   run_next_test();
 }

@@ -22,8 +22,11 @@ XPCOMUtils.defineLazyModuleGetter(this, "WebappOSUtils",
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
   "resource://gre/modules/NetUtil.jsm");
 
-// Shared code for AppsServiceChild.jsm, TrustedHostedAppsUtils.jsm,
-// Webapps.jsm and Webapps.js
+XPCOMUtils.defineLazyServiceGetter(this, "appsService",
+                                   "@mozilla.org/AppsService;1",
+                                   "nsIAppsService");
+
+// Shared code for AppsServiceChild.jsm, Webapps.jsm and Webapps.js
 
 this.EXPORTED_SYMBOLS =
   ["AppsUtils", "ManifestHelper", "isAbsoluteURI", "mozIApplication"];
@@ -45,21 +48,39 @@ this.mozIApplication = function(aApp) {
 
 mozIApplication.prototype = {
   hasPermission: function(aPermission) {
-    let uri = Services.io.newURI(this.origin, null, null);
-    let secMan = Cc["@mozilla.org/scriptsecuritymanager;1"]
-                   .getService(Ci.nsIScriptSecurityManager);
     // This helper checks an URI inside |aApp|'s origin and part of |aApp| has a
     // specific permission. It is not checking if browsers inside |aApp| have such
     // permission.
-    let principal = secMan.getAppCodebasePrincipal(uri, this.localId,
-                                                   /*mozbrowser*/false);
-    let perm = Services.perms.testExactPermissionFromPrincipal(principal,
+    let perm = Services.perms.testExactPermissionFromPrincipal(this.principal,
                                                                aPermission);
     return (perm === Ci.nsIPermissionManager.ALLOW_ACTION);
   },
 
   hasWidgetPage: function(aPageURL) {
-    return this.widgetPages.indexOf(aPageURL) != -1;
+    let uri = Services.io.newURI(aPageURL, null, null);
+    let filepath = AppsUtils.getFilePath(uri.path);
+    let eliminatedUri = Services.io.newURI(uri.prePath + filepath, null, null);
+    let equalCriterion = aUrl => Services.io.newURI(aUrl, null, null)
+                                            .equals(eliminatedUri);
+    return this.widgetPages.find(equalCriterion) !== undefined;
+  },
+
+  get principal() {
+    if (this._principal) {
+      return this._principal;
+    }
+
+    this._principal = null;
+
+    try {
+      this._principal = Services.scriptSecurityManager.createCodebasePrincipal(
+        Services.io.newURI(this.origin, null, null),
+        {appId: this.localId});
+    } catch(e) {
+      dump("Could not create app principal " + e + "\n");
+    }
+
+    return this._principal;
   },
 
   QueryInterface: function(aIID) {
@@ -107,6 +128,17 @@ function _setAppProperties(aObj, aApp) {
   aObj.redirects = aApp.redirects;
   aObj.widgetPages = aApp.widgetPages || [];
   aObj.kind = aApp.kind;
+  aObj.enabled = aApp.enabled !== undefined ? aApp.enabled : true;
+  aObj.sideloaded = aApp.sideloaded;
+  aObj.extensionVersion = aApp.extensionVersion;
+  aObj.blockedStatus =
+    aApp.blockedStatus !== undefined ? aApp.blockedStatus
+                                     : Ci.nsIBlocklistService.STATE_NOT_BLOCKED;
+  aObj.blocklistId = aApp.blocklistId;
+#ifdef MOZ_B2GDROID
+  aObj.android_packagename = aApp.android_packagename;
+  aObj.android_classname = aApp.android_classname;
+#endif
 }
 
 this.AppsUtils = {
@@ -124,6 +156,10 @@ this.AppsUtils = {
        topWindow : null,
        appId: aAppId,
        isInBrowserElement: aIsBrowser,
+       originAttributes: {
+         appId: aAppId,
+         inBrowser: aIsBrowser
+       },
        usePrivateBrowsing: false,
        isContent: false,
 
@@ -195,6 +231,16 @@ this.AppsUtils = {
     return deferred.promise;
   },
 
+  // Eliminate query and hash string.
+  getFilePath: function(aPagePath) {
+    let urlParser = Cc["@mozilla.org/network/url-parser;1?auth=no"]
+                    .getService(Ci.nsIURLParser);
+    let uriData = [aPagePath, aPagePath.length, {}, {}, {}, {}, {}, {}];
+    urlParser.parsePath.apply(urlParser, uriData);
+    let [{value: pathPos}, {value: pathLen}] = uriData.slice(2, 4);
+    return aPagePath.substr(pathPos, pathLen);
+  },
+
   getAppByManifestURL: function getAppByManifestURL(aApps, aManifestURL) {
     debug("getAppByManifestURL " + aManifestURL);
     // This could be O(1) if |webapps| was a dictionary indexed on manifestURL
@@ -254,7 +300,7 @@ this.AppsUtils = {
     for (let id in aApps) {
       let app = aApps[id];
       if (app.localId == aLocalId) {
-        // Use the app kind and the app status to choose the right default CSP.
+        // Use the app status to choose the right default CSP.
         try {
           switch (app.appStatus) {
             case Ci.nsIPrincipal.APP_STATUS_CERTIFIED:
@@ -264,9 +310,7 @@ this.AppsUtils = {
               return Services.prefs.getCharPref("security.apps.privileged.CSP.default");
               break;
             case Ci.nsIPrincipal.APP_STATUS_INSTALLED:
-              return app.kind == "hosted-trusted"
-                ? Services.prefs.getCharPref("security.apps.trusted.CSP.default")
-                : "";
+              return "";
               break;
           }
         } catch(e) {}
@@ -468,22 +512,39 @@ this.AppsUtils = {
     let hadCharset = { };
     let charset = { };
     let netutil = Cc["@mozilla.org/network/util;1"].getService(Ci.nsINetUtil);
-    let contentType = netutil.parseContentType(aContentType, charset, hadCharset);
+    let contentType = netutil.parseResponseContentType(aContentType, charset, hadCharset);
     if (aInstallOrigin != aWebappOrigin &&
-        contentType != "application/x-web-app-manifest+json") {
+        !(contentType == "application/x-web-app-manifest+json" ||
+          contentType == "application/manifest+json")) {
       return false;
     }
     return true;
   },
 
+  allowUnsignedAddons: false, // for testing purposes.
+
   /**
-   * Checks if the app role is allowed.
+   * Checks if the app role is allowed:
    * Only certified apps can be themes.
+   * Only privileged or certified apps can be addons.
    * @param aRole   : the role assigned to this app.
    * @param aStatus : the APP_STATUS_* for this app.
    */
   checkAppRole: function(aRole, aStatus) {
+    try {
+      // Anything is possible in developer mode.
+      if (Services.prefs.getBoolPref("dom.apps.developer_mode")) {
+        return true;
+      }
+    } catch(e) {}
+
     if (aRole == "theme" && aStatus !== Ci.nsIPrincipal.APP_STATUS_CERTIFIED) {
+      return false;
+    }
+    if (!this.allowUnsignedAddons &&
+        (aRole == "addon" &&
+         aStatus !== Ci.nsIPrincipal.APP_STATUS_CERTIFIED &&
+         aStatus !== Ci.nsIPrincipal.APP_STATUS_PRIVILEGED)) {
       return false;
     }
     return true;
@@ -497,23 +558,28 @@ this.AppsUtils = {
     // Ensure that app name can't be updated
     aNewManifest.name = aApp.name;
 
+    let defaultShortName =
+      new ManifestHelper(aOldManifest, aApp.origin, aApp.manifestURL).short_name;
+    aNewManifest.short_name = defaultShortName;
+
     // Nor through localized names
-    if ('locales' in aNewManifest) {
-      let defaultName =
-        new ManifestHelper(aOldManifest, aApp.origin, aApp.manifestURL).name;
+    if ("locales" in aNewManifest) {
       for (let locale in aNewManifest.locales) {
-        let entry = aNewManifest.locales[locale];
-        if (!entry.name) {
-          continue;
+        let newLocaleEntry = aNewManifest.locales[locale];
+
+        let oldLocaleEntry = aOldManifest && "locales" in aOldManifest &&
+            locale in aOldManifest.locales && aOldManifest.locales[locale];
+
+        if (newLocaleEntry.name) {
+          // In case previous manifest didn't had a name,
+          // we use the default app name
+          newLocaleEntry.name =
+            (oldLocaleEntry && oldLocaleEntry.name) || aApp.name;
         }
-        // In case previous manifest didn't had a name,
-        // we use the default app name
-        let localizedName = defaultName;
-        if (aOldManifest && 'locales' in aOldManifest &&
-            locale in aOldManifest.locales) {
-          localizedName = aOldManifest.locales[locale].name;
+        if (newLocaleEntry.short_name) {
+          newLocaleEntry.short_name =
+            (oldLocaleEntry && oldLocaleEntry.short_name) || defaultShortName;
         }
-        entry.name = localizedName;
       }
     }
   },
@@ -547,7 +613,6 @@ this.AppsUtils = {
 
     switch(type) {
     case "web":
-    case "trusted":
       return Ci.nsIPrincipal.APP_STATUS_INSTALLED;
     case "privileged":
       return Ci.nsIPrincipal.APP_STATUS_PRIVILEGED;
@@ -579,7 +644,12 @@ this.AppsUtils = {
     aPrefBranch.setCharPref("gecko.mstone", mstone);
     aPrefBranch.setCharPref("gecko.buildID", buildID);
 
-    return ((mstone != savedmstone) || (buildID != savedBuildID));
+    if ((mstone != savedmstone) || (buildID != savedBuildID)) {
+      aPrefBranch.setBoolPref("dom.apps.reset-permissions", false);
+      return true;
+    } else {
+      return false;
+    }
   },
 
   /**
@@ -649,7 +719,10 @@ this.AppsUtils = {
       let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
       file.initWithPath(aPath);
 
-      let channel = NetUtil.newChannel(file);
+      let channel = NetUtil.newChannel({
+        uri: NetUtil.newURI(file),
+        loadUsingSystemPrincipal: true});
+
       channel.contentType = "application/json";
 
       NetUtil.asyncFetch(channel, function(aStream, aResult) {
@@ -693,8 +766,8 @@ this.AppsUtils = {
     return deferred.promise;
   },
 
-  // Returns the MD5 hash of a string.
-  computeHash: function(aString) {
+  // Returns the hash of a string, with MD5 as a default hashing function.
+  computeHash: function(aString, aAlgorithm = "MD5") {
     let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
                       .createInstance(Ci.nsIScriptableUnicodeConverter);
     converter.charset = "UTF-8";
@@ -704,7 +777,7 @@ this.AppsUtils = {
 
     let hasher = Cc["@mozilla.org/security/hash;1"]
                    .createInstance(Ci.nsICryptoHash);
-    hasher.init(hasher.MD5);
+    hasher.initWithString(aAlgorithm);
     hasher.update(data, data.length);
     // We're passing false to get the binary hash and not base64.
     let hash = hasher.finish(false);
@@ -715,13 +788,27 @@ this.AppsUtils = {
 
     // Convert the binary hash data to a hex string.
     return [toHexString(hash.charCodeAt(i)) for (i in hash)].join("");
-  }
+  },
+
+  // Returns the hash for a JS object.
+  computeObjectHash: function(aObject) {
+    return this.computeHash(JSON.stringify(aObject));
+  },
+
+  getAppManifestURLFromWindow: function(aWindow) {
+    let appId = aWindow.document.nodePrincipal.appId;
+    if (appId === Ci.nsIScriptSecurityManager.NO_APP_ID) {
+      return null;
+    }
+
+    return appsService.getManifestURLByLocalId(appId);
+  },
 }
 
 /**
  * Helper object to access manifest information with locale support
  */
-this.ManifestHelper = function(aManifest, aOrigin, aManifestURL) {
+this.ManifestHelper = function(aManifest, aOrigin, aManifestURL, aLang) {
   // If the app is packaged, we resolve uris against the origin.
   // If it's not, against the manifest url.
 
@@ -737,10 +824,15 @@ this.ManifestHelper = function(aManifest, aOrigin, aManifestURL) {
   this._manifestURL = Services.io.newURI(aManifestURL, null, null);
 
   this._manifest = aManifest;
-  let chrome = Cc["@mozilla.org/chrome/chrome-registry;1"]
-                 .getService(Ci.nsIXULChromeRegistry)
-                 .QueryInterface(Ci.nsIToolkitChromeRegistry);
-  let locale = chrome.getSelectedLocale("global").toLowerCase();
+
+  let locale = aLang;
+  if (!locale) {
+    let chrome = Cc["@mozilla.org/chrome/chrome-registry;1"]
+                   .getService(Ci.nsIXULChromeRegistry)
+                   .QueryInterface(Ci.nsIToolkitChromeRegistry);
+    locale = chrome.getSelectedLocale("global").toLowerCase();
+  }
+
   this._localeRoot = this._manifest;
 
   if (this._manifest.locales && this._manifest.locales[locale]) {
@@ -763,6 +855,10 @@ ManifestHelper.prototype = {
 
   get name() {
     return this._localeProp("name");
+  },
+
+  get short_name() {
+    return this._localeProp("short_name");
   },
 
   get description() {
@@ -818,18 +914,17 @@ ManifestHelper.prototype = {
     return {};
   },
 
-  get biggestIconURL() {
+  biggestIconURL: function(predicate) {
     let icons = this._localeProp("icons");
     if (!icons) {
       return null;
     }
 
-    let iconSizes = Object.keys(icons);
+    let iconSizes = Object.keys(icons).sort((a, b) => a - b)
+                          .filter(predicate || (() => true));
     if (iconSizes.length == 0) {
       return null;
     }
-
-    iconSizes.sort((a, b) => a - b);
     let biggestIconSize = iconSizes.pop();
     let biggestIcon = icons[biggestIconSize];
     let biggestIconURL = this._baseURI.resolve(biggestIcon);
@@ -857,6 +952,10 @@ ManifestHelper.prototype = {
     // If no start point is specified, we use the root launch path.
     // In all error cases, we just return null.
     if ((aStartPoint || "") === "") {
+      // W3C start_url takes precedence over mozApps launch_path
+      if (this._localeProp("start_url")) {
+        return this._baseURI.resolve(this._localeProp("start_url") || "/");
+      }
       return this._baseURI.resolve(this._localeProp("launch_path") || "/");
     }
 

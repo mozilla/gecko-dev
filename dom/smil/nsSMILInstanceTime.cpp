@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -47,17 +48,17 @@ nsSMILInstanceTime::nsSMILInstanceTime(const nsSMILTimeValue& aTime,
 
 nsSMILInstanceTime::~nsSMILInstanceTime()
 {
-  NS_ABORT_IF_FALSE(!mBaseInterval,
-      "Destroying instance time without first calling Unlink()");
-  NS_ABORT_IF_FALSE(mFixedEndpointRefCnt == 0,
-      "Destroying instance time that is still used as the fixed endpoint of an "
-      "interval");
+  MOZ_ASSERT(!mBaseInterval,
+             "Destroying instance time without first calling Unlink()");
+  MOZ_ASSERT(mFixedEndpointRefCnt == 0,
+             "Destroying instance time that is still used as the fixed "
+             "endpoint of an interval");
 }
 
 void
 nsSMILInstanceTime::Unlink()
 {
-  nsRefPtr<nsSMILInstanceTime> deathGrip(this);
+  RefPtr<nsSMILInstanceTime> deathGrip(this);
   if (mBaseInterval) {
     mBaseInterval->RemoveDependentTime(*this);
     mBaseInterval = nullptr;
@@ -78,7 +79,7 @@ nsSMILInstanceTime::HandleChangedInterval(
   if (!mBaseInterval)
     return;
 
-  NS_ABORT_IF_FALSE(mCreator, "Base interval is set but creator is not.");
+  MOZ_ASSERT(mCreator, "Base interval is set but creator is not.");
 
   if (mVisited) {
     // Break the cycle here
@@ -92,7 +93,7 @@ nsSMILInstanceTime::HandleChangedInterval(
   mozilla::AutoRestore<bool> setVisited(mVisited);
   mVisited = true;
 
-  nsRefPtr<nsSMILInstanceTime> deathGrip(this);
+  RefPtr<nsSMILInstanceTime> deathGrip(this);
   mCreator->HandleChangedInstanceTime(*GetBaseTime(), aSrcContainer, *this,
                                       objectChanged);
 }
@@ -100,14 +101,15 @@ nsSMILInstanceTime::HandleChangedInterval(
 void
 nsSMILInstanceTime::HandleDeletedInterval()
 {
-  NS_ABORT_IF_FALSE(mBaseInterval,
-      "Got call to HandleDeletedInterval on an independent instance time");
-  NS_ABORT_IF_FALSE(mCreator, "Base interval is set but creator is not");
+  MOZ_ASSERT(mBaseInterval,
+             "Got call to HandleDeletedInterval on an independent instance "
+             "time");
+  MOZ_ASSERT(mCreator, "Base interval is set but creator is not");
 
   mBaseInterval = nullptr;
   mFlags &= ~kMayUpdate; // Can't update without a base interval
 
-  nsRefPtr<nsSMILInstanceTime> deathGrip(this);
+  RefPtr<nsSMILInstanceTime> deathGrip(this);
   mCreator->HandleDeletedInstanceTime(*this);
   mCreator = nullptr;
 }
@@ -115,8 +117,9 @@ nsSMILInstanceTime::HandleDeletedInterval()
 void
 nsSMILInstanceTime::HandleFilteredInterval()
 {
-  NS_ABORT_IF_FALSE(mBaseInterval,
-      "Got call to HandleFilteredInterval on an independent instance time");
+  MOZ_ASSERT(mBaseInterval,
+             "Got call to HandleFilteredInterval on an independent instance "
+             "time");
 
   mBaseInterval = nullptr;
   mFlags &= ~kMayUpdate; // Can't update without a base interval
@@ -138,8 +141,8 @@ nsSMILInstanceTime::UnmarkShouldPreserve()
 void
 nsSMILInstanceTime::AddRefFixedEndpoint()
 {
-  NS_ABORT_IF_FALSE(mFixedEndpointRefCnt < UINT16_MAX,
-      "Fixed endpoint reference count upper limit reached");
+  MOZ_ASSERT(mFixedEndpointRefCnt < UINT16_MAX,
+             "Fixed endpoint reference count upper limit reached");
   ++mFixedEndpointRefCnt;
   mFlags &= ~kMayUpdate; // Once fixed, always fixed
 }
@@ -147,7 +150,7 @@ nsSMILInstanceTime::AddRefFixedEndpoint()
 void
 nsSMILInstanceTime::ReleaseFixedEndpoint()
 {
-  NS_ABORT_IF_FALSE(mFixedEndpointRefCnt > 0, "Duplicate release");
+  MOZ_ASSERT(mFixedEndpointRefCnt > 0, "Duplicate release");
   --mFixedEndpointRefCnt;
   if (mFixedEndpointRefCnt == 0 && IsDynamic()) {
     mFlags |= kWasDynamicEndpoint;
@@ -179,7 +182,7 @@ nsSMILInstanceTime::GetBaseTime() const
     return nullptr;
   }
 
-  NS_ABORT_IF_FALSE(mCreator, "Base interval is set but there is no creator.");
+  MOZ_ASSERT(mCreator, "Base interval is set but there is no creator.");
   if (!mCreator) {
     return nullptr;
   }
@@ -191,13 +194,14 @@ nsSMILInstanceTime::GetBaseTime() const
 void
 nsSMILInstanceTime::SetBaseInterval(nsSMILInterval* aBaseInterval)
 {
-  NS_ABORT_IF_FALSE(!mBaseInterval,
-      "Attempting to reassociate an instance time with a different interval.");
+  MOZ_ASSERT(!mBaseInterval,
+             "Attempting to reassociate an instance time with a different "
+             "interval.");
 
   if (aBaseInterval) {
-    NS_ABORT_IF_FALSE(mCreator,
-        "Attempting to create a dependent instance time without reference "
-        "to the creating nsSMILTimeValueSpec object.");
+    MOZ_ASSERT(mCreator,
+               "Attempting to create a dependent instance time without "
+               "reference to the creating nsSMILTimeValueSpec object.");
     if (!mCreator)
       return;
 

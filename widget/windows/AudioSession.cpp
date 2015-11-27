@@ -31,7 +31,7 @@ namespace widget {
  * we need to maintain an audio session.  This class wraps IAudioSessionControl
  * and implements IAudioSessionEvents (for callbacks from Windows)
  */
-class AudioSession MOZ_FINAL : public IAudioSessionEvents {
+class AudioSession final : public IAudioSessionEvents {
 private:
   AudioSession();
   ~AudioSession();
@@ -81,7 +81,7 @@ public:
     AUDIO_SESSION_DISCONNECTED // Audio session disconnected
   };
 protected:
-  nsRefPtr<IAudioSessionControl> mAudioSessionControl;
+  RefPtr<IAudioSessionControl> mAudioSessionControl;
   nsString mDisplayName;
   nsString mIconPath;
   nsID mSessionGroupingParameter;
@@ -141,7 +141,7 @@ AudioSession*
 AudioSession::GetSingleton()
 {
   if (!(AudioSession::sService)) {
-    nsRefPtr<AudioSession> service = new AudioSession();
+    RefPtr<AudioSession> service = new AudioSession();
     service.forget(&AudioSession::sService);
   }
 
@@ -174,10 +174,10 @@ AudioSession::QueryInterface(REFIID iid, void **ppv)
 nsresult
 AudioSession::Start()
 {
-  NS_ABORT_IF_FALSE(mState == UNINITIALIZED || 
-                    mState == CLONED ||
-                    mState == AUDIO_SESSION_DISCONNECTED,
-                    "State invariants violated");
+  MOZ_ASSERT(mState == UNINITIALIZED ||
+             mState == CLONED ||
+             mState == AUDIO_SESSION_DISCONNECTED,
+             "State invariants violated");
 
   const CLSID CLSID_MMDeviceEnumerator = __uuidof(MMDeviceEnumerator);
   const IID IID_IMMDeviceEnumerator = __uuidof(IMMDeviceEnumerator);
@@ -193,11 +193,11 @@ AudioSession::Start()
     mState = FAILED;
 
     // XXXkhuey implement this for content processes
-    if (XRE_GetProcessType() == GeckoProcessType_Content)
+    if (XRE_IsContentProcess())
       return NS_ERROR_FAILURE;
 
-    NS_ABORT_IF_FALSE(XRE_GetProcessType() == GeckoProcessType_Default,
-                      "Should only get here in a chrome process!");
+    MOZ_ASSERT(XRE_IsParentProcess(),
+               "Should only get here in a chrome process!");
 
     nsCOMPtr<nsIStringBundleService> bundleService = 
       do_GetService(NS_STRINGBUNDLE_CONTRACTID);
@@ -225,10 +225,10 @@ AudioSession::Start()
 
   mState = FAILED;
 
-  NS_ABORT_IF_FALSE(!mDisplayName.IsEmpty() || !mIconPath.IsEmpty(),
-                    "Should never happen ...");
+  MOZ_ASSERT(!mDisplayName.IsEmpty() || !mIconPath.IsEmpty(),
+             "Should never happen ...");
 
-  nsRefPtr<IMMDeviceEnumerator> enumerator;
+  RefPtr<IMMDeviceEnumerator> enumerator;
   hr = ::CoCreateInstance(CLSID_MMDeviceEnumerator,
                           nullptr,
                           CLSCTX_ALL,
@@ -237,7 +237,7 @@ AudioSession::Start()
   if (FAILED(hr))
     return NS_ERROR_NOT_AVAILABLE;
 
-  nsRefPtr<IMMDevice> device;
+  RefPtr<IMMDevice> device;
   hr = enumerator->GetDefaultAudioEndpoint(EDataFlow::eRender,
                                            ERole::eMultimedia,
                                            getter_AddRefs(device));
@@ -247,7 +247,7 @@ AudioSession::Start()
     return NS_ERROR_FAILURE;
   }
 
-  nsRefPtr<IAudioSessionManager> manager;
+  RefPtr<IAudioSessionManager> manager;
   hr = device->Activate(IID_IAudioSessionManager,
                         CLSCTX_ALL,
                         nullptr,
@@ -306,16 +306,16 @@ AudioSession::StopInternal()
 nsresult
 AudioSession::Stop()
 {
-  NS_ABORT_IF_FALSE(mState == STARTED ||
-                    mState == UNINITIALIZED || // XXXremove this
-                    mState == FAILED,
-                    "State invariants violated");
+  MOZ_ASSERT(mState == STARTED ||
+             mState == UNINITIALIZED || // XXXremove this
+             mState == FAILED,
+             "State invariants violated");
   mState = STOPPED;
 
-  nsRefPtr<AudioSession> kungFuDeathGrip;
+  RefPtr<AudioSession> kungFuDeathGrip;
   kungFuDeathGrip.swap(sService);
 
-  if (XRE_GetProcessType() != GeckoProcessType_Content)
+  if (!XRE_IsContentProcess())
     StopInternal();
 
   // At this point kungFuDeathGrip should be the only reference to AudioSession
@@ -340,10 +340,10 @@ AudioSession::GetSessionData(nsID& aID,
                              nsString& aSessionName,
                              nsString& aIconPath)
 {
-  NS_ABORT_IF_FALSE(mState == FAILED ||
-                    mState == STARTED ||
-                    mState == CLONED,
-                    "State invariants violated");
+  MOZ_ASSERT(mState == FAILED ||
+             mState == STARTED ||
+             mState == CLONED,
+             "State invariants violated");
 
   CopynsID(aID, mSessionGroupingParameter);
   aSessionName = mDisplayName;
@@ -360,10 +360,10 @@ AudioSession::SetSessionData(const nsID& aID,
                              const nsString& aSessionName,
                              const nsString& aIconPath)
 {
-  NS_ABORT_IF_FALSE(mState == UNINITIALIZED,
-                    "State invariants violated");
-  NS_ABORT_IF_FALSE(XRE_GetProcessType() != GeckoProcessType_Default,
-                    "Should never get here in a chrome process!");
+  MOZ_ASSERT(mState == UNINITIALIZED,
+             "State invariants violated");
+  MOZ_ASSERT(!XRE_IsParentProcess(),
+             "Should never get here in a chrome process!");
   mState = CLONED;
 
   CopynsID(mSessionGroupingParameter, aID);

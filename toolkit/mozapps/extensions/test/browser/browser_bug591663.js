@@ -7,25 +7,25 @@
 // Don't use a standard list view (e.g. "extension") to ensure that the list is
 // initially empty. Don't need to worry about the list of categories displayed
 // since only the list view itself is tested.
-let VIEW_ID = "addons://list/mock-addon";
+var VIEW_ID = "addons://list/mock-addon";
 
-let LIST_ID = "addon-list";
-let EMPTY_ID = "addon-list-empty";
+var LIST_ID = "addon-list";
+var EMPTY_ID = "addon-list-empty";
 
-let gManagerWindow;
-let gProvider;
-let gItem;
+var gManagerWindow;
+var gProvider;
+var gItem;
 
-let gInstallProperties = {
+var gInstallProperties = {
   name: "Bug 591663 Mock Install",
   type: "mock-addon"
 };
-let gAddonProperties = {
+var gAddonProperties = {
   id: "test1@tests.mozilla.org",
   name: "Bug 591663 Mock Add-on",
   type: "mock-addon"
 };
-let gExtensionProperties = {
+var gExtensionProperties = {
   name: "Bug 591663 Extension Install",
   type: "extension"
 };
@@ -64,7 +64,7 @@ function check_list(aItem) {
 
   // Check the children of the list
   let list = gManagerWindow.document.getElementById(LIST_ID);
-  is(list.itemCount, aItem ? 1 : 0, "Should get expected number of items in list");
+  is(list.childNodes.length, aItem ? 1 : 0, "Should get expected number of items in list");
   if (aItem != null) {
     let itemName = list.firstChild.getAttribute("name");
     is(itemName, aItem.name, "List item should have correct name");

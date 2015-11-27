@@ -35,7 +35,7 @@
 #include "base/basictypes.h"
 #include "base/cpu.h"
 #include "mozilla/Assertions.h"
-#include "skia/SkTypes.h"
+#include "skia/include/core/SkTypes.h"
 
 // avoid confusion with Mac OS X's math library (Carbon)
 #if defined(__APPLE__)
@@ -185,6 +185,17 @@ void BGRAConvolve2D(const unsigned char* source_data,
                     const ConvolutionFilter1D& yfilter,
                     int output_byte_row_stride,
                     unsigned char* output);
+
+void ConvolveHorizontally(const unsigned char* src_data,
+                          const ConvolutionFilter1D& filter,
+                          unsigned char* out_row,
+                          bool has_alpha, bool use_sse2);
+
+void ConvolveVertically(const ConvolutionFilter1D::Fixed* filter_values,
+                        int filter_length,
+                        unsigned char* const* source_data_rows,
+                        int pixel_width, unsigned char* out_row,
+                        bool has_alpha, bool use_sse2);
 
 }  // namespace skia
 

@@ -35,7 +35,6 @@ protected:
     struct _GtkStyle *mStyle;
 #else
     struct _GtkStyleContext *mBackgroundStyle;
-    struct _GtkStyleContext *mViewStyle;
     struct _GtkStyleContext *mButtonStyle;
 #endif
 
@@ -60,11 +59,12 @@ protected:
     nscolor sMenuBarText;
     nscolor sMenuBarHoverText;
     nscolor sMenuText;
+    nscolor sMenuTextInactive;
     nscolor sMenuHover;
     nscolor sMenuHoverText;
     nscolor sButtonText;
     nscolor sButtonHoverText;
-    nscolor sFrameBackground;
+    nscolor sButtonBackground;
     nscolor sFrameOuterLightBorder;
     nscolor sFrameInnerDarkBorder;
     nscolor sOddCellBackground;
@@ -75,9 +75,12 @@ protected:
     nscolor sMozFieldBackground;
     nscolor sMozWindowText;
     nscolor sMozWindowBackground;
-    nscolor sMozWindowSelectedText;
-    nscolor sMozWindowSelectedBackground;
+    nscolor sTextSelectedText;
+    nscolor sTextSelectedBackground;
     nscolor sMozScrollbar;
+#if (MOZ_WIDGET_GTK == 3)
+    nscolor sInfoBarText;
+#endif
     char16_t sInvisibleCharacter;
     float   sCaretRatio;
     bool    sMenuSupportsDrag;

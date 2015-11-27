@@ -9,9 +9,13 @@ import org.mozilla.gecko.AppConstants.Versions;
 
 import android.content.Context;
 import android.graphics.Canvas;
-import android.view.View;
+import android.graphics.Paint;
+import android.graphics.PointF;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
 import android.widget.EdgeEffect;
 
+import java.lang.reflect.Field;
 
 public class OverscrollEdgeEffect implements Overscroll {
     // Used to index particular edges in the edges array
@@ -24,16 +28,38 @@ public class OverscrollEdgeEffect implements Overscroll {
     private final EdgeEffect[] mEdges = new EdgeEffect[4];
 
     // The view we're showing this overscroll on.
-    private final View mView;
+    private final LayerView mView;
 
-    public OverscrollEdgeEffect(final View v) {
+    public OverscrollEdgeEffect(final LayerView v) {
+        Field paintField = null;
+        if (Versions.feature21Plus) {
+            try {
+                paintField = EdgeEffect.class.getDeclaredField("mPaint");
+                paintField.setAccessible(true);
+            } catch (NoSuchFieldException e) {
+            }
+        }
+
         mView = v;
         Context context = v.getContext();
         for (int i = 0; i < 4; i++) {
             mEdges[i] = new EdgeEffect(context);
+
+            try {
+                if (paintField != null) {
+                    final Paint p = (Paint) paintField.get(mEdges[i]);
+
+                    // The Android EdgeEffect class uses a mode of SRC_ATOP here, which means it will only
+                    // draw the effect where there are non-transparent pixels in the destination. Since the LayerView
+                    // itself is fully transparent, it doesn't display at all. We need to use SRC instead.
+                    p.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC));
+                }
+            } catch (IllegalAccessException e) {
+            }
         }
     }
 
+    @Override
     public void setSize(final int width, final int height) {
         mEdges[LEFT].setSize(height, width);
         mEdges[RIGHT].setSize(height, width);
@@ -65,6 +91,7 @@ public class OverscrollEdgeEffect implements Overscroll {
         }
     }
 
+    @Override
     public void setVelocity(final float velocity, final Axis axis) {
         final EdgeEffect edge = getEdgeForAxisAndSide(axis, velocity);
 
@@ -79,6 +106,7 @@ public class OverscrollEdgeEffect implements Overscroll {
         invalidate();
     }
 
+    @Override
     public void setDistance(final float distance, final Axis axis) {
         // The first overscroll event often has zero distance. Throw it out
         if (distance == 0.0f) {
@@ -90,27 +118,31 @@ public class OverscrollEdgeEffect implements Overscroll {
         invalidate();
     }
 
+    @Override
     public void draw(final Canvas canvas, final ImmutableViewportMetrics metrics) {
         if (metrics == null) {
             return;
         }
 
+        float fillerSize = mView.getDynamicToolbarAnimator().getMaxTranslation();
+        PointF visibleEnd = mView.getDynamicToolbarAnimator().getVisibleEndOfLayerView();
+
         // If we're pulling an edge, or fading it out, draw!
         boolean invalidate = false;
         if (!mEdges[TOP].isFinished()) {
-            invalidate |= draw(mEdges[TOP], canvas, metrics.marginLeft, metrics.marginTop, 0);
+            invalidate |= draw(mEdges[TOP], canvas, 0, fillerSize, 0);
         }
 
         if (!mEdges[BOTTOM].isFinished()) {
-            invalidate |= draw(mEdges[BOTTOM], canvas, mView.getWidth(), mView.getHeight(), 180);
+            invalidate |= draw(mEdges[BOTTOM], canvas, visibleEnd.x, fillerSize + visibleEnd.y, 180);
         }
 
         if (!mEdges[LEFT].isFinished()) {
-            invalidate |= draw(mEdges[LEFT], canvas, metrics.marginLeft, mView.getHeight(), 270);
+            invalidate |= draw(mEdges[LEFT], canvas, 0, fillerSize + visibleEnd.y, 270);
         }
 
         if (!mEdges[RIGHT].isFinished()) {
-            invalidate |= draw(mEdges[RIGHT], canvas, mView.getWidth(), metrics.marginTop, 90);
+            invalidate |= draw(mEdges[RIGHT], canvas, visibleEnd.x, fillerSize, 90);
         }
 
         // If the edge effect is animating off screen, invalidate.

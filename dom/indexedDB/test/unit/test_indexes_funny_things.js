@@ -45,7 +45,7 @@ function testSteps()
 
   const objectStoreDataLengthSort = [
     { key: "5", value: arr},
-    //{ key: "4", value: str},
+    { key: "4", value: str},
   ];
 
   let request = indexedDB.open(name, 1);
@@ -93,7 +93,7 @@ function testSteps()
     is(found, true, "objectStore has our index");
     let index = objectStore.index(indexData[i].name);
     is(index.name, indexData[i].name, "Correct name");
-    is(index.storeName, objectStore.name, "Correct store name");
+    is(index.objectStore.name, objectStore.name, "Correct store name");
     is(index.keyPath, indexData[i].keyPath, "Correct keyPath");
     is(index.unique, indexData[i].options.unique ? true : false,
        "Correct unique value");

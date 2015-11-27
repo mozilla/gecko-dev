@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 sw=2 et tw=80: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -39,7 +39,8 @@ public:
   // Get the location of the script.
   // Note: The memory pointed to by aFileName is owned by the
   // nsIScriptTimeoutHandler and should not be freed by the caller.
-  virtual void GetLocation(const char **aFileName, uint32_t *aLineNo) = 0;
+  virtual void GetLocation(const char **aFileName, uint32_t *aLineNo,
+                           uint32_t *aColumn) = 0;
 
   // If we have a Function, get the arguments for passing to it.
   virtual const nsTArray<JS::Value>& GetArgs() = 0;

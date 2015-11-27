@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -7,6 +8,7 @@
 #define nsXREAppData_h
 
 #include <stdint.h>
+#include "mozilla/Attributes.h"
 
 class nsIFile;
 
@@ -14,7 +16,7 @@ class nsIFile;
  * Application-specific data needed to start the apprunner.
  *
  * @note When this structure is allocated and manipulated by XRE_CreateAppData,
- *       string fields will be allocated with NS_Alloc, and interface pointers
+ *       string fields will be allocated with moz_xmalloc, and interface pointers
  *       are strong references.
  */
 struct nsXREAppData
@@ -30,7 +32,7 @@ struct nsXREAppData
    * The directory of the application to be run. May be null if the
    * xulrunner and the app are installed into the same directory.
    */
-  nsIFile* directory;
+  nsIFile* MOZ_NON_OWNING_REF directory;
 
   /**
    * The name of the application vendor. This must be ASCII, and is normally
@@ -45,6 +47,13 @@ struct nsXREAppData
    * string).
    */
   const char* name;
+
+  /**
+   * The internal name of the application for remoting purposes. When left
+   * unspecified, "name" is used instead. This must be ASCII, and is normally
+   * lowercase, e.g. "firefox". Optional (may be null but not an empty string).
+   */
+  const char* remotingName;
 
   /**
    * The major version, e.g. "0.8.0+". Optional (may be null), but
@@ -85,7 +94,7 @@ struct nsXREAppData
    * The location of the XRE. XRE_main may not be able to figure this out
    * programatically.
    */
-  nsIFile* xreDirectory;
+  nsIFile* MOZ_NON_OWNING_REF xreDirectory;
 
   /**
    * The minimum/maximum compatible XRE version.

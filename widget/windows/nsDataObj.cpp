@@ -23,6 +23,8 @@
 #include "nsEscape.h"
 #include "nsIURL.h"
 #include "nsNetUtil.h"
+#include "mozilla/Services.h"
+#include "nsIOutputStream.h"
 #include "nsXPCOMStrings.h"
 #include "nscore.h"
 #include "nsDirectoryServiceDefs.h"
@@ -72,15 +74,14 @@ nsresult nsDataObj::CStream::Init(nsIURI *pSourceURI,
   rv = NS_NewChannel(getter_AddRefs(mChannel),
                      pSourceURI,
                      aRequestingNode,
-                     nsILoadInfo::SEC_NORMAL,
+                     nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_INHERITS,
                      nsIContentPolicy::TYPE_OTHER,
-                     nullptr,   // aChannelPolicy
                      nullptr,   // loadGroup
                      nullptr,   // aCallbacks
                      nsIRequest::LOAD_FROM_CACHE);
 
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = mChannel->AsyncOpen(this, nullptr);
+  rv = mChannel->AsyncOpen2(this);
   NS_ENSURE_SUCCESS(rv, rv);
   return NS_OK;
 }
@@ -547,7 +548,7 @@ STDMETHODIMP nsDataObj::GetData(LPFORMATETC aFormat, LPSTGMEDIUM pSTM)
           return GetFileContents ( *aFormat, *pSTM );
         if ( format == PreferredDropEffect )
           return GetPreferredDropEffect( *aFormat, *pSTM );
-        //PR_LOG(gWindowsLog, PR_LOG_ALWAYS, 
+        //MOZ_LOG(gWindowsLog, LogLevel::Info, 
         //       ("***** nsDataObj::GetData - Unknown format %u\n", format));
         return GetText(df, *aFormat, *pSTM);
       } //switch
@@ -594,7 +595,7 @@ STDMETHODIMP nsDataObj::QueryGetData(LPFORMATETC pFE)
 STDMETHODIMP nsDataObj::GetCanonicalFormatEtc
 	 (LPFORMATETC pFEIn, LPFORMATETC pFEOut)
 {
-  return E_FAIL;
+  return E_NOTIMPL;
 }
 
 //-----------------------------------------------------
@@ -747,20 +748,20 @@ STDMETHODIMP nsDataObj::EnumFormatEtc(DWORD dwDir, LPENUMFORMATETC *ppEnum)
 STDMETHODIMP nsDataObj::DAdvise(LPFORMATETC pFE, DWORD dwFlags,
 										            LPADVISESINK pIAdviseSink, DWORD* pdwConn)
 {
-  return E_FAIL;
+  return OLE_E_ADVISENOTSUPPORTED;
 }
 
 
 //-----------------------------------------------------
 STDMETHODIMP nsDataObj::DUnadvise(DWORD dwConn)
 {
-  return E_FAIL;
+  return OLE_E_ADVISENOTSUPPORTED;
 }
 
 //-----------------------------------------------------
 STDMETHODIMP nsDataObj::EnumDAdvise(LPENUMSTATDATA *ppEnum)
 {
-  return E_FAIL;
+  return OLE_E_ADVISENOTSUPPORTED;
 }
 
 // IAsyncOperation methods
@@ -1289,34 +1290,14 @@ HRESULT nsDataObj::GetText(const nsACString & aDataFlavor, FORMATETC& aFE, STGME
   // by the appropriate size to account for the null (one char for CF_TEXT, one char16_t for
   // CF_UNICODETEXT).
   DWORD allocLen = (DWORD)len;
-  if ( aFE.cfFormat == CF_TEXT ) {
-    // Someone is asking for text/plain; convert the unicode (assuming it's present)
-    // to text with the correct platform encoding.
-    char* plainTextData = nullptr;
-    char16_t* castedUnicode = reinterpret_cast<char16_t*>(data);
-    int32_t plainTextLen = 0;
-    nsPrimitiveHelpers::ConvertUnicodeToPlatformPlainText ( castedUnicode, len / 2, &plainTextData, &plainTextLen );
-   
-    // replace the unicode data with our plaintext data. Recall that |plainTextLen| doesn't include
-    // the null in the length.
-    nsMemory::Free(data);
-    if ( plainTextData ) {
-      data = plainTextData;
-      allocLen = plainTextLen + sizeof(char);
-    }
-    else {
-      NS_WARNING ( "Oh no, couldn't convert unicode to plain text" );
-      return S_OK;
-    }
-  }
-  else if ( aFE.cfFormat == nsClipboard::CF_HTML ) {
+  if ( aFE.cfFormat == nsClipboard::CF_HTML ) {
     // Someone is asking for win32's HTML flavor. Convert our html fragment
     // from unicode to UTF-8 then put it into a format specified by msft.
     NS_ConvertUTF16toUTF8 converter ( reinterpret_cast<char16_t*>(data) );
     char* utf8HTML = nullptr;
     nsresult rv = BuildPlatformHTML ( converter.get(), &utf8HTML );      // null terminates
     
-    nsMemory::Free(data);
+    free(data);
     if ( NS_SUCCEEDED(rv) && utf8HTML ) {
       // replace the unicode data with our HTML data. Don't forget the null.
       data = utf8HTML;
@@ -1345,7 +1326,7 @@ HRESULT nsDataObj::GetText(const nsACString & aDataFlavor, FORMATETC& aFE, STGME
   aSTG.hGlobal = hGlobalMemory;
 
   // Now, delete the memory that was created by CreateDataFromPrimitive (or our text/plain data)
-  nsMemory::Free(data);
+  free(data);
 
   return S_OK;
 }

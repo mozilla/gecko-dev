@@ -8,6 +8,8 @@
 #ifndef _nsStyleContext_h_
 #define _nsStyleContext_h_
 
+#include "mozilla/RestyleLogging.h"
+#include "mozilla/Assertions.h"
 #include "nsRuleNode.h"
 #include "nsCSSPseudoElements.h"
 
@@ -36,7 +38,7 @@ class nsPresContext;
  * collection.
  */
 
-class nsStyleContext MOZ_FINAL
+class nsStyleContext final
 {
 public:
   /**
@@ -71,6 +73,20 @@ public:
   void* operator new(size_t sz, nsPresContext* aPresContext) CPP_THROW_NEW;
   void Destroy();
 
+  // These two methods are for use by ArenaRefPtr.
+  static mozilla::ArenaObjectID ArenaObjectID()
+  {
+    return mozilla::eArenaObjectID_nsStyleContext;
+  }
+  nsIPresShell* Arena();
+
+#ifdef DEBUG
+  /**
+   * Initializes a cached pref, which is only used in DEBUG code.
+   */
+  static void Initialize();
+#endif
+
   nsrefcnt AddRef() {
     if (mRefCnt == UINT32_MAX) {
       NS_WARNING("refcount overflow, leaking object");
@@ -94,6 +110,20 @@ public:
     }
     return mRefCnt;
   }
+
+#ifdef DEBUG
+  void FrameAddRef() {
+    ++mFrameRefCnt;
+  }
+
+  void FrameRelease() {
+    --mFrameRefCnt;
+  }
+
+  uint32_t FrameRefCnt() const {
+    return mFrameRefCnt;
+  }
+#endif
 
   bool HasSingleReference() const {
     NS_ASSERTION(mRefCnt != 0,
@@ -129,12 +159,29 @@ public:
   bool HasTextDecorationLines() const
     { return !!(mBits & NS_STYLE_HAS_TEXT_DECORATION_LINES); }
 
+  // Whether any line break inside should be suppressed? If this returns
+  // true, the line should not be broken inside, which means inlines act
+  // as if nowrap is set, <br> is suppressed, and blocks are inlinized.
+  // This bit is propogated to all children of line partitipants. It is
+  // currently used by ruby to make its content frames unbreakable.
+  // NOTE: for nsTextFrame, use nsTextFrame::ShouldSuppressLineBreak()
+  // instead of this method.
+  bool ShouldSuppressLineBreak() const
+    { return !!(mBits & NS_STYLE_SUPPRESS_LINEBREAK); }
+
+  // Does this style context or any of its ancestors have display:none set?
+  bool IsInDisplayNoneSubtree() const
+    { return !!(mBits & NS_STYLE_IN_DISPLAY_NONE_SUBTREE); }
+
   // Does this style context represent the style for a pseudo-element or
   // inherit data from such a style context?  Whether this returns true
   // is equivalent to whether it or any of its ancestors returns
   // non-null for GetPseudo.
   bool HasPseudoElementData() const
     { return !!(mBits & NS_STYLE_HAS_PSEUDO_ELEMENT_DATA); }
+
+  bool HasChildThatUsesResetStyle() const
+    { return mBits & NS_STYLE_HAS_CHILD_THAT_USES_RESET_STYLE; }
 
   // Is the only link whose visitedness is allowed to influence the
   // style of the node this style context is for (which is that element
@@ -178,15 +225,15 @@ public:
   // To be called only from nsStyleSet.
   void SetStyleIfVisited(already_AddRefed<nsStyleContext> aStyleIfVisited)
   {
-    NS_ABORT_IF_FALSE(!IsStyleIfVisited(), "this context is not visited data");
+    MOZ_ASSERT(!IsStyleIfVisited(), "this context is not visited data");
     NS_ASSERTION(!mStyleIfVisited, "should only be set once");
 
     mStyleIfVisited = aStyleIfVisited;
 
-    NS_ABORT_IF_FALSE(mStyleIfVisited->IsStyleIfVisited(),
-                      "other context is visited data");
-    NS_ABORT_IF_FALSE(!mStyleIfVisited->GetStyleIfVisited(),
-                      "other context does not have visited data");
+    MOZ_ASSERT(mStyleIfVisited->IsStyleIfVisited(),
+               "other context is visited data");
+    MOZ_ASSERT(!mStyleIfVisited->GetStyleIfVisited(),
+               "other context does not have visited data");
     NS_ASSERTION(GetStyleIfVisited()->GetPseudo() == GetPseudo(),
                  "pseudo tag mismatch");
     if (GetParent() && GetParent()->GetStyleIfVisited()) {
@@ -218,34 +265,15 @@ public:
   // Tell this style context to cache aStruct as the struct for aSID
   void SetStyle(nsStyleStructID aSID, void* aStruct);
 
-  // Setters for inherit structs only, since rulenode only sets those eagerly.
-  #define STYLE_STRUCT_INHERITED(name_, checkdata_cb_)                      \
-    void SetStyle##name_ (nsStyle##name_ * aStruct) {                       \
-      void *& slot =                                                        \
-        mCachedInheritedData.mStyleStructs[eStyleStruct_##name_];           \
-      NS_ASSERTION(!slot ||                                                 \
-                   (mBits &                                                 \
-                    nsCachedStyleData::GetBitForSID(eStyleStruct_##name_)), \
-                   "Going to leak styledata");                              \
-      slot = aStruct;                                                       \
-    }
-#define STYLE_STRUCT_RESET(name_, checkdata_cb_) /* nothing */
-  #include "nsStyleStructList.h"
-  #undef STYLE_STRUCT_RESET
-  #undef STYLE_STRUCT_INHERITED
-
   /**
-   * Returns whether this style context and aOther both have the same
-   * cached style struct pointer for a given style struct.
+   * Returns whether this style context has cached style data for a
+   * given style struct and it does NOT own that struct.  This can
+   * happen because it was inherited from the parent style context, or
+   * because it was stored conditionally on the rule node.
    */
-  bool HasSameCachedStyleData(nsStyleContext* aOther, nsStyleStructID aSID);
-
-  /**
-   * Returns whether this style context has cached, inherited style data for a
-   * given style struct.
-   */
-  bool HasCachedInheritedStyleData(nsStyleStructID aSID)
-    { return mBits & nsCachedStyleData::GetBitForSID(aSID); }
+  bool HasCachedDependentStyleData(nsStyleStructID aSID) {
+    return mBits & nsCachedStyleData::GetBitForSID(aSID);
+  }
 
   nsRuleNode* RuleNode() { return mRuleNode; }
   void AddStyleBit(const uint64_t& aBit) { mBits |= aBit; }
@@ -258,7 +286,7 @@ public:
 
   /*
    * Get the style data for a style struct.  This is the most important
-   * member function of nsIStyleContext.  It fills in a const pointer
+   * member function of nsStyleContext.  It fills in a const pointer
    * to a style data struct that is appropriate for the style context's
    * frame.  This struct may be shared with other contexts (either in
    * the rule tree or the style context tree), so it should not be
@@ -283,13 +311,13 @@ public:
    */
   #define STYLE_STRUCT(name_, checkdata_cb_)              \
     const nsStyle##name_ * Style##name_() {               \
-      return DoGetStyle##name_(true);                     \
+      return DoGetStyle##name_<true>();                   \
     }
   #include "nsStyleStructList.h"
   #undef STYLE_STRUCT
 
   /**
-   * PeekStyle* is like GetStyle* but doesn't trigger style
+   * PeekStyle* is like Style* but doesn't trigger style
    * computation if the data is not cached on either the style context
    * or the rule node.
    *
@@ -297,12 +325,10 @@ public:
    */
   #define STYLE_STRUCT(name_, checkdata_cb_)              \
     const nsStyle##name_ * PeekStyle##name_() {           \
-      return DoGetStyle##name_(false);                    \
+      return DoGetStyle##name_<false>();                  \
     }
   #include "nsStyleStructList.h"
   #undef STYLE_STRUCT
-
-  void* GetUniqueStyleData(const nsStyleStructID& aSID);
 
   /**
    * Compute the style changes needed during restyling when this style
@@ -325,7 +351,8 @@ public:
    */
   nsChangeHint CalcStyleDifference(nsStyleContext* aOther,
                                    nsChangeHint aParentHintsNotHandledForDescendants,
-                                   uint32_t* aEqualStructs);
+                                   uint32_t* aEqualStructs,
+                                   uint32_t* aSamePointerStructs);
 
   /**
    * Get a color that depends on link-visitedness using this and
@@ -393,10 +420,47 @@ public:
    */
   void ClearCachedInheritedStyleDataOnDescendants(uint32_t aStructs);
 
+  /**
+   * Sets the NS_STYLE_INELIGIBLE_FOR_SHARING bit on this style context
+   * and its descendants.  If it finds a descendant that has the bit
+   * already set, assumes that it can skip that subtree.
+   */
+  void SetIneligibleForSharing();
+
 #ifdef DEBUG
-  void List(FILE* out, int32_t aIndent);
+  void List(FILE* out, int32_t aIndent, bool aListDescendants = true);
   static void AssertStyleStructMaxDifferenceValid();
+  static const char* StructName(nsStyleStructID aSID);
+  static bool LookupStruct(const nsACString& aName, nsStyleStructID& aResult);
 #endif
+
+#ifdef RESTYLE_LOGGING
+  nsCString GetCachedStyleDataAsString(uint32_t aStructs);
+  void LogStyleContextTree(int32_t aLoggingDepth, uint32_t aStructs);
+  int32_t& LoggingDepth();
+#endif
+
+  /**
+   * Return style data that is currently cached on the style context.
+   * Only returns the structs we cache ourselves; never consults the
+   * rule tree.
+   *
+   * For "internal" use only in nsStyleContext and nsRuleNode.
+   */
+  const void* GetCachedStyleData(nsStyleStructID aSID)
+  {
+    const void* cachedData;
+    if (nsCachedStyleData::IsReset(aSID)) {
+      if (mCachedResetData) {
+        cachedData = mCachedResetData->mStyleStructs[aSID];
+      } else {
+        cachedData = nullptr;
+      }
+    } else {
+      cachedData = mCachedInheritedData.mStyleStructs[aSID];
+    }
+    return cachedData;
+  }
 
 private:
   // Private destructor, to discourage deletion outside of Release():
@@ -405,37 +469,81 @@ private:
   void AddChild(nsStyleContext* aChild);
   void RemoveChild(nsStyleContext* aChild);
 
+  void* GetUniqueStyleData(const nsStyleStructID& aSID);
+  void* CreateEmptyStyleData(const nsStyleStructID& aSID);
+
   void ApplyStyleFixups(bool aSkipParentDisplayBasedStyleFixup);
 
   // Helper function for HasChildThatUsesGrandancestorStyle.
   static bool ListContainsStyleContextThatUsesGrandancestorStyle(
                                                    const nsStyleContext* aHead);
 
-  // Helper function that GetStyleData and GetUniqueStyleData use.  Only
-  // returns the structs we cache ourselves; never consults the ruletree.
-  inline const void* GetCachedStyleData(nsStyleStructID aSID);
+#ifdef DEBUG
+  struct AutoCheckDependency {
+
+    nsStyleContext* mStyleContext;
+    nsStyleStructID mOuterSID;
+
+    AutoCheckDependency(nsStyleContext* aContext, nsStyleStructID aInnerSID)
+      : mStyleContext(aContext)
+    {
+      mOuterSID = aContext->mComputingStruct;
+      MOZ_ASSERT(mOuterSID == nsStyleStructID_None ||
+                 DependencyAllowed(mOuterSID, aInnerSID),
+                 "Undeclared dependency, see generate-stylestructlist.py");
+      aContext->mComputingStruct = aInnerSID;
+    }
+
+    ~AutoCheckDependency()
+    {
+      mStyleContext->mComputingStruct = mOuterSID;
+    }
+
+  };
+
+#define AUTO_CHECK_DEPENDENCY(sid_) \
+  AutoCheckDependency checkNesting_(this, sid_)
+#else
+#define AUTO_CHECK_DEPENDENCY(sid_)
+#endif
 
   // Helper functions for GetStyle* and PeekStyle*
   #define STYLE_STRUCT_INHERITED(name_, checkdata_cb_)                  \
-    const nsStyle##name_ * DoGetStyle##name_(bool aComputeData) {       \
+    template<bool aComputeData>                                         \
+    const nsStyle##name_ * DoGetStyle##name_() {                        \
       const nsStyle##name_ * cachedData =                               \
         static_cast<nsStyle##name_*>(                                   \
           mCachedInheritedData.mStyleStructs[eStyleStruct_##name_]);    \
       if (cachedData) /* Have it cached already, yay */                 \
         return cachedData;                                              \
+      if (!aComputeData) {                                              \
+        /* We always cache inherited structs on the context when we */  \
+        /* compute them. */                                             \
+        return nullptr;                                                 \
+      }                                                                 \
       /* Have the rulenode deal */                                      \
-      return mRuleNode->GetStyle##name_(this, aComputeData);            \
+      AUTO_CHECK_DEPENDENCY(eStyleStruct_##name_);                      \
+      const nsStyle##name_ * newData =                                  \
+        mRuleNode->GetStyle##name_<aComputeData>(this, mBits);          \
+      /* always cache inherited data on the style context; the rule */  \
+      /* node set the bit in mBits for us if needed. */                 \
+      mCachedInheritedData.mStyleStructs[eStyleStruct_##name_] =        \
+        const_cast<nsStyle##name_ *>(newData);                          \
+      return newData;                                                   \
     }
   #define STYLE_STRUCT_RESET(name_, checkdata_cb_)                      \
-    const nsStyle##name_ * DoGetStyle##name_(bool aComputeData) {       \
-      const nsStyle##name_ * cachedData = mCachedResetData              \
-        ? static_cast<nsStyle##name_*>(                                 \
-            mCachedResetData->mStyleStructs[eStyleStruct_##name_])      \
-        : nullptr;                                                      \
-      if (cachedData) /* Have it cached already, yay */                 \
-        return cachedData;                                              \
+    template<bool aComputeData>                                         \
+    const nsStyle##name_ * DoGetStyle##name_() {                        \
+      if (mCachedResetData) {                                           \
+        const nsStyle##name_ * cachedData =                             \
+          static_cast<nsStyle##name_*>(                                 \
+            mCachedResetData->mStyleStructs[eStyleStruct_##name_]);     \
+        if (cachedData) /* Have it cached already, yay */               \
+          return cachedData;                                            \
+      }                                                                 \
       /* Have the rulenode deal */                                      \
-      return mRuleNode->GetStyle##name_(this, aComputeData);            \
+      AUTO_CHECK_DEPENDENCY(eStyleStruct_##name_);                      \
+      return mRuleNode->GetStyle##name_<aComputeData>(this);            \
     }
   #include "nsStyleStructList.h"
   #undef STYLE_STRUCT_RESET
@@ -447,6 +555,15 @@ private:
 #ifdef DEBUG
   void AssertStructsNotUsedElsewhere(nsStyleContext* aDestroyingContext,
                                      int32_t aLevels) const;
+#endif
+
+#ifdef RESTYLE_LOGGING
+  void LogStyleContextTree(bool aFirst, uint32_t aStructs);
+
+  // This only gets called under call trees where we've already checked
+  // that PresContext()->RestyleManager()->ShouldLogRestyle() returned true.
+  // It exists here just to satisfy LOG_RESTYLE's expectations.
+  bool ShouldLogRestyle() { return true; }
 #endif
 
   nsStyleContext* mParent; // STRONG
@@ -465,7 +582,7 @@ private:
   // Style to be used instead for the R, G, and B components of color,
   // background-color, and border-*-color if the nearest ancestor link
   // element is visited (see RelevantLinkVisited()).
-  nsRefPtr<nsStyleContext> mStyleIfVisited;
+  RefPtr<nsStyleContext> mStyleIfVisited;
 
   // If this style context is for a pseudo-element or anonymous box,
   // the relevant atom.
@@ -490,9 +607,32 @@ private:
   // sometimes allocate the mCachedResetData.
   nsResetStyleData*       mCachedResetData; // Cached reset style data.
   nsInheritedStyleData    mCachedInheritedData; // Cached inherited style data
-  uint64_t                mBits; // Which structs are inherited from the
-                                 // parent context or owned by mRuleNode.
+
+  // mBits stores a number of things:
+  //  - It records (using the style struct bits) which structs are
+  //    inherited from the parent context or owned by mRuleNode (i.e.,
+  //    not owned by the style context).
+  //  - It also stores the additional bits listed at the top of
+  //    nsStyleStruct.h.
+  uint64_t                mBits;
+
   uint32_t                mRefCnt;
+
+#ifdef DEBUG
+  uint32_t                mFrameRefCnt; // number of frames that use this
+                                        // as their style context
+
+  nsStyleStructID         mComputingStruct;
+
+  static bool DependencyAllowed(nsStyleStructID aOuterSID,
+                                nsStyleStructID aInnerSID)
+  {
+    return !!(sDependencyTable[aOuterSID] &
+              nsCachedStyleData::GetBitForSID(aInnerSID));
+  }
+
+  static const uint32_t sDependencyTable[];
+#endif
 };
 
 already_AddRefed<nsStyleContext>

@@ -15,11 +15,25 @@
 #include "nsSVGUtils.h"
 
 class gfxContext;
-class nsRenderingContext;
 
 typedef nsSVGContainerFrame nsSVGMaskFrameBase;
 
-class nsSVGMaskFrame MOZ_FINAL : public nsSVGMaskFrameBase
+/**
+ * Byte offsets of channels in a native packed gfxColor or cairo image surface.
+ */
+#ifdef IS_BIG_ENDIAN
+#define GFX_ARGB32_OFFSET_A 0
+#define GFX_ARGB32_OFFSET_R 1
+#define GFX_ARGB32_OFFSET_G 2
+#define GFX_ARGB32_OFFSET_B 3
+#else
+#define GFX_ARGB32_OFFSET_A 3
+#define GFX_ARGB32_OFFSET_R 2
+#define GFX_ARGB32_OFFSET_G 1
+#define GFX_ARGB32_OFFSET_B 0
+#endif
+
+class nsSVGMaskFrame final : public nsSVGMaskFrameBase
 {
   friend nsIFrame*
   NS_NewSVGMaskFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
@@ -39,7 +53,7 @@ public:
   NS_DECL_FRAMEARENA_HELPERS
 
   // nsSVGMaskFrame method:
-  mozilla::TemporaryRef<SourceSurface>
+  already_AddRefed<SourceSurface>
   GetMaskForMaskedFrame(gfxContext* aContext,
                         nsIFrame* aMaskedFrame,
                         const gfxMatrix &aMatrix,
@@ -48,27 +62,27 @@ public:
 
   virtual nsresult AttributeChanged(int32_t         aNameSpaceID,
                                     nsIAtom*        aAttribute,
-                                    int32_t         aModType) MOZ_OVERRIDE;
+                                    int32_t         aModType) override;
 
 #ifdef DEBUG
   virtual void Init(nsIContent*       aContent,
                     nsContainerFrame* aParent,
-                    nsIFrame*         aPrevInFlow) MOZ_OVERRIDE;
+                    nsIFrame*         aPrevInFlow) override;
 #endif
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE {}
+                                const nsDisplayListSet& aLists) override {}
 
   /**
    * Get the "type" of the frame
    *
    * @see nsGkAtoms::svgMaskFrame
    */
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE
+  virtual nsresult GetFrameName(nsAString& aResult) const override
   {
     return MakeFrameName(NS_LITERAL_STRING("SVGMask"), aResult);
   }
@@ -86,7 +100,7 @@ private:
   // automatically sets and clears the mInUse flag on the mask frame
   // (to prevent nasty reference loops). It's easy to mess this up
   // and break things, so this helper makes the code far more robust.
-  class MOZ_STACK_CLASS AutoMaskReferencer
+  class MOZ_RAII AutoMaskReferencer
   {
   public:
     explicit AutoMaskReferencer(nsSVGMaskFrame *aFrame
@@ -109,7 +123,7 @@ private:
   bool mInUse;
 
   // nsSVGContainerFrame methods:
-  virtual gfxMatrix GetCanvasTM() MOZ_OVERRIDE;
+  virtual gfxMatrix GetCanvasTM() override;
 };
 
 #endif

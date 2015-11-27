@@ -1,60 +1,101 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_bluetooth_BluetoothSocket_h
-#define mozilla_dom_bluetooth_BluetoothSocket_h
+#ifndef mozilla_dom_bluetooth_bluedroid_BluetoothSocket_h
+#define mozilla_dom_bluetooth_bluedroid_BluetoothSocket_h
 
 #include "BluetoothCommon.h"
-#include "mozilla/ipc/SocketBase.h"
+#include "mozilla/ipc/DataSocket.h"
+
+class MessageLoop;
 
 BEGIN_BLUETOOTH_NAMESPACE
 
 class BluetoothSocketObserver;
+class BluetoothSocketResultHandler;
 class DroidSocketImpl;
 
-class BluetoothSocket : public mozilla::ipc::SocketConsumerBase
+class BluetoothSocket final : public mozilla::ipc::DataSocket
 {
 public:
-  BluetoothSocket(BluetoothSocketObserver* aObserver,
+  BluetoothSocket(BluetoothSocketObserver* aObserver);
+  ~BluetoothSocket();
+
+  nsresult Connect(const BluetoothAddress& aDeviceAddress,
+                   const BluetoothUuid& aServiceUuid,
+                   BluetoothSocketType aType,
+                   int aChannel,
+                   bool aAuth, bool aEncrypt,
+                   MessageLoop* aConsumerLoop,
+                   MessageLoop* aIOLoop);
+
+  nsresult Connect(const BluetoothAddress& aDeviceAddress,
+                   const BluetoothUuid& aServiceUuid,
+                   BluetoothSocketType aType,
+                   int aChannel,
+                   bool aAuth, bool aEncrypt);
+
+  nsresult Listen(const nsAString& aServiceName,
+                  const BluetoothUuid& aServiceUuid,
                   BluetoothSocketType aType,
-                  bool aAuth,
-                  bool aEncrypt);
+                  int aChannel,
+                  bool aAuth, bool aEncrypt,
+                  MessageLoop* aConsumerLoop,
+                  MessageLoop* aIOLoop);
 
-  bool ConnectSocket(const nsAString& aDeviceAddress, int aChannel);
+  nsresult Listen(const nsAString& aServiceName,
+                  const BluetoothUuid& aServiceUuid,
+                  BluetoothSocketType aType,
+                  int aChannel,
+                  bool aAuth, bool aEncrypt);
 
-  bool ListenSocket(int aChannel);
+  /**
+   * Method to be called whenever data is received. This is only called on the
+   * consumer thread.
+   *
+   * @param aBuffer Data received from the socket.
+   */
+  void ReceiveSocketData(nsAutoPtr<mozilla::ipc::UnixSocketBuffer>& aBuffer);
 
-  void CloseSocket();
-
-  bool SendSocketData(mozilla::ipc::UnixSocketRawData* aData);
-
-  virtual void OnConnectSuccess() MOZ_OVERRIDE;
-  virtual void OnConnectError() MOZ_OVERRIDE;
-  virtual void OnDisconnect() MOZ_OVERRIDE;
-  virtual void ReceiveSocketData(
-    nsAutoPtr<mozilla::ipc::UnixSocketRawData>& aMessage) MOZ_OVERRIDE;
-
-  inline void GetAddress(nsAString& aDeviceAddress)
+  inline void GetAddress(BluetoothAddress& aDeviceAddress)
   {
     aDeviceAddress = mDeviceAddress;
   }
 
-  inline void SetAddress(const nsAString& aDeviceAddress)
+  inline void SetAddress(const BluetoothAddress& aDeviceAddress)
   {
     mDeviceAddress = aDeviceAddress;
   }
 
+  inline void SetCurrentResultHandler(BluetoothSocketResultHandler* aRes)
+  {
+    mCurrentRes = aRes;
+  }
+
+  // Methods for |DataSocket|
+  //
+
+  void SendSocketData(mozilla::ipc::UnixSocketIOBuffer* aBuffer) override;
+
+  // Methods for |SocketBase|
+  //
+
+  void Close() override;
+
+  void OnConnectSuccess() override;
+  void OnConnectError() override;
+  void OnDisconnect() override;
+
 private:
   BluetoothSocketObserver* mObserver;
+  BluetoothSocketResultHandler* mCurrentRes;
   DroidSocketImpl* mImpl;
-  nsString mDeviceAddress;
-  bool mAuth;
-  bool mEncrypt;
+  BluetoothAddress mDeviceAddress;
 };
 
 END_BLUETOOTH_NAMESPACE
 
-#endif
+#endif // mozilla_dom_bluetooth_bluedroid_BluetoothSocket_h

@@ -6,32 +6,42 @@
 # system, which is why it can have dependencies on things the
 # build system at-large doesn't yet support.
 
-# XXX In the interest of making the build logic simpler and
-# more maintainable, we should be trying to implement new
-# functionality in Gruntfile.js rather than here.
-# Bug 1066176 tracks moving all functionality currently here
-# to the Gruntfile and getting rid of this Makefile entirely.
-
-LOOP_SERVER_URL := $(shell echo $${LOOP_SERVER_URL-http://localhost:5000})
+LOOP_SERVER_URL := $(shell echo $${LOOP_SERVER_URL-http://localhost:5000/v0})
 LOOP_FEEDBACK_API_URL := $(shell echo $${LOOP_FEEDBACK_API_URL-"https://input.allizom.org/api/v1/feedback"})
 LOOP_FEEDBACK_PRODUCT_NAME := $(shell echo $${LOOP_FEEDBACK_PRODUCT_NAME-Loop})
+LOOP_DOWNLOAD_FIREFOX_URL := $(shell echo $${LOOP_DOWNLOAD_FIREFOX_URL-"https://www.mozilla.org/firefox/new/?scene=2&utm_source=hello.firefox.com&utm_medium=referral&utm_campaign=non-webrtc-browser\#download-fx"})
+LOOP_PRIVACY_WEBSITE_URL := $(shell echo $${LOOP_PRIVACY_WEBSITE_URL-"https://www.mozilla.org/privacy/firefox-hello/"})
+LOOP_LEGAL_WEBSITE_URL := $(shell echo $${LOOP_LEGAL_WEBSITE_URL-"https://www.mozilla.org/about/legal/terms/firefox-hello/"})
+LOOP_PRODUCT_HOMEPAGE_URL := $(shell echo $${LOOP_PRODUCT_HOMEPAGE_URL-"https://www.firefox.com/hello/"})
 
 NODE_LOCAL_BIN=./node_modules/.bin
 
-install: npm_install tos
+install: npm_install
 
 npm_install:
 	@npm install
 
+# build the dist dir, which contains a production version of the code and
+# assets
+.PHONY: dist
+dist:
+	mkdir -p dist
+	cp -pR content/* dist
+	NODE_ENV="production" $(NODE_LOCAL_BIN)/webpack \
+		-p -v --display-errors
+	sed 's#webappEntryPoint.js#js/standalone.js#' \
+		< content/index.html > dist/index.html
+
+.PHONY: distclean
+distclean:
+	rm -fr dist
+
+.PHONY: distserver
+distserver: remove_old_config dist
+	LOOP_CONTENT_DIR=dist node server.js
+
 test:
 	@echo "Not implemented yet."
-
-tos:
-	@$(NODE_LOCAL_BIN)/grunt replace marked
-	@$(NODE_LOCAL_BIN)/grunt sass
-
-lint:
-	@$(NODE_LOCAL_BIN)/jshint *.js content test
 
 runserver: remove_old_config
 	node server.js
@@ -73,3 +83,13 @@ config:
 	@echo "loop.config.serverUrl = '`echo $(LOOP_SERVER_URL)`';" >> content/config.js
 	@echo "loop.config.feedbackApiUrl = '`echo $(LOOP_FEEDBACK_API_URL)`';" >> content/config.js
 	@echo "loop.config.feedbackProductName = '`echo $(LOOP_FEEDBACK_PRODUCT_NAME)`';" >> content/config.js
+	@echo "loop.config.downloadFirefoxUrl = '`echo $(LOOP_DOWNLOAD_FIREFOX_URL)`';" >> content/config.js
+	@echo "loop.config.privacyWebsiteUrl = '`echo $(LOOP_PRIVACY_WEBSITE_URL)`';" >> content/config.js
+	@echo "loop.config.legalWebsiteUrl = '`echo $(LOOP_LEGAL_WEBSITE_URL)`';" >> content/config.js
+	@echo "loop.config.learnMoreUrl = '`echo $(LOOP_PRODUCT_HOMEPAGE_URL)`';" >> content/config.js
+	@echo "loop.config.roomsSupportUrl = 'https://support.mozilla.org/kb/group-conversations-firefox-hello-webrtc';" >> content/config.js
+	@echo "loop.config.guestSupportUrl = 'https://support.mozilla.org/kb/respond-firefox-hello-invitation-guest-mode';" >> content/config.js
+	@echo "loop.config.generalSupportUrl = 'https://support.mozilla.org/kb/respond-firefox-hello-invitation-guest-mode';" >> content/config.js
+	@echo "loop.config.tilesIframeUrl = 'https://tiles.cdn.mozilla.net/iframe.html';" >> content/config.js
+	@echo "loop.config.tilesSupportUrl = 'https://support.mozilla.org/tiles-firefox-hello';" >> content/config.js
+	@echo "loop.config.unsupportedPlatformUrl = 'https://support.mozilla.org/en-US/kb/which-browsers-will-work-firefox-hello-video-chat';" >> content/config.js

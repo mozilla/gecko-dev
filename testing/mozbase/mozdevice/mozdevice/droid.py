@@ -8,12 +8,13 @@ import re
 import threading
 import time
 
+import version_codes
+
 from Zeroconf import Zeroconf, ServiceBrowser
 from devicemanager import ZeroconfListener
 from devicemanagerADB import DeviceManagerADB
 from devicemanagerSUT import DeviceManagerSUT
 from devicemanager import DMError
-from distutils.version import StrictVersion
 
 class DroidMixin(object):
     """Mixin to extend DeviceManager with Android-specific functionality"""
@@ -131,8 +132,8 @@ class DroidMixin(object):
 
         :param appName: Name of application (e.g. `com.android.chrome`)
         """
-        version = self.shellCheckOutput(["getprop", "ro.build.version.release"])
-        if StrictVersion(version) >= StrictVersion('3.0'):
+        version = self.shellCheckOutput(["getprop", "ro.build.version.sdk"])
+        if int(version) >= version_codes.HONEYCOMB:
             self.shellCheckOutput([ "am", "force-stop", appName ], root=self._stopApplicationNeedsRoot)
         else:
             num_tries = 0
@@ -156,7 +157,13 @@ class DroidADB(DeviceManagerADB, DroidMixin):
 
     def getTopActivity(self):
         package = None
-        data = self.shellCheckOutput(["dumpsys", "window", "windows"])
+        data = None
+        try:
+            data = self.shellCheckOutput(["dumpsys", "window", "windows"], timeout=self.short_timeout)
+        except:
+            # dumpsys seems to intermittently fail (seen on 4.3 emulator), producing
+            # no output.
+            return ""
         # "dumpsys window windows" produces many lines of input. The top/foreground
         # activity is indicated by something like:
         #   mFocusedApp=AppWindowToken{483e6db0 token=HistoryRecord{484dcad8 com.mozilla.SUTAgentAndroid/.SUTAgentAndroid}}
@@ -173,7 +180,11 @@ class DroidADB(DeviceManagerADB, DroidMixin):
             if m:
                 package = m.group(1)
         if not package:
-            raise DMError("unable to find focused app")
+            # On some Android 4.4 devices, when the home screen is displayed,
+            # dumpsys reports "mFocusedApp=null". Guard against this case and
+            # others where the focused app can not be determined by returning
+            # an empty string -- same as sutagent.
+            package = ""
         return package
 
     def getAppRoot(self, packageName):

@@ -64,7 +64,7 @@ nsProgressFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
 
   // Associate ::-moz-progress-bar pseudo-element to the anonymous child.
   nsCSSPseudoElements::Type pseudoType = nsCSSPseudoElements::ePseudo_mozProgressBar;
-  nsRefPtr<nsStyleContext> newStyleContext = PresContext()->StyleSet()->
+  RefPtr<nsStyleContext> newStyleContext = PresContext()->StyleSet()->
     ResolvePseudoElementStyle(mContent->AsElement(), pseudoType,
                               StyleContext(), mBarDiv->AsElement());
 
@@ -100,10 +100,11 @@ nsProgressFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
 void
 nsProgressFrame::Reflow(nsPresContext*           aPresContext,
-                                      nsHTMLReflowMetrics&     aDesiredSize,
-                                      const nsHTMLReflowState& aReflowState,
-                                      nsReflowStatus&          aStatus)
+                        nsHTMLReflowMetrics&     aDesiredSize,
+                        const nsHTMLReflowState& aReflowState,
+                        nsReflowStatus&          aStatus)
 {
+  MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("nsProgressFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
 
@@ -138,7 +139,7 @@ nsProgressFrame::ReflowBarFrame(nsIFrame*                aBarFrame,
                                 const nsHTMLReflowState& aReflowState,
                                 nsReflowStatus&          aStatus)
 {
-  bool vertical = StyleDisplay()->mOrient == NS_STYLE_ORIENT_VERTICAL;
+  bool vertical = ResolvedOrientationIsVertical();
   WritingMode wm = aBarFrame->GetWritingMode();
   LogicalSize availSize = aReflowState.ComputedSize(wm);
   availSize.BSize(wm) = NS_UNCONSTRAINEDSIZE;
@@ -157,7 +158,7 @@ nsProgressFrame::ReflowBarFrame(nsIFrame*                aBarFrame,
     size *= position;
   }
 
-  if (!vertical && StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
+  if (!vertical && (wm.IsVertical() ? wm.IsVerticalRL() : !wm.IsBidiLTR())) {
     xoffset += aReflowState.ComputedWidth() - size;
   }
 
@@ -235,10 +236,10 @@ nsProgressFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
     NSToCoordRound(StyleFont()->mFont.size *
                    nsLayoutUtils::FontSizeInflationFor(this)); // 1em
 
-  if (StyleDisplay()->mOrient == NS_STYLE_ORIENT_VERTICAL) {
-    autoSize.Height(wm) *= 10; // 10em
+  if (ResolvedOrientationIsVertical() == wm.IsVertical()) {
+    autoSize.ISize(wm) *= 10; // 10em
   } else {
-    autoSize.Width(wm) *= 10; // 10em
+    autoSize.BSize(wm) *= 10; // 10em
   }
 
   return autoSize.ConvertTo(aWM, wm);
@@ -247,19 +248,18 @@ nsProgressFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
 nscoord
 nsProgressFrame::GetMinISize(nsRenderingContext *aRenderingContext)
 {
-  nsRefPtr<nsFontMetrics> fontMet;
+  RefPtr<nsFontMetrics> fontMet;
   NS_ENSURE_SUCCESS(
       nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fontMet)), 0);
 
-  nscoord minWidth = fontMet->Font().size; // 1em
+  nscoord minISize = fontMet->Font().size; // 1em
 
-  if (StyleDisplay()->mOrient == NS_STYLE_ORIENT_AUTO ||
-      StyleDisplay()->mOrient == NS_STYLE_ORIENT_HORIZONTAL) {
-    // The orientation is horizontal
-    minWidth *= 10; // 10em
+  if (ResolvedOrientationIsVertical() == GetWritingMode().IsVertical()) {
+    // The orientation is inline
+    minISize *= 10; // 10em
   }
 
-  return minWidth;
+  return minISize;
 }
 
 nscoord
@@ -271,15 +271,18 @@ nsProgressFrame::GetPrefISize(nsRenderingContext *aRenderingContext)
 bool
 nsProgressFrame::ShouldUseNativeStyle() const
 {
+  nsIFrame* barFrame = mBarDiv->GetPrimaryFrame();
+
   // Use the native style if these conditions are satisfied:
   // - both frames use the native appearance;
   // - neither frame has author specified rules setting the border or the
   //   background.
   return StyleDisplay()->mAppearance == NS_THEME_PROGRESSBAR &&
-         mBarDiv->GetPrimaryFrame()->StyleDisplay()->mAppearance == NS_THEME_PROGRESSBAR_CHUNK &&
-         !PresContext()->HasAuthorSpecifiedRules(const_cast<nsProgressFrame*>(this),
+         !PresContext()->HasAuthorSpecifiedRules(this,
                                                  NS_AUTHOR_SPECIFIED_BORDER | NS_AUTHOR_SPECIFIED_BACKGROUND) &&
-         !PresContext()->HasAuthorSpecifiedRules(mBarDiv->GetPrimaryFrame(),
+         barFrame &&
+         barFrame->StyleDisplay()->mAppearance == NS_THEME_PROGRESSBAR_CHUNK &&
+         !PresContext()->HasAuthorSpecifiedRules(barFrame,
                                                  NS_AUTHOR_SPECIFIED_BORDER | NS_AUTHOR_SPECIFIED_BACKGROUND);
 }
 

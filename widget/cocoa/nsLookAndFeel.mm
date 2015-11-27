@@ -11,7 +11,9 @@
 #include "nsCocoaFeatures.h"
 #include "gfxFont.h"
 #include "gfxFontConstants.h"
+#include "gfxPlatformMac.h"
 #include "mozilla/gfx/2D.h"
+#include "mozilla/widget/WidgetMessageUtils.h"
 
 #import <Cocoa/Cocoa.h>
 
@@ -28,7 +30,12 @@ typedef NSInteger mozNSScrollerStyle;
 + (mozNSScrollerStyle)preferredScrollerStyle;
 @end
 
-nsLookAndFeel::nsLookAndFeel() : nsXPLookAndFeel()
+nsLookAndFeel::nsLookAndFeel()
+ : nsXPLookAndFeel()
+ , mUseOverlayScrollbars(-1)
+ , mUseOverlayScrollbarsCached(false)
+ , mAllowOverlayScrollbarsOverlap(-1)
+ , mAllowOverlayScrollbarsOverlapCached(false)
 {
 }
 
@@ -359,10 +366,18 @@ nsLookAndFeel::GetIntImpl(IntID aID, int32_t &aResult)
       aResult = eScrollThumbStyle_Proportional;
       break;
     case eIntID_UseOverlayScrollbars:
-      aResult = SystemWantsOverlayScrollbars() ? 1 : 0;
+      if (!mUseOverlayScrollbarsCached) {
+        mUseOverlayScrollbars = SystemWantsOverlayScrollbars() ? 1 : 0;
+        mUseOverlayScrollbarsCached = true;
+      }
+      aResult = mUseOverlayScrollbars;
       break;
     case eIntID_AllowOverlayScrollbarsOverlap:
-      aResult = AllowOverlayScrollbarsOverlap() ? 1 : 0;
+      if (!mAllowOverlayScrollbarsOverlapCached) {
+        mAllowOverlayScrollbarsOverlap = AllowOverlayScrollbarsOverlap() ? 1 : 0;
+        mAllowOverlayScrollbarsOverlapCached = true;
+      }
+      aResult = mAllowOverlayScrollbarsOverlap;
       break;
     case eIntID_ScrollbarDisplayOnMouseMove:
       aResult = 0;
@@ -459,6 +474,12 @@ nsLookAndFeel::GetIntImpl(IntID aID, int32_t &aResult)
     case eIntID_ColorPickerAvailable:
       aResult = 1;
       break;
+    case eIntID_ContextMenuOffsetVertical:
+      aResult = -6;
+      break;
+    case eIntID_ContextMenuOffsetHorizontal:
+      aResult = 1;
+      break;
     default:
       aResult = 0;
       res = NS_ERROR_FAILURE;
@@ -507,14 +528,6 @@ bool nsLookAndFeel::AllowOverlayScrollbarsOverlap()
   return (UseOverlayScrollbars() && nsCocoaFeatures::OnMountainLionOrLater());
 }
 
-// copied from gfxQuartzFontCache.mm, maybe should go in a Cocoa utils
-// file somewhere
-static void GetStringForNSString(const NSString *aSrc, nsAString& aDest)
-{
-    aDest.SetLength([aSrc length]);
-    [aSrc getCharacters:reinterpret_cast<unichar*>(aDest.BeginWriting())];
-}
-
 bool
 nsLookAndFeel::GetFontImpl(FontID aID, nsString &aFontName,
                            gfxFontStyle &aFontStyle,
@@ -534,102 +547,58 @@ nsLookAndFeel::GetFontImpl(FontID aID, nsString &aFontName,
         return true;
     }
 
-/* possibilities, see NSFont Class Reference:
-    [NSFont boldSystemFontOfSize:     0.0]
-    [NSFont controlContentFontOfSize: 0.0]
-    [NSFont labelFontOfSize:          0.0]
-    [NSFont menuBarFontOfSize:        0.0]
-    [NSFont menuFontOfSize:           0.0]
-    [NSFont messageFontOfSize:        0.0]
-    [NSFont paletteFontOfSize:        0.0]
-    [NSFont systemFontOfSize:         0.0]
-    [NSFont titleBarFontOfSize:       0.0]
-    [NSFont toolTipsFontOfSize:       0.0]
-    [NSFont userFixedPitchFontOfSize: 0.0]
-    [NSFont userFontOfSize:           0.0]
-    [NSFont systemFontOfSize:         [NSFont smallSystemFontSize]]
-    [NSFont boldSystemFontOfSize:     [NSFont smallSystemFontSize]]
-*/
+    gfxPlatformMac::LookupSystemFont(aID, aFontName, aFontStyle,
+                                     aDevPixPerCSSPixel);
 
-    NSFont *font = nullptr;
-    switch (aID) {
-        // css2
-        case eFont_Caption:
-            font = [NSFont systemFontOfSize:0.0];
-            break;
-        case eFont_Icon: // used in urlbar; tried labelFont, but too small
-            font = [NSFont controlContentFontOfSize:0.0];
-            break;
-        case eFont_Menu:
-            font = [NSFont systemFontOfSize:0.0];
-            break;
-        case eFont_MessageBox:
-            font = [NSFont systemFontOfSize:[NSFont smallSystemFontSize]];
-            break;
-        case eFont_SmallCaption:
-            font = [NSFont boldSystemFontOfSize:[NSFont smallSystemFontSize]];
-            break;
-        case eFont_StatusBar:
-            font = [NSFont systemFontOfSize:[NSFont smallSystemFontSize]];
-            break;
-        // css3
-        //case eFont_Window:     = 'sans-serif'
-        //case eFont_Document:   = 'sans-serif'
-        case eFont_Workspace:
-            font = [NSFont controlContentFontOfSize:0.0];
-            break;
-        case eFont_Desktop:
-            font = [NSFont controlContentFontOfSize:0.0];
-            break;
-        case eFont_Info:
-            font = [NSFont controlContentFontOfSize:0.0];
-            break;
-        case eFont_Dialog:
-            font = [NSFont systemFontOfSize:0.0];
-            break;
-        case eFont_Button:
-            font = [NSFont systemFontOfSize:[NSFont smallSystemFontSize]];
-            break;
-        case eFont_PullDownMenu:
-            font = [NSFont menuBarFontOfSize:0.0];
-            break;
-        case eFont_List:
-            font = [NSFont systemFontOfSize:[NSFont smallSystemFontSize]];
-            break;
-        case eFont_Field:
-            font = [NSFont systemFontOfSize:[NSFont smallSystemFontSize]];
-            break;
-        // moz
-        case eFont_Tooltips:
-            font = [NSFont toolTipsFontOfSize:0.0];
-            break;
-        case eFont_Widget:
-            font = [NSFont systemFontOfSize:[NSFont smallSystemFontSize]];
-            break;
-        default:
-            break;
-    }
-
-    if (!font) {
-        NS_WARNING("failed to find a system font!");
-        return false;
-    }
-
-    NSFontSymbolicTraits traits = [[font fontDescriptor] symbolicTraits];
-    aFontStyle.style =
-        (traits & NSFontItalicTrait) ?  NS_FONT_STYLE_ITALIC : NS_FONT_STYLE_NORMAL;
-    aFontStyle.weight =
-        (traits & NSFontBoldTrait) ? NS_FONT_WEIGHT_BOLD : NS_FONT_WEIGHT_NORMAL;
-    aFontStyle.stretch =
-        (traits & NSFontExpandedTrait) ?
-            NS_FONT_STRETCH_EXPANDED : (traits & NSFontCondensedTrait) ?
-                NS_FONT_STRETCH_CONDENSED : NS_FONT_STRETCH_NORMAL;
-    // convert size from css pixels to device pixels
-    aFontStyle.size = [font pointSize] * aDevPixPerCSSPixel;
-    aFontStyle.systemFont = true;
-
-    GetStringForNSString([font familyName], aFontName);
     return true;
 
     NS_OBJC_END_TRY_ABORT_BLOCK_RETURN(false);
+}
+
+nsTArray<LookAndFeelInt>
+nsLookAndFeel::GetIntCacheImpl()
+{
+  nsTArray<LookAndFeelInt> lookAndFeelIntCache =
+    nsXPLookAndFeel::GetIntCacheImpl();
+
+  LookAndFeelInt useOverlayScrollbars;
+  useOverlayScrollbars.id = eIntID_UseOverlayScrollbars;
+  useOverlayScrollbars.value = GetInt(eIntID_UseOverlayScrollbars);
+  lookAndFeelIntCache.AppendElement(useOverlayScrollbars);
+
+  LookAndFeelInt allowOverlayScrollbarsOverlap;
+  allowOverlayScrollbarsOverlap.id = eIntID_AllowOverlayScrollbarsOverlap;
+  allowOverlayScrollbarsOverlap.value = GetInt(eIntID_AllowOverlayScrollbarsOverlap);
+  lookAndFeelIntCache.AppendElement(allowOverlayScrollbarsOverlap);
+
+  return lookAndFeelIntCache;
+}
+
+void
+nsLookAndFeel::SetIntCacheImpl(const nsTArray<LookAndFeelInt>& aLookAndFeelIntCache)
+{
+  for (auto entry : aLookAndFeelIntCache) {
+    switch(entry.id) {
+      case eIntID_UseOverlayScrollbars:
+        mUseOverlayScrollbars = entry.value;
+        mUseOverlayScrollbarsCached = true;
+        break;
+      case eIntID_AllowOverlayScrollbarsOverlap:
+        mAllowOverlayScrollbarsOverlap = entry.value;
+        mAllowOverlayScrollbarsOverlapCached = true;
+        break;
+    }
+  }
+}
+
+void
+nsLookAndFeel::RefreshImpl()
+{
+  // We should only clear the cache if we're in the main browser process.
+  // Otherwise, we should wait for the parent to inform us of new values
+  // to cache via LookAndFeel::SetIntCache.
+  if (XRE_IsParentProcess()) {
+    mUseOverlayScrollbarsCached = false;
+    mAllowOverlayScrollbarsOverlapCached = false;
+  }
 }

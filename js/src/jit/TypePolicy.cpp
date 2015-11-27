@@ -10,72 +10,76 @@
 #include "jit/MIR.h"
 #include "jit/MIRGraph.h"
 
+#include "jit/shared/Lowering-shared-inl.h"
+
 using namespace js;
 using namespace js::jit;
 
 using JS::DoubleNaNValue;
 
 static void
-EnsureOperandNotFloat32(TempAllocator &alloc, MInstruction *def, unsigned op)
+EnsureOperandNotFloat32(TempAllocator& alloc, MInstruction* def, unsigned op)
 {
-    MDefinition *in = def->getOperand(op);
+    MDefinition* in = def->getOperand(op);
     if (in->type() == MIRType_Float32) {
-        MToDouble *replace = MToDouble::New(alloc, in);
+        MToDouble* replace = MToDouble::New(alloc, in);
         def->block()->insertBefore(def, replace);
+        if (def->isRecoveredOnBailout())
+            replace->setRecoveredOnBailout();
         def->replaceOperand(op, replace);
     }
 }
 
-MDefinition *
-BoxInputsPolicy::boxAt(TempAllocator &alloc, MInstruction *at, MDefinition *operand)
+MDefinition*
+js::jit::AlwaysBoxAt(TempAllocator& alloc, MInstruction* at, MDefinition* operand)
 {
-    if (operand->isUnbox())
-        return operand->toUnbox()->input();
-    return alwaysBoxAt(alloc, at, operand);
-}
-
-MDefinition *
-BoxInputsPolicy::alwaysBoxAt(TempAllocator &alloc, MInstruction *at, MDefinition *operand)
-{
-    MDefinition *boxedOperand = operand;
+    MDefinition* boxedOperand = operand;
     // Replace Float32 by double
     if (operand->type() == MIRType_Float32) {
-        MInstruction *replace = MToDouble::New(alloc, operand);
+        MInstruction* replace = MToDouble::New(alloc, operand);
         at->block()->insertBefore(at, replace);
         boxedOperand = replace;
     }
-    MBox *box = MBox::New(alloc, boxedOperand);
+    MBox* box = MBox::New(alloc, boxedOperand);
     at->block()->insertBefore(at, box);
     return box;
 }
 
+static MDefinition*
+BoxAt(TempAllocator& alloc, MInstruction* at, MDefinition* operand)
+{
+    if (operand->isUnbox())
+        return operand->toUnbox()->input();
+    return AlwaysBoxAt(alloc, at, operand);
+}
+
 bool
-BoxInputsPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
+BoxInputsPolicy::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins)
 {
     for (size_t i = 0, e = ins->numOperands(); i < e; i++) {
-        MDefinition *in = ins->getOperand(i);
+        MDefinition* in = ins->getOperand(i);
         if (in->type() == MIRType_Value)
             continue;
-        ins->replaceOperand(i, boxAt(alloc, ins, in));
+        ins->replaceOperand(i, BoxAt(alloc, ins, in));
     }
     return true;
 }
 
 bool
-ArithPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
+ArithPolicy::adjustInputs(TempAllocator& alloc, MInstruction* ins)
 {
     MIRType specialization = ins->typePolicySpecialization();
     if (specialization == MIRType_None)
-        return BoxInputsPolicy::adjustInputs(alloc, ins);
+        return BoxInputsPolicy::staticAdjustInputs(alloc, ins);
 
-    JS_ASSERT(ins->type() == MIRType_Double || ins->type() == MIRType_Int32 || ins->type() == MIRType_Float32);
+    MOZ_ASSERT(ins->type() == MIRType_Double || ins->type() == MIRType_Int32 || ins->type() == MIRType_Float32);
 
     for (size_t i = 0, e = ins->numOperands(); i < e; i++) {
-        MDefinition *in = ins->getOperand(i);
+        MDefinition* in = ins->getOperand(i);
         if (in->type() == ins->type())
             continue;
 
-        MInstruction *replace;
+        MInstruction* replace;
 
         if (ins->type() == MIRType_Double)
             replace = MToDouble::New(alloc, in);
@@ -95,16 +99,36 @@ ArithPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
 }
 
 bool
-ComparePolicy::adjustInputs(TempAllocator &alloc, MInstruction *def)
+AllDoublePolicy::adjustInputs(TempAllocator& alloc, MInstruction* ins)
 {
-    JS_ASSERT(def->isCompare());
-    MCompare *compare = def->toCompare();
+    for (size_t i = 0, e = ins->numOperands(); i < e; i++) {
+        MDefinition* in = ins->getOperand(i);
+        if (in->type() == MIRType_Double)
+            continue;
+
+        MInstruction* replace = MToDouble::New(alloc, in);
+
+        ins->block()->insertBefore(ins, replace);
+        ins->replaceOperand(i, replace);
+
+        if (!replace->typePolicy()->adjustInputs(alloc, replace))
+            return false;
+    }
+
+    return true;
+}
+
+bool
+ComparePolicy::adjustInputs(TempAllocator& alloc, MInstruction* def)
+{
+    MOZ_ASSERT(def->isCompare());
+    MCompare* compare = def->toCompare();
 
     // Convert Float32 operands to doubles
     for (size_t i = 0; i < 2; i++) {
-        MDefinition *in = def->getOperand(i);
+        MDefinition* in = def->getOperand(i);
         if (in->type() == MIRType_Float32) {
-            MInstruction *replace = MToDouble::New(alloc, in);
+            MInstruction* replace = MToDouble::New(alloc, in);
             def->block()->insertBefore(def, replace);
             def->replaceOperand(i, replace);
         }
@@ -112,9 +136,9 @@ ComparePolicy::adjustInputs(TempAllocator &alloc, MInstruction *def)
 
     // Box inputs to get value
     if (compare->compareType() == MCompare::Compare_Unknown ||
-        compare->compareType() == MCompare::Compare_Value)
+        compare->compareType() == MCompare::Compare_Bitwise)
     {
-        return BoxInputsPolicy::adjustInputs(alloc, def);
+        return BoxInputsPolicy::staticAdjustInputs(alloc, def);
     }
 
     // Compare_Boolean specialization is done for "Anything === Bool"
@@ -131,17 +155,17 @@ ComparePolicy::adjustInputs(TempAllocator &alloc, MInstruction *def)
     // As of previous line Anything can't be Boolean
     if (compare->compareType() == MCompare::Compare_Boolean) {
         // Unbox rhs that is definitely Boolean
-        MDefinition *rhs = def->getOperand(1);
+        MDefinition* rhs = def->getOperand(1);
         if (rhs->type() != MIRType_Boolean) {
-            MInstruction *unbox = MUnbox::New(alloc, rhs, MIRType_Boolean, MUnbox::Infallible);
+            MInstruction* unbox = MUnbox::New(alloc, rhs, MIRType_Boolean, MUnbox::Infallible);
             def->block()->insertBefore(def, unbox);
             def->replaceOperand(1, unbox);
             if (!unbox->typePolicy()->adjustInputs(alloc, unbox))
                 return false;
         }
 
-        JS_ASSERT(def->getOperand(0)->type() != MIRType_Boolean);
-        JS_ASSERT(def->getOperand(1)->type() == MIRType_Boolean);
+        MOZ_ASSERT(def->getOperand(0)->type() != MIRType_Boolean);
+        MOZ_ASSERT(def->getOperand(1)->type() == MIRType_Boolean);
         return true;
     }
 
@@ -157,17 +181,17 @@ ComparePolicy::adjustInputs(TempAllocator &alloc, MInstruction *def)
     // As of previous line Anything can't be String
     if (compare->compareType() == MCompare::Compare_StrictString) {
         // Unbox rhs that is definitely String
-        MDefinition *rhs = def->getOperand(1);
+        MDefinition* rhs = def->getOperand(1);
         if (rhs->type() != MIRType_String) {
-            MInstruction *unbox = MUnbox::New(alloc, rhs, MIRType_String, MUnbox::Infallible);
+            MInstruction* unbox = MUnbox::New(alloc, rhs, MIRType_String, MUnbox::Infallible);
             def->block()->insertBefore(def, unbox);
             def->replaceOperand(1, unbox);
             if (!unbox->typePolicy()->adjustInputs(alloc, unbox))
                 return false;
         }
 
-        JS_ASSERT(def->getOperand(0)->type() != MIRType_String);
-        JS_ASSERT(def->getOperand(1)->type() == MIRType_String);
+        MOZ_ASSERT(def->getOperand(0)->type() != MIRType_String);
+        MOZ_ASSERT(def->getOperand(1)->type() == MIRType_String);
         return true;
     }
 
@@ -180,14 +204,14 @@ ComparePolicy::adjustInputs(TempAllocator &alloc, MInstruction *def)
 
     // Convert all inputs to the right input type
     MIRType type = compare->inputType();
-    JS_ASSERT(type == MIRType_Int32 || type == MIRType_Double ||
-              type == MIRType_Object || type == MIRType_String || type == MIRType_Float32);
+    MOZ_ASSERT(type == MIRType_Int32 || type == MIRType_Double ||
+               type == MIRType_Object || type == MIRType_String || type == MIRType_Float32);
     for (size_t i = 0; i < 2; i++) {
-        MDefinition *in = def->getOperand(i);
+        MDefinition* in = def->getOperand(i);
         if (in->type() == type)
             continue;
 
-        MInstruction *replace;
+        MInstruction* replace;
 
         switch (type) {
           case MIRType_Double: {
@@ -240,9 +264,9 @@ ComparePolicy::adjustInputs(TempAllocator &alloc, MInstruction *def)
 }
 
 bool
-TypeBarrierPolicy::adjustInputs(TempAllocator &alloc, MInstruction *def)
+TypeBarrierPolicy::adjustInputs(TempAllocator& alloc, MInstruction* def)
 {
-    MTypeBarrier *ins = def->toTypeBarrier();
+    MTypeBarrier* ins = def->toTypeBarrier();
     MIRType inputType = ins->getOperand(0)->type();
     MIRType outputType = ins->type();
 
@@ -254,41 +278,50 @@ TypeBarrierPolicy::adjustInputs(TempAllocator &alloc, MInstruction *def)
     if (outputType == MIRType_Value) {
         // XXX: Possible optimization: decrease resultTypeSet to only include
         // the inputType. This will remove the need for boxing.
-        JS_ASSERT(inputType != MIRType_Value);
-        ins->replaceOperand(0, boxAt(alloc, ins, ins->getOperand(0)));
+        MOZ_ASSERT(inputType != MIRType_Value);
+        ins->replaceOperand(0, BoxAt(alloc, ins, ins->getOperand(0)));
         return true;
     }
 
-    // Input is a value. Unbox the input to the requested type.
-    if (inputType == MIRType_Value) {
-        JS_ASSERT(outputType != MIRType_Value);
+    // Box input if needed.
+    if (inputType != MIRType_Value) {
+        MOZ_ASSERT(ins->alwaysBails());
+        ins->replaceOperand(0, BoxAt(alloc, ins, ins->getOperand(0)));
+    }
 
-        // We can't unbox a value to null/undefined/lazyargs. So keep output
-        // also a value.
-        if (IsNullOrUndefined(outputType) || outputType == MIRType_MagicOptimizedArguments) {
-            JS_ASSERT(!ins->hasDefUses());
-            ins->setResultType(MIRType_Value);
-            return true;
-        }
-
-        MUnbox *unbox = MUnbox::New(alloc, ins->getOperand(0), outputType, MUnbox::TypeBarrier);
-        ins->block()->insertBefore(ins, unbox);
-        ins->replaceOperand(0, unbox);
+    // We can't unbox a value to null/undefined/lazyargs. So keep output
+    // also a value.
+    // Note: Using setResultType shouldn't be done in TypePolicies,
+    //       Here it is fine, since the type barrier has no uses.
+    if (IsNullOrUndefined(outputType) || outputType == MIRType_MagicOptimizedArguments) {
+        MOZ_ASSERT(!ins->hasDefUses());
+        ins->setResultType(MIRType_Value);
         return true;
     }
 
-    // In the remaining cases we will alway bail. OutputType doesn't matter.
-    // Take inputType so we can use redefine during lowering.
-    JS_ASSERT(ins->alwaysBails());
-    ins->setResultType(inputType);
+    // Unbox / propagate the right type.
+    MUnbox::Mode mode = MUnbox::TypeBarrier;
+    MInstruction* replace = MUnbox::New(alloc, ins->getOperand(0), ins->type(), mode);
+    if (!ins->isMovable())
+        replace->setNotMovable();
+
+    ins->block()->insertBefore(ins, replace);
+    ins->replaceOperand(0, replace);
+    if (!replace->typePolicy()->adjustInputs(alloc, replace))
+        return false;
+
+    // The TypeBarrier is equivalent to removing branches with unexpected
+    // types.  The unexpected types would have changed Range Analysis
+    // predictions.  As such, we need to prevent destructive optimizations.
+    ins->block()->flagOperandsOfPrunedBranches(replace);
 
     return true;
 }
 
 bool
-TestPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
+TestPolicy::adjustInputs(TempAllocator& alloc, MInstruction* ins)
 {
-    MDefinition *op = ins->getOperand(0);
+    MDefinition* op = ins->getOperand(0);
     switch (op->type()) {
       case MIRType_Value:
       case MIRType_Null:
@@ -303,36 +336,36 @@ TestPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
 
       case MIRType_String:
       {
-        MStringLength *length = MStringLength::New(alloc, op);
+        MStringLength* length = MStringLength::New(alloc, op);
         ins->block()->insertBefore(ins, length);
         ins->replaceOperand(0, length);
         break;
       }
 
       default:
-        ins->replaceOperand(0, boxAt(alloc, ins, op));
+        ins->replaceOperand(0, BoxAt(alloc, ins, op));
         break;
     }
     return true;
 }
 
 bool
-BitwisePolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
+BitwisePolicy::adjustInputs(TempAllocator& alloc, MInstruction* ins)
 {
     MIRType specialization = ins->typePolicySpecialization();
     if (specialization == MIRType_None)
-        return BoxInputsPolicy::adjustInputs(alloc, ins);
+        return BoxInputsPolicy::staticAdjustInputs(alloc, ins);
 
     MOZ_ASSERT(ins->type() == specialization);
     MOZ_ASSERT(specialization == MIRType_Int32 || specialization == MIRType_Double);
 
     // This policy works for both unary and binary bitwise operations.
     for (size_t i = 0, e = ins->numOperands(); i < e; i++) {
-        MDefinition *in = ins->getOperand(i);
+        MDefinition* in = ins->getOperand(i);
         if (in->type() == MIRType_Int32)
             continue;
 
-        MInstruction *replace = MTruncateToInt32::New(alloc, in);
+        MInstruction* replace = MTruncateToInt32::New(alloc, in);
         ins->block()->insertBefore(ins, replace);
         ins->replaceOperand(i, replace);
 
@@ -344,10 +377,10 @@ BitwisePolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
 }
 
 bool
-PowPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
+PowPolicy::adjustInputs(TempAllocator& alloc, MInstruction* ins)
 {
     MIRType specialization = ins->typePolicySpecialization();
-    JS_ASSERT(specialization == MIRType_Int32 || specialization == MIRType_Double);
+    MOZ_ASSERT(specialization == MIRType_Int32 || specialization == MIRType_Double);
 
     // Input must be a double.
     if (!DoublePolicy<0>::staticAdjustInputs(alloc, ins))
@@ -361,32 +394,32 @@ PowPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
 
 template <unsigned Op>
 bool
-StringPolicy<Op>::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins)
+StringPolicy<Op>::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins)
 {
-    MDefinition *in = ins->getOperand(Op);
+    MDefinition* in = ins->getOperand(Op);
     if (in->type() == MIRType_String)
         return true;
 
-    MUnbox *replace = MUnbox::New(alloc, in, MIRType_String, MUnbox::Fallible);
+    MUnbox* replace = MUnbox::New(alloc, in, MIRType_String, MUnbox::Fallible);
     ins->block()->insertBefore(ins, replace);
     ins->replaceOperand(Op, replace);
 
     return replace->typePolicy()->adjustInputs(alloc, replace);
 }
 
-template bool StringPolicy<0>::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins);
-template bool StringPolicy<1>::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins);
-template bool StringPolicy<2>::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins);
+template bool StringPolicy<0>::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins);
+template bool StringPolicy<1>::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins);
+template bool StringPolicy<2>::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins);
 
 template <unsigned Op>
 bool
-ConvertToStringPolicy<Op>::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins)
+ConvertToStringPolicy<Op>::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins)
 {
-    MDefinition *in = ins->getOperand(Op);
+    MDefinition* in = ins->getOperand(Op);
     if (in->type() == MIRType_String)
         return true;
 
-    MToString *replace = MToString::New(alloc, in);
+    MToString* replace = MToString::New(alloc, in);
     ins->block()->insertBefore(ins, replace);
     ins->replaceOperand(Op, replace);
 
@@ -396,85 +429,105 @@ ConvertToStringPolicy<Op>::staticAdjustInputs(TempAllocator &alloc, MInstruction
     return true;
 }
 
-template bool ConvertToStringPolicy<0>::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins);
-template bool ConvertToStringPolicy<1>::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins);
+template bool ConvertToStringPolicy<0>::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins);
+template bool ConvertToStringPolicy<1>::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins);
+template bool ConvertToStringPolicy<2>::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins);
 
 template <unsigned Op>
 bool
-IntPolicy<Op>::staticAdjustInputs(TempAllocator &alloc, MInstruction *def)
+IntPolicy<Op>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def)
 {
-    MDefinition *in = def->getOperand(Op);
+    MDefinition* in = def->getOperand(Op);
     if (in->type() == MIRType_Int32)
         return true;
 
-    MUnbox *replace = MUnbox::New(alloc, in, MIRType_Int32, MUnbox::Fallible);
+    MUnbox* replace = MUnbox::New(alloc, in, MIRType_Int32, MUnbox::Fallible);
     def->block()->insertBefore(def, replace);
     def->replaceOperand(Op, replace);
 
     return replace->typePolicy()->adjustInputs(alloc, replace);
 }
 
-template bool IntPolicy<0>::staticAdjustInputs(TempAllocator &alloc, MInstruction *def);
-template bool IntPolicy<1>::staticAdjustInputs(TempAllocator &alloc, MInstruction *def);
-template bool IntPolicy<2>::staticAdjustInputs(TempAllocator &alloc, MInstruction *def);
+template bool IntPolicy<0>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def);
+template bool IntPolicy<1>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def);
+template bool IntPolicy<2>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def);
+template bool IntPolicy<3>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def);
 
 template <unsigned Op>
 bool
-ConvertToInt32Policy<Op>::staticAdjustInputs(TempAllocator &alloc, MInstruction *def)
+ConvertToInt32Policy<Op>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def)
 {
-    MDefinition *in = def->getOperand(Op);
+    MDefinition* in = def->getOperand(Op);
     if (in->type() == MIRType_Int32)
         return true;
 
-    MToInt32 *replace = MToInt32::New(alloc, in);
+    MToInt32* replace = MToInt32::New(alloc, in);
     def->block()->insertBefore(def, replace);
     def->replaceOperand(Op, replace);
 
     return replace->typePolicy()->adjustInputs(alloc, replace);
 }
 
-template bool ConvertToInt32Policy<0>::staticAdjustInputs(TempAllocator &alloc, MInstruction *def);
+template bool ConvertToInt32Policy<0>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def);
 
 template <unsigned Op>
 bool
-DoublePolicy<Op>::staticAdjustInputs(TempAllocator &alloc, MInstruction *def)
+TruncateToInt32Policy<Op>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def)
 {
-    MDefinition *in = def->getOperand(Op);
-    if (in->type() == MIRType_Double)
+    MDefinition* in = def->getOperand(Op);
+    if (in->type() == MIRType_Int32)
         return true;
 
-    MToDouble *replace = MToDouble::New(alloc, in);
+    MTruncateToInt32* replace = MTruncateToInt32::New(alloc, in);
     def->block()->insertBefore(def, replace);
     def->replaceOperand(Op, replace);
 
     return replace->typePolicy()->adjustInputs(alloc, replace);
 }
 
-template bool DoublePolicy<0>::staticAdjustInputs(TempAllocator &alloc, MInstruction *def);
-template bool DoublePolicy<1>::staticAdjustInputs(TempAllocator &alloc, MInstruction *def);
+template bool TruncateToInt32Policy<2>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def);
+template bool TruncateToInt32Policy<3>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def);
 
 template <unsigned Op>
 bool
-Float32Policy<Op>::staticAdjustInputs(TempAllocator &alloc, MInstruction *def)
+DoublePolicy<Op>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def)
 {
-    MDefinition *in = def->getOperand(Op);
+    MDefinition* in = def->getOperand(Op);
+    if (in->type() == MIRType_Double || in->type() == MIRType_SinCosDouble)
+        return true;
+
+    MToDouble* replace = MToDouble::New(alloc, in);
+    def->block()->insertBefore(def, replace);
+    def->replaceOperand(Op, replace);
+
+    return replace->typePolicy()->adjustInputs(alloc, replace);
+}
+
+template bool DoublePolicy<0>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def);
+template bool DoublePolicy<1>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def);
+
+template <unsigned Op>
+bool
+Float32Policy<Op>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def)
+{
+    MDefinition* in = def->getOperand(Op);
     if (in->type() == MIRType_Float32)
         return true;
 
-    MToFloat32 *replace = MToFloat32::New(alloc, in);
+    MToFloat32* replace = MToFloat32::New(alloc, in);
     def->block()->insertBefore(def, replace);
     def->replaceOperand(Op, replace);
 
     return replace->typePolicy()->adjustInputs(alloc, replace);
 }
 
-template bool Float32Policy<0>::staticAdjustInputs(TempAllocator &alloc, MInstruction *def);
-template bool Float32Policy<1>::staticAdjustInputs(TempAllocator &alloc, MInstruction *def);
-template bool Float32Policy<2>::staticAdjustInputs(TempAllocator &alloc, MInstruction *def);
+template bool Float32Policy<0>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def);
+template bool Float32Policy<1>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def);
+template bool Float32Policy<2>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def);
 
 template <unsigned Op>
 bool
-FloatingPointPolicy<Op>::adjustInputs(TempAllocator &alloc, MInstruction *def)
+FloatingPointPolicy<Op>::adjustInputs(TempAllocator& alloc, MInstruction* def)
 {
     MIRType policyType = def->typePolicySpecialization();
     if (policyType == MIRType_Double)
@@ -482,60 +535,119 @@ FloatingPointPolicy<Op>::adjustInputs(TempAllocator &alloc, MInstruction *def)
     return Float32Policy<Op>::staticAdjustInputs(alloc, def);
 }
 
-template bool FloatingPointPolicy<0>::adjustInputs(TempAllocator &alloc, MInstruction *def);
+template bool FloatingPointPolicy<0>::adjustInputs(TempAllocator& alloc, MInstruction* def);
 
 template <unsigned Op>
 bool
-NoFloatPolicy<Op>::staticAdjustInputs(TempAllocator &alloc, MInstruction *def)
+NoFloatPolicy<Op>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def)
 {
     EnsureOperandNotFloat32(alloc, def, Op);
     return true;
 }
 
-template bool NoFloatPolicy<0>::staticAdjustInputs(TempAllocator &alloc, MInstruction *def);
-template bool NoFloatPolicy<1>::staticAdjustInputs(TempAllocator &alloc, MInstruction *def);
-template bool NoFloatPolicy<2>::staticAdjustInputs(TempAllocator &alloc, MInstruction *def);
-template bool NoFloatPolicy<3>::staticAdjustInputs(TempAllocator &alloc, MInstruction *def);
+template bool NoFloatPolicy<0>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def);
+template bool NoFloatPolicy<1>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def);
+template bool NoFloatPolicy<2>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def);
+template bool NoFloatPolicy<3>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def);
 
-template <unsigned Op>
+template <unsigned FirstOp>
 bool
-BoxPolicy<Op>::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins)
+NoFloatPolicyAfter<FirstOp>::adjustInputs(TempAllocator& alloc, MInstruction* def)
 {
-    MDefinition *in = ins->getOperand(Op);
-    if (in->type() == MIRType_Value)
-        return true;
-
-    ins->replaceOperand(Op, boxAt(alloc, ins, in));
+    for (size_t op = FirstOp, e = def->numOperands(); op < e; op++)
+        EnsureOperandNotFloat32(alloc, def, op);
     return true;
 }
 
-template bool BoxPolicy<0>::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins);
-template bool BoxPolicy<1>::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins);
-template bool BoxPolicy<2>::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins);
+template bool NoFloatPolicyAfter<1>::adjustInputs(TempAllocator& alloc, MInstruction* def);
+template bool NoFloatPolicyAfter<2>::adjustInputs(TempAllocator& alloc, MInstruction* def);
+
+template <unsigned Op>
+bool
+SimdScalarPolicy<Op>::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins)
+{
+    MOZ_ASSERT(IsSimdType(ins->type()));
+    MIRType laneType = SimdTypeToLaneType(ins->type());
+
+    MDefinition* in = ins->getOperand(Op);
+    if (in->type() == laneType)
+        return true;
+
+    MInstruction* replace;
+    if (laneType == MIRType_Int32) {
+        replace = MTruncateToInt32::New(alloc, in);
+    } else {
+        MOZ_ASSERT(laneType == MIRType_Float32);
+        replace = MToFloat32::New(alloc, in);
+    }
+
+    ins->block()->insertBefore(ins, replace);
+    ins->replaceOperand(Op, replace);
+
+    return replace->typePolicy()->adjustInputs(alloc, replace);
+}
+
+template bool SimdScalarPolicy<0>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def);
+template bool SimdScalarPolicy<1>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def);
+template bool SimdScalarPolicy<2>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def);
+template bool SimdScalarPolicy<3>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def);
+
+template <unsigned Op>
+bool
+BoxPolicy<Op>::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins)
+{
+    MDefinition* in = ins->getOperand(Op);
+    if (in->type() == MIRType_Value)
+        return true;
+
+    ins->replaceOperand(Op, BoxAt(alloc, ins, in));
+    return true;
+}
+
+template bool BoxPolicy<0>::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins);
+template bool BoxPolicy<1>::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins);
+template bool BoxPolicy<2>::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins);
 
 template <unsigned Op, MIRType Type>
 bool
-BoxExceptPolicy<Op, Type>::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins)
+BoxExceptPolicy<Op, Type>::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins)
 {
-    MDefinition *in = ins->getOperand(Op);
+    MDefinition* in = ins->getOperand(Op);
     if (in->type() == Type)
         return true;
     return BoxPolicy<Op>::staticAdjustInputs(alloc, ins);
 }
 
-template bool BoxExceptPolicy<0, MIRType_String>::staticAdjustInputs(TempAllocator &alloc,
-                                                                     MInstruction *ins);
-template bool BoxExceptPolicy<1, MIRType_String>::staticAdjustInputs(TempAllocator &alloc,
-                                                                     MInstruction *ins);
-template bool BoxExceptPolicy<2, MIRType_String>::staticAdjustInputs(TempAllocator &alloc,
-                                                                     MInstruction *ins);
+template bool BoxExceptPolicy<0, MIRType_String>::staticAdjustInputs(TempAllocator& alloc,
+                                                                     MInstruction* ins);
+template bool BoxExceptPolicy<1, MIRType_String>::staticAdjustInputs(TempAllocator& alloc,
+                                                                     MInstruction* ins);
+template bool BoxExceptPolicy<2, MIRType_String>::staticAdjustInputs(TempAllocator& alloc,
+                                                                     MInstruction* ins);
+
+template <unsigned Op>
+bool
+CacheIdPolicy<Op>::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins)
+{
+    MDefinition* in = ins->getOperand(Op);
+    switch (in->type()) {
+      case MIRType_Int32:
+      case MIRType_String:
+      case MIRType_Symbol:
+        return true;
+      default:
+        return BoxPolicy<Op>::staticAdjustInputs(alloc, ins);
+    }
+}
+
+template bool CacheIdPolicy<1>::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins);
 
 bool
-ToDoublePolicy::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins)
+ToDoublePolicy::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins)
 {
-    JS_ASSERT(ins->isToDouble() || ins->isToFloat32());
+    MOZ_ASSERT(ins->isToDouble() || ins->isToFloat32());
 
-    MDefinition *in = ins->getOperand(0);
+    MDefinition* in = ins->getOperand(0);
     MToFPInstruction::ConversionKind conversion;
     if (ins->isToDouble())
         conversion = ins->toToDouble()->conversion();
@@ -571,21 +683,21 @@ ToDoublePolicy::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins)
         break;
     }
 
-    in = boxAt(alloc, ins, in);
+    in = BoxAt(alloc, ins, in);
     ins->replaceOperand(0, in);
     return true;
 }
 
 bool
-ToInt32Policy::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins)
+ToInt32Policy::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins)
 {
-    JS_ASSERT(ins->isToInt32() || ins->isTruncateToInt32());
+    MOZ_ASSERT(ins->isToInt32() || ins->isTruncateToInt32());
 
     MacroAssembler::IntConversionInputKind conversion = MacroAssembler::IntConversion_Any;
     if (ins->isToInt32())
         conversion = ins->toToInt32()->conversion();
 
-    MDefinition *in = ins->getOperand(0);
+    MDefinition* in = ins->getOperand(0);
     switch (in->type()) {
       case MIRType_Int32:
       case MIRType_Float32:
@@ -619,19 +731,19 @@ ToInt32Policy::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins)
         break;
     }
 
-    in = boxAt(alloc, ins, in);
+    in = BoxAt(alloc, ins, in);
     ins->replaceOperand(0, in);
     return true;
 }
 
 bool
-ToStringPolicy::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins)
+ToStringPolicy::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins)
 {
-    JS_ASSERT(ins->isToString());
+    MOZ_ASSERT(ins->isToString());
 
     MIRType type = ins->getOperand(0)->type();
     if (type == MIRType_Object || type == MIRType_Symbol) {
-        ins->replaceOperand(0, boxAt(alloc, ins, ins->getOperand(0)));
+        ins->replaceOperand(0, BoxAt(alloc, ins, ins->getOperand(0)));
         return true;
     }
 
@@ -643,35 +755,129 @@ ToStringPolicy::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins)
 
 template <unsigned Op>
 bool
-ObjectPolicy<Op>::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins)
+ObjectPolicy<Op>::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins)
 {
-    MDefinition *in = ins->getOperand(Op);
+    MDefinition* in = ins->getOperand(Op);
     if (in->type() == MIRType_Object || in->type() == MIRType_Slots ||
         in->type() == MIRType_Elements)
     {
         return true;
     }
 
-    MUnbox *replace = MUnbox::New(alloc, in, MIRType_Object, MUnbox::Fallible);
+    MUnbox* replace = MUnbox::New(alloc, in, MIRType_Object, MUnbox::Fallible);
     ins->block()->insertBefore(ins, replace);
     ins->replaceOperand(Op, replace);
 
     return replace->typePolicy()->adjustInputs(alloc, replace);
 }
 
-template bool ObjectPolicy<0>::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins);
-template bool ObjectPolicy<1>::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins);
-template bool ObjectPolicy<2>::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins);
-template bool ObjectPolicy<3>::staticAdjustInputs(TempAllocator &alloc, MInstruction *ins);
+template bool ObjectPolicy<0>::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins);
+template bool ObjectPolicy<1>::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins);
+template bool ObjectPolicy<2>::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins);
+template bool ObjectPolicy<3>::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins);
+
+static bool
+MaybeSimdUnbox(TempAllocator& alloc, MInstruction* ins, MIRType type, unsigned op)
+{
+    MOZ_ASSERT(IsSimdType(type));
+    MDefinition* in = ins->getOperand(op);
+    if (in->type() == type)
+        return true;
+
+    MSimdUnbox* replace = MSimdUnbox::New(alloc, in, type);
+    ins->block()->insertBefore(ins, replace);
+    ins->replaceOperand(op, replace);
+
+    return replace->typePolicy()->adjustInputs(alloc, replace);
+}
+
+template <unsigned Op>
+bool
+SimdSameAsReturnedTypePolicy<Op>::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins)
+{
+    return MaybeSimdUnbox(alloc, ins, ins->type(), Op);
+}
+
+template bool
+SimdSameAsReturnedTypePolicy<0>::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins);
+template bool
+SimdSameAsReturnedTypePolicy<1>::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins);
 
 bool
-CallPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
+SimdAllPolicy::adjustInputs(TempAllocator& alloc, MInstruction* ins)
 {
-    MCall *call = ins->toCall();
+    MIRType specialization = ins->typePolicySpecialization();
+    for (unsigned i = 0, e = ins->numOperands(); i < e; i++) {
+        if (!MaybeSimdUnbox(alloc, ins, specialization, i))
+            return false;
+    }
+    return true;
+}
 
-    MDefinition *func = call->getFunction();
+template <unsigned Op>
+bool
+SimdPolicy<Op>::adjustInputs(TempAllocator& alloc, MInstruction* ins)
+{
+    return MaybeSimdUnbox(alloc, ins, ins->typePolicySpecialization(), Op);
+}
+
+template bool
+SimdPolicy<0>::adjustInputs(TempAllocator& alloc, MInstruction* ins);
+
+bool
+SimdShufflePolicy::adjustInputs(TempAllocator& alloc, MInstruction* ins)
+{
+    MIRType specialization = ins->typePolicySpecialization();
+
+    MSimdGeneralShuffle* s = ins->toSimdGeneralShuffle();
+
+    for (unsigned i = 0; i < s->numVectors(); i++) {
+        if (!MaybeSimdUnbox(alloc, ins, specialization, i))
+            return false;
+    }
+
+    // Next inputs are the lanes, which need to be int32
+    for (unsigned i = 0; i < s->numLanes(); i++) {
+        MDefinition* in = ins->getOperand(s->numVectors() + i);
+        if (in->type() == MIRType_Int32)
+            continue;
+
+        MInstruction* replace = MToInt32::New(alloc, in, MacroAssembler::IntConversion_NumbersOnly);
+        ins->block()->insertBefore(ins, replace);
+        ins->replaceOperand(s->numVectors() + i, replace);
+        if (!replace->typePolicy()->adjustInputs(alloc, replace))
+            return false;
+    }
+
+    return true;
+}
+
+bool
+SimdSelectPolicy::adjustInputs(TempAllocator& alloc, MInstruction* ins)
+{
+    MIRType specialization = ins->typePolicySpecialization();
+
+    // First input is the mask, which has to be an int32x4 (for now).
+    if (!MaybeSimdUnbox(alloc, ins, MIRType_Int32x4, 0))
+        return false;
+
+    // Next inputs are the two vectors of a particular type.
+    for (unsigned i = 1; i < 3; i++) {
+        if (!MaybeSimdUnbox(alloc, ins, specialization, i))
+            return false;
+    }
+
+    return true;
+}
+
+bool
+CallPolicy::adjustInputs(TempAllocator& alloc, MInstruction* ins)
+{
+    MCall* call = ins->toCall();
+
+    MDefinition* func = call->getFunction();
     if (func->type() != MIRType_Object) {
-        MInstruction *unbox = MUnbox::New(alloc, func, MIRType_Object, MUnbox::Fallible);
+        MInstruction* unbox = MUnbox::New(alloc, func, MIRType_Object, MUnbox::Fallible);
         call->block()->insertBefore(call, unbox);
         call->replaceFunction(unbox);
 
@@ -686,23 +892,23 @@ CallPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
 }
 
 bool
-CallSetElementPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
+CallSetElementPolicy::adjustInputs(TempAllocator& alloc, MInstruction* ins)
 {
     // The first operand should be an object.
-    SingleObjectPolicy::adjustInputs(alloc, ins);
+    SingleObjectPolicy::staticAdjustInputs(alloc, ins);
 
     // Box the index and value operands.
     for (size_t i = 1, e = ins->numOperands(); i < e; i++) {
-        MDefinition *in = ins->getOperand(i);
+        MDefinition* in = ins->getOperand(i);
         if (in->type() == MIRType_Value)
             continue;
-        ins->replaceOperand(i, boxAt(alloc, ins, in));
+        ins->replaceOperand(i, BoxAt(alloc, ins, in));
     }
     return true;
 }
 
 bool
-InstanceOfPolicy::adjustInputs(TempAllocator &alloc, MInstruction *def)
+InstanceOfPolicy::adjustInputs(TempAllocator& alloc, MInstruction* def)
 {
     // Box first operand if it isn't object
     if (def->getOperand(0)->type() != MIRType_Object)
@@ -712,10 +918,15 @@ InstanceOfPolicy::adjustInputs(TempAllocator &alloc, MInstruction *def)
 }
 
 bool
-StoreTypedArrayPolicy::adjustValueInput(TempAllocator &alloc, MInstruction *ins, int arrayType,
-                                        MDefinition *value, int valueOperand)
+StoreUnboxedScalarPolicy::adjustValueInput(TempAllocator& alloc, MInstruction* ins,
+                                           Scalar::Type writeType, MDefinition* value,
+                                           int valueOperand)
 {
-    MDefinition *curValue = value;
+    // Storing a SIMD value just implies that we might need a SimdUnbox.
+    if (Scalar::isSimdType(writeType))
+        return MaybeSimdUnbox(alloc, ins, ScalarTypeToMIRType(writeType), valueOperand);
+
+    MDefinition* curValue = value;
     // First, ensure the value is int32, boolean, double or Value.
     // The conversion is based on TypedArrayObjectTemplate::setElementTail.
     switch (value->type()) {
@@ -738,7 +949,7 @@ StoreTypedArrayPolicy::adjustValueInput(TempAllocator &alloc, MInstruction *ins,
       case MIRType_Object:
       case MIRType_String:
       case MIRType_Symbol:
-        value = boxAt(alloc, ins, value);
+        value = BoxAt(alloc, ins, value);
         break;
       default:
         MOZ_CRASH("Unexpected type");
@@ -749,13 +960,13 @@ StoreTypedArrayPolicy::adjustValueInput(TempAllocator &alloc, MInstruction *ins,
         curValue = value;
     }
 
-    JS_ASSERT(value->type() == MIRType_Int32 ||
-              value->type() == MIRType_Boolean ||
-              value->type() == MIRType_Double ||
-              value->type() == MIRType_Float32 ||
-              value->type() == MIRType_Value);
+    MOZ_ASSERT(value->type() == MIRType_Int32 ||
+               value->type() == MIRType_Boolean ||
+               value->type() == MIRType_Double ||
+               value->type() == MIRType_Float32 ||
+               value->type() == MIRType_Value);
 
-    switch (arrayType) {
+    switch (writeType) {
       case Scalar::Int8:
       case Scalar::Uint8:
       case Scalar::Int16:
@@ -769,7 +980,7 @@ StoreTypedArrayPolicy::adjustValueInput(TempAllocator &alloc, MInstruction *ins,
         break;
       case Scalar::Uint8Clamped:
         // IonBuilder should have inserted ClampToUint8.
-        JS_ASSERT(value->type() == MIRType_Int32);
+        MOZ_ASSERT(value->type() == MIRType_Int32);
         break;
       case Scalar::Float32:
         if (value->type() != MIRType_Float32) {
@@ -794,39 +1005,79 @@ StoreTypedArrayPolicy::adjustValueInput(TempAllocator &alloc, MInstruction *ins,
 }
 
 bool
-StoreTypedArrayPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
+StoreUnboxedScalarPolicy::adjustInputs(TempAllocator& alloc, MInstruction* ins)
 {
-    MStoreTypedArrayElement *store = ins->toStoreTypedArrayElement();
-    JS_ASSERT(store->elements()->type() == MIRType_Elements);
-    JS_ASSERT(store->index()->type() == MIRType_Int32);
+    SingleObjectPolicy::staticAdjustInputs(alloc, ins);
 
-    return adjustValueInput(alloc, ins, store->arrayType(), store->value(), 2);
+    MStoreUnboxedScalar* store = ins->toStoreUnboxedScalar();
+    MOZ_ASSERT(IsValidElementsType(store->elements(), store->offsetAdjustment()));
+    MOZ_ASSERT(store->index()->type() == MIRType_Int32);
+
+    return adjustValueInput(alloc, store, store->writeType(), store->value(), 2);
 }
 
 bool
-StoreTypedArrayHolePolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
+StoreTypedArrayHolePolicy::adjustInputs(TempAllocator& alloc, MInstruction* ins)
 {
-    MStoreTypedArrayElementHole *store = ins->toStoreTypedArrayElementHole();
-    JS_ASSERT(store->elements()->type() == MIRType_Elements);
-    JS_ASSERT(store->index()->type() == MIRType_Int32);
-    JS_ASSERT(store->length()->type() == MIRType_Int32);
+    MStoreTypedArrayElementHole* store = ins->toStoreTypedArrayElementHole();
+    MOZ_ASSERT(store->elements()->type() == MIRType_Elements);
+    MOZ_ASSERT(store->index()->type() == MIRType_Int32);
+    MOZ_ASSERT(store->length()->type() == MIRType_Int32);
 
-    return adjustValueInput(alloc, ins, store->arrayType(), store->value(), 3);
+    return StoreUnboxedScalarPolicy::adjustValueInput(alloc, ins, store->arrayType(), store->value(), 3);
 }
 
 bool
-StoreTypedArrayElementStaticPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
+StoreTypedArrayElementStaticPolicy::adjustInputs(TempAllocator& alloc, MInstruction* ins)
 {
-    MStoreTypedArrayElementStatic *store = ins->toStoreTypedArrayElementStatic();
+    MStoreTypedArrayElementStatic* store = ins->toStoreTypedArrayElementStatic();
 
     return ConvertToInt32Policy<0>::staticAdjustInputs(alloc, ins) &&
-        adjustValueInput(alloc, ins, store->viewType(), store->value(), 1);
+        StoreUnboxedScalarPolicy::adjustValueInput(alloc, ins, store->accessType(), store->value(), 1);
 }
 
 bool
-ClampPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
+StoreUnboxedObjectOrNullPolicy::adjustInputs(TempAllocator& alloc, MInstruction* ins)
 {
-    MDefinition *in = ins->toClampToUint8()->input();
+    ObjectPolicy<0>::staticAdjustInputs(alloc, ins);
+    ObjectPolicy<3>::staticAdjustInputs(alloc, ins);
+
+    // Change the value input to a ToObjectOrNull instruction if it might be
+    // a non-null primitive. Insert a post barrier for the instruction's object
+    // and whatever its new value is, unless the value is definitely null.
+    MStoreUnboxedObjectOrNull* store = ins->toStoreUnboxedObjectOrNull();
+
+    MOZ_ASSERT(store->typedObj()->type() == MIRType_Object);
+
+    MDefinition* value = store->value();
+    if (value->type() == MIRType_Object ||
+        value->type() == MIRType_Null ||
+        value->type() == MIRType_ObjectOrNull)
+    {
+        if (value->type() != MIRType_Null) {
+            MInstruction* barrier = MPostWriteBarrier::New(alloc, store->typedObj(), value);
+            store->block()->insertBefore(store, barrier);
+        }
+        return true;
+    }
+
+    MToObjectOrNull* replace = MToObjectOrNull::New(alloc, value);
+    store->block()->insertBefore(store, replace);
+    store->setValue(replace);
+
+    if (!BoxPolicy<0>::staticAdjustInputs(alloc, replace))
+        return false;
+
+    MInstruction* barrier = MPostWriteBarrier::New(alloc, store->typedObj(), replace);
+    store->block()->insertBefore(store, barrier);
+
+    return true;
+}
+
+bool
+ClampPolicy::adjustInputs(TempAllocator& alloc, MInstruction* ins)
+{
+    MDefinition* in = ins->toClampToUint8()->input();
 
     switch (in->type()) {
       case MIRType_Int32:
@@ -834,7 +1085,7 @@ ClampPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
       case MIRType_Value:
         break;
       default:
-          ins->replaceOperand(0, boxAt(alloc, ins, in));
+          ins->replaceOperand(0, BoxAt(alloc, ins, in));
         break;
     }
 
@@ -842,32 +1093,79 @@ ClampPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
 }
 
 bool
-FilterTypeSetPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
+FilterTypeSetPolicy::adjustInputs(TempAllocator& alloc, MInstruction* ins)
 {
     MOZ_ASSERT(ins->numOperands() == 1);
+    MIRType inputType = ins->getOperand(0)->type();
+    MIRType outputType = ins->type();
 
-    // Do nothing if already same type.
-    if (ins->type() == ins->getOperand(0)->type())
+    // Special case when output is a Float32, but input isn't.
+    if (outputType == MIRType_Float32 && inputType != MIRType_Float32) {
+        // Create a MToFloat32 to add between the MFilterTypeSet and
+        // its uses.
+        MInstruction* replace = MToFloat32::New(alloc, ins);
+        ins->justReplaceAllUsesWithExcept(replace);
+        ins->block()->insertAfter(ins, replace);
+
+        // Reset the type to not MIRType_Float32
+        // Note: setResultType shouldn't happen in TypePolicies,
+        //       Here it is fine, since there is just one use we just
+        //       added ourself. And the resulting type after MToFloat32
+        //       equals the original type.
+        ins->setResultType(ins->resultTypeSet()->getKnownMIRType());
+        outputType = ins->type();
+
+        // Do the type analysis
+        if (!replace->typePolicy()->adjustInputs(alloc, replace))
+            return false;
+
+        // Fall through to let the MFilterTypeSet adjust its input based
+        // on its new type.
+    }
+
+    // Input and output type are already in accordance.
+    if (inputType == outputType)
         return true;
 
-    // Box input if ouput type is MIRType_Value
-    if (ins->type() == MIRType_Value) {
-        ins->replaceOperand(0, boxAt(alloc, ins, ins->getOperand(0)));
+    // Output is a value, box the input.
+    if (outputType == MIRType_Value) {
+        MOZ_ASSERT(inputType != MIRType_Value);
+        ins->replaceOperand(0, BoxAt(alloc, ins, ins->getOperand(0)));
         return true;
     }
 
-    // For simplicity just mark output type as MIRType_Value if input type
-    // is MIRType_Value. It should be possible to unbox, but we need to
-    // add extra code for Undefined/Null.
-    if (ins->getOperand(0)->type() == MIRType_Value) {
+    // The outputType should be a subset of the inputType else we are in code
+    // that has never executed yet. Bail to see the new type (if that hasn't
+    // happened yet).
+    if (inputType != MIRType_Value) {
+        MBail* bail = MBail::New(alloc);
+        ins->block()->insertBefore(ins, bail);
+        bail->setDependency(ins->dependency());
+        ins->setDependency(bail);
+        ins->replaceOperand(0, BoxAt(alloc, ins, ins->getOperand(0)));
+    }
+
+    // We can't unbox a value to null/undefined/lazyargs. So keep output
+    // also a value.
+    // Note: Using setResultType shouldn't be done in TypePolicies,
+    //       Here it is fine, since the type barrier has no uses.
+    if (IsNullOrUndefined(outputType) || outputType == MIRType_MagicOptimizedArguments) {
+        MOZ_ASSERT(!ins->hasDefUses());
         ins->setResultType(MIRType_Value);
         return true;
     }
 
-    // In all other cases we will definitely bail, since types don't
-    // correspond. Just box and mark output as MIRType_Value.
-    ins->replaceOperand(0, boxAt(alloc, ins, ins->getOperand(0)));
-    ins->setResultType(MIRType_Value);
+    // Unbox / propagate the right type.
+    MUnbox::Mode mode = MUnbox::Infallible;
+    MInstruction* replace = MUnbox::New(alloc, ins->getOperand(0), ins->type(), mode);
+
+    ins->block()->insertBefore(ins, replace);
+    ins->replaceOperand(0, replace);
+    if (!replace->typePolicy()->adjustInputs(alloc, replace))
+        return false;
+
+    // Carry over the dependency the MFilterTypeSet had.
+    replace->setDependency(ins->dependency());
 
     return true;
 }
@@ -884,10 +1182,15 @@ FilterTypeSetPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
     _(FilterTypeSetPolicy)                      \
     _(InstanceOfPolicy)                         \
     _(PowPolicy)                                \
+    _(SimdAllPolicy)                            \
+    _(SimdSelectPolicy)                         \
+    _(SimdShufflePolicy)                        \
     _(StoreTypedArrayElementStaticPolicy)       \
     _(StoreTypedArrayHolePolicy)                \
-    _(StoreTypedArrayPolicy)                    \
+    _(StoreUnboxedScalarPolicy)                 \
+    _(StoreUnboxedObjectOrNullPolicy)           \
     _(TestPolicy)                               \
+    _(AllDoublePolicy)                          \
     _(ToDoublePolicy)                           \
     _(ToInt32Policy)                            \
     _(ToStringPolicy)                           \
@@ -898,23 +1201,33 @@ FilterTypeSetPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
     _(BoxPolicy<0>)                                                     \
     _(ConvertToInt32Policy<0>)                                          \
     _(ConvertToStringPolicy<0>)                                         \
+    _(ConvertToStringPolicy<2>)                                         \
     _(DoublePolicy<0>)                                                  \
     _(FloatingPointPolicy<0>)                                           \
     _(IntPolicy<0>)                                                     \
     _(IntPolicy<1>)                                                     \
-    _(Mix3Policy<ObjectPolicy<0>, BoxExceptPolicy<1, MIRType_String>, BoxPolicy<2> >) \
+    _(Mix3Policy<ObjectPolicy<0>, StringPolicy<1>, BoxPolicy<2> >) \
     _(Mix3Policy<ObjectPolicy<0>, BoxPolicy<1>, BoxPolicy<2> >)         \
     _(Mix3Policy<ObjectPolicy<0>, BoxPolicy<1>, ObjectPolicy<2> >)      \
     _(Mix3Policy<ObjectPolicy<0>, IntPolicy<1>, BoxPolicy<2> >)         \
     _(Mix3Policy<ObjectPolicy<0>, IntPolicy<1>, IntPolicy<2> >)         \
+    _(Mix3Policy<ObjectPolicy<0>, IntPolicy<1>, TruncateToInt32Policy<2> >) \
+    _(Mix3Policy<ObjectPolicy<0>, ObjectPolicy<1>, BoxPolicy<2> >)      \
     _(Mix3Policy<ObjectPolicy<0>, ObjectPolicy<1>, IntPolicy<2> >)      \
+    _(Mix3Policy<ObjectPolicy<0>, ObjectPolicy<1>, ObjectPolicy<2> >)   \
+    _(Mix3Policy<StringPolicy<0>, IntPolicy<1>, IntPolicy<2>>)          \
     _(Mix3Policy<StringPolicy<0>, ObjectPolicy<1>, StringPolicy<2> >)   \
     _(Mix3Policy<StringPolicy<0>, StringPolicy<1>, StringPolicy<2> >)   \
+    _(Mix4Policy<ObjectPolicy<0>, IntPolicy<1>, IntPolicy<2>, IntPolicy<3>>) \
+    _(Mix4Policy<ObjectPolicy<0>, IntPolicy<1>, TruncateToInt32Policy<2>, TruncateToInt32Policy<3> >) \
+    _(Mix3Policy<ObjectPolicy<0>, CacheIdPolicy<1>, NoFloatPolicy<2>>)  \
+    _(Mix4Policy<SimdScalarPolicy<0>, SimdScalarPolicy<1>, SimdScalarPolicy<2>, SimdScalarPolicy<3> >) \
     _(MixPolicy<BoxPolicy<0>, ObjectPolicy<1> >)                        \
     _(MixPolicy<ConvertToStringPolicy<0>, ConvertToStringPolicy<1> >)   \
     _(MixPolicy<ConvertToStringPolicy<0>, ObjectPolicy<1> >)            \
     _(MixPolicy<DoublePolicy<0>, DoublePolicy<1> >)                     \
     _(MixPolicy<ObjectPolicy<0>, BoxPolicy<1> >)                        \
+    _(MixPolicy<ObjectPolicy<0>, CacheIdPolicy<1>>)                     \
     _(MixPolicy<ObjectPolicy<0>, ConvertToStringPolicy<1> >)            \
     _(MixPolicy<ObjectPolicy<0>, IntPolicy<1> >)                        \
     _(MixPolicy<ObjectPolicy<0>, NoFloatPolicy<1> >)                    \
@@ -922,13 +1235,22 @@ FilterTypeSetPolicy::adjustInputs(TempAllocator &alloc, MInstruction *ins)
     _(MixPolicy<ObjectPolicy<0>, NoFloatPolicy<3> >)                    \
     _(MixPolicy<ObjectPolicy<0>, ObjectPolicy<1> >)                     \
     _(MixPolicy<ObjectPolicy<0>, StringPolicy<1> >)                     \
+    _(MixPolicy<ObjectPolicy<0>, ConvertToStringPolicy<2> >)            \
     _(MixPolicy<ObjectPolicy<1>, ConvertToStringPolicy<0> >)            \
+    _(MixPolicy<SimdSameAsReturnedTypePolicy<0>, SimdSameAsReturnedTypePolicy<1> >) \
+    _(MixPolicy<SimdSameAsReturnedTypePolicy<0>, SimdScalarPolicy<1> >) \
     _(MixPolicy<StringPolicy<0>, IntPolicy<1> >)                        \
     _(MixPolicy<StringPolicy<0>, StringPolicy<1> >)                     \
+    _(MixPolicy<BoxPolicy<0>, BoxPolicy<1> >)                           \
     _(NoFloatPolicy<0>)                                                 \
+    _(NoFloatPolicyAfter<1>)                                            \
+    _(NoFloatPolicyAfter<2>)                                            \
     _(ObjectPolicy<0>)                                                  \
     _(ObjectPolicy<1>)                                                  \
     _(ObjectPolicy<3>)                                                  \
+    _(SimdPolicy<0>)                                                    \
+    _(SimdSameAsReturnedTypePolicy<0>)                                  \
+    _(SimdScalarPolicy<0>)                                              \
     _(StringPolicy<0>)
 
 
@@ -953,44 +1275,35 @@ namespace jit {
     TEMPLATE_TYPE_POLICY_LIST(template<> DEFINE_TYPE_POLICY_SINGLETON_INSTANCES_)
 #undef DEFINE_TYPE_POLICY_SINGLETON_INSTANCES_
 
-}
-}
+} // namespace jit
+} // namespace js
 
 namespace {
 
-// Default function visited by the C++ lookup rules, if the MIR Instruction does
-// not inherit from a TypePolicy::Data type.
-static TypePolicy *
-thisTypePolicy() {
-    return nullptr;
-}
+// For extra-good measure in case an unqualified use is ever introduced.  (The
+// main use in the macro below is explicitly qualified so as not to consult
+// this scope and find this function.)
+inline TypePolicy*
+thisTypePolicy() = delete;
 
 static MIRType
-thisTypeSpecialization() {
+thisTypeSpecialization()
+{
     MOZ_CRASH("TypeSpecialization lacks definition of thisTypeSpecialization.");
 }
 
-}
-
-TypePolicy *
-MGetElementCache::thisTypePolicy()
-{
-    if (type() == MIRType_Value)
-        return PolicyV.thisTypePolicy();
-    return PolicyT.thisTypePolicy();
-}
+} // namespace
 
 // For each MIR Instruction, this macro define the |typePolicy| method which is
-// using the |thisTypePolicy| function.  We use the C++ lookup rules to select
-// the right |thisTypePolicy| member.  The |thisTypePolicy| function can either
-// be a member of the MIR Instruction, such as done for MGetElementCache, or a
-// member inherited from the TypePolicy::Data structure, or at last the global
-// with the same name if the instruction has no TypePolicy.
+// using the |thisTypePolicy| method.  The |thisTypePolicy| method is either a
+// member of the MIR Instruction, such as with MGetElementCache, a member
+// inherited from the TypePolicy::Data structure, or a member inherited from
+// NoTypePolicy if the MIR instruction has no type policy.
 #define DEFINE_MIR_TYPEPOLICY_MEMBERS_(op)      \
     TypePolicy *                                \
     js::jit::M##op::typePolicy()                \
     {                                           \
-        return thisTypePolicy();                \
+        return M##op::thisTypePolicy();         \
     }                                           \
                                                 \
     MIRType                                     \

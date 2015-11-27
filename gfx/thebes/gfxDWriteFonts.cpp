@@ -15,9 +15,6 @@
 
 #include "harfbuzz/hb.h"
 
-// Chosen this as to resemble DWrite's own oblique face style.
-#define OBLIQUE_SKEW_FACTOR 0.3
-
 using namespace mozilla;
 using namespace mozilla::gfx;
 
@@ -78,6 +75,7 @@ gfxDWriteFont::gfxDWriteFont(gfxFontEntry *aFontEntry,
     : gfxFont(aFontEntry, aFontStyle, anAAOption)
     , mCairoFontFace(nullptr)
     , mMetrics(nullptr)
+    , mSpaceGlyph(0)
     , mNeedsOblique(false)
     , mNeedsBold(aNeedsBold)
     , mUseSubpixelPositions(false)
@@ -87,8 +85,9 @@ gfxDWriteFont::gfxDWriteFont(gfxFontEntry *aFontEntry,
         static_cast<gfxDWriteFontEntry*>(aFontEntry);
     nsresult rv;
     DWRITE_FONT_SIMULATIONS sims = DWRITE_FONT_SIMULATIONS_NONE;
-    if ((GetStyle()->style & (NS_FONT_STYLE_ITALIC | NS_FONT_STYLE_OBLIQUE)) &&
-        !fe->IsItalic() && GetStyle()->allowSyntheticStyle) {
+    if ((GetStyle()->style != NS_FONT_STYLE_NORMAL) &&
+        fe->IsUpright() &&
+        GetStyle()->allowSyntheticStyle) {
             // For this we always use the font_matrix for uniformity. Not the
             // DWrite simulation.
             mNeedsOblique = true;
@@ -126,7 +125,7 @@ gfxDWriteFont::CopyWithAntialiasOption(AntialiasOption anAAOption)
 }
 
 const gfxFont::Metrics&
-gfxDWriteFont::GetMetrics()
+gfxDWriteFont::GetHorizontalMetrics()
 {
     return *mMetrics;
 }
@@ -145,7 +144,7 @@ gfxDWriteFont::GetFakeMetricsForArialBlack(DWRITE_FONT_METRICS *aFontMetrics)
         return false;
     }
 
-    nsRefPtr<gfxFont> font = fe->FindOrMakeFont(&style, needsBold);
+    RefPtr<gfxFont> font = fe->FindOrMakeFont(&style, needsBold);
     gfxDWriteFont *dwFont = static_cast<gfxDWriteFont*>(font.get());
     dwFont->mFontFace->GetMetrics(aFontMetrics);
 
@@ -164,7 +163,7 @@ gfxDWriteFont::ComputeMetrics(AntialiasOption anAAOption)
         mFontFace->GetMetrics(&fontMetrics);
     }
 
-    if (mStyle.sizeAdjust != 0.0) {
+    if (mStyle.sizeAdjust >= 0.0) {
         gfxFloat aspect = (gfxFloat)fontMetrics.xHeight /
                    fontMetrics.designUnitsPerEm;
         mAdjustedSize = mStyle.GetAdjustedSize(aspect);
@@ -219,9 +218,10 @@ gfxDWriteFont::ComputeMetrics(AntialiasOption anAAOption)
                                       TRUETYPE_TAG('h','h','e','a'));
     if (hheaTable) {
         uint32_t len;
-        const HheaTable* hhea =
-            reinterpret_cast<const HheaTable*>(hb_blob_get_data(hheaTable, &len));
-        if (len >= sizeof(HheaTable)) {
+        const MetricsHeader* hhea =
+            reinterpret_cast<const MetricsHeader*>
+                (hb_blob_get_data(hheaTable, &len));
+        if (len >= sizeof(MetricsHeader)) {
             mMetrics->maxAdvance =
                 uint16_t(hhea->advanceWidthMax) * mFUnitsConvFactor;
         }
@@ -230,8 +230,15 @@ gfxDWriteFont::ComputeMetrics(AntialiasOption anAAOption)
     mMetrics->internalLeading = std::max(mMetrics->maxHeight - mMetrics->emHeight, 0.0);
     mMetrics->externalLeading = ceil(fontMetrics.lineGap * mFUnitsConvFactor);
 
-    UINT16 glyph = (uint16_t)GetSpaceGlyph();
-    mMetrics->spaceWidth = MeasureGlyphWidth(glyph);
+    UINT32 ucs = L' ';
+    UINT16 glyph;
+    HRESULT hr = mFontFace->GetGlyphIndicesA(&ucs, 1, &glyph);
+    if (FAILED(hr)) {
+        mMetrics->spaceWidth = 0;
+    } else {
+        mSpaceGlyph = glyph;
+        mMetrics->spaceWidth = MeasureGlyphWidth(glyph);
+    }
 
     // try to get aveCharWidth from the OS/2 table, fall back to measuring 'x'
     // if the table is not available or if using hinted/pixel-snapped widths
@@ -253,7 +260,6 @@ gfxDWriteFont::ComputeMetrics(AntialiasOption anAAOption)
         }
     }
 
-    UINT32 ucs;
     if (mMetrics->aveCharWidth < 1) {
         ucs = L'x';
         if (SUCCEEDED(mFontFace->GetGlyphIndicesA(&ucs, 1, &glyph))) {
@@ -444,14 +450,7 @@ gfxDWriteFont::HasBitmapStrikeForSize(uint32_t aSize)
 uint32_t
 gfxDWriteFont::GetSpaceGlyph()
 {
-    UINT32 ucs = L' ';
-    UINT16 glyph;
-    HRESULT hr;
-    hr = mFontFace->GetGlyphIndicesA(&ucs, 1, &glyph);
-    if (FAILED(hr)) {
-        return 0;
-    }
-    return glyph;
+    return mSpaceGlyph;
 }
 
 bool
@@ -468,7 +467,7 @@ gfxDWriteFont::SetupCairoFont(gfxContext *aContext)
 }
 
 bool
-gfxDWriteFont::IsValid()
+gfxDWriteFont::IsValid() const
 {
     return mFontFace != nullptr;
 }
@@ -532,8 +531,6 @@ gfxDWriteFont::GetCairoScaledFont()
         cairo_dwrite_scaled_font_allow_manual_show_glyphs(mScaledFont,
                                                           mAllowManualShowGlyphs);
 
-        gfxDWriteFontEntry *fe =
-            static_cast<gfxDWriteFontEntry*>(mFontEntry.get());
         cairo_dwrite_scaled_font_set_force_GDI_classic(mScaledFont,
                                                        GetForceGDIClassic());
     }
@@ -551,11 +548,13 @@ gfxDWriteFont::Measure(gfxTextRun *aTextRun,
                     uint32_t aStart, uint32_t aEnd,
                     BoundingBoxType aBoundingBoxType,
                     gfxContext *aRefContext,
-                    Spacing *aSpacing)
+                    Spacing *aSpacing,
+                    uint16_t aOrientation)
 {
     gfxFont::RunMetrics metrics =
         gfxFont::Measure(aTextRun, aStart, aEnd,
-                         aBoundingBoxType, aRefContext, aSpacing);
+                         aBoundingBoxType, aRefContext, aSpacing,
+                         aOrientation);
 
     // if aBoundingBoxType is LOOSE_INK_EXTENTS
     // and the underlying cairo font may be antialiased,
@@ -581,7 +580,7 @@ gfxDWriteFont::ProvidesGlyphWidths() const
 }
 
 int32_t
-gfxDWriteFont::GetGlyphWidth(gfxContext *aCtx, uint16_t aGID)
+gfxDWriteFont::GetGlyphWidth(DrawTarget& aDrawTarget, uint16_t aGID)
 {
     if (!mGlyphWidths) {
         mGlyphWidths = new nsDataHashtable<nsUint32HashKey,int32_t>(128);
@@ -597,8 +596,8 @@ gfxDWriteFont::GetGlyphWidth(gfxContext *aCtx, uint16_t aGID)
     return width;
 }
 
-TemporaryRef<GlyphRenderingOptions>
-gfxDWriteFont::GetGlyphRenderingOptions()
+already_AddRefed<GlyphRenderingOptions>
+gfxDWriteFont::GetGlyphRenderingOptions(const TextRunDrawParams* aRunParams)
 {
   if (UsingClearType()) {
     return Factory::CreateDWriteGlyphRenderingOptions(
@@ -657,7 +656,7 @@ gfxDWriteFont::AddSizeOfExcludingThis(MallocSizeOf aMallocSizeOf,
     aSizes->mFontInstances += aMallocSizeOf(mMetrics);
     if (mGlyphWidths) {
         aSizes->mFontInstances +=
-            mGlyphWidths->SizeOfIncludingThis(nullptr, aMallocSizeOf);
+            mGlyphWidths->ShallowSizeOfIncludingThis(aMallocSizeOf);
     }
 }
 
@@ -669,12 +668,13 @@ gfxDWriteFont::AddSizeOfIncludingThis(MallocSizeOf aMallocSizeOf,
     AddSizeOfExcludingThis(aMallocSizeOf, aSizes);
 }
 
-TemporaryRef<ScaledFont>
+already_AddRefed<ScaledFont>
 gfxDWriteFont::GetScaledFont(mozilla::gfx::DrawTarget *aTarget)
 {
   bool wantCairo = aTarget->GetBackendType() == BackendType::CAIRO;
   if (mAzureScaledFont && mAzureScaledFontIsCairo == wantCairo) {
-    return mAzureScaledFont;
+    RefPtr<ScaledFont> scaledFont(mAzureScaledFont);
+    return scaledFont.forget();
   }
 
   NativeFont nativeFont;
@@ -692,5 +692,6 @@ gfxDWriteFont::GetScaledFont(mozilla::gfx::DrawTarget *aTarget)
 
   mAzureScaledFontIsCairo = wantCairo;
 
-  return mAzureScaledFont;
+  RefPtr<ScaledFont> scaledFont(mAzureScaledFont);
+  return scaledFont.forget();
 }

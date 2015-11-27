@@ -2,14 +2,16 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import print_function, unicode_literals
+from __future__ import absolute_import, print_function, unicode_literals
 
 import argparse
-import glob
 import logging
-import mozpack.path
+import mozpack.path as mozpath
 import os
+import platform
+import subprocess
 import sys
+import which
 
 from mozbuild.base import (
     MachCommandBase,
@@ -21,11 +23,50 @@ from mach.decorators import (
     Command,
 )
 
+ESLINT_NOT_FOUND_MESSAGE = '''
+Could not find eslint!  We looked at the --binary option, at the ESLINT
+environment variable, and then at your path.  Install eslint and needed plugins
+with
+
+mach eslint --setup
+
+and try again.
+'''.strip()
+
+NODE_NOT_FOUND_MESSAGE = '''
+nodejs is either not installed or is installed to a non-standard path.
+Please install nodejs from https://nodejs.org and try again.
+
+Valid installation paths:
+'''.strip()
+
+NPM_NOT_FOUND_MESSAGE = '''
+Node Package Manager (npm) is either not installed or installed to a
+non-standard path. Please install npm from https://nodejs.org (it comes as an
+option in the node installation) and try again.
+
+Valid installation paths:
+'''.strip()
+
+ESLINT_PROMPT = '''
+Would you like to use eslint
+'''.strip()
+
+ESLINT_PLUGIN_MOZILLA_PROMPT = '''
+eslint-plugin-mozilla is an eslint plugin containing rules that help enforce
+JavaScript coding standards in the Mozilla project. Would you like to use this
+plugin
+'''.strip()
+
+ESLINT_PLUGIN_REACT_PROMPT = '''
+eslint-plugin-react is an eslint plugin containing rules that help React
+developers follow strict guidelines. Would you like to install it
+'''.strip()
+
 
 @CommandProvider
 class MachCommands(MachCommandBase):
     @Command('python', category='devenv',
-        allow_all_args=True,
         description='Run Python.')
     @CommandArgument('args', nargs=argparse.REMAINDER)
     def python(self, args):
@@ -35,8 +76,8 @@ class MachCommands(MachCommandBase):
         self._activate_virtualenv()
 
         return self.run_process([self.virtualenv_manager.python_path] + args,
-            pass_thru=True, # Allow user to run Python interactively.
-            ensure_exit_code=False, # Don't throw on non-zero exit code.
+            pass_thru=True,  # Allow user to run Python interactively.
+            ensure_exit_code=False,  # Don't throw on non-zero exit code.
             # Note: subprocess requires native strings in os.environ on Windows
             append_env={b'PYTHONDONTWRITEBYTECODE': str('1')})
 
@@ -55,6 +96,7 @@ class MachCommands(MachCommandBase):
         help='Tests to run. Each test can be a single file or a directory.')
     def python_test(self, tests, verbose=False, stop=False):
         self._activate_virtualenv()
+        import glob
 
         # Python's unittest, and in particular discover, has problems with
         # clashing namespaces when importing multiple test modules. What follows
@@ -72,7 +114,7 @@ class MachCommands(MachCommandBase):
         last_search_dir = search_dirs[-1]
         for t in tests:
             for d in search_dirs:
-                test = mozpack.path.join(d, t)
+                test = mozpath.join(d, t)
                 if test.endswith('.py') and os.path.isfile(test):
                     files.append(test)
                     break
@@ -80,8 +122,8 @@ class MachCommands(MachCommandBase):
                     files.append(test + '.py')
                     break
                 elif os.path.isdir(test):
-                    files += glob.glob(mozpack.path.join(test, 'test*.py'))
-                    files += glob.glob(mozpack.path.join(test, 'unit*.py'))
+                    files += glob.glob(mozpath.join(test, 'test*.py'))
+                    files += glob.glob(mozpath.join(test, 'unit*.py'))
                     break
                 elif d == last_search_dir:
                     self.log(logging.WARN, 'python-test',
@@ -91,14 +133,15 @@ class MachCommands(MachCommandBase):
                         return 1
 
         for f in files:
-            file_displayed_test = [] # Used as a boolean.
+            file_displayed_test = []  # Used as a boolean.
+
             def _line_handler(line):
                 if not file_displayed_test and line.startswith('TEST-'):
                     file_displayed_test.append(True)
 
             inner_return_code = self.run_process(
                 [self.virtualenv_manager.python_path, f],
-                ensure_exit_code=False, # Don't throw on non-zero exit code.
+                ensure_exit_code=False,  # Don't throw on non-zero exit code.
                 log_name='python-test',
                 # subprocess requires native strings in os.environ on Windows
                 append_env={b'PYTHONDONTWRITEBYTECODE': str('1')},
@@ -120,3 +163,172 @@ class MachCommands(MachCommandBase):
                 return 1
 
         return 0 if return_code == 0 else 1
+
+    @Command('eslint', category='devenv',
+        description='Run eslint or help configure eslint for optimal development.')
+    @CommandArgument('-s', '--setup', default=False, action='store_true',
+        help='configure eslint for optimal development.')
+    @CommandArgument('path', nargs='?', default='.',
+        help='Path to files to lint, like "browser/components/loop" '
+            'or "mobile/android". '
+            'Defaults to the current directory if not given.')
+    @CommandArgument('-e', '--ext', default='[.js,.jsm,.jsx]',
+        help='Filename extensions to lint, default: "[.js,.jsm,.jsx]".')
+    @CommandArgument('-b', '--binary', default=None,
+        help='Path to eslint binary.')
+    @CommandArgument('args', nargs=argparse.REMAINDER)  # Passed through to eslint.
+    def eslint(self, setup, path, ext=None, binary=None, args=[]):
+        '''Run eslint.'''
+
+        if setup:
+            return self.eslint_setup()
+
+        if not binary:
+            binary = os.environ.get('ESLINT', None)
+            if not binary:
+                try:
+                    binary = which.which('eslint')
+                except which.WhichError:
+                    pass
+
+        if not binary:
+            print(ESLINT_NOT_FOUND_MESSAGE)
+            return 1
+
+        # The cwd below is unfortunate.  eslint --config=PATH/TO/.eslintrc works,
+        # but --ignore-path=PATH/TO/.eslintignore treats paths as relative to
+        # the current directory, rather than as relative to the location of
+        # .eslintignore (see https://github.com/eslint/eslint/issues/1382).
+        # mach commands always execute in the topsrcdir, so we could make all
+        # paths in .eslint relative to the topsrcdir, but it's not clear if
+        # that's a good choice for future eslint and IDE integrations.
+        # Unfortunately, running after chdir does not print the full path to
+        # files (convenient for opening with copy-and-paste).  In the meantime,
+        # we just print the active path.
+
+        self.log(logging.INFO, 'eslint', {'binary': binary, 'path': path},
+            'Running {binary} in {path}')
+
+        cmd_args = [binary,
+            '--ext', ext,  # This keeps ext as a single argument.
+        ] + args
+        # Path must come after arguments.  Path is '.' due to cwd below.
+        cmd_args += ['.']
+
+        return self.run_process(cmd_args,
+            cwd=path,
+            pass_thru=True,  # Allow user to run eslint interactively.
+            ensure_exit_code=False,  # Don't throw on non-zero exit code.
+        )
+    def eslint_setup(self, update_only=False):
+        """Ensure eslint is optimally configured.
+
+        This command will inspect your eslint configuration and
+        guide you through an interactive wizard helping you configure
+        eslint for optimal use on Mozilla projects.
+        """
+        sys.path.append(os.path.dirname(__file__))
+
+        # At the very least we need node installed.
+        nodePath = self.getNodeOrNpmPath("node")
+        if not nodePath:
+            return 1
+
+        npmPath = self.getNodeOrNpmPath("npm")
+        if not npmPath:
+            return 1
+
+        # Install eslint.
+        success = self.callProcess("eslint",
+                                   [npmPath, "install", "eslint", "-g"])
+        if not success:
+            return 1
+
+        # Install eslint-plugin-mozilla.
+        success = self.callProcess("eslint-plugin-mozilla",
+                                   [npmPath, "link"],
+                                   "testing/eslint-plugin-mozilla")
+        if not success:
+            return 1
+
+        # Install eslint-plugin-react.
+        success = self.callProcess("eslint-plugin-react",
+                                   [npmPath, "install", "eslint-plugin-react", "-g"])
+        if not success:
+            return 1
+
+        print("\nESLint and approved plugins installed successfully!")
+
+    def callProcess(self, name, cmd, cwd=None):
+        print("\nInstalling %s using \"%s\"..." % (name, " ".join(cmd)))
+
+        try:
+            with open(os.devnull, "w") as fnull:
+                subprocess.check_call(cmd, cwd=cwd, stdout=fnull)
+        except subprocess.CalledProcessError:
+            if cwd:
+                print("\nError installing %s in the %s folder, aborting." % (name, cwd))
+            else:
+                print("\nError installing %s, aborting." % name)
+
+            return False
+
+        return True
+
+    def getPossibleNodePathsWin(self):
+        """
+        Return possible nodejs paths on Windows.
+        """
+        if platform.system() != "Windows":
+            return []
+
+        return list({
+            "%s\\nodejs" % os.environ.get("SystemDrive"),
+            os.path.join(os.environ.get("ProgramFiles"), "nodejs"),
+            os.path.join(os.environ.get("PROGRAMW6432"), "nodejs"),
+            os.path.join(os.environ.get("PROGRAMFILES"), "nodejs")
+        })
+
+    def getNodeOrNpmPath(self, filename):
+        """
+        Return the nodejs or npm path.
+        """
+        if platform.system() == "Windows":
+            for ext in [".cmd", ".exe", ""]:
+                try:
+                    nodeOrNpmPath = which.which(filename + ext,
+                                                path=self.getPossibleNodePathsWin())
+                    if self.is_valid(nodeOrNpmPath):
+                        return nodeOrNpmPath
+                except which.WhichError:
+                    pass
+        else:
+            try:
+                return which.which(filename)
+            except which.WhichError:
+                pass
+
+        if filename == "node":
+            print(NODE_NOT_FOUND_MESSAGE)
+        elif filename == "npm":
+            print(NPM_NOT_FOUND_MESSAGE)
+
+        if platform.system() == "Windows":
+            appPaths = self.getPossibleNodePathsWin()
+
+            for p in appPaths:
+                print("  - %s" % p)
+        elif platform.system() == "Darwin":
+            print("  - /usr/local/bin/node")
+        elif platform.system() == "Linux":
+            print("  - /usr/bin/nodejs")
+
+        return None
+
+    def is_valid(self, path):
+        try:
+            with open(os.devnull, "w") as fnull:
+                subprocess.check_call([path, "--version"], stdout=fnull)
+                return True
+        except (subprocess.CalledProcessError, WindowsError):
+            return False

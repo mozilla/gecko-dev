@@ -4,14 +4,26 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-NO_DIST_INSTALL = True
+DIST_INSTALL = False
 SOURCES += [
-        'gmp-fake.cpp'
+        'gmp-fake.cpp',
+        'gmp-test-decryptor.cpp',
+        'gmp-test-storage.cpp',
 ]
 
+DEFINES['GMP_FAKE_SUPPORT_DECRYPT'] = True
+
 SharedLibrary("fake")
+
+if CONFIG['OS_ARCH'] == 'WINNT':
+    OS_LIBS += [
+        'ole32',
+    ]
 
 USE_STATIC_LIBS = True
 NO_VISIBILITY_FLAGS = True
 # Don't use STL wrappers; this isn't Gecko code
 DISABLE_STL_WRAPPING = True
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wshadow']

@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -40,10 +42,12 @@ WorkerDataStoreCursor::Constructor(GlobalObject& aGlobal, ErrorResult& aRv)
   return nullptr;
 }
 
-JSObject*
-WorkerDataStoreCursor::WrapObject(JSContext* aCx)
+bool
+WorkerDataStoreCursor::WrapObject(JSContext* aCx,
+                                  JS::Handle<JSObject*> aGivenProto,
+                                  JS::MutableHandle<JSObject*> aReflector)
 {
-  return DataStoreCursorBinding_workers::Wrap(aCx, this);
+  return DataStoreCursorBinding_workers::Wrap(aCx, this, aGivenProto, aReflector);
 }
 
 // A WorkerMainThreadRunnable which holds a reference to DataStoreCursor.
@@ -65,9 +69,9 @@ public:
 
 // A DataStoreCursorRunnable to run DataStoreCursor::Next(...) on the main
 // thread.
-class DataStoreCursorNextRunnable MOZ_FINAL : public DataStoreCursorRunnable
+class DataStoreCursorNextRunnable final : public DataStoreCursorRunnable
 {
-  nsRefPtr<PromiseWorkerProxy> mPromiseWorkerProxy;
+  RefPtr<PromiseWorkerProxy> mPromiseWorkerProxy;
   ErrorResult& mRv;
 
 public:
@@ -82,16 +86,27 @@ public:
     aWorkerPrivate->AssertIsOnWorkerThread();
 
     mPromiseWorkerProxy =
-      new PromiseWorkerProxy(aWorkerPrivate, aWorkerPromise);
+      PromiseWorkerProxy::Create(aWorkerPrivate, aWorkerPromise);
+  }
+
+  void Dispatch(ErrorResult& aRv)
+  {
+    if (mPromiseWorkerProxy) {
+      DataStoreCursorRunnable::Dispatch(aRv);
+    }
+
+    // If the creation of mProxyWorkerProxy failed, the worker is terminating.
+    // In this case we don't want to dispatch the runnable and we should stop
+    // the promise chain here.
   }
 
 protected:
   virtual bool
-  MainThreadRun() MOZ_OVERRIDE
+  MainThreadRun() override
   {
     AssertIsOnMainThread();
 
-    nsRefPtr<Promise> promise = mBackingCursor->Next(mRv);
+    RefPtr<Promise> promise = mBackingCursor->Next(mRv);
     promise->AppendNativeHandler(mPromiseWorkerProxy);
     return true;
   }
@@ -99,7 +114,7 @@ protected:
 
 // A DataStoreCursorRunnable to run DataStoreCursor::Close(...) on the main
 // thread.
-class DataStoreCursorCloseRunnable MOZ_FINAL : public DataStoreCursorRunnable
+class DataStoreCursorCloseRunnable final : public DataStoreCursorRunnable
 {
   ErrorResult& mRv;
 
@@ -116,7 +131,7 @@ public:
 
 protected:
   virtual bool
-  MainThreadRun() MOZ_OVERRIDE
+  MainThreadRun() override
   {
     AssertIsOnMainThread();
 
@@ -136,7 +151,7 @@ WorkerDataStoreCursor::GetStore(JSContext* aCx, ErrorResult& aRv)
   // WorkerDataStoreCursor, so that the WorkerDataStoreCursor.store can be
   // tested as equal to the WorkerDataStore owning this WorkerDataStoreCursor.
   MOZ_ASSERT(mWorkerStore);
-  nsRefPtr<WorkerDataStore> workerStore = mWorkerStore;
+  RefPtr<WorkerDataStore> workerStore = mWorkerStore;
   return workerStore.forget();
 }
 
@@ -147,17 +162,20 @@ WorkerDataStoreCursor::Next(JSContext* aCx, ErrorResult& aRv)
   MOZ_ASSERT(workerPrivate);
   workerPrivate->AssertIsOnWorkerThread();
 
-  nsRefPtr<Promise> promise = Promise::Create(workerPrivate->GlobalScope(), aRv);
+  RefPtr<Promise> promise = Promise::Create(workerPrivate->GlobalScope(), aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
 
-  nsRefPtr<DataStoreCursorNextRunnable> runnable =
+  RefPtr<DataStoreCursorNextRunnable> runnable =
     new DataStoreCursorNextRunnable(workerPrivate,
                                     mBackingCursor,
                                     promise,
                                     aRv);
-  runnable->Dispatch(aCx);
+  runnable->Dispatch(aRv);
+  if (aRv.Failed()) {
+    return nullptr;
+  }
 
   return promise.forget();
 }
@@ -169,15 +187,9 @@ WorkerDataStoreCursor::Close(JSContext* aCx, ErrorResult& aRv)
   MOZ_ASSERT(workerPrivate);
   workerPrivate->AssertIsOnWorkerThread();
 
-  nsRefPtr<DataStoreCursorCloseRunnable> runnable =
+  RefPtr<DataStoreCursorCloseRunnable> runnable =
     new DataStoreCursorCloseRunnable(workerPrivate, mBackingCursor, aRv);
-  runnable->Dispatch(aCx);
-}
-
-void
-WorkerDataStoreCursor::SetDataStoreCursorImpl(DataStoreCursorImpl& aCursor)
-{
-  NS_NOTREACHED("We don't use this for the WorkerDataStoreCursor!");
+  runnable->Dispatch(aRv);
 }
 
 void

@@ -5,25 +5,14 @@
 #include "CSFLog.h"
 
 #include "base/histogram.h"
-#include "CallControlManager.h"
-#include "CC_Device.h"
-#include "CC_Call.h"
-#include "CC_Observer.h"
-#include "ccapi_call_info.h"
-#include "CC_SIPCCCallInfo.h"
-#include "ccapi_device_info.h"
-#include "CC_SIPCCDeviceInfo.h"
-#include "vcm.h"
-#include "VcmSIPCCBinding.h"
 #include "PeerConnectionImpl.h"
 #include "PeerConnectionCtx.h"
 #include "runnable_utils.h"
-#include "debug-psipcc-types.h"
 #include "prcvar.h"
 
 #include "mozilla/Telemetry.h"
 
-#ifdef MOZILLA_INTERNAL_API
+#if !defined(MOZILLA_EXTERNAL_LINKAGE)
 #include "mozilla/dom/RTCPeerConnectionBinding.h"
 #include "mozilla/Preferences.h"
 #include <mozilla/Types.h>
@@ -34,63 +23,16 @@
 #include "nsIObserverService.h"
 #include "nsIObserver.h"
 #include "mozilla/Services.h"
-#include "StaticPtr.h"
+#include "mozilla/StaticPtr.h"
+
+#include "gmp-video-decode.h" // GMP_API_VIDEO_DECODER
+#include "gmp-video-encode.h" // GMP_API_VIDEO_ENCODER
 
 static const char* logTag = "PeerConnectionCtx";
 
 namespace mozilla {
 
 using namespace dom;
-
-// Convert constraints to C structures
-
-#ifdef MOZILLA_INTERNAL_API
-static void
-Apply(const Optional<bool> &aSrc, cc_boolean_option_t *aDst) {
-  if (aSrc.WasPassed()) {
-    aDst->was_passed = true;
-    aDst->value = aSrc.Value();
-  }
-}
-
-static void
-Apply(const Optional<int32_t> &aSrc, cc_int32_option_t *aDst) {
-  if (aSrc.WasPassed()) {
-    aDst->was_passed = true;
-    aDst->value = aSrc.Value();
-  }
-}
-#endif
-
-SipccOfferOptions::SipccOfferOptions() {
-  memset(&mOptions, 0, sizeof(mOptions));
-}
-
-SipccOfferOptions::SipccOfferOptions(
-    const RTCOfferOptions &aSrc) {
-  cc_media_options_t* c = &mOptions;
-  memset(c, 0, sizeof(*c));
-#ifdef MOZILLA_INTERNAL_API
-  Apply(aSrc.mOfferToReceiveAudio, &c->offer_to_receive_audio);
-  Apply(aSrc.mOfferToReceiveVideo, &c->offer_to_receive_video);
-  if (!Preferences::GetBool("media.peerconnection.video.enabled", true)) {
-    c->offer_to_receive_video.was_passed = true;
-    c->offer_to_receive_video.value = false;
-  }
-  Apply(aSrc.mMozDontOfferDataChannel, &c->moz_dont_offer_datachannel);
-  Apply(aSrc.mMozBundleOnly, &c->moz_bundle_only);
-#endif
-}
-
-cc_media_options_t*
-SipccOfferOptions::build() const {
-  cc_media_options_t* cc  = (cc_media_options_t*)
-    cpr_malloc(sizeof(cc_media_options_t));
-  if (cc) {
-    *cc = mOptions;
-  }
-  return cc;
-}
 
 class PeerConnectionCtxShutdown : public nsIObserver
 {
@@ -118,10 +60,10 @@ public:
     }
 
   NS_IMETHODIMP Observe(nsISupports* aSubject, const char* aTopic,
-                        const char16_t* aData) {
+                        const char16_t* aData) override {
     if (strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID) == 0) {
       CSFLogDebug(logTag, "Shutting down PeerConnectionCtx");
-      sipcc::PeerConnectionCtx::Destroy();
+      PeerConnectionCtx::Destroy();
 
       nsCOMPtr<nsIObserverService> observerService =
         services::GetObserverService();
@@ -133,8 +75,8 @@ public:
       MOZ_ALWAYS_TRUE(NS_SUCCEEDED(rv));
 
       // Make sure we're not deleted while still inside ::Observe()
-      nsRefPtr<PeerConnectionCtxShutdown> kungFuDeathGrip(this);
-      sipcc::PeerConnectionCtx::gPeerConnectionCtxShutdown = nullptr;
+      RefPtr<PeerConnectionCtxShutdown> kungFuDeathGrip(this);
+      PeerConnectionCtx::gPeerConnectionCtxShutdown = nullptr;
     }
     return NS_OK;
   }
@@ -152,18 +94,22 @@ private:
 NS_IMPL_ISUPPORTS(PeerConnectionCtxShutdown, nsIObserver);
 }
 
-using namespace mozilla;
-namespace sipcc {
+namespace mozilla {
 
 PeerConnectionCtx* PeerConnectionCtx::gInstance;
 nsIThread* PeerConnectionCtx::gMainThread;
 StaticRefPtr<PeerConnectionCtxShutdown> PeerConnectionCtx::gPeerConnectionCtxShutdown;
 
+const std::map<const std::string, PeerConnectionImpl *>&
+PeerConnectionCtx::mGetPeerConnections()
+{
+  return mPeerConnections;
+}
+
 nsresult PeerConnectionCtx::InitializeGlobal(nsIThread *mainThread,
   nsIEventTarget* stsThread) {
   if (!gMainThread) {
     gMainThread = mainThread;
-    CSF::VcmSIPCCBinding::setMainThread(gMainThread);
   } else {
     MOZ_ASSERT(gMainThread == mainThread);
   }
@@ -183,9 +129,9 @@ nsresult PeerConnectionCtx::InitializeGlobal(nsIThread *mainThread,
 
     gInstance = ctx;
 
-    if (!sipcc::PeerConnectionCtx::gPeerConnectionCtxShutdown) {
-      sipcc::PeerConnectionCtx::gPeerConnectionCtxShutdown = new PeerConnectionCtxShutdown();
-      sipcc::PeerConnectionCtx::gPeerConnectionCtxShutdown->Init();
+    if (!PeerConnectionCtx::gPeerConnectionCtxShutdown) {
+      PeerConnectionCtx::gPeerConnectionCtxShutdown = new PeerConnectionCtxShutdown();
+      PeerConnectionCtx::gPeerConnectionCtxShutdown->Init();
     }
   }
 
@@ -211,7 +157,7 @@ void PeerConnectionCtx::Destroy() {
   }
 }
 
-#ifdef MOZILLA_INTERNAL_API
+#if !defined(MOZILLA_EXTERNAL_LINKAGE)
 typedef Vector<nsAutoPtr<RTCStatsQuery>> RTCStatsQueries;
 
 // Telemetry reporting every second after start of first call.
@@ -259,6 +205,7 @@ EverySecondTelemetryCallback_s(nsAutoPtr<RTCStatsQueries> aQueryList) {
   for (auto q = aQueryList->begin(); q != aQueryList->end(); ++q) {
     PeerConnectionImpl::ExecuteStatsQuery_s(*q);
     auto& r = *(*q)->report;
+    bool isHello = (*q)->isHello;
     if (r.mInboundRTPStreamStats.WasPassed()) {
       // First, get reports from a second ago, if any, for calculations below
       const Sequence<RTCInboundRTPStreamStats> *lastInboundStats = nullptr;
@@ -273,27 +220,43 @@ EverySecondTelemetryCallback_s(nsAutoPtr<RTCStatsQueries> aQueryList) {
       for (decltype(array.Length()) i = 0; i < array.Length(); i++) {
         auto& s = array[i];
         bool isAudio = (s.mId.Value().Find("audio") != -1);
-        if (s.mPacketsLost.WasPassed()) {
-          Accumulate(s.mIsRemote?
-                     (isAudio? WEBRTC_AUDIO_QUALITY_OUTBOUND_PACKETLOSS :
-                               WEBRTC_VIDEO_QUALITY_OUTBOUND_PACKETLOSS) :
-                     (isAudio? WEBRTC_AUDIO_QUALITY_INBOUND_PACKETLOSS :
-                               WEBRTC_VIDEO_QUALITY_INBOUND_PACKETLOSS),
-                      s.mPacketsLost.Value());
+        if (s.mPacketsLost.WasPassed() && s.mPacketsReceived.WasPassed() &&
+            (s.mPacketsLost.Value() + s.mPacketsReceived.Value()) != 0) {
+          ID id;
+          if (s.mIsRemote) {
+            id = isAudio ? WEBRTC_AUDIO_QUALITY_OUTBOUND_PACKETLOSS_RATE :
+                           WEBRTC_VIDEO_QUALITY_OUTBOUND_PACKETLOSS_RATE;
+          } else {
+            id = isAudio ? WEBRTC_AUDIO_QUALITY_INBOUND_PACKETLOSS_RATE :
+                           WEBRTC_VIDEO_QUALITY_INBOUND_PACKETLOSS_RATE;
+          }
+          // *1000 so we can read in 10's of a percent (permille)
+          Accumulate(id,
+                     (s.mPacketsLost.Value() * 1000) /
+                     (s.mPacketsLost.Value() + s.mPacketsReceived.Value()));
         }
         if (s.mJitter.WasPassed()) {
-          Accumulate(s.mIsRemote?
-                     (isAudio? WEBRTC_AUDIO_QUALITY_OUTBOUND_JITTER :
-                               WEBRTC_VIDEO_QUALITY_OUTBOUND_JITTER) :
-                     (isAudio? WEBRTC_AUDIO_QUALITY_INBOUND_JITTER :
-                               WEBRTC_VIDEO_QUALITY_INBOUND_JITTER),
-                      s.mJitter.Value());
+          ID id;
+          if (s.mIsRemote) {
+            id = isAudio ? WEBRTC_AUDIO_QUALITY_OUTBOUND_JITTER :
+                           WEBRTC_VIDEO_QUALITY_OUTBOUND_JITTER;
+          } else {
+            id = isAudio ? WEBRTC_AUDIO_QUALITY_INBOUND_JITTER :
+                           WEBRTC_VIDEO_QUALITY_INBOUND_JITTER;
+          }
+          Accumulate(id, s.mJitter.Value());
         }
         if (s.mMozRtt.WasPassed()) {
           MOZ_ASSERT(s.mIsRemote);
-          Accumulate(isAudio? WEBRTC_AUDIO_QUALITY_OUTBOUND_RTT :
-                              WEBRTC_VIDEO_QUALITY_OUTBOUND_RTT,
-                      s.mMozRtt.Value());
+          ID id;
+          if (isAudio) {
+            id = isHello ? LOOP_AUDIO_QUALITY_OUTBOUND_RTT :
+                           WEBRTC_AUDIO_QUALITY_OUTBOUND_RTT;
+          } else {
+            id = isHello ? LOOP_VIDEO_QUALITY_OUTBOUND_RTT :
+                           WEBRTC_VIDEO_QUALITY_OUTBOUND_RTT;
+          }
+          Accumulate(id, s.mMozRtt.Value());
         }
         if (lastInboundStats && s.mBytesReceived.WasPassed()) {
           auto& laststats = *lastInboundStats;
@@ -303,15 +266,32 @@ EverySecondTelemetryCallback_s(nsAutoPtr<RTCStatsQueries> aQueryList) {
             if (lasts.mBytesReceived.WasPassed()) {
               auto delta_ms = int32_t(s.mTimestamp.Value() -
                                       lasts.mTimestamp.Value());
-              if (delta_ms > 0 && delta_ms < 60000) {
-                Accumulate(s.mIsRemote?
-                           (isAudio? WEBRTC_AUDIO_QUALITY_OUTBOUND_BANDWIDTH_KBITS :
-                                     WEBRTC_VIDEO_QUALITY_OUTBOUND_BANDWIDTH_KBITS) :
-                           (isAudio? WEBRTC_AUDIO_QUALITY_INBOUND_BANDWIDTH_KBITS :
-                                     WEBRTC_VIDEO_QUALITY_INBOUND_BANDWIDTH_KBITS),
-                           ((s.mBytesReceived.Value() -
-                             lasts.mBytesReceived.Value()) * 8) / delta_ms);
+              // In theory we're called every second, so delta *should* be in that range.
+              // Small deltas could cause errors due to division
+              if (delta_ms > 500 && delta_ms < 60000) {
+                ID id;
+                if (s.mIsRemote) {
+                  if (isAudio) {
+                    id = isHello ? LOOP_AUDIO_QUALITY_OUTBOUND_BANDWIDTH_KBITS :
+                                   WEBRTC_AUDIO_QUALITY_OUTBOUND_BANDWIDTH_KBITS;
+                  } else {
+                    id = isHello ? LOOP_VIDEO_QUALITY_OUTBOUND_BANDWIDTH_KBITS :
+                                   WEBRTC_VIDEO_QUALITY_OUTBOUND_BANDWIDTH_KBITS;
+                  }
+                } else {
+                  if (isAudio) {
+                    id = isHello ? LOOP_AUDIO_QUALITY_INBOUND_BANDWIDTH_KBITS :
+                                   WEBRTC_AUDIO_QUALITY_INBOUND_BANDWIDTH_KBITS;
+                  } else {
+                    id = isHello ? LOOP_VIDEO_QUALITY_INBOUND_BANDWIDTH_KBITS :
+                                   WEBRTC_VIDEO_QUALITY_INBOUND_BANDWIDTH_KBITS;
+                  }
+                }
+                Accumulate(id, ((s.mBytesReceived.Value() -
+                                 lasts.mBytesReceived.Value()) * 8) / delta_ms);
               }
+              // We could accumulate values until enough time has passed
+              // and then Accumulate() but this isn't that important.
             }
           }
         }
@@ -349,66 +329,27 @@ PeerConnectionCtx::EverySecondTelemetryCallback_m(nsITimer* timer, void *closure
         p != ctx->mPeerConnections.end(); ++p) {
     if (p->second->HasMedia()) {
       queries->append(nsAutoPtr<RTCStatsQuery>(new RTCStatsQuery(true)));
-      p->second->BuildStatsQuery_m(nullptr, // all tracks
-                                   queries->back());
+      if (NS_WARN_IF(NS_FAILED(p->second->BuildStatsQuery_m(nullptr, // all tracks
+                                                            queries->back())))) {
+        queries->popBack();
+      } else {
+        MOZ_ASSERT(queries->back()->report);
+      }
     }
   }
-  rv = RUN_ON_THREAD(stsThread,
-                     WrapRunnableNM(&EverySecondTelemetryCallback_s, queries),
-                     NS_DISPATCH_NORMAL);
-  NS_ENSURE_SUCCESS_VOID(rv);
+  if (!queries->empty()) {
+    rv = RUN_ON_THREAD(stsThread,
+                       WrapRunnableNM(&EverySecondTelemetryCallback_s, queries),
+                       NS_DISPATCH_NORMAL);
+    NS_ENSURE_SUCCESS_VOID(rv);
+  }
 }
 #endif
 
 nsresult PeerConnectionCtx::Initialize() {
   initGMP();
 
-  mCCM = CSF::CallControlManager::create();
-
-  NS_ENSURE_TRUE(mCCM.get(), NS_ERROR_FAILURE);
-
-  // Add the local audio codecs
-  // FIX - Get this list from MediaEngine instead
-  int codecMask = 0;
-  codecMask |= VCM_CODEC_RESOURCE_G711;
-  codecMask |= VCM_CODEC_RESOURCE_OPUS;
-  //codecMask |= VCM_CODEC_RESOURCE_LINEAR;
-  codecMask |= VCM_CODEC_RESOURCE_G722;
-  //codecMask |= VCM_CODEC_RESOURCE_iLBC;
-  //codecMask |= VCM_CODEC_RESOURCE_iSAC;
-  mCCM->setAudioCodecs(codecMask);
-
-  //Add the local video codecs
-  // FIX - Get this list from MediaEngine instead
-  // Turning them all on for now
-  codecMask = 0;
-  // Only adding codecs supported
-  //codecMask |= VCM_CODEC_RESOURCE_H263;
-
-#ifdef MOZILLA_INTERNAL_API
-#ifdef MOZ_WEBRTC_OMX
-  if (Preferences::GetBool("media.peerconnection.video.h264_enabled")) {
-    codecMask |= VCM_CODEC_RESOURCE_H264;
-  }
-#endif
-#else
-  // Outside MOZILLA_INTERNAL_API ensures H.264 available in unit tests
-  codecMask |= VCM_CODEC_RESOURCE_H264;
-#endif
-
-  codecMask |= VCM_CODEC_RESOURCE_VP8;
-  //codecMask |= VCM_CODEC_RESOURCE_I420;
-  mCCM->setVideoCodecs(codecMask);
-  mCCM->addCCObserver(this);
-  ChangeSipccState(dom::PCImplSipccState::Starting);
-
-  if (!mCCM->startSDPMode())
-    return NS_ERROR_FAILURE;
-
-  mDevice = mCCM->getActiveDevice();
-  NS_ENSURE_TRUE(mDevice.get(), NS_ERROR_FAILURE);
-
-#ifdef MOZILLA_INTERNAL_API
+#if !defined(MOZILLA_EXTERNAL_LINKAGE)
   mConnectionCounter = 0;
   Telemetry::GetHistogramById(Telemetry::WEBRTC_CALL_COUNT)->Add(0);
 
@@ -418,7 +359,12 @@ nsresult PeerConnectionCtx::Initialize() {
   NS_ENSURE_SUCCESS(rv, rv);
   mTelemetryTimer->InitWithFuncCallback(EverySecondTelemetryCallback_m, this, 1000,
                                         nsITimer::TYPE_REPEATING_PRECISE_CAN_SKIP);
-#endif
+
+  if (XRE_IsContentProcess()) {
+    WebrtcGlobalChild::Create();
+  }
+#endif // MOZILLA_INTERNAL_API
+
   return NS_OK;
 }
 
@@ -464,27 +410,20 @@ nsresult PeerConnectionCtx::Cleanup() {
 
   mQueuedJSEPOperations.Clear();
   mGMPService = nullptr;
-
-  mCCM->destroy();
-  mCCM->removeCCObserver(this);
   return NS_OK;
 }
 
 PeerConnectionCtx::~PeerConnectionCtx() {
     // ensure mTelemetryTimer ends on main thread
   MOZ_ASSERT(NS_IsMainThread());
-#ifdef MOZILLA_INTERNAL_API
+#if !defined(MOZILLA_EXTERNAL_LINKAGE)
   if (mTelemetryTimer) {
     mTelemetryTimer->Cancel();
   }
 #endif
 };
 
-CSF::CC_CallPtr PeerConnectionCtx::createCall() {
-  return mDevice->createCall();
-}
-
-void PeerConnectionCtx::queueJSEPOperation(nsRefPtr<nsIRunnable> aOperation) {
+void PeerConnectionCtx::queueJSEPOperation(nsIRunnable* aOperation) {
   mQueuedJSEPOperations.AppendElement(aOperation);
 }
 
@@ -496,35 +435,33 @@ void PeerConnectionCtx::onGMPReady() {
   mQueuedJSEPOperations.Clear();
 }
 
-void PeerConnectionCtx::onDeviceEvent(ccapi_device_event_e aDeviceEvent,
-                                      CSF::CC_DevicePtr aDevice,
-                                      CSF::CC_DeviceInfoPtr aInfo ) {
-  cc_service_state_t state = aInfo->getServiceState();
-  // We are keeping this in a local var to avoid a data race
-  // with ChangeSipccState in the debug message and compound if below
-  dom::PCImplSipccState currentSipccState = mSipccState;
-
-  switch (aDeviceEvent) {
-    case CCAPI_DEVICE_EV_STATE:
-      CSFLogDebug(logTag, "%s - %d : %d", __FUNCTION__, state,
-                  static_cast<uint32_t>(currentSipccState));
-
-      if (CC_STATE_INS == state) {
-        // SIPCC is up
-        if (dom::PCImplSipccState::Starting == currentSipccState ||
-            dom::PCImplSipccState::Idle == currentSipccState) {
-          ChangeSipccState(dom::PCImplSipccState::Started);
-        } else {
-          CSFLogError(logTag, "%s PeerConnection already started", __FUNCTION__);
-        }
-      } else {
-        NS_NOTREACHED("Unsupported Signaling State Transition");
-      }
-      break;
-    default:
-      CSFLogDebug(logTag, "%s: Ignoring event: %s\n",__FUNCTION__,
-                  device_event_getname(aDeviceEvent));
+bool PeerConnectionCtx::gmpHasH264() {
+  if (!mGMPService) {
+    return false;
   }
+
+  // XXX I'd prefer if this was all known ahead of time...
+
+  nsTArray<nsCString> tags;
+  tags.AppendElement(NS_LITERAL_CSTRING("h264"));
+
+  bool has_gmp;
+  nsresult rv;
+  rv = mGMPService->HasPluginForAPI(NS_LITERAL_CSTRING(GMP_API_VIDEO_ENCODER),
+                                    &tags,
+                                    &has_gmp);
+  if (NS_FAILED(rv) || !has_gmp) {
+    return false;
+  }
+
+  rv = mGMPService->HasPluginForAPI(NS_LITERAL_CSTRING(GMP_API_VIDEO_DECODER),
+                                    &tags,
+                                    &has_gmp);
+  if (NS_FAILED(rv) || !has_gmp) {
+    return false;
+  }
+
+  return true;
 }
 
-}  // namespace sipcc
+} // namespace mozilla

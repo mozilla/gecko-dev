@@ -14,7 +14,6 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Casting.h"
 #include "mozilla/FloatingPoint.h"
-#include "mozilla/NullPtr.h"
 
 #include <cmath>
 #include <cstring>
@@ -36,16 +35,8 @@
 
 #define WTF_MAKE_NONCOPYABLE(ClassName) \
   private: \
-    ClassName(const ClassName&) MOZ_DELETE; \
-    void operator=(const ClassName&) MOZ_DELETE;
-
-#if defined(_MSC_VER)
-namespace std {
-  inline bool isinf(double num) { return mozilla::IsInfinite(num); }
-  inline bool isnan(double num) { return mozilla::IsNaN(num); }
-  inline bool isfinite(double num) { return mozilla::IsFinite(num); }
-}
-#endif
+    ClassName(const ClassName&) = delete; \
+    void operator=(const ClassName&) = delete;
 
 typedef std::string String;
 
@@ -107,7 +98,7 @@ private:
   std::string mStr;
 };
 
-} // namespace moz-decimal-utils
+} // namespace moz_decimal_utils
 
 #endif
 

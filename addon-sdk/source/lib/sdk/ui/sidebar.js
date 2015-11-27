@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
-* License, v. 2.0. If a copy of the MPL was not distributed with this
-* file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 'use strict';
 
 module.metadata = {
@@ -24,7 +24,7 @@ const { isBrowser, getMostRecentBrowserWindow, windows, isWindowPrivate } = requ
 const { ns } = require('../core/namespace');
 const { remove: removeFromArray } = require('../util/array');
 const { show, hide, toggle } = require('./sidebar/actions');
-const { Worker } = require('../content/worker');
+const { Worker } = require('../deprecated/sync-worker');
 const { contract: sidebarContract } = require('./sidebar/contract');
 const { create, dispose, updateTitle, updateURL, isSidebarShowing, showSidebar, hideSidebar } = require('./sidebar/view');
 const { defer } = require('../core/promise');
@@ -41,7 +41,7 @@ const sidebarNS = ns();
 
 const WEB_PANEL_BROWSER_ID = 'web-panels-browser';
 
-let sidebars = {};
+var sidebars = {};
 
 const Sidebar = Class({
   implements: [ Disposable ],
@@ -212,8 +212,12 @@ const Sidebar = Class({
 
     add(sidebars, this);
   },
-  get id() (modelFor(this) || {}).id,
-  get title() (modelFor(this) || {}).title,
+  get id() {
+    return (modelFor(this) || {}).id;
+  },
+  get title() {
+    return (modelFor(this) || {}).title;
+  },
   set title(v) {
     // destroyed?
     if (!modelFor(this))
@@ -226,7 +230,9 @@ const Sidebar = Class({
     updateTitle(this, v);
     return modelFor(this).title = v;
   },
-  get url() (modelFor(this) || {}).url,
+  get url() {
+    return (modelFor(this) || {}).url;
+  },
   set url(v) {
     // destroyed?
     if (!modelFor(this))
@@ -242,8 +248,12 @@ const Sidebar = Class({
     updateURL(this, v);
     modelFor(this).url = v;
   },
-  show: function(window) showSidebar(viewFor(window), this),
-  hide: function(window) hideSidebar(viewFor(window), this),
+  show: function(window) {
+    return showSidebar(viewFor(window), this);
+  },
+  hide: function(window) {
+    return hideSidebar(viewFor(window), this);
+  },
   dispose: function() {
     const internals = sidebarNS(this);
 

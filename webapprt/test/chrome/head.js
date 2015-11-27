@@ -40,7 +40,7 @@ function loadWebapp(manifest, parameters, onLoad) {
     let { DOMApplicationRegistry } = Cu.import("resource://gre/modules/Webapps.jsm", {});
 
     return new Promise(function(resolve, reject) {
-      DOMApplicationRegistry.uninstall(url.spec, () => {
+      DOMApplicationRegistry.uninstall(url.spec).then(() => {
         // Load another page in the browser element, this is needed for tests
         // that use the same app (that have the same URL).
         gAppBrowser.setAttribute("src", "about:blank");
@@ -53,7 +53,7 @@ function loadWebapp(manifest, parameters, onLoad) {
 
 // Utilities for the downloads tests
 
-let MockDownloadList = function() {
+var MockDownloadList = function() {
 };
 
 MockDownloadList.prototype = {
@@ -168,9 +168,9 @@ function waitDownloadListPopulation(aWin) {
     let disconnected = false;
 
     var observer = new MutationObserver(function(aMutations) {
-      for each (let mutation in aMutations) {
+      for (let mutation of aMutations) {
         if (mutation.addedNodes) {
-          for each (let node in mutation.addedNodes) {
+          for (let node of mutation.addedNodes) {
             if (node.id == "downloadView") {
               observer.disconnect();
               disconnected = true;

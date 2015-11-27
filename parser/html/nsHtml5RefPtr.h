@@ -204,7 +204,7 @@ class nsHtml5RefPtr
         }
 
       T*
-      operator->() const
+      operator->() const MOZ_NO_ADDREF_RELEASE_ON_RETURN
         {
           NS_PRECONDITION(mRawPtr != 0, "You can't dereference a NULL nsHtml5RefPtr with operator->().");
           return get();
@@ -417,63 +417,33 @@ operator!=( U* lhs, const nsHtml5RefPtr<T>& rhs )
 template <class T>
 inline
 bool
-operator==( const nsHtml5RefPtr<T>& lhs, NSCAP_Zero* rhs )
-    // specifically to allow |smartPtr == 0|
+operator==( const nsHtml5RefPtr<T>& lhs, decltype(nullptr) )
   {
-    return static_cast<const void*>(lhs.get()) == reinterpret_cast<const void*>(rhs);
+    return lhs.get() == nullptr;
   }
 
 template <class T>
 inline
 bool
-operator==( NSCAP_Zero* lhs, const nsHtml5RefPtr<T>& rhs )
-    // specifically to allow |0 == smartPtr|
+operator==( decltype(nullptr), const nsHtml5RefPtr<T>& rhs )
   {
-    return reinterpret_cast<const void*>(lhs) == static_cast<const void*>(rhs.get());
+    return nullptr == rhs.get();
   }
 
 template <class T>
 inline
 bool
-operator!=( const nsHtml5RefPtr<T>& lhs, NSCAP_Zero* rhs )
-    // specifically to allow |smartPtr != 0|
+operator!=( const nsHtml5RefPtr<T>& lhs, decltype(nullptr) )
   {
-    return static_cast<const void*>(lhs.get()) != reinterpret_cast<const void*>(rhs);
+    return lhs.get() != nullptr;
   }
 
 template <class T>
 inline
 bool
-operator!=( NSCAP_Zero* lhs, const nsHtml5RefPtr<T>& rhs )
-    // specifically to allow |0 != smartPtr|
+operator!=( decltype(nullptr), const nsHtml5RefPtr<T>& rhs )
   {
-    return reinterpret_cast<const void*>(lhs) != static_cast<const void*>(rhs.get());
+    return nullptr != rhs.get();
   }
-
-
-#ifdef HAVE_CPP_TROUBLE_COMPARING_TO_ZERO
-
-  // We need to explicitly define comparison operators for `int'
-  // because the compiler is lame.
-
-template <class T>
-inline
-bool
-operator==( const nsHtml5RefPtr<T>& lhs, int rhs )
-    // specifically to allow |smartPtr == 0|
-  {
-    return static_cast<const void*>(lhs.get()) == reinterpret_cast<const void*>(rhs);
-  }
-
-template <class T>
-inline
-bool
-operator==( int lhs, const nsHtml5RefPtr<T>& rhs )
-    // specifically to allow |0 == smartPtr|
-  {
-    return reinterpret_cast<const void*>(lhs) == static_cast<const void*>(rhs.get());
-  }
-
-#endif // !defined(HAVE_CPP_TROUBLE_COMPARING_TO_ZERO)
 
 #endif // !defined(nsHtml5RefPtr_h)

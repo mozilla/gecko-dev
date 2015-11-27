@@ -18,13 +18,13 @@ function test() {
 }
 
 function allow_blocked(installInfo) {
-  is(installInfo.originator, gBrowser.contentWindow, "Install should have been triggered by the right window");
+  is(installInfo.browser, gBrowser.selectedBrowser, "Install should have been triggered by the right browser");
   is(installInfo.originatingURI.spec, gBrowser.currentURI.spec, "Install should have been triggered by the right uri");
   return false;
 }
 
 function finish_test() {
-  Services.perms.remove("example.org", "install");
+  Services.perms.remove(makeURI("http://example.org"), "install");
 
   gBrowser.removeCurrentTab();
   Harness.finish();

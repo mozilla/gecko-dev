@@ -4,6 +4,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+EXPORTS.mozilla.dom += [
+    'txMozillaXSLTProcessor.h'
+]
+
 UNIFIED_SOURCES += [
     'txBufferingHandler.cpp',
     'txCurrentFunctionCall.cpp',
@@ -42,8 +46,6 @@ EXTRA_COMPONENTS += [
     'txEXSLTRegExFunctions.manifest',
 ]
 
-FAIL_ON_WARNINGS = True
-
 # For nsAutoJSString
 LOCAL_INCLUDES += ["/dom/base"]
 
@@ -51,7 +53,7 @@ LOCAL_INCLUDES += [
     '../base',
     '../xml',
     '../xpath',
-    '/content/base/src',
+    '/dom/base',
 ]
 
 FINAL_LIBRARY = 'xul'

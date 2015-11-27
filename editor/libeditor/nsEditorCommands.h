@@ -20,11 +20,11 @@ class nsBaseEditorCommand : public nsIControllerCommand
 {
 public:
   nsBaseEditorCommand();
-    
+
   NS_DECL_ISUPPORTS
-    
-  NS_IMETHOD  IsCommandEnabled(const char * aCommandName, nsISupports *aCommandRefCon, bool *_retval) = 0;
-  NS_IMETHOD  DoCommand(const char *aCommandName, nsISupports *aCommandRefCon) = 0;
+
+  NS_IMETHOD  IsCommandEnabled(const char * aCommandName, nsISupports *aCommandRefCon, bool *_retval) override = 0;
+  NS_IMETHOD  DoCommand(const char *aCommandName, nsISupports *aCommandRefCon) override = 0;
 
 protected:
   virtual ~nsBaseEditorCommand() {}
@@ -35,10 +35,10 @@ protected:
 class _cmd : public nsBaseEditorCommand                 \
 {                                                       \
 public:                                                 \
-  NS_IMETHOD IsCommandEnabled(const char * aCommandName, nsISupports *aCommandRefCon, bool *_retval); \
-  NS_IMETHOD DoCommand(const char *aCommandName, nsISupports *aCommandRefCon); \
-  NS_IMETHOD DoCommandParams(const char *aCommandName,nsICommandParams *aParams, nsISupports *aCommandRefCon); \
-  NS_IMETHOD GetCommandStateParams(const char *aCommandName,nsICommandParams *aParams, nsISupports *aCommandRefCon); \
+  NS_IMETHOD IsCommandEnabled(const char * aCommandName, nsISupports *aCommandRefCon, bool *_retval) override; \
+  NS_IMETHOD DoCommand(const char *aCommandName, nsISupports *aCommandRefCon) override; \
+  NS_IMETHOD DoCommandParams(const char *aCommandName,nsICommandParams *aParams, nsISupports *aCommandRefCon) override; \
+  NS_IMETHOD GetCommandStateParams(const char *aCommandName,nsICommandParams *aParams, nsISupports *aCommandRefCon) override; \
 };
 
 
@@ -52,6 +52,7 @@ NS_DECL_EDITOR_COMMAND(nsCutCommand)
 NS_DECL_EDITOR_COMMAND(nsCutOrDeleteCommand)
 NS_DECL_EDITOR_COMMAND(nsCopyCommand)
 NS_DECL_EDITOR_COMMAND(nsCopyOrDeleteCommand)
+NS_DECL_EDITOR_COMMAND(nsCopyAndCollapseToEndCommand)
 NS_DECL_EDITOR_COMMAND(nsPasteCommand)
 NS_DECL_EDITOR_COMMAND(nsPasteTransferableCommand)
 NS_DECL_EDITOR_COMMAND(nsSwitchTextDirectionCommand)

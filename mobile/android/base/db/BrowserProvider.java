@@ -16,10 +16,10 @@ import org.mozilla.gecko.db.BrowserContract.FaviconColumns;
 import org.mozilla.gecko.db.BrowserContract.Favicons;
 import org.mozilla.gecko.db.BrowserContract.History;
 import org.mozilla.gecko.db.BrowserContract.Schema;
+import org.mozilla.gecko.db.BrowserContract.Tabs;
 import org.mozilla.gecko.db.BrowserContract.Thumbnails;
 import org.mozilla.gecko.sync.Utils;
 
-import android.app.SearchManager;
 import android.content.ContentProviderOperation;
 import android.content.ContentProviderResult;
 import android.content.ContentUris;
@@ -58,6 +58,7 @@ public class BrowserProvider extends SharedBrowserDatabaseProvider {
     static final String TABLE_HISTORY = History.TABLE_NAME;
     static final String TABLE_FAVICONS = Favicons.TABLE_NAME;
     static final String TABLE_THUMBNAILS = Thumbnails.TABLE_NAME;
+    static final String TABLE_TABS = Tabs.TABLE_NAME;
 
     static final String VIEW_COMBINED = Combined.VIEW_NAME;
     static final String VIEW_BOOKMARKS_WITH_FAVICONS = Bookmarks.VIEW_WITH_FAVICONS;
@@ -89,7 +90,7 @@ public class BrowserProvider extends SharedBrowserDatabaseProvider {
     // Control matches
     static final int CONTROL = 600;
 
-    // Search Suggest matches
+    // Search Suggest matches. Obsolete.
     static final int SEARCH_SUGGEST = 700;
 
     // Thumbnail matches
@@ -108,13 +109,13 @@ public class BrowserProvider extends SharedBrowserDatabaseProvider {
     static final Map<String, String> HISTORY_PROJECTION_MAP;
     static final Map<String, String> COMBINED_PROJECTION_MAP;
     static final Map<String, String> SCHEMA_PROJECTION_MAP;
-    static final Map<String, String> SEARCH_SUGGEST_PROJECTION_MAP;
     static final Map<String, String> FAVICONS_PROJECTION_MAP;
     static final Map<String, String> THUMBNAILS_PROJECTION_MAP;
     static final Table[] sTables;
 
     static {
         sTables = new Table[] {
+            // See awful shortcut assumption hack in getURLMetadataTable.
             new URLMetadataTable()
         };
         // We will reuse this.
@@ -215,23 +216,17 @@ public class BrowserProvider extends SharedBrowserDatabaseProvider {
         // Control
         URI_MATCHER.addURI(BrowserContract.AUTHORITY, "control", CONTROL);
 
-        // Search Suggest
-        URI_MATCHER.addURI(BrowserContract.AUTHORITY, SearchManager.SUGGEST_URI_PATH_QUERY + "/*", SEARCH_SUGGEST);
-
-        map = new HashMap<String, String>();
-        map.put(SearchManager.SUGGEST_COLUMN_TEXT_1,
-                Combined.TITLE + " AS " + SearchManager.SUGGEST_COLUMN_TEXT_1);
-        map.put(SearchManager.SUGGEST_COLUMN_TEXT_2_URL,
-                Combined.URL + " AS " + SearchManager.SUGGEST_COLUMN_TEXT_2_URL);
-        map.put(SearchManager.SUGGEST_COLUMN_INTENT_DATA,
-                Combined.URL + " AS " + SearchManager.SUGGEST_COLUMN_INTENT_DATA);
-        SEARCH_SUGGEST_PROJECTION_MAP = Collections.unmodifiableMap(map);
-
         for (Table table : sTables) {
             for (Table.ContentProviderInfo type : table.getContentProviderInfo()) {
                 URI_MATCHER.addURI(BrowserContract.AUTHORITY, type.name, type.id);
             }
         }
+    }
+
+    // Convenience accessor.
+    // Assumes structure of sTables!
+    private URLMetadataTable getURLMetadataTable() {
+        return (URLMetadataTable) sTables[0];
     }
 
     private static boolean hasFaviconsInProjection(String[] projection) {
@@ -247,8 +242,8 @@ public class BrowserProvider extends SharedBrowserDatabaseProvider {
 
     // Calculate these once, at initialization. isLoggable is too expensive to
     // have in-line in each log call.
-    private static boolean logDebug   = Log.isLoggable(LOGTAG, Log.DEBUG);
-    private static boolean logVerbose = Log.isLoggable(LOGTAG, Log.VERBOSE);
+    private static final boolean logDebug   = Log.isLoggable(LOGTAG, Log.DEBUG);
+    private static final boolean logVerbose = Log.isLoggable(LOGTAG, Log.VERBOSE);
     protected static void trace(String message) {
         if (logVerbose) {
             Log.v(LOGTAG, message);
@@ -320,6 +315,9 @@ public class BrowserProvider extends SharedBrowserDatabaseProvider {
                              " SELECT " + Bookmarks.URL +
                              " FROM " + TABLE_BOOKMARKS +
                              " WHERE " + Bookmarks.PARENT + " = " + Bookmarks.FIXED_PINNED_LIST_ID +
+                           ") AND " + Thumbnails.URL + " NOT IN ( " +
+                             " SELECT " + Tabs.URL +
+                             " FROM " + TABLE_TABS +
                            ")";
         trace("Clear thumbs using query: " + sql);
         db.execSQL(sql);
@@ -349,9 +347,6 @@ public class BrowserProvider extends SharedBrowserDatabaseProvider {
             case HISTORY_ID:
                 trace("URI is HISTORY_ID: " + uri);
                 return History.CONTENT_ITEM_TYPE;
-            case SEARCH_SUGGEST:
-                trace("URI is SEARCH_SUGGEST: " + uri);
-                return SearchManager.SUGGEST_MIME_TYPE;
             default:
                 String type = getContentItemType(match);
                 if (type != null) {
@@ -768,28 +763,6 @@ public class BrowserProvider extends SharedBrowserDatabaseProvider {
                 break;
             }
 
-            case SEARCH_SUGGEST: {
-                debug("Query is on search suggest: " + uri);
-                selection = DBUtils.concatenateWhere(selection, "(" + Combined.URL + " LIKE ? OR " +
-                                                                      Combined.TITLE + " LIKE ?)");
-
-                String keyword = uri.getLastPathSegment();
-                if (keyword == null)
-                    keyword = "";
-
-                selectionArgs = DBUtils.appendSelectionArgs(selectionArgs,
-                        new String[] { "%" + keyword + "%",
-                                       "%" + keyword + "%" });
-
-                if (TextUtils.isEmpty(sortOrder))
-                    sortOrder = DEFAULT_HISTORY_SORT_ORDER;
-
-                qb.setProjectionMap(SEARCH_SUGGEST_PROJECTION_MAP);
-                qb.setTables(VIEW_COMBINED_WITH_FAVICONS);
-
-                break;
-            }
-
             default: {
                 Table table = findTableFor(match);
                 if (table == null) {
@@ -1065,7 +1038,7 @@ public class BrowserProvider extends SharedBrowserDatabaseProvider {
                     Long additional = values.getAsLong(History.VISITS);
 
                     // Increment visit count by a specified amount, or default to increment by 1
-                    values.put(History.VISITS, existing + ((additional != null) ? additional.longValue() : 1));
+                    values.put(History.VISITS, existing + ((additional != null) ? additional : 1));
                 }
 
                 updated += db.update(TABLE_HISTORY, values, "_id = ?",
@@ -1304,6 +1277,14 @@ public class BrowserProvider extends SharedBrowserDatabaseProvider {
 
         ContentValues values = new ContentValues();
         values.put(Bookmarks.IS_DELETED, 1);
+        values.put(Bookmarks.POSITION, 0);
+        values.putNull(Bookmarks.PARENT);
+        values.putNull(Bookmarks.URL);
+        values.putNull(Bookmarks.TITLE);
+        values.putNull(Bookmarks.DESCRIPTION);
+        values.putNull(Bookmarks.KEYWORD);
+        values.putNull(Bookmarks.TAGS);
+        values.putNull(Bookmarks.FAVICON_ID);
 
         // Doing this UPDATE (or the DELETE above) first ensures that the
         // first operation within this transaction is a write.
@@ -1360,7 +1341,7 @@ public class BrowserProvider extends SharedBrowserDatabaseProvider {
 
         return deleteFavicons(uri, faviconSelection, null) +
                deleteThumbnails(uri, thumbnailSelection, null) +
-               URLMetadata.deleteUnused(getContext().getContentResolver());
+               getURLMetadataTable().deleteUnused(getWritableDatabase(uri));
     }
 
     @Override

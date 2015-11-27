@@ -22,10 +22,22 @@ EXPORTS += [
 
 FINAL_LIBRARY = 'xul'
 
-GENERATED_INCLUDES += ['/xpcom/base']
-LOCAL_INCLUDES += ['/xpcom/base']
-
-FAIL_ON_WARNINGS = True
+LOCAL_INCLUDES += [
+    '!/xpcom/base',
+    '/xpcom/base',
+]
 
 if CONFIG['_MSC_VER']:
     CFLAGS += ['-Zl']
+
+# Code with FINAL_LIBRARY = 'xul' shouldn't do this, but the code
+# here doesn't use malloc functions anyways, while not setting
+# MOZ_NO_MOZALLOC makes the code include mozalloc.h, which includes
+# inline operator new definitions that MSVC linker doesn't strip
+# when linking the xpt tests.
+DEFINES['MOZ_NO_MOZALLOC'] = True
+
+DIST_INSTALL = True
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wshadow']

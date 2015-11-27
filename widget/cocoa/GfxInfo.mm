@@ -24,12 +24,6 @@
 #define NS_CRASHREPORTER_CONTRACTID "@mozilla.org/toolkit/crash-reporter;1"
 #endif
 
-#define MAC_OS_X_VERSION_MASK       0x0000FFFF
-#define MAC_OS_X_VERSION_MAJOR_MASK 0x0000FFF0
-#define MAC_OS_X_VERSION_10_6_HEX   0x00001060
-#define MAC_OS_X_VERSION_10_7_HEX   0x00001070
-#define MAC_OS_X_VERSION_10_8_HEX   0x00001080
-
 using namespace mozilla;
 using namespace mozilla::widget;
 
@@ -44,13 +38,19 @@ GfxInfo::GfxInfo()
 static OperatingSystem
 OSXVersionToOperatingSystem(uint32_t aOSXVersion)
 {
-  switch (aOSXVersion & MAC_OS_X_VERSION_MAJOR_MASK) {
-    case MAC_OS_X_VERSION_10_6_HEX:
-      return DRIVER_OS_OS_X_10_6;
-    case MAC_OS_X_VERSION_10_7_HEX:
-      return DRIVER_OS_OS_X_10_7;
-    case MAC_OS_X_VERSION_10_8_HEX:
-      return DRIVER_OS_OS_X_10_8;
+  if (nsCocoaFeatures::ExtractMajorVersion(aOSXVersion) == 10) {
+    switch (nsCocoaFeatures::ExtractMinorVersion(aOSXVersion)) {
+      case 6:
+        return DRIVER_OS_OS_X_10_6;
+      case 7:
+        return DRIVER_OS_OS_X_10_7;
+      case 8:
+        return DRIVER_OS_OS_X_10_8;
+      case 9:
+        return DRIVER_OS_OS_X_10_9;
+      case 10:
+        return DRIVER_OS_OS_X_10_10;
+    }
   }
 
   return DRIVER_OS_UNKNOWN;
@@ -86,12 +86,12 @@ GfxInfo::GetDeviceInfo()
   io_registry_entry_t dsp_port = CGDisplayIOServicePort(kCGDirectMainDisplay);
   CFTypeRef vendor_id_ref = SearchPortForProperty(dsp_port, CFSTR("vendor-id"));
   if (vendor_id_ref) {
-    mAdapterVendorID.AppendPrintf("0x%4x", IntValueOfCFData((CFDataRef)vendor_id_ref));
+    mAdapterVendorID.AppendPrintf("0x%04x", IntValueOfCFData((CFDataRef)vendor_id_ref));
     CFRelease(vendor_id_ref);
   }
   CFTypeRef device_id_ref = SearchPortForProperty(dsp_port, CFSTR("device-id"));
   if (device_id_ref) {
-    mAdapterDeviceID.AppendPrintf("0x%4x", IntValueOfCFData((CFDataRef)device_id_ref));
+    mAdapterDeviceID.AppendPrintf("0x%04x", IntValueOfCFData((CFDataRef)device_id_ref));
     CFRelease(device_id_ref);
   }
 }
@@ -350,6 +350,33 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
   }
 
   return GfxInfoBase::GetFeatureStatusImpl(aFeature, aStatus, aSuggestedDriverVersion, aDriverInfo, &os);
+}
+
+nsresult
+GfxInfo::FindMonitors(JSContext* aCx, JS::HandleObject aOutArray)
+{
+  // Getting the refresh rate is a little hard on OS X. We could use
+  // CVDisplayLinkGetNominalOutputVideoRefreshPeriod, but that's a little
+  // involved. Ideally we could query it from vsync. For now, we leave it out.
+  int32_t deviceCount = 0;
+  for (NSScreen* screen in [NSScreen screens]) {
+    NSRect rect = [screen frame];
+
+    JS::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
+
+    JS::Rooted<JS::Value> screenWidth(aCx, JS::Int32Value((int)rect.size.width));
+    JS_SetProperty(aCx, obj, "screenWidth", screenWidth);
+
+    JS::Rooted<JS::Value> screenHeight(aCx, JS::Int32Value((int)rect.size.height));
+    JS_SetProperty(aCx, obj, "screenHeight", screenHeight);
+
+    JS::Rooted<JS::Value> scale(aCx, JS::NumberValue(nsCocoaUtils::GetBackingScaleFactor(screen)));
+    JS_SetProperty(aCx, obj, "scale", scale);
+
+    JS::Rooted<JS::Value> element(aCx, JS::ObjectValue(*obj));
+    JS_SetElement(aCx, aOutArray, deviceCount++, element);
+  }
+  return NS_OK;
 }
 
 #ifdef DEBUG

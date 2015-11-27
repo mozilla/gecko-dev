@@ -29,14 +29,11 @@
 
 #include "hb-private.hh"
 
-template <typename T, bool validate=true> struct hb_utf_t;
 
-
-/* UTF-8 */
-
-template <>
-struct hb_utf_t<uint8_t, true>
+struct hb_utf8_t
 {
+  typedef uint8_t codepoint_t;
+
   static inline const uint8_t *
   next (const uint8_t *text,
 	const uint8_t *end,
@@ -131,11 +128,10 @@ struct hb_utf_t<uint8_t, true>
 };
 
 
-/* UTF-16 */
-
-template <>
-struct hb_utf_t<uint16_t, true>
+struct hb_utf16_t
 {
+  typedef uint16_t codepoint_t;
+
   static inline const uint16_t *
   next (const uint16_t *text,
 	const uint16_t *end,
@@ -150,11 +146,11 @@ struct hb_utf_t<uint16_t, true>
       return text;
     }
 
-    if (likely (hb_in_range (c, 0xD800u, 0xDBFFu)))
+    if (likely (c <= 0xDBFFu && text < end))
     {
       /* High-surrogate in c */
-      hb_codepoint_t l;
-      if (text < end && ((l = *text), likely (hb_in_range (l, 0xDC00u, 0xDFFFu))))
+      hb_codepoint_t l = *text;
+      if (likely (hb_in_range (l, 0xDC00u, 0xDFFFu)))
       {
 	/* Low-surrogate in l */
 	*unicode = (c << 10) + l - ((0xD800u << 10) - 0x10000u + 0xDC00u);
@@ -174,8 +170,7 @@ struct hb_utf_t<uint16_t, true>
 	hb_codepoint_t *unicode,
 	hb_codepoint_t replacement)
   {
-    const uint16_t *end = text--;
-    hb_codepoint_t c = *text;
+    hb_codepoint_t c = *--text;
 
     if (likely (!hb_in_range (c, 0xD800u, 0xDFFFu)))
     {
@@ -183,14 +178,22 @@ struct hb_utf_t<uint16_t, true>
       return text;
     }
 
-    if (likely (start < text && hb_in_range (c, 0xDC00u, 0xDFFFu)))
-      text--;
+    if (likely (c >= 0xDC00u && start < text))
+    {
+      /* Low-surrogate in c */
+      hb_codepoint_t h = text[-1];
+      if (likely (hb_in_range (h, 0xD800u, 0xDBFFu)))
+      {
+        /* High-surrogate in h */
+        *unicode = (h << 10) + c - ((0xD800u << 10) - 0x10000u + 0xDC00u);
+        text--;
+        return text;
+      }
+    }
 
-    if (likely (next (text, end, unicode, replacement) == end))
-      return text;
-
+    /* Lonely / out-of-order surrogate. */
     *unicode = replacement;
-    return end - 1;
+    return text;
   }
 
 
@@ -204,25 +207,20 @@ struct hb_utf_t<uint16_t, true>
 };
 
 
-/* UTF-32 */
-
-template <bool validate>
-struct hb_utf_t<uint32_t, validate>
+template <bool validate=true>
+struct hb_utf32_t
 {
+  typedef uint32_t codepoint_t;
+
   static inline const uint32_t *
   next (const uint32_t *text,
 	const uint32_t *end HB_UNUSED,
 	hb_codepoint_t *unicode,
 	hb_codepoint_t replacement)
   {
-    hb_codepoint_t c = *text++;
-    if (validate && unlikely (c > 0x10FFFFu || hb_in_range (c, 0xD800u, 0xDFFFu)))
-      goto error;
-    *unicode = c;
-    return text;
-
-  error:
-    *unicode = replacement;
+    hb_codepoint_t c = *unicode = *text++;
+    if (validate && unlikely (c >= 0xD800u && (c <= 0xDFFFu || c > 0x10FFFFu)))
+      *unicode = replacement;
     return text;
   }
 
@@ -232,8 +230,10 @@ struct hb_utf_t<uint32_t, validate>
 	hb_codepoint_t *unicode,
 	hb_codepoint_t replacement)
   {
-    next (text - 1, text, unicode, replacement);
-    return text - 1;
+    hb_codepoint_t c = *unicode = *--text;
+    if (validate && unlikely (c >= 0xD800u && (c <= 0xDFFFu || c > 0x10FFFFu)))
+      *unicode = replacement;
+    return text;
   }
 
   static inline unsigned int
@@ -245,5 +245,38 @@ struct hb_utf_t<uint32_t, validate>
   }
 };
 
+
+struct hb_latin1_t
+{
+  typedef uint8_t codepoint_t;
+
+  static inline const uint8_t *
+  next (const uint8_t *text,
+	const uint8_t *end HB_UNUSED,
+	hb_codepoint_t *unicode,
+	hb_codepoint_t replacement HB_UNUSED)
+  {
+    *unicode = *text++;
+    return text;
+  }
+
+  static inline const uint8_t *
+  prev (const uint8_t *text,
+	const uint8_t *start HB_UNUSED,
+	hb_codepoint_t *unicode,
+	hb_codepoint_t replacement)
+  {
+    *unicode = *--text;
+    return text;
+  }
+
+  static inline unsigned int
+  strlen (const uint8_t *text)
+  {
+    unsigned int l = 0;
+    while (*text++) l++;
+    return l;
+  }
+};
 
 #endif /* HB_UTF_PRIVATE_HH */

@@ -1,4 +1,5 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,6 +9,10 @@
 
 #include "Workers.h"
 #include "mozilla/DOMEventTargetHelper.h"
+#include "mozilla/dom/Headers.h"
+#include "mozilla/dom/RequestBinding.h"
+#include "nsWeakReference.h"
+#include "mozilla/dom/ImageBitmapSource.h"
 
 namespace mozilla {
 namespace dom {
@@ -15,24 +20,46 @@ namespace dom {
 class Console;
 class Function;
 class Promise;
+class RequestOrUSVString;
+class ServiceWorkerRegistrationWorkerThread;
+
+namespace cache {
+
+class CacheStorage;
+
+} // namespace cache
+
+namespace indexedDB {
+
+class IDBFactory;
+
+} // namespace indexedDB
 
 } // namespace dom
 } // namespace mozilla
 
 BEGIN_WORKERS_NAMESPACE
 
+class ServiceWorkerClients;
 class WorkerPrivate;
 class WorkerLocation;
 class WorkerNavigator;
 class Performance;
 
 class WorkerGlobalScope : public DOMEventTargetHelper,
-                          public nsIGlobalObject
+                          public nsIGlobalObject,
+                          public nsSupportsWeakReference
 {
-  nsRefPtr<Console> mConsole;
-  nsRefPtr<WorkerLocation> mLocation;
-  nsRefPtr<WorkerNavigator> mNavigator;
-  nsRefPtr<Performance> mPerformance;
+  typedef mozilla::dom::indexedDB::IDBFactory IDBFactory;
+
+  RefPtr<Console> mConsole;
+  RefPtr<WorkerLocation> mLocation;
+  RefPtr<WorkerNavigator> mNavigator;
+  RefPtr<Performance> mPerformance;
+  RefPtr<IDBFactory> mIndexedDB;
+  RefPtr<cache::CacheStorage> mCacheStorage;
+
+  uint32_t mWindowInteractionsAllowed;
 
 protected:
   WorkerPrivate* mWorkerPrivate;
@@ -42,13 +69,13 @@ protected:
 
 public:
   virtual JSObject*
-  WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+
+  virtual bool
+  WrapGlobalObject(JSContext* aCx, JS::MutableHandle<JSObject*> aReflector) = 0;
 
   virtual JSObject*
-  WrapGlobalObject(JSContext* aCx) = 0;
-
-  virtual JSObject*
-  GetGlobalJSObject(void) MOZ_OVERRIDE
+  GetGlobalJSObject(void) override
   {
     return GetWrapper();
   }
@@ -57,10 +84,10 @@ public:
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(WorkerGlobalScope,
                                                          DOMEventTargetHelper)
 
-  already_AddRefed<WorkerGlobalScope>
+  WorkerGlobalScope*
   Self()
   {
-    return nsRefPtr<WorkerGlobalScope>(this).forget();
+    return this;
   }
 
   Console*
@@ -76,7 +103,7 @@ public:
   GetExistingNavigator() const;
 
   void
-  Close(JSContext* aCx);
+  Close(JSContext* aCx, ErrorResult& aRv);
 
   OnErrorEventHandlerNonNull*
   GetOnerror();
@@ -120,17 +147,54 @@ public:
   Dump(const Optional<nsAString>& aString) const;
 
   Performance* GetPerformance();
+
+  already_AddRefed<Promise>
+  Fetch(const RequestOrUSVString& aInput, const RequestInit& aInit, ErrorResult& aRv);
+
+  already_AddRefed<IDBFactory>
+  GetIndexedDB(ErrorResult& aErrorResult);
+
+  already_AddRefed<cache::CacheStorage>
+  GetCaches(ErrorResult& aRv);
+
+  already_AddRefed<Promise>
+  CreateImageBitmap(const ImageBitmapSource& aImage, ErrorResult& aRv);
+
+  already_AddRefed<Promise>
+  CreateImageBitmap(const ImageBitmapSource& aImage,
+                    int32_t aSx, int32_t aSy, int32_t aSw, int32_t aSh,
+                    ErrorResult& aRv);
+
+  bool
+  WindowInteractionAllowed() const
+  {
+    return mWindowInteractionsAllowed > 0;
+  }
+
+  void
+  AllowWindowInteraction()
+  {
+    mWindowInteractionsAllowed++;
+  }
+
+  void
+  ConsumeWindowInteraction()
+  {
+    MOZ_ASSERT(mWindowInteractionsAllowed > 0);
+    mWindowInteractionsAllowed--;
+  }
 };
 
-class DedicatedWorkerGlobalScope MOZ_FINAL : public WorkerGlobalScope
+class DedicatedWorkerGlobalScope final : public WorkerGlobalScope
 {
   ~DedicatedWorkerGlobalScope() { }
 
 public:
   explicit DedicatedWorkerGlobalScope(WorkerPrivate* aWorkerPrivate);
 
-  virtual JSObject*
-  WrapGlobalObject(JSContext* aCx) MOZ_OVERRIDE;
+  virtual bool
+  WrapGlobalObject(JSContext* aCx,
+                   JS::MutableHandle<JSObject*> aReflector) override;
 
   void
   PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
@@ -140,7 +204,7 @@ public:
   IMPL_EVENT_HANDLER(message)
 };
 
-class SharedWorkerGlobalScope MOZ_FINAL : public WorkerGlobalScope
+class SharedWorkerGlobalScope final : public WorkerGlobalScope
 {
   const nsCString mName;
 
@@ -150,8 +214,9 @@ public:
   SharedWorkerGlobalScope(WorkerPrivate* aWorkerPrivate,
                           const nsCString& aName);
 
-  virtual JSObject*
-  WrapGlobalObject(JSContext* aCx) MOZ_OVERRIDE;
+  virtual bool
+  WrapGlobalObject(JSContext* aCx,
+                   JS::MutableHandle<JSObject*> aReflector) override;
 
   void GetName(DOMString& aName) const
   {
@@ -161,49 +226,126 @@ public:
   IMPL_EVENT_HANDLER(connect)
 };
 
-class ServiceWorkerGlobalScope MOZ_FINAL : public WorkerGlobalScope
+class ServiceWorkerGlobalScope final : public WorkerGlobalScope
 {
   const nsString mScope;
-  ~ServiceWorkerGlobalScope() { }
+  RefPtr<ServiceWorkerClients> mClients;
+  RefPtr<ServiceWorkerRegistrationWorkerThread> mRegistration;
+
+  ~ServiceWorkerGlobalScope();
 
 public:
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(ServiceWorkerGlobalScope,
+                                           WorkerGlobalScope)
+  IMPL_EVENT_HANDLER(notificationclick)
+
   ServiceWorkerGlobalScope(WorkerPrivate* aWorkerPrivate, const nsACString& aScope);
 
-  virtual JSObject*
-  WrapGlobalObject(JSContext* aCx) MOZ_OVERRIDE;
+  virtual bool
+  WrapGlobalObject(JSContext* aCx,
+                   JS::MutableHandle<JSObject*> aReflector) override;
+
+  static bool
+  InterceptionEnabled(JSContext* aCx, JSObject* aObj);
+
+  static bool
+  OpenWindowEnabled(JSContext* aCx, JSObject* aObj);
 
   void
-  GetScope(DOMString& aScope) const
+  GetScope(nsString& aScope) const
   {
-    aScope.AsAString() = mScope;
+    aScope = mScope;
   }
 
-  void
-  Close() const
-  {
-    // no-op close.
-  }
+  ServiceWorkerClients*
+  Clients();
 
-  void
-  Update()
-  {
-    // FIXME(nsm): Bug 982728
-  }
+  ServiceWorkerRegistrationWorkerThread*
+  Registration();
 
   already_AddRefed<Promise>
-  Unregister(ErrorResult& aRv);
+  SkipWaiting(ErrorResult& aRv);
 
   IMPL_EVENT_HANDLER(activate)
-  IMPL_EVENT_HANDLER(beforeevicted)
-  IMPL_EVENT_HANDLER(evicted)
   IMPL_EVENT_HANDLER(fetch)
   IMPL_EVENT_HANDLER(install)
   IMPL_EVENT_HANDLER(message)
+
+  IMPL_EVENT_HANDLER(push)
+  IMPL_EVENT_HANDLER(pushsubscriptionchange)
+
 };
 
-JSObject*
-CreateGlobalScope(JSContext* aCx);
+class WorkerDebuggerGlobalScope final : public DOMEventTargetHelper,
+                                        public nsIGlobalObject
+{
+  WorkerPrivate* mWorkerPrivate;
+
+public:
+  explicit WorkerDebuggerGlobalScope(WorkerPrivate* aWorkerPrivate);
+
+  NS_DECL_ISUPPORTS_INHERITED
+
+  virtual JSObject*
+  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override
+  {
+    MOZ_CRASH("Shouldn't get here!");
+  }
+
+  virtual bool
+  WrapGlobalObject(JSContext* aCx,
+                   JS::MutableHandle<JSObject*> aReflector);
+
+  virtual JSObject*
+  GetGlobalJSObject(void) override
+  {
+    return GetWrapper();
+  }
+
+  void
+  GetGlobal(JSContext* aCx, JS::MutableHandle<JSObject*> aGlobal);
+
+  void
+  CreateSandbox(JSContext* aCx, const nsAString& aName,
+                JS::Handle<JSObject*> aPrototype,
+                JS::MutableHandle<JSObject*> aResult);
+
+  void
+  LoadSubScript(JSContext* aCx, const nsAString& aURL,
+                const Optional<JS::Handle<JSObject*>>& aSandbox,
+                ErrorResult& aRv);
+
+  void
+  EnterEventLoop();
+
+  void
+  LeaveEventLoop();
+
+  void
+  PostMessage(const nsAString& aMessage);
+
+  IMPL_EVENT_HANDLER(message)
+
+  void
+  SetImmediate(JSContext* aCx, Function& aHandler, ErrorResult& aRv);
+
+  void
+  ReportError(JSContext* aCx, const nsAString& aMessage);
+
+  void
+  Dump(JSContext* aCx, const Optional<nsAString>& aString) const;
+
+private:
+  virtual ~WorkerDebuggerGlobalScope();
+};
 
 END_WORKERS_NAMESPACE
+
+inline nsISupports*
+ToSupports(mozilla::dom::workers::WorkerGlobalScope* aScope)
+{
+  return static_cast<nsIDOMEventTarget*>(aScope);
+}
 
 #endif /* mozilla_dom_workerscope_h__ */

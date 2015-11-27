@@ -6,8 +6,6 @@
 #ifndef WEBGLTYPES_H_
 #define WEBGLTYPES_H_
 
-#include "mozilla/TypedEnum.h"
-
 // Most WebIDL typedefs are identical to their OpenGL counterparts.
 #include "GLTypes.h"
 
@@ -20,12 +18,10 @@ typedef bool WebGLboolean;
 namespace mozilla {
 
 /*
- * WebGLContextFakeBlackStatus and WebGLTextureFakeBlackStatus are enums to
- * track what needs to use a dummy 1x1 black texture, which we refer to as a
- * 'fake black' texture.
+ * WebGLTextureFakeBlackStatus is an enum to track what needs to use a dummy 1x1 black
+ * texture, which we refer to as a 'fake black' texture.
  *
- * There are generally two things that can cause us to use such 'fake black'
- * textures:
+ * There are two things that can cause us to use such 'fake black' textures:
  *
  *   (1) OpenGL ES rules on sampling incomplete textures specify that they
  *       must be sampled as RGBA(0, 0, 0, 1) (opaque black). We have to implement these rules
@@ -40,24 +36,13 @@ namespace mozilla {
  *       uninitialized image data must be exposed to WebGL as if it were filled
  *       with zero bytes, which means it's either opaque or transparent black
  *       depending on whether the image format has alpha.
- *
- * Why are there _two_ separate enums there, WebGLContextFakeBlackStatus
- * and WebGLTextureFakeBlackStatus? That's because each texture must know the precise
- * reason why it needs to be faked (incomplete texture vs. uninitialized image data),
- * whereas the WebGL context can only know whether _any_ faking is currently needed at all.
  */
-MOZ_BEGIN_ENUM_CLASS(WebGLContextFakeBlackStatus, int)
-  Unknown,
-  NotNeeded,
-  Needed
-MOZ_END_ENUM_CLASS(WebGLContextFakeBlackStatus)
 
-MOZ_BEGIN_ENUM_CLASS(WebGLTextureFakeBlackStatus, int)
-  Unknown,
-  NotNeeded,
-  IncompleteTexture,
-  UninitializedImageData
-MOZ_END_ENUM_CLASS(WebGLTextureFakeBlackStatus)
+enum class FakeBlackType : uint8_t {
+    None,
+    RGBA0001, // Incomplete textures and uninitialized no-alpha color textures.
+    RGBA0000, // Uninitialized with-alpha color textures.
+};
 
 /*
  * Implementing WebGL (or OpenGL ES 2.0) on top of desktop OpenGL requires
@@ -65,11 +50,11 @@ MOZ_END_ENUM_CLASS(WebGLTextureFakeBlackStatus)
  * OpenGL ES 2.0 allows drawing without vertex attrib 0 array enabled, but
  * desktop OpenGL does not allow that.
  */
-MOZ_BEGIN_ENUM_CLASS(WebGLVertexAttrib0Status, int)
+enum class WebGLVertexAttrib0Status : uint8_t {
     Default, // default status - no emulation needed
     EmulatedUninitializedArray, // need an artificial attrib 0 array, but contents may be left uninitialized
     EmulatedInitializedArray // need an artificial attrib 0 array, and contents must be initialized
-MOZ_END_ENUM_CLASS(WebGLVertexAttrib0Status)
+};
 
 /*
  * Enum to track the status of image data (renderbuffer or texture image) presence
@@ -81,11 +66,11 @@ MOZ_END_ENUM_CLASS(WebGLVertexAttrib0Status)
  *   initialized. It is the state that renderbuffers are in after a renderbufferStorage call,
  *   and it is the state that texture images are in after a texImage2D call with null data.
  */
-MOZ_BEGIN_ENUM_CLASS(WebGLImageDataStatus, int)
+enum class WebGLImageDataStatus : uint8_t {
     NoImageData,
     UninitializedImageData,
     InitializedImageData
-MOZ_END_ENUM_CLASS(WebGLImageDataStatus)
+};
 
 /*
  * The formats that may participate, either as source or destination formats,
@@ -95,12 +80,11 @@ MOZ_END_ENUM_CLASS(WebGLImageDataStatus)
  *  - additional source formats, depending on browser details, used when uploading
  *    textures from DOM elements. See gfxImageSurface::Format().
  */
-MOZ_BEGIN_ENUM_CLASS(WebGLTexelFormat, int)
+enum class WebGLTexelFormat : uint8_t {
     // returned by SurfaceFromElementResultToImageSurface to indicate absence of image data
     None,
-    // dummy error code returned by GetWebGLTexelFormat in error cases,
-    // after assertion failure (so this never happens in debug builds)
-    BadFormat,
+    // common value for formats for which format conversions are not supported
+    FormatNotSupportingAnyConversion,
     // dummy pseudo-format meaning "use the other format".
     // For example, if SrcFormat=Auto and DstFormat=RGB8, then the source
     // is implicitly treated as being RGB8 itself.
@@ -108,8 +92,6 @@ MOZ_BEGIN_ENUM_CLASS(WebGLTexelFormat, int)
     // 1-channel formats
     R8,
     A8,
-    D16, // WEBGL_depth_texture
-    D32, // WEBGL_depth_texture
     R16F, // OES_texture_half_float
     A16F, // OES_texture_half_float
     R32F, // OES_texture_float
@@ -118,9 +100,9 @@ MOZ_BEGIN_ENUM_CLASS(WebGLTexelFormat, int)
     RA8,
     RA16F, // OES_texture_half_float
     RA32F, // OES_texture_float
-    D24S8, // WEBGL_depth_texture
     // 3-channel formats
     RGB8,
+    RGBX8, // used for DOM elements. Source format only.
     BGRX8, // used for DOM elements. Source format only.
     RGB565,
     RGB16F, // OES_texture_half_float
@@ -132,19 +114,24 @@ MOZ_BEGIN_ENUM_CLASS(WebGLTexelFormat, int)
     RGBA4444,
     RGBA16F, // OES_texture_half_float
     RGBA32F // OES_texture_float
-MOZ_END_ENUM_CLASS(WebGLTexelFormat)
+};
 
-MOZ_BEGIN_ENUM_CLASS(WebGLTexImageFunc, int)
+enum class WebGLTexImageFunc : uint8_t {
     TexImage,
     TexSubImage,
     CopyTexImage,
     CopyTexSubImage,
     CompTexImage,
     CompTexSubImage,
-MOZ_END_ENUM_CLASS(WebGLTexImageFunc)
+};
+
+enum class WebGLTexDimensions : uint8_t {
+    Tex2D,
+    Tex3D
+};
 
 // Please keep extensions in alphabetic order.
-MOZ_BEGIN_ENUM_CLASS(WebGLExtensionID, uint8_t)
+enum class WebGLExtensionID : uint8_t {
     ANGLE_instanced_arrays,
     EXT_blend_minmax,
     EXT_color_buffer_half_float,
@@ -152,6 +139,7 @@ MOZ_BEGIN_ENUM_CLASS(WebGLExtensionID, uint8_t)
     EXT_sRGB,
     EXT_shader_texture_lod,
     EXT_texture_filter_anisotropic,
+    EXT_disjoint_timer_query,
     OES_element_index_uint,
     OES_standard_derivatives,
     OES_texture_float,
@@ -171,7 +159,7 @@ MOZ_BEGIN_ENUM_CLASS(WebGLExtensionID, uint8_t)
     WEBGL_lose_context,
     Max,
     Unknown
-MOZ_END_ENUM_CLASS(WebGLExtensionID)
+};
 
 } // namespace mozilla
 

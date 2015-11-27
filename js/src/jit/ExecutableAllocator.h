@@ -1,4 +1,6 @@
-/*
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ *
  * Copyright (C) 2008 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,7 +34,9 @@
 #include "jsalloc.h"
 
 #include "jit/arm/Simulator-arm.h"
-#include "jit/mips/Simulator-mips.h"
+#include "jit/mips32/Simulator-mips32.h"
+#include "jit/mips64/Simulator-mips64.h"
+#include "js/GCAPI.h"
 #include "js/HashTable.h"
 #include "js/Vector.h"
 
@@ -52,21 +56,19 @@ extern  "C" void sync_instruction_memory(caddr_t v, u_int len);
 #endif
 #endif
 
-#if defined(JS_CODEGEN_MIPS) && defined(__linux__) && !defined(JS_MIPS_SIMULATOR)
+#if defined(__linux__) &&                                             \
+     (defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64)) &&    \
+     (!defined(JS_SIMULATOR_MIPS32) && !defined(JS_SIMULATOR_MIPS64))
 #include <sys/cachectl.h>
 #endif
 
-#if ENABLE_ASSEMBLER_WX_EXCLUSIVE
-#define PROTECTION_FLAGS_RW (PROT_READ | PROT_WRITE)
-#define PROTECTION_FLAGS_RX (PROT_READ | PROT_EXEC)
-#define INITIAL_PROTECTION_FLAGS PROTECTION_FLAGS_RX
-#else
-#define INITIAL_PROTECTION_FLAGS (PROT_READ | PROT_WRITE | PROT_EXEC)
+#if defined(JS_CODEGEN_ARM) && defined(XP_IOS)
+#include <libkern/OSCacheControl.h>
 #endif
 
 namespace JS {
     struct CodeSizes;
-}
+} // namespace JS
 
 namespace js {
 namespace jit {
@@ -78,7 +80,8 @@ namespace jit {
   class ExecutablePool {
 
     friend class ExecutableAllocator;
-private:
+
+  private:
     struct Allocation {
         char* pages;
         size_t size;
@@ -98,11 +101,11 @@ private:
     size_t m_regexpCodeBytes;
     size_t m_otherCodeBytes;
 
-public:
+  public:
     void release(bool willDestroy = false)
     {
-        JS_ASSERT(m_refCount != 0);
-        JS_ASSERT_IF(willDestroy, m_refCount == 1);
+        MOZ_ASSERT(m_refCount != 0);
+        MOZ_ASSERT_IF(willDestroy, m_refCount == 1);
         if (--m_refCount == 0)
             js_delete(this);
     }
@@ -140,20 +143,23 @@ public:
 
     ~ExecutablePool();
 
-private:
+  private:
+    ExecutablePool(const ExecutablePool&) = delete;
+    void operator=(const ExecutablePool&) = delete;
+
     // It should be impossible for us to roll over, because only small
     // pools have multiple holders, and they have one holder per chunk
     // of generated code, and they only hold 16KB or so of code.
     void addRef()
     {
-        JS_ASSERT(m_refCount);
+        MOZ_ASSERT(m_refCount);
         ++m_refCount;
     }
 
     void* alloc(size_t n, CodeKind kind)
     {
-        JS_ASSERT(n <= available());
-        void *result = m_freePtr;
+        MOZ_ASSERT(n <= available());
+        void* result = m_freePtr;
         m_freePtr += n;
 
         switch (kind) {
@@ -167,40 +173,23 @@ private:
     }
 
     size_t available() const {
-        JS_ASSERT(m_end >= m_freePtr);
+        MOZ_ASSERT(m_end >= m_freePtr);
         return m_end - m_freePtr;
-    }
-
-    void toggleAllCodeAsAccessible(bool accessible);
-
-    bool codeContains(char* address) {
-        return address >= m_allocation.pages && address < m_freePtr;
     }
 };
 
-class ExecutableAllocator {
+class ExecutableAllocator
+{
     typedef void (*DestroyCallback)(void* addr, size_t size);
-    enum ProtectionSetting { Writable, Executable };
     DestroyCallback destroyCallback;
 
-public:
-    ExecutableAllocator()
-      : destroyCallback(NULL)
-    {
-        if (!pageSize) {
-            pageSize = determinePageSize();
-            /*
-             * On Windows, VirtualAlloc effectively allocates in 64K chunks.
-             * (Technically, it allocates in page chunks, but the starting
-             * address is always a multiple of 64K, so each allocation uses up
-             * 64K of address space.)  So a size less than that would be
-             * pointless.  But it turns out that 64KB is a reasonable size for
-             * all platforms.  (This assumes 4KB pages.)
-             */
-            largeAllocSize = pageSize * 16;
-        }
+  public:
+    enum ProtectionSetting { Writable, Executable };
 
-        JS_ASSERT(m_smallPools.empty());
+    ExecutableAllocator()
+      : destroyCallback(nullptr)
+    {
+        MOZ_ASSERT(m_smallPools.empty());
     }
 
     ~ExecutableAllocator()
@@ -209,7 +198,7 @@ public:
             m_smallPools[i]->release(/* willDestroy = */true);
 
         // If this asserts we have a pool leak.
-        JS_ASSERT_IF(m_pools.initialized(), m_pools.empty());
+        MOZ_ASSERT_IF(m_pools.initialized(), m_pools.empty());
     }
 
     void purge() {
@@ -227,42 +216,51 @@ public:
         // Caller must ensure 'n' is word-size aligned. If all allocations are
         // of word sized quantities, then all subsequent allocations will be
         // aligned.
-        JS_ASSERT(roundUpAllocationSize(n, sizeof(void*)) == n);
+        MOZ_ASSERT(roundUpAllocationSize(n, sizeof(void*)) == n);
 
         if (n == OVERSIZE_ALLOCATION) {
-            *poolp = NULL;
-            return NULL;
+            *poolp = nullptr;
+            return nullptr;
         }
 
         *poolp = poolForSize(n);
         if (!*poolp)
-            return NULL;
+            return nullptr;
 
         // This alloc is infallible because poolForSize() just obtained
         // (found, or created if necessary) a pool that had enough space.
-        void *result = (*poolp)->alloc(n, type);
-        JS_ASSERT(result);
+        void* result = (*poolp)->alloc(n, type);
+        MOZ_ASSERT(result);
         return result;
     }
 
-    void releasePoolPages(ExecutablePool *pool) {
-        JS_ASSERT(pool->m_allocation.pages);
-        if (destroyCallback)
+    void releasePoolPages(ExecutablePool* pool) {
+        MOZ_ASSERT(pool->m_allocation.pages);
+        if (destroyCallback) {
+            // Do not allow GC during the page release callback.
+            JS::AutoSuppressGCAnalysis nogc;
             destroyCallback(pool->m_allocation.pages, pool->m_allocation.size);
+        }
         systemRelease(pool->m_allocation);
-        JS_ASSERT(m_pools.initialized());
-        m_pools.remove(m_pools.lookup(pool));   // this asserts if |pool| is not in m_pools
+        MOZ_ASSERT(m_pools.initialized());
+
+        // Pool may not be present in m_pools if we hit OOM during creation.
+        auto ptr = m_pools.lookup(pool);
+        if (ptr)
+            m_pools.remove(ptr);
     }
 
-    void addSizeOfCode(JS::CodeSizes *sizes) const;
-    void toggleAllCodeAsAccessible(bool accessible);
-    bool codeContains(char* address);
+    void addSizeOfCode(JS::CodeSizes* sizes) const;
 
     void setDestroyCallback(DestroyCallback destroyCallback) {
         this->destroyCallback = destroyCallback;
     }
 
-private:
+    static void initStatic();
+
+    static bool nonWritableJitCode;
+
+  private:
     static size_t pageSize;
     static size_t largeAllocSize;
 #ifdef XP_WIN
@@ -285,38 +283,44 @@ private:
         // Round up to next page boundary
         size_t size = request + (granularity - 1);
         size = size & ~(granularity - 1);
-        JS_ASSERT(size >= request);
+        MOZ_ASSERT(size >= request);
         return size;
     }
 
-    // On OOM, this will return an Allocation where pages is NULL.
+    // On OOM, this will return an Allocation where pages is nullptr.
     ExecutablePool::Allocation systemAlloc(size_t n);
     static void systemRelease(const ExecutablePool::Allocation& alloc);
-    void *computeRandomAllocationAddress();
+    void* computeRandomAllocationAddress();
 
     ExecutablePool* createPool(size_t n)
     {
         size_t allocSize = roundUpAllocationSize(n, pageSize);
         if (allocSize == OVERSIZE_ALLOCATION)
-            return NULL;
+            return nullptr;
 
         if (!m_pools.initialized() && !m_pools.init())
-            return NULL;
+            return nullptr;
 
         ExecutablePool::Allocation a = systemAlloc(allocSize);
         if (!a.pages)
-            return NULL;
+            return nullptr;
 
-        ExecutablePool *pool = js_new<ExecutablePool>(this, a);
+        ExecutablePool* pool = js_new<ExecutablePool>(this, a);
         if (!pool) {
             systemRelease(a);
-            return NULL;
+            return nullptr;
         }
-        m_pools.put(pool);
+
+        if (!m_pools.put(pool)) {
+            js_delete(pool);
+            systemRelease(a);
+            return nullptr;
+        }
+
         return pool;
     }
 
-public:
+  public:
     ExecutablePool* poolForSize(size_t n)
     {
         // Try to fit in an existing small allocator.  Use the pool with the
@@ -324,9 +328,9 @@ public:
         // best strategy because (a) it maximizes the chance of the next
         // allocation fitting in a small pool, and (b) it minimizes the
         // potential waste when a small pool is next abandoned.
-        ExecutablePool *minPool = NULL;
+        ExecutablePool* minPool = nullptr;
         for (size_t i = 0; i < m_smallPools.length(); i++) {
-            ExecutablePool *pool = m_smallPools[i];
+            ExecutablePool* pool = m_smallPools[i];
             if (n <= pool->available() && (!minPool || pool->available() < minPool->available()))
                 minPool = pool;
         }
@@ -342,7 +346,7 @@ public:
         // Create a new allocator
         ExecutablePool* pool = createPool(largeAllocSize);
         if (!pool)
-            return NULL;
+            return nullptr;
         // At this point, local |pool| is the owner.
 
         if (m_smallPools.length() < maxSmallPools) {
@@ -352,16 +356,17 @@ public:
         } else {
             // Find the pool with the least space.
             int iMin = 0;
-            for (size_t i = 1; i < m_smallPools.length(); i++)
+            for (size_t i = 1; i < m_smallPools.length(); i++) {
                 if (m_smallPools[i]->available() <
                     m_smallPools[iMin]->available())
                 {
                     iMin = i;
                 }
+	    }
 
             // If the new allocator will result in more free space than the small
             // pool with the least space, then we will use it instead
-            ExecutablePool *minPool = m_smallPools[iMin];
+            ExecutablePool* minPool = m_smallPools[iMin];
             if ((pool->available() - n) > minPool->available()) {
                 minPool->release();
                 m_smallPools[iMin] = pool;
@@ -373,60 +378,48 @@ public:
         return pool;
     }
 
-#if ENABLE_ASSEMBLER_WX_EXCLUSIVE
     static void makeWritable(void* start, size_t size)
     {
-        reprotectRegion(start, size, Writable);
+        if (nonWritableJitCode)
+            reprotectRegion(start, size, Writable);
     }
 
     static void makeExecutable(void* start, size_t size)
     {
-        reprotectRegion(start, size, Executable);
+        if (nonWritableJitCode)
+            reprotectRegion(start, size, Executable);
     }
-#else
-    static void makeWritable(void*, size_t) {}
-    static void makeExecutable(void*, size_t) {}
-#endif
 
+    static unsigned initialProtectionFlags(ProtectionSetting protection);
 
 #if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
     static void cacheFlush(void*, size_t)
     {
     }
-#elif defined(JS_ARM_SIMULATOR) || defined(JS_MIPS_SIMULATOR)
-    static void cacheFlush(void *code, size_t size)
+#elif defined(JS_SIMULATOR_ARM) || defined(JS_SIMULATOR_MIPS32) || defined(JS_SIMULATOR_MIPS64)
+    static void cacheFlush(void* code, size_t size)
     {
         js::jit::Simulator::FlushICache(code, size);
     }
-#elif defined(JS_CODEGEN_MIPS)
+#elif defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64)
     static void cacheFlush(void* code, size_t size)
     {
-#define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
-
-#if defined(__GNUC__) && (GCC_VERSION >= 40300)
-#if (__mips_isa_rev == 2) && (GCC_VERSION < 40403)
-        int lineSize;
-        asm("rdhwr %0, $1" : "=r" (lineSize));
-        //
-        // Modify "start" and "end" to avoid GCC 4.3.0-4.4.2 bug in
-        // mips_expand_synci_loop that may execute synci one more time.
-        // "start" points to the first byte of the cache line.
-        // "end" points to the last byte of the line before the last cache line.
-        // Because size is always a multiple of 4, this is safe to set
-        // "end" to the last byte.
-        //
-        intptr_t start = reinterpret_cast<intptr_t>(code) & (-lineSize);
-        intptr_t end = ((reinterpret_cast<intptr_t>(code) + size - 1) & (-lineSize)) - 1;
-        __builtin___clear_cache(reinterpret_cast<char*>(start), reinterpret_cast<char*>(end));
-#else
+#if defined(__GNUC__)
         intptr_t end = reinterpret_cast<intptr_t>(code) + size;
         __builtin___clear_cache(reinterpret_cast<char*>(code), reinterpret_cast<char*>(end));
-#endif
 #else
         _flush_cache(reinterpret_cast<char*>(code), size, BCACHE);
 #endif
-
-#undef GCC_VERSION
+    }
+#elif defined(JS_CODEGEN_ARM) && (defined(__FreeBSD__) || defined(__NetBSD__))
+    static void cacheFlush(void* code, size_t size)
+    {
+        __clear_cache(code, reinterpret_cast<char*>(code) + size);
+    }
+#elif defined(JS_CODEGEN_ARM) && defined(XP_IOS)
+    static void cacheFlush(void* code, size_t size)
+    {
+        sys_icache_invalidate(code, size);
     }
 #elif defined(JS_CODEGEN_ARM) && (defined(__linux__) || defined(ANDROID)) && defined(__GNUC__)
     static void cacheFlush(void* code, size_t size)
@@ -451,26 +444,33 @@ public:
     }
 #endif
 
-private:
+  private:
+    ExecutableAllocator(const ExecutableAllocator&) = delete;
+    void operator=(const ExecutableAllocator&) = delete;
 
-#if ENABLE_ASSEMBLER_WX_EXCLUSIVE
     static void reprotectRegion(void*, size_t, ProtectionSetting);
-#endif
 
     // These are strong references;  they keep pools alive.
     static const size_t maxSmallPools = 4;
-    typedef js::Vector<ExecutablePool *, maxSmallPools, js::SystemAllocPolicy> SmallExecPoolVector;
+    typedef js::Vector<ExecutablePool*, maxSmallPools, js::SystemAllocPolicy> SmallExecPoolVector;
     SmallExecPoolVector m_smallPools;
 
     // All live pools are recorded here, just for stats purposes.  These are
     // weak references;  they don't keep pools alive.  When a pool is destroyed
     // its reference is removed from m_pools.
-    typedef js::HashSet<ExecutablePool *, js::DefaultHasher<ExecutablePool *>, js::SystemAllocPolicy>
+    typedef js::HashSet<ExecutablePool*, js::DefaultHasher<ExecutablePool*>, js::SystemAllocPolicy>
             ExecPoolHashSet;
     ExecPoolHashSet m_pools;    // All pools, just for stats purposes.
 
     static size_t determinePageSize();
 };
+
+extern void*
+AllocateExecutableMemory(void* addr, size_t bytes, unsigned permissions, const char* tag,
+                         size_t pageSize);
+
+extern void
+DeallocateExecutableMemory(void* addr, size_t bytes, size_t pageSize);
 
 } // namespace jit
 } // namespace js

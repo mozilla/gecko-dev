@@ -7,8 +7,6 @@
 %{C++
 
 namespace mozilla {
-// Simple C++ getter for nsIXULRuntime::browserTabsRemote
-bool BrowserTabsRemote();
 // Simple C++ getter for nsIXULRuntime::browserTabsRemoteAutostart
 // This getter is a temporary function that checks for special
 // conditions in which e10s support is not great yet, and should
@@ -25,7 +23,7 @@ bool BrowserTabsRemoteAutostart();
  *                    stable/frozen, please contact Benjamin Smedberg.
  */
 
-[scriptable, uuid(789073a0-3f4a-11e4-916c-0800200c9a66)]
+[scriptable, uuid(ce9d05f4-0c20-4f52-87e1-3a425e61e2f3)]
 interface nsIXULRuntime : nsISupports
 {
   /**
@@ -88,12 +86,6 @@ interface nsIXULRuntime : nsISupports
   readonly attribute unsigned long processID;
 
   /**
-   * If true, browser tabs may be opened in a different process from the main
-   * browser UI.
-   */
-  readonly attribute boolean browserTabsRemote;
-
-  /**
    * If true, browser tabs may be opened by default in a different process
    * from the main browser UI.
    */
@@ -105,11 +97,15 @@ interface nsIXULRuntime : nsISupports
   readonly attribute boolean accessibilityEnabled;
 
   /**
-   * This returns a very rough approximation of whether IME is likely
-   * to be used for the browser session. DO NOT USE! This is temporary
-   * and will be removed.
+   * Indicates if the active accessibility client is blacklisted for e10s.
+   * DO NOT USE! This is temporary and will be removed.
    */
-  readonly attribute boolean keyboardMayHaveIME;
+  readonly attribute boolean accessibilityIsBlacklistedForE10S;
+
+  /**
+   * Indicates whether the current Firefox build is 64-bit.
+   */
+  readonly attribute boolean is64Bit;
 
   /**
    * Signal the apprunner to invalidate caches on the next restart.
@@ -159,4 +155,9 @@ interface nsIXULRuntime : nsISupports
    * The distribution ID for this build (MOZ_DISTRIBUTION_ID).
    */
   readonly attribute AUTF8String distributionID;
+
+  /**
+   * True if this is an official build (MOZILLA_OFFICIAL).
+   */
+  readonly attribute boolean isOfficial;
 };

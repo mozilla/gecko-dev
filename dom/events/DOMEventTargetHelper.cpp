@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -47,9 +48,13 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(DOMEventTargetHelper)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(DOMEventTargetHelper)
-  if (tmp->IsBlack()) {
+  if (tmp->IsBlack() || tmp->IsCertainlyAliveForCC()) {
     if (tmp->mListenerManager) {
       tmp->mListenerManager->MarkForCC();
+    }
+    if (!tmp->IsBlack() && tmp->PreservingWrapper()) {
+      // This marks the wrapper black.
+      tmp->GetWrapper();
     }
     return true;
   }
@@ -99,7 +104,8 @@ DOMEventTargetHelper::BindToOwner(nsPIDOMWindow* aOwner)
 void
 DOMEventTargetHelper::BindToOwner(nsIGlobalObject* aOwner)
 {
-  if (mParentObject) {
+  nsCOMPtr<nsIGlobalObject> parentObject = do_QueryReferent(mParentObject);
+  if (parentObject) {
     if (mOwnerWindow) {
       static_cast<nsGlobalWindow*>(mOwnerWindow)->RemoveEventTargetObject(this);
       mOwnerWindow = nullptr;
@@ -108,7 +114,8 @@ DOMEventTargetHelper::BindToOwner(nsIGlobalObject* aOwner)
     mHasOrHasHadOwnerWindow = false;
   }
   if (aOwner) {
-    mParentObject = aOwner;
+    mParentObject = do_GetWeakReference(aOwner);
+    MOZ_ASSERT(mParentObject, "All nsIGlobalObjects must support nsISupportsWeakReference");
     // Let's cache the result of this QI for fast access and off main thread usage
     mOwnerWindow = nsCOMPtr<nsPIDOMWindow>(do_QueryInterface(aOwner)).get();
     if (mOwnerWindow) {
@@ -131,9 +138,10 @@ DOMEventTargetHelper::BindToOwner(DOMEventTargetHelper* aOther)
   if (aOther) {
     mHasOrHasHadOwnerWindow = aOther->HasOrHasHadOwner();
     if (aOther->GetParentObject()) {
-      mParentObject = aOther->GetParentObject();
+      mParentObject = do_GetWeakReference(aOther->GetParentObject());
+      MOZ_ASSERT(mParentObject, "All nsIGlobalObjects must support nsISupportsWeakReference");
       // Let's cache the result of this QI for fast access and off main thread usage
-      mOwnerWindow = nsCOMPtr<nsPIDOMWindow>(do_QueryInterface(mParentObject)).get();
+      mOwnerWindow = nsCOMPtr<nsPIDOMWindow>(do_QueryInterface(aOther->GetParentObject())).get();
       if (mOwnerWindow) {
         MOZ_ASSERT(mOwnerWindow->IsInnerWindow());
         mHasOrHasHadOwnerWindow = true;
@@ -254,10 +262,8 @@ DOMEventTargetHelper::DispatchEvent(nsIDOMEvent* aEvent, bool* aRetVal)
 nsresult
 DOMEventTargetHelper::DispatchTrustedEvent(const nsAString& aEventName)
 {
-  nsCOMPtr<nsIDOMEvent> event;
-  NS_NewDOMEvent(getter_AddRefs(event), this, nullptr, nullptr);
-  nsresult rv = event->InitEvent(aEventName, false, false);
-  NS_ENSURE_SUCCESS(rv, rv);
+  RefPtr<Event> event = NS_NewDOMEvent(this, nullptr, nullptr);
+  event->InitEvent(aEventName, false, false);
 
   return DispatchTrustedEvent(event);
 }
@@ -276,11 +282,10 @@ DOMEventTargetHelper::SetEventHandler(nsIAtom* aType,
                                       JSContext* aCx,
                                       const JS::Value& aValue)
 {
-  nsRefPtr<EventHandlerNonNull> handler;
+  RefPtr<EventHandlerNonNull> handler;
   JS::Rooted<JSObject*> callable(aCx);
-  if (aValue.isObject() &&
-      JS_ObjectIsCallable(aCx, callable = &aValue.toObject())) {
-    handler = new EventHandlerNonNull(callable, dom::GetIncumbentGlobal());
+  if (aValue.isObject() && JS::IsCallable(callable = &aValue.toObject())) {
+    handler = new EventHandlerNonNull(aCx, callable, dom::GetIncumbentGlobal());
   }
   SetEventHandler(aType, EmptyString(), handler);
   return NS_OK;

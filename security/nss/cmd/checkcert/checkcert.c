@@ -122,7 +122,6 @@ OurVerifyData(unsigned char *buf, int len, SECKEYPublicKey *key,
     SECStatus rv;
     VFYContext *cx;
     SECOidData *sigAlgOid, *oiddata;
-    SECOidTag sigAlgTag;
     SECOidTag hashAlgTag;
     int showDigestOid=0;
 
@@ -134,8 +133,6 @@ OurVerifyData(unsigned char *buf, int len, SECKEYPublicKey *key,
     sigAlgOid = SECOID_FindOID(&sigAlgorithm->algorithm);
     if (sigAlgOid == 0)
 	return SECFailure;
-    sigAlgTag = sigAlgOid->offset;
-
 
     if (showDigestOid) {
 	oiddata = SECOID_FindOIDByTag(hashAlgTag);
@@ -220,14 +217,12 @@ CERTCertificate *createEmptyCertificate(void)
     }
 
     return c;
-}    
-
-
+}
 
 
 int main(int argc, char **argv)
 {
-    int rv, verbose=0, force=0;
+    int verbose=0, force=0;
     int ascii=0, issuerAscii=0;
     char *progName=0;
     PRFileDesc *inFile=0, *issuerCertFile=0;
@@ -244,6 +239,7 @@ int main(int argc, char **argv)
     char *inFileName = NULL, *issuerCertFileName = NULL;
     PLOptState *optstate;
     PLOptStatus status;
+    SECStatus rv;
 
     PORT_Memset(&md5WithRSAEncryption, 0, sizeof(md5WithRSAEncryption));
     PORT_Memset(&md2WithRSAEncryption, 0, sizeof(md2WithRSAEncryption));
@@ -389,7 +385,7 @@ int main(int argc, char **argv)
 
     SECU_RegisterDynamicOids();
     rv = SECU_PrintSignedData(stdout, &derCert, "Certificate", 0,
-			      SECU_PrintCertificate);
+			      (SECU_PPFunc)SECU_PrintCertificate);
 
     if (rv) {
 	fprintf(stderr, "%s: Unable to pretty print cert. Error: %d\n",
@@ -405,17 +401,37 @@ int main(int argc, char **argv)
     printf("\n");
 
     /* Check algorithms */
-    SECOID_SetAlgorithmID(arena, &md5WithRSAEncryption,
+    rv = SECOID_SetAlgorithmID(arena, &md5WithRSAEncryption,
 		       SEC_OID_PKCS1_MD5_WITH_RSA_ENCRYPTION, NULL);
+    if (rv) {
+	fprintf(stderr, "%s: failed to set algorithm ID for SEC_OID_PKCS1_MD5_WITH_RSA_ENCRYPTION.\n",
+                progName);
+	exit(1);
+    }
 
-    SECOID_SetAlgorithmID(arena, &md2WithRSAEncryption,
+    rv = SECOID_SetAlgorithmID(arena, &md2WithRSAEncryption,
 		       SEC_OID_PKCS1_MD2_WITH_RSA_ENCRYPTION, NULL);
+    if (rv) {
+	fprintf(stderr, "%s: failed to set algorithm ID for SEC_OID_PKCS1_MD2_WITH_RSA_ENCRYPTION.\n",
+                progName);
+	exit(1);
+    }
 
-    SECOID_SetAlgorithmID(arena, &sha1WithRSAEncryption,
+    rv = SECOID_SetAlgorithmID(arena, &sha1WithRSAEncryption,
 		       SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION, NULL);
+    if (rv) {
+	fprintf(stderr, "%s: failed to set algorithm ID for SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION.\n",
+                progName);
+	exit(1);
+    }
 
-    SECOID_SetAlgorithmID(arena, &rsaEncryption,
+    rv = SECOID_SetAlgorithmID(arena, &rsaEncryption,
 		       SEC_OID_PKCS1_RSA_ENCRYPTION, NULL);
+    if (rv) {
+	fprintf(stderr, "%s: failed to set algorithm ID for SEC_OID_PKCS1_RSA_ENCRYPTION.\n",
+                progName);
+	exit(1);
+    }
 
     {
 	int isMD5RSA = (SECOID_CompareAlgorithmID(&cert->signature,

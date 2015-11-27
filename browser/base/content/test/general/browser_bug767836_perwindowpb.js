@@ -5,7 +5,8 @@
 function test() {
   //initialization
   waitForExplicitFinish();
-  let newTabPrefName = "browser.newtab.url";
+  let aboutNewTabService = Components.classes["@mozilla.org/browser/aboutnewtab-service;1"]
+                                     .getService(Components.interfaces.nsIAboutNewTabService);
   let newTabURL;
   let testURL = "http://example.com/";
   let mode;
@@ -17,24 +18,24 @@ function test() {
         newTabURL = "about:privatebrowsing";
       } else {
         mode = "normal";
-        newTabURL = Services.prefs.getCharPref(newTabPrefName) || "about:blank";
+        newTabURL = aboutNewTabService.newTabURL;
       }
 
       // Check the new tab opened while in normal/private mode
       is(aWindow.gBrowser.selectedBrowser.currentURI.spec, newTabURL,
         "URL of NewTab should be " + newTabURL + " in " + mode +  " mode");
       // Set the custom newtab url
-      Services.prefs.setCharPref(newTabPrefName, testURL);
-      ok(Services.prefs.prefHasUserValue(newTabPrefName), "Custom newtab url is set");
+      aboutNewTabService.newTabURL = testURL;
+      is(aboutNewTabService.newTabURL, testURL, "Custom newtab url is set");
 
       // Open a newtab after setting the custom newtab url
       openNewTab(aWindow, function () {
         is(aWindow.gBrowser.selectedBrowser.currentURI.spec, testURL,
            "URL of NewTab should be the custom url");
 
-        // clear the custom url preference
-        Services.prefs.clearUserPref(newTabPrefName);
-        ok(!Services.prefs.prefHasUserValue(newTabPrefName), "No custom newtab url is set");
+        // Clear the custom url.
+        aboutNewTabService.resetNewTabURL();
+        is(aboutNewTabService.newTabURL, "about:newtab", "No custom newtab url is set");
 
         aWindow.gBrowser.removeTab(aWindow.gBrowser.selectedTab);
         aWindow.gBrowser.removeTab(aWindow.gBrowser.selectedTab);
@@ -46,12 +47,12 @@ function test() {
 
   function testOnWindow(aIsPrivate, aCallback) {
     whenNewWindowLoaded({private: aIsPrivate}, function(win) {
-      executeSoon(function() aCallback(win));
+      executeSoon(() => aCallback(win));
     });
   }
 
   // check whether any custom new tab url has been configured
-  ok(!Services.prefs.prefHasUserValue(newTabPrefName), "No custom newtab url is set");
+  ok(!aboutNewTabService.overridden, "No custom newtab url is set");
 
   // test normal mode
   testOnWindow(false, function(aWindow) {

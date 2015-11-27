@@ -18,11 +18,7 @@
 #include "nsIPresShell.h"
 
 class nsRenderingContext;
-class nsCalculatedBoxInfo;
-class nsHTMLReflowMetrics;
 struct nsHTMLReflowState;
-class nsString;
-class nsHTMLReflowCommand;
 
 class MOZ_STACK_CLASS nsBoxLayoutState
 {
@@ -64,7 +60,7 @@ public:
   uint16_t GetReflowDepth() { return mReflowDepth; }
   
 private:
-  nsRefPtr<nsPresContext> mPresContext;
+  RefPtr<nsPresContext> mPresContext;
   nsRenderingContext *mRenderingContext;
   const nsHTMLReflowState *mOuterReflowState;
   uint32_t mLayoutFlags;

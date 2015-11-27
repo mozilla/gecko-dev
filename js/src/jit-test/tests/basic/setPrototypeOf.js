@@ -31,9 +31,6 @@ function TestSetPrototypeOf(object, proto) {
 // check if Object.setPrototypeOf works with coercible values
 for(var value of coercibleValues) {
     assertEq(Object.setPrototypeOf(value, {}), value);
-
-    assertThrowsInstanceOf(() => Object.getPrototypeOf(value),
-        TypeError, "Coercible values should not have a prototype");
 }
 
 // check if Object.setPrototypeOf fails on non-coercible values
@@ -74,6 +71,13 @@ for (var object of objects) {
     assertThrowsInstanceOf(() => Object.setPrototypeOf(object, proto),
         TypeError, "Object.setPrototypeOf should fail when the object is not extensible");
 }
+
+// check if Object.setPrototypeof(A, B) succeeds on not extensible object A if
+// prototype of A == B already
+var objectProto = {};
+var nonExtensibleObject = Object.create(objectProto);
+Object.preventExtensions(nonExtensibleObject);
+assertEq(Object.setPrototypeOf(nonExtensibleObject, objectProto), nonExtensibleObject);
 
 // check if Object.setPrototypeOf works with prototype lookup
 var object = {};

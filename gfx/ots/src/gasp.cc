@@ -11,19 +11,19 @@
 
 #define DROP_THIS_TABLE(...) \
   do { \
-    delete file->gasp; \
-    file->gasp = 0; \
-    OTS_FAILURE_MSG_(file, TABLE_NAME ": " __VA_ARGS__); \
+    OTS_FAILURE_MSG_(font->file, TABLE_NAME ": " __VA_ARGS__); \
     OTS_FAILURE_MSG("Table discarded"); \
+    delete font->gasp; \
+    font->gasp = 0; \
   } while (0)
 
 namespace ots {
 
-bool ots_gasp_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
+bool ots_gasp_parse(Font *font, const uint8_t *data, size_t length) {
   Buffer table(data, length);
 
   OpenTypeGASP *gasp = new OpenTypeGASP;
-  file->gasp = gasp;
+  font->gasp = gasp;
 
   uint16_t num_ranges = 0;
   if (!table.ReadU16(&gasp->version) ||
@@ -80,19 +80,21 @@ bool ots_gasp_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   return true;
 }
 
-bool ots_gasp_should_serialise(OpenTypeFile *file) {
-  return file->gasp != NULL;
+bool ots_gasp_should_serialise(Font *font) {
+  return font->gasp != NULL;
 }
 
-bool ots_gasp_serialise(OTSStream *out, OpenTypeFile *file) {
-  const OpenTypeGASP *gasp = file->gasp;
+bool ots_gasp_serialise(OTSStream *out, Font *font) {
+  const OpenTypeGASP *gasp = font->gasp;
 
-  if (!out->WriteU16(gasp->version) ||
-      !out->WriteU16(gasp->gasp_ranges.size())) {
+  const uint16_t num_ranges = static_cast<uint16_t>(gasp->gasp_ranges.size());
+  if (num_ranges != gasp->gasp_ranges.size() ||
+      !out->WriteU16(gasp->version) ||
+      !out->WriteU16(num_ranges)) {
     return OTS_FAILURE_MSG("failed to write gasp header");
   }
 
-  for (unsigned i = 0; i < gasp->gasp_ranges.size(); ++i) {
+  for (uint16_t i = 0; i < num_ranges; ++i) {
     if (!out->WriteU16(gasp->gasp_ranges[i].first) ||
         !out->WriteU16(gasp->gasp_ranges[i].second)) {
       return OTS_FAILURE_MSG("Failed to write gasp subtable %d", i);
@@ -102,8 +104,13 @@ bool ots_gasp_serialise(OTSStream *out, OpenTypeFile *file) {
   return true;
 }
 
-void ots_gasp_free(OpenTypeFile *file) {
-  delete file->gasp;
+void ots_gasp_reuse(Font *font, Font *other) {
+  font->gasp = other->gasp;
+  font->gasp_reused = true;
+}
+
+void ots_gasp_free(Font *font) {
+  delete font->gasp;
 }
 
 }  // namespace ots

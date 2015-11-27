@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -17,9 +17,16 @@ enum PersistenceType
 {
   PERSISTENCE_TYPE_PERSISTENT = 0,
   PERSISTENCE_TYPE_TEMPORARY,
+  PERSISTENCE_TYPE_DEFAULT,
 
   // Only needed for IPC serialization helper, should never be used in code.
   PERSISTENCE_TYPE_INVALID
+};
+
+static const PersistenceType kAllPersistenceTypes[] = {
+  PERSISTENCE_TYPE_PERSISTENT,
+  PERSISTENCE_TYPE_TEMPORARY,
+  PERSISTENCE_TYPE_DEFAULT
 };
 
 inline void
@@ -31,6 +38,9 @@ PersistenceTypeToText(PersistenceType aPersistenceType, nsACString& aText)
       return;
     case PERSISTENCE_TYPE_TEMPORARY:
       aText.AssignLiteral("temporary");
+      return;
+    case PERSISTENCE_TYPE_DEFAULT:
+      aText.AssignLiteral("default");
       return;
 
     case PERSISTENCE_TYPE_INVALID:
@@ -48,6 +58,10 @@ PersistenceTypeFromText(const nsACString& aText)
 
   if (aText.EqualsLiteral("temporary")) {
     return PERSISTENCE_TYPE_TEMPORARY;
+  }
+
+  if (aText.EqualsLiteral("default")) {
+    return PERSISTENCE_TYPE_DEFAULT;
   }
 
   MOZ_CRASH("Should never get here!");
@@ -72,6 +86,11 @@ NullablePersistenceTypeFromText(const nsACString& aText,
     return NS_OK;
   }
 
+  if (aText.EqualsLiteral("default")) {
+    *aPersistenceType = Nullable<PersistenceType>(PERSISTENCE_TYPE_DEFAULT);
+    return NS_OK;
+  }
+
   return NS_ERROR_FAILURE;
 }
 
@@ -82,14 +101,26 @@ PersistenceTypeToStorage(PersistenceType aPersistenceType)
 }
 
 inline PersistenceType
-PersistenceTypeFromStorage(const Optional<mozilla::dom::StorageType>& aStorage,
-                           PersistenceType aDefaultPersistenceType)
+PersistenceTypeFromStorage(const Optional<mozilla::dom::StorageType>& aStorage)
 {
   if (aStorage.WasPassed()) {
     return PersistenceType(static_cast<int>(aStorage.Value()));
   }
 
-  return aDefaultPersistenceType;
+  return PERSISTENCE_TYPE_DEFAULT;
+}
+
+inline PersistenceType
+ComplementaryPersistenceType(PersistenceType aPersistenceType)
+{
+  MOZ_ASSERT(aPersistenceType == PERSISTENCE_TYPE_DEFAULT ||
+             aPersistenceType == PERSISTENCE_TYPE_TEMPORARY);
+
+  if (aPersistenceType == PERSISTENCE_TYPE_DEFAULT) {
+    return PERSISTENCE_TYPE_TEMPORARY;
+  }
+
+  return PERSISTENCE_TYPE_DEFAULT;
 }
 
 END_QUOTA_NAMESPACE

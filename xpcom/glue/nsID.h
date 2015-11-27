@@ -36,6 +36,11 @@ struct nsID
 
   //@{
   /**
+   * Ensures everything is zeroed out.
+   */
+  void Clear();
+
+  /**
    * Equivalency method. Compares this nsID with another.
    * @return <b>true</b> if they are the same, <b>false</b> if not.
    */
@@ -48,6 +53,11 @@ struct nsID
       (((uint32_t*)&m0)[1] == ((uint32_t*)&aOther.m0)[1]) &&
       (((uint32_t*)&m0)[2] == ((uint32_t*)&aOther.m0)[2]) &&
       (((uint32_t*)&m0)[3] == ((uint32_t*)&aOther.m0)[3]);
+  }
+
+  inline bool operator==(const nsID& aOther) const
+  {
+    return Equals(aOther);
   }
 
   /**

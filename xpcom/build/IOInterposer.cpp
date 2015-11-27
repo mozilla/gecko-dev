@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -14,6 +16,7 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/ThreadLocal.h"
+#include "nscore.h" // for NS_FREE_PERMANENT_DATA
 #if !defined(XP_WIN)
 #include "NSPRInterposer.h"
 #endif // !defined(XP_WIN)
@@ -357,7 +360,7 @@ public:
 // List of observers registered
 static StaticAutoPtr<MasterList> sMasterList;
 static ThreadLocal<PerThreadData*> sThreadLocalData;
-} // anonymous namespace
+} // namespace
 
 IOInterposeObserver::Observation::Observation(Operation aOperation,
                                               const char* aReference,
@@ -426,12 +429,7 @@ IOInterposer::Init()
   if (!sThreadLocalData.init()) {
     return false;
   }
-#if defined(XP_WIN)
-  bool isMainThread =
-    XRE_GetWindowsEnvironment() != WindowsEnvironmentType_Metro;
-#else
   bool isMainThread = true;
-#endif
   RegisterCurrentThread(isMainThread);
   sMasterList = new MasterList();
 
@@ -463,10 +461,10 @@ IOInterposeObserver::IsMainThread()
 void
 IOInterposer::Clear()
 {
-  /* Clear() is a no-op on opt builds so that we may continue to trap I/O until
-     process termination. In debug builds we need to shut down IOInterposer so
-     that all references are properly released and refcnt log remains clean. */
-#if defined(DEBUG) || defined(FORCE_BUILD_REFCNT_LOGGING) || defined(MOZ_ASAN)
+  /* Clear() is a no-op on release builds so that we may continue to trap I/O
+     until process termination. In leak-checking builds, we need to shut down
+     IOInterposer so that all references are properly released. */
+#ifdef NS_FREE_PERMANENT_DATA
   UnregisterCurrentThread();
   sMasterList = nullptr;
 #endif

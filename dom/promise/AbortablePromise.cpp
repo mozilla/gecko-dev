@@ -1,5 +1,5 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -49,8 +49,8 @@ AbortablePromise::Create(nsIGlobalObject* aGlobal,
                          PromiseNativeAbortCallback& aAbortCallback,
                          ErrorResult& aRv)
 {
-  nsRefPtr<AbortablePromise> p = new AbortablePromise(aGlobal, aAbortCallback);
-  p->CreateWrapper(aRv);
+  RefPtr<AbortablePromise> p = new AbortablePromise(aGlobal, aAbortCallback);
+  p->CreateWrapper(nullptr, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
@@ -58,14 +58,15 @@ AbortablePromise::Create(nsIGlobalObject* aGlobal,
 }
 
 JSObject*
-AbortablePromise::WrapObject(JSContext* aCx)
+AbortablePromise::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return MozAbortablePromiseBinding::Wrap(aCx, this);
+  return MozAbortablePromiseBinding::Wrap(aCx, this, aGivenProto);
 }
 
 /* static */ already_AddRefed<AbortablePromise>
 AbortablePromise::Constructor(const GlobalObject& aGlobal, PromiseInit& aInit,
-                              AbortCallback& aAbortCallback, ErrorResult& aRv)
+                              AbortCallback& aAbortCallback, ErrorResult& aRv,
+                              JS::Handle<JSObject*> aDesiredProto)
 {
   nsCOMPtr<nsIGlobalObject> global;
   global = do_QueryInterface(aGlobal.GetAsSupports());
@@ -74,8 +75,8 @@ AbortablePromise::Constructor(const GlobalObject& aGlobal, PromiseInit& aInit,
     return nullptr;
   }
 
-  nsRefPtr<AbortablePromise> promise = new AbortablePromise(global);
-  promise->CreateWrapper(aRv);
+  RefPtr<AbortablePromise> promise = new AbortablePromise(global);
+  promise->CreateWrapper(aDesiredProto, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
@@ -100,7 +101,7 @@ AbortablePromise::Abort()
 
   nsCOMPtr<nsIRunnable> runnable =
     NS_NewRunnableMethod(this, &AbortablePromise::DoAbort);
-  Promise::DispatchToMainOrWorkerThread(runnable);
+  Promise::DispatchToMicroTask(runnable);
 }
 
 void

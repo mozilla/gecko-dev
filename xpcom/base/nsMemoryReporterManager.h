@@ -7,22 +7,23 @@
 #ifndef nsMemoryReporterManager_h__
 #define nsMemoryReporterManager_h__
 
+#include "mozilla/Mutex.h"
+#include "nsHashKeys.h"
 #include "nsIMemoryReporter.h"
 #include "nsITimer.h"
 #include "nsServiceManagerUtils.h"
-#include "mozilla/Mutex.h"
 #include "nsTHashtable.h"
-#include "nsHashKeys.h"
-
-class nsITimer;
 
 namespace mozilla {
 namespace dom {
+class ContentParent;
 class MemoryReport;
-}
-}
+} // namespace dom
+} // namespace mozilla
 
-class nsMemoryReporterManager MOZ_FINAL : public nsIMemoryReporterManager
+class nsITimer;
+
+class nsMemoryReporterManager final : public nsIMemoryReporterManager
 {
   virtual ~nsMemoryReporterManager();
 
@@ -40,30 +41,36 @@ public:
     return static_cast<nsMemoryReporterManager*>(imgr.get());
   }
 
-  typedef nsTHashtable<nsRefPtrHashKey<nsIMemoryReporter>> StrongReportersTable;
-  typedef nsTHashtable<nsPtrHashKey<nsIMemoryReporter>> WeakReportersTable;
-
-  void IncrementNumChildProcesses();
-  void DecrementNumChildProcesses();
+  typedef nsDataHashtable<nsRefPtrHashKey<nsIMemoryReporter>, bool> StrongReportersTable;
+  typedef nsDataHashtable<nsPtrHashKey<nsIMemoryReporter>, bool> WeakReportersTable;
 
   // Inter-process memory reporting proceeds as follows.
   //
   // - GetReports() (declared within NS_DECL_NSIMEMORYREPORTERMANAGER)
-  //   synchronously gets memory reports for the current process, tells all
-  //   child processes to get memory reports, and sets up some state
-  //   (mGetReportsState) for when the child processes report back, including a
-  //   timer.  Control then returns to the main event loop.
+  //   synchronously gets memory reports for the current process, sets up some
+  //   state (mPendingProcessesState) for when child processes report back --
+  //   including a timer -- and starts telling child processes to get memory
+  //   reports.  Control then returns to the main event loop.
   //
-  // - HandleChildReports() is called (asynchronously) once per child process
-  //   that reports back.  If all child processes report back before time-out,
-  //   the timer is cancelled.  (The number of child processes is part of the
-  //   saved request state.)
+  //   The number of concurrent child process reports is limited by the pref
+  //   "memory.report_concurrency" in order to prevent the memory overhead of
+  //   memory reporting from causing problems, especially on B2G when swapping
+  //   to compressed RAM; see bug 1154053.
+  //
+  // - HandleChildReport() is called (asynchronously) once per child process
+  //   reporter callback.
+  //
+  // - EndProcessReport() is called (asynchronously) once per process that
+  //   finishes reporting back, including the parent.  If all processes do so
+  //   before time-out, the timer is cancelled.  If there are child processes
+  //   whose requests have not yet been sent, they will be started until the
+  //   concurrency limit is (again) reached.
   //
   // - TimeoutCallback() is called (asynchronously) if all the child processes
   //   don't respond within the time threshold.
   //
   // - FinishReporting() finishes things off.  It is *always* called -- either
-  //   from HandleChildReports() (if all child processes have reported back) or
+  //   from EndChildReport() (if all child processes have reported back) or
   //   from TimeoutCallback() (if time-out occurs).
   //
   // All operations occur on the main thread.
@@ -95,32 +102,36 @@ public:
   //   is reported, because there's nothing sensible to be done about it at
   //   this late stage.
   //
+  // - If the time-out occurs after a child process has sent some reports but
+  //   before it has signaled completion (see bug 1151597), then what it
+  //   successfully sent will be included, with no explicit indication that it
+  //   is incomplete.
+  //
   // Now, what what happens if a child process is created/destroyed in the
-  // middle of a request?  Well, GetReportsState contains a copy of
-  // mNumChildProcesses which it uses to determine finished-ness.  So...
+  // middle of a request?  Well, PendingProcessesState is initialized with an array
+  // of child process actors as of when the report started.  So...
   //
-  // - If a process is created, it won't have received the request for reports,
-  //   and the GetReportsState's mNumChildProcesses won't account for it.  So
-  //   the reported data will reflect how things were when the request began.
+  // - If a process is created after reporting starts, it won't be sent a
+  //   request for reports.  So the reported data will reflect how things were
+  //   when the request began.
   //
-  // - If a process is destroyed before reporting back, we'll just hit the
-  //   time-out, because we'll have received reports (barring other errors)
-  //   from N-1 child process.  So the reported data will reflect how things
-  //   are when the request ends.
+  // - If a process is destroyed before it starts reporting back, the reported
+  //   data will reflect how things are when the request ends.
+  //
+  // - If a process is destroyed after it starts reporting back but before it
+  //   finishes, the reported data will contain a partial report for it.
   //
   // - If a process is destroyed after reporting back, but before all other
   //   child processes have reported back, it will be included in the reported
   //   data.  So the reported data will reflect how things were when the
   //   request began.
   //
-  // The inconsistencies between these three cases are unfortunate but
-  // difficult to avoid.  It's enough of an edge case to not be worth doing
-  // more.
+  // The inconsistencies between these cases are unfortunate but difficult to
+  // avoid.  It's enough of an edge case to not be worth doing more.
   //
-  void HandleChildReports(
-    const uint32_t& aGeneration,
-    const InfallibleTArray<mozilla::dom::MemoryReport>& aChildReports);
-  nsresult FinishReporting();
+  void HandleChildReport(uint32_t aGeneration,
+                         const mozilla::dom::MemoryReport& aChildReport);
+  void EndProcessReport(uint32_t aGeneration, bool aSuccess);
 
   // Functions that (a) implement distinguished amounts, and (b) are outside of
   // this module.
@@ -151,6 +162,9 @@ public:
   // when debugging transient memory spikes with printf instrumentation.
   static int64_t ResidentFast();
 
+  // Convenience function to get peak RSS easily from other code.
+  static int64_t ResidentPeak();
+
   // Convenience function to get USS easily from other code.  This is useful
   // when debugging unshared memory pages for forked processes.
   static int64_t ResidentUnique();
@@ -170,8 +184,14 @@ public:
 
 private:
   nsresult RegisterReporterHelper(nsIMemoryReporter* aReporter,
-                                  bool aForce, bool aStrongRef);
+                                  bool aForce, bool aStrongRef, bool aIsAsync);
   nsresult StartGettingReports();
+  nsresult FinishReporting();
+
+  void DispatchReporter(nsIMemoryReporter* aReporter, bool aIsAsync,
+                        nsIHandleReportCallback* aHandleReport,
+                        nsISupports* aHandleReportData,
+                        bool aAnonymize);
 
   static void TimeoutCallback(nsITimer* aTimer, void* aData);
   // Note: this timeout needs to be long enough to allow for the
@@ -188,41 +208,58 @@ private:
   StrongReportersTable* mSavedStrongReporters;
   WeakReportersTable* mSavedWeakReporters;
 
-  uint32_t mNumChildProcesses;
   uint32_t mNextGeneration;
 
-  struct GetReportsState
+  // Used to keep track of state of which processes are currently running and
+  // waiting to run memory reports. Holds references to parameters needed when
+  // requesting a memory report and finishing reporting.
+  struct PendingProcessesState
   {
     uint32_t                             mGeneration;
     bool                                 mAnonymize;
+    bool                                 mMinimize;
     nsCOMPtr<nsITimer>                   mTimer;
-    uint32_t                             mNumChildProcesses;
-    uint32_t                             mNumChildProcessesCompleted;
-    bool                                 mParentDone;
+    nsTArray<RefPtr<mozilla::dom::ContentParent>> mChildrenPending;
+    uint32_t                             mNumProcessesRunning;
+    uint32_t                             mNumProcessesCompleted;
+    uint32_t                             mConcurrencyLimit;
     nsCOMPtr<nsIHandleReportCallback>    mHandleReport;
     nsCOMPtr<nsISupports>                mHandleReportData;
     nsCOMPtr<nsIFinishReportingCallback> mFinishReporting;
     nsCOMPtr<nsISupports>                mFinishReportingData;
     nsString                             mDMDDumpIdent;
 
-    GetReportsState(uint32_t aGeneration, bool aAnonymize, nsITimer* aTimer,
-                    uint32_t aNumChildProcesses,
-                    nsIHandleReportCallback* aHandleReport,
-                    nsISupports* aHandleReportData,
-                    nsIFinishReportingCallback* aFinishReporting,
-                    nsISupports* aFinishReportingData,
-                    const nsAString& aDMDDumpIdent)
-      : mGeneration(aGeneration)
-      , mAnonymize(aAnonymize)
-      , mTimer(aTimer)
-      , mNumChildProcesses(aNumChildProcesses)
-      , mNumChildProcessesCompleted(0)
-      , mParentDone(false)
-      , mHandleReport(aHandleReport)
-      , mHandleReportData(aHandleReportData)
+    PendingProcessesState(uint32_t aGeneration, bool aAnonymize, bool aMinimize,
+                          uint32_t aConcurrencyLimit,
+                          nsIHandleReportCallback* aHandleReport,
+                          nsISupports* aHandleReportData,
+                          nsIFinishReportingCallback* aFinishReporting,
+                          nsISupports* aFinishReportingData,
+                          const nsAString& aDMDDumpIdent);
+  };
+
+  // Used to keep track of the state of the asynchronously run memory
+  // reporters. The callback and file handle used when all memory reporters
+  // have finished are also stored here.
+  struct PendingReportersState
+  {
+    // Number of memory reporters currently running.
+    uint32_t mReportsPending;
+
+    // Callback for when all memory reporters have completed.
+    nsCOMPtr<nsIFinishReportingCallback> mFinishReporting;
+    nsCOMPtr<nsISupports> mFinishReportingData;
+
+    // File handle to write a DMD report to if requested.
+    FILE* mDMDFile;
+
+    PendingReportersState(nsIFinishReportingCallback* aFinishReporting,
+                        nsISupports* aFinishReportingData,
+                        FILE* aDMDFile)
+      : mReportsPending(0)
       , mFinishReporting(aFinishReporting)
       , mFinishReportingData(aFinishReportingData)
-      , mDMDDumpIdent(aDMDDumpIdent)
+      , mDMDFile(aDMDFile)
     {
     }
   };
@@ -230,7 +267,14 @@ private:
   // When this is non-null, a request is in flight.  Note: We use manual
   // new/delete for this because its lifetime doesn't match block scope or
   // anything like that.
-  GetReportsState* mGetReportsState;
+  PendingProcessesState* mPendingProcessesState;
+
+  // This is reinitialized each time a call to GetReports is initiated.
+  PendingReportersState* mPendingReportersState;
+
+  PendingProcessesState* GetStateForGeneration(uint32_t aGeneration);
+  static bool StartChildReport(mozilla::dom::ContentParent* aChild,
+                               const PendingProcessesState* aState);
 };
 
 #define NS_MEMORY_REPORTER_MANAGER_CID \

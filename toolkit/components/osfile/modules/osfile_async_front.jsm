@@ -24,18 +24,18 @@ this.EXPORTED_SYMBOLS = ["OS"];
 const Cu = Components.utils;
 const Ci = Components.interfaces;
 
-let SharedAll = {};
+var SharedAll = {};
 Cu.import("resource://gre/modules/osfile/osfile_shared_allthreads.jsm", SharedAll);
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 Cu.import("resource://gre/modules/Timer.jsm", this);
 
 
 // Boilerplate, to simplify the transition to require()
-let LOG = SharedAll.LOG.bind(SharedAll, "Controller");
-let isTypedArray = SharedAll.isTypedArray;
+var LOG = SharedAll.LOG.bind(SharedAll, "Controller");
+var isTypedArray = SharedAll.isTypedArray;
 
 // The constructor for file errors.
-let SysAll = {};
+var SysAll = {};
 if (SharedAll.Constants.Win) {
   Cu.import("resource://gre/modules/osfile/osfile_win_allthreads.jsm", SysAll);
 } else if (SharedAll.Constants.libc) {
@@ -43,10 +43,10 @@ if (SharedAll.Constants.Win) {
 } else {
   throw new Error("I am neither under Windows nor under a Posix system");
 }
-let OSError = SysAll.Error;
-let Type = SysAll.Type;
+var OSError = SysAll.Error;
+var Type = SysAll.Type;
 
-let Path = {};
+var Path = {};
 Cu.import("resource://gre/modules/osfile/ospath.jsm", Path);
 
 // The library of promises.
@@ -58,7 +58,7 @@ Cu.import("resource://gre/modules/PromiseWorker.jsm", this);
 Cu.import("resource://gre/modules/Services.jsm", this);
 Cu.import("resource://gre/modules/TelemetryStopwatch.jsm", this);
 Cu.import("resource://gre/modules/AsyncShutdown.jsm", this);
-let Native = Cu.import("resource://gre/modules/osfile/osfile_native.jsm", {});
+var Native = Cu.import("resource://gre/modules/osfile/osfile_native.jsm", {});
 
 
 // It's possible for osfile.jsm to get imported before the profile is
@@ -103,7 +103,7 @@ for (let [constProp, dirKey] of [
 /**
  * Return a shallow clone of the enumerable properties of an object.
  */
-let clone = SharedAll.clone;
+var clone = SharedAll.clone;
 
 /**
  * Extract a shortened version of an object, fit for logging.
@@ -146,7 +146,10 @@ function summarizeObject(obj) {
   return obj;
 }
 
-let Scheduler = {
+// In order to expose Scheduler to the unfiltered Cu.import return value variant
+// on B2G we need to save it to `this`.  This does not make it public;
+// EXPORTED_SYMBOLS still controls that in all cases.
+var Scheduler = this.Scheduler = {
 
   /**
    * |true| once we have sent at least one message to the worker.
@@ -268,38 +271,43 @@ let Scheduler = {
     // Grab the kill queue to make sure that we
     // cannot be interrupted by another call to `kill`.
     let killQueue = this._killQueue;
+
+    // Deactivate the queue, to ensure that no message is sent
+    // to an obsolete worker (we reactivate it in the `finally`).
+    // This needs to be done right now so that we maintain relative
+    // ordering with calls to post(), etc.
+    let deferred = Promise.defer();
+    let savedQueue = this.queue;
+    this.queue = deferred.promise;
+
     return this._killQueue = Task.spawn(function*() {
 
       yield killQueue;
       // From this point, and until the end of the Task, we are the
       // only call to `kill`, regardless of any `yield`.
 
-      yield this.queue;
-
-      // Enter critical section: no yield in this block
-      // (we want to make sure that we remain the only
-      // request in the queue).
-
-      if (!this.launched || this.shutdown || !this._worker) {
-        // Nothing to kill
-        this.shutdown = this.shutdown || shutdown;
-        this._worker = null;
-        return null;
-      }
-
-      // Deactivate the queue, to ensure that no message is sent
-      // to an obsolete worker (we reactivate it in the |finally|).
-      let deferred = Promise.defer();
-      this.queue = deferred.promise;
-
-
-      // Exit critical section
-
-      let message = ["Meta_shutdown", [reset]];
+      yield savedQueue;
 
       try {
+        // Enter critical section: no yield in this block
+        // (we want to make sure that we remain the only
+        // request in the queue).
+
+        if (!this.launched || this.shutdown || !this._worker) {
+          // Nothing to kill
+          this.shutdown = this.shutdown || shutdown;
+          this._worker = null;
+          return null;
+        }
+
+        // Exit critical section
+
+        let message = ["Meta_shutdown", [reset]];
+
         Scheduler.latestReceived = [];
-        Scheduler.latestSent = [Date.now(), ...message];
+        Scheduler.latestSent = [Date.now(),
+          Task.Debugging.generateReadableStack(new Error().stack),
+          ...message];
 
         // Wait for result
         let resources;
@@ -504,7 +512,7 @@ SharedAll.Config.TEST = readDebugPref(PREF_OSFILE_LOG_REDIRECT, false);
  * If |true|, use the native implementaiton of OS.File methods
  * whenever possible. Otherwise, force the use of the JS version.
  */
-let nativeWheneverAvailable = true;
+var nativeWheneverAvailable = true;
 const PREF_OSFILE_NATIVE = "toolkit.osfile.native";
 Services.prefs.addObserver(PREF_OSFILE_NATIVE,
   function prefObserver(aSubject, aTopic, aData) {
@@ -576,7 +584,7 @@ Services.prefs.addObserver(PREF_OSFILE_TEST_SHUTDOWN_OBSERVER,
  *
  * @constructor
  */
-let File = function File(fdmsg) {
+var File = function File(fdmsg) {
   // FIXME: At the moment, |File| does not close on finalize
   // (see bug 777715)
   this._fdmsg = fdmsg;
@@ -619,39 +627,6 @@ File.prototype = {
   },
 
   /**
-   * Read a number of bytes from the file and into a buffer.
-   *
-   * @param {Typed array | C pointer} buffer This buffer will be
-   * modified by another thread. Using this buffer before the |read|
-   * operation has completed is a BAD IDEA.
-   * @param {JSON} options
-   *
-   * @return {promise}
-   * @resolves {number} The number of bytes effectively read.
-   * @rejects {OS.File.Error}
-   */
-  readTo: function readTo(buffer, options = {}) {
-    // If |buffer| is a typed array and there is no |bytes| options, we
-    // need to extract the |byteLength| now, as it will be lost by
-    // communication.
-    // Options might be a nullish value, so better check for that before using
-    // the |in| operator.
-    if (isTypedArray(buffer) && !(options && "bytes" in options)) {
-      // Preserve reference to option |outExecutionDuration|, if it is passed.
-      options = clone(options, ["outExecutionDuration"]);
-      options.bytes = buffer.byteLength;
-    }
-    // Note: Type.void_t.out_ptr.toMsg ensures that
-    // - the buffer is effectively shared (not neutered) between both
-    //   threads;
-    // - we take care of any |byteOffset|.
-    return Scheduler.post("File_prototype_readTo",
-      [this._fdmsg,
-       Type.void_t.out_ptr.toMsg(buffer),
-       options],
-       buffer/*Ensure that |buffer| is not gc-ed*/);
-  },
-  /**
    * Write bytes from a buffer to this file.
    *
    * Note that, by default, this function may perform several I/O
@@ -680,10 +655,6 @@ File.prototype = {
       options = clone(options, ["outExecutionDuration"]);
       options.bytes = buffer.byteLength;
     }
-    // Note: Type.void_t.out_ptr.toMsg ensures that
-    // - the buffer is effectively shared (not neutered) between both
-    //   threads;
-    // - we take care of any |byteOffset|.
     return Scheduler.post("File_prototype_write",
       [this._fdmsg,
        Type.void_t.in_ptr.toMsg(buffer),
@@ -1012,7 +983,7 @@ if (!SharedAll.Constants.Win) {
 /**
  * Gets the number of bytes available on disk to the current user.
  *
- * @param {string} Platform-specific path to a directory on the disk to 
+ * @param {string} Platform-specific path to a directory on the disk to
  * query for free available bytes.
  *
  * @return {number} The number of bytes available for the current user.
@@ -1041,10 +1012,15 @@ File.removeEmptyDir = function removeEmptyDir(path, options) {
  * Remove an existing file.
  *
  * @param {string} path The name of the file.
+ * @param {*=} options Additional options.
+ *   - {bool} ignoreAbsent If |false|, throw an error if the file does
+ *     not exist. |true| by default.
+ *
+ * @throws {OS.File.Error} In case of I/O error.
  */
-File.remove = function remove(path) {
+File.remove = function remove(path, options) {
   return Scheduler.post("remove",
-    [Type.path.toMsg(path)]);
+    [Type.path.toMsg(path), options], path);
 };
 
 
@@ -1195,16 +1171,12 @@ File.writeAtomic = function writeAtomic(path, buffer, options = {}) {
   if (isTypedArray(buffer) && (!("bytes" in options))) {
     options.bytes = buffer.byteLength;
   };
-  // Note: Type.void_t.out_ptr.toMsg ensures that
-  // - the buffer is effectively shared (not neutered) between both
-  //   threads;
-  // - we take care of any |byteOffset|.
   let refObj = {};
   TelemetryStopwatch.start("OSFILE_WRITEATOMIC_JANK_MS", refObj);
   let promise = Scheduler.post("writeAtomic",
     [Type.path.toMsg(path),
      Type.void_t.in_ptr.toMsg(buffer),
-     options], [options, buffer]);
+     options], [options, buffer, path]);
   TelemetryStopwatch.finish("OSFILE_WRITEATOMIC_JANK_MS", refObj);
   return promise;
 };
@@ -1258,7 +1230,7 @@ File.GET_DEBUG = function GET_DEBUG() {
  *
  * @constructor
  */
-let DirectoryIterator = function DirectoryIterator(path, options) {
+var DirectoryIterator = function DirectoryIterator(path, options) {
   /**
    * Open the iterator on the worker thread
    *
@@ -1275,8 +1247,12 @@ let DirectoryIterator = function DirectoryIterator(path, options) {
   this._isClosed = false;
 };
 DirectoryIterator.prototype = {
-  iterator: function () this,
-  __iterator__: function () this,
+  iterator: function () {
+    return this;
+  },
+  __iterator__: function () {
+    return this;
+  },
 
   // Once close() is called, _itmsg should reject with a
   // StopIteration. However, we don't want to create the promise until
@@ -1487,11 +1463,16 @@ Object.defineProperty(OS.File, "queue", {
   }
 });
 
+// `true` if this is a content process, `false` otherwise.
+// It would be nicer to go through `Services.appInfo`, but some tests need to be
+// able to replace that field with a custom implementation before it is first
+// called.
+const isContent = Components.classes["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime).processType == Ci.nsIXULRuntime.PROCESS_TYPE_CONTENT;
+
 /**
  * Shutdown barriers, to let clients register to be informed during shutdown.
  */
-let Barriers = {
-  profileBeforeChange: new AsyncShutdown.Barrier("OS.File: Waiting for clients before profile-before-shutdown"),
+var Barriers = {
   shutdown: new AsyncShutdown.Barrier("OS.File: Waiting for clients before full shutdown"),
   /**
    * Return the shutdown state of OS.File
@@ -1519,25 +1500,35 @@ let Barriers = {
   }
 };
 
-File.profileBeforeChange = Barriers.profileBeforeChange.client;
+function setupShutdown(phaseName) {
+  Barriers[phaseName] = new AsyncShutdown.Barrier(`OS.File: Waiting for clients before ${phaseName}`),
+  File[phaseName] = Barriers[phaseName].client;
+
+  // Auto-flush OS.File during `phaseName`. This ensures that any I/O
+  // that has been queued *before* `phaseName` is properly completed.
+  // To ensure that I/O queued *during* `phaseName` change is completed,
+  // clients should register using AsyncShutdown.addBlocker.
+  AsyncShutdown[phaseName].addBlocker(
+    `OS.File: flush I/O queued before ${phaseName}`,
+    Task.async(function*() {
+      // Give clients a last chance to enqueue requests.
+      yield Barriers[phaseName].wait({crashAfterMS: null});
+
+      // Wait until all currently enqueued requests are completed.
+      yield Scheduler.queue;
+    }),
+    () => {
+      let details = Barriers.getDetails();
+      details.clients = Barriers[phaseName].state;
+      return details;
+    }
+  );
+}
+
+
+if (isContent) {
+  setupShutdown("contentChildShutdown");
+} else {
+  setupShutdown("profileBeforeChange")
+}
 File.shutdown = Barriers.shutdown.client;
-
-// Auto-flush OS.File during profile-before-change. This ensures that any I/O
-// that has been queued *before* profile-before-change is properly completed.
-// To ensure that I/O queued *during* profile-before-change is completed,
-// clients should register using AsyncShutdown.addBlocker.
-AsyncShutdown.profileBeforeChange.addBlocker(
-  "OS.File: flush I/O queued before profile-before-change",
-  Task.async(function*() {
-    // Give clients a last chance to enqueue requests.
-    yield Barriers.profileBeforeChange.wait({crashAfterMS: null});
-
-    // Wait until all currently enqueued requests are completed.
-    yield Scheduler.queue;
-  }),
-  () => {
-    let details = Barriers.getDetails();
-    details.clients = Barriers.profileBeforeChange.state;
-    return details;
-  }
-);

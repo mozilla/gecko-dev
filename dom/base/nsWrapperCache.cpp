@@ -6,7 +6,8 @@
 
 #include "nsWrapperCacheInlines.h"
 
-#include "jsproxy.h"
+#include "js/Class.h"
+#include "js/Proxy.h"
 #include "mozilla/dom/DOMJSProxyHandler.h"
 #include "mozilla/HoldDropJSObjects.h"
 #include "nsCycleCollectionTraversalCallback.h"
@@ -14,6 +15,14 @@
 
 using namespace mozilla;
 using namespace mozilla::dom;
+
+#ifdef DEBUG
+/* static */ bool
+nsWrapperCache::HasJSObjectMovedOp(JSObject* aWrapper)
+{
+    return js::HasObjectMovedOp(aWrapper);
+}
+#endif
 
 /* static */ void
 nsWrapperCache::HoldJSObjects(void* aScriptObjectHolder,
@@ -43,7 +52,7 @@ nsWrapperCache::ReleaseWrapper(void* aScriptObjectHolder)
 class DebugWrapperTraversalCallback : public nsCycleCollectionTraversalCallback
 {
 public:
-  explicit DebugWrapperTraversalCallback(void* aWrapper)
+  explicit DebugWrapperTraversalCallback(JSObject* aWrapper)
     : mFound(false)
     , mWrapper(aWrapper)
   {
@@ -60,11 +69,14 @@ public:
   {
   }
 
-  NS_IMETHOD_(void) NoteJSChild(void* aChild)
+  NS_IMETHOD_(void) NoteJSObject(JSObject* aChild)
   {
     if (aChild == mWrapper) {
       mFound = true;
     }
+  }
+  NS_IMETHOD_(void) NoteJSScript(JSScript* aChild)
+  {
   }
   NS_IMETHOD_(void) NoteXPCOMChild(nsISupports* aChild)
   {
@@ -81,15 +93,17 @@ public:
   bool mFound;
 
 private:
-  void* mWrapper;
+  JSObject* mWrapper;
 };
 
 static void
-DebugWrapperTraceCallback(void* aP, const char* aName, void* aClosure)
+DebugWrapperTraceCallback(JS::GCCellPtr aPtr, const char* aName, void* aClosure)
 {
   DebugWrapperTraversalCallback* callback =
     static_cast<DebugWrapperTraversalCallback*>(aClosure);
-  callback->NoteJSChild(aP);
+  if (aPtr.is<JSObject>()) {
+    callback->NoteJSObject(&aPtr.as<JSObject>());
+  }
 }
 
 void
@@ -102,6 +116,10 @@ nsWrapperCache::CheckCCWrapperTraversal(void* aScriptObjectHolder,
   }
 
   DebugWrapperTraversalCallback callback(wrapper);
+
+  // The CC traversal machinery cannot trigger GC; however, the analysis cannot
+  // see through the COM layer, so we use a suppression to help it.
+  JS::AutoSuppressGCAnalysis suppress;
 
   aTracer->Traverse(aScriptObjectHolder, callback);
   MOZ_ASSERT(callback.mFound,

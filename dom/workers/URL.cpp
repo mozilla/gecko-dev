@@ -1,37 +1,40 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "URL.h"
 
-#include "nsDOMFile.h"
-#include "nsIDocument.h"
 #include "nsIIOService.h"
 #include "nsPIDOMWindow.h"
 
+#include "mozilla/dom/File.h"
 #include "mozilla/dom/URL.h"
 #include "mozilla/dom/URLBinding.h"
 #include "mozilla/dom/URLSearchParams.h"
+#include "mozilla/dom/ipc/BlobChild.h"
+#include "mozilla/dom/ipc/nsIRemoteBlob.h"
+#include "mozilla/ipc/BackgroundChild.h"
 #include "nsGlobalWindow.h"
 #include "nsHostObjectProtocolHandler.h"
 #include "nsNetCID.h"
 #include "nsServiceManagerUtils.h"
 #include "nsThreadUtils.h"
 
-#include "File.h"
 #include "WorkerPrivate.h"
 #include "WorkerRunnable.h"
+#include "WorkerScope.h"
 
 BEGIN_WORKERS_NAMESPACE
 using mozilla::dom::GlobalObject;
 
-class URLProxy MOZ_FINAL
+class URLProxy final
 {
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(URLProxy)
 
-  explicit URLProxy(mozilla::dom::URL* aURL)
+  explicit URLProxy(already_AddRefed<mozilla::dom::URL> aURL)
     : mURL(aURL)
   {
     AssertIsOnMainThread();
@@ -60,50 +63,69 @@ private:
      MOZ_ASSERT(!mURL);
   }
 
-  nsRefPtr<mozilla::dom::URL> mURL;
+  RefPtr<mozilla::dom::URL> mURL;
 };
 
 // This class creates an URL from a DOM Blob on the main thread.
 class CreateURLRunnable : public WorkerMainThreadRunnable
 {
 private:
-  DOMFileImpl* mBlobImpl;
-  nsString& mURL;
+  BlobImpl* mBlobImpl;
+  nsAString& mURL;
 
 public:
-  CreateURLRunnable(WorkerPrivate* aWorkerPrivate, DOMFileImpl* aBlobImpl,
+  CreateURLRunnable(WorkerPrivate* aWorkerPrivate, BlobImpl* aBlobImpl,
                     const mozilla::dom::objectURLOptions& aOptions,
-                    nsString& aURL)
-  : WorkerMainThreadRunnable(aWorkerPrivate),
-    mBlobImpl(aBlobImpl),
-    mURL(aURL)
+                    nsAString& aURL)
+  : WorkerMainThreadRunnable(aWorkerPrivate)
+  , mBlobImpl(aBlobImpl)
+  , mURL(aURL)
   {
     MOZ_ASSERT(aBlobImpl);
+
+    DebugOnly<bool> isMutable;
+    MOZ_ASSERT(NS_SUCCEEDED(aBlobImpl->GetMutable(&isMutable)));
+    MOZ_ASSERT(!isMutable);
   }
 
   bool
   MainThreadRun()
   {
+    using namespace mozilla::ipc;
+
     AssertIsOnMainThread();
 
-    nsCOMPtr<nsIPrincipal> principal;
-    nsIDocument* doc = nullptr;
+    RefPtr<BlobImpl> newBlobImplHolder;
 
-    nsCOMPtr<nsPIDOMWindow> window = mWorkerPrivate->GetWindow();
-    if (window) {
-      doc = window->GetExtantDoc();
-      if (!doc) {
-        SetDOMStringToNull(mURL);
-        return false;
+    if (nsCOMPtr<nsIRemoteBlob> remoteBlob = do_QueryInterface(mBlobImpl)) {
+      if (BlobChild* blobChild = remoteBlob->GetBlobChild()) {
+        if (PBackgroundChild* blobManager = blobChild->GetBackgroundManager()) {
+          PBackgroundChild* backgroundManager =
+            BackgroundChild::GetForCurrentThread();
+          MOZ_ASSERT(backgroundManager);
+
+          if (blobManager != backgroundManager) {
+            // Always make sure we have a blob from an actor we can use on this
+            // thread.
+            blobChild = BlobChild::GetOrCreate(backgroundManager, mBlobImpl);
+            MOZ_ASSERT(blobChild);
+
+            newBlobImplHolder = blobChild->GetBlobImpl();
+            MOZ_ASSERT(newBlobImplHolder);
+
+            mBlobImpl = newBlobImplHolder;
+          }
+        }
       }
-
-      principal = doc->NodePrincipal();
-    } else {
-      MOZ_ASSERT_IF(!mWorkerPrivate->GetParent(), mWorkerPrivate->IsChromeWorker());
-      principal = mWorkerPrivate->GetPrincipal();
     }
 
-    nsCString url;
+    DebugOnly<bool> isMutable;
+    MOZ_ASSERT(NS_SUCCEEDED(mBlobImpl->GetMutable(&isMutable)));
+    MOZ_ASSERT(!isMutable);
+
+    nsCOMPtr<nsIPrincipal> principal = mWorkerPrivate->GetPrincipal();
+
+    nsAutoCString url;
     nsresult rv = nsHostObjectProtocolHandler::AddDataEntry(
         NS_LITERAL_CSTRING(BLOBURI_SCHEME),
         mBlobImpl, principal, url);
@@ -114,10 +136,22 @@ public:
       return false;
     }
 
-    if (doc) {
-      doc->RegisterHostObjectUri(url);
-    } else {
-      mWorkerPrivate->RegisterHostObjectURI(url);
+    if (!mWorkerPrivate->IsSharedWorker() &&
+        !mWorkerPrivate->IsServiceWorker()) {
+      // Walk up to top worker object.
+      WorkerPrivate* wp = mWorkerPrivate;
+      while (WorkerPrivate* parent = wp->GetParent()) {
+        wp = parent;
+      }
+
+      nsCOMPtr<nsIScriptContext> sc = wp->GetScriptContext();
+      // We could not have a ScriptContext in JSM code. In this case, we leak.
+      if (sc) {
+        nsCOMPtr<nsIGlobalObject> global = sc->GetGlobalObject();
+        MOZ_ASSERT(global);
+
+        global->RegisterHostObjectURI(url);
+      }
     }
 
     mURL = NS_ConvertUTF8toUTF16(url);
@@ -134,8 +168,8 @@ private:
 public:
   RevokeURLRunnable(WorkerPrivate* aWorkerPrivate,
                     const nsAString& aURL)
-  : WorkerMainThreadRunnable(aWorkerPrivate),
-    mURL(aURL)
+  : WorkerMainThreadRunnable(aWorkerPrivate)
+  , mURL(aURL)
   {}
 
   bool
@@ -143,40 +177,36 @@ public:
   {
     AssertIsOnMainThread();
 
-    nsCOMPtr<nsIPrincipal> principal;
-    nsIDocument* doc = nullptr;
-
-    nsCOMPtr<nsPIDOMWindow> window = mWorkerPrivate->GetWindow();
-    if (window) {
-      doc = window->GetExtantDoc();
-      if (!doc) {
-        return false;
-      }
-
-      principal = doc->NodePrincipal();
-    } else {
-      MOZ_ASSERT_IF(!mWorkerPrivate->GetParent(), mWorkerPrivate->IsChromeWorker());
-      principal = mWorkerPrivate->GetPrincipal();
-    }
-
     NS_ConvertUTF16toUTF8 url(mURL);
 
     nsIPrincipal* urlPrincipal =
       nsHostObjectProtocolHandler::GetDataEntryPrincipal(url);
 
+    nsCOMPtr<nsIPrincipal> principal = mWorkerPrivate->GetPrincipal();
+
     bool subsumes;
     if (urlPrincipal &&
         NS_SUCCEEDED(principal->Subsumes(urlPrincipal, &subsumes)) &&
         subsumes) {
-      if (doc) {
-        doc->UnregisterHostObjectUri(url);
-      }
-
       nsHostObjectProtocolHandler::RemoveDataEntry(url);
     }
 
-    if (!window) {
-      mWorkerPrivate->UnregisterHostObjectURI(url);
+    if (!mWorkerPrivate->IsSharedWorker() &&
+        !mWorkerPrivate->IsServiceWorker()) {
+      // Walk up to top worker object.
+      WorkerPrivate* wp = mWorkerPrivate;
+      while (WorkerPrivate* parent = wp->GetParent()) {
+        wp = parent;
+      }
+
+      nsCOMPtr<nsIScriptContext> sc = wp->GetScriptContext();
+      // We could not have a ScriptContext in JSM code. In this case, we leak.
+      if (sc) {
+        nsCOMPtr<nsIGlobalObject> global = sc->GetGlobalObject();
+        MOZ_ASSERT(global);
+
+        global->UnregisterHostObjectURI(url);
+      }
     }
 
     return true;
@@ -189,21 +219,25 @@ class ConstructorRunnable : public WorkerMainThreadRunnable
 private:
   const nsString mURL;
 
-  const nsString mBase;
-  nsRefPtr<URLProxy> mBaseProxy;
+  nsString mBase; // IsVoid() if we have no base URI string.
+  RefPtr<URLProxy> mBaseProxy;
   mozilla::ErrorResult& mRv;
 
-  nsRefPtr<URLProxy> mRetval;
+  RefPtr<URLProxy> mRetval;
 
 public:
   ConstructorRunnable(WorkerPrivate* aWorkerPrivate,
-                      const nsAString& aURL, const nsAString& aBase,
+                      const nsAString& aURL, const Optional<nsAString>& aBase,
                       mozilla::ErrorResult& aRv)
   : WorkerMainThreadRunnable(aWorkerPrivate)
   , mURL(aURL)
-  , mBase(aBase)
   , mRv(aRv)
   {
+    if (aBase.WasPassed()) {
+      mBase = aBase.Value();
+    } else {
+      mBase.SetIsVoid(true);
+    }
     mWorkerPrivate->AssertIsOnWorkerThread();
   }
 
@@ -215,6 +249,7 @@ public:
   , mBaseProxy(aBaseProxy)
   , mRv(aRv)
   {
+    mBase.SetIsVoid(true);
     mWorkerPrivate->AssertIsOnWorkerThread();
   }
 
@@ -223,35 +258,21 @@ public:
   {
     AssertIsOnMainThread();
 
-    nsresult rv;
-    nsCOMPtr<nsIIOService> ioService(do_GetService(NS_IOSERVICE_CONTRACTID, &rv));
-    if (NS_FAILED(rv)) {
-      mRv.Throw(rv);
-      return true;
-    }
-
-    nsCOMPtr<nsIURI> baseURL;
-
-    if (!mBaseProxy) {
-      rv = ioService->NewURI(NS_ConvertUTF16toUTF8(mBase), nullptr, nullptr,
-                             getter_AddRefs(baseURL));
-      if (NS_FAILED(rv)) {
-        mRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
-        return true;
-      }
+    RefPtr<mozilla::dom::URL> url;
+    if (mBaseProxy) {
+      url = mozilla::dom::URL::Constructor(nullptr, mURL, mBaseProxy->URI(),
+                                           mRv);
+    } else if (!mBase.IsVoid()) {
+      url = mozilla::dom::URL::Constructor(nullptr, mURL, mBase, mRv);
     } else {
-      baseURL = mBaseProxy->URI();
+      url = mozilla::dom::URL::Constructor(nullptr, mURL, nullptr, mRv);
     }
 
-    nsCOMPtr<nsIURI> url;
-    rv = ioService->NewURI(NS_ConvertUTF16toUTF8(mURL), nullptr, baseURL,
-                           getter_AddRefs(url));
-    if (NS_FAILED(rv)) {
-      mRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
+    if (mRv.Failed()) {
       return true;
     }
 
-    mRetval = new URLProxy(new mozilla::dom::URL(url));
+    mRetval = new URLProxy(url.forget());
     return true;
   }
 
@@ -281,7 +302,7 @@ public:
   }
 
 private:
-  nsRefPtr<URLProxy> mURLProxy;
+  RefPtr<URLProxy> mURLProxy;
 };
 
 // This class is the generic getter for any URL property.
@@ -303,7 +324,7 @@ public:
   };
 
   GetterRunnable(WorkerPrivate* aWorkerPrivate,
-                 GetterType aType, nsString& aValue,
+                 GetterType aType, nsAString& aValue,
                  URLProxy* aURLProxy)
   : WorkerMainThreadRunnable(aWorkerPrivate)
   , mValue(aValue)
@@ -318,61 +339,59 @@ public:
   {
     AssertIsOnMainThread();
 
-    ErrorResult rv;
     switch (mType) {
       case GetterHref:
-        mURLProxy->URL()->GetHref(mValue, rv);
+        mURLProxy->URL()->GetHref(mValue);
         break;
 
       case GetterOrigin:
-        mURLProxy->URL()->GetOrigin(mValue, rv);
+        mURLProxy->URL()->GetOrigin(mValue);
         break;
 
       case GetterProtocol:
-        mURLProxy->URL()->GetProtocol(mValue, rv);
+        mURLProxy->URL()->GetProtocol(mValue);
         break;
 
       case GetterUsername:
-        mURLProxy->URL()->GetUsername(mValue, rv);
+        mURLProxy->URL()->GetUsername(mValue);
         break;
 
       case GetterPassword:
-        mURLProxy->URL()->GetPassword(mValue, rv);
+        mURLProxy->URL()->GetPassword(mValue);
         break;
 
       case GetterHost:
-        mURLProxy->URL()->GetHost(mValue, rv);
+        mURLProxy->URL()->GetHost(mValue);
         break;
 
       case GetterHostname:
-        mURLProxy->URL()->GetHostname(mValue, rv);
+        mURLProxy->URL()->GetHostname(mValue);
         break;
 
       case GetterPort:
-        mURLProxy->URL()->GetPort(mValue, rv);
+        mURLProxy->URL()->GetPort(mValue);
         break;
 
       case GetterPathname:
-        mURLProxy->URL()->GetPathname(mValue, rv);
+        mURLProxy->URL()->GetPathname(mValue);
         break;
 
       case GetterSearch:
-        mURLProxy->URL()->GetSearch(mValue, rv);
+        mURLProxy->URL()->GetSearch(mValue);
         break;
 
       case GetterHash:
-        mURLProxy->URL()->GetHash(mValue, rv);
+        mURLProxy->URL()->GetHash(mValue);
         break;
     }
 
-    MOZ_ASSERT(!rv.Failed());
     return true;
   }
 
 private:
-  nsString& mValue;
+  nsAString& mValue;
   GetterType mType;
-  nsRefPtr<URLProxy> mURLProxy;
+  RefPtr<URLProxy> mURLProxy;
 };
 
 // This class is the generic setter for any URL property.
@@ -394,12 +413,12 @@ public:
 
   SetterRunnable(WorkerPrivate* aWorkerPrivate,
                  SetterType aType, const nsAString& aValue,
-                 URLProxy* aURLProxy, mozilla::ErrorResult& aRv)
+                 URLProxy* aURLProxy)
   : WorkerMainThreadRunnable(aWorkerPrivate)
   , mValue(aValue)
   , mType(aType)
   , mURLProxy(aURLProxy)
-  , mRv(aRv)
+  , mFailed(false)
   {
     mWorkerPrivate->AssertIsOnWorkerThread();
   }
@@ -410,58 +429,70 @@ public:
     AssertIsOnMainThread();
 
     switch (mType) {
-      case SetterHref:
-        mURLProxy->URL()->SetHref(mValue, mRv);
+      case SetterHref: {
+        ErrorResult rv;
+        mURLProxy->URL()->SetHref(mValue, rv);
+        if (NS_WARN_IF(rv.Failed())) {
+          rv.SuppressException();
+          mFailed = true;
+        }
+
         break;
+      }
 
       case SetterProtocol:
-        mURLProxy->URL()->SetProtocol(mValue, mRv);
+        mURLProxy->URL()->SetProtocol(mValue);
         break;
 
       case SetterUsername:
-        mURLProxy->URL()->SetUsername(mValue, mRv);
+        mURLProxy->URL()->SetUsername(mValue);
         break;
 
       case SetterPassword:
-        mURLProxy->URL()->SetPassword(mValue, mRv);
+        mURLProxy->URL()->SetPassword(mValue);
         break;
 
       case SetterHost:
-        mURLProxy->URL()->SetHost(mValue, mRv);
+        mURLProxy->URL()->SetHost(mValue);
         break;
 
       case SetterHostname:
-        mURLProxy->URL()->SetHostname(mValue, mRv);
+        mURLProxy->URL()->SetHostname(mValue);
         break;
 
       case SetterPort:
-        mURLProxy->URL()->SetPort(mValue, mRv);
+        mURLProxy->URL()->SetPort(mValue);
         break;
 
       case SetterPathname:
-        mURLProxy->URL()->SetPathname(mValue, mRv);
+        mURLProxy->URL()->SetPathname(mValue);
         break;
 
       case SetterSearch:
-        mURLProxy->URL()->SetSearch(mValue, mRv);
+        mURLProxy->URL()->SetSearch(mValue);
         break;
 
       case SetterHash:
-        mURLProxy->URL()->SetHash(mValue, mRv);
+        mURLProxy->URL()->SetHash(mValue);
         break;
     }
 
     return true;
   }
 
+  bool Failed() const
+  {
+    return mFailed;
+  }
+
 private:
   const nsString mValue;
   SetterType mType;
-  nsRefPtr<URLProxy> mURLProxy;
-  mozilla::ErrorResult& mRv;
+  RefPtr<URLProxy> mURLProxy;
+  bool mFailed;
 };
 
-NS_IMPL_CYCLE_COLLECTION(URL, mSearchParams)
+NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(URL, mSearchParams)
 
 // The reason for using worker::URL is to have different refcnt logging than
 // for main thread URL.
@@ -469,6 +500,7 @@ NS_IMPL_CYCLE_COLLECTING_ADDREF(workers::URL)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(workers::URL)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(URL)
+  NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
@@ -480,21 +512,24 @@ URL::Constructor(const GlobalObject& aGlobal, const nsAString& aUrl,
   JSContext* cx = aGlobal.Context();
   WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
 
-  nsRefPtr<ConstructorRunnable> runnable =
+  RefPtr<ConstructorRunnable> runnable =
     new ConstructorRunnable(workerPrivate, aUrl, aBase.GetURLProxy(), aRv);
 
-  if (!runnable->Dispatch(cx)) {
-    JS_ReportPendingException(cx);
-  }
+  return FinishConstructor(cx, workerPrivate, runnable, aRv);
+}
 
-  nsRefPtr<URLProxy> proxy = runnable->GetURLProxy();
-  if (!proxy) {
-    aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
-    return nullptr;
-  }
+// static
+already_AddRefed<URL>
+URL::Constructor(const GlobalObject& aGlobal, const nsAString& aUrl,
+                 const Optional<nsAString>& aBase, ErrorResult& aRv)
+{
+  JSContext* cx = aGlobal.Context();
+  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
 
-  nsRefPtr<URL> url = new URL(workerPrivate, proxy);
-  return url.forget();
+  RefPtr<ConstructorRunnable> runnable =
+    new ConstructorRunnable(workerPrivate, aUrl, aBase, aRv);
+
+  return FinishConstructor(cx, workerPrivate, runnable, aRv);
 }
 
 // static
@@ -505,20 +540,31 @@ URL::Constructor(const GlobalObject& aGlobal, const nsAString& aUrl,
   JSContext* cx = aGlobal.Context();
   WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
 
-  nsRefPtr<ConstructorRunnable> runnable =
-    new ConstructorRunnable(workerPrivate, aUrl, aBase, aRv);
+  Optional<nsAString> base;
+  base = &aBase;
+  RefPtr<ConstructorRunnable> runnable =
+    new ConstructorRunnable(workerPrivate, aUrl, base, aRv);
 
-  if (!runnable->Dispatch(cx)) {
-    JS_ReportPendingException(cx);
+  return FinishConstructor(cx, workerPrivate, runnable, aRv);
+}
+
+// static
+already_AddRefed<URL>
+URL::FinishConstructor(JSContext* aCx, WorkerPrivate* aPrivate,
+                       ConstructorRunnable* aRunnable, ErrorResult& aRv)
+{
+  aRunnable->Dispatch(aRv);
+  if (aRv.Failed()) {
+    return nullptr;
   }
 
-  nsRefPtr<URLProxy> proxy = runnable->GetURLProxy();
+  RefPtr<URLProxy> proxy = aRunnable->GetURLProxy();
   if (!proxy) {
     aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
     return nullptr;
   }
 
-  nsRefPtr<URL> url = new URL(workerPrivate, proxy);
+  RefPtr<URL> url = new URL(aPrivate, proxy);
   return url.forget();
 }
 
@@ -534,7 +580,7 @@ URL::~URL()
   MOZ_COUNT_DTOR(workers::URL);
 
   if (mURLProxy) {
-    nsRefPtr<TeardownURLRunnable> runnable =
+    RefPtr<TeardownURLRunnable> runnable =
       new TeardownURLRunnable(mURLProxy);
     mURLProxy = nullptr;
 
@@ -545,254 +591,232 @@ URL::~URL()
 }
 
 JSObject*
-URL::WrapObject(JSContext* aCx)
+URL::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return URLBinding_workers::Wrap(aCx, this);
+  return URLBinding_workers::Wrap(aCx, this, aGivenProto);
 }
 
 void
-URL::GetHref(nsString& aHref, ErrorResult& aRv) const
+URL::GetHref(nsAString& aHref, ErrorResult& aRv) const
 {
-  nsRefPtr<GetterRunnable> runnable =
+  RefPtr<GetterRunnable> runnable =
     new GetterRunnable(mWorkerPrivate, GetterRunnable::GetterHref, aHref,
                        mURLProxy);
 
-  if (!runnable->Dispatch(mWorkerPrivate->GetJSContext())) {
-    JS_ReportPendingException(mWorkerPrivate->GetJSContext());
-  }
+  runnable->Dispatch(aRv);
 }
 
 void
 URL::SetHref(const nsAString& aHref, ErrorResult& aRv)
 {
-  nsRefPtr<SetterRunnable> runnable =
+  RefPtr<SetterRunnable> runnable =
     new SetterRunnable(mWorkerPrivate, SetterRunnable::SetterHref, aHref,
-                       mURLProxy, aRv);
+                       mURLProxy);
 
-  if (!runnable->Dispatch(mWorkerPrivate->GetJSContext())) {
-    JS_ReportPendingException(mWorkerPrivate->GetJSContext());
+  runnable->Dispatch(aRv);
+  if (aRv.Failed()) {
+    return;
+  }
+
+  if (runnable->Failed()) {
+    aRv.ThrowTypeError<MSG_INVALID_URL>(aHref);
+    return;
   }
 
   UpdateURLSearchParams();
 }
 
 void
-URL::GetOrigin(nsString& aOrigin, ErrorResult& aRv) const
+URL::GetOrigin(nsAString& aOrigin, ErrorResult& aRv) const
 {
-  nsRefPtr<GetterRunnable> runnable =
+  RefPtr<GetterRunnable> runnable =
     new GetterRunnable(mWorkerPrivate, GetterRunnable::GetterOrigin, aOrigin,
                        mURLProxy);
 
-  if (!runnable->Dispatch(mWorkerPrivate->GetJSContext())) {
-    JS_ReportPendingException(mWorkerPrivate->GetJSContext());
-  }
+  runnable->Dispatch(aRv);
 }
 
 void
-URL::GetProtocol(nsString& aProtocol, ErrorResult& aRv) const
+URL::GetProtocol(nsAString& aProtocol, ErrorResult& aRv) const
 {
-  nsRefPtr<GetterRunnable> runnable =
+  RefPtr<GetterRunnable> runnable =
     new GetterRunnable(mWorkerPrivate, GetterRunnable::GetterProtocol, aProtocol,
                        mURLProxy);
 
-  if (!runnable->Dispatch(mWorkerPrivate->GetJSContext())) {
-    JS_ReportPendingException(mWorkerPrivate->GetJSContext());
-  }
+  runnable->Dispatch(aRv);
 }
 
 void
 URL::SetProtocol(const nsAString& aProtocol, ErrorResult& aRv)
 {
-  ErrorResult rv;
-  nsRefPtr<SetterRunnable> runnable =
+  RefPtr<SetterRunnable> runnable =
     new SetterRunnable(mWorkerPrivate, SetterRunnable::SetterProtocol,
-                       aProtocol, mURLProxy, rv);
+                       aProtocol, mURLProxy);
 
-  if (!runnable->Dispatch(mWorkerPrivate->GetJSContext())) {
-    JS_ReportPendingException(mWorkerPrivate->GetJSContext());
-  }
+  runnable->Dispatch(aRv);
+
+  MOZ_ASSERT(!runnable->Failed());
 }
 
 void
-URL::GetUsername(nsString& aUsername, ErrorResult& aRv) const
+URL::GetUsername(nsAString& aUsername, ErrorResult& aRv) const
 {
-  nsRefPtr<GetterRunnable> runnable =
+  RefPtr<GetterRunnable> runnable =
     new GetterRunnable(mWorkerPrivate, GetterRunnable::GetterUsername, aUsername,
                        mURLProxy);
 
-  if (!runnable->Dispatch(mWorkerPrivate->GetJSContext())) {
-    JS_ReportPendingException(mWorkerPrivate->GetJSContext());
-  }
+  runnable->Dispatch(aRv);
 }
 
 void
 URL::SetUsername(const nsAString& aUsername, ErrorResult& aRv)
 {
-  ErrorResult rv;
-  nsRefPtr<SetterRunnable> runnable =
+  RefPtr<SetterRunnable> runnable =
     new SetterRunnable(mWorkerPrivate, SetterRunnable::SetterUsername,
-                       aUsername, mURLProxy, rv);
+                       aUsername, mURLProxy);
 
-  if (!runnable->Dispatch(mWorkerPrivate->GetJSContext())) {
-    JS_ReportPendingException(mWorkerPrivate->GetJSContext());
-  }
+  runnable->Dispatch(aRv);
+
+  MOZ_ASSERT(!runnable->Failed());
 }
 
 void
-URL::GetPassword(nsString& aPassword, ErrorResult& aRv) const
+URL::GetPassword(nsAString& aPassword, ErrorResult& aRv) const
 {
-  nsRefPtr<GetterRunnable> runnable =
+  RefPtr<GetterRunnable> runnable =
     new GetterRunnable(mWorkerPrivate, GetterRunnable::GetterPassword, aPassword,
                        mURLProxy);
 
-  if (!runnable->Dispatch(mWorkerPrivate->GetJSContext())) {
-    JS_ReportPendingException(mWorkerPrivate->GetJSContext());
-  }
+  runnable->Dispatch(aRv);
 }
 
 void
 URL::SetPassword(const nsAString& aPassword, ErrorResult& aRv)
 {
-  ErrorResult rv;
-  nsRefPtr<SetterRunnable> runnable =
+  RefPtr<SetterRunnable> runnable =
     new SetterRunnable(mWorkerPrivate, SetterRunnable::SetterPassword,
-                       aPassword, mURLProxy, rv);
+                       aPassword, mURLProxy);
 
-  if (!runnable->Dispatch(mWorkerPrivate->GetJSContext())) {
-    JS_ReportPendingException(mWorkerPrivate->GetJSContext());
-  }
+  runnable->Dispatch(aRv);
+
+  MOZ_ASSERT(!runnable->Failed());
 }
 
 void
-URL::GetHost(nsString& aHost, ErrorResult& aRv) const
+URL::GetHost(nsAString& aHost, ErrorResult& aRv) const
 {
-  nsRefPtr<GetterRunnable> runnable =
+  RefPtr<GetterRunnable> runnable =
     new GetterRunnable(mWorkerPrivate, GetterRunnable::GetterHost, aHost,
                        mURLProxy);
 
-  if (!runnable->Dispatch(mWorkerPrivate->GetJSContext())) {
-    JS_ReportPendingException(mWorkerPrivate->GetJSContext());
-  }
+  runnable->Dispatch(aRv);
 }
 
 void
 URL::SetHost(const nsAString& aHost, ErrorResult& aRv)
 {
-  ErrorResult rv;
-  nsRefPtr<SetterRunnable> runnable =
+  RefPtr<SetterRunnable> runnable =
     new SetterRunnable(mWorkerPrivate, SetterRunnable::SetterHost,
-                       aHost, mURLProxy, rv);
+                       aHost, mURLProxy);
 
-  if (!runnable->Dispatch(mWorkerPrivate->GetJSContext())) {
-    JS_ReportPendingException(mWorkerPrivate->GetJSContext());
-  }
+  runnable->Dispatch(aRv);
+
+  MOZ_ASSERT(!runnable->Failed());
 }
 
 void
-URL::GetHostname(nsString& aHostname, ErrorResult& aRv) const
+URL::GetHostname(nsAString& aHostname, ErrorResult& aRv) const
 {
-  nsRefPtr<GetterRunnable> runnable =
+  RefPtr<GetterRunnable> runnable =
     new GetterRunnable(mWorkerPrivate, GetterRunnable::GetterHostname, aHostname,
                        mURLProxy);
 
-  if (!runnable->Dispatch(mWorkerPrivate->GetJSContext())) {
-    JS_ReportPendingException(mWorkerPrivate->GetJSContext());
-  }
+  runnable->Dispatch(aRv);
 }
 
 void
 URL::SetHostname(const nsAString& aHostname, ErrorResult& aRv)
 {
-  ErrorResult rv;
-  nsRefPtr<SetterRunnable> runnable =
+  RefPtr<SetterRunnable> runnable =
     new SetterRunnable(mWorkerPrivate, SetterRunnable::SetterHostname,
-                       aHostname, mURLProxy, rv);
+                       aHostname, mURLProxy);
 
-  if (!runnable->Dispatch(mWorkerPrivate->GetJSContext())) {
-    JS_ReportPendingException(mWorkerPrivate->GetJSContext());
-  }
+  runnable->Dispatch(aRv);
+
+  MOZ_ASSERT(!runnable->Failed());
 }
 
 void
-URL::GetPort(nsString& aPort, ErrorResult& aRv) const
+URL::GetPort(nsAString& aPort, ErrorResult& aRv) const
 {
-  nsRefPtr<GetterRunnable> runnable =
+  RefPtr<GetterRunnable> runnable =
     new GetterRunnable(mWorkerPrivate, GetterRunnable::GetterPort, aPort,
                        mURLProxy);
 
-  if (!runnable->Dispatch(mWorkerPrivate->GetJSContext())) {
-    JS_ReportPendingException(mWorkerPrivate->GetJSContext());
-  }
+  runnable->Dispatch(aRv);
 }
 
 void
 URL::SetPort(const nsAString& aPort, ErrorResult& aRv)
 {
-  ErrorResult rv;
-  nsRefPtr<SetterRunnable> runnable =
+  RefPtr<SetterRunnable> runnable =
     new SetterRunnable(mWorkerPrivate, SetterRunnable::SetterPort,
-                       aPort, mURLProxy, rv);
+                       aPort, mURLProxy);
 
-  if (!runnable->Dispatch(mWorkerPrivate->GetJSContext())) {
-    JS_ReportPendingException(mWorkerPrivate->GetJSContext());
-  }
+  runnable->Dispatch(aRv);
+
+  MOZ_ASSERT(!runnable->Failed());
 }
 
 void
-URL::GetPathname(nsString& aPathname, ErrorResult& aRv) const
+URL::GetPathname(nsAString& aPathname, ErrorResult& aRv) const
 {
-  nsRefPtr<GetterRunnable> runnable =
+  RefPtr<GetterRunnable> runnable =
     new GetterRunnable(mWorkerPrivate, GetterRunnable::GetterPathname, aPathname,
                        mURLProxy);
 
-  if (!runnable->Dispatch(mWorkerPrivate->GetJSContext())) {
-    JS_ReportPendingException(mWorkerPrivate->GetJSContext());
-  }
+  runnable->Dispatch(aRv);
 }
 
 void
 URL::SetPathname(const nsAString& aPathname, ErrorResult& aRv)
 {
-  ErrorResult rv;
-  nsRefPtr<SetterRunnable> runnable =
+  RefPtr<SetterRunnable> runnable =
     new SetterRunnable(mWorkerPrivate, SetterRunnable::SetterPathname,
-                       aPathname, mURLProxy, rv);
+                       aPathname, mURLProxy);
 
-  if (!runnable->Dispatch(mWorkerPrivate->GetJSContext())) {
-    JS_ReportPendingException(mWorkerPrivate->GetJSContext());
-  }
+  runnable->Dispatch(aRv);
+
+  MOZ_ASSERT(!runnable->Failed());
 }
 
 void
-URL::GetSearch(nsString& aSearch, ErrorResult& aRv) const
+URL::GetSearch(nsAString& aSearch, ErrorResult& aRv) const
 {
-  nsRefPtr<GetterRunnable> runnable =
+  RefPtr<GetterRunnable> runnable =
     new GetterRunnable(mWorkerPrivate, GetterRunnable::GetterSearch, aSearch,
                        mURLProxy);
 
-  if (!runnable->Dispatch(mWorkerPrivate->GetJSContext())) {
-    JS_ReportPendingException(mWorkerPrivate->GetJSContext());
-  }
+  runnable->Dispatch(aRv);
 }
 
 void
 URL::SetSearch(const nsAString& aSearch, ErrorResult& aRv)
 {
-  SetSearchInternal(aSearch);
+  SetSearchInternal(aSearch, aRv);
   UpdateURLSearchParams();
 }
 
 void
-URL::SetSearchInternal(const nsAString& aSearch)
+URL::SetSearchInternal(const nsAString& aSearch, ErrorResult& aRv)
 {
-  ErrorResult rv;
-  nsRefPtr<SetterRunnable> runnable =
+  RefPtr<SetterRunnable> runnable =
     new SetterRunnable(mWorkerPrivate, SetterRunnable::SetterSearch,
-                       aSearch, mURLProxy, rv);
+                       aSearch, mURLProxy);
 
-  if (!runnable->Dispatch(mWorkerPrivate->GetJSContext())) {
-    JS_ReportPendingException(mWorkerPrivate->GetJSContext());
-  }
+  runnable->Dispatch(aRv);
+
+  MOZ_ASSERT(!runnable->Failed());
 }
 
 mozilla::dom::URLSearchParams*
@@ -803,95 +827,81 @@ URL::SearchParams()
 }
 
 void
-URL::SetSearchParams(URLSearchParams& aSearchParams)
+URL::GetHash(nsAString& aHash, ErrorResult& aRv) const
 {
-  if (mSearchParams) {
-    mSearchParams->RemoveObserver(this);
-  }
-
-  mSearchParams = &aSearchParams;
-  mSearchParams->AddObserver(this);
-
-  nsString search;
-  mSearchParams->Serialize(search);
-  SetSearchInternal(search);
-}
-
-void
-URL::GetHash(nsString& aHash, ErrorResult& aRv) const
-{
-  nsRefPtr<GetterRunnable> runnable =
+  RefPtr<GetterRunnable> runnable =
     new GetterRunnable(mWorkerPrivate, GetterRunnable::GetterHash, aHash,
                        mURLProxy);
 
-  if (!runnable->Dispatch(mWorkerPrivate->GetJSContext())) {
-    JS_ReportPendingException(mWorkerPrivate->GetJSContext());
-  }
+  runnable->Dispatch(aRv);
 }
 
 void
 URL::SetHash(const nsAString& aHash, ErrorResult& aRv)
 {
-  ErrorResult rv;
-  nsRefPtr<SetterRunnable> runnable =
+  RefPtr<SetterRunnable> runnable =
     new SetterRunnable(mWorkerPrivate, SetterRunnable::SetterHash,
-                       aHash, mURLProxy, rv);
+                       aHash, mURLProxy);
 
-  if (!runnable->Dispatch(mWorkerPrivate->GetJSContext())) {
-    JS_ReportPendingException(mWorkerPrivate->GetJSContext());
-  }
+  runnable->Dispatch(aRv);
+
+  MOZ_ASSERT(!runnable->Failed());
 }
 
 // static
 void
-URL::CreateObjectURL(const GlobalObject& aGlobal, JSObject* aBlob,
+URL::CreateObjectURL(const GlobalObject& aGlobal, Blob& aBlob,
                      const mozilla::dom::objectURLOptions& aOptions,
-                     nsString& aResult, mozilla::ErrorResult& aRv)
+                     nsAString& aResult, mozilla::ErrorResult& aRv)
 {
   JSContext* cx = aGlobal.Context();
   WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
 
-  nsCOMPtr<nsIDOMBlob> blob = file::GetDOMBlobFromJSObject(aBlob);
-  if (!blob) {
-    SetDOMStringToNull(aResult);
+  RefPtr<BlobImpl> blobImpl = aBlob.Impl();
+  MOZ_ASSERT(blobImpl);
 
-    NS_NAMED_LITERAL_STRING(argStr, "Argument 1 of URL.createObjectURL");
-    NS_NAMED_LITERAL_STRING(blobStr, "Blob");
-    aRv.ThrowTypeError(MSG_DOES_NOT_IMPLEMENT_INTERFACE, &argStr, &blobStr);
+  aRv = blobImpl->SetMutable(false);
+  if (NS_WARN_IF(aRv.Failed())) {
     return;
   }
 
-  DOMFile* domBlob = static_cast<DOMFile*>(blob.get());
+  RefPtr<CreateURLRunnable> runnable =
+    new CreateURLRunnable(workerPrivate, blobImpl, aOptions, aResult);
 
-  nsRefPtr<CreateURLRunnable> runnable =
-    new CreateURLRunnable(workerPrivate, domBlob->Impl(), aOptions, aResult);
+  runnable->Dispatch(aRv);
+  if (aRv.Failed()) {
+    return;
+  }
 
-  if (!runnable->Dispatch(cx)) {
-    JS_ReportPendingException(cx);
+  if (workerPrivate->IsSharedWorker() || workerPrivate->IsServiceWorker()) {
+    WorkerGlobalScope* scope = workerPrivate->GlobalScope();
+    MOZ_ASSERT(scope);
+
+    scope->RegisterHostObjectURI(NS_ConvertUTF16toUTF8(aResult));
   }
 }
 
 // static
 void
-URL::CreateObjectURL(const GlobalObject& aGlobal, JSObject& aBlob,
-                     const mozilla::dom::objectURLOptions& aOptions,
-                     nsString& aResult, mozilla::ErrorResult& aRv)
-{
-  return CreateObjectURL(aGlobal, &aBlob, aOptions, aResult, aRv);
-}
-
-// static
-void
-URL::RevokeObjectURL(const GlobalObject& aGlobal, const nsAString& aUrl)
+URL::RevokeObjectURL(const GlobalObject& aGlobal, const nsAString& aUrl,
+                     ErrorResult& aRv)
 {
   JSContext* cx = aGlobal.Context();
   WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
 
-  nsRefPtr<RevokeURLRunnable> runnable =
+  RefPtr<RevokeURLRunnable> runnable =
     new RevokeURLRunnable(workerPrivate, aUrl);
 
-  if (!runnable->Dispatch(cx)) {
-    JS_ReportPendingException(cx);
+  runnable->Dispatch(aRv);
+  if (aRv.Failed()) {
+    return;
+  }
+
+  if (workerPrivate->IsSharedWorker() || workerPrivate->IsServiceWorker()) {
+    WorkerGlobalScope* scope = workerPrivate->GlobalScope();
+    MOZ_ASSERT(scope);
+
+    scope->UnregisterHostObjectURI(NS_ConvertUTF16toUTF8(aUrl));
   }
 }
 
@@ -901,19 +911,24 @@ URL::URLSearchParamsUpdated(URLSearchParams* aSearchParams)
   MOZ_ASSERT(mSearchParams);
   MOZ_ASSERT(mSearchParams == aSearchParams);
 
-  nsString search;
+  nsAutoString search;
   mSearchParams->Serialize(search);
-  SetSearchInternal(search);
+  ErrorResult rv;
+  SetSearchInternal(search, rv);
+  // XXXbz and now what?  We're supposed to stop everything if rv failed!
+  rv.SuppressException();
 }
 
 void
 URL::UpdateURLSearchParams()
 {
   if (mSearchParams) {
-    nsString search;
+    nsAutoString search;
     ErrorResult rv;
     GetSearch(search, rv);
-    mSearchParams->ParseInput(NS_ConvertUTF16toUTF8(Substring(search, 1)), this);
+    // XXXbz and now what?  We're supposed to stop everything if rv failed!
+    rv.SuppressException();
+    mSearchParams->ParseInput(NS_ConvertUTF16toUTF8(Substring(search, 1)));
   }
 }
 
@@ -921,8 +936,7 @@ void
 URL::CreateSearchParamsIfNeeded()
 {
   if (!mSearchParams) {
-    mSearchParams = new URLSearchParams();
-    mSearchParams->AddObserver(this);
+    mSearchParams = new URLSearchParams(nullptr, this);
     UpdateURLSearchParams();
   }
 }

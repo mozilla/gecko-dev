@@ -24,7 +24,7 @@ class nsXPTType;
 %}
 
 /* this is NOT intended to be scriptable */
-[uuid(3f1ae084-607e-45b2-8f1e-8d450b0f9c65)]
+[uuid(3820e663-8e22-4789-b470-56bcf7083f2b)]
 interface nsIInterfaceInfo : nsISupports
 {
     readonly attribute string   name;
@@ -97,5 +97,7 @@ interface nsIInterfaceInfo : nsISupports
     [notxpcom] nsresult getIIDForParamNoAlloc(in uint16_t methodIndex, 
                                               [const] in nsXPTParamInfoPtr param,
                                               out nsIID iid);
+
+    boolean isMainProcessScriptableOnly();
 };
 

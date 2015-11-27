@@ -10,8 +10,6 @@
 namespace mozilla {
 namespace system {
 
-class ResultListener;
-
 class AutoMounterSetting : public nsIObserver
 {
 public:
@@ -19,7 +17,6 @@ public:
   NS_DECL_NSIOBSERVER
 
   AutoMounterSetting();
-  virtual ~AutoMounterSetting();
 
   static void CheckVolumeSettings(const nsACString& aVolumeName);
 
@@ -27,12 +24,15 @@ public:
   void SetStatus(int32_t aStatus);
   const char *StatusStr(int32_t aStatus);
 
+protected:
+  virtual ~AutoMounterSetting();
+
 private:
   int32_t mStatus;
 };
 
-}   // namespace system
-}   // namespace mozilla
+} // namespace system
+} // namespace mozilla
 
 #endif  // mozilla_system_automountersetting_h__
 

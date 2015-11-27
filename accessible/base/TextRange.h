@@ -24,7 +24,7 @@ class HyperTextAccessible;
 /**
  * A text point (hyper text + offset), represents a boundary of text range.
  */
-struct TextPoint MOZ_FINAL
+struct TextPoint final
 {
   TextPoint(HyperTextAccessible* aContainer, int32_t aOffset) :
     mContainer(aContainer), mOffset(aOffset) { }
@@ -42,7 +42,7 @@ struct TextPoint MOZ_FINAL
 /**
  * Represents a text range within the text control or document.
  */
-class TextRange MOZ_FINAL
+class TextRange final
 {
 public:
   TextRange(HyperTextAccessible* aRoot,
@@ -218,8 +218,8 @@ public:
     { mStartContainer = aContainer; mStartOffset = aOffset; }
 
 private:
-  TextRange(const TextRange& aRange) MOZ_DELETE;
-  TextRange& operator=(const TextRange& aRange) MOZ_DELETE;
+  TextRange(const TextRange& aRange) = delete;
+  TextRange& operator=(const TextRange& aRange) = delete;
 
   friend class HyperTextAccessible;
   friend class xpcAccessibleTextRange;
@@ -243,9 +243,9 @@ private:
                     HyperTextAccessible* aStopContainer = nullptr,
                     int32_t aStopOffset = 0);
 
-  nsRefPtr<HyperTextAccessible> mRoot;
-  nsRefPtr<HyperTextAccessible> mStartContainer;
-  nsRefPtr<HyperTextAccessible> mEndContainer;
+  RefPtr<HyperTextAccessible> mRoot;
+  RefPtr<HyperTextAccessible> mStartContainer;
+  RefPtr<HyperTextAccessible> mEndContainer;
   int32_t mStartOffset;
   int32_t mEndOffset;
 };

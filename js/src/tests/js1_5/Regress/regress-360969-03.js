@@ -1,3 +1,4 @@
+// |reftest| skip-if(Android&&isDebugBuild) slow -- bug 1216226
 /* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -28,7 +29,7 @@ function test()
 
   for (var i = 0; i < limit; i++)
   {
-    eval('const pv' + i + ';');
+    eval('const pv' + i + ' = undefined;');
   }
 
   reportCompare(expect, actual, summary);

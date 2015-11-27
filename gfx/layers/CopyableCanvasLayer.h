@@ -21,13 +21,12 @@
 #include "nsISupportsImpl.h"            // for MOZ_COUNT_CTOR, etc
 
 namespace mozilla {
-namespace gl{
-class SurfaceStream;
-}
+
+namespace gl {
+class SharedSurface;
+} // namespace gl
 
 namespace layers {
-
-class CanvasClientWebGL;
 
 /**
  * A shared CanvasLayer implementation that supports copying
@@ -42,9 +41,9 @@ protected:
   virtual ~CopyableCanvasLayer();
 
 public:
-  virtual void Initialize(const Data& aData);
+  virtual void Initialize(const Data& aData) override;
 
-  virtual bool IsDataValid(const Data& aData);
+  virtual bool IsDataValid(const Data& aData) override;
 
   bool IsGLLayer() { return !!mGLContext; }
 
@@ -52,15 +51,14 @@ protected:
   void UpdateTarget(gfx::DrawTarget* aDestTarget = nullptr);
 
   RefPtr<gfx::SourceSurface> mSurface;
-  nsRefPtr<gl::GLContext> mGLContext;
-  mozilla::RefPtr<mozilla::gfx::DrawTarget> mDrawTarget;
+  RefPtr<gl::GLContext> mGLContext;
+  GLuint mCanvasFrontbufferTexID;
+  RefPtr<PersistentBufferProvider> mBufferProvider;
 
-  RefPtr<gl::SurfaceStream> mStream;
-
-  uint32_t mCanvasFramebuffer;
+  UniquePtr<gl::SharedSurface> mGLFrontbuffer;
 
   bool mIsAlphaPremultiplied;
-  bool mNeedsYFlip;
+  gl::OriginPos mOriginPos;
 
   RefPtr<gfx::DataSourceSurface> mCachedTempSurface;
 
@@ -70,7 +68,7 @@ protected:
   void DiscardTempSurface();
 };
 
-}
-}
+} // namespace layers
+} // namespace mozilla
 
 #endif

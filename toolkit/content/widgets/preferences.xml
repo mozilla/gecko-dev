@@ -132,8 +132,12 @@
         // In non-instant apply mode, we must try and use the last saved state
         // from any previous opens of a child dialog instead of the value from
         // preferences, to pick up any edits a user may have made. 
+
+        var secMan = Components.classes["@mozilla.org/scriptsecuritymanager;1"]
+                    .getService(Components.interfaces.nsIScriptSecurityManager);
         if (this.preferences.type == "child" && 
-            !this.instantApply && window.opener) {
+            !this.instantApply && window.opener &&
+            secMan.isSystemPrincipal(window.opener.document.nodePrincipal)) {
           var pdoc = window.opener.document;
 
           // Try to find a preference element for the same preference.
@@ -617,9 +621,11 @@
       <constructor>
       <![CDATA[
         if (this.type != "child") {
-          var psvc = Components.classes["@mozilla.org/preferences-service;1"]
-                               .getService(Components.interfaces.nsIPrefBranch);
-          this.instantApply = psvc.getBoolPref("browser.preferences.instantApply");
+          if (!this._instantApplyInitialized) {
+            let psvc = Components.classes["@mozilla.org/preferences-service;1"]
+                                 .getService(Components.interfaces.nsIPrefBranch);
+            this.instantApply = psvc.getBoolPref("browser.preferences.instantApply");
+          }
           if (this.instantApply) {
             var docElt = document.documentElement;
             var acceptButton = docElt.getButton("accept");
@@ -689,8 +695,13 @@
       ]]>
       </destructor>
 
+      <!-- Derived bindings can set this to true to cause us to skip
+           reading the browser.preferences.instantApply pref in the constructor.
+           Then they can set instantApply to their wished value. -->
+      <field name="_instantApplyInitialized">false</field>
+      <!-- Controls whether changed pref values take effect immediately. -->
       <field name="instantApply">false</field>
-      
+
       <property name="preferencePanes"
                 onget="return this.getElementsByTagName('prefpane');"/>
 
@@ -1053,11 +1064,14 @@
           return false;
         }
 
-        if (this.type == "child" && window.opener) {
+        var secMan = Components.classes["@mozilla.org/scriptsecuritymanager;1"]
+                    .getService(Components.interfaces.nsIScriptSecurityManager);
+        if (this.type == "child" && window.opener &&
+            secMan.isSystemPrincipal(window.opener.document.nodePrincipal)) {
           var psvc = Components.classes["@mozilla.org/preferences-service;1"]
                                .getService(Components.interfaces.nsIPrefBranch);
-          var instantApply = psvc.getBoolPref("browser.preferences.instantApply");
-          if (instantApply) {
+          var pdocEl = window.opener.document.documentElement;
+          if (pdocEl.instantApply) {
             var panes = this.preferencePanes;
             for (var i = 0; i < panes.length; ++i)
               panes[i].writePreferences(true);
@@ -1169,6 +1183,10 @@
         <body>
         <![CDATA[
           // Write all values to preferences.
+          if (this._deferredValueUpdateElements.size) {
+            this._finalizeDeferredElements();
+          }
+
           var preferences = this.preferences;
           for (var i = 0; i < preferences.length; ++i) {
             var preference = preferences[i];
@@ -1245,15 +1263,57 @@
         </body>
       </method>
       
+      <field name="DeferredTask" readonly="true">
+        let targetObj = {};
+        Components.utils.import("resource://gre/modules/DeferredTask.jsm", targetObj);
+        targetObj.DeferredTask;
+      </field>
+      <method name="_deferredValueUpdate">
+        <parameter name="aElement"/>
+        <body>
+        <![CDATA[
+          delete aElement._deferredValueUpdateTask;
+          let preference = document.getElementById(aElement.getAttribute("preference"));
+          let prefVal = preference.getElementValue(aElement);
+          preference.value = prefVal;
+          this._deferredValueUpdateElements.delete(aElement);
+        ]]>
+        </body>
+      </method>
+      <field name="_deferredValueUpdateElements">
+        new Set();
+      </field>
+      <method name="_finalizeDeferredElements">
+        <body>
+        <![CDATA[
+          for (let el of this._deferredValueUpdateElements) {
+            if (el._deferredValueUpdateTask) {
+              el._deferredValueUpdateTask.finalize();
+            }
+          }
+        ]]>
+        </body>
+      </method>
       <method name="userChangedValue">
         <parameter name="aElement"/>
         <body>
         <![CDATA[
-          var element = this.getPreferenceElement(aElement);
+          let element = this.getPreferenceElement(aElement);
           if (element.hasAttribute("preference")) {
-            var preference = document.getElementById(element.getAttribute("preference"));
-            var prefVal = preference.getElementValue(element);
-            preference.value = prefVal;
+            if (element.getAttribute("delayprefsave") != "true") {
+              var preference = document.getElementById(element.getAttribute("preference"));
+              var prefVal = preference.getElementValue(element);
+              preference.value = prefVal;
+            } else {
+              if (!element._deferredValueUpdateTask) {
+                element._deferredValueUpdateTask = new this.DeferredTask(this._deferredValueUpdate.bind(this, element), 1000);
+                this._deferredValueUpdateElements.add(element);
+              } else {
+                // Each time the preference is changed, restart the delay.
+                element._deferredValueUpdateTask.disarm();
+              }
+              element._deferredValueUpdateTask.arm();
+            }
           }
         ]]>
         </body>

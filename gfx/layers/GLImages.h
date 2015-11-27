@@ -6,70 +6,87 @@
 #ifndef GFX_GLIMAGES_H
 #define GFX_GLIMAGES_H
 
+#include "GLContextTypes.h"
 #include "GLTypes.h"
 #include "ImageContainer.h"             // for Image
 #include "ImageTypes.h"                 // for ImageFormat::SHARED_GLTEXTURE
 #include "nsCOMPtr.h"                   // for already_AddRefed
 #include "mozilla/gfx/Point.h"          // for IntSize
 
-class nsSurfaceTexture;
-
 namespace mozilla {
+namespace gl {
+class AndroidSurfaceTexture;
+} // namespace gl
 namespace layers {
 
-class EGLImageImage : public Image {
+class GLImage : public Image {
 public:
-  struct Data {
-    EGLImage mImage;
-    gfx::IntSize mSize;
-    bool mInverted;
-  };
+  explicit GLImage(ImageFormat aFormat) : Image(nullptr, aFormat){}
 
-  void SetData(const Data& aData) { mData = aData; }
-  const Data* GetData() { return &mData; }
+  virtual already_AddRefed<gfx::SourceSurface> GetAsSourceSurface() override;
+};
 
-  gfx::IntSize GetSize() { return mData.mSize; }
+class EGLImageImage : public GLImage {
+public:
+  EGLImageImage(EGLImage aImage, EGLSync aSync,
+                const gfx::IntSize& aSize, const gl::OriginPos& aOrigin,
+                bool aOwns);
 
-  virtual TemporaryRef<gfx::SourceSurface> GetAsSourceSurface() MOZ_OVERRIDE
-  {
-    return nullptr;
+  gfx::IntSize GetSize() override { return mSize; }
+  gl::OriginPos GetOriginPos() const {
+    return mPos;
+  }
+  EGLImage GetImage() const {
+    return mImage;
+  }
+  EGLSync GetSync() const {
+    return mSync;
   }
 
-  EGLImageImage() : Image(nullptr, ImageFormat::EGLIMAGE) {}
+  EGLImageImage* AsEGLImageImage() override {
+    return this;
+  }
+
+protected:
+  virtual ~EGLImageImage();
 
 private:
-  Data mData;
+  EGLImage mImage;
+  EGLSync mSync;
+  gfx::IntSize mSize;
+  gl::OriginPos mPos;
+  bool mOwns;
 };
 
 #ifdef MOZ_WIDGET_ANDROID
 
-class SurfaceTextureImage : public Image {
+class SurfaceTextureImage : public GLImage {
 public:
-  struct Data {
-    nsSurfaceTexture* mSurfTex;
-    gfx::IntSize mSize;
-    bool mInverted;
-  };
+  SurfaceTextureImage(gl::AndroidSurfaceTexture* aSurfTex,
+                      const gfx::IntSize& aSize,
+                      gl::OriginPos aOriginPos);
 
-  void SetData(const Data& aData) { mData = aData; }
-  const Data* GetData() { return &mData; }
-
-  gfx::IntSize GetSize() { return mData.mSize; }
-
-  virtual TemporaryRef<gfx::SourceSurface> GetAsSourceSurface() MOZ_OVERRIDE
-  {
-    return nullptr;
+  gfx::IntSize GetSize() override { return mSize; }
+  gl::AndroidSurfaceTexture* GetSurfaceTexture() const {
+    return mSurfaceTexture;
+  }
+  gl::OriginPos GetOriginPos() const {
+    return mOriginPos;
   }
 
-  SurfaceTextureImage() : Image(nullptr, ImageFormat::SURFACE_TEXTURE) {}
+  SurfaceTextureImage* AsSurfaceTextureImage() override {
+    return this;
+  }
 
 private:
-  Data mData;
+  gl::AndroidSurfaceTexture* mSurfaceTexture;
+  gfx::IntSize mSize;
+  gl::OriginPos mOriginPos;
 };
 
 #endif // MOZ_WIDGET_ANDROID
 
-} // layers
-} // mozilla
+} // namespace layers
+} // namespace mozilla
 
 #endif // GFX_GLIMAGES_H

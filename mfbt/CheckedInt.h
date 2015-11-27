@@ -11,6 +11,7 @@
 
 #include <stdint.h>
 #include "mozilla/Assertions.h"
+#include "mozilla/Attributes.h"
 #include "mozilla/IntegerTypeTraits.h"
 
 namespace mozilla {
@@ -525,7 +526,7 @@ public:
    * argument is valid.
    */
   template<typename U>
-  CheckedInt(U aValue)
+  MOZ_IMPLICIT CheckedInt(U aValue) MOZ_NO_ARITHMETIC_EXPR_IN_ARGUMENT
     : mValue(T(aValue)),
       mIsValid(detail::IsInRange<T>(aValue))
   {
@@ -574,30 +575,35 @@ public:
                                   const CheckedInt<U>& aRhs);
   template<typename U>
   CheckedInt& operator +=(U aRhs);
+  CheckedInt& operator +=(const CheckedInt<T>& aRhs);
 
   template<typename U>
   friend CheckedInt<U> operator -(const CheckedInt<U>& aLhs,
                                   const CheckedInt<U>& aRhs);
   template<typename U>
   CheckedInt& operator -=(U aRhs);
+  CheckedInt& operator -=(const CheckedInt<T>& aRhs);
 
   template<typename U>
   friend CheckedInt<U> operator *(const CheckedInt<U>& aLhs,
                                   const CheckedInt<U>& aRhs);
   template<typename U>
   CheckedInt& operator *=(U aRhs);
+  CheckedInt& operator *=(const CheckedInt<T>& aRhs);
 
   template<typename U>
   friend CheckedInt<U> operator /(const CheckedInt<U>& aLhs,
                                   const CheckedInt<U>& aRhs);
   template<typename U>
   CheckedInt& operator /=(U aRhs);
+  CheckedInt& operator /=(const CheckedInt<T>& aRhs);
 
   template<typename U>
   friend CheckedInt<U> operator %(const CheckedInt<U>& aLhs,
                                   const CheckedInt<U>& aRhs);
   template<typename U>
   CheckedInt& operator %=(U aRhs);
+  CheckedInt& operator %=(const CheckedInt<T>& aRhs);
 
   CheckedInt operator -() const
   {
@@ -662,11 +668,11 @@ private:
    * The !=, <, <=, >, >= operators are disabled:
    * see the comment on operator==.
    */
-  template<typename U> bool operator !=(U aOther) const MOZ_DELETE;
-  template<typename U> bool operator < (U aOther) const MOZ_DELETE;
-  template<typename U> bool operator <=(U aOther) const MOZ_DELETE;
-  template<typename U> bool operator > (U aOther) const MOZ_DELETE;
-  template<typename U> bool operator >=(U aOther) const MOZ_DELETE;
+  template<typename U> bool operator !=(U aOther) const = delete;
+  template<typename U> bool operator < (U aOther) const = delete;
+  template<typename U> bool operator <=(U aOther) const = delete;
+  template<typename U> bool operator > (U aOther) const = delete;
+  template<typename U> bool operator >=(U aOther) const = delete;
 };
 
 #define MOZ_CHECKEDINT_BASIC_BINARY_OPERATOR(NAME, OP)                        \
@@ -723,23 +729,29 @@ castToCheckedInt(U aU)
   return detail::CastToCheckedIntImpl<T, U>::run(aU);
 }
 
-#define MOZ_CHECKEDINT_CONVENIENCE_BINARY_OPERATORS(OP, COMPOUND_OP)          \
-  template<typename T>                                                        \
-  template<typename U>                                                        \
-  CheckedInt<T>& CheckedInt<T>::operator COMPOUND_OP(U aRhs)                  \
-  {                                                                           \
-    *this = *this OP castToCheckedInt<T>(aRhs);                               \
-    return *this;                                                             \
-  }                                                                           \
-  template<typename T, typename U>                                            \
-  inline CheckedInt<T> operator OP(const CheckedInt<T>& aLhs, U aRhs)         \
-  {                                                                           \
-    return aLhs OP castToCheckedInt<T>(aRhs);                                 \
-  }                                                                           \
-  template<typename T, typename U>                                            \
-  inline CheckedInt<T> operator OP(U aLhs, const CheckedInt<T>& aRhs)         \
-  {                                                                           \
-    return castToCheckedInt<T>(aLhs) OP aRhs;                                 \
+#define MOZ_CHECKEDINT_CONVENIENCE_BINARY_OPERATORS(OP, COMPOUND_OP)            \
+  template<typename T>                                                          \
+  template<typename U>                                                          \
+  CheckedInt<T>& CheckedInt<T>::operator COMPOUND_OP(U aRhs)                    \
+  {                                                                             \
+    *this = *this OP castToCheckedInt<T>(aRhs);                                 \
+    return *this;                                                               \
+  }                                                                             \
+  template<typename T>                                                          \
+  CheckedInt<T>& CheckedInt<T>::operator COMPOUND_OP(const CheckedInt<T>& aRhs) \
+  {                                                                             \
+    *this = *this OP aRhs;                                                      \
+    return *this;                                                               \
+  }                                                                             \
+  template<typename T, typename U>                                              \
+  inline CheckedInt<T> operator OP(const CheckedInt<T>& aLhs, U aRhs)           \
+  {                                                                             \
+    return aLhs OP castToCheckedInt<T>(aRhs);                                   \
+  }                                                                             \
+  template<typename T, typename U>                                              \
+  inline CheckedInt<T> operator OP(U aLhs, const CheckedInt<T>& aRhs)           \
+  {                                                                             \
+    return castToCheckedInt<T>(aLhs) OP aRhs;                                   \
   }
 
 MOZ_CHECKEDINT_CONVENIENCE_BINARY_OPERATORS(+, +=)

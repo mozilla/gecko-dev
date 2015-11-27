@@ -14,11 +14,6 @@ html {
   background: red;
 }
 
-#log pre {
-  border: 1px solid black;
-  padding: 1em;
-}
-
 section#summary {
     margin-bottom:1em;
 }
@@ -90,3 +85,18 @@ table#results span.actual {
     white-space:pre;
 }
 
+span.ok {
+    color:green;
+}
+
+tr.error {
+    color:red;
+}
+
+span.timeout {
+    color:red;
+}
+
+span.ok, span.timeout, span.error {
+    font-variant:small-caps;
+}

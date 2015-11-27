@@ -15,7 +15,6 @@ const { PlainTextConsole } = require("../console/plain-text");
 const { when: unload } = require("../system/unload");
 const { format, fromException }  = require("../console/traceback");
 const system = require("../system");
-const memory = require('../deprecated/memory');
 const { gc: gcPromise } = require('./memory');
 const { defer } = require('../core/promise');
 const { extend } = require('../core/heritage');
@@ -58,11 +57,7 @@ var stopOnError;
 var findAndRunTests;
 
 // Combined information from all test runs.
-var results = {
-  passed: 0,
-  failed: 0,
-  testRuns: []
-};
+var results;
 
 // A list of the compartments and windows loaded after startup
 var startLeaks;
@@ -154,7 +149,7 @@ function reportMemoryUsage() {
     return emptyPromise();
   }
 
-  return gcPromise().then((function () {
+  return gcPromise().then((() => {
     var mgr = Cc["@mozilla.org/memory-reporter-manager;1"]
               .getService(Ci.nsIMemoryReporterManager);
     let count = 0;
@@ -162,11 +157,6 @@ function reportMemoryUsage() {
       print(((++count == 1) ? "\n" : "") + description + ": " + amount + "\n");
     }
     mgr.getReportsForThisProcess(logReporter, null, /* anonymize = */ false);
-
-    var weakrefs = [info.weakref.get()
-                    for (info of memory.getObjects())];
-    weakrefs = [weakref for (weakref of weakrefs) if (weakref)];
-    print("Tracked memory objects in testing sandbox: " + weakrefs.length + "\n");
   }));
 }
 
@@ -203,7 +193,7 @@ function showResults() {
           var data = ref.__url__ ? ref.__url__ : ref;
           var warning = data == "[object Object]"
             ? "[object " + data.constructor.name + "(" +
-              [p for (p in data)].join(", ") + ")]"
+              Object.keys(data).join(", ") + ")]"
             : data;
           console.warn("LEAK", warning, info.bin);
         }
@@ -220,16 +210,6 @@ function showResults() {
 function cleanup() {
   let coverObject = {};
   try {
-    for (let name in loader.modules)
-      memory.track(loader.modules[name],
-                           "module global scope: " + name);
-      memory.track(loader, "Cuddlefish Loader");
-
-    if (profileMemory) {
-      gWeakrefInfo = [{ weakref: info.weakref, bin: info.bin }
-                      for (info of memory.getObjects())];
-    }
-
     loader.unload();
 
     if (loader.globals.console.errorsLogged && !results.failed) {
@@ -255,7 +235,7 @@ function cleanup() {
 
     consoleListener.unregister();
 
-    memory.gc();
+    Cu.forceGC();
   }
   catch (e) {
     results.failed++;
@@ -282,10 +262,10 @@ function cleanup() {
 }
 
 function getPotentialLeaks() {
-  memory.gc();
+  Cu.forceGC();
 
   // Things we can assume are part of the platform and so aren't leaks
-  let WHITELIST_BASE_URLS = [
+  let GOOD_BASE_URLS = [
     "chrome://",
     "resource:///",
     "resource://app/",
@@ -306,7 +286,7 @@ function getPotentialLeaks() {
   uri = chromeReg.convertChromeURL(uri);
   let spec = uri.spec;
   let pos = spec.indexOf("!/");
-  WHITELIST_BASE_URLS.push(spec.substring(0, pos + 2));
+  GOOD_BASE_URLS.push(spec.substring(0, pos + 2));
 
   let zoneRegExp = new RegExp("^explicit/js-non-window/zones/zone[^/]+/compartment\\((.+)\\)");
   let compartmentRegexp = new RegExp("^explicit/js-non-window/compartments/non-window-global/compartment\\((.+)\\)/");
@@ -318,9 +298,10 @@ function getPotentialLeaks() {
     if (!item.location)
       return false;
 
-    for (let whitelist of WHITELIST_BASE_URLS) {
-      if (item.location.substring(0, whitelist.length) == whitelist)
+    for (let url of GOOD_BASE_URLS) {
+      if (item.location.substring(0, url.length) == url) {
         return false;
+      }
     }
 
     return true;
@@ -344,9 +325,11 @@ function getPotentialLeaks() {
       let item = {
         path: matches[1],
         principal: details[1],
-        location: details[2] ? details[2].replace("\\", "/", "g") : undefined,
+        location: details[2] ? details[2].replace(/\\/g, "/") : undefined,
         source: details[3] ? details[3].split(" -> ").reverse() : undefined,
-        toString: function() this.location
+        toString: function() {
+          return this.location;
+        }
       };
 
       if (!isPossibleLeak(item))
@@ -368,9 +351,11 @@ function getPotentialLeaks() {
 
       let item = {
         path: matches[1],
-        location: details[1].replace("\\", "/", "g"),
-        source: [details[1].replace("\\", "/", "g")],
-        toString: function() this.location
+        location: details[1].replace(/\\/g, "/"),
+        source: [details[1].replace(/\\/g, "/")],
+        toString: function() {
+          return this.location;
+        }
       };
 
       if (!isPossibleLeak(item))
@@ -438,7 +423,14 @@ var POINTLESS_ERRORS = [
   'file: "chrome://browser/content/',
   'file: "chrome://global/content/',
   '[JavaScript Warning: "The character encoding of a framed document was ' +
-    'not declared.'
+    'not declared.',
+  'file: "chrome://browser/skin/'
+];
+
+// These are messages that will cause a test to fail if logged through the
+// console service
+var IMPORTANT_ERRORS = [
+  'Sending message that cannot be cloned. Are you trying to send an XPCOM object?',
 ];
 
 var consoleListener = {
@@ -465,8 +457,11 @@ var consoleListener = {
       return;
     this.errorsLogged++;
     var message = object.QueryInterface(Ci.nsIConsoleMessage).message;
-    var pointless = [err for (err of POINTLESS_ERRORS)
-                         if (message.indexOf(err) >= 0)];
+    if (IMPORTANT_ERRORS.find(msg => message.indexOf(msg) >= 0)) {
+      testConsole.error(message);
+      return;
+    }
+    var pointless = POINTLESS_ERRORS.filter(err => message.indexOf(err) >= 0);
     if (pointless.length == 0 && message)
       testConsole.log(message);
   }
@@ -590,11 +585,17 @@ var runTests = exports.runTests = function runTests(options) {
   print = options.print;
   findAndRunTests = options.findAndRunTests;
 
+  results = {
+    passed: 0,
+    failed: 0,
+    testRuns: []
+  };
+
   try {
     consoleListener.register();
     print("Running tests on " + system.name + " " + system.version +
-          "/Gecko " + system.platformVersion + " (" +
-          system.id + ") under " +
+          "/Gecko " + system.platformVersion + " (Build " +
+          system.build + ") (" + system.id + ") under " +
           system.platform + "/" + system.architecture + ".\n");
 
     if (options.parseable)
@@ -633,7 +634,7 @@ var runTests = exports.runTests = function runTests(options) {
       fileName: { value: e.fileName, writable: true, configurable: true },
       lineNumber: { value: e.lineNumber, writable: true, configurable: true },
       stack: { value: stack, writable: true, configurable: true },
-      toString: { value: function() String(e), writable: true, configurable: true },
+      toString: { value: () => String(e), writable: true, configurable: true },
     });
 
     print("Error: " + error + " \n " + format(error));

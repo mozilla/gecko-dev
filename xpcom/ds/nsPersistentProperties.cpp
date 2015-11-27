@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -50,13 +51,10 @@ ArenaStrdup(const nsAFlatCString& aString, PLArenaPool* aArena)
 }
 
 static const struct PLDHashTableOps property_HashTableOps = {
-  PL_DHashAllocTable,
-  PL_DHashFreeTable,
-  PL_DHashStringKey,
-  PL_DHashMatchStringKey,
-  PL_DHashMoveEntryStub,
-  PL_DHashClearEntryStub,
-  PL_DHashFinalizeStub,
+  PLDHashTable::HashStringKey,
+  PLDHashTable::MatchStringKey,
+  PLDHashTable::MoveEntryStub,
+  PLDHashTable::ClearEntryStub,
   nullptr,
 };
 
@@ -79,7 +77,7 @@ enum EParserSpecial
   eParserSpecial_Unicode        // parsing a \Uxxx value
 };
 
-class nsPropertiesParser
+class MOZ_STACK_CLASS nsPropertiesParser
 {
 public:
   explicit nsPropertiesParser(nsIPersistentProperties* aProps)
@@ -180,7 +178,7 @@ private:
   EParserState mState;
   // if we see a '\' then we enter this special state
   EParserSpecial mSpecialState;
-  nsIPersistentProperties* mProps;
+  nsCOMPtr<nsIPersistentProperties> mProps;
 };
 
 inline bool
@@ -229,7 +227,7 @@ nsPropertiesParser::ParseValueCharacter(char16_t aChar, const char16_t* aCur,
             aTokenStart = aCur + 1;
             break;
           }
-        // no break
+          MOZ_FALLTHROUGH;
 
         case '\r':
           // we're done! We have a key and value
@@ -462,21 +460,14 @@ nsPropertiesParser::ParseBuffer(const char16_t* aBuffer,
 
 nsPersistentProperties::nsPersistentProperties()
   : mIn(nullptr)
+  , mTable(&property_HashTableOps, sizeof(PropertyTableEntry), 16)
 {
-  mSubclass = static_cast<nsIPersistentProperties*>(this);
-
-  PL_DHashTableInit(&mTable, &property_HashTableOps, nullptr,
-                    sizeof(PropertyTableEntry), 16);
-
   PL_INIT_ARENA_POOL(&mArena, "PersistentPropertyArena", 2048);
 }
 
 nsPersistentProperties::~nsPersistentProperties()
 {
   PL_FinishArenaPool(&mArena);
-  if (mTable.ops) {
-    PL_DHashTableFinish(&mTable);
-  }
 }
 
 nsresult
@@ -486,7 +477,7 @@ nsPersistentProperties::Create(nsISupports* aOuter, REFNSIID aIID,
   if (aOuter) {
     return NS_ERROR_NO_AGGREGATION;
   }
-  nsRefPtr<nsPersistentProperties> props = new nsPersistentProperties();
+  RefPtr<nsPersistentProperties> props = new nsPersistentProperties();
   return props->QueryInterface(aIID, aResult);
 }
 
@@ -503,7 +494,7 @@ nsPersistentProperties::Load(nsIInputStream* aIn)
     return NS_ERROR_FAILURE;
   }
 
-  nsPropertiesParser parser(mSubclass);
+  nsPropertiesParser parser(this);
 
   uint32_t nProcessed;
   // If this 4096 is changed to some other value, make sure to adjust
@@ -532,8 +523,8 @@ nsPersistentProperties::SetStringProperty(const nsACString& aKey,
                                           nsAString& aOldValue)
 {
   const nsAFlatCString&  flatKey = PromiseFlatCString(aKey);
-  PropertyTableEntry* entry = static_cast<PropertyTableEntry*>(
-    PL_DHashTableOperate(&mTable, flatKey.get(), PL_DHASH_ADD));
+  auto entry = static_cast<PropertyTableEntry*>
+                          (mTable.Add(flatKey.get(), mozilla::fallible));
 
   if (entry->mKey) {
     aOldValue = entry->mValue;
@@ -556,50 +547,19 @@ nsPersistentProperties::Save(nsIOutputStream* aOut, const nsACString& aHeader)
 }
 
 NS_IMETHODIMP
-nsPersistentProperties::Subclass(nsIPersistentProperties* aSubclass)
-{
-  if (aSubclass) {
-    mSubclass = aSubclass;
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsPersistentProperties::GetStringProperty(const nsACString& aKey,
                                           nsAString& aValue)
 {
   const nsAFlatCString&  flatKey = PromiseFlatCString(aKey);
 
-  PropertyTableEntry* entry = static_cast<PropertyTableEntry*>(
-    PL_DHashTableOperate(&mTable, flatKey.get(), PL_DHASH_LOOKUP));
-
-  if (PL_DHASH_ENTRY_IS_FREE(entry)) {
+  auto entry = static_cast<PropertyTableEntry*>(mTable.Search(flatKey.get()));
+  if (!entry) {
     return NS_ERROR_FAILURE;
   }
 
   aValue = entry->mValue;
   return NS_OK;
 }
-
-static PLDHashOperator
-AddElemToArray(PLDHashTable* aTable, PLDHashEntryHdr* aHdr,
-               uint32_t aIndex, void* aArg)
-{
-  nsCOMArray<nsIPropertyElement>* props =
-    static_cast<nsCOMArray<nsIPropertyElement>*>(aArg);
-  PropertyTableEntry* entry =
-    static_cast<PropertyTableEntry*>(aHdr);
-
-  nsPropertyElement* element =
-    new nsPropertyElement(nsDependentCString(entry->mKey),
-                          nsDependentString(entry->mValue));
-
-  props->AppendObject(element);
-
-  return PL_DHASH_NEXT;
-}
-
 
 NS_IMETHODIMP
 nsPersistentProperties::Enumerate(nsISimpleEnumerator** aResult)
@@ -610,9 +570,16 @@ nsPersistentProperties::Enumerate(nsISimpleEnumerator** aResult)
   props.SetCapacity(mTable.EntryCount());
 
   // Step through hash entries populating a transient array
-  uint32_t n = PL_DHashTableEnumerate(&mTable, AddElemToArray, (void*)&props);
-  if (n < mTable.EntryCount()) {
-    return NS_ERROR_OUT_OF_MEMORY;
+  for (auto iter = mTable.Iter(); !iter.Done(); iter.Next()) {
+    auto entry = static_cast<PropertyTableEntry*>(iter.Get());
+
+    RefPtr<nsPropertyElement> element =
+      new nsPropertyElement(nsDependentCString(entry->mKey),
+                            nsDependentString(entry->mValue));
+
+    if (!props.AppendObject(element)) {
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
   }
 
   return NS_NewArrayEnumerator(aResult, props);
@@ -643,9 +610,7 @@ nsPersistentProperties::Undefine(const char* aProp)
 NS_IMETHODIMP
 nsPersistentProperties::Has(const char* aProp, bool* aResult)
 {
-  PropertyTableEntry* entry = static_cast<PropertyTableEntry*>(
-    PL_DHashTableOperate(&mTable, aProp, PL_DHASH_LOOKUP));
-  *aResult = (entry && PL_DHASH_ENTRY_IS_BUSY(entry));
+  *aResult = !!mTable.Search(aProp);
   return NS_OK;
 }
 
@@ -665,7 +630,7 @@ nsPropertyElement::Create(nsISupports* aOuter, REFNSIID aIID, void** aResult)
   if (aOuter) {
     return NS_ERROR_NO_AGGREGATION;
   }
-  nsRefPtr<nsPropertyElement> propElem = new nsPropertyElement();
+  RefPtr<nsPropertyElement> propElem = new nsPropertyElement();
   return propElem->QueryInterface(aIID, aResult);
 }
 

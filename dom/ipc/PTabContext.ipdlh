@@ -5,9 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 include protocol PBrowser;
-
-
-using mozilla::layout::ScrollingBehavior from "mozilla/layout/RenderFrameUtils.h";
+include PBrowserOrId;
 
 namespace mozilla {
 namespace dom {
@@ -27,30 +25,31 @@ namespace dom {
 // it.
 struct PopupIPCTabContext
 {
-  PBrowser opener;
+  PBrowserOrId opener;
   bool isBrowserElement;
 };
 
-// An IPCTabContext which corresponds to an app frame.
-struct AppFrameIPCTabContext
+// An IPCTabContext which corresponds to an app, browser, or normal frame.
+struct FrameIPCTabContext
 {
-  // The ID of the app this frame corresponds to.  May be NO_APP_ID.
-  uint32_t ownAppId;
+  // The stringified originAttributes dictionary.
+  nsCString originSuffix;
 
-  // The ID of the app containing this frame.  May be NO_APP_ID.
-  uint32_t appFrameOwnerAppId;
+  // The ID of the app containing this app/browser frame, if applicable.
+  uint32_t frameOwnerAppId;
+
+  // The origin without originAttribute suffix for a signed package.
+  // This value would be empty if the TabContext doesn't own a signed
+  // package.
+  nsCString signedPkgOriginNoSuffix;
 };
 
-// An IPCTabContext which corresponds to a browser frame.
-struct BrowserFrameIPCTabContext
-{
-  // The ID of the app which contains this browser frame.  May be NO_APP_ID.
-  uint32_t browserFrameOwnerAppId;
-};
-
-// This is equivalent to AppFrameIPCTabContext with all fields set to NO_APP_ID.
-struct VanillaFrameIPCTabContext
-{};
+// XXXcatalinb: This is only used by ServiceWorkerClients::OpenWindow.
+// Because service workers don't have an associated TabChild
+// we can't satisfy the security constraints on b2g. As such, the parent
+// process will accept this tab context only on desktop.
+struct UnsafeIPCTabContext
+{ };
 
 // IPCTabContext is an analog to mozilla::dom::TabContext.  Both specify an
 // iframe/PBrowser's own and containing app-ids and tell you whether the
@@ -58,19 +57,12 @@ struct VanillaFrameIPCTabContext
 // travel over IPC.
 //
 // We need IPCTabContext (specifically, PopupIPCTabContext) to prevent a
-// privilege escalation attack by a compromised child process.  See the comment
-// on AllocPBrowser for details.
-union IPCTabAppBrowserContext
+// privilege escalation attack by a compromised child process.
+union IPCTabContext
 {
   PopupIPCTabContext;
-  AppFrameIPCTabContext;
-  BrowserFrameIPCTabContext;
-  VanillaFrameIPCTabContext;
-};
-
-struct IPCTabContext {
-  IPCTabAppBrowserContext appBrowserContext;
-  ScrollingBehavior scrollingBehavior;
+  FrameIPCTabContext;
+  UnsafeIPCTabContext;
 };
 
 }

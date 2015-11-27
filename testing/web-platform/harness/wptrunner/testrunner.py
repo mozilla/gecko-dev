@@ -11,7 +11,7 @@ import traceback
 from Queue import Empty
 from multiprocessing import Process, current_process, Queue
 
-from mozlog.structured import structuredlog
+from mozlog import structuredlog
 
 # Special value used as a sentinal in various commands
 Stop = object()
@@ -86,7 +86,8 @@ class TestRunner(object):
         the associated methods"""
         self.setup()
         commands = {"run_test": self.run_test,
-                    "stop": self.stop}
+                    "stop": self.stop,
+                    "wait": self.wait}
         while True:
             command, args = self.command_queue.get()
             try:
@@ -110,8 +111,11 @@ class TestRunner(object):
             # Need to block here just to allow for contention with other processes
             test = self.test_queue.get(block=True, timeout=1)
         except Empty:
-            self.logger.info("No more tests")
-            return Stop
+            # If we are running tests in groups (e.g. by-dir) then this queue might be
+            # empty but there could be other test queues. restart_runner won't actually
+            # start the runner if there aren't any more tests to run
+            self.send_message("restart_runner")
+            return
         else:
             self.send_message("test_start", test)
         try:
@@ -119,6 +123,10 @@ class TestRunner(object):
         except Exception:
             self.logger.critical(traceback.format_exc())
             raise
+
+    def wait(self):
+        self.executor.protocol.wait()
+        self.send_message("after_test_ended", True)
 
     def send_message(self, command, *args):
         self.result_queue.put((command, args))
@@ -158,8 +166,9 @@ def next_manager_number():
 class TestRunnerManager(threading.Thread):
     init_lock = threading.Lock()
 
-    def __init__(self, suite_name, tests_queue, browser_cls, browser_kwargs,
-                 executor_cls, executor_kwargs, stop_flag, pause_on_unexpected=False):
+    def __init__(self, suite_name, test_queue, test_source_cls, browser_cls, browser_kwargs,
+                 executor_cls, executor_kwargs, stop_flag, pause_after_test=False,
+                 pause_on_unexpected=False, debug_info=None):
         """Thread that owns a single TestRunner process and any processes required
         by the TestRunner (e.g. the Firefox binary).
 
@@ -176,7 +185,9 @@ class TestRunnerManager(threading.Thread):
           processes
         """
         self.suite_name = suite_name
-        self.tests_queue = tests_queue
+
+        self.test_queue = test_queue
+        self.test_source_cls = test_source_cls
 
         self.browser_cls = browser_cls
         self.browser_kwargs = browser_kwargs
@@ -184,14 +195,19 @@ class TestRunnerManager(threading.Thread):
         self.executor_cls = executor_cls
         self.executor_kwargs = executor_kwargs
 
+        self.test_source = None
+
         self.browser = None
         self.browser_pid = None
+        self.browser_started = False
 
         # Flags used to shut down this thread if we get a sigint
         self.parent_stop_flag = stop_flag
         self.child_stop_flag = multiprocessing.Event()
 
+        self.pause_after_test = pause_after_test
         self.pause_on_unexpected = pause_on_unexpected
+        self.debug_info = debug_info
 
         self.manager_number = next_manager_number()
 
@@ -228,15 +244,18 @@ class TestRunnerManager(threading.Thread):
         that the manager should shut down the next time the event loop
         spins."""
         self.logger = structuredlog.StructuredLogger(self.suite_name)
-        with self.browser_cls(self.logger, **self.browser_kwargs) as browser:
+        with self.browser_cls(self.logger, **self.browser_kwargs) as browser, self.test_source_cls(self.test_queue) as test_source:
             self.browser = browser
+            self.test_source = test_source
             try:
-                self.init()
+                if self.init() is Stop:
+                    return
                 while True:
                     commands = {"init_succeeded": self.init_succeeded,
                                 "init_failed": self.init_failed,
                                 "test_start": self.test_start,
                                 "test_ended": self.test_ended,
+                                "after_test_ended": self.after_test_ended,
                                 "restart_runner": self.restart_runner,
                                 "runner_teardown": self.runner_teardown,
                                 "log": self.log,
@@ -261,6 +280,10 @@ class TestRunnerManager(threading.Thread):
                         if commands[command](*data) is Stop:
                             break
                     else:
+                        if (self.debug_info and self.debug_info.interactive and
+                            self.browser_started and not browser.is_alive()):
+                            self.logger.debug("Debugger exited")
+                            break
                         if not self.test_runner_proc.is_alive():
                             if not self.command_queue.empty():
                                 # We got a new message so process that
@@ -275,8 +298,8 @@ class TestRunnerManager(threading.Thread):
                                 # reason
                                 # Need to consider the unlikely case where one test causes the
                                 # runner process to repeatedly die
-                                self.logger.info("Last test did not complete, requeueing")
-                                self.requeue_test()
+                                self.logger.critical("Last test did not complete")
+                                break
                             self.logger.warning(
                                 "More tests found, but runner process died, restarting")
                             self.restart_count += 1
@@ -313,54 +336,68 @@ class TestRunnerManager(threading.Thread):
                 self.child_stop_flag.set()
 
         with self.init_lock:
-            # To guard against cases where we fail to connect with marionette for
-            # whatever reason
-            self.init_timer = threading.Timer(self.browser.init_timeout, init_failed)
+            # Guard against problems initialising the browser or the browser
+            # remote control method
+            if self.debug_info is None:
+                self.init_timer = threading.Timer(self.browser.init_timeout, init_failed)
+
+            test_queue = self.test_source.get_queue()
+            if test_queue is None:
+                self.logger.info("No more tests")
+                return Stop
+
             try:
-                self.init_timer.start()
+                if self.init_timer is not None:
+                    self.init_timer.start()
                 self.browser.start()
                 self.browser_pid = self.browser.pid()
-                self.start_test_runner()
+                self.start_test_runner(test_queue)
             except:
                 self.logger.warning("Failure during init %s" % traceback.format_exc())
-                self.init_timer.cancel()
+                if self.init_timer is not None:
+                    self.init_timer.cancel()
                 self.logger.error(traceback.format_exc())
                 succeeded = False
             else:
                 succeeded = True
+                self.browser_started = True
 
         # This has to happen after the lock is released
         if not succeeded:
             self.init_failed()
 
     def init_succeeded(self):
-        """Callback when we have started the browser, connected via
-        marionette, and we are ready to start testing"""
+        """Callback when we have started the browser, started the remote
+        control connection, and we are ready to start testing."""
         self.logger.debug("Init succeeded")
-        self.init_timer.cancel()
+        if self.init_timer is not None:
+            self.init_timer.cancel()
         self.init_fail_count = 0
         self.start_next_test()
 
     def init_failed(self):
-        """Callback when we can't connect to the browser via
-        marionette for some reason"""
+        """Callback when starting the browser or the remote control connect
+        fails."""
         self.init_fail_count += 1
-        self.logger.error("Init failed %i" % self.init_fail_count)
-        self.init_timer.cancel()
+        self.logger.warning("Init failed %i" % self.init_fail_count)
+        if self.init_timer is not None:
+            self.init_timer.cancel()
         if self.init_fail_count < self.max_init_fails:
             self.restart_runner()
         else:
             self.logger.critical("Test runner failed to initialise correctly; shutting down")
             return Stop
 
-    def start_test_runner(self):
+    def start_test_runner(self, test_queue):
         # Note that we need to be careful to start the browser before the
         # test runner to ensure that any state set when the browser is started
         # can be passed in to the test runner.
         assert self.command_queue is not None
         assert self.remote_queue is not None
+        self.logger.info("Starting runner")
         executor_browser_cls, executor_browser_kwargs = self.browser.executor_browser()
-        args = (self.tests_queue,
+
+        args = (test_queue,
                 self.remote_queue,
                 self.command_queue,
                 self.executor_cls,
@@ -381,6 +418,7 @@ class TestRunnerManager(threading.Thread):
         if self.init_timer is not None:
             self.init_timer.cancel()
         self.logger.debug("TestManager cleanup")
+
         while True:
             try:
                 self.logger.warning(" ".join(map(repr, self.command_queue.get_nowait())))
@@ -425,6 +463,7 @@ class TestRunnerManager(threading.Thread):
             return
         try:
             self.browser.stop()
+            self.browser_started = False
             if self.test_runner_proc.is_alive():
                 self.send_message("stop")
                 self.ensure_runner_stopped()
@@ -433,10 +472,6 @@ class TestRunnerManager(threading.Thread):
 
     def start_next_test(self):
         self.send_message("run_test")
-
-    def requeue_test(self):
-        self.test_queue.put(self.test)
-        self.test = None
 
     def test_start(self, test):
         self.test = test
@@ -466,7 +501,8 @@ class TestRunnerManager(threading.Thread):
                                     result.name,
                                     result.status,
                                     message=result.message,
-                                    expected=expected)
+                                    expected=expected,
+                                    stack=result.stack)
 
         # TODO: consider changing result if there is a crash dump file
 
@@ -478,22 +514,29 @@ class TestRunnerManager(threading.Thread):
             self.unexpected_count += 1
             self.logger.debug("Unexpected count in this thread %i" % self.unexpected_count)
         if status == "CRASH":
-            self.browser.log_crash(self.logger, process=self.browser_pid, test=test.id)
+            self.browser.log_crash(process=self.browser_pid, test=test.id)
 
         self.logger.test_end(test.id,
                              status,
                              message=file_result.message,
-                             expected=expected)
+                             expected=expected,
+                             extra=file_result.extra)
 
         self.test = None
 
-        if self.pause_on_unexpected and (subtest_unexpected or is_unexpected):
-            self.logger.info("Got an unexpected result, pausing until the browser exists")
-            self.browser.runner.process_handler.wait()
+        restart_before_next = (file_result.status in ("CRASH", "EXTERNAL-TIMEOUT") or
+                               subtest_unexpected or is_unexpected)
 
+        if (self.pause_after_test or
+            (self.pause_on_unexpected and (subtest_unexpected or is_unexpected))):
+            self.logger.info("Pausing until the browser exits")
+            self.send_message("wait")
+        else:
+            self.after_test_ended(restart_before_next)
+
+    def after_test_ended(self, restart_before_next):
         # Handle starting the next test, with a runner restart if required
-        if (file_result.status in ("CRASH", "EXTERNAL-TIMEOUT") or
-            subtest_unexpected or is_unexpected):
+        if restart_before_next:
             return self.restart_runner()
         else:
             return self.start_next_test()
@@ -502,9 +545,8 @@ class TestRunnerManager(threading.Thread):
         """Stop and restart the TestRunner"""
         if self.restart_count >= self.max_restarts:
             return Stop
-        self.logger.info("Restarting runner")
         self.stop_runner()
-        self.init()
+        return self.init()
 
     def log(self, action, kwargs):
         getattr(self.logger, action)(**kwargs)
@@ -514,22 +556,62 @@ class TestRunnerManager(threading.Thread):
         self.restart_runner()
 
 
+class TestQueue(object):
+    def __init__(self, test_source_cls, test_type, tests, **kwargs):
+        self.queue = None
+        self.test_source_cls = test_source_cls
+        self.test_type = test_type
+        self.tests = tests
+        self.kwargs = kwargs
+
+    def __enter__(self):
+        if not self.tests[self.test_type]:
+            return None
+
+        self.queue = Queue()
+        has_tests = self.test_source_cls.queue_tests(self.queue,
+                                                     self.test_type,
+                                                     self.tests,
+                                                     **self.kwargs)
+        # There is a race condition that means sometimes we continue
+        # before the tests have been written to the underlying pipe.
+        # Polling the pipe for data here avoids that
+        self.queue._reader.poll(10)
+        assert not self.queue.empty()
+        return self.queue
+
+    def __exit__(self, *args, **kwargs):
+        if self.queue is not None:
+            self.queue.close()
+            self.queue = None
+
+
 class ManagerGroup(object):
-    def __init__(self, suite_name, size, browser_cls, browser_kwargs,
-                 executor_cls, executor_kwargs, pause_on_unexpected=False):
+    def __init__(self, suite_name, size, test_source_cls, test_source_kwargs,
+                 browser_cls, browser_kwargs,
+                 executor_cls, executor_kwargs,
+                 pause_after_test=False,
+                 pause_on_unexpected=False,
+                 debug_info=None):
         """Main thread object that owns all the TestManager threads."""
         self.suite_name = suite_name
         self.size = size
+        self.test_source_cls = test_source_cls
+        self.test_source_kwargs = test_source_kwargs
         self.browser_cls = browser_cls
         self.browser_kwargs = browser_kwargs
         self.executor_cls = executor_cls
         self.executor_kwargs = executor_kwargs
+        self.pause_after_test = pause_after_test
+        self.pause_on_unexpected = pause_on_unexpected
+        self.debug_info = debug_info
+
         self.pool = set()
         # Event that is polled by threads so that they can gracefully exit in the face
         # of sigint
         self.stop_flag = threading.Event()
-        self.pause_on_unexpected = pause_on_unexpected
         self.logger = structuredlog.StructuredLogger(suite_name)
+        self.test_queue = None
 
     def __enter__(self):
         return self
@@ -537,21 +619,33 @@ class ManagerGroup(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.stop()
 
-    def start(self, tests_queue):
+    def run(self, test_type, tests):
         """Start all managers in the group"""
         self.logger.debug("Using %i processes" % self.size)
-        self.tests_queue = tests_queue
-        for _ in range(self.size):
-            manager = TestRunnerManager(self.suite_name,
-                                        tests_queue,
-                                        self.browser_cls,
-                                        self.browser_kwargs,
-                                        self.executor_cls,
-                                        self.executor_kwargs,
-                                        self.stop_flag,
-                                        self.pause_on_unexpected)
-            manager.start()
-            self.pool.add(manager)
+
+        self.test_queue = TestQueue(self.test_source_cls,
+                                    test_type,
+                                    tests,
+                                    **self.test_source_kwargs)
+        with self.test_queue as test_queue:
+            if test_queue is None:
+                self.logger.info("No %s tests to run" % test_type)
+                return
+            for _ in range(self.size):
+                manager = TestRunnerManager(self.suite_name,
+                                            test_queue,
+                                            self.test_source_cls,
+                                            self.browser_cls,
+                                            self.browser_kwargs,
+                                            self.executor_cls,
+                                            self.executor_kwargs,
+                                            self.stop_flag,
+                                            self.pause_after_test,
+                                            self.pause_on_unexpected,
+                                            self.debug_info)
+                manager.start()
+                self.pool.add(manager)
+            self.wait()
 
     def is_alive(self):
         """Boolean indicating whether any manager in the group is still alive"""

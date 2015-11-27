@@ -3,14 +3,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "WebGLContext.h"
 #include "WebGLExtensions.h"
+
 #include "mozilla/dom/WebGLRenderingContextBinding.h"
+#include "WebGLContext.h"
 
-using namespace mozilla;
+namespace mozilla {
 
-WebGLExtensionElementIndexUint::WebGLExtensionElementIndexUint(WebGLContext* context)
-    : WebGLExtensionBase(context)
+WebGLExtensionElementIndexUint::WebGLExtensionElementIndexUint(WebGLContext* webgl)
+    : WebGLExtensionBase(webgl)
 {
 }
 
@@ -18,4 +19,6 @@ WebGLExtensionElementIndexUint::~WebGLExtensionElementIndexUint()
 {
 }
 
-IMPL_WEBGL_EXTENSION_GOOP(WebGLExtensionElementIndexUint)
+IMPL_WEBGL_EXTENSION_GOOP(WebGLExtensionElementIndexUint, OES_element_index_uint)
+
+} // namespace mozilla

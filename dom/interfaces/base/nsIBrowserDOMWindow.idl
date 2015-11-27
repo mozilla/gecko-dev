@@ -9,7 +9,15 @@ interface nsIDOMWindow;
 interface nsIURI;
 interface nsIFrameLoaderOwner;
 
-[scriptable, uuid(699b8f60-2898-11e4-8c21-0800200c9a66)]
+[scriptable, uuid(e774db14-79ac-4156-a7a3-aa3fd0a22c10)]
+
+interface nsIOpenURIInFrameParams : nsISupports
+{
+  attribute DOMString referrer;
+  attribute boolean isPrivate;
+};
+
+[scriptable, uuid(31da1ce2-aec4-4c26-ac66-d622935c3bf4)]
 
 /**
  * The C++ source has access to the browser script source through
@@ -80,10 +88,10 @@ interface nsIBrowserDOMWindow : nsISupports
 
   /**
    * As above, but return the nsIFrameLoaderOwner for the new window.
-   // XXXbz is this the right API? Do we really need the opener here?
+   // XXXbz is this the right API?
    // See bug 537428
    */
-  nsIFrameLoaderOwner openURIInFrame(in nsIURI aURI, in nsIDOMWindow aOpener,
+  nsIFrameLoaderOwner openURIInFrame(in nsIURI aURI, in nsIOpenURIInFrameParams params,
                                      in short aWhere, in short aContext);
 
   /**
@@ -91,6 +99,14 @@ interface nsIBrowserDOMWindow : nsISupports
    * @return whether the window is the main content window for any
    *         currently open tab in this toplevel browser window.
    */
-  boolean      isTabContentWindow(in nsIDOMWindow aWindow);
+  boolean isTabContentWindow(in nsIDOMWindow aWindow);
+
+  /**
+   * This function is responsible for calling
+   * nsIContentViewer::PermitUnload on each frame in the window. It
+   * returns true if closing the window is allowed. See canClose() in
+   * BrowserUtils.jsm for a simple implementation of this method.
+   */
+  boolean canClose();
 };
 

@@ -3,10 +3,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "TypeInState.h"
 
 #include <stddef.h>
 
-#include "TypeInState.h"
+#include "mozilla/dom/Selection.h"
 #include "mozilla/mozalloc.h"
 #include "nsAString.h"
 #include "nsDebug.h"
@@ -14,7 +15,6 @@
 #include "nsError.h"
 #include "nsGkAtoms.h"
 #include "nsIDOMNode.h"
-#include "nsISelection.h"
 #include "nsISupportsBase.h"
 #include "nsISupportsImpl.h"
 #include "nsReadableUtils.h"
@@ -23,8 +23,11 @@
 class nsIAtom;
 class nsIDOMDocument;
 
+using namespace mozilla;
+using namespace mozilla::dom;
+
 /********************************************************************
- *                     XPCOM cruft 
+ *                     XPCOM cruft
  *******************************************************************/
 
 NS_IMPL_CYCLE_COLLECTION(TypeInState, mLastSelectionContainer)
@@ -38,7 +41,7 @@ NS_INTERFACE_MAP_END
 /********************************************************************
  *                   public methods
  *******************************************************************/
- 
+
 TypeInState::TypeInState() :
  mSetArray()
 ,mClearedArray()
@@ -56,10 +59,11 @@ TypeInState::~TypeInState()
   Reset();
 }
 
-nsresult TypeInState::UpdateSelState(nsISelection *aSelection)
+nsresult
+TypeInState::UpdateSelState(Selection* aSelection)
 {
   NS_ENSURE_TRUE(aSelection, NS_ERROR_NULL_POINTER);
-  
+
   if (!aSelection->Collapsed()) {
     return NS_OK;
   }
@@ -79,17 +83,18 @@ NS_IMETHODIMP TypeInState::NotifySelectionChanged(nsIDOMDocument *, nsISelection
   // XXX:
   // XXX: This code temporarily fixes the problem where clicking the mouse in
   // XXX: the same location clears the type-in-state.
+  RefPtr<Selection> selection = static_cast<Selection*>(aSelection);
 
   if (aSelection) {
-    int32_t rangeCount = 0;
-    nsresult result = aSelection->GetRangeCount(&rangeCount);
-    NS_ENSURE_SUCCESS(result, result);
+    int32_t rangeCount = selection->RangeCount();
 
-    if (aSelection->Collapsed() && rangeCount) {
+    if (selection->Collapsed() && rangeCount) {
       nsCOMPtr<nsIDOMNode> selNode;
       int32_t selOffset = 0;
 
-      result = nsEditor::GetStartNodeAndOffset(aSelection, getter_AddRefs(selNode), &selOffset);
+      nsresult result =
+        nsEditor::GetStartNodeAndOffset(selection, getter_AddRefs(selNode),
+                                        &selOffset);
 
       NS_ENSURE_SUCCESS(result, result);
 
@@ -109,7 +114,7 @@ NS_IMETHODIMP TypeInState::NotifySelectionChanged(nsIDOMDocument *, nsISelection
     }
   }
 
-  Reset(); 
+  Reset();
   return NS_OK;
 }
 
@@ -184,7 +189,7 @@ TypeInState::ClearProp(nsIAtom* aProp, const nsAString& aAttr)
 /***************************************************************************
  *    TakeClearProperty: hands back next property item on the clear list.
  *                       caller assumes ownership of PropItem and must delete it.
- */  
+ */
 PropItem*
 TypeInState::TakeClearProperty()
 {
@@ -202,7 +207,7 @@ TypeInState::TakeClearProperty()
 /***************************************************************************
  *    TakeSetProperty: hands back next poroperty item on the set list.
  *                     caller assumes ownership of PropItem and must delete it.
- */  
+ */
 PropItem*
 TypeInState::TakeSetProperty()
 {
@@ -261,7 +266,7 @@ TypeInState::GetTypingState(bool &isSet,
 /********************************************************************
  *                   protected methods
  *******************************************************************/
- 
+
 void
 TypeInState::RemovePropFromSetList(nsIAtom* aProp, const nsAString& aAttr)
 {
@@ -349,7 +354,7 @@ bool TypeInState::IsPropCleared(nsIAtom* aProp,
   return false;
 }
 
-bool TypeInState::FindPropInList(nsIAtom *aProp, 
+bool TypeInState::FindPropInList(nsIAtom *aProp,
                                    const nsAString &aAttr,
                                    nsAString *outValue,
                                    nsTArray<PropItem*> &aList,
@@ -361,7 +366,7 @@ bool TypeInState::FindPropInList(nsIAtom *aProp,
   {
     PropItem *item = aList[i];
     if ( (item->tag == aProp) &&
-         (item->attr == aAttr) ) 
+         (item->attr == aAttr) )
     {
       if (outValue) *outValue = item->value;
       outIndex = i;
@@ -377,7 +382,7 @@ bool TypeInState::FindPropInList(nsIAtom *aProp,
  *    PropItem: helper struct for TypeInState
  *******************************************************************/
 
-PropItem::PropItem() : 
+PropItem::PropItem() :
  tag(nullptr)
 ,attr()
 ,value()

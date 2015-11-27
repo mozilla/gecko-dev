@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-// vim: ft=cpp tw=78 sw=2 et ts=2
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -16,11 +16,13 @@
 #include "mozilla/Maybe.h"
 
 #include "jsapi.h"
+#include "js/Debug.h"
 
 class nsPIDOMWindow;
 class nsGlobalWindow;
 class nsIScriptContext;
 class nsIDocument;
+class nsIDocShell;
 
 namespace mozilla {
 namespace dom {
@@ -62,6 +64,17 @@ private:
  */
 void InitScriptSettings();
 void DestroyScriptSettings();
+bool ScriptSettingsInitialized();
+
+/*
+ * Static helpers in ScriptSettings which track the number of listeners
+ * of Javascript RunToCompletion events.  These should be used by the code in
+ * nsDocShell::SetRecordProfileTimelineMarkers to indicate to script
+ * settings that script run-to-completion needs to be monitored.
+ * SHOULD BE CALLED ONLY BY MAIN THREAD.
+ */
+void UseEntryScriptProfiling();
+void UnuseEntryScriptProfiling();
 
 // To implement a web-compatible browser, it is often necessary to obtain the
 // global object that is "associated" with the currently-running code. This
@@ -203,6 +216,8 @@ public:
   // accessing the JSContext through cx().
   AutoJSAPI();
 
+  ~AutoJSAPI();
+
   // This uses the SafeJSContext (or worker equivalent), and enters a null
   // compartment, so that the consumer is forced to select a compartment to
   // enter before manipulating objects.
@@ -247,11 +262,39 @@ public:
 
   JSContext* cx() const {
     MOZ_ASSERT(mCx, "Must call Init before using an AutoJSAPI");
-    MOZ_ASSERT_IF(NS_IsMainThread(), CxPusherIsStackTop());
+    MOZ_ASSERT_IF(mIsMainThread, CxPusherIsStackTop());
     return mCx;
   }
 
   bool CxPusherIsStackTop() const { return mCxPusher->IsStackTop(); }
+
+  // We're moving towards a world where the AutoJSAPI always handles
+  // exceptions that bubble up from the JS engine. In order to make this
+  // process incremental, we allow consumers to opt-in to the new behavior
+  // while keeping the old behavior as the default.
+  void TakeOwnershipOfErrorReporting();
+  bool OwnsErrorReporting() { return mOwnErrorReporting; }
+  // If HasException, report it.  Otherwise, a no-op.  This must be
+  // called only if OwnsErrorReporting().
+  void ReportException();
+
+  bool HasException() const {
+    MOZ_ASSERT_IF(NS_IsMainThread(), CxPusherIsStackTop());
+    return JS_IsExceptionPending(cx());
+  };
+
+  // Transfers ownership of the current exception from the JS engine to the
+  // caller. Callers must ensure that HasException() is true, and that cx()
+  // is in a non-null compartment.
+  //
+  // Note that this fails if and only if we OOM while wrapping the exception
+  // into the current compartment.
+  bool StealException(JS::MutableHandle<JS::Value> aVal);
+
+  void ClearException() {
+    MOZ_ASSERT_IF(NS_IsMainThread(), CxPusherIsStackTop());
+    JS_ClearPendingException(cx());
+  }
 
 protected:
   // Protected constructor, allowing subclasses to specify a particular cx to
@@ -266,16 +309,31 @@ private:
   mozilla::Maybe<JSAutoNullableCompartment> mAutoNullableCompartment;
   JSContext *mCx;
 
+  // Track state between the old and new error reporting modes.
+  bool mOwnErrorReporting;
+  bool mOldAutoJSAPIOwnsErrorReporting;
+  // Whether we're mainthread or not; set when we're initialized.
+  bool mIsMainThread;
+  Maybe<JSErrorReporter> mOldErrorReporter;
+
   void InitInternal(JSObject* aGlobal, JSContext* aCx, bool aIsMainThread);
+
+  AutoJSAPI(const AutoJSAPI&) = delete;
+  AutoJSAPI& operator= (const AutoJSAPI&) = delete;
 };
 
 /*
  * A class that represents a new script entry point.
+ *
+ * |aReason| should be a statically-allocated C string naming the reason we're
+ * invoking JavaScript code: "setTimeout", "event", and so on. The devtools use
+ * these strings to label JS execution in timeline and profiling displays.
  */
-class AutoEntryScript : public AutoJSAPI,
-                        protected ScriptSettingsStackEntry {
+class MOZ_STACK_CLASS AutoEntryScript : public AutoJSAPI,
+                                        protected ScriptSettingsStackEntry {
 public:
-  explicit AutoEntryScript(nsIGlobalObject* aGlobalObject,
+  AutoEntryScript(nsIGlobalObject* aGlobalObject,
+                  const char *aReason,
                   bool aIsMainThread = NS_IsMainThread(),
                   // Note: aCx is mandatory off-main-thread.
                   JSContext* aCx = nullptr);
@@ -287,6 +345,36 @@ public:
   }
 
 private:
+  // A subclass of AutoEntryMonitor that notifies the docshell.
+  class DocshellEntryMonitor : public JS::dbg::AutoEntryMonitor
+  {
+  public:
+    DocshellEntryMonitor(JSContext* aCx, const char* aReason);
+
+    void Entry(JSContext* aCx, JSFunction* aFunction,
+               JS::Handle<JS::Value> aAsyncStack,
+               JS::Handle<JSString*> aAsyncCause) override
+    {
+      Entry(aCx, aFunction, nullptr, aAsyncStack, aAsyncCause);
+    }
+
+    void Entry(JSContext* aCx, JSScript* aScript,
+               JS::Handle<JS::Value> aAsyncStack,
+               JS::Handle<JSString*> aAsyncCause) override
+    {
+      Entry(aCx, nullptr, aScript, aAsyncStack, aAsyncCause);
+    }
+
+    void Exit(JSContext* aCx) override;
+
+  private:
+    void Entry(JSContext* aCx, JSFunction* aFunction, JSScript* aScript,
+               JS::Handle<JS::Value> aAsyncStack,
+               JS::Handle<JSString*> aAsyncCause);
+
+    const char* mReason;
+  };
+
   // It's safe to make this a weak pointer, since it's the subject principal
   // when we go on the stack, so can't go away until after we're gone.  In
   // particular, this is only used from the CallSetup constructor, and only in
@@ -294,8 +382,10 @@ private:
   // is the principal of the callee function that is part of the CallArgs just a
   // bit up the stack, and which will outlive us.  So we know the principal
   // can't go away until then either.
-  nsIPrincipal* mWebIDLCallerPrincipal;
+  nsIPrincipal* MOZ_NON_OWNING_REF mWebIDLCallerPrincipal;
   friend nsIPrincipal* GetWebIDLCallerPrincipal();
+
+  Maybe<DocshellEntryMonitor> mDocShellEntryMonitor;
 };
 
 /*
@@ -330,7 +420,7 @@ private:
  * passed as a parameter. AutoJSContext will take care of finding the most
  * appropriate JS context and release it when leaving the stack.
  */
-class MOZ_STACK_CLASS AutoJSContext {
+class MOZ_RAII AutoJSContext {
 public:
   explicit AutoJSContext(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM);
   operator JSContext*() const;
@@ -352,7 +442,7 @@ protected:
  * Use ThreadsafeAutoJSContext when you want an AutoJSContext but might be
  * running on a worker thread.
  */
-class MOZ_STACK_CLASS ThreadsafeAutoJSContext {
+class MOZ_RAII ThreadsafeAutoJSContext {
 public:
   explicit ThreadsafeAutoJSContext(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM);
   operator JSContext*() const;
@@ -370,7 +460,7 @@ private:
  *
  * Note - This is deprecated. Please use AutoJSAPI instead.
  */
-class MOZ_STACK_CLASS AutoSafeJSContext : public AutoJSContext {
+class MOZ_RAII AutoSafeJSContext : public AutoJSContext {
 public:
   explicit AutoSafeJSContext(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM);
 private:
@@ -380,7 +470,7 @@ private:
 /**
  * Like AutoSafeJSContext but can be used safely on worker threads.
  */
-class MOZ_STACK_CLASS ThreadsafeAutoSafeJSContext {
+class MOZ_RAII ThreadsafeAutoSafeJSContext {
 public:
   explicit ThreadsafeAutoSafeJSContext(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM);
   operator JSContext*() const;

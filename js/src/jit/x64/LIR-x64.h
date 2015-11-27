@@ -10,40 +10,18 @@
 namespace js {
 namespace jit {
 
-// Given a typed input, returns an untyped box.
-class LBox : public LInstructionHelper<1, 1, 0>
-{
-    MIRType type_;
-
-  public:
-    LIR_HEADER(Box)
-
-    LBox(MIRType type, const LAllocation &payload)
-      : type_(type)
-    {
-        setOperand(0, payload);
-    }
-
-    MIRType type() const {
-        return type_;
-    }
-    const char *extraName() const {
-        return StringFromMIRType(type_);
-    }
-};
-
 // Given an untyped input, guards on whether it's a specific type and returns
 // the unboxed payload.
 class LUnboxBase : public LInstructionHelper<1, 1, 0>
 {
   public:
-    explicit LUnboxBase(const LAllocation &input) {
+    explicit LUnboxBase(const LAllocation& input) {
         setOperand(0, input);
     }
 
     static const size_t Input = 0;
 
-    MUnbox *mir() const {
+    MUnbox* mir() const {
         return mir_->toUnbox();
     }
 };
@@ -52,11 +30,11 @@ class LUnbox : public LUnboxBase {
   public:
     LIR_HEADER(Unbox)
 
-    explicit LUnbox(const LAllocation &input)
+    explicit LUnbox(const LAllocation& input)
       : LUnboxBase(input)
     { }
 
-    const char *extraName() const {
+    const char* extraName() const {
         return StringFromMIRType(mir()->type());
     }
 };
@@ -67,7 +45,7 @@ class LUnboxFloatingPoint : public LUnboxBase {
   public:
     LIR_HEADER(UnboxFloatingPoint)
 
-    LUnboxFloatingPoint(const LAllocation &input, MIRType type)
+    LUnboxFloatingPoint(const LAllocation& input, MIRType type)
       : LUnboxBase(input),
         type_(type)
     { }
@@ -75,7 +53,7 @@ class LUnboxFloatingPoint : public LUnboxBase {
     MIRType type() const {
         return type_;
     }
-    const char *extraName() const {
+    const char* extraName() const {
         return StringFromMIRType(type_);
     }
 };
@@ -86,7 +64,7 @@ class LAsmJSUInt32ToDouble : public LInstructionHelper<1, 1, 0>
   public:
     LIR_HEADER(AsmJSUInt32ToDouble)
 
-    explicit LAsmJSUInt32ToDouble(const LAllocation &input) {
+    explicit LAsmJSUInt32ToDouble(const LAllocation& input) {
         setOperand(0, input);
     }
 };
@@ -97,7 +75,7 @@ class LAsmJSUInt32ToFloat32 : public LInstructionHelper<1, 1, 0>
   public:
     LIR_HEADER(AsmJSUInt32ToFloat32)
 
-    explicit LAsmJSUInt32ToFloat32(const LAllocation &input) {
+    explicit LAsmJSUInt32ToFloat32(const LAllocation& input) {
         setOperand(0, input);
     }
 };
@@ -106,17 +84,17 @@ class LAsmJSLoadFuncPtr : public LInstructionHelper<1, 1, 1>
 {
   public:
     LIR_HEADER(AsmJSLoadFuncPtr);
-    LAsmJSLoadFuncPtr(const LAllocation &index, const LDefinition &temp) {
+    LAsmJSLoadFuncPtr(const LAllocation& index, const LDefinition& temp) {
         setOperand(0, index);
         setTemp(0, temp);
     }
-    MAsmJSLoadFuncPtr *mir() const {
+    MAsmJSLoadFuncPtr* mir() const {
         return mir_->toAsmJSLoadFuncPtr();
     }
-    const LAllocation *index() {
+    const LAllocation* index() {
         return getOperand(0);
     }
-    const LDefinition *temp() {
+    const LDefinition* temp() {
         return getTemp(0);
     }
 };

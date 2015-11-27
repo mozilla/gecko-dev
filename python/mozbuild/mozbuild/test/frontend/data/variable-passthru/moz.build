@@ -2,24 +2,10 @@
 # Any copyright is dedicated to the Public Domain.
 # http://creativecommons.org/publicdomain/zero/1.0/
 
-SOURCES += ['fans.asm', 'tans.s']
-
-EXTRA_COMPONENTS=['fans.js', 'tans.js']
+EXTRA_COMPONENTS = ['dummy.manifest', 'fans.js', 'tans.js']
 EXTRA_PP_COMPONENTS=['fans.pp.js', 'tans.pp.js']
 
-HOST_SOURCES += ['fans.cpp', 'tans.cpp']
-HOST_SOURCES += ['fans.c', 'tans.c']
-
-SOURCES += ['fans.c', 'tans.c']
-
-SOURCES += ['fans.mm', 'tans.mm']
-
-SOURCES += ['bans.S', 'fans.S']
-
-FAIL_ON_WARNINGS = True
-MSVC_ENABLE_PGO = True
-
-NO_DIST_INSTALL = True
+DIST_INSTALL = False
 
 NO_VISIBILITY_FLAGS = True
 
@@ -35,6 +21,10 @@ USE_STATIC_LIBS = True
 CFLAGS += ['-fno-exceptions', '-w']
 CXXFLAGS += ['-fcxx-exceptions', '-include foo.h']
 LDFLAGS += ['-framework Foo', '-x']
+HOST_CFLAGS += ['-funroll-loops', '-wall']
+HOST_CXXFLAGS += ['-funroll-loops-harder', '-wall-day-everyday']
 WIN32_EXE_LDFLAGS += ['-subsystem:console']
 
 DISABLE_STL_WRAPPING = True
+
+ALLOW_COMPILER_WARNINGS = True

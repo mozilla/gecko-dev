@@ -28,6 +28,8 @@
 #include <media/stagefright/DataSource.h>
 #include <media/stagefright/Utils.h>
 
+#include <stdint.h>
+
 namespace stagefright {
 
 // static
@@ -40,6 +42,9 @@ const uint32_t SampleTable::kSampleSizeType32 = FOURCC('s', 't', 's', 'z');
 const uint32_t SampleTable::kSampleSizeTypeCompact = FOURCC('s', 't', 'z', '2');
 
 const uint32_t kAuxTypeCenc = FOURCC('c', 'e', 'n', 'c');
+
+static const uint32_t kMAX_ALLOCATION =
+    (SIZE_MAX < INT32_MAX ? SIZE_MAX : INT32_MAX) - 128;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -205,11 +210,11 @@ status_t SampleTable::setChunkOffsetParams(
     mNumChunkOffsets = U32_AT(&header[4]);
 
     if (mChunkOffsetType == kChunkOffsetType32) {
-        if (data_size < 8 + mNumChunkOffsets * 4) {
+        if (data_size < 8 + (uint64_t)mNumChunkOffsets * 4) {
             return ERROR_MALFORMED;
         }
     } else {
-        if (data_size < 8 + mNumChunkOffsets * 8) {
+        if (data_size < 8 + (uint64_t)mNumChunkOffsets * 8) {
             return ERROR_MALFORMED;
         }
     }
@@ -242,7 +247,7 @@ status_t SampleTable::setSampleToChunkParams(
 
     mNumSampleToChunkOffsets = U32_AT(&header[4]);
 
-    if (data_size < 8 + mNumSampleToChunkOffsets * 12) {
+    if (data_size < 8 + (uint64_t)mNumSampleToChunkOffsets * 12) {
         return ERROR_MALFORMED;
     }
 
@@ -257,7 +262,10 @@ status_t SampleTable::setSampleToChunkParams(
             return ERROR_IO;
         }
 
-        CHECK(U32_AT(buffer) >= 1);  // chunk index is 1 based in the spec.
+        if (!U32_AT(buffer)) {
+          ALOGE("error reading sample to chunk table");
+          return ERROR_MALFORMED;  // chunk index is 1 based in the spec.
+        }
 
         // We want the chunk index to be 0-based.
         mSampleToChunkEntries[i].startChunk = U32_AT(buffer) - 1;
@@ -303,7 +311,7 @@ status_t SampleTable::setSampleSizeParams(
             return OK;
         }
 
-        if (data_size < 12 + mNumSampleSizes * 4) {
+        if (data_size < 12 + (uint64_t)mNumSampleSizes * 4) {
             return ERROR_MALFORMED;
         }
     } else {
@@ -320,7 +328,7 @@ status_t SampleTable::setSampleSizeParams(
             return ERROR_MALFORMED;
         }
 
-        if (data_size < 12 + (mNumSampleSizes * mSampleSizeFieldSize + 4) / 8) {
+        if (data_size < 12 + ((uint64_t)mNumSampleSizes * mSampleSizeFieldSize + 4) / 8) {
             return ERROR_MALFORMED;
         }
     }
@@ -346,6 +354,10 @@ status_t SampleTable::setTimeToSampleParams(
     }
 
     mTimeToSampleCount = U32_AT(&header[4]);
+    if (mTimeToSampleCount > kMAX_ALLOCATION / 2 / sizeof(uint32_t)) {
+        // Avoid later overflow.
+        return ERROR_MALFORMED;
+    }
     mTimeToSample = new uint32_t[mTimeToSampleCount * 2];
 
     size_t size = sizeof(uint32_t) * mTimeToSampleCount * 2;
@@ -376,14 +388,14 @@ status_t SampleTable::setCompositionTimeToSampleParams(
         return ERROR_IO;
     }
 
-    if (U32_AT(header) != 0) {
+    uint32_t numEntries = U32_AT(&header[4]);
+
+    if (U32_AT(header) != 0 && numEntries) {
         // Expected version = 0, flags = 0.
         return ERROR_MALFORMED;
     }
 
-    size_t numEntries = U32_AT(&header[4]);
-
-    if (data_size != (numEntries + 1) * 8) {
+    if (data_size != ((uint64_t)numEntries + 1) * 8) {
         return ERROR_MALFORMED;
     }
 
@@ -428,6 +440,10 @@ status_t SampleTable::setSyncSampleParams(off64_t data_offset, size_t data_size)
     }
 
     mNumSyncSamples = U32_AT(&header[4]);
+    if (mNumSyncSamples > kMAX_ALLOCATION / sizeof(uint32_t)) {
+        // Avoid later overflow.
+        return ERROR_MALFORMED;
+    }
 
     if (mNumSyncSamples < 2) {
         ALOGV("Table of sync samples is empty or has only a single entry!");
@@ -498,7 +514,7 @@ SampleTable::setSampleAuxiliaryInformationSizeParams(
         return OK;
     }
 
-    if (!mCencSizes.isEmpty() || mCencDefaultSize) {
+    if (!mCencSizes.IsEmpty() || mCencDefaultSize) {
         ALOGE("duplicate cenc saiz box");
         return ERROR_MALFORMED;
     }
@@ -520,16 +536,23 @@ SampleTable::setSampleAuxiliaryInformationSizeParams(
     data_offset += 4;
 
     if (!mCencDefaultSize) {
-        mCencSizes.insertAt(0, 0, mCencInfoCount);
+        if (!mCencSizes.InsertElementsAt(0, mCencInfoCount, mozilla::fallible)) {
+          return ERROR_IO;
+        }
         if (mDataSource->readAt(
-                    data_offset, mCencSizes.editArray(), mCencInfoCount)
+                    data_offset, mCencSizes.Elements(), mCencInfoCount)
                     < mCencInfoCount) {
             return ERROR_IO;
         }
         data_offset += mCencInfoCount;
     }
 
-    CHECK(data_offset == data_end);
+    if (data_offset != data_end) {
+        ALOGW("wrong saiz data size, expected %lu, actual %lu",
+              data_size, data_offset - (data_end - data_size));
+        // Continue, assume extra data is not important.
+        // Parser will skip past the box end.
+    }
 
     return parseSampleCencInfo();
 }
@@ -552,7 +575,7 @@ SampleTable::setSampleAuxiliaryInformationOffsetParams(
         return OK;
     }
 
-    if (!mCencOffsets.isEmpty()) {
+    if (!mCencOffsets.IsEmpty()) {
         ALOGE("duplicate cenc saio box");
         return ERROR_MALFORMED;
     }
@@ -564,20 +587,29 @@ SampleTable::setSampleAuxiliaryInformationOffsetParams(
     }
     data_offset += 4;
 
-    mCencOffsets.setCapacity(cencOffsetCount);
+    if (cencOffsetCount >= kMAX_ALLOCATION) {
+        return ERROR_MALFORMED;
+    }
     if (!version) {
+        if (!mCencOffsets.SetCapacity(cencOffsetCount, mozilla::fallible)) {
+            return ERROR_MALFORMED;
+        }
         for (uint32_t i = 0; i < cencOffsetCount; i++) {
             uint32_t tmp;
             if (!mDataSource->getUInt32(data_offset, &tmp)) {
                 ALOGE("error reading cenc aux info offsets");
                 return ERROR_IO;
             }
-            mCencOffsets.push(tmp);
+            // FIXME: Make this infallible after bug 968520 is done.
+            MOZ_ALWAYS_TRUE(mCencOffsets.AppendElement(tmp, mozilla::fallible));
             data_offset += 4;
         }
     } else {
+        if (!mCencOffsets.SetLength(cencOffsetCount, mozilla::fallible)) {
+          return ERROR_MALFORMED;
+        }
         for (uint32_t i = 0; i < cencOffsetCount; i++) {
-            if (!mDataSource->getUInt64(data_offset, &mCencOffsets.editItemAt(i))) {
+            if (!mDataSource->getUInt64(data_offset, &mCencOffsets[i])) {
                 ALOGE("error reading cenc aux info offsets");
                 return ERROR_IO;
             }
@@ -585,22 +617,32 @@ SampleTable::setSampleAuxiliaryInformationOffsetParams(
         }
     }
 
-    CHECK(data_offset == data_end);
+    if (data_offset != data_end) {
+        ALOGW("wrong saio data size, expected %lu, actual %lu",
+              data_size, data_offset - (data_end - data_size));
+        // Continue, assume extra data is not important.
+        // Parser will skip past the box end.
+    }
 
     return parseSampleCencInfo();
 }
 
 status_t
 SampleTable::parseSampleCencInfo() {
-    if ((!mCencDefaultSize && !mCencInfoCount) || mCencOffsets.isEmpty()) {
+    if ((!mCencDefaultSize && !mCencInfoCount) || mCencOffsets.IsEmpty()) {
         // We don't have all the cenc information we need yet. Quietly fail and
         // hope we get the data we need later in the track header.
         ALOGV("Got half of cenc saio/saiz pair. Deferring parse until we get the other half.");
         return OK;
     }
 
-    if (!mCencSizes.isEmpty() && mCencOffsets.size() > 1 &&
-        mCencSizes.size() != mCencOffsets.size()) {
+    if (!mCencSizes.IsEmpty() && mCencOffsets.Length() > 1 &&
+        mCencSizes.IsEmpty() != mCencOffsets.Length()) {
+        return ERROR_MALFORMED;
+    }
+
+    if (mCencInfoCount > kMAX_ALLOCATION / sizeof(SampleCencInfo)) {
+        // Avoid future OOM.
         return ERROR_MALFORMED;
     }
 
@@ -612,7 +654,7 @@ SampleTable::parseSampleCencInfo() {
     uint64_t nextOffset = mCencOffsets[0];
     for (uint32_t i = 0; i < mCencInfoCount; i++) {
         uint8_t size = mCencDefaultSize ? mCencDefaultSize : mCencSizes[i];
-        uint64_t offset = mCencOffsets.size() == 1 ? nextOffset : mCencOffsets[i];
+        uint64_t offset = mCencOffsets.Length() == 1 ? nextOffset : mCencOffsets[i];
         nextOffset = offset + size;
 
         auto& info = mCencInfo[i];
@@ -1073,9 +1115,9 @@ uint32_t SampleTable::getCompositionTimeOffset(uint32_t sampleIndex) {
 
 status_t
 SampleTable::getSampleCencInfo(
-        uint32_t sample_index, Vector<uint16_t>& clear_sizes,
-        Vector<uint32_t>& cipher_sizes, uint8_t iv[]) {
-    CHECK(clear_sizes.isEmpty() && cipher_sizes.isEmpty());
+        uint32_t sample_index, nsTArray<uint16_t>& clear_sizes,
+        nsTArray<uint32_t>& cipher_sizes, uint8_t iv[]) {
+    CHECK(clear_sizes.IsEmpty() && cipher_sizes.IsEmpty());
 
     if (sample_index >= mCencInfoCount) {
         ALOGE("cenc info requested for out of range sample index");
@@ -1083,12 +1125,12 @@ SampleTable::getSampleCencInfo(
     }
 
     auto& info = mCencInfo[sample_index];
-    clear_sizes.setCapacity(info.mSubsampleCount);
-    cipher_sizes.setCapacity(info.mSubsampleCount);
+    clear_sizes.SetCapacity(info.mSubsampleCount);
+    cipher_sizes.SetCapacity(info.mSubsampleCount);
 
     for (uint32_t i = 0; i < info.mSubsampleCount; i++) {
-        clear_sizes.push(info.mSubsamples[i].mClearBytes);
-        cipher_sizes.push(info.mSubsamples[i].mCipherBytes);
+        clear_sizes.AppendElement(info.mSubsamples[i].mClearBytes);
+        cipher_sizes.AppendElement(info.mSubsamples[i].mCipherBytes);
     }
 
     memcpy(iv, info.mIV, IV_BYTES);

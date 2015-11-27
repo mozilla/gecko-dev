@@ -6,7 +6,6 @@
 #ifndef nsdirectoryviewer__h____
 #define nsdirectoryviewer__h____
 
-#include "nsNetUtil.h"
 #include "nsIStreamListener.h"
 #include "nsIContentViewer.h"
 #include "nsIHTTPIndex.h"
@@ -20,6 +19,8 @@
 #include "nsIDirIndexListener.h"
 #include "nsIFTPChannel.h"
 #include "nsCycleCollectionParticipant.h"
+#include "nsIInterfaceRequestor.h"
+#include "nsIURI.h"
 
 class nsDirectoryViewerFactory : public nsIDocumentLoaderFactory
 {
@@ -34,12 +35,12 @@ protected:
     virtual ~nsDirectoryViewerFactory();
 };
 
-class nsHTTPIndex MOZ_FINAL : public nsIHTTPIndex,
-                              public nsIRDFDataSource,
-                              public nsIStreamListener,
-                              public nsIDirIndexListener,
-                              public nsIInterfaceRequestor,
-                              public nsIFTPEventSink
+class nsHTTPIndex final : public nsIHTTPIndex,
+                          public nsIRDFDataSource,
+                          public nsIStreamListener,
+                          public nsIDirIndexListener,
+                          public nsIInterfaceRequestor,
+                          public nsIFTPEventSink
 {
 private:
 

@@ -15,7 +15,7 @@
 
 namespace ots {
 
-bool ParseMetricsHeader(OpenTypeFile *file, Buffer *table,
+bool ParseMetricsHeader(Font *font, Buffer *table,
                         OpenTypeMetricsHeader *header) {
   if (!table->ReadS16(&header->ascent) ||
       !table->ReadS16(&header->descent) ||
@@ -39,12 +39,12 @@ bool ParseMetricsHeader(OpenTypeFile *file, Buffer *table,
     header->linegap = 0;
   }
 
-  if (!file->head) {
+  if (!font->head) {
     return OTS_FAILURE_MSG("Missing head font table");
   }
 
   // if the font is non-slanted, caret_offset should be zero.
-  if (!(file->head->mac_style & 2) &&
+  if (!(font->head->mac_style & 2) &&
       (header->caret_offset != 0)) {
     OTS_WARNING("bad caret offset: %d", header->caret_offset);
     header->caret_offset = 0;
@@ -67,18 +67,18 @@ bool ParseMetricsHeader(OpenTypeFile *file, Buffer *table,
     return OTS_FAILURE_MSG("Failed to read number of metrics");
   }
 
-  if (!file->maxp) {
+  if (!font->maxp) {
     return OTS_FAILURE_MSG("Missing maxp font table");
   }
 
-  if (header->num_metrics > file->maxp->num_glyphs) {
+  if (header->num_metrics > font->maxp->num_glyphs) {
     return OTS_FAILURE_MSG("Bad number of metrics %d", header->num_metrics);
   }
 
   return true;
 }
 
-bool SerialiseMetricsHeader(const ots::OpenTypeFile *file,
+bool SerialiseMetricsHeader(const ots::Font *font,
                             OTSStream *out,
                             const OpenTypeMetricsHeader *header) {
   if (!out->WriteU32(header->version) ||
@@ -101,7 +101,7 @@ bool SerialiseMetricsHeader(const ots::OpenTypeFile *file,
   return true;
 }
 
-bool ParseMetricsTable(const ots::OpenTypeFile *file,
+bool ParseMetricsTable(const ots::Font *font,
                        Buffer *table,
                        const uint16_t num_glyphs,
                        const OpenTypeMetricsHeader *header,
@@ -126,6 +126,8 @@ bool ParseMetricsTable(const ots::OpenTypeFile *file,
       return OTS_FAILURE_MSG("Failed to read metric %d", i);
     }
 
+    // This check is bogus, see https://github.com/khaledhosny/ots/issues/36
+#if 0
     // Since so many fonts don't have proper value on |adv| and |sb|,
     // we should not call ots_failure() here. For example, about 20% of fonts
     // in http://www.princexml.com/fonts/ (200+ fonts) fails these tests.
@@ -138,6 +140,7 @@ bool ParseMetricsTable(const ots::OpenTypeFile *file,
       OTS_WARNING("bad sb: %d < %d", sb, header->min_sb1);
       sb = header->min_sb1;
     }
+#endif
 
     metrics->entries.push_back(std::make_pair(adv, sb));
   }
@@ -150,12 +153,15 @@ bool ParseMetricsTable(const ots::OpenTypeFile *file,
       return OTS_FAILURE_MSG("Failed to read side bearing %d", i + num_metrics);
     }
 
+    // This check is bogus, see https://github.com/khaledhosny/ots/issues/36
+#if 0
     if (sb < header->min_sb1) {
       // The same as above. Three fonts in http://www.fontsquirrel.com/fontface
       // (e.g., Notice2Std.otf) have weird lsb values.
       OTS_WARNING("bad lsb: %d < %d", sb, header->min_sb1);
       sb = header->min_sb1;
     }
+#endif
 
     metrics->sbs.push_back(sb);
   }
@@ -163,7 +169,7 @@ bool ParseMetricsTable(const ots::OpenTypeFile *file,
   return true;
 }
 
-bool SerialiseMetricsTable(const ots::OpenTypeFile *file,
+bool SerialiseMetricsTable(const ots::Font *font,
                            OTSStream *out,
                            const OpenTypeMetricsTable *metrics) {
   for (unsigned i = 0; i < metrics->entries.size(); ++i) {

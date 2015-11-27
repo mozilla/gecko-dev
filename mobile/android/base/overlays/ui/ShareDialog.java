@@ -5,18 +5,38 @@
 
 package org.mozilla.gecko.overlays.ui;
 
+import java.net.URISyntaxException;
+
+import org.mozilla.gecko.AppConstants;
+import org.mozilla.gecko.Assert;
+import org.mozilla.gecko.GeckoProfile;
+import org.mozilla.gecko.Locales;
+import org.mozilla.gecko.R;
+import org.mozilla.gecko.Telemetry;
+import org.mozilla.gecko.TelemetryContract;
+import org.mozilla.gecko.db.LocalBrowserDB;
+import org.mozilla.gecko.db.RemoteClient;
+import org.mozilla.gecko.overlays.OverlayConstants;
+import org.mozilla.gecko.overlays.service.OverlayActionService;
+import org.mozilla.gecko.overlays.service.sharemethods.SendTab;
+import org.mozilla.gecko.overlays.service.sharemethods.ShareMethod;
+import org.mozilla.gecko.sync.setup.activities.WebURLFinder;
+import org.mozilla.gecko.mozglue.ContextUtils;
+import org.mozilla.gecko.util.ThreadUtils;
+import org.mozilla.gecko.util.UIAsyncTask;
+
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.animation.AnimationSet;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.Animation;
@@ -24,26 +44,33 @@ import android.view.animation.AnimationUtils;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.mozilla.gecko.Assert;
-import org.mozilla.gecko.GeckoProfile;
-import org.mozilla.gecko.R;
-import org.mozilla.gecko.db.LocalBrowserDB;
-import org.mozilla.gecko.overlays.OverlayConstants;
-import org.mozilla.gecko.overlays.service.OverlayActionService;
-import org.mozilla.gecko.overlays.service.sharemethods.ParcelableClientRecord;
-import org.mozilla.gecko.overlays.service.sharemethods.SendTab;
-import org.mozilla.gecko.overlays.service.sharemethods.ShareMethod;
-import org.mozilla.gecko.LocaleAware;
-import org.mozilla.gecko.sync.setup.activities.WebURLFinder;
-import org.mozilla.gecko.util.HardwareUtils;
-import org.mozilla.gecko.util.ThreadUtils;
-import org.mozilla.gecko.util.UIAsyncTask;
-
 /**
  * A transparent activity that displays the share overlay.
  */
-public class ShareDialog extends LocaleAware.LocaleAwareActivity implements SendTabTargetSelectedListener {
+public class ShareDialog extends Locales.LocaleAwareActivity implements SendTabTargetSelectedListener {
+
+    private enum State {
+        DEFAULT,
+        DEVICES_ONLY // Only display the device list.
+    }
+
     private static final String LOGTAG = "GeckoShareDialog";
+
+    /** Flag to indicate that we should always show the device list; specific to this release channel. **/
+    public static final String INTENT_EXTRA_DEVICES_ONLY =
+            AppConstants.ANDROID_PACKAGE_NAME + ".intent.extra.DEVICES_ONLY";
+
+    /** The maximum number of devices we'll show in the dialog when in State.DEFAULT. **/
+    private static final int MAXIMUM_INLINE_DEVICES = 2;
+
+    private State state;
+
+    private SendTabList sendTabList;
+    private OverlayDialogButton readingListButton;
+    private OverlayDialogButton bookmarkButton;
+
+    // The reading list drawable set from XML - we need this to reset state.
+    private Drawable readingListButtonDrawable;
 
     private String url;
     private String title;
@@ -75,10 +102,42 @@ public class ShareDialog extends LocaleAware.LocaleAwareActivity implements Send
     protected void handleSendTabUIEvent(Intent intent) {
         sendTabOverrideIntent = intent.getParcelableExtra(SendTab.OVERRIDE_INTENT);
 
-        SendTabList sendTabList = (SendTabList) findViewById(R.id.overlay_send_tab_btn);
+        RemoteClient[] remoteClientRecords = (RemoteClient[]) intent.getParcelableArrayExtra(SendTab.EXTRA_REMOTE_CLIENT_RECORDS);
 
-        ParcelableClientRecord[] clientrecords = (ParcelableClientRecord[]) intent.getParcelableArrayExtra(SendTab.EXTRA_CLIENT_RECORDS);
-        sendTabList.setSyncClients(clientrecords);
+        // Escape hatch: we don't show the option to open this dialog in this state so this should
+        // never be run. However, due to potential inconsistencies in synced client state
+        // (e.g. bug 1122302 comment 47), we might fail.
+        if (state == State.DEVICES_ONLY &&
+                (remoteClientRecords == null || remoteClientRecords.length == 0)) {
+            Log.e(LOGTAG, "In state: " + State.DEVICES_ONLY + " and received 0 synced clients. Finishing...");
+            Toast.makeText(this, getResources().getText(R.string.overlay_no_synced_devices), Toast.LENGTH_SHORT)
+                 .show();
+            finish();
+            return;
+        }
+
+        sendTabList.setSyncClients(remoteClientRecords);
+
+        if (state == State.DEVICES_ONLY ||
+                remoteClientRecords == null ||
+                remoteClientRecords.length <= MAXIMUM_INLINE_DEVICES) {
+            // Show the list of devices in-line.
+            sendTabList.switchState(SendTabList.State.LIST);
+
+            // The first item in the list has a unique style. If there are no items
+            // in the list, the next button appears to be the first item in the list.
+            //
+            // Note: a more thorough implementation would add this
+            // (and other non-ListView buttons) into a custom ListView.
+            if (remoteClientRecords == null || remoteClientRecords.length == 0) {
+                readingListButton.setBackgroundResource(
+                        R.drawable.overlay_share_button_background_first);
+            }
+            return;
+        }
+
+        // Just show a button to launch the list of devices to choose from.
+        sendTabList.switchState(SendTabList.State.SHOW_DEVICES);
     }
 
     @Override
@@ -109,103 +168,36 @@ public class ShareDialog extends LocaleAware.LocaleAwareActivity implements Send
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        getWindow().setWindowAnimations(0);
-
-        Intent intent = getIntent();
-        final Resources resources = getResources();
-
-        // The URL is usually hiding somewhere in the extra text. Extract it.
-        final String extraText = intent.getStringExtra(Intent.EXTRA_TEXT);
-        if (TextUtils.isEmpty(extraText)) {
-            abortDueToNoURL();
-            return;
-        }
-
-        final String pageUrl = new WebURLFinder(extraText).bestWebURL();
-        if (TextUtils.isEmpty(pageUrl)) {
-            abortDueToNoURL();
-            return;
-        }
-
         setContentView(R.layout.overlay_share_dialog);
 
-
         LocalBroadcastManager.getInstance(this).registerReceiver(uiEventListener,
-                                                                  new IntentFilter(OverlayConstants.SHARE_METHOD_UI_EVENT));
+                new IntentFilter(OverlayConstants.SHARE_METHOD_UI_EVENT));
 
-        // Have the service start any initialisation work that's necessary for us to show the correct
-        // UI. The results of such work will come in via the BroadcastListener.
-        Intent serviceStartupIntent = new Intent(this, OverlayActionService.class);
-        serviceStartupIntent.setAction(OverlayConstants.ACTION_PREPARE_SHARE);
-        startService(serviceStartupIntent);
+        // Send tab.
+        sendTabList = (SendTabList) findViewById(R.id.overlay_send_tab_btn);
 
-        // If provided, we use the subject text to give us something nice to display.
-        // If not, we wing it with the URL.
-        // TODO: Consider polling Fennec databases to find better information to display.
-        String subjectText = intent.getStringExtra(Intent.EXTRA_SUBJECT);
-        if (subjectText != null) {
-            ((TextView) findViewById(R.id.title)).setText(subjectText);
-        }
+        // Register ourselves as both the listener and the context for the Adapter.
+        final SendTabDeviceListArrayAdapter adapter = new SendTabDeviceListArrayAdapter(this, this);
+        sendTabList.setAdapter(adapter);
+        sendTabList.setSendTabTargetSelectedListener(this);
 
-        title = subjectText;
-        url = pageUrl;
+        bookmarkButton = (OverlayDialogButton) findViewById(R.id.overlay_share_bookmark_btn);
+        readingListButton = (OverlayDialogButton) findViewById(R.id.overlay_share_reading_list_btn);
 
-        // Set the subtitle text on the view and cause it to marquee if it's too long (which it will
-        // be, since it's a URL).
-        TextView subtitleView = (TextView) findViewById(R.id.subtitle);
-        subtitleView.setText(pageUrl);
-        subtitleView.setEllipsize(TextUtils.TruncateAt.MARQUEE);
-        subtitleView.setSingleLine(true);
-        subtitleView.setMarqueeRepeatLimit(5);
-        subtitleView.setSelected(true);
+        readingListButtonDrawable = readingListButton.getBackground();
 
-        // Start the slide-up animation.
-        Animation anim = AnimationUtils.loadAnimation(this, R.anim.overlay_slide_up);
-        findViewById(R.id.sharedialog).startAnimation(anim);
-
-        // Configure buttons.
-        final OverlayDialogButton bookmarkBtn = (OverlayDialogButton) findViewById(R.id.overlay_share_bookmark_btn);
-
-        final String bookmarkEnabledLabel = resources.getString(R.string.overlay_share_bookmark_btn_label);
-        final Drawable bookmarkEnabledIcon = resources.getDrawable(R.drawable.overlay_bookmark_icon);
-        bookmarkBtn.setEnabledLabelAndIcon(bookmarkEnabledLabel, bookmarkEnabledIcon);
-
-        final String bookmarkDisabledLabel = resources.getString(R.string.overlay_share_bookmark_btn_label_already);
-        final Drawable bookmarkDisabledIcon = resources.getDrawable(R.drawable.overlay_bookmarked_already_icon);
-        bookmarkBtn.setDisabledLabelAndIcon(bookmarkDisabledLabel, bookmarkDisabledIcon);
-
-        bookmarkBtn.setOnClickListener(new View.OnClickListener() {
+        // Bookmark button
+        bookmarkButton = (OverlayDialogButton) findViewById(R.id.overlay_share_bookmark_btn);
+        bookmarkButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 addBookmark();
             }
         });
 
-        // Send tab.
-        SendTabList sendTabList = (SendTabList) findViewById(R.id.overlay_send_tab_btn);
-
-        // Register ourselves as both the listener and the context for the Adapter.
-        SendTabDeviceListArrayAdapter adapter = new SendTabDeviceListArrayAdapter(this, this);
-        sendTabList.setAdapter(adapter);
-        sendTabList.setSendTabTargetSelectedListener(this);
-
-        // If we're a low memory device, just hide the reading list button. Otherwise, configure it.
-        final OverlayDialogButton readinglistBtn = (OverlayDialogButton) findViewById(R.id.overlay_share_reading_list_btn);
-
-        if (HardwareUtils.isLowMemoryPlatform()) {
-            readinglistBtn.setVisibility(View.GONE);
-            return;
-        }
-
-        final String readingListEnabledLabel = resources.getString(R.string.overlay_share_reading_list_btn_label);
-        final Drawable readingListEnabledIcon = resources.getDrawable(R.drawable.overlay_readinglist_icon);
-        readinglistBtn.setEnabledLabelAndIcon(readingListEnabledLabel, readingListEnabledIcon);
-
-        final String readingListDisabledLabel = resources.getString(R.string.overlay_share_reading_list_btn_label_already);
-        final Drawable readingListDisabledIcon = resources.getDrawable(R.drawable.overlay_readinglist_already_icon);
-        readinglistBtn.setDisabledLabelAndIcon(readingListDisabledLabel, readingListDisabledIcon);
-
-        readinglistBtn.setOnClickListener(new View.OnClickListener() {
+        // Reading List button
+        readingListButton = (OverlayDialogButton) findViewById(R.id.overlay_share_reading_list_btn);
+        readingListButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 addToReadingList();
@@ -217,15 +209,107 @@ public class ShareDialog extends LocaleAware.LocaleAwareActivity implements Send
     protected void onResume() {
         super.onResume();
 
-        LocalBrowserDB browserDB = new LocalBrowserDB(getCurrentProfile());
-        disableButtonsIfAlreadyAdded(url, browserDB);
+        final Intent intent = getIntent();
+
+        state = intent.getBooleanExtra(INTENT_EXTRA_DEVICES_ONLY, false) ?
+                State.DEVICES_ONLY : State.DEFAULT;
+
+        // If the Activity is being reused, we need to reset the state. Ideally, we create a
+        // new instance for each call, but Android L breaks this (bug 1137928).
+        sendTabList.switchState(SendTabList.State.LOADING);
+        readingListButton.setBackgroundDrawable(readingListButtonDrawable);
+
+        // The URL is usually hiding somewhere in the extra text. Extract it.
+        final String extraText = ContextUtils.getStringExtra(intent, Intent.EXTRA_TEXT);
+        if (TextUtils.isEmpty(extraText)) {
+            abortDueToNoURL();
+            return;
+        }
+
+        final String pageUrl = new WebURLFinder(extraText).bestWebURL();
+        if (TextUtils.isEmpty(pageUrl)) {
+            abortDueToNoURL();
+            return;
+        }
+
+        // Have the service start any initialisation work that's necessary for us to show the correct
+        // UI. The results of such work will come in via the BroadcastListener.
+        Intent serviceStartupIntent = new Intent(this, OverlayActionService.class);
+        serviceStartupIntent.setAction(OverlayConstants.ACTION_PREPARE_SHARE);
+        startService(serviceStartupIntent);
+
+        // Start the slide-up animation.
+        getWindow().setWindowAnimations(0);
+        final Animation anim = AnimationUtils.loadAnimation(this, R.anim.overlay_slide_up);
+        findViewById(R.id.sharedialog).startAnimation(anim);
+
+        // If provided, we use the subject text to give us something nice to display.
+        // If not, we wing it with the URL.
+
+        // TODO: Consider polling Fennec databases to find better information to display.
+        final String subjectText = intent.getStringExtra(Intent.EXTRA_SUBJECT);
+
+        final String telemetryExtras = "title=" + (subjectText != null);
+        if (subjectText != null) {
+            ((TextView) findViewById(R.id.title)).setText(subjectText);
+        }
+
+        Telemetry.sendUIEvent(TelemetryContract.Event.SHOW, TelemetryContract.Method.SHARE_OVERLAY, telemetryExtras);
+
+        title = subjectText;
+        url = pageUrl;
+
+        // Set the subtitle text on the view and cause it to marquee if it's too long (which it will
+        // be, since it's a URL).
+        final TextView subtitleView = (TextView) findViewById(R.id.subtitle);
+        subtitleView.setText(pageUrl);
+        subtitleView.setEllipsize(TextUtils.TruncateAt.MARQUEE);
+        subtitleView.setSingleLine(true);
+        subtitleView.setMarqueeRepeatLimit(5);
+        subtitleView.setSelected(true);
+
+        final View titleView = findViewById(R.id.title);
+
+        if (state == State.DEVICES_ONLY) {
+            bookmarkButton.setVisibility(View.GONE);
+            readingListButton.setVisibility(View.GONE);
+
+            titleView.setOnClickListener(null);
+            subtitleView.setOnClickListener(null);
+            return;
+        }
+
+        bookmarkButton.setVisibility(View.VISIBLE);
+        readingListButton.setVisibility(View.VISIBLE);
+
+        // Configure buttons.
+        final View.OnClickListener launchBrowser = new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                ShareDialog.this.launchBrowser();
+            }
+        };
+
+        titleView.setOnClickListener(launchBrowser);
+        subtitleView.setOnClickListener(launchBrowser);
+
+        final LocalBrowserDB browserDB = new LocalBrowserDB(getCurrentProfile());
+        setButtonState(url, browserDB);
+    }
+
+    @Override
+    protected void onNewIntent(final Intent intent) {
+        super.onNewIntent(intent);
+
+        // The intent returned by getIntent is not updated automatically.
+        setIntent(intent);
     }
 
     /**
-     * Disables the bookmark/reading list buttons if the given URL is already in the corresponding
-     * list.
+     * Sets the state of the bookmark/reading list buttons: they are disabled if the given URL is
+     * already in the corresponding list.
      */
-    private void disableButtonsIfAlreadyAdded(final String pageURL, final LocalBrowserDB browserDB) {
+    private void setButtonState(final String pageURL, final LocalBrowserDB browserDB) {
         new UIAsyncTask.WithoutParams<Void>(ThreadUtils.getBackgroundHandler()) {
             // Flags to hold the result
             boolean isBookmark;
@@ -236,7 +320,7 @@ public class ShareDialog extends LocaleAware.LocaleAwareActivity implements Send
                 final ContentResolver contentResolver = getApplicationContext().getContentResolver();
 
                 isBookmark = browserDB.isBookmark(contentResolver, pageURL);
-                isReadingListItem = browserDB.isReadingListItem(contentResolver, pageURL);
+                isReadingListItem = browserDB.getReadingListAccessor().isReadingListItem(contentResolver, pageURL);
 
                 return null;
             }
@@ -265,10 +349,15 @@ public class ShareDialog extends LocaleAware.LocaleAwareActivity implements Send
 
     @Override
     public void finish() {
-        super.finish();
+        finish(true);
+    }
 
-        // Don't perform an activity-dismiss animation.
-        overridePendingTransition(0, 0);
+    private void finish(final boolean shouldOverrideAnimations) {
+        super.finish();
+        if (shouldOverrideAnimations) {
+            // Don't perform an activity-dismiss animation.
+            overridePendingTransition(0, 0);
+        }
     }
 
     /*
@@ -277,14 +366,17 @@ public class ShareDialog extends LocaleAware.LocaleAwareActivity implements Send
      * launching Fennec").
      */
 
-    public void sendTab(String targetGUID) {
-        // If an override intent has been set, dispatch it.
-        if (sendTabOverrideIntent != null) {
-            startActivity(sendTabOverrideIntent);
-            finish();
-            return;
-        }
+    @Override
+    public void onSendTabActionSelected() {
+        // This requires an override intent.
+        Assert.isTrue(sendTabOverrideIntent != null);
 
+        startActivity(sendTabOverrideIntent);
+        finish();
+    }
+
+    @Override
+    public void onSendTabTargetSelected(String targetGUID) {
         // targetGUID being null with no override intent should be an impossible state.
         Assert.isTrue(targetGUID != null);
 
@@ -299,22 +391,37 @@ public class ShareDialog extends LocaleAware.LocaleAwareActivity implements Send
         serviceIntent.putExtra(OverlayConstants.EXTRA_PARAMETERS, extraParameters);
 
         startService(serviceIntent);
-        slideOut();
-    }
+        animateOut(true);
 
-    @Override
-    public void onSendTabTargetSelected(String targetGUID) {
-        sendTab(targetGUID);
+        Telemetry.sendUIEvent(TelemetryContract.Event.SHARE, TelemetryContract.Method.SHARE_OVERLAY, "sendtab");
     }
 
     public void addToReadingList() {
         startService(getServiceIntent(ShareMethod.Type.ADD_TO_READING_LIST));
-        slideOut();
+        animateOut(true);
+
+        Telemetry.sendUIEvent(TelemetryContract.Event.SAVE, TelemetryContract.Method.SHARE_OVERLAY, "reading_list");
     }
 
     public void addBookmark() {
         startService(getServiceIntent(ShareMethod.Type.ADD_BOOKMARK));
-        slideOut();
+        animateOut(true);
+
+        Telemetry.sendUIEvent(TelemetryContract.Event.SAVE, TelemetryContract.Method.SHARE_OVERLAY, "bookmark");
+    }
+
+    public void launchBrowser() {
+        try {
+            // This can launch in the guest profile. Sorry.
+            final Intent i = Intent.parseUri(url, Intent.URI_INTENT_SCHEME);
+            i.setClassName(AppConstants.ANDROID_PACKAGE_NAME, AppConstants.MOZ_ANDROID_BROWSER_INTENT_CLASS);
+            startActivity(i);
+        } catch (URISyntaxException e) {
+            // Nothing much we can do.
+        } finally {
+            // Since we're changing apps, users expect the default app switch animations.
+            finish(false);
+        }
     }
 
     private String getCurrentProfile() {
@@ -322,22 +429,39 @@ public class ShareDialog extends LocaleAware.LocaleAwareActivity implements Send
     }
 
     /**
-     * Slide the overlay down off the screen and destroy it.
+     * Slide the overlay down off the screen, display
+     * a check (if given), and finish the activity.
      */
-    private void slideOut() {
+    private void animateOut(final boolean shouldDisplayConfirmation) {
         if (isAnimating) {
             return;
         }
 
         isAnimating = true;
-        Animation anim = AnimationUtils.loadAnimation(this, R.anim.overlay_slide_down);
-        findViewById(R.id.sharedialog).startAnimation(anim);
+        final Animation slideOutAnim = AnimationUtils.loadAnimation(this, R.anim.overlay_slide_down);
 
-        anim.setAnimationListener(new Animation.AnimationListener() {
+        final Animation animationToFinishActivity;
+        if (!shouldDisplayConfirmation) {
+            animationToFinishActivity = slideOutAnim;
+        } else {
+            final View check = findViewById(R.id.check);
+            check.setVisibility(View.VISIBLE);
+            final Animation checkEntryAnim = AnimationUtils.loadAnimation(this, R.anim.overlay_check_entry);
+            final Animation checkExitAnim = AnimationUtils.loadAnimation(this, R.anim.overlay_check_exit);
+            checkExitAnim.setStartOffset(checkEntryAnim.getDuration() + 500);
+
+            final AnimationSet checkAnimationSet = new AnimationSet(this, null);
+            checkAnimationSet.addAnimation(checkEntryAnim);
+            checkAnimationSet.addAnimation(checkExitAnim);
+
+            check.startAnimation(checkAnimationSet);
+            animationToFinishActivity = checkExitAnim;
+        }
+
+        findViewById(R.id.sharedialog).startAnimation(slideOutAnim);
+        animationToFinishActivity.setAnimationListener(new Animation.AnimationListener() {
             @Override
-            public void onAnimationStart(Animation animation) {
-                // Unused. I can haz Miranda method?
-            }
+            public void onAnimationStart(Animation animation) { /* Unused. */ }
 
             @Override
             public void onAnimationEnd(Animation animation) {
@@ -345,8 +469,25 @@ public class ShareDialog extends LocaleAware.LocaleAwareActivity implements Send
             }
 
             @Override
-            public void onAnimationRepeat(Animation animation) {
-                // Unused.
+            public void onAnimationRepeat(Animation animation) { /* Unused. */ }
+        });
+
+        // Allows the user to dismiss the animation early.
+        setFullscreenFinishOnClickListener();
+    }
+
+    /**
+     * Sets a fullscreen {@link #finish()} click listener. We do this rather than attaching an
+     * onClickListener to the root View because in that case, we need to remove all of the
+     * existing listeners, which is less robust.
+     */
+    private void setFullscreenFinishOnClickListener() {
+        final View clickTarget = findViewById(R.id.fullscreen_click_target);
+        clickTarget.setVisibility(View.VISIBLE);
+        clickTarget.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                finish();
             }
         });
     }
@@ -356,7 +497,8 @@ public class ShareDialog extends LocaleAware.LocaleAwareActivity implements Send
      */
     @Override
     public void onBackPressed() {
-        slideOut();
+        animateOut(false);
+        Telemetry.sendUIEvent(TelemetryContract.Event.CANCEL, TelemetryContract.Method.SHARE_OVERLAY);
     }
 
     /**
@@ -364,7 +506,8 @@ public class ShareDialog extends LocaleAware.LocaleAwareActivity implements Send
      */
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        slideOut();
+        animateOut(false);
+        Telemetry.sendUIEvent(TelemetryContract.Event.CANCEL, TelemetryContract.Method.SHARE_OVERLAY);
         return true;
     }
 }

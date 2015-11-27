@@ -283,7 +283,7 @@ typedef unsigned int			(*hb_unicode_decompose_compatibility_func_t)	(hb_unicode_
  *
  * 
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 void
 hb_unicode_funcs_set_combining_class_func (hb_unicode_funcs_t *ufuncs,
@@ -299,7 +299,7 @@ hb_unicode_funcs_set_combining_class_func (hb_unicode_funcs_t *ufuncs,
  *
  * 
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 void
 hb_unicode_funcs_set_eastasian_width_func (hb_unicode_funcs_t *ufuncs,
@@ -315,7 +315,7 @@ hb_unicode_funcs_set_eastasian_width_func (hb_unicode_funcs_t *ufuncs,
  *
  * 
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 void
 hb_unicode_funcs_set_general_category_func (hb_unicode_funcs_t *ufuncs,
@@ -331,7 +331,7 @@ hb_unicode_funcs_set_general_category_func (hb_unicode_funcs_t *ufuncs,
  *
  * 
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 void
 hb_unicode_funcs_set_mirroring_func (hb_unicode_funcs_t *ufuncs,
@@ -347,7 +347,7 @@ hb_unicode_funcs_set_mirroring_func (hb_unicode_funcs_t *ufuncs,
  *
  * 
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 void
 hb_unicode_funcs_set_script_func (hb_unicode_funcs_t *ufuncs,
@@ -363,7 +363,7 @@ hb_unicode_funcs_set_script_func (hb_unicode_funcs_t *ufuncs,
  *
  * 
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 void
 hb_unicode_funcs_set_compose_func (hb_unicode_funcs_t *ufuncs,
@@ -379,7 +379,7 @@ hb_unicode_funcs_set_compose_func (hb_unicode_funcs_t *ufuncs,
  *
  * 
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 void
 hb_unicode_funcs_set_decompose_func (hb_unicode_funcs_t *ufuncs,
@@ -395,7 +395,7 @@ hb_unicode_funcs_set_decompose_func (hb_unicode_funcs_t *ufuncs,
  *
  * 
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 void
 hb_unicode_funcs_set_decompose_compatibility_func (hb_unicode_funcs_t *ufuncs,
@@ -404,37 +404,62 @@ hb_unicode_funcs_set_decompose_compatibility_func (hb_unicode_funcs_t *ufuncs,
 
 /* accessors */
 
+/**
+ * Since: 0.9.2
+ **/
 hb_unicode_combining_class_t
 hb_unicode_combining_class (hb_unicode_funcs_t *ufuncs,
 			    hb_codepoint_t unicode);
 
+/**
+ * Since: 0.9.2
+ **/
 unsigned int
 hb_unicode_eastasian_width (hb_unicode_funcs_t *ufuncs,
 			    hb_codepoint_t unicode);
 
+/**
+ * Since: 0.9.2
+ **/
 hb_unicode_general_category_t
 hb_unicode_general_category (hb_unicode_funcs_t *ufuncs,
 			     hb_codepoint_t unicode);
 
+/**
+ * Since: 0.9.2
+ **/
 hb_codepoint_t
 hb_unicode_mirroring (hb_unicode_funcs_t *ufuncs,
 		      hb_codepoint_t unicode);
 
+/**
+ * Since: 0.9.2
+ **/
 hb_script_t
 hb_unicode_script (hb_unicode_funcs_t *ufuncs,
 		   hb_codepoint_t unicode);
 
+/**
+ * Since: 0.9.2
+ **/
 hb_bool_t
 hb_unicode_compose (hb_unicode_funcs_t *ufuncs,
 		    hb_codepoint_t      a,
 		    hb_codepoint_t      b,
 		    hb_codepoint_t     *ab);
+
+/**
+ * Since: 0.9.2
+ **/
 hb_bool_t
 hb_unicode_decompose (hb_unicode_funcs_t *ufuncs,
 		      hb_codepoint_t      ab,
 		      hb_codepoint_t     *a,
 		      hb_codepoint_t     *b);
 
+/**
+ * Since: 0.9.2
+ **/
 unsigned int
 hb_unicode_decompose_compatibility (hb_unicode_funcs_t *ufuncs,
 				    hb_codepoint_t      u,

@@ -25,21 +25,19 @@
 // Classes
 class nsPagePrintTimer;
 class nsIDocShell;
-class nsDeviceContext;
 class nsIDocument;
 class nsIDocumentViewerPrint;
 class nsPrintObject;
 class nsIDocShell;
 class nsIPageSequenceFrame;
-class nsIWeakReference;
 
 //------------------------------------------------------------------------
 // nsPrintEngine Class
 //
 //------------------------------------------------------------------------
-class nsPrintEngine MOZ_FINAL : public nsIObserver,
-                                public nsIWebProgressListener,
-                                public nsSupportsWeakReference
+class nsPrintEngine final : public nsIObserver,
+                            public nsIWebProgressListener,
+                            public nsSupportsWeakReference
 {
 public:
   // nsISupports interface...
@@ -139,6 +137,7 @@ public:
 
   bool IsThereARangeSelection(nsIDOMWindow * aDOMWin);
 
+  void FirePrintingErrorEvent(nsresult aPrintError);
   //---------------------------------------------------------------------
 
 
@@ -167,8 +166,6 @@ public:
                              nsAString&       aTitle,
                              nsAString&       aURLStr,
                              eDocTitleDefault aDefType);
-  static void ShowPrintErrorDialog(nsresult printerror,
-                                   bool aIsPrinting = true);
 
   static bool HasFramesetChild(nsIContent* aContent);
 
@@ -307,7 +304,7 @@ protected:
   nsresult InitPrintDocConstruction(bool aHandleError);
   void FirePrintPreviewUpdateEvent();
 private:
-  nsPrintEngine& operator=(const nsPrintEngine& aOther) MOZ_DELETE;
+  nsPrintEngine& operator=(const nsPrintEngine& aOther) = delete;
 };
 
 #endif /* nsPrintEngine_h___ */

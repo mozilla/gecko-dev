@@ -5,15 +5,16 @@
 import os
 
 from .base import NullBrowser, ExecutorBrowser, require_arg
-from ..executors import executor_kwargs
-from ..executors.executorservo import ServoTestharnessExecutor
+from ..executors import executor_kwargs as base_executor_kwargs
+from ..executors.executorservo import ServoTestharnessExecutor, ServoRefTestExecutor
 
 here = os.path.join(os.path.split(__file__)[0])
 
 __wptrunner__ = {"product": "servo",
                  "check_args": "check_args",
                  "browser": "ServoBrowser",
-                 "executor": {"testharness": "ServoTestharnessExecutor"},
+                 "executor": {"testharness": "ServoTestharnessExecutor",
+                              "reftest": "ServoRefTestExecutor"},
                  "browser_kwargs": "browser_kwargs",
                  "executor_kwargs": "executor_kwargs",
                  "env_options": "env_options"}
@@ -25,23 +26,42 @@ def check_args(**kwargs):
 
 def browser_kwargs(**kwargs):
     return {"binary": kwargs["binary"],
-            "debug_args": kwargs["debug_args"],
-            "interactive": kwargs["interactive"]}
+            "debug_info": kwargs["debug_info"],
+            "user_stylesheets": kwargs.get("user_stylesheets"),
+            "render_backend": kwargs.get("servo_backend")}
+
+
+def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
+                    **kwargs):
+    rv = base_executor_kwargs(test_type, server_config,
+                              cache_manager, **kwargs)
+    rv["pause_after_test"] = kwargs["pause_after_test"]
+    return rv
 
 
 def env_options():
-    return {"host": "localhost",
-            "bind_hostname": "true"}
+    return {"host": "127.0.0.1",
+            "external_host": "web-platform.test",
+            "bind_hostname": "true",
+            "testharnessreport": "testharnessreport-servo.js",
+            "supports_debugger": True}
+
+
+def render_arg(render_backend):
+    return {"cpu": "--cpu"}[render_backend]
 
 
 class ServoBrowser(NullBrowser):
-    def __init__(self, logger, binary, debug_args=None, interactive=False):
+    def __init__(self, logger, binary, debug_info=None, user_stylesheets=None,
+                 render_backend="cpu"):
         NullBrowser.__init__(self, logger)
         self.binary = binary
-        self.debug_args = debug_args
-        self.interactive = interactive
+        self.debug_info = debug_info
+        self.user_stylesheets = user_stylesheets or []
+        self.render_backend = render_backend
 
     def executor_browser(self):
         return ExecutorBrowser, {"binary": self.binary,
-                                 "debug_args": self.debug_args,
-                                 "interactive": self.interactive}
+                                 "debug_info": self.debug_info,
+                                 "user_stylesheets": self.user_stylesheets,
+                                 "render_backend": self.render_backend}

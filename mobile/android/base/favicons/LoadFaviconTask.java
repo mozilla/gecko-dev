@@ -8,18 +8,20 @@ package org.mozilla.gecko.favicons;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.net.http.AndroidHttpClient;
+import ch.boye.httpclientandroidlib.impl.client.DefaultHttpClient;
 import android.text.TextUtils;
 import android.util.Log;
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpGet;
+import ch.boye.httpclientandroidlib.Header;
+import ch.boye.httpclientandroidlib.HttpEntity;
+import ch.boye.httpclientandroidlib.HttpResponse;
+import ch.boye.httpclientandroidlib.client.methods.HttpGet;
 import org.mozilla.gecko.GeckoAppShell;
+import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.favicons.decoders.FaviconDecoder;
 import org.mozilla.gecko.favicons.decoders.LoadFaviconResult;
 import org.mozilla.gecko.util.GeckoJarReader;
+import org.mozilla.gecko.util.IOUtils;
 import org.mozilla.gecko.util.ThreadUtils;
 
 import java.io.IOException;
@@ -31,6 +33,8 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.mozilla.gecko.util.IOUtils.ConsumedInputStream;
 
 /**
  * Class representing the asynchronous task to load a Favicon which is not currently in the in-memory
@@ -49,7 +53,7 @@ public class LoadFaviconTask {
     private static final int MAX_REDIRECTS_TO_FOLLOW = 5;
     // The default size of the buffer to use for downloading Favicons in the event no size is given
     // by the server.
-    private static final int DEFAULT_FAVICON_BUFFER_SIZE = 25000;
+    public static final int DEFAULT_FAVICON_BUFFER_SIZE = 25000;
 
     private static final AtomicInteger nextFaviconLoadId = new AtomicInteger(0);
     private final Context context;
@@ -58,6 +62,7 @@ public class LoadFaviconTask {
     private String faviconURL;
     private final OnFaviconLoadedListener listener;
     private final int flags;
+    private final BrowserDB db;
 
     private final boolean onlyFromLocal;
     volatile boolean mCancelled;
@@ -67,7 +72,7 @@ public class LoadFaviconTask {
     private LinkedList<LoadFaviconTask> chainees;
     private boolean isChaining;
 
-    static AndroidHttpClient httpClient = AndroidHttpClient.newInstance(GeckoAppShell.getGeckoInterface().getDefaultUAString());
+    static DefaultHttpClient httpClient = new DefaultHttpClient();
 
     public LoadFaviconTask(Context context, String pageURL, String faviconURL, int flags, OnFaviconLoadedListener listener) {
         this(context, pageURL, faviconURL, flags, listener, -1, false);
@@ -78,6 +83,7 @@ public class LoadFaviconTask {
         id = nextFaviconLoadId.incrementAndGet();
 
         this.context = context;
+        db = GeckoProfile.get(context).getDB();
         this.pageUrl = pageURL;
         this.faviconURL = faviconURL;
         this.listener = listener;
@@ -87,13 +93,13 @@ public class LoadFaviconTask {
     }
 
     // Runs in background thread
-    private LoadFaviconResult loadFaviconFromDb() {
+    private LoadFaviconResult loadFaviconFromDb(final BrowserDB db) {
         ContentResolver resolver = context.getContentResolver();
-        return BrowserDB.getFaviconForFaviconUrl(resolver, faviconURL);
+        return db.getFaviconForUrl(resolver, faviconURL);
     }
 
     // Runs in background thread
-    private void saveFaviconToDb(final byte[] encodedFavicon) {
+    private void saveFaviconToDb(final BrowserDB db, final byte[] encodedFavicon) {
         if (encodedFavicon == null) {
             return;
         }
@@ -103,7 +109,7 @@ public class LoadFaviconTask {
         }
 
         ContentResolver resolver = context.getContentResolver();
-        BrowserDB.updateFaviconForUrl(resolver, pageUrl, encodedFavicon, faviconURL);
+        db.updateFaviconForUrl(resolver, pageUrl, encodedFavicon, faviconURL);
     }
 
     /**
@@ -122,6 +128,7 @@ public class LoadFaviconTask {
         }
 
         HttpGet request = new HttpGet(faviconURI);
+        request.setHeader("User-Agent", GeckoAppShell.getGeckoInterface().getDefaultUAString());
         HttpResponse response = httpClient.execute(request);
         if (response == null) {
             return null;
@@ -190,7 +197,7 @@ public class LoadFaviconTask {
         if (uri.startsWith("jar:jar:")) {
             Log.d(LOGTAG, "Fetching favicon from JAR.");
             try {
-                return GeckoJarReader.getBitmap(context.getResources(), uri);
+                return GeckoJarReader.getBitmap(context, context.getResources(), uri);
             } catch (Exception e) {
                 // Just about anything could happen here.
                 Log.w(LOGTAG, "Error fetching favicon from JAR.", e);
@@ -281,51 +288,24 @@ public class LoadFaviconTask {
             bufferSize = DEFAULT_FAVICON_BUFFER_SIZE;
         }
 
-        // Allocate a buffer to hold the raw favicon data downloaded.
-        byte[] buffer = new byte[bufferSize];
-
-        // The offset of the start of the buffer's free space.
-        int bPointer = 0;
-
-        // The quantity of bytes the last call to read yielded.
-        int lastRead = 0;
-        InputStream contentStream = entity.getContent();
-        try {
-            // Fully read the entity into the buffer - decoding of streams is not supported
-            // (and questionably pointful - what would one do with a half-decoded Favicon?)
-            while (lastRead != -1) {
-                // Read as many bytes as are currently available into the buffer.
-                lastRead = contentStream.read(buffer, bPointer, buffer.length - bPointer);
-                bPointer += lastRead;
-
-                // If buffer has overflowed, double its size and carry on.
-                if (bPointer == buffer.length) {
-                    bufferSize *= 2;
-                    byte[] newBuffer = new byte[bufferSize];
-
-                    // Copy the contents of the old buffer into the new buffer.
-                    System.arraycopy(buffer, 0, newBuffer, 0, buffer.length);
-                    buffer = newBuffer;
-                }
-            }
-        } finally {
-            contentStream.close();
+        // Read the InputStream into a byte[].
+        ConsumedInputStream result = IOUtils.readFully(entity.getContent(), bufferSize);
+        if (result == null) {
+            return null;
         }
 
         // Having downloaded the image, decode it.
-        return FaviconDecoder.decodeFavicon(buffer, 0, bPointer + 1);
+        return FaviconDecoder.decodeFavicon(result.getData(), 0, result.consumedLength);
     }
 
-    // LoadFavicon tasks are performed on a unique background executor thread
+    // LoadFaviconTasks are performed on a unique background executor thread
     // to avoid network blocking.
     public final void execute() {
-        ThreadUtils.assertOnUiThread();
-
         try {
             Favicons.longRunningExecutor.execute(new Runnable() {
                 @Override
                 public void run() {
-                    final Bitmap result = doInBackground();
+                    final Bitmap result = doInBackground(db);
 
                     ThreadUtils.getUiHandler().post(new Runnable() {
                        @Override
@@ -354,9 +334,20 @@ public class LoadFaviconTask {
         return mCancelled;
     }
 
-    Bitmap doInBackground() {
+    Bitmap doInBackground(final BrowserDB db) {
         if (isCancelled()) {
             return null;
+        }
+
+        // Attempt to decode the favicon URL as a data URL. We don't bother storing such URIs in
+        // the database: the cost of decoding them here probably doesn't exceed the cost of mucking
+        // about with the DB.
+        final boolean isEmpty = TextUtils.isEmpty(faviconURL);
+        if (!isEmpty) {
+            LoadFaviconResult uriBitmaps = FaviconDecoder.decodeDataURI(faviconURL);
+            if (uriBitmaps != null) {
+                return pushToCacheAndGetResult(uriBitmaps);
+            }
         }
 
         String storedFaviconUrl;
@@ -364,13 +355,14 @@ public class LoadFaviconTask {
 
         // Handle the case of malformed favicon URL.
         // If favicon is empty, fall back to the stored one.
-        if (TextUtils.isEmpty(faviconURL)) {
+        if (isEmpty) {
             // Try to get the favicon URL from the memory cache.
+            final ContentResolver cr = context.getContentResolver();
             storedFaviconUrl = Favicons.getFaviconURLForPageURLFromCache(pageUrl);
 
             // If that failed, try to get the URL from the database.
             if (storedFaviconUrl == null) {
-                storedFaviconUrl = Favicons.getFaviconURLForPageURL(context, pageUrl);
+                storedFaviconUrl = Favicons.getFaviconURLForPageURL(db, cr, pageUrl);
                 if (storedFaviconUrl != null) {
                     // If that succeeded, cache the URL loaded from the database in memory.
                     Favicons.putFaviconURLForPageURLInCache(pageUrl, storedFaviconUrl);
@@ -426,7 +418,7 @@ public class LoadFaviconTask {
         }
 
         // If there are no valid bitmaps decoded, the returned LoadFaviconResult is null.
-        LoadFaviconResult loadedBitmaps = loadFaviconFromDb();
+        LoadFaviconResult loadedBitmaps = loadFaviconFromDb(db);
         if (loadedBitmaps != null) {
             return pushToCacheAndGetResult(loadedBitmaps);
         }
@@ -456,7 +448,7 @@ public class LoadFaviconTask {
             // Fetching bytes to store can fail. saveFaviconToDb will
             // do the right thing, but we still choose to cache the
             // downloaded icon in memory.
-            saveFaviconToDb(loadedBitmaps.getBytesForDatabaseStorage());
+            saveFaviconToDb(db, loadedBitmaps.getBytesForDatabaseStorage());
             return pushToCacheAndGetResult(loadedBitmaps);
         }
 
@@ -491,7 +483,7 @@ public class LoadFaviconTask {
         }
 
         if (loadedBitmaps != null) {
-            saveFaviconToDb(loadedBitmaps.getBytesForDatabaseStorage());
+            saveFaviconToDb(db, loadedBitmaps.getBytesForDatabaseStorage());
             return pushToCacheAndGetResult(loadedBitmaps);
         }
 

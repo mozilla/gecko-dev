@@ -21,7 +21,9 @@ function PlacesTreeView(aFlatList, aOnOpenFlatContainer, aController) {
 }
 
 PlacesTreeView.prototype = {
-  get wrappedJSObject() this,
+  get wrappedJSObject() {
+    return this;
+  },
 
   __xulStore: null,
   get _xulStore() {
@@ -152,7 +154,7 @@ PlacesTreeView.prototype = {
     // A node is removed form the view either if it has no parent or if its
     // root-ancestor is not the root node (in which case that's the node
     // for which nodeRemoved was called).
-    let ancestors = [x for each (x in PlacesUtils.nodeAncestors(aNode))];
+    let ancestors = [x for (x of PlacesUtils.nodeAncestors(aNode))];
     if (ancestors.length == 0 ||
         ancestors[ancestors.length - 1] != this._rootNode) {
       throw new Error("Removed node passed to _getRowForNode");
@@ -176,8 +178,9 @@ PlacesTreeView.prototype = {
 
     let row = -1;
     let useNodeIndex = typeof(aNodeIndex) == "number";
-    if (parent == this._rootNode)
+    if (parent == this._rootNode) {
       row = useNodeIndex ? aNodeIndex : this._rootNode.getChildIndex(aNode);
+    }
     else if (useNodeIndex && typeof(aParentRow) == "number") {
       // If we have both the row of the parent node, and the node's index, we
       // can avoid searching the rows array if the parent is a plain container.
@@ -417,7 +420,7 @@ PlacesTreeView.prototype = {
       // However, if any of the node's ancestor is closed, the node is
       // invisible.
       let ancestors = PlacesUtils.nodeAncestors(aOldNode);
-      for (let ancestor in ancestors) {
+      for (let ancestor of ancestors) {
         if (!ancestor.containerOpen)
           return -1;
       }
@@ -518,11 +521,10 @@ PlacesTreeView.prototype = {
   COLUMN_TYPE_URI: 2,
   COLUMN_TYPE_DATE: 3,
   COLUMN_TYPE_VISITCOUNT: 4,
-  COLUMN_TYPE_KEYWORD: 5,
-  COLUMN_TYPE_DESCRIPTION: 6,
-  COLUMN_TYPE_DATEADDED: 7,
-  COLUMN_TYPE_LASTMODIFIED: 8,
-  COLUMN_TYPE_TAGS: 9,
+  COLUMN_TYPE_DESCRIPTION: 5,
+  COLUMN_TYPE_DATEADDED: 6,
+  COLUMN_TYPE_LASTMODIFIED: 7,
+  COLUMN_TYPE_TAGS: 8,
 
   _getColumnType: function PTV__getColumnType(aColumn) {
     let columnType = aColumn.element.getAttribute("anonid") || aColumn.id;
@@ -536,8 +538,6 @@ PlacesTreeView.prototype = {
         return this.COLUMN_TYPE_DATE;
       case "visitCount":
         return this.COLUMN_TYPE_VISITCOUNT;
-      case "keyword":
-        return this.COLUMN_TYPE_KEYWORD;
       case "description":
         return this.COLUMN_TYPE_DESCRIPTION;
       case "dateAdded":
@@ -568,10 +568,6 @@ PlacesTreeView.prototype = {
         return [this.COLUMN_TYPE_VISITCOUNT, false];
       case Ci.nsINavHistoryQueryOptions.SORT_BY_VISITCOUNT_DESCENDING:
         return [this.COLUMN_TYPE_VISITCOUNT, true];
-      case Ci.nsINavHistoryQueryOptions.SORT_BY_KEYWORD_ASCENDING:
-        return [this.COLUMN_TYPE_KEYWORD, false];
-      case Ci.nsINavHistoryQueryOptions.SORT_BY_KEYWORD_DESCENDING:
-        return [this.COLUMN_TYPE_KEYWORD, true];
       case Ci.nsINavHistoryQueryOptions.SORT_BY_ANNOTATION_ASCENDING:
         if (this._result.sortingAnnotation == PlacesUIUtils.DESCRIPTION_ANNO)
           return [this.COLUMN_TYPE_DESCRIPTION, false];
@@ -849,9 +845,7 @@ PlacesTreeView.prototype = {
     this._invalidateCellValue(aNode, this.COLUMN_TYPE_TAGS);
   },
 
-  nodeKeywordChanged: function PTV_nodeKeywordChanged(aNode, aNewKeyword) {
-    this._invalidateCellValue(aNode, this.COLUMN_TYPE_KEYWORD);
-  },
+  nodeKeywordChanged(aNode, aNewKeyword) {},
 
   nodeAnnotationChanged: function PTV_nodeAnnotationChanged(aNode, aAnno) {
     if (aAnno == PlacesUIUtils.DESCRIPTION_ANNO) {
@@ -862,8 +856,7 @@ PlacesTreeView.prototype = {
         .then(aLivemark => {
           this._controller.cacheLivemarkInfo(aNode, aLivemark);
           let properties = this._cellProperties.get(aNode);
-          this._cellProperties.set(aNode, properties += " livemark ");
-
+          this._cellProperties.set(aNode, properties += " livemark");
           // The livemark attribute is set as a cell property on the title cell.
           this._invalidateCellValue(aNode, this.COLUMN_TYPE_TITLE);
         }, Components.utils.reportError);
@@ -1076,7 +1069,9 @@ PlacesTreeView.prototype = {
     }
   },
 
-  get result() this._result,
+  get result() {
+    return this._result;
+  },
   set result(val) {
     if (this._result) {
       this._result.removeObserver(this);
@@ -1121,9 +1116,15 @@ PlacesTreeView.prototype = {
   },
 
   // nsITreeView
-  get rowCount() this._rows.length,
-  get selection() this._selection,
-  set selection(val) this._selection = val,
+  get rowCount() {
+    return this._rows.length;
+  },
+  get selection() {
+    return this._selection;
+  },
+  set selection(val) {
+    this._selection = val;
+  },
 
   getRowProperties: function() { return ""; },
 
@@ -1155,7 +1156,7 @@ PlacesTreeView.prototype = {
       properties = "";
       let itemId = node.itemId;
       let nodeType = node.type;
-      if (PlacesUtils.containerTypes.indexOf(nodeType) != -1) {
+      if (PlacesUtils.containerTypes.includes(nodeType)) {
         if (nodeType == Ci.nsINavHistoryResultNode.RESULT_TYPE_QUERY) {
           properties += " query";
           if (PlacesUtils.nodeIsTagQuery(node))
@@ -1174,7 +1175,8 @@ PlacesTreeView.prototype = {
             PlacesUtils.livemarks.getLivemark({ id: node.itemId })
               .then(aLivemark => {
                 this._controller.cacheLivemarkInfo(node, aLivemark);
-                properties += " livemark";
+                let props = this._cellProperties.get(node);
+                this._cellProperties.set(node, props += " livemark");
                 // The livemark attribute is set as a cell property on the title cell.
                 this._invalidateCellValue(node, this.COLUMN_TYPE_TITLE);
               }, () => undefined);
@@ -1343,7 +1345,14 @@ PlacesTreeView.prototype = {
     if (PlacesControllerDragHelper.disallowInsertion(container))
       return null;
 
-    let tagName = PlacesUtils.nodeIsTagQuery(container) ? container.title : null;
+    // TODO (Bug 1160193): properly support dropping on a tag root.
+    let tagName = null;
+    if (PlacesUtils.nodeIsTagQuery(container)) {
+      tagName = container.title;
+      if (!tagName)
+        return null;
+    }
+
     return new InsertionPoint(PlacesUtils.getConcreteItemId(container),
                               index, orientation,
                               tagName,
@@ -1396,7 +1405,9 @@ PlacesTreeView.prototype = {
     return false;
   },
 
-  getLevel: function(aRow) this._getNodeForRow(aRow).indentLevel,
+  getLevel: function(aRow) {
+    return this._getNodeForRow(aRow).indentLevel;
+  },
 
   getImageSrc: function PTV_getImageSrc(aRow, aColumn) {
     // Only the title column has an image.
@@ -1404,9 +1415,6 @@ PlacesTreeView.prototype = {
       return "";
 
     let node = this._getNodeForRow(aRow);
-    if (PlacesUtils.nodeIsURI(node) && node.icon)
-      return PlacesUtils.getImageURLForResolution(window, node.icon);
-
     return node.icon;
   },
 
@@ -1444,10 +1452,6 @@ PlacesTreeView.prototype = {
         return this._convertPRTimeToString(nodeTime);
       case this.COLUMN_TYPE_VISITCOUNT:
         return node.accessCount;
-      case this.COLUMN_TYPE_KEYWORD:
-        if (PlacesUtils.nodeIsBookmark(node))
-          return PlacesUtils.bookmarks.getKeywordForBookmark(node.itemId);
-        return "";
       case this.COLUMN_TYPE_DESCRIPTION:
         if (node.itemId != -1) {
           try {
@@ -1583,15 +1587,6 @@ PlacesTreeView.prototype = {
           newSort = NHQO.SORT_BY_VISITCOUNT_DESCENDING;
 
         break;
-      case this.COLUMN_TYPE_KEYWORD:
-        if (oldSort == NHQO.SORT_BY_KEYWORD_ASCENDING)
-          newSort = NHQO.SORT_BY_KEYWORD_DESCENDING;
-        else if (allowTriState && oldSort == NHQO.SORT_BY_KEYWORD_DESCENDING)
-          newSort = NHQO.SORT_BY_NONE;
-        else
-          newSort = NHQO.SORT_BY_KEYWORD_ASCENDING;
-
-        break;
       case this.COLUMN_TYPE_DESCRIPTION:
         if (oldSort == NHQO.SORT_BY_ANNOTATION_ASCENDING &&
             oldSortingAnnotation == PlacesUIUtils.DESCRIPTION_ANNO) {
@@ -1649,23 +1644,39 @@ PlacesTreeView.prototype = {
     if (aColumn.index != 0)
       return false;
 
-    // Only bookmark-nodes are editable, and those are never built lazily
     let node = this._rows[aRow];
-    if (!node || node.itemId == -1)
+    if (!node) {
+      Cu.reportError("isEditable called for an unbuilt row.");
+      return false;
+    }
+    let itemId = node.itemId;
+
+    // Only bookmark-nodes are editable.  Fortunately, this checks also takes
+    // care of livemark children.
+    if (itemId == -1)
       return false;
 
-    // The following items are never editable:
-    // * Read-only items.
+    // The following items are also not editable, even though they are bookmark
+    // items.
     // * places-roots
+    // * the left pane special folders and queries (those are place: uri
+    //   bookmarks)
     // * separators
-    if (PlacesUtils.nodeIsReadOnly(node) ||
-        PlacesUtils.nodeIsSeparator(node))
+    //
+    // Note that concrete itemIds aren't used intentionally.  For example, we
+    // have no reason to disallow renaming a shortcut to the Bookmarks Toolbar,
+    // except for the one under All Bookmarks.
+    if (PlacesUtils.nodeIsSeparator(node) || PlacesUtils.isRootItem(itemId))
       return false;
 
-    if (PlacesUtils.nodeIsFolder(node)) {
-      let itemId = PlacesUtils.getConcreteItemId(node);
-      if (PlacesUtils.isRootItem(itemId))
-        return false;
+    let parentId = PlacesUtils.getConcreteItemId(node.parent);
+    if (parentId == PlacesUIUtils.leftPaneFolderId ||
+        parentId == PlacesUIUtils.allBookmarksFolderId) {
+      // Note that the for the time being this is the check that actually
+      // blocks renaming places "roots", and not the isRootItem check above.
+      // That's because places root are only exposed through folder shortcuts
+      // descendants of the left pane folder.
+      return false;
     }
 
     return true;
@@ -1675,8 +1686,13 @@ PlacesTreeView.prototype = {
     // We may only get here if the cell is editable.
     let node = this._rows[aRow];
     if (node.title != aText) {
-      let txn = new PlacesEditItemTitleTransaction(node.itemId, aText);
-      PlacesUtils.transactionManager.doTransaction(txn);
+      if (!PlacesUIUtils.useAsyncTransactions) {
+        let txn = new PlacesEditItemTitleTransaction(node.itemId, aText);
+        PlacesUtils.transactionManager.doTransaction(txn);
+        return;
+      }
+      PlacesTransactions.EditTitle({ guid: node.bookmarkGuid, title: aText })
+                        .transact().catch(Cu.reportError);
     }
   },
 

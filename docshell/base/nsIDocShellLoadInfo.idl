@@ -17,12 +17,23 @@ interface nsISHEntry;
 interface nsIDocShell;
 
 typedef long nsDocShellInfoLoadType;
+typedef unsigned long nsDocShellInfoReferrerPolicy;
 
-[scriptable, uuid(c8d3b1e1-565a-427e-9d68-b109910ce9b7)]
+[scriptable, uuid(e7570e5a-f1d6-452d-b4f8-b35fdc63aa03)]
 interface nsIDocShellLoadInfo : nsISupports
 {
     /** This is the referrer for the load. */
     attribute nsIURI referrer;
+
+    /**
+     * The originalURI to be passed to nsIDocShell.internalLoad. May be null.
+     */
+    attribute nsIURI originalURI;
+
+    /**
+     * loadReplace flag to be passed to nsIDocShell.internalLoad.
+     */
+    attribute boolean loadReplace;
 
     /** The owner of the load, that is, the entity responsible for 
      *  causing the load to occur. This should be a nsIPrincipal typically.
@@ -84,6 +95,11 @@ interface nsIDocShellLoadInfo : nsISupports
      *  sent, even if it's available. This attribute defaults to true.
      */
     attribute boolean sendReferrer;
+
+    /** Referrer policy for the load. This attribute holds one of
+     *  the values (REFERRER_POLICY_*) defined in nsIHttpChannel.
+     */
+    attribute nsDocShellInfoReferrerPolicy referrerPolicy;
 
     /** True if the docshell has been created to load an iframe where the
      * srcdoc attribute has been set.  Set when srcdocData is specified.

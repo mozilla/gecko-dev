@@ -71,11 +71,12 @@
 #include "nsIRDFXMLSerializer.h"
 #include "nsIRDFXMLSink.h"
 #include "nsIRDFXMLSource.h"
+#include "nsISafeOutputStream.h"
 #include "nsIServiceManager.h"
 #include "nsIStreamListener.h"
 #include "nsIURL.h"
 #include "nsIFileURL.h"
-#include "nsNetUtil.h"
+#include "nsISafeOutputStream.h"
 #include "nsIChannel.h"
 #include "nsRDFCID.h"
 #include "nsRDFBaseDataSources.h"
@@ -86,7 +87,7 @@
 #include "prthread.h"
 #include "rdf.h"
 #include "rdfutil.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "nsNameSpaceMap.h"
 #include "nsCRT.h"
 #include "nsCycleCollectionParticipant.h"
@@ -134,9 +135,7 @@ protected:
     static int32_t gRefCnt;
     static nsIRDFService* gRDFService;
 
-#ifdef PR_LOGGING
     static PRLogModuleInfo* gLog;
-#endif
 
     nsresult Init();
     RDFXMLDataSourceImpl(void);
@@ -158,118 +157,118 @@ public:
                                              nsIRDFDataSource)
 
     // nsIRDFDataSource
-    NS_IMETHOD GetURI(char* *uri);
+    NS_IMETHOD GetURI(char* *uri) override;
 
     NS_IMETHOD GetSource(nsIRDFResource* property,
                          nsIRDFNode* target,
                          bool tv,
-                         nsIRDFResource** source) {
+                         nsIRDFResource** source) override {
         return mInner->GetSource(property, target, tv, source);
     }
 
     NS_IMETHOD GetSources(nsIRDFResource* property,
                           nsIRDFNode* target,
                           bool tv,
-                          nsISimpleEnumerator** sources) {
+                          nsISimpleEnumerator** sources) override {
         return mInner->GetSources(property, target, tv, sources);
     }
 
     NS_IMETHOD GetTarget(nsIRDFResource* source,
                          nsIRDFResource* property,
                          bool tv,
-                         nsIRDFNode** target) {
+                         nsIRDFNode** target) override {
         return mInner->GetTarget(source, property, tv, target);
     }
 
     NS_IMETHOD GetTargets(nsIRDFResource* source,
                           nsIRDFResource* property,
                           bool tv,
-                          nsISimpleEnumerator** targets) {
+                          nsISimpleEnumerator** targets) override {
         return mInner->GetTargets(source, property, tv, targets);
     }
 
     NS_IMETHOD Assert(nsIRDFResource* aSource,
                       nsIRDFResource* aProperty,
                       nsIRDFNode* aTarget,
-                      bool tv);
+                      bool tv) override;
 
     NS_IMETHOD Unassert(nsIRDFResource* source,
                         nsIRDFResource* property,
-                        nsIRDFNode* target);
+                        nsIRDFNode* target) override;
 
     NS_IMETHOD Change(nsIRDFResource* aSource,
                       nsIRDFResource* aProperty,
                       nsIRDFNode* aOldTarget,
-                      nsIRDFNode* aNewTarget);
+                      nsIRDFNode* aNewTarget) override;
 
     NS_IMETHOD Move(nsIRDFResource* aOldSource,
                     nsIRDFResource* aNewSource,
                     nsIRDFResource* aProperty,
-                    nsIRDFNode* aTarget);
+                    nsIRDFNode* aTarget) override;
 
     NS_IMETHOD HasAssertion(nsIRDFResource* source,
                             nsIRDFResource* property,
                             nsIRDFNode* target,
                             bool tv,
-                            bool* hasAssertion) {
+                            bool* hasAssertion) override {
         return mInner->HasAssertion(source, property, target, tv, hasAssertion);
     }
 
-    NS_IMETHOD AddObserver(nsIRDFObserver* aObserver) {
+    NS_IMETHOD AddObserver(nsIRDFObserver* aObserver) override {
         return mInner->AddObserver(aObserver);
     }
 
-    NS_IMETHOD RemoveObserver(nsIRDFObserver* aObserver) {
+    NS_IMETHOD RemoveObserver(nsIRDFObserver* aObserver) override {
         return mInner->RemoveObserver(aObserver);
     }
 
-    NS_IMETHOD HasArcIn(nsIRDFNode *aNode, nsIRDFResource *aArc, bool *_retval) {
+    NS_IMETHOD HasArcIn(nsIRDFNode *aNode, nsIRDFResource *aArc, bool *_retval) override {
         return mInner->HasArcIn(aNode, aArc, _retval);
     }
 
-    NS_IMETHOD HasArcOut(nsIRDFResource *aSource, nsIRDFResource *aArc, bool *_retval) {
+    NS_IMETHOD HasArcOut(nsIRDFResource *aSource, nsIRDFResource *aArc, bool *_retval) override {
         return mInner->HasArcOut(aSource, aArc, _retval);
     }
 
     NS_IMETHOD ArcLabelsIn(nsIRDFNode* node,
-                           nsISimpleEnumerator** labels) {
+                           nsISimpleEnumerator** labels) override {
         return mInner->ArcLabelsIn(node, labels);
     }
 
     NS_IMETHOD ArcLabelsOut(nsIRDFResource* source,
-                            nsISimpleEnumerator** labels) {
+                            nsISimpleEnumerator** labels) override {
         return mInner->ArcLabelsOut(source, labels);
     }
 
-    NS_IMETHOD GetAllResources(nsISimpleEnumerator** aResult) {
+    NS_IMETHOD GetAllResources(nsISimpleEnumerator** aResult) override {
         return mInner->GetAllResources(aResult);
     }
 
     NS_IMETHOD GetAllCmds(nsIRDFResource* source,
-                              nsISimpleEnumerator/*<nsIRDFResource>*/** commands) {
+                              nsISimpleEnumerator/*<nsIRDFResource>*/** commands) override {
         return mInner->GetAllCmds(source, commands);
     }
 
     NS_IMETHOD IsCommandEnabled(nsISupportsArray/*<nsIRDFResource>*/* aSources,
                                 nsIRDFResource*   aCommand,
                                 nsISupportsArray/*<nsIRDFResource>*/* aArguments,
-                                bool* aResult) {
+                                bool* aResult) override {
         return mInner->IsCommandEnabled(aSources, aCommand, aArguments, aResult);
     }
 
     NS_IMETHOD DoCommand(nsISupportsArray/*<nsIRDFResource>*/* aSources,
                          nsIRDFResource*   aCommand,
-                         nsISupportsArray/*<nsIRDFResource>*/* aArguments) {
+                         nsISupportsArray/*<nsIRDFResource>*/* aArguments) override {
         // XXX Uh oh, this could cause problems wrt. the "dirty" flag
         // if it changes the in-memory store's internal state.
         return mInner->DoCommand(aSources, aCommand, aArguments);
     }
 
-    NS_IMETHOD BeginUpdateBatch() {
+    NS_IMETHOD BeginUpdateBatch() override {
         return mInner->BeginUpdateBatch();
     }
 
-    NS_IMETHOD EndUpdateBatch() {
+    NS_IMETHOD EndUpdateBatch() override {
         return mInner->EndUpdateBatch();
     }
 
@@ -295,14 +294,14 @@ public:
     NS_DECL_NSICHANNELEVENTSINK
 
     // rdfIDataSource
-    NS_IMETHOD VisitAllSubjects(rdfITripleVisitor *aVisitor) {
+    NS_IMETHOD VisitAllSubjects(rdfITripleVisitor *aVisitor) override {
         nsresult rv;
         nsCOMPtr<rdfIDataSource> rdfds = do_QueryInterface(mInner, &rv);
         if (NS_FAILED(rv)) return rv;
         return rdfds->VisitAllSubjects(aVisitor);
     } 
 
-    NS_IMETHOD VisitAllTriples(rdfITripleVisitor *aVisitor) {
+    NS_IMETHOD VisitAllTriples(rdfITripleVisitor *aVisitor) override {
         nsresult rv;
         nsCOMPtr<rdfIDataSource> rdfds = do_QueryInterface(mInner, &rv);
         if (NS_FAILED(rv)) return rv;
@@ -360,9 +359,7 @@ protected:
 int32_t         RDFXMLDataSourceImpl::gRefCnt = 0;
 nsIRDFService*  RDFXMLDataSourceImpl::gRDFService;
 
-#ifdef PR_LOGGING
 PRLogModuleInfo* RDFXMLDataSourceImpl::gLog;
-#endif
 
 static const char kFileURIPrefix[] = "file:";
 static const char kResourceURIPrefix[] = "resource:";
@@ -400,10 +397,8 @@ RDFXMLDataSourceImpl::RDFXMLDataSourceImpl(void)
       mIsDirty(false),
       mLoadState(eLoadState_Unloaded)
 {
-#ifdef PR_LOGGING
     if (! gLog)
         gLog = PR_NewLogModule("nsRDFXMLDataSource");
-#endif
 }
 
 
@@ -488,12 +483,12 @@ RDFXMLDataSourceImpl::BlockingParse(nsIURI* aURL, nsIStreamListener* aConsumer)
     rv = NS_NewChannel(getter_AddRefs(channel),
                        aURL,
                        nsContentUtils::GetSystemPrincipal(),
-                       nsILoadInfo::SEC_NORMAL,
+                       nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                        nsIContentPolicy::TYPE_OTHER);
 
     if (NS_FAILED(rv)) return rv;
     nsCOMPtr<nsIInputStream> in;
-    rv = channel->Open(getter_AddRefs(in));
+    rv = channel->Open2(getter_AddRefs(in));
 
     // Report success if the file doesn't exist, but propagate other errors.
     if (rv == NS_ERROR_FILE_NOT_FOUND) return NS_OK;
@@ -833,12 +828,12 @@ RDFXMLDataSourceImpl::Flush(void)
     if (! mURL)
         return NS_ERROR_NOT_INITIALIZED;
 
-#ifdef PR_LOGGING
-    nsAutoCString spec;
-    mURL->GetSpec(spec);
-    PR_LOG(gLog, PR_LOG_NOTICE,
-           ("rdfxml[%p] flush(%s)", this, spec.get()));
-#endif
+    if (MOZ_LOG_TEST(gLog, LogLevel::Debug)) {
+      nsAutoCString spec;
+      mURL->GetSpec(spec);
+      MOZ_LOG(gLog, LogLevel::Debug,
+             ("rdfxml[%p] flush(%s)", this, spec.get()));
+    }
 
     nsresult rv;
     if (NS_SUCCEEDED(rv = rdfXMLFlush(mURL)))
@@ -913,19 +908,17 @@ RDFXMLDataSourceImpl::AsyncOnChannelRedirect(nsIChannel *aOldChannel,
 NS_IMETHODIMP
 RDFXMLDataSourceImpl::Refresh(bool aBlocking)
 {
-#ifdef PR_LOGGING
     nsAutoCString spec;
     if (mURL) {
         mURL->GetSpec(spec);
     }
-    PR_LOG(gLog, PR_LOG_NOTICE,
+    MOZ_LOG(gLog, LogLevel::Debug,
            ("rdfxml[%p] refresh(%s) %sblocking", this, spec.get(), (aBlocking ? "" : "non")));
-#endif
     
     // If an asynchronous load is already pending, then just let it do
     // the honors.
     if (IsLoading()) {
-        PR_LOG(gLog, PR_LOG_NOTICE,
+        MOZ_LOG(gLog, LogLevel::Debug,
                ("rdfxml[%p] refresh(%s) a load was pending", this, spec.get()));
 
         if (aBlocking) {
@@ -955,16 +948,17 @@ RDFXMLDataSourceImpl::Refresh(bool aBlocking)
     }
     else {
         // Null LoadGroup ?
-        rv = NS_OpenURI(this,
-                        nullptr,   // aContext
-                        mURL,
-                        nsContentUtils::GetSystemPrincipal(),
-                        nsILoadInfo::SEC_NORMAL,
-                        nsIContentPolicy::TYPE_OTHER,
-                        nullptr, // aLoadGroup
-                        this);   // aCallbacks
-
-        if (NS_FAILED(rv)) return rv;
+        nsCOMPtr<nsIChannel> channel;
+        rv = NS_NewChannel(getter_AddRefs(channel),
+                           mURL,
+                           nsContentUtils::GetSystemPrincipal(),
+                           nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
+                           nsIContentPolicy::TYPE_OTHER,
+                           nullptr, // aLoadGroup
+                           this);   // aCallbacks
+        NS_ENSURE_SUCCESS(rv, rv);
+        rv = channel->AsyncOpen2(this);
+        NS_ENSURE_SUCCESS(rv, rv);
 
         // So we don't try to issue two asynchronous loads at once.
         mLoadState = eLoadState_Pending;
@@ -976,14 +970,14 @@ RDFXMLDataSourceImpl::Refresh(bool aBlocking)
 NS_IMETHODIMP
 RDFXMLDataSourceImpl::BeginLoad(void)
 {
-#ifdef PR_LOGGING
-    nsAutoCString spec;
-    if (mURL) {
-        mURL->GetSpec(spec);
+    if (MOZ_LOG_TEST(gLog, LogLevel::Debug)) {
+      nsAutoCString spec;
+      if (mURL) {
+          mURL->GetSpec(spec);
+      }
+      MOZ_LOG(gLog, LogLevel::Debug,
+             ("rdfxml[%p] begin-load(%s)", this, spec.get()));
     }
-    PR_LOG(gLog, PR_LOG_NOTICE,
-           ("rdfxml[%p] begin-load(%s)", this, spec.get()));
-#endif
     
     mLoadState = eLoadState_Loading;
     for (int32_t i = mObservers.Count() - 1; i >= 0; --i) {
@@ -1002,15 +996,15 @@ RDFXMLDataSourceImpl::BeginLoad(void)
 NS_IMETHODIMP
 RDFXMLDataSourceImpl::Interrupt(void)
 {
-#ifdef PR_LOGGING
-    nsAutoCString spec;
-    if (mURL) {
-        mURL->GetSpec(spec);
+    if (MOZ_LOG_TEST(gLog, LogLevel::Debug)) {
+      nsAutoCString spec;
+      if (mURL) {
+          mURL->GetSpec(spec);
+      }
+      MOZ_LOG(gLog, LogLevel::Debug,
+             ("rdfxml[%p] interrupt(%s)", this, spec.get()));
     }
-    PR_LOG(gLog, PR_LOG_NOTICE,
-           ("rdfxml[%p] interrupt(%s)", this, spec.get()));
-#endif
-    
+
     for (int32_t i = mObservers.Count() - 1; i >= 0; --i) {
         // Make sure to hold a strong reference to the observer so
         // that it doesn't go away in this call if it removes itself
@@ -1027,14 +1021,14 @@ RDFXMLDataSourceImpl::Interrupt(void)
 NS_IMETHODIMP
 RDFXMLDataSourceImpl::Resume(void)
 {
-#ifdef PR_LOGGING
-    nsAutoCString spec;
-    if (mURL) {
-        mURL->GetSpec(spec);
+    if (MOZ_LOG_TEST(gLog, LogLevel::Debug)) {
+      nsAutoCString spec;
+      if (mURL) {
+          mURL->GetSpec(spec);
+      }
+      MOZ_LOG(gLog, LogLevel::Debug,
+             ("rdfxml[%p] resume(%s)", this, spec.get()));
     }
-    PR_LOG(gLog, PR_LOG_NOTICE,
-           ("rdfxml[%p] resume(%s)", this, spec.get()));
-#endif
     
     for (int32_t i = mObservers.Count() - 1; i >= 0; --i) {
         // Make sure to hold a strong reference to the observer so
@@ -1052,14 +1046,14 @@ RDFXMLDataSourceImpl::Resume(void)
 NS_IMETHODIMP
 RDFXMLDataSourceImpl::EndLoad(void)
 {
-#ifdef PR_LOGGING
-    nsAutoCString spec;
-    if (mURL) {
-        mURL->GetSpec(spec);
+    if (MOZ_LOG_TEST(gLog, LogLevel::Debug)) {
+      nsAutoCString spec;
+      if (mURL) {
+          mURL->GetSpec(spec);
+      }
+      MOZ_LOG(gLog, LogLevel::Debug,
+             ("rdfxml[%p] end-load(%s)", this, spec.get()));
     }
-    PR_LOG(gLog, PR_LOG_NOTICE,
-           ("rdfxml[%p] end-load(%s)", this, spec.get()));
-#endif
     
     mLoadState = eLoadState_Loaded;
 

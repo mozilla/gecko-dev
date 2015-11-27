@@ -1,12 +1,13 @@
+/* -*- mode: js; indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 "use strict";
 
-let Cc = Components.classes;
-let Ci = Components.interfaces;
-let Cu = Components.utils;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
 
 this.EXPORTED_SYMBOLS = [ "ContentClick" ];
 
@@ -14,7 +15,7 @@ Cu.import("resource:///modules/PlacesUIUtils.jsm");
 Cu.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
-let ContentClick = {
+var ContentClick = {
   init: function() {
     let mm = Cc["@mozilla.org/globalmessagemanager;1"].getService(Ci.nsIMessageListenerManager);
     mm.addMessageListener("Content:Click", this);
@@ -67,8 +68,11 @@ let ContentClick = {
 
     // Todo(903022): code for where == save
 
-    window.openLinkIn(json.href, where, { referrerURI: browser.documentURI,
-                                          charset: browser.characterSet });
+    let params = { charset: browser.characterSet,
+                   referrerURI: browser.documentURI,
+                   referrerPolicy: json.referrerPolicy,
+                   noReferrer: json.noReferrer };
+    window.openLinkIn(json.href, where, params);
 
     // Mark the page as a user followed link.  This is done so that history can
     // distinguish automatic embed visits from user activated ones.  For example
@@ -76,7 +80,7 @@ let ContentClick = {
     // visits across frames should be preserved.
     try {
       if (!PrivateBrowsingUtils.isWindowPrivate(window))
-        PlacesUIUtils.markPageAsFollowedLink(href);
+        PlacesUIUtils.markPageAsFollowedLink(json.href);
     } catch (ex) { /* Skip invalid URIs. */ }
   }
 };

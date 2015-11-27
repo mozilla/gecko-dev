@@ -19,7 +19,7 @@ function tester() {
   stack = saveStack();
 }
 
-const buf = ArrayBuffer(1024*8);
+const buf = new ArrayBuffer(1024*8);
 const module = AsmModule(this, { t: tester }, buf);
 module.test();
 
@@ -28,13 +28,13 @@ assertEq(stack.functionDisplayName, "tester");
 
 assertEq(stack.parent.functionDisplayName, "doTest");
 assertEq(stack.parent.line, 6);
-assertEq(stack.parent.column, 4);
+assertEq(stack.parent.column, 5);
 
 assertEq(stack.parent.parent.functionDisplayName, "test");
 assertEq(stack.parent.parent.line, 10);
-assertEq(stack.parent.parent.column, 4);
+assertEq(stack.parent.parent.column, 5);
 
 assertEq(stack.parent.parent.parent.line, 24);
-assertEq(stack.parent.parent.parent.column, 0);
+assertEq(stack.parent.parent.parent.column, 1);
 
 assertEq(stack.parent.parent.parent.parent, null);

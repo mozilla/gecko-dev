@@ -21,28 +21,33 @@
 using namespace android;
 
 // WebRTC
-#include "common_video/interface/texture_video_frame.h"
-#include "video_engine/include/vie_external_codec.h"
+//#include "webrtc/common_video/interface/texture_video_frame.h"
+#include "webrtc/video_engine/include/vie_external_codec.h"
 #include "runnable_utils.h"
 
 // Gecko
+#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 21
+#include "GonkBufferQueueProducer.h"
+#endif
 #include "GonkNativeWindow.h"
+#include "GrallocImages.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Mutex.h"
 #include "nsThreadUtils.h"
 #include "OMXCodecWrapper.h"
 #include "TextureClient.h"
+#include "mozilla/IntegerPrintfMacros.h"
 
 #define DEQUEUE_BUFFER_TIMEOUT_US (100 * 1000ll) // 100ms.
 #define START_DEQUEUE_BUFFER_TIMEOUT_US (10 * DEQUEUE_BUFFER_TIMEOUT_US) // 1s.
 #define DRAIN_THREAD_TIMEOUT_US  (1000 * 1000ll) // 1s.
 
-#define LOG_TAG "WebrtcOMXH264VideoCodec"
-#define CODEC_LOGV(...) CSFLogInfo(LOG_TAG, __VA_ARGS__)
-#define CODEC_LOGD(...) CSFLogDebug(LOG_TAG, __VA_ARGS__)
-#define CODEC_LOGI(...) CSFLogInfo(LOG_TAG, __VA_ARGS__)
-#define CODEC_LOGW(...) CSFLogWarn(LOG_TAG, __VA_ARGS__)
-#define CODEC_LOGE(...) CSFLogError(LOG_TAG, __VA_ARGS__)
+#define WOHVC_LOG_TAG "WebrtcOMXH264VideoCodec"
+#define CODEC_LOGV(...) CSFLogInfo(WOHVC_LOG_TAG, __VA_ARGS__)
+#define CODEC_LOGD(...) CSFLogDebug(WOHVC_LOG_TAG, __VA_ARGS__)
+#define CODEC_LOGI(...) CSFLogInfo(WOHVC_LOG_TAG, __VA_ARGS__)
+#define CODEC_LOGW(...) CSFLogWarn(WOHVC_LOG_TAG, __VA_ARGS__)
+#define CODEC_LOGE(...) CSFLogError(WOHVC_LOG_TAG, __VA_ARGS__)
 
 namespace mozilla {
 
@@ -61,7 +66,8 @@ enum {
 class DummyRefCountBase {
 public:
   // Use the name of real class for logging.
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ImageNativeHandle)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DummyRefCountBase)
+protected:
   // To make sure subclass will be deleted/destructed properly.
   virtual ~DummyRefCountBase() {}
 };
@@ -71,7 +77,7 @@ public:
 //    be passed through WebRTC rendering pipeline using TextureVideoFrame.
 // 2. ImageHandle: for renderer to get the image object inside without knowledge
 //    about webrtc::NativeHandle.
-class ImageNativeHandle MOZ_FINAL
+class ImageNativeHandle final
   : public webrtc::NativeHandle
   , public DummyRefCountBase
 {
@@ -81,14 +87,14 @@ public:
   {}
 
   // Implement webrtc::NativeHandle.
-  virtual void* GetHandle() MOZ_OVERRIDE { return mImage.get(); }
+  virtual void* GetHandle() override { return mImage.get(); }
 
-  virtual int AddRef() MOZ_OVERRIDE
+  virtual int AddRef() override
   {
     return DummyRefCountBase::AddRef();
   }
 
-  virtual int Release() MOZ_OVERRIDE
+  virtual int Release() override
   {
     return DummyRefCountBase::Release();
   }
@@ -164,11 +170,14 @@ public:
     lock.NotifyAll();
   }
 
-  NS_IMETHODIMP Run() MOZ_OVERRIDE
+  NS_IMETHODIMP Run() override
   {
+    MonitorAutoLock lock(mMonitor);
+    if (mEnding) {
+      return NS_OK;
+    }
     MOZ_ASSERT(mThread);
 
-    MonitorAutoLock lock(mMonitor);
     while (true) {
       if (mInputFrames.empty()) {
         // Wait for new input.
@@ -248,29 +257,11 @@ static size_t ParamSetLength(uint8_t* aData, size_t aSize)
 // H.264 decoder using stagefright.
 // It implements gonk native window callback to receive buffers from
 // MediaCodec::RenderOutputBufferAndRelease().
-class WebrtcOMXDecoder MOZ_FINAL : public GonkNativeWindowNewFrameCallback
+class WebrtcOMXDecoder final : public GonkNativeWindowNewFrameCallback
 {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(WebrtcOMXDecoder)
-public:
-  WebrtcOMXDecoder(const char* aMimeType,
-                   webrtc::DecodedImageCallback* aCallback)
-    : mWidth(0)
-    , mHeight(0)
-    , mStarted(false)
-    , mDecodedFrameLock("WebRTC decoded frame lock")
-    , mCallback(aCallback)
-    , mEnding(false)
-  {
-    // Create binder thread pool required by stagefright.
-    android::ProcessState::self()->startThreadPool();
 
-    mLooper = new ALooper;
-    mLooper->start();
-    CODEC_LOGD("WebrtcOMXH264VideoDecoder:%p creating decoder", this);
-    mCodec = MediaCodec::CreateByType(mLooper, aMimeType, false /* encoder */);
-    CODEC_LOGD("WebrtcOMXH264VideoDecoder:%p OMX created", this);
-  }
-
+private:
   virtual ~WebrtcOMXDecoder()
   {
     CODEC_LOGD("WebrtcOMXH264VideoDecoder:%p OMX destructor", this);
@@ -282,6 +273,26 @@ public:
       mCodec.clear();
     }
     mLooper.clear();
+  }
+
+public:
+  WebrtcOMXDecoder(const char* aMimeType,
+                   webrtc::DecodedImageCallback* aCallback)
+    : mWidth(0)
+    , mHeight(0)
+    , mStarted(false)
+    , mCallback(aCallback)
+    , mDecodedFrameLock("WebRTC decoded frame lock")
+    , mEnding(false)
+  {
+    // Create binder thread pool required by stagefright.
+    android::ProcessState::self()->startThreadPool();
+
+    mLooper = new ALooper;
+    mLooper->start();
+    CODEC_LOGD("WebrtcOMXH264VideoDecoder:%p creating decoder", this);
+    mCodec = MediaCodec::CreateByType(mLooper, aMimeType, false /* encoder */);
+    CODEC_LOGD("WebrtcOMXH264VideoDecoder:%p OMX created", this);
   }
 
   // Find SPS in input data and extract picture width and height if found.
@@ -315,16 +326,30 @@ public:
     mHeight = aHeight;
 
     sp<Surface> surface = nullptr;
+#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 21
+    sp<IGraphicBufferProducer> producer;
+    sp<IGonkGraphicBufferConsumer> consumer;
+    GonkBufferQueue::createBufferQueue(&producer, &consumer);
+    mNativeWindow = new GonkNativeWindow(consumer);
+#else
     mNativeWindow = new GonkNativeWindow();
+#endif
     if (mNativeWindow.get()) {
       // listen to buffers queued by MediaCodec::RenderOutputBufferAndRelease().
       mNativeWindow->setNewFrameCallback(this);
       // XXX remove buffer changes after a better solution lands - bug 1009420
+#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION >= 21
+      static_cast<GonkBufferQueueProducer*>(producer.get())->setSynchronousMode(false);
+      // More spare buffers to avoid OMX decoder waiting for native window
+      consumer->setMaxAcquiredBufferCount(WEBRTC_OMX_H264_MIN_DECODE_BUFFERS);
+      surface = new Surface(producer);
+#else
       sp<GonkBufferQueue> bq = mNativeWindow->getBufferQueue();
       bq->setSynchronousMode(false);
       // More spare buffers to avoid OMX decoder waiting for native window
       bq->setMaxAcquiredBufferCount(WEBRTC_OMX_H264_MIN_DECODE_BUFFERS);
       surface = new Surface(bq);
+#endif
     }
     status_t result = mCodec->configure(config, surface, nullptr, 0);
     if (result == OK) {
@@ -494,7 +519,7 @@ public:
 
   // Will be called when MediaCodec::RenderOutputBufferAndRelease() returns
   // buffers back to native window for rendering.
-  void OnNewFrame() MOZ_OVERRIDE
+  void OnNewFrame() override
   {
     RefPtr<layers::TextureClient> buffer = mNativeWindow->getCurrentBuffer();
     if (!buffer) {
@@ -502,12 +527,9 @@ public:
       return;
     }
 
-    layers::GrallocImage::GrallocData grallocData;
-    grallocData.mPicSize = buffer->GetSize();
-    grallocData.mGraphicBuffer = buffer;
-
+    gfx::IntSize picSize(buffer->GetSize());
     nsAutoPtr<layers::GrallocImage> grallocImage(new layers::GrallocImage());
-    grallocImage->SetData(grallocData);
+    grallocImage->SetData(buffer, picSize);
 
     // Get timestamp of the frame about to render.
     int64_t timestamp = -1;
@@ -524,15 +546,15 @@ public:
     }
     MOZ_ASSERT(timestamp >= 0 && renderTimeMs >= 0);
 
-    CODEC_LOGD("Decoder NewFrame: %d bytes, %dx%d, timestamp %lld, renderTimeMs %lld",
-               buffer->GetSize(), grallocData.mPicSize.width, grallocData.mPicSize.height, timestamp, renderTimeMs);
+    CODEC_LOGD("Decoder NewFrame: %dx%d, timestamp %lld, renderTimeMs %lld",
+               picSize.width, picSize.height, timestamp, renderTimeMs);
 
-    nsAutoPtr<webrtc::I420VideoFrame> videoFrame(
-      new webrtc::TextureVideoFrame(new ImageNativeHandle(grallocImage.forget()),
-                                    grallocData.mPicSize.width,
-                                    grallocData.mPicSize.height,
-                                    timestamp,
-                                    renderTimeMs));
+    nsAutoPtr<webrtc::I420VideoFrame> videoFrame(new webrtc::I420VideoFrame(
+      new ImageNativeHandle(grallocImage.forget()),
+      picSize.width,
+      picSize.height,
+      timestamp,
+      renderTimeMs));
     if (videoFrame != nullptr) {
       mCallback->Decoded(*videoFrame);
     }
@@ -548,7 +570,7 @@ private:
     {}
 
   protected:
-    virtual bool DrainOutput() MOZ_OVERRIDE
+    virtual bool DrainOutput() override
     {
       return (mOMX->DrainOutput(mInputFrames, mMonitor) == OK);
     }
@@ -642,7 +664,7 @@ public:
   {}
 
 protected:
-  virtual bool DrainOutput() MOZ_OVERRIDE
+  virtual bool DrainOutput() override
   {
     nsTArray<uint8_t> output;
     int64_t timeUs = -1ll;
@@ -719,7 +741,7 @@ protected:
       encoded.capture_time_ms_ = input_frame.mRenderTimeMs;
       encoded._completeFrame = true;
 
-      CODEC_LOGD("Encoded frame: %d bytes, %dx%d, is_param %d, is_iframe %d, timestamp %u, captureTimeMs %u",
+      CODEC_LOGD("Encoded frame: %d bytes, %dx%d, is_param %d, is_iframe %d, timestamp %u, captureTimeMs %" PRIu64,
                  encoded._length, encoded._encodedWidth, encoded._encodedHeight,
                  isParamSets, isIFrame, encoded._timeStamp, encoded.capture_time_ms_);
       // Prepend SPS/PPS to I-frames unless they were sent last time.
@@ -748,19 +770,23 @@ private:
   void SendEncodedDataToCallback(webrtc::EncodedImage& aEncodedImage,
                                  bool aPrependParamSets)
   {
-    // Individual NALU inherits metadata from input encoded data.
-    webrtc::EncodedImage nalu(aEncodedImage);
-
     if (aPrependParamSets) {
+      webrtc::EncodedImage prepend(aEncodedImage);
       // Insert current parameter sets in front of the input encoded data.
       MOZ_ASSERT(mParamSets.Length() > sizeof(kNALStartCode)); // Start code + ...
-      nalu._length = mParamSets.Length();
-      nalu._buffer = mParamSets.Elements();
+      prepend._length = mParamSets.Length();
+      prepend._buffer = mParamSets.Elements();
       // Break into NALUs and send.
-      CODEC_LOGD("Prepending SPS/PPS: %d bytes, timestamp %u, captureTimeMs %u",
-                 nalu._length, nalu._timeStamp, nalu.capture_time_ms_);
-      SendEncodedDataToCallback(nalu, false);
+      CODEC_LOGD("Prepending SPS/PPS: %d bytes, timestamp %u, captureTimeMs %" PRIu64,
+                 prepend._length, prepend._timeStamp, prepend.capture_time_ms_);
+      SendEncodedDataToCallback(prepend, false);
     }
+
+    struct nal_entry {
+      uint32_t offset;
+      uint32_t size;
+    };
+    nsAutoTArray<nal_entry, 1> nals;
 
     // Break input encoded data into NALUs and send each one to callback.
     const uint8_t* data = aEncodedImage._buffer;
@@ -768,9 +794,23 @@ private:
     const uint8_t* nalStart = nullptr;
     size_t nalSize = 0;
     while (getNextNALUnit(&data, &size, &nalStart, &nalSize, true) == OK) {
-      nalu._buffer = const_cast<uint8_t*>(nalStart);
-      nalu._length = nalSize;
-      mCallback->Encoded(nalu, nullptr, nullptr);
+      // XXX optimize by making buffer an offset
+      nal_entry nal = {((uint32_t) (nalStart - aEncodedImage._buffer)), (uint32_t) nalSize};
+      nals.AppendElement(nal);
+    }
+
+    size_t num_nals = nals.Length();
+    if (num_nals > 0) {
+      webrtc::RTPFragmentationHeader fragmentation;
+      fragmentation.VerifyAndAllocateFragmentationHeader(num_nals);
+      for (size_t i = 0; i < num_nals; i++) {
+        fragmentation.fragmentationOffset[i] = nals[i].offset;
+        fragmentation.fragmentationLength[i] = nals[i].size;
+      }
+      webrtc::EncodedImage unit(aEncodedImage);
+      unit._completeFrame = true;
+
+      mCallback->Encoded(unit, nullptr, &fragmentation);
     }
   }
 
@@ -788,7 +828,9 @@ WebrtcOMXH264VideoEncoder::WebrtcOMXH264VideoEncoder()
   , mHeight(0)
   , mFrameRate(0)
   , mBitRateKbps(0)
+#ifdef OMX_IDR_NEEDED_FOR_BITRATE
   , mBitRateAtLastIDR(0)
+#endif
   , mOMXConfigured(false)
   , mOMXReconfigure(false)
 {
@@ -844,8 +886,8 @@ WebrtcOMXH264VideoEncoder::Encode(const webrtc::I420VideoFrame& aInputImage,
   // Have to reconfigure for resolution or framerate changes :-(
   // ~220ms initial configure on 8x10, 50-100ms for re-configure it appears
   // XXX drop frames while this is happening?
-  if (aInputImage.width() != mWidth ||
-      aInputImage.height() != mHeight) {
+  if (aInputImage.width() < 0 || (uint32_t)aInputImage.width() != mWidth ||
+      aInputImage.height() < 0 || (uint32_t)aInputImage.height() != mHeight) {
     mWidth = aInputImage.width();
     mHeight = aInputImage.height();
     mOMXReconfigure = true;
@@ -899,17 +941,20 @@ WebrtcOMXH264VideoEncoder::Encode(const webrtc::I420VideoFrame& aInputImage,
     nsresult rv = mOMX->ConfigureDirect(format,
                                         OMXVideoEncoder::BlobFormat::AVC_NAL);
     if (NS_WARN_IF(NS_FAILED(rv))) {
-      CODEC_LOGE("WebrtcOMXH264VideoEncoder:%p FAILED configuring encoder %d", this, rv);
+      CODEC_LOGE("WebrtcOMXH264VideoEncoder:%p FAILED configuring encoder %d", this, int(rv));
       return WEBRTC_VIDEO_CODEC_ERROR;
     }
     mOMXConfigured = true;
+#ifdef OMX_IDR_NEEDED_FOR_BITRATE
     mLastIDRTime = TimeStamp::Now();
     mBitRateAtLastIDR = mBitRateKbps;
+#endif
   }
 
   if (aFrameTypes && aFrameTypes->size() &&
       ((*aFrameTypes)[0] == webrtc::kKeyFrame)) {
     mOMX->RequestIDRFrame();
+#ifdef OMX_IDR_NEEDED_FOR_BITRATE
     mLastIDRTime = TimeStamp::Now();
     mBitRateAtLastIDR = mBitRateKbps;
   } else if (mBitRateKbps != mBitRateAtLastIDR) {
@@ -942,6 +987,7 @@ WebrtcOMXH264VideoEncoder::Encode(const webrtc::I420VideoFrame& aInputImage,
       mLastIDRTime = now;
       mBitRateAtLastIDR = mBitRateKbps;
     }
+#endif
   }
 
   // Wrap I420VideoFrame input with PlanarYCbCrImage for OMXVideoEncoder.
@@ -957,11 +1003,11 @@ WebrtcOMXH264VideoEncoder::Encode(const webrtc::I420VideoFrame& aInputImage,
                                    (yuvData.mYSize.height + 1) / 2);
   yuvData.mPicSize = yuvData.mYSize;
   yuvData.mStereoMode = StereoMode::MONO;
-  layers::PlanarYCbCrImage img(nullptr);
+  layers::RecyclingPlanarYCbCrImage img(nullptr);
   // SetDataNoCopy() doesn't need AllocateAndGetNewBuffer(); OMXVideoEncoder is ok with this
   img.SetDataNoCopy(yuvData);
 
-  CODEC_LOGD("Encode frame: %dx%d, timestamp %u (%lld), renderTimeMs %u",
+  CODEC_LOGD("Encode frame: %dx%d, timestamp %u (%lld), renderTimeMs %" PRIu64,
              aInputImage.width(), aInputImage.height(),
              aInputImage.timestamp(), aInputImage.timestamp() * 1000ll / 90,
              aInputImage.render_time_ms());
@@ -1031,9 +1077,9 @@ WebrtcOMXH264VideoEncoder::~WebrtcOMXH264VideoEncoder()
 // Note: stagefright doesn't handle these parameters.
 int32_t
 WebrtcOMXH264VideoEncoder::SetChannelParameters(uint32_t aPacketLossRate,
-                                                int aRoundTripTimeMs)
+                                                int64_t aRoundTripTimeMs)
 {
-  CODEC_LOGD("WebrtcOMXH264VideoEncoder:%p set channel packet loss:%u, rtt:%d",
+  CODEC_LOGD("WebrtcOMXH264VideoEncoder:%p set channel packet loss:%u, rtt:%" PRIi64,
              this, aPacketLossRate, aRoundTripTimeMs);
 
   return WEBRTC_VIDEO_CODEC_OK;
@@ -1163,7 +1209,6 @@ WebrtcOMXH264VideoDecoder::Decode(const webrtc::EncodedImage& aInputImage,
 
   bool feedFrame = true;
   while (feedFrame) {
-    int64_t timeUs;
     status_t err = mOMX->FillInput(aInputImage, !configured, aRenderTimeMs);
     feedFrame = (err == -EAGAIN); // No input buffer available. Try again.
   }

@@ -1,10 +1,10 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-let prefsBranch = Cc["@mozilla.org/preferences-service;1"].
+var prefsBranch = Cc["@mozilla.org/preferences-service;1"].
                   getService(Ci.nsIPrefService).
                   getBranch("browser.panorama.");
-let originalPrefState;
+var originalPrefState;
 
 function test() {
   waitForExplicitFinish();
@@ -63,9 +63,8 @@ function endGame() {
 }
 
 function newWindowWithTabView(callback, completeCallback) {
-  let charsetArg = "charset=" + window.content.document.characterSet;
   let win = window.openDialog(getBrowserURL(), "_blank", "chrome,all,dialog=no,height=800,width=800",
-                              "about:blank", charsetArg, null, null, true);
+                              "about:blank", null, null, null, true);
   let onLoad = function() {
     win.removeEventListener("load", onLoad, false);
     let onShown = function() {

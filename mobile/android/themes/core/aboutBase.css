@@ -2,24 +2,31 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-%filter substitution
-%include defines.inc
+@import "defines.css";
 
 html {
   font-family: "Clear Sans",sans-serif;
   font-size: 14px;
-  background-color: @color_about_background@;
+  background-color: var(--color_about_background);
   -moz-text-size-adjust: none;
+  -moz-user-select: none;
+  --icon-size: 1.8em;
+  --icon-margin: 1.35em;
 }
 
 body {
   margin: 0;
 }
 
+input {
+  -moz-user-select: text;
+}
+
 .header {
-  color: black;
+  color: #363B40;
   font-size: 1.1em;
   font-weight: bold;
+  background-color: #f5f5f5;
   border-bottom: 2px solid;
   -moz-border-bottom-colors: #ff9100 #f27900;
   display: flex;
@@ -48,87 +55,42 @@ body {
 }
 
 .list-item {
-  color: black;
-  background-color: @color_about_item@;
-  border-bottom: 2px solid;
-  -moz-border-bottom-colors: #ffffff #bac2ac;
+  color: #363B40;
+  background-color: var(--color_about_item);
+  border-bottom: 1px solid var(--color_about_item_border);
   position: relative;
   list-style-type: none;
   list-style-image: none;
   margin: 0px;
   padding: 0px;
+  min-height: calc(var(--icon-size) + var(--icon-margin) * 2);
+}
+
+.list-item:active {
+  background-color: #eeeeee;
 }
 
 .list-item[isDisabled="true"] {
   color: #999999;
 }
 
-.list-item:active,
-.list-item:active > .inner {
-  background-image: none;
-}
-
 .inner {
-  background-color: @color_about_item_inner@;
+  -moz-margin-start: calc(var(--icon-size) + var(--icon-margin) * 2 - 1em);
   padding: 1em;
-
-  /* make room for the favicon */
-  -moz-margin-start: 4.5em;
-}
-
-/* Icons */
-body[dir="ltr"] .icon {
-  left: 1.35em;
-}
-
-body[dir="ltr"] .icon {
-  right: 1.35em;
 }
 
 .icon {
   border: none;
-  top: 1.35em;
-  width: 1.8em;
-  height: 1.8em;
+  width: var(--icon-size);
+  height: var(--icon-size);
+  top: var(--icon-margin);
+  -moz-margin-start: var(--icon-margin);
   position: absolute;
   pointer-events: none;
 }
 
 .list-item[isDisabled="true"] .favicon {
   opacity: 0.3;
-}
-
-/* Buttons */
-.buttons {
-  display: flex;
-  flex-direction: row;
-  width: 100%;
-}
-
-.buttons > button {
-  -moz-appearance: none;
-  color: black;
-  font-size: 1em !important;
-  border: 1px solid transparent;
-  border-top-color: #bac2ac;
-  -moz-border-start-color: #bac2ac;
-  background-image: none;
-  background-color: @color_about_item_inner@;
-  border-radius: 0px !important;
-  flex: 1;
-  padding: 0.75em 0.5em;
-}
-
-.buttons > button[disabled="true"] {
-  color: #b5b5b5;
-}
-
-.buttons > button[hidden="true"] {
-  display: none;
-}
-
-.buttons:first-child {
-  -moz-border-start-color: transparent;
 }
 
 .row {

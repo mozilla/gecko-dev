@@ -36,19 +36,71 @@ const BDADDR_LOCAL = "ff:ff:ff:00:00:00";
 // A user friendly name for remote BT device.
 const REMOTE_DEVICE_NAME = "Remote_BT_Device";
 
-// A system message signature of pairing request event
-const BT_PAIRING_REQ = "bluetooth-pairing-request";
+// Emulate Promise.jsm semantics.
+Promise.defer = function() { return new Deferred(); }
+function Deferred()  {
+  this.promise = new Promise(function(resolve, reject) {
+    this.resolve = resolve;
+    this.reject = reject;
+  }.bind(this));
+  Object.freeze(this);
+}
 
-// Passkey and pincode used to reply pairing requst
-const BT_PAIRING_PASSKEY = 123456;
-const BT_PAIRING_PINCODE = "ABCDEFG";
+var bluetoothManager;
 
-let Promise =
-  SpecialPowers.Cu.import("resource://gre/modules/Promise.jsm").Promise;
+var pendingEmulatorCmdCount = 0;
 
-let bluetoothManager;
+/**
+ * Push required permissions and test if |navigator.mozBluetooth| exists.
+ * Resolve if it does, reject otherwise.
+ *
+ * Fulfill params:
+ *   bluetoothManager -- an reference to navigator.mozBluetooth.
+ * Reject params: (none)
+ *
+ * @param aPermissions
+ *        Additional permissions to push before any test cases.  Could be either
+ *        a string or an array of strings.
+ *
+ * @return A deferred promise.
+ */
+function ensureBluetoothManager(aPermissions) {
+  let deferred = Promise.defer();
 
-let pendingEmulatorCmdCount = 0;
+  let permissions = ["bluetooth"];
+  if (aPermissions) {
+    if (Array.isArray(aPermissions)) {
+      permissions = permissions.concat(aPermissions);
+    } else if (typeof aPermissions == "string") {
+      permissions.push(aPermissions);
+    }
+  }
+
+  let obj = [];
+  for (let perm of permissions) {
+    obj.push({
+      "type": perm,
+      "allow": 1,
+      "context": document,
+    });
+  }
+
+  SpecialPowers.pushPermissions(obj, function() {
+    ok(true, "permissions pushed: " + JSON.stringify(permissions));
+
+    bluetoothManager = window.navigator.mozBluetooth;
+    log("navigator.mozBluetooth is " +
+        (bluetoothManager ? "available" : "unavailable"));
+
+    if (bluetoothManager instanceof BluetoothManager) {
+      deferred.resolve(bluetoothManager);
+    } else {
+      deferred.reject();
+    }
+  });
+
+  return deferred.promise;
+}
 
 /**
  * Send emulator command with safe guard.
@@ -81,33 +133,6 @@ function runEmulatorCmdSafe(aCommand) {
       deferred.reject(aResult);
     }
   });
-
-  return deferred.promise;
-}
-
-/**
- * Wrap DOMRequest onsuccess/onerror events to Promise resolve/reject.
- *
- * Fulfill params: A DOMEvent.
- * Reject params: A DOMEvent.
- *
- * @param aRequest
- *        A DOMRequest instance.
- *
- * @return A deferred promise.
- */
-function wrapDomRequestAsPromise(aRequest) {
-  let deferred = Promise.defer();
-
-  ok(aRequest instanceof DOMRequest,
-     "aRequest is instanceof " + aRequest.constructor);
-
-  aRequest.onsuccess = function(aEvent) {
-    deferred.resolve(aEvent);
-  };
-  aRequest.onerror = function(aEvent) {
-    deferred.reject(aEvent);
-  };
 
   return deferred.promise;
 }
@@ -220,227 +245,8 @@ function setEmulatorDeviceProperty(aAddress, aPropertyName, aValue) {
 function getEmulatorDeviceProperty(aAddress, aPropertyName) {
   let cmd = "bt property " + aAddress + " " + aPropertyName;
   return runEmulatorCmdSafe(cmd)
-         .then(aResults => aResults[0]);
-}
-
-/**
- * Start discovering Bluetooth devices.
- *
- * Allows the device's adapter to start seeking for remote devices.
- *
- * Fulfill params: (none)
- * Reject params: a DOMError
- *
- * @param aAdapter
- *        A BluetoothAdapter which is used to interact with local BT device.
- *
- * @return A deferred promise.
- */
-function startDiscovery(aAdapter) {
-  let request = aAdapter.startDiscovery();
-
-  return wrapDomRequestAsPromise(request)
-    .then(function resolve() {
-      // TODO (bug 892207): Make Bluetooth APIs available for 3rd party apps.
-      //     Currently, discovering state wouldn't change immediately here.
-      //     We would turn on this check when the redesigned API are landed.
-      // is(aAdapter.discovering, false, "BluetoothAdapter.discovering");
-      log("  Start discovery - Success");
-    }, function reject(aEvent) {
-      ok(false, "Start discovery - Fail");
-      throw aEvent.target.error;
-    });
-}
-
-/**
- * Stop discovering Bluetooth devices.
- *
- * Allows the device's adapter to stop seeking for remote devices.
- *
- * Fulfill params: (none)
- * Reject params: a DOMError
- *
- * @param aAdapter
- *        A BluetoothAdapter which is used to interact with local BT device.
- *
- * @return A deferred promise.
- */
-function stopDiscovery(aAdapter) {
-  let request = aAdapter.stopDiscovery();
-
-  return wrapDomRequestAsPromise(request)
-    .then(function resolve() {
-      // TODO (bug 892207): Make Bluetooth APIs available for 3rd party apps.
-      //     Currently, discovering state wouldn't change immediately here.
-      //     We would turn on this check when the redesigned API are landed.
-      // is(aAdapter.discovering, false, "BluetoothAdapter.discovering");
-      log("  Stop discovery - Success");
-    }, function reject(aEvent) {
-      ok(false, "Stop discovery - Fail");
-      throw aEvent.target.error;
-    });
-}
-
-/**
- * Wait for 'devicefound' event of specified devices.
- *
- * Resolve if that every specified devices has been found.  Never reject.
- *
- * Fulfill params: an array which contains addresses of remote devices.
- *
- * @param aAdapter
- *        A BluetoothAdapter which is used to interact with local BT device.
- * @param aRemoteAddresses
- *        An array which contains addresses of remote devices.
- *
- * @return A deferred promise.
- */
-function waitForDevicesFound(aAdapter, aRemoteAddresses) {
-  let deferred = Promise.defer();
-
-  var addrArray = [];
-  aAdapter.addEventListener("devicefound", function onevent(aEvent) {
-    if(aRemoteAddresses.indexOf(aEvent.device.address) != -1) {
-      addrArray.push(aEvent.device.address);
-    }
-    if(addrArray.length == aRemoteAddresses.length) {
-      aAdapter.removeEventListener("devicefound", onevent);
-      ok(true, "BluetoothAdapter has found all remote devices.");
-
-      deferred.resolve(addrArray);
-    }
-  });
-
-  return deferred.promise;
-}
-
-/**
- * Start discovering Bluetooth devices and wait for 'devicefound' events.
- *
- * Allows the device's adapter to start seeking for remote devices and wait for
- * the 'devicefound' events of specified devices.
- *
- * Fulfill params: an array of addresses of found devices.
- *
- * @param aAdapter
- *        A BluetoothAdapter which is used to interact with local BT device.
- * @param aRemoteAddresses
- *        An array which contains addresses of remote devices.
- *
- * @return A deferred promise.
- */
-function startDiscoveryAndWaitDevicesFound(aAdapter, aRemoteAddresses) {
-  let promises = [];
-
-  promises.push(waitForDevicesFound(aAdapter, aRemoteAddresses));
-  promises.push(startDiscovery(aAdapter));
-  return Promise.all(promises)
-         .then(aResults => aResults[0]);
-}
-
-/**
- * Start pairing a remote device.
- *
- * Start pairing a remote device with the device's adapter.
- *
- * Fulfill params: (none)
- * Reject params: a DOMError
- *
- * @param aAdapter
- *        A BluetoothAdapter which is used to interact with local BT device.
- * @param aDeviceAddress
- *        The string of remote Bluetooth address with format xx:xx:xx:xx:xx:xx.
- *
- * @return A deferred promise.
- */
-function pair(aAdapter, aDeviceAddress) {
-  let request = aAdapter.pair(aDeviceAddress);
-
-  return wrapDomRequestAsPromise(request)
-    .then(function resolve() {
-      log("  Pair - Success");
-    }, function reject(aEvent) {
-      ok(false, "Pair - Fail");
-      throw aEvent.target.error;
-    });
-}
-
-/**
- * Remove the paired device from the paired device list.
- *
- * Remove the paired device from the paired device list of the device's adapter.
- *
- * Fulfill params: (none)
- * Reject params: a DOMError
- *
- * @param aAdapter
- *        A BluetoothAdapter which is used to interact with local BT device.
- * @param aDeviceAddress
- *        The string of remote Bluetooth address with format xx:xx:xx:xx:xx:xx.
- *
- * @return A deferred promise.
- */
-function unpair(aAdapter, aDeviceAddress) {
-  let request = aAdapter.unpair(aDeviceAddress);
-
-  return wrapDomRequestAsPromise(request)
-    .then(function resolve() {
-      log("  Unpair - Success");
-    }, function reject(aEvent) {
-      ok(false, "Unpair - Fail");
-      throw aEvent.target.error;
-    });
-}
-
-/**
- * Start pairing a remote device and wait for "pairedstatuschanged" event.
- *
- * Start pairing a remote device with the device's adapter and wait for
- * "pairedstatuschanged" event.
- *
- * Fulfill params:  an array of promise results contains the fulfilled params of
- *                  'waitForAdapterEvent' and 'pair'.
- *
- * @param aAdapter
- *        A BluetoothAdapter which is used to interact with local BT device.
- * @param aDeviceAddress
- *        The string of remote Bluetooth address with format xx:xx:xx:xx:xx:xx.
- *
- * @return A deferred promise.
- */
-function pairDeviceAndWait(aAdapter, aDeviceAddress) {
-  let promises = [];
-  promises.push(waitForAdapterEvent(aAdapter, "pairedstatuschanged"));
-  promises.push(pair(aAdapter, aDeviceAddress));
-  return Promise.all(promises);
-}
-
-/**
- * Get paried Bluetooth devices.
- *
- * The getPairedDevices method is used to retrieve the full list of all devices
- * paired with the device's adapter.
- *
- * Fulfill params: a shallow copy of the Array of paired BluetoothDevice
- *                 objects.
- * Reject params: a DOMError
- *
- * @param aAdapter
- *        A BluetoothAdapter which is used to interact with local BT device.
- *
- * @return A deferred promise.
- */
-function getPairedDevices(aAdapter) {
-  let request = aAdapter.getPairedDevices();
-
-  return wrapDomRequestAsPromise(request)
-    .then(function resolve() {
-      log("  getPairedDevices - Success");
-      let pairedDevices = request.result.slice();
-      return pairedDevices;
-    }, function reject(aEvent) {
-      ok(false, "getPairedDevices - Fail");
-      throw aEvent.target.error;
+    .then(function(aResults) {
+      return aResults[0];
     });
 }
 
@@ -460,16 +266,19 @@ function getPairedDevices(aAdapter) {
  * @return A deferred promise.
  */
 function getSettings(aKey) {
-  let request = navigator.mozSettings.createLock().get(aKey);
+  let deferred = Promise.defer();
 
-  return wrapDomRequestAsPromise(request)
-    .then(function resolve(aEvent) {
-      ok(true, "getSettings(" + aKey + ")");
-      return aEvent.target.result[aKey];
-    }, function reject(aEvent) {
-      ok(false, "getSettings(" + aKey + ")");
-      throw aEvent.target.error;
-    });
+  let request = navigator.mozSettings.createLock().get(aKey);
+  request.addEventListener("success", function(aEvent) {
+    ok(true, "getSettings(" + aKey + ")");
+    deferred.resolve(aEvent.target.result[aKey]);
+  });
+  request.addEventListener("error", function() {
+    ok(false, "getSettings(" + aKey + ")");
+    deferred.reject();
+  });
+
+  return deferred.promise;
 }
 
 /**
@@ -490,21 +299,20 @@ function setSettings(aSettings) {
   let request = lock.set(aSettings);
   let deferred = Promise.defer();
   lock.onsettingstransactionsuccess = function () {
-      ok(true, "setSettings(" + JSON.stringify(aSettings) + ")");
+    ok(true, "setSettings(" + JSON.stringify(aSettings) + ")");
     deferred.resolve();
   };
   lock.onsettingstransactionfailure = function (aEvent) {
-      ok(false, "setSettings(" + JSON.stringify(aSettings) + ")");
+    ok(false, "setSettings(" + JSON.stringify(aSettings) + ")");
     deferred.reject();
   };
   return deferred.promise;
 }
 
 /**
- * Get mozSettings value of 'bluetooth.enabled'.
+ * Get the boolean value which indicates defaultAdapter of bluetooth is enabled.
  *
- * Resolve if that mozSettings value is retrieved successfully, reject
- * otherwise.
+ * Resolve if that defaultAdapter is enabled
  *
  * Fulfill params:
  *   A boolean value.
@@ -513,7 +321,9 @@ function setSettings(aSettings) {
  * @return A deferred promise.
  */
 function getBluetoothEnabled() {
-  return getSettings("bluetooth.enabled");
+  log("bluetoothManager.defaultAdapter.state: " + bluetoothManager.defaultAdapter.state);
+
+  return (bluetoothManager.defaultAdapter.state == "enabled");
 }
 
 /**
@@ -536,61 +346,9 @@ function setBluetoothEnabled(aEnabled) {
 }
 
 /**
- * Push required permissions and test if |navigator.mozBluetooth| exists.
- * Resolve if it does, reject otherwise.
- *
- * Fulfill params:
- *   bluetoothManager -- an reference to navigator.mozBluetooth.
- * Reject params: (none)
- *
- * @param aPermissions
- *        Additional permissions to push before any test cases.  Could be either
- *        a string or an array of strings.
- *
- * @return A deferred promise.
- */
-function ensureBluetoothManager(aPermissions) {
-  let deferred = Promise.defer();
-
-  let permissions = ["bluetooth"];
-  if (aPermissions) {
-    if (Array.isArray(aPermissions)) {
-      permissions = permissions.concat(aPermissions);
-    } else if (typeof aPermissions == "string") {
-      permissions.push(aPermissions);
-    }
-  }
-
-  let obj = [];
-  for (let perm of permissions) {
-    obj.push({
-      "type": perm,
-      "allow": 1,
-      "context": document,
-    });
-  }
-
-  SpecialPowers.pushPermissions(obj, function() {
-    ok(true, "permissions pushed: " + JSON.stringify(permissions));
-
-    bluetoothManager = window.navigator.mozBluetooth;
-    log("navigator.mozBluetooth is " +
-        (bluetoothManager ? "available" : "unavailable"));
-
-    if (bluetoothManager instanceof BluetoothManager) {
-      deferred.resolve(bluetoothManager);
-    } else {
-      deferred.reject();
-    }
-  });
-
-  return deferred.promise;
-}
-
-/**
  * Wait for one named BluetoothManager event.
  *
- * Resolve if that named event occurs.  Never reject.
+ * Resolve if that named event occurs. Never reject.
  *
  * Fulfill params: the DOMEvent passed.
  *
@@ -615,12 +373,12 @@ function waitForManagerEvent(aEventName) {
 /**
  * Wait for one named BluetoothAdapter event.
  *
- * Resolve if that named event occurs.  Never reject.
+ * Resolve if that named event occurs. Never reject.
  *
  * Fulfill params: the DOMEvent passed.
  *
  * @param aAdapter
- *        A BluetoothAdapter which is used to interact with local BT device.
+ *        The BluetoothAdapter you want to use.
  * @param aEventName
  *        The name of the EventHandler.
  *
@@ -640,71 +398,429 @@ function waitForAdapterEvent(aAdapter, aEventName) {
 }
 
 /**
- * Convenient function for setBluetoothEnabled and waitForManagerEvent
- * combined.
+ * Wait for 'onattributechanged' events for state changes of BluetoothAdapter
+ * with specified order.
  *
- * Resolve if that named event occurs.  Reject if we can't set settings.
+ * Resolve if those expected events occur in order. Never reject.
  *
- * Fulfill params: an array of promise results contains the fulfill params of
- *                 'waitForManagerEvent' and 'setBluetoothEnabled'.
- * Reject params: (none)
+ * Fulfill params: an array which contains every changed attributes during
+ *                 the waiting.
  *
- * @return A deferred promise.
- */
-function setBluetoothEnabledAndWait(aEnabled) {
-  let promises = [];
-
-  // Bug 969109 -  Intermittent test_dom_BluetoothManager_adapteradded.js
-  //
-  // Here we want to wait for two events coming up -- Bluetooth "settings-set"
-  // event and one of "enabled"/"disabled" events.  Special care is taken here
-  // to ensure that we can always receive that "enabled"/"disabled" event by
-  // installing the event handler *before* we ever enable/disable Bluetooth. Or
-  // we might just miss those events and get a timeout error.
-  promises.push(waitForManagerEvent(aEnabled ? "enabled" : "disabled"));
-  promises.push(setBluetoothEnabled(aEnabled));
-
-  return Promise.all(promises);
-}
-
-/**
- * Get default adapter.
- *
- * Resolve if that default adapter is got, reject otherwise.
- *
- * Fulfill params: a BluetoothAdapter instance.
- * Reject params: a DOMError, or null if if there is no adapter ready yet.
+ * @param aAdapter
+ *        The BluetoothAdapter you want to use.
+ * @param aStateChangesInOrder
+ *        An array which contains an expected order of BluetoothAdapterState.
+ *        Example 1: [enabling, enabled]
+ *        Example 2: [disabling, disabled]
  *
  * @return A deferred promise.
  */
-function getDefaultAdapter() {
+function waitForAdapterStateChanged(aAdapter, aStateChangesInOrder) {
   let deferred = Promise.defer();
 
-  let request = bluetoothManager.getDefaultAdapter();
-  request.onsuccess = function(aEvent) {
-    let adapter = aEvent.target.result;
-    if (!(adapter instanceof BluetoothAdapter)) {
-      ok(false, "no BluetoothAdapter ready yet.");
-      deferred.reject(null);
-      return;
-    }
+  let stateIndex = 0;
+  let prevStateIndex = 0;
+  let statesArray = [];
+  let changedAttrs = [];
+  aAdapter.onattributechanged = function(aEvent) {
+    for (let i in aEvent.attrs) {
+      changedAttrs.push(aEvent.attrs[i]);
+      switch (aEvent.attrs[i]) {
+        case "state":
+          log("  'state' changed to " + aAdapter.state);
 
-    ok(true, "BluetoothAdapter got.");
-    // TODO: We have an adapter instance now, but some of its attributes may
-    // still remain unassigned/out-dated.  Here we waste a few seconds to
-    // wait for the property changed events.
-    //
-    // See https://bugzilla.mozilla.org/show_bug.cgi?id=932914
-    window.setTimeout(function() {
-      deferred.resolve(adapter);
-    }, 3000);
-  };
-  request.onerror = function(aEvent) {
-    ok(false, "Failed to get default adapter.");
-    deferred.reject(aEvent.target.error);
+          // Received state change order may differ from expected one even though
+          // state changes in expected order, because the value of state may change
+          // again before we receive prior 'onattributechanged' event.
+          //
+          // For example, expected state change order [A,B,C] may result in
+          // received ones:
+          // - [A,C,C] if state becomes C before we receive 2nd 'onattributechanged'
+          // - [B,B,C] if state becomes B before we receive 1st 'onattributechanged'
+          // - [C,C,C] if state becomes C before we receive 1st 'onattributechanged'
+          // - [A,B,C] if all 'onattributechanged' are received in perfect timing
+          //
+          // As a result, we ensure only following conditions instead of exactly
+          // matching received and expected state change order.
+          // - Received state change order never reverse expected one. For example,
+          //   [B,A,C] should never occur with expected state change order [A,B,C].
+          // - The changed value of state in received state change order never
+          //   appears later than that in expected one. For example, [A,A,C] should
+          //   never occur with expected state change order [A,B,C].
+          let stateIndex = aStateChangesInOrder.indexOf(aAdapter.state);
+          if (stateIndex >= prevStateIndex && stateIndex + 1 > statesArray.length) {
+            statesArray.push(aAdapter.state);
+            prevStateIndex = stateIndex;
+
+            if (statesArray.length == aStateChangesInOrder.length) {
+              aAdapter.onattributechanged = null;
+              ok(true, "BluetoothAdapter event 'onattributechanged' got.");
+              deferred.resolve(changedAttrs);
+            }
+          } else {
+            ok(false, "The order of 'onattributechanged' events is unexpected.");
+          }
+
+          break;
+        case "name":
+          log("  'name' changed to " + aAdapter.name);
+          if (aAdapter.state == "enabling") {
+            isnot(aAdapter.name, "", "adapter.name");
+          }
+          else if (aAdapter.state == "disabling") {
+            is(aAdapter.name, "", "adapter.name");
+          }
+          break;
+        case "address":
+          log("  'address' changed to " + aAdapter.address);
+          if (aAdapter.state == "enabling") {
+            isnot(aAdapter.address, "", "adapter.address");
+          }
+          else if (aAdapter.state == "disabling") {
+            is(aAdapter.address, "", "adapter.address");
+          }
+          break;
+        case "discoverable":
+          log("  'discoverable' changed to " + aAdapter.discoverable);
+          if (aAdapter.state == "enabling") {
+            is(aAdapter.discoverable, true, "adapter.discoverable");
+          }
+          else if (aAdapter.state == "disabling") {
+            is(aAdapter.discoverable, false, "adapter.discoverable");
+          }
+          break;
+        case "discovering":
+          log("  'discovering' changed to " + aAdapter.discovering);
+          if (aAdapter.state == "enabling") {
+            is(aAdapter.discovering, true, "adapter.discovering");
+          }
+          else if (aAdapter.state == "disabling") {
+            is(aAdapter.discovering, false, "adapter.discovering");
+          }
+          break;
+        case "unknown":
+        default:
+          ok(false, "Unknown attribute '" + aEvent.attrs[i] + "' changed." );
+          break;
+      }
+    }
   };
 
   return deferred.promise;
+}
+
+/**
+ * Wait for an 'onattributechanged' event for a specified attribute and compare
+ * the new value with the expected value.
+ *
+ * Resolve if the specified event occurs. Never reject.
+ *
+ * Fulfill params: a BluetoothAttributeEvent with property attrs that contains
+ *                 changed BluetoothAdapterAttributes.
+ *
+ * @param aAdapter
+ *        The BluetoothAdapter you want to use.
+ * @param aAttrName
+ *        The name of the attribute of adapter.
+ * @param aExpectedValue
+ *        The expected new value of the attribute.
+ *
+ * @return A deferred promise.
+ */
+function waitForAdapterAttributeChanged(aAdapter, aAttrName, aExpectedValue) {
+  let deferred = Promise.defer();
+
+  aAdapter.onattributechanged = function(aEvent) {
+    let i = aEvent.attrs.indexOf(aAttrName);
+    if (i >= 0) {
+      switch (aEvent.attrs[i]) {
+        case "state":
+          log("  'state' changed to " + aAdapter.state);
+          is(aAdapter.state, aExpectedValue, "adapter.state");
+          break;
+        case "name":
+          log("  'name' changed to " + aAdapter.name);
+          is(aAdapter.name, aExpectedValue, "adapter.name");
+          break;
+        case "address":
+          log("  'address' changed to " + aAdapter.address);
+          is(aAdapter.address, aExpectedValue, "adapter.address");
+          break;
+        case "discoverable":
+          log("  'discoverable' changed to " + aAdapter.discoverable);
+          is(aAdapter.discoverable, aExpectedValue, "adapter.discoverable");
+          break;
+        case "discovering":
+          log("  'discovering' changed to " + aAdapter.discovering);
+          is(aAdapter.discovering, aExpectedValue, "adapter.discovering");
+          break;
+        case "unknown":
+        default:
+          ok(false, "Unknown attribute '" + aAttrName + "' changed." );
+          break;
+      }
+      aAdapter.onattributechanged = null;
+      deferred.resolve(aEvent);
+    }
+  };
+
+  return deferred.promise;
+}
+
+/**
+ * Wait for specified number of 'devicefound' events.
+ *
+ * Resolve if specified number of devices has been found. Never reject.
+ *
+ * Fulfill params: an array which contains BluetoothDeviceEvents that we
+ *                 received from the BluetoothDiscoveryHandle.
+ *
+ * @param aDiscoveryHandle
+ *        A BluetoothDiscoveryHandle which is used to notify application of
+ *        discovered remote bluetooth devices.
+ * @param aExpectedNumberOfDevices
+ *        The number of remote devices we expect to discover.
+ *
+ * @return A deferred promise.
+ */
+function waitForDevicesFound(aDiscoveryHandle, aExpectedNumberOfDevices) {
+  let deferred = Promise.defer();
+
+  ok(aDiscoveryHandle instanceof BluetoothDiscoveryHandle,
+    "aDiscoveryHandle should be a BluetoothDiscoveryHandle");
+
+  let devicesArray = [];
+  aDiscoveryHandle.ondevicefound = function onDeviceFound(aEvent) {
+    ok(aEvent instanceof BluetoothDeviceEvent,
+      "aEvent should be a BluetoothDeviceEvent");
+
+    devicesArray.push(aEvent);
+    if (devicesArray.length >= aExpectedNumberOfDevices) {
+      aDiscoveryHandle.ondevicefound = null;
+      deferred.resolve(devicesArray);
+    }
+  };
+
+  return deferred.promise;
+}
+
+/**
+ * Wait for 'devicefound' events of specified devices.
+ *
+ * Resolve if every specified device has been found. Never reject.
+ *
+ * Fulfill params: an array which contains the BluetoothDeviceEvents that we
+ *                 expected to receive from the BluetoothDiscoveryHandle.
+ *
+ * @param aDiscoveryHandle
+ *        A BluetoothDiscoveryHandle which is used to notify application of
+ *        discovered remote bluetooth devices.
+ * @param aRemoteAddresses
+ *        An array which contains addresses of remote devices.
+ *
+ * @return A deferred promise.
+ */
+function waitForSpecifiedDevicesFound(aDiscoveryHandle, aRemoteAddresses) {
+  let deferred = Promise.defer();
+
+  ok(aDiscoveryHandle instanceof BluetoothDiscoveryHandle,
+    "aDiscoveryHandle should be a BluetoothDiscoveryHandle");
+
+  let devicesArray = [];
+  aDiscoveryHandle.ondevicefound = function onDeviceFound(aEvent) {
+    ok(aEvent instanceof BluetoothDeviceEvent,
+      "aEvent should be a BluetoothDeviceEvent");
+
+    if (aRemoteAddresses.indexOf(aEvent.device.address) != -1) {
+      devicesArray.push(aEvent);
+    }
+    if (devicesArray.length == aRemoteAddresses.length) {
+      aDiscoveryHandle.ondevicefound = null;
+      ok(true, "BluetoothAdapter has found all remote devices.");
+      deferred.resolve(devicesArray);
+    }
+  };
+
+  return deferred.promise;
+}
+
+/**
+ * Verify the correctness of 'devicepaired' or 'deviceunpaired' events.
+ *
+ * Use BluetoothAdapter.getPairedDevices() to get current device array.
+ * Resolve if the device of from 'devicepaired' event exists in device array or
+ * the device of address from 'deviceunpaired' event has been removed from
+ * device array.
+ * Otherwise, reject the promise.
+ *
+ * Fulfill params: the device event from 'devicepaired' or 'deviceunpaired'.
+ *
+ * @param aAdapter
+ *        The BluetoothAdapter you want to use.
+ * @param aDeviceEvent
+ *        The device event from "devicepaired" or "deviceunpaired".
+ *
+ * @return A deferred promise.
+ */
+function verifyDevicePairedUnpairedEvent(aAdapter, aDeviceEvent) {
+  let deferred = Promise.defer();
+
+  let devices = aAdapter.getPairedDevices();
+  let isPromisePending = true;
+  if (aDeviceEvent.device) {
+    log("  - Verify 'devicepaired' event");
+    for (let i in devices) {
+      if (devices[i].address == aDeviceEvent.device.address) {
+        deferred.resolve(aDeviceEvent);
+        isPromisePending = false;
+      }
+    }
+    if (isPromisePending) {
+      deferred.reject(aDeviceEvent);
+      isPromisePending = false;
+    }
+  } else if (aDeviceEvent.address) {
+    log("  - Verify 'deviceunpaired' event");
+    for (let i in devices) {
+      if (devices[i].address == aDeviceEvent.address) {
+        deferred.reject(aDeviceEvent);
+        isPromisePending = false;
+      }
+    }
+    if (isPromisePending) {
+      deferred.resolve(aDeviceEvent);
+      isPromisePending = false;
+    }
+  } else {
+    log("  - Exception occurs. Unexpected aDeviceEvent properties.");
+    deferred.reject(aDeviceEvent);
+    isPromisePending = false;
+  }
+
+  return deferred.promise;
+}
+
+/**
+ * Add event handlers for pairing request listener.
+ *
+ * @param aAdapter
+ *        The BluetoothAdapter you want to use.
+ * @param aSpecifiedBdAddress (optional)
+ *        Bluetooth address of the specified remote device which adapter wants
+ *        to pair with. If aSpecifiedBdAddress is an empty string, 'null' or
+ *        'undefined', this function accepts every pairing request.
+ */
+function addEventHandlerForPairingRequest(aAdapter, aSpecifiedBdAddress) {
+  log("  - Add event handlers for pairing requests.");
+
+  aAdapter.pairingReqs.ondisplaypasskeyreq = function onDisplayPasskeyReq(evt) {
+    let passkey = evt.handle.passkey; // passkey to display
+    ok(typeof passkey === 'string', "type checking for passkey.");
+    log("  - Received 'ondisplaypasskeyreq' event with passkey: " + passkey);
+
+    let device = evt.device;
+    if (!aSpecifiedBdAddress || device.address == aSpecifiedBdAddress) {
+      cleanupPairingListener(aAdapter.pairingReqs);
+    }
+  };
+
+  aAdapter.pairingReqs.onenterpincodereq = function onEnterPinCodeReq(evt) {
+    log("  - Received 'onenterpincodereq' event.");
+
+    let device = evt.device;
+    if (!aSpecifiedBdAddress || device.address == aSpecifiedBdAddress) {
+      // TODO: Allow user to enter pincode.
+      let UserEnteredPinCode = "0000";
+      let pinCode = UserEnteredPinCode;
+
+      evt.handle.setPinCode(pinCode).then(
+        function onResolve() {
+          log("  - 'setPinCode' resolve.");
+          cleanupPairingListener(aAdapter.pairingReqs);
+        },
+        function onReject() {
+          log("  - 'setPinCode' reject.");
+          cleanupPairingListener(aAdapter.pairingReqs);
+        });
+    }
+  };
+
+  aAdapter.pairingReqs.onpairingconfirmationreq
+    = function onPairingConfirmationReq(evt) {
+    let passkey = evt.handle.passkey; // passkey for user to confirm
+    ok(typeof passkey === 'string', "type checking for passkey.");
+    log("  - Received 'onpairingconfirmationreq' event with passkey: " + passkey);
+
+    let device = evt.device;
+    if (!aSpecifiedBdAddress || device.address == aSpecifiedBdAddress) {
+      evt.handle.accept().then(
+        function onResolve() {
+          log("  - 'accept' resolve.");
+          cleanupPairingListener(aAdapter.pairingReqs);
+        },
+        function onReject() {
+          log("  - 'accept' reject.");
+          cleanupPairingListener(aAdapter.pairingReqs);
+        });
+    }
+  };
+
+  aAdapter.pairingReqs.onpairingconsentreq = function onPairingConsentReq(evt) {
+    log("  - Received 'onpairingconsentreq' event.");
+
+    let device = evt.device;
+    if (!aSpecifiedBdAddress || device.address == aSpecifiedBdAddress) {
+      evt.handle.accept().then(
+        function onResolve() {
+          log("  - 'accept' resolve.");
+          cleanupPairingListener(aAdapter.pairingReqs);
+        },
+        function onReject() {
+          log("  - 'accept' reject.");
+          cleanupPairingListener(aAdapter.pairingReqs);
+        });
+    }
+  };
+}
+
+/**
+ * Clean up event handlers for pairing listener.
+ *
+ * @param aPairingReqs
+ *        A BluetoothPairingListener with event handlers.
+ */
+function cleanupPairingListener(aPairingReqs) {
+  aPairingReqs.ondisplaypasskeyreq = null;
+  aPairingReqs.onenterpasskeyreq = null;
+  aPairingReqs.onpairingconfirmationreq = null;
+  aPairingReqs.onpairingconsentreq = null;
+}
+
+/**
+ * Compare two uuid arrays to see if them are the same.
+ *
+ * @param aUuidArray1
+ *        An array which contains uuid strings.
+ * @param aUuidArray2
+ *        Another array which contains uuid strings.
+ *
+ * @return A boolean value.
+ */
+function isUuidsEqual(aUuidArray1, aUuidArray2) {
+  if (!Array.isArray(aUuidArray1) || !Array.isArray(aUuidArray2)) {
+    return false;
+  }
+
+  if (aUuidArray1.length != aUuidArray2.length) {
+    return false;
+  }
+
+  for (let i = 0, l = aUuidArray1.length; i < l; i++) {
+    if (aUuidArray1[i] != aUuidArray2[i]) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /**
@@ -721,6 +837,10 @@ function cleanUp() {
 
 function startBluetoothTestBase(aPermissions, aTestCaseMain) {
   ensureBluetoothManager(aPermissions)
+    .then(function() {
+      log("Wait for creating bluetooth adapter...");
+      return waitForManagerStateChanged(bluetoothManager);
+    })
     .then(aTestCaseMain)
     .then(cleanUp, function() {
       ok(false, "Unhandled rejected promise.");
@@ -729,39 +849,62 @@ function startBluetoothTestBase(aPermissions, aTestCaseMain) {
 }
 
 function startBluetoothTest(aReenable, aTestCaseMain) {
-  startBluetoothTestBase(["settings-read", "settings-write", "settings-api-read", "settings-api-write"], function() {
+  startBluetoothTestBase([], function() {
     let origEnabled, needEnable;
+    return Promise.resolve()
+      .then(function() {
+        origEnabled = getBluetoothEnabled();
 
-    return getBluetoothEnabled()
-      .then(function(aEnabled) {
-        origEnabled = aEnabled;
-        needEnable = !aEnabled;
-        log("Original 'bluetooth.enabled' is " + origEnabled);
+        needEnable = !origEnabled;
+        log("Original state of bluetooth is " + bluetoothManager.defaultAdapter.state);
 
-        if (aEnabled && aReenable) {
-          log("  Disable 'bluetooth.enabled' ...");
+        if (origEnabled && aReenable) {
+          log("Disable Bluetooth ...");
           needEnable = true;
-          return setBluetoothEnabledAndWait(false);
+
+          isnot(bluetoothManager.defaultAdapter, null,
+            "bluetoothManager.defaultAdapter")
+
+          return bluetoothManager.defaultAdapter.disable();
         }
       })
       .then(function() {
         if (needEnable) {
-          log("  Enable 'bluetooth.enabled' ...");
+          log("Enable Bluetooth ...");
 
-          // See setBluetoothEnabledAndWait().  We must install all event
-          // handlers *before* enabling Bluetooth.
-          let promises = [];
-          promises.push(waitForManagerEvent("adapteradded"));
-          promises.push(setBluetoothEnabledAndWait(true));
-          return Promise.all(promises);
+          isnot(bluetoothManager.defaultAdapter, null,
+            "bluetoothManager.defaultAdapter")
+
+          return bluetoothManager.defaultAdapter.enable();
         }
       })
-      .then(getDefaultAdapter)
+      .then(() => bluetoothManager.defaultAdapter)
       .then(aTestCaseMain)
       .then(function() {
         if (!origEnabled) {
-          return setBluetoothEnabledAndWait(false);
+          log("Disable Bluetooth ...");
+
+          return bluetoothManager.defaultAdapter.disable();
         }
       });
   });
 }
+
+function waitForManagerStateChanged(aManager) {
+  let deferred = Promise.defer();
+
+  aManager.onattributechanged = function(evt) {
+    for (var i in evt.attrs) {
+      switch (evt.attrs[i]) {
+        case 'defaultAdapter':
+          deferred.resolve(evt);
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
+  return deferred.promise;
+}
+

@@ -6,8 +6,10 @@
 #include "LookupCache.h"
 #include "HashStore.h"
 #include "nsISeekableStream.h"
+#include "nsISafeOutputStream.h"
 #include "mozilla/Telemetry.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
+#include "nsNetUtil.h"
 #include "prprf.h"
 
 // We act as the main entry point for all the real lookups,
@@ -34,13 +36,8 @@
 
 // NSPR_LOG_MODULES=UrlClassifierDbService:5
 extern PRLogModuleInfo *gUrlClassifierDbServiceLog;
-#if defined(PR_LOGGING)
-#define LOG(args) PR_LOG(gUrlClassifierDbServiceLog, PR_LOG_DEBUG, args)
-#define LOG_ENABLED() PR_LOG_TEST(gUrlClassifierDbServiceLog, 4)
-#else
-#define LOG(args)
-#define LOG_ENABLED() (false)
-#endif
+#define LOG(args) MOZ_LOG(gUrlClassifierDbServiceLog, mozilla::LogLevel::Debug, args)
+#define LOG_ENABLED() MOZ_LOG_TEST(gUrlClassifierDbServiceLog, mozilla::LogLevel::Debug)
 
 namespace mozilla {
 namespace safebrowsing {
@@ -172,7 +169,7 @@ LookupCache::Build(AddPrefixArray& aAddPrefixes,
   return NS_OK;
 }
 
-#if defined(DEBUG) && defined(PR_LOGGING)
+#if defined(DEBUG)
 void
 LookupCache::Dump()
 {
@@ -373,51 +370,6 @@ LookupCache::IsCanonicalizedIP(const nsACString& aHost)
   }
 
   return false;
-}
-
-/* static */ nsresult
-LookupCache::GetKey(const nsACString& aSpec,
-                    Completion* aHash,
-                    nsCOMPtr<nsICryptoHash>& aCryptoHash)
-{
-  nsACString::const_iterator begin, end, iter;
-  aSpec.BeginReading(begin);
-  aSpec.EndReading(end);
-
-  iter = begin;
-  if (!FindCharInReadable('/', iter, end)) {
-   return NS_OK;
-  }
-
-  const nsCSubstring& host = Substring(begin, iter);
-
-  if (IsCanonicalizedIP(host)) {
-    nsAutoCString key;
-    key.Assign(host);
-    key.Append('/');
-    return aHash->FromPlaintext(key, aCryptoHash);
-  }
-
-  nsTArray<nsCString> hostComponents;
-  ParseString(PromiseFlatCString(host), '.', hostComponents);
-
-  if (hostComponents.Length() < 2)
-    return NS_ERROR_FAILURE;
-
-  int32_t last = int32_t(hostComponents.Length()) - 1;
-  nsAutoCString lookupHost;
-
-  if (hostComponents.Length() > 2) {
-    lookupHost.Append(hostComponents[last - 2]);
-    lookupHost.Append('.');
-  }
-
-  lookupHost.Append(hostComponents[last - 1]);
-  lookupHost.Append('.');
-  lookupHost.Append(hostComponents[last]);
-  lookupHost.Append('/');
-
-  return aHash->FromPlaintext(lookupHost, aCryptoHash);
 }
 
 /* static */ nsresult
@@ -632,7 +584,7 @@ LookupCache::ConstructPrefixSet(AddPrefixArray& aAddPrefixes)
 
 #ifdef DEBUG
   uint32_t size;
-  size = mPrefixSet->SizeOfIncludingThis(moz_malloc_size_of);
+  size = mPrefixSet->SizeInMemory();
   LOG(("SB tree done, size = %d bytes\n", size));
 #endif
 
@@ -675,7 +627,7 @@ LookupCache::LoadPrefixSet()
 
 #ifdef DEBUG
   if (mPrimed) {
-    uint32_t size = mPrefixSet->SizeOfIncludingThis(moz_malloc_size_of);
+    uint32_t size = mPrefixSet->SizeInMemory();
     LOG(("SB tree done, size = %d bytes\n", size));
   }
 #endif
@@ -684,26 +636,16 @@ LookupCache::LoadPrefixSet()
 }
 
 nsresult
-LookupCache::GetPrefixes(nsTArray<uint32_t>* aAddPrefixes)
+LookupCache::GetPrefixes(FallibleTArray<uint32_t>& aAddPrefixes)
 {
   if (!mPrimed) {
     // This can happen if its a new table, so no error.
     LOG(("GetPrefixes from empty LookupCache"));
     return NS_OK;
   }
-  uint32_t cnt;
-  uint32_t *arr;
-  nsresult rv = mPrefixSet->GetPrefixes(&cnt, &arr);
-  NS_ENSURE_SUCCESS(rv, rv);
-  bool appendOk = aAddPrefixes->AppendElements(arr, cnt);
-  nsMemory::Free(arr);
-  if (appendOk) {
-    return NS_OK;
-  } else {
-    return NS_ERROR_FAILURE;
-  }
+  return mPrefixSet->GetPrefixesNative(aAddPrefixes);
 }
 
 
-}
-}
+} // namespace safebrowsing
+} // namespace mozilla

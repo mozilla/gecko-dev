@@ -29,6 +29,10 @@
 
 #include "js/MemoryMetrics.h"
 
+#ifdef __APPLE__
+#include <TargetConditionals.h>
+#endif
+
 using namespace js::jit;
 
 size_t ExecutableAllocator::pageSize = 0;
@@ -44,8 +48,30 @@ ExecutablePool::~ExecutablePool()
     m_allocator->releasePoolPages(this);
 }
 
+/* static */ void
+ExecutableAllocator::initStatic()
+{
+    if (!pageSize) {
+        pageSize = determinePageSize();
+        // On Windows, VirtualAlloc effectively allocates in 64K chunks.
+        // (Technically, it allocates in page chunks, but the starting
+        // address is always a multiple of 64K, so each allocation uses up
+        // 64K of address space.)  So a size less than that would be
+        // pointless.  But it turns out that 64KB is a reasonable size for
+        // all platforms.  (This assumes 4KB pages.) On 64-bit windows,
+        // AllocateExecutableMemory prepends an extra page for structured
+        // exception handling data (see comments in function) onto whatever
+        // is passed in, so subtract one page here.
+#if defined(JS_CPU_X64) && defined(XP_WIN)
+        largeAllocSize = pageSize * 15;
+#else
+        largeAllocSize = pageSize * 16;
+#endif
+    }
+}
+
 void
-ExecutableAllocator::addSizeOfCode(JS::CodeSizes *sizes) const
+ExecutableAllocator::addSizeOfCode(JS::CodeSizes* sizes) const
 {
     if (m_pools.initialized()) {
         for (ExecPoolHashSet::Range r = m_pools.all(); !r.empty(); r.popFront()) {
@@ -62,29 +88,8 @@ ExecutableAllocator::addSizeOfCode(JS::CodeSizes *sizes) const
     }
 }
 
-void
-ExecutableAllocator::toggleAllCodeAsAccessible(bool accessible)
-{
-    if (!m_pools.initialized())
-        return;
-
-    for (ExecPoolHashSet::Range r = m_pools.all(); !r.empty(); r.popFront()) {
-        ExecutablePool* pool = r.front();
-        pool->toggleAllCodeAsAccessible(accessible);
-    }
-}
-
-bool
-ExecutableAllocator::codeContains(char* address)
-{
-    if (!m_pools.initialized())
-        return false;
-
-    for (ExecPoolHashSet::Range r = m_pools.all(); !r.empty(); r.popFront()) {
-        ExecutablePool* pool = r.front();
-        if (pool->codeContains(address))
-            return true;
-    }
-
-    return false;
-}
+#if TARGET_OS_IPHONE
+bool ExecutableAllocator::nonWritableJitCode = true;
+#else
+bool ExecutableAllocator::nonWritableJitCode = false;
+#endif

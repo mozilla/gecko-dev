@@ -4,12 +4,12 @@
 
 "use strict";
 
-let Cu = Components.utils;
-let Ci = Components.interfaces;
+var Cu = Components.utils;
+var Ci = Components.interfaces;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/sessionstore/FrameTree.jsm", this);
-let gFrameTree = new FrameTree(this);
+var gFrameTree = new FrameTree(this);
 
 function executeSoon(callback) {
   Services.tm.mainThread.dispatch(callback, Components.interfaces.nsIThread.DISPATCH_NORMAL);
@@ -25,10 +25,7 @@ gFrameTree.addObserver({
   }
 });
 
-
-docShell.QueryInterface(Ci.nsIWebNavigation).
-  sessionHistory.addSHistoryListener({
-
+var historyListener = {
   OnHistoryNewEntry: function () {
     sendAsyncMessage("ss-test:OnHistoryNewEntry");
   },
@@ -66,7 +63,12 @@ docShell.QueryInterface(Ci.nsIWebNavigation).
     Ci.nsISHistoryListener,
     Ci.nsISupportsWeakReference
   ])
-});
+};
+
+var {sessionHistory} = docShell.QueryInterface(Ci.nsIWebNavigation);
+if (sessionHistory) {
+  sessionHistory.addSHistoryListener(historyListener);
+}
 
 /**
  * This frame script is only loaded for sessionstore mochitests. It enables us
@@ -77,34 +79,9 @@ addEventListener("hashchange", function () {
   sendAsyncMessage("ss-test:hashchange");
 });
 
-addEventListener("MozStorageChanged", function () {
-  // It's possible that this event handler runs before the one in
-  // content-sessionStore.js. We run ours a little later to make sure
-  // that the session store code has seen the event before we allow
-  // the test to proceed.
-  executeSoon(() => sendSyncMessage("ss-test:MozStorageChanged"));
-}, true);
-
-addMessageListener("ss-test:modifySessionStorage", function (msg) {
-  for (let key of Object.keys(msg.data)) {
-    content.sessionStorage[key] = msg.data[key];
-  }
-});
-
-addMessageListener("ss-test:modifySessionStorage2", function (msg) {
-  for (let key of Object.keys(msg.data)) {
-    content.frames[0].sessionStorage[key] = msg.data[key];
-  }
-});
-
 addMessageListener("ss-test:purgeDomainData", function ({data: domain}) {
   Services.obs.notifyObservers(null, "browser:purge-domain-data", domain);
   content.setTimeout(() => sendAsyncMessage("ss-test:purgeDomainData"));
-});
-
-addMessageListener("ss-test:purgeSessionHistory", function () {
-  Services.obs.notifyObservers(null, "browser:purge-session-history", "");
-  content.setTimeout(() => sendAsyncMessage("ss-test:purgeSessionHistory"));
 });
 
 addMessageListener("ss-test:getStyleSheets", function (msg) {
@@ -239,20 +216,6 @@ addMessageListener("ss-test:click", function ({data}) {
   sendAsyncMessage("ss-test:click");
 });
 
-addMessageListener("ss-test:historyPushState", function ({data}) {
-  content.window.history.
-    pushState(data.stateObj || {}, data.title || "", data.url);
-
-  sendAsyncMessage("ss-test:historyPushState");
-});
-
-addMessageListener("ss-test:historyReplaceState", function ({data}) {
-  content.window.history.
-    replaceState(data.stateObj || {}, data.title || "", data.url);
-
-  sendAsyncMessage("ss-test:historyReplaceState");
-});
-
 addMessageListener("ss-test:run", function({data, objects}) {
   let f = eval('(' + data.code + ')');
   let result = f(content, objects.arg);
@@ -261,5 +224,5 @@ addMessageListener("ss-test:run", function({data, objects}) {
 
 addEventListener("load", function(event) {
   let subframe = event.target != content.document;
-  sendAsyncMessage("ss-test:loadEvent", {subframe: subframe});
+  sendAsyncMessage("ss-test:loadEvent", {subframe: subframe, url: event.target.documentURI});
 }, true);

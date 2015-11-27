@@ -3,50 +3,7 @@
 
 Components.utils.import("resource://gre/modules/osfile.jsm");
 
-const kDefaultenginenamePref = "browser.search.defaultenginename";
 const kSelectedEnginePref = "browser.search.selectedEngine";
-
-const kTestEngineName = "Test search engine";
-
-function getDefaultEngineName() {
-  const nsIPLS = Ci.nsIPrefLocalizedString;
-  return Services.prefs.getComplexValue(kDefaultenginenamePref, nsIPLS).data;
-}
-
-function waitForNotification(aExpectedData) {
-  let deferred = Promise.defer();
-
-  const SEARCH_SERVICE_TOPIC = "browser-search-service";
-  Services.obs.addObserver(function observer(aSubject, aTopic, aData) {
-    if (aData != aExpectedData)
-      return;
-
-    Services.obs.removeObserver(observer, SEARCH_SERVICE_TOPIC);
-    deferred.resolve();
-  }, SEARCH_SERVICE_TOPIC, false);
-
-  return deferred.promise;
-}
-
-function asyncInit() {
-  let deferred = Promise.defer();
-
-  Services.search.init(function() {
-    do_check_true(Services.search.isInitialized);
-    deferred.resolve();
-  });
-
-  return deferred.promise;
-}
-
-function asyncReInit() {
-  let promise = waitForNotification("reinit-complete");
-
-  Services.search.QueryInterface(Ci.nsIObserver)
-          .observe(null, "nsPref:changed", "general.useragent.locale");
-
-  return promise;
-}
 
 // Check that the default engine matches the defaultenginename pref
 add_task(function* test_defaultEngine() {
@@ -80,13 +37,11 @@ add_task(function* test_persistAcrossRestarts() {
   // Set the engine through the API.
   Services.search.currentEngine = Services.search.getEngineByName(kTestEngineName);
   do_check_eq(Services.search.currentEngine.name, kTestEngineName);
-  yield waitForNotification("write-metadata-to-disk-complete");
+  yield promiseAfterCache();
 
   // Check that the a hash was saved.
-  let path = OS.Path.join(OS.Constants.Path.profileDir, "search-metadata.json");
-  let bytes = yield OS.File.read(path);
-  let json = JSON.parse(new TextDecoder().decode(bytes));
-  do_check_eq(json["[global]"].hash.length, 44);
+  let metadata = yield promiseGlobalMetadata();
+  do_check_eq(metadata.hash.length, 44);
 
   // Re-init and check the engine is still the same.
   yield asyncReInit();
@@ -94,7 +49,10 @@ add_task(function* test_persistAcrossRestarts() {
 
   // Cleanup (set the engine back to default).
   Services.search.currentEngine = Services.search.defaultEngine;
-  do_check_eq(Services.search.currentEngine.name, getDefaultEngineName());
+  // This check is no longer valid with bug 1102416's patch - defaultEngine
+  // is not based on the same value as _originalDefaultEngine in non-Firefox
+  // users of the search service.
+  //do_check_eq(Services.search.currentEngine.name, getDefaultEngineName());
 });
 
 // An engine set without a valid hash should be ignored.
@@ -102,18 +60,12 @@ add_task(function* test_ignoreInvalidHash() {
   // Set the engine through the API.
   Services.search.currentEngine = Services.search.getEngineByName(kTestEngineName);
   do_check_eq(Services.search.currentEngine.name, kTestEngineName);
-  yield waitForNotification("write-metadata-to-disk-complete");
+  yield promiseAfterCache();
 
-  // Then mess with the file.
-  let path = OS.Path.join(OS.Constants.Path.profileDir, "search-metadata.json");
-  let bytes = yield OS.File.read(path);
-  let json = JSON.parse(new TextDecoder().decode(bytes));
-
-  // Make the hask invalid.
-  json["[global]"].hash = "invalid";
-
-  let data = new TextEncoder().encode(JSON.stringify(json));
-  let promise = OS.File.writeAtomic(path, data);//, { tmpPath: path + ".tmp" });
+  // Then mess with the file (make the hash invalid).
+  let metadata = yield promiseGlobalMetadata();
+  metadata.hash = "invalid";
+  yield promiseSaveGlobalMetadata(metadata);
 
   // Re-init the search service, and check that the json file is ignored.
   yield asyncReInit();
@@ -125,23 +77,20 @@ add_task(function* test_settingToDefault() {
   // Set the engine through the API.
   Services.search.currentEngine = Services.search.getEngineByName(kTestEngineName);
   do_check_eq(Services.search.currentEngine.name, kTestEngineName);
-  yield waitForNotification("write-metadata-to-disk-complete");
+  yield promiseAfterCache();
 
   // Check that the current engine was saved.
-  let path = OS.Path.join(OS.Constants.Path.profileDir, "search-metadata.json");
-  let bytes = yield OS.File.read(path);
-  let json = JSON.parse(new TextDecoder().decode(bytes));
-  do_check_eq(json["[global]"].current, kTestEngineName);
+  let metadata = yield promiseGlobalMetadata();
+  do_check_eq(metadata.current, kTestEngineName);
 
   // Then set the engine back to the default through the API.
   Services.search.currentEngine =
     Services.search.getEngineByName(getDefaultEngineName());
-  yield waitForNotification("write-metadata-to-disk-complete");
+  yield promiseAfterCache();
 
   // Check that the current engine is no longer saved in the JSON file.
-  bytes = yield OS.File.read(path);
-  json = JSON.parse(new TextDecoder().decode(bytes));
-  do_check_eq(json["[global]"].current, "");
+  metadata = yield promiseGlobalMetadata();
+  do_check_eq(metadata.current, "");
 });
 
 

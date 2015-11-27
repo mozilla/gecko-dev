@@ -4,40 +4,44 @@
 
 package org.mozilla.gecko.overlays.ui;
 
-import android.app.AlertDialog;
-import android.content.Context;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
-import android.widget.TextView;
+import java.util.Collection;
+
 import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.Assert;
 import org.mozilla.gecko.R;
-import org.mozilla.gecko.overlays.service.sharemethods.ParcelableClientRecord;
+import org.mozilla.gecko.db.RemoteClient;
+import org.mozilla.gecko.overlays.ui.SendTabList.State;
 
-import java.util.Collection;
+import android.app.AlertDialog;
+import android.content.Context;
+import android.graphics.drawable.Drawable;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.ImageView;
+import android.widget.TextView;
 
-import static org.mozilla.gecko.overlays.ui.SendTabList.*;
-
-public class SendTabDeviceListArrayAdapter extends ArrayAdapter<ParcelableClientRecord> {
+public class SendTabDeviceListArrayAdapter extends ArrayAdapter<RemoteClient> {
+    @SuppressWarnings("unused")
     private static final String LOGTAG = "GeckoSendTabAdapter";
 
     private State currentState;
 
     // String to display when in a "button-like" special state. Instead of using a
-    // ParcelableClientRecord we override the rendering using this string.
+    // RemoteClient we override the rendering using this string.
     private String dummyRecordName;
 
     private final SendTabTargetSelectedListener listener;
 
-    private Collection<ParcelableClientRecord> records;
+    private Collection<RemoteClient> records;
 
     // The AlertDialog to show in the event the record is pressed while in the SHOW_DEVICES state.
     // This will show the user a prompt to select a device from a longer list of devices.
     private AlertDialog dialog;
 
     public SendTabDeviceListArrayAdapter(Context context, SendTabTargetSelectedListener aListener) {
-        super(context, R.layout.overlay_share_send_tab_item);
+        super(context, R.layout.overlay_share_send_tab_item, R.id.overlaybtn_label);
 
         listener = aListener;
 
@@ -49,12 +53,12 @@ public class SendTabDeviceListArrayAdapter extends ArrayAdapter<ParcelableClient
      * Get an array of the contents of this adapter were it in the LIST state.
      * Useful for determining the "real" contents of the adapter.
      */
-    public ParcelableClientRecord[] toArray() {
-        return records.toArray(new ParcelableClientRecord[records.size()]);
+    public RemoteClient[] toArray() {
+        return records.toArray(new RemoteClient[records.size()]);
     }
 
-    public void setClientRecordList(Collection<ParcelableClientRecord> clientRecordList) {
-        records = clientRecordList;
+    public void setRemoteClientsList(Collection<RemoteClient> remoteClientsList) {
+        records = remoteClientsList;
         updateRecordList();
     }
 
@@ -73,7 +77,7 @@ public class SendTabDeviceListArrayAdapter extends ArrayAdapter<ParcelableClient
         if (AppConstants.Versions.feature11Plus) {
              addAll(records);
         } else {
-            for (ParcelableClientRecord record : records) {
+            for (RemoteClient record : records) {
                 add(record);
             }
         }
@@ -86,15 +90,23 @@ public class SendTabDeviceListArrayAdapter extends ArrayAdapter<ParcelableClient
         final Context context = getContext();
 
         // Reuse View objects if they exist.
-        TextView row = (TextView) convertView;
+        OverlayDialogButton row = (OverlayDialogButton) convertView;
         if (row == null) {
-            row = (TextView) View.inflate(context, R.layout.overlay_share_send_tab_item, null);
+            row = (OverlayDialogButton) View.inflate(context, R.layout.overlay_share_send_tab_item, null);
+        }
+
+        // The first view in the list has a unique style.
+        if (position == 0) {
+            row.setBackgroundResource(R.drawable.overlay_share_button_background_first);
+        } else {
+            row.setBackgroundResource(R.drawable.overlay_share_button_background);
         }
 
         if (currentState != State.LIST) {
             // If we're in a special "Button-like" state, use the override string and a generic icon.
+            final Drawable sendTabIcon = context.getResources().getDrawable(R.drawable.shareplane);
             row.setText(dummyRecordName);
-            row.setCompoundDrawablesWithIntrinsicBounds(R.drawable.overlay_send_tab_icon, 0, 0, 0);
+            row.setDrawable(sendTabIcon);
         }
 
         // If we're just a button to launch the dialog, set the listener and abort.
@@ -110,34 +122,38 @@ public class SendTabDeviceListArrayAdapter extends ArrayAdapter<ParcelableClient
         }
 
         // The remaining states delegate to the SentTabTargetSelectedListener.
-        final String listenerGUID;
-
-        ParcelableClientRecord clientRecord = getItem(position);
+        final RemoteClient remoteClient = getItem(position);
         if (currentState == State.LIST) {
-            row.setText(clientRecord.name);
-            row.setCompoundDrawablesWithIntrinsicBounds(getImage(clientRecord), 0, 0, 0);
+            final Drawable clientIcon = context.getResources().getDrawable(getImage(remoteClient));
+            row.setText(remoteClient.name);
+            row.setDrawable(clientIcon);
 
-            listenerGUID = clientRecord.guid;
+            final String listenerGUID = remoteClient.guid;
+
+            row.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    listener.onSendTabTargetSelected(listenerGUID);
+                }
+            });
         } else {
-            listenerGUID = null;
+            row.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    listener.onSendTabActionSelected();
+                }
+            });
         }
-
-        row.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                listener.onSendTabTargetSelected(listenerGUID);
-            }
-        });
 
         return row;
     }
 
-    private static int getImage(ParcelableClientRecord record) {
-        if ("mobile".equals(record.type)) {
-            return R.drawable.sync_mobile;
+    private static int getImage(RemoteClient record) {
+        if ("mobile".equals(record.deviceType)) {
+            return R.drawable.device_mobile;
         }
 
-        return R.drawable.sync_desktop;
+        return R.drawable.device_desktop;
     }
 
     public void switchState(State newState) {
@@ -158,7 +174,7 @@ public class SendTabDeviceListArrayAdapter extends ArrayAdapter<ParcelableClient
                 showDummyRecord(getContext().getResources().getString(R.string.overlay_share_send_other));
                 break;
             default:
-                Assert.isTrue(false, "Unexpected state transition: " + newState);
+                Assert.fail("Unexpected state transition: " + newState);
         }
     }
 

@@ -3,7 +3,9 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/PlacesUtils.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "PlacesTestUtils",
+  "resource://testing-common/PlacesTestUtils.jsm");
 
 function run_test() {
   initApp();
@@ -72,7 +74,7 @@ function testGetProviderList(manifests, next) {
   let providers = yield SocialService.getProviderList(next);
   do_check_true(providers.length >= manifests.length);
   for (let i = 0; i < manifests.length; i++) {
-    let providerIdx = providers.map(function (p) p.origin).indexOf(manifests[i].origin);
+    let providerIdx = providers.map(p => p.origin).indexOf(manifests[i].origin);
     let provider = providers[providerIdx];
     do_check_true(!!provider);
     do_check_false(provider.enabled);
@@ -155,12 +157,12 @@ function testOrderedProviders(manifests, next) {
     });
   }
 
-  promiseAddVisits(visits).then(next);
+  PlacesTestUtils.addVisits(visits).then(next);
   yield;
   let orderedProviders = yield SocialService.getOrderedProviderList(next);
   do_check_eq(orderedProviders[0], providers[1]);
   do_check_eq(orderedProviders[1], providers[0]);
   do_check_true(orderedProviders[0].frecency > orderedProviders[1].frecency);
-  promiseClearHistory().then(next);
+  PlacesTestUtils.clearHistory().then(next);
   yield;
 }

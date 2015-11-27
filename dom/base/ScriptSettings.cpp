@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-// vim: ft=cpp tw=78 sw=2 et ts=2
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -12,6 +12,7 @@
 #include "xpcprivate.h" // For AutoCxPusher guts
 #include "xpcpublic.h"
 #include "nsIGlobalObject.h"
+#include "nsIDocShell.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIScriptContext.h"
 #include "nsContentUtils.h"
@@ -70,7 +71,25 @@ public:
     ScriptSettingsStackEntry *entry = EntryPoint();
     return entry ? entry->mGlobalObject : nullptr;
   }
+
 };
+
+static unsigned long gRunToCompletionListeners = 0;
+
+void
+UseEntryScriptProfiling()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  ++gRunToCompletionListeners;
+}
+
+void
+UnuseEntryScriptProfiling()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(gRunToCompletionListeners > 0);
+  --gRunToCompletionListeners;
+}
 
 void
 InitScriptSettings()
@@ -85,9 +104,16 @@ InitScriptSettings()
   sScriptSettingsTLS.set(nullptr);
 }
 
-void DestroyScriptSettings()
+void
+DestroyScriptSettings()
 {
   MOZ_ASSERT(sScriptSettingsTLS.get() == nullptr);
+}
+
+bool
+ScriptSettingsInitialized()
+{
+  return sScriptSettingsTLS.initialized();
 }
 
 ScriptSettingsStackEntry::ScriptSettingsStackEntry(nsIGlobalObject *aGlobal,
@@ -122,16 +148,59 @@ ScriptSettingsStackEntry::~ScriptSettingsStackEntry()
   ScriptSettingsStack::Pop(this);
 }
 
+// If the entry or incumbent global ends up being something that the subject
+// principal doesn't subsume, we don't want to use it. This never happens on
+// the web, but can happen with asymmetric privilege relationships (i.e.
+// nsExpandedPrincipal and System Principal).
+//
+// The most correct thing to use instead would be the topmost global on the
+// callstack whose principal is subsumed by the subject principal. But that's
+// hard to compute, so we just substitute the global of the current
+// compartment. In practice, this is fine.
+//
+// Note that in particular things like:
+//
+// |SpecialPowers.wrap(crossOriginWindow).eval(open())|
+//
+// trigger this case. Although both the entry global and the current global
+// have normal principals, the use of Gecko-specific System-Principaled JS
+// puts the code from two different origins on the callstack at once, which
+// doesn't happen normally on the web.
+static nsIGlobalObject*
+ClampToSubject(nsIGlobalObject* aGlobalOrNull)
+{
+  if (!aGlobalOrNull || !NS_IsMainThread()) {
+    return aGlobalOrNull;
+  }
+
+  nsIPrincipal* globalPrin = aGlobalOrNull->PrincipalOrNull();
+  NS_ENSURE_TRUE(globalPrin, GetCurrentGlobal());
+  if (!nsContentUtils::SubjectPrincipalOrSystemIfNativeCaller()->SubsumesConsideringDomain(globalPrin)) {
+    return GetCurrentGlobal();
+  }
+
+  return aGlobalOrNull;
+}
+
 nsIGlobalObject*
 GetEntryGlobal()
 {
-  return ScriptSettingsStack::EntryGlobal();
+  return ClampToSubject(ScriptSettingsStack::EntryGlobal());
 }
 
 nsIDocument*
 GetEntryDocument()
 {
-  nsCOMPtr<nsPIDOMWindow> entryWin = do_QueryInterface(GetEntryGlobal());
+  nsIGlobalObject* global = GetEntryGlobal();
+  nsCOMPtr<nsPIDOMWindow> entryWin = do_QueryInterface(global);
+
+  // If our entry global isn't a window, see if it's an addon scope associated
+  // with a window. If it is, the caller almost certainly wants that rather
+  // than null.
+  if (!entryWin && global) {
+    entryWin = xpc::AddonWindowOrNull(global->GetGlobalJSObject());
+  }
+
   return entryWin ? entryWin->GetExtantDoc() : nullptr;
 }
 
@@ -154,12 +223,12 @@ GetIncumbentGlobal()
   // there's nothing on the JS stack, which will cause us to check the
   // incumbent script stack below.
   if (JSObject *global = JS::GetScriptedCallerGlobal(cx)) {
-    return xpc::NativeGlobal(global);
+    return ClampToSubject(xpc::NativeGlobal(global));
   }
 
   // Ok, nothing from the JS engine. Let's use whatever's on the
   // explicit stack.
-  return ScriptSettingsStack::IncumbentGlobal();
+  return ClampToSubject(ScriptSettingsStack::IncumbentGlobal());
 }
 
 nsIGlobalObject*
@@ -234,14 +303,38 @@ FindJSContext(nsIGlobalObject* aGlobalObject)
 
 AutoJSAPI::AutoJSAPI()
   : mCx(nullptr)
+  , mOwnErrorReporting(false)
+  , mOldAutoJSAPIOwnsErrorReporting(false)
+  , mIsMainThread(false) // For lack of anything better
 {
+}
+
+AutoJSAPI::~AutoJSAPI()
+{
+  if (mOwnErrorReporting) {
+    ReportException();
+
+    // We need to do this _after_ processing the existing exception, because the
+    // JS engine can throw while doing that, and uses this bit to determine what
+    // to do in that case: squelch the exception if the bit is set, otherwise
+    // call the error reporter. Calling WarningOnlyErrorReporter with a
+    // non-warning will assert, so we need to make sure we do the former.
+    JS::ContextOptionsRef(cx()).setAutoJSAPIOwnsErrorReporting(mOldAutoJSAPIOwnsErrorReporting);
+  }
+
+  if (mOldErrorReporter.isSome()) {
+    JS_SetErrorReporter(JS_GetRuntime(cx()), mOldErrorReporter.value());
+  }
 }
 
 void
 AutoJSAPI::InitInternal(JSObject* aGlobal, JSContext* aCx, bool aIsMainThread)
 {
   MOZ_ASSERT(aCx);
+  MOZ_ASSERT(aIsMainThread == NS_IsMainThread());
+
   mCx = aCx;
+  mIsMainThread = aIsMainThread;
   if (aIsMainThread) {
     // This Rooted<> is necessary only as long as AutoCxPusher::AutoCxPusher
     // can GC, which is only possible because XPCJSContextStack::Push calls
@@ -253,16 +346,25 @@ AutoJSAPI::InitInternal(JSObject* aGlobal, JSContext* aCx, bool aIsMainThread)
   } else {
     mAutoNullableCompartment.emplace(mCx, aGlobal);
   }
+
+  if (aIsMainThread) {
+    JSRuntime* rt = JS_GetRuntime(aCx);
+    mOldErrorReporter.emplace(JS_GetErrorReporter(rt));
+    JS_SetErrorReporter(rt, xpc::SystemErrorReporter);
+  }
 }
 
 AutoJSAPI::AutoJSAPI(nsIGlobalObject* aGlobalObject,
                      bool aIsMainThread,
                      JSContext* aCx)
+  : mOwnErrorReporting(false)
+  , mOldAutoJSAPIOwnsErrorReporting(false)
+  , mIsMainThread(aIsMainThread)
 {
   MOZ_ASSERT(aGlobalObject);
   MOZ_ASSERT(aGlobalObject->GetGlobalJSObject(), "Must have a JS global");
   MOZ_ASSERT(aCx);
-  MOZ_ASSERT_IF(aIsMainThread, NS_IsMainThread());
+  MOZ_ASSERT(aIsMainThread == NS_IsMainThread());
 
   InitInternal(aGlobalObject->GetGlobalJSObject(), aCx, aIsMainThread);
 }
@@ -352,7 +454,110 @@ AutoJSAPI::InitWithLegacyErrorReporting(nsGlobalWindow* aWindow)
   return InitWithLegacyErrorReporting(static_cast<nsIGlobalObject*>(aWindow));
 }
 
+// Even with autoJSAPIOwnsErrorReporting, the JS engine still sends warning
+// reports to the JSErrorReporter as soon as they are generated. These go
+// directly to the console, so we can handle them easily here.
+//
+// Eventually, SpiderMonkey will have a special-purpose callback for warnings
+// only.
+void
+WarningOnlyErrorReporter(JSContext* aCx, const char* aMessage, JSErrorReport* aRep)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(JSREPORT_IS_WARNING(aRep->flags));
+
+  RefPtr<xpc::ErrorReport> xpcReport = new xpc::ErrorReport();
+  nsPIDOMWindow* win = xpc::CurrentWindowOrNull(aCx);
+  xpcReport->Init(aRep, aMessage, nsContentUtils::IsCallerChrome(),
+                  win ? win->WindowID() : 0);
+  xpcReport->LogToConsole();
+}
+
+void
+AutoJSAPI::TakeOwnershipOfErrorReporting()
+{
+  MOZ_ASSERT(!mOwnErrorReporting);
+  mOwnErrorReporting = true;
+
+  JSRuntime *rt = JS_GetRuntime(cx());
+  mOldAutoJSAPIOwnsErrorReporting = JS::ContextOptionsRef(cx()).autoJSAPIOwnsErrorReporting();
+  JS::ContextOptionsRef(cx()).setAutoJSAPIOwnsErrorReporting(true);
+  // Workers have their own error reporting mechanism which deals with warnings
+  // as well, so don't change the worker error reporter for now.  Once we switch
+  // all of workers to TakeOwnershipOfErrorReporting(), we will just make the
+  // default worker error reporter assert that it only sees warnings.
+  if (mIsMainThread) {
+    JS_SetErrorReporter(rt, WarningOnlyErrorReporter);
+  }
+}
+
+void
+AutoJSAPI::ReportException()
+{
+  MOZ_ASSERT(OwnsErrorReporting(), "This is not our exception to report!");
+  if (!HasException()) {
+    return;
+  }
+
+  // AutoJSAPI uses a JSAutoNullableCompartment, and may be in a null
+  // compartment when the destructor is called. However, the JS engine
+  // requires us to be in a compartment when we fetch the pending exception.
+  // In this case, we enter the privileged junk scope and don't dispatch any
+  // error events.
+  JS::Rooted<JSObject*> errorGlobal(cx(), JS::CurrentGlobalOrNull(cx()));
+  if (!errorGlobal)
+    errorGlobal = xpc::PrivilegedJunkScope();
+  JSAutoCompartment ac(cx(), errorGlobal);
+  JS::Rooted<JS::Value> exn(cx());
+  js::ErrorReport jsReport(cx());
+  if (StealException(&exn) && jsReport.init(cx(), exn)) {
+    if (mIsMainThread) {
+      RefPtr<xpc::ErrorReport> xpcReport = new xpc::ErrorReport();
+      nsCOMPtr<nsPIDOMWindow> win = xpc::WindowGlobalOrNull(errorGlobal);
+      xpcReport->Init(jsReport.report(), jsReport.message(),
+                      nsContentUtils::IsCallerChrome(),
+                      win ? win->WindowID() : 0);
+      if (win) {
+        DispatchScriptErrorEvent(win, JS_GetRuntime(cx()), xpcReport, exn);
+      } else {
+        xpcReport->LogToConsole();
+      }
+    } else {
+      // On a worker, we just use the worker error reporting mechanism and don't
+      // bother with xpc::ErrorReport.  This will ensure that all the right
+      // events (which are a lot more complicated than in the window case) get
+      // fired.
+      workers::WorkerPrivate* worker = workers::GetCurrentThreadWorkerPrivate();
+      MOZ_ASSERT(worker);
+      MOZ_ASSERT(worker->GetJSContext() == cx());
+      // Before invoking ReportError, put the exception back on the context,
+      // because it may want to put it in its error events and has no other way
+      // to get hold of it.  After we invoke ReportError, clear the exception on
+      // cx(), just in case ReportError didn't.
+      JS_SetPendingException(cx(), exn);
+      worker->ReportError(cx(), jsReport.message(), jsReport.report());
+      ClearException();
+    }
+  } else {
+    NS_WARNING("OOMed while acquiring uncaught exception from JSAPI");
+  }
+}
+
+bool
+AutoJSAPI::StealException(JS::MutableHandle<JS::Value> aVal)
+{
+    MOZ_ASSERT_IF(mIsMainThread, CxPusherIsStackTop());
+    MOZ_ASSERT(HasException());
+    MOZ_ASSERT(js::GetContextCompartment(cx()));
+    if (!JS_GetPendingException(cx(), aVal)) {
+      return false;
+    }
+    JS_ClearPendingException(cx());
+    return true;
+}
+
 AutoEntryScript::AutoEntryScript(nsIGlobalObject* aGlobalObject,
+                                 const char *aReason,
                                  bool aIsMainThread,
                                  JSContext* aCx)
   : AutoJSAPI(aGlobalObject, aIsMainThread,
@@ -363,6 +568,10 @@ AutoEntryScript::AutoEntryScript(nsIGlobalObject* aGlobalObject,
   MOZ_ASSERT(aGlobalObject);
   MOZ_ASSERT_IF(!aCx, aIsMainThread); // cx is mandatory off-main-thread.
   MOZ_ASSERT_IF(aCx && aIsMainThread, aCx == FindJSContext(aGlobalObject));
+
+  if (aIsMainThread && gRunToCompletionListeners > 0) {
+    mDocShellEntryMonitor.emplace(cx(), aReason);
+  }
 }
 
 AutoEntryScript::~AutoEntryScript()
@@ -371,6 +580,83 @@ AutoEntryScript::~AutoEntryScript()
   // us out on certain (flawed) benchmarks like sunspider, because it lets us
   // avoid GCing during the timing loop.
   JS_MaybeGC(cx());
+}
+
+AutoEntryScript::DocshellEntryMonitor::DocshellEntryMonitor(JSContext* aCx,
+                                                            const char* aReason)
+  : JS::dbg::AutoEntryMonitor(aCx)
+  , mReason(aReason)
+{
+}
+
+void
+AutoEntryScript::DocshellEntryMonitor::Entry(JSContext* aCx, JSFunction* aFunction,
+                                             JSScript* aScript, JS::Handle<JS::Value> aAsyncStack,
+                                             JS::Handle<JSString*> aAsyncCause)
+{
+  JS::Rooted<JSFunction*> rootedFunction(aCx);
+  if (aFunction) {
+    rootedFunction = aFunction;
+  }
+  JS::Rooted<JSScript*> rootedScript(aCx);
+  if (aScript) {
+    rootedScript = aScript;
+  }
+
+  nsCOMPtr<nsPIDOMWindow> window =
+    do_QueryInterface(xpc::NativeGlobal(JS::CurrentGlobalOrNull(aCx)));
+  if (!window || !window->GetDocShell() ||
+      !window->GetDocShell()->GetRecordProfileTimelineMarkers()) {
+    return;
+  }
+
+  nsCOMPtr<nsIDocShell> docShellForJSRunToCompletion = window->GetDocShell();
+  nsString filename;
+  uint32_t lineNumber = 0;
+
+  js::AutoStableStringChars functionName(aCx);
+  if (rootedFunction) {
+    JS::Rooted<JSString*> displayId(aCx, JS_GetFunctionDisplayId(rootedFunction));
+    if (displayId) {
+      if (!functionName.initTwoByte(aCx, displayId)) {
+        JS_ClearPendingException(aCx);
+        return;
+      }
+    }
+  }
+
+  if (!rootedScript) {
+    rootedScript = JS_GetFunctionScript(aCx, rootedFunction);
+  }
+  if (rootedScript) {
+    filename = NS_ConvertUTF8toUTF16(JS_GetScriptFilename(rootedScript));
+    lineNumber = JS_GetScriptBaseLineNumber(aCx, rootedScript);
+  }
+
+  if (!filename.IsEmpty() || functionName.isTwoByte()) {
+    const char16_t* functionNameChars = functionName.isTwoByte() ?
+      functionName.twoByteChars() : nullptr;
+
+    JS::Rooted<JS::Value> asyncCauseValue(aCx, aAsyncCause ? StringValue(aAsyncCause) :
+                                          JS::NullValue());
+    docShellForJSRunToCompletion->NotifyJSRunToCompletionStart(mReason,
+                                                               functionNameChars,
+                                                               filename.BeginReading(),
+                                                               lineNumber, aAsyncStack,
+                                                               asyncCauseValue);
+  }
+}
+
+void
+AutoEntryScript::DocshellEntryMonitor::Exit(JSContext* aCx)
+{
+  nsCOMPtr<nsPIDOMWindow> window =
+    do_QueryInterface(xpc::NativeGlobal(JS::CurrentGlobalOrNull(aCx)));
+  // Not really worth checking GetRecordProfileTimelineMarkers here.
+  if (window && window->GetDocShell()) {
+    nsCOMPtr<nsIDocShell> docShellForJSRunToCompletion = window->GetDocShell();
+    docShellForJSRunToCompletion->NotifyJSRunToCompletionStop();
+  }
 }
 
 AutoIncumbentScript::AutoIncumbentScript(nsIGlobalObject* aGlobalObject)
@@ -382,8 +668,6 @@ AutoIncumbentScript::AutoIncumbentScript(nsIGlobalObject* aGlobalObject)
 AutoNoJSAPI::AutoNoJSAPI(bool aIsMainThread)
   : ScriptSettingsStackEntry()
 {
-  MOZ_ASSERT_IF(nsContentUtils::GetCurrentJSContextForThread(),
-                !JS_IsExceptionPending(nsContentUtils::GetCurrentJSContextForThread()));
   if (aIsMainThread) {
     mCxPusher.emplace(static_cast<JSContext*>(nullptr),
                       /* aAllowNull = */ true);

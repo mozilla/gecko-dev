@@ -13,7 +13,12 @@ jar.sources += [
     'classloader/IterableJarLoadingURLClassLoader.java',
     'classloader/JarClassIterator.java',
     'CodeGenerator.java',
+    'SDKProcessor.java',
     'utils/AlphabeticAnnotatableEntityComparator.java',
     'utils/GeneratableElementIterator.java',
     'utils/Utils.java',
+]
+jar.extra_jars += [
+    CONFIG['ANDROID_TOOLS'] + '/lib/lint.jar',
+    CONFIG['ANDROID_TOOLS'] + '/lib/lint-checks.jar',
 ]

@@ -15,21 +15,11 @@ template<class T> struct already_AddRefed;
 #include "nsError.h"
 #include "nsID.h"
 
+#include "js/SliceBudget.h"
+
 namespace mozilla {
-
 class CycleCollectedJSRuntime;
-
-// Called back from DeferredFinalize.  Should add 'thing' to the array of smart
-// pointers in 'pointers', creating the array if 'pointers' is null, and return
-// the array.
-typedef void* (*DeferredFinalizeAppendFunction)(void* aPointers, void* aThing);
-
-// Called to finalize a number of objects. Slice is the number of objects
-// to finalize, or if it's UINT32_MAX, all objects should be finalized.
-// Return value indicates whether it finalized all objects in the buffer.
-typedef bool (*DeferredFinalizeFunction)(uint32_t aSlice, void* aData);
-
-}
+} // namespace mozilla
 
 bool nsCycleCollector_init();
 
@@ -49,20 +39,16 @@ void nsCycleCollector_prepareForGarbageCollection();
 // If an incremental cycle collection is in progress, finish it.
 void nsCycleCollector_finishAnyCurrentCollection();
 
-void nsCycleCollector_dispatchDeferredDeletion(bool aContinuation = false);
+void nsCycleCollector_dispatchDeferredDeletion(bool aContinuation = false,
+                                               bool aPurge = false);
 bool nsCycleCollector_doDeferredDeletion();
 
 already_AddRefed<nsICycleCollectorLogSink> nsCycleCollector_createLogSink();
 
 void nsCycleCollector_collect(nsICycleCollectorListener* aManualListener);
 
-// If aSliceTime is negative, the CC will run to completion. Otherwise,
-// aSliceTime will be used as the time budget for the slice, in ms.
-void nsCycleCollector_collectSlice(int64_t aSliceTime);
-
-// If aSliceTime is negative, the CC will run to completion. Otherwise,
-// aSliceTime will be used as the work budget for the slice.
-void nsCycleCollector_collectSliceWork(int64_t aSliceWork);
+void nsCycleCollector_collectSlice(js::SliceBudget& budget,
+                                   bool aPreferShorterSlices = false);
 
 uint32_t nsCycleCollector_suspectedCount();
 void nsCycleCollector_shutdown();
@@ -79,21 +65,5 @@ extern nsresult
 nsCycleCollectorLoggerConstructor(nsISupports* aOuter,
                                   const nsIID& aIID,
                                   void** aInstancePtr);
-
-namespace mozilla {
-namespace cyclecollector {
-
-#ifdef DEBUG
-bool IsJSHolder(void* aHolder);
-#endif
-
-void DeferredFinalize(DeferredFinalizeAppendFunction aAppendFunc,
-                      DeferredFinalizeFunction aFunc,
-                      void* aThing);
-void DeferredFinalize(nsISupports* aSupports);
-
-
-} // namespace cyclecollector
-} // namespace mozilla
 
 #endif // nsCycleCollector_h__

@@ -14,7 +14,7 @@
 
 namespace base {
 class Thread;
-}
+} // namespace base
 
 namespace mozilla {
 #ifdef MOZ_HAVE_SURFACEDESCRIPTORGRALLOC
@@ -112,8 +112,6 @@ public:
 #ifdef MOZ_HAVE_SURFACEDESCRIPTORGRALLOC
   android::sp<android::GraphicBuffer> GetGraphicBuffer(int64_t key);
 #endif
-
-  bool IsValidKey(int64_t key);
 
   base::Thread* GetThread() const;
 

@@ -19,7 +19,6 @@ LOCAL_INCLUDES += [
     '/toolkit/xre',
 ]
 
-
 USE_STATIC_LIBS = True
 
 OS_LIBS += [

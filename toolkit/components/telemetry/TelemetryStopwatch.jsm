@@ -8,14 +8,14 @@ const Cu = Components.utils;
 
 this.EXPORTED_SYMBOLS = ["TelemetryStopwatch"];
 
-let Telemetry = Cc["@mozilla.org/base/telemetry;1"]
+var Telemetry = Cc["@mozilla.org/base/telemetry;1"]
                   .getService(Ci.nsITelemetry);
 
 // simpleTimers are directly associated with a histogram
 // name. objectTimers are associated with an object _and_
 // a histogram name.
-let simpleTimers = {};
-let objectTimers = new WeakMap();
+var simpleTimers = {};
+var objectTimers = new WeakMap();
 
 this.TelemetryStopwatch = {
   /**
@@ -88,6 +88,33 @@ this.TelemetryStopwatch = {
     }
 
     return false;
+  },
+
+  /**
+   * Returns the elapsed time for a particular stopwatch. Primarily for
+   * debugging purposes. Must be called prior to finish.
+   *
+   * @param aHistogram a string which must be a valid histogram name
+   *                   from TelemetryHistograms.h. If an invalid name
+   *                   is given, the function will throw.
+   *
+   * @param aObj Optional parameter which associates the histogram timer with
+   *             the given object.
+   *
+   * @return time in milliseconds or -1 if the stopwatch was not found.
+   */
+  timeElapsed: function(aHistogram, aObj) {
+    if (!validTypes(aHistogram, aObj))
+      return -1;
+    let timers = aObj
+                 ? objectTimers.get(aObj) || {}
+                 : simpleTimers;
+    let start = timers[aHistogram];
+    if (start) {
+      let delta = Components.utils.now() - start;
+      return Math.round(delta);
+    }
+    return -1;
   },
 
   /**

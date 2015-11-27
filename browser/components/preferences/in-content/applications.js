@@ -2,10 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+"use strict";
+
 //****************************************************************************//
 // Constants & Enumeration Values
 
 Components.utils.import('resource://gre/modules/Services.jsm');
+Components.utils.import('resource://gre/modules/AppConstants.jsm');
 const TYPE_MAYBE_FEED = "application/vnd.mozilla.maybe.feed";
 const TYPE_MAYBE_VIDEO_FEED = "application/vnd.mozilla.maybe.video.feed";
 const TYPE_MAYBE_AUDIO_FEED = "application/vnd.mozilla.maybe.audio.feed";
@@ -65,17 +68,9 @@ const PREF_AUDIO_FEED_SELECTED_READER = "browser.audioFeeds.handler.default";
 // identifying the "use plugin" action, so we use this constant instead.
 const kActionUsePlugin = 5;
 
-/*
-#if MOZ_WIDGET_GTK == 2
-*/
-const ICON_URL_APP      = "moz-icon://dummy.exe?size=16";
-/*
-#else
-*/
-const ICON_URL_APP      = "chrome://browser/skin/preferences/application.png";
-/*
-#endif
-*/
+const ICON_URL_APP = AppConstants.platform == "linux" ?
+                     "moz-icon://dummy.exe?size=16" :
+                     "chrome://browser/skin/preferences/application.png";
 
 // For CSS. Can be one of "ask", "save", "plugin" or "feed". If absent, the icon URL
 // was set by us to a custom handler icon and CSS should not try to override it.
@@ -408,7 +403,7 @@ HandlerInfoWrapper.prototype = {
     var disabledPluginTypes = this._getDisabledPluginTypes();
 
     var type = this.type;
-    disabledPluginTypes = disabledPluginTypes.filter(function(v) v != type);
+    disabledPluginTypes = disabledPluginTypes.filter(v => v != type);
 
     this._prefSvc.setCharPref(PREF_DISABLED_PLUGIN_TYPES,
                               disabledPluginTypes.join(","));
@@ -600,7 +595,7 @@ FeedHandlerInfo.prototype = {
 
     // Add the registered web handlers.  There can be any number of these.
     var webHandlers = this._converterSvc.getContentHandlers(this.type);
-    for each (let webHandler in webHandlers)
+    for (let webHandler of webHandlers)
       this._possibleApplicationHandlers.appendElement(webHandler, false);
 
     return this._possibleApplicationHandlers;
@@ -752,7 +747,7 @@ FeedHandlerInfo.prototype = {
   // the only thing we need to store is the removal of possible handlers
   // XXX Should we hold off on making the changes until this method gets called?
   store: function() {
-    for each (let app in this._possibleApplicationHandlers._removed) {
+    for (let app of this._possibleApplicationHandlers._removed) {
       if (app instanceof Ci.nsILocalHandlerApp) {
         let pref = this.element(PREF_FEED_SELECTED_APP);
         var preferredAppFile = pref.value;
@@ -1196,7 +1191,7 @@ var gApplicationsPane = {
     if (this._filter.value)
       visibleTypes = visibleTypes.filter(this._matchesFilter, this);
 
-    for each (let visibleType in visibleTypes) {
+    for (let visibleType of visibleTypes) {
       let item = document.createElement("richlistitem");
       item.setAttribute("type", visibleType.type);
       item.setAttribute("typeDescription", this._describeType(visibleType));
@@ -1504,16 +1499,21 @@ var gApplicationsPane = {
     }
 
     // Create a menu item for selecting a local application.
+    let canOpenWithOtherApp = true;
 #ifdef XP_WIN
     // On Windows, selecting an application to open another application
     // would be meaningless so we special case executables.
-    var executableType = Cc["@mozilla.org/mime;1"].getService(Ci.nsIMIMEService)
+    let executableType = Cc["@mozilla.org/mime;1"].getService(Ci.nsIMIMEService)
                                                   .getTypeFromExtension("exe");
-    if (handlerInfo.type != executableType)
+    canOpenWithOtherApp = handlerInfo.type != executableType;
 #endif
+    if (canOpenWithOtherApp)
     {
       let menuItem = document.createElement("menuitem");
-      menuItem.setAttribute("oncommand", "gApplicationsPane.chooseApp(event)");
+      menuItem.className = "choose-app-item";
+      menuItem.addEventListener("command", function(e) {
+        gApplicationsPane.chooseApp(e);
+      });
       let label = this._prefsBundle.getString("useOtherApp");
       menuItem.setAttribute("label", label);
       menuItem.setAttribute("tooltiptext", label);
@@ -1525,7 +1525,10 @@ var gApplicationsPane = {
       let menuItem = document.createElement("menuseparator");
       menuPopup.appendChild(menuItem);
       menuItem = document.createElement("menuitem");
-      menuItem.setAttribute("oncommand", "gApplicationsPane.manageApp(event)");
+      menuItem.className = "manage-app-item";
+      menuItem.addEventListener("command", function(e) {
+        gApplicationsPane.manageApp(e);
+      });
       menuItem.setAttribute("label", this._prefsBundle.getString("manageApp"));
       menuPopup.appendChild(menuItem);
     }
@@ -1546,7 +1549,7 @@ var gApplicationsPane = {
       case Ci.nsIHandlerInfo.useHelperApp:
         if (preferredApp)
           menu.selectedItem = 
-            possibleAppMenuItems.filter(function(v) v.handlerApp.equals(preferredApp))[0];
+            possibleAppMenuItems.filter(v => v.handlerApp.equals(preferredApp))[0];
         break;
       case kActionUsePlugin:
         menu.selectedItem = pluginMenuItem;
@@ -1698,20 +1701,23 @@ var gApplicationsPane = {
     var typeItem = this._list.selectedItem;
     var handlerInfo = this._handledTypes[typeItem.type];
 
+    let onComplete = () => {
+      // Rebuild the actions menu so that we revert to the previous selection,
+      // or "Always ask" if the previous default application has been removed
+      this.rebuildActionsMenu();
+
+      // update the richlistitem too. Will be visible when selecting another row
+      typeItem.setAttribute("actionDescription",
+                            this._describePreferredAction(handlerInfo));
+      if (!this._setIconClassForPreferredAction(handlerInfo, typeItem)) {
+        typeItem.setAttribute("actionIcon",
+                              this._getIconURLForPreferredAction(handlerInfo));
+      }
+    };
+
     gSubDialog.open("chrome://browser/content/preferences/applicationManager.xul",
-                    "resizable=no", handlerInfo);
+                    "resizable=no", handlerInfo, onComplete);
 
-    // Rebuild the actions menu so that we revert to the previous selection,
-    // or "Always ask" if the previous default application has been removed
-    this.rebuildActionsMenu();
-
-    // update the richlistitem too. Will be visible when selecting another row
-    typeItem.setAttribute("actionDescription",
-                          this._describePreferredAction(handlerInfo));
-    if (!this._setIconClassForPreferredAction(handlerInfo, typeItem)) {
-      typeItem.setAttribute("actionIcon",
-                            this._getIconURLForPreferredAction(handlerInfo));
-    }
   },
 
   chooseApp: function(aEvent) {
@@ -1760,17 +1766,20 @@ var gApplicationsPane = {
     params.filename      = null;
     params.handlerApp    = null;
 
+    let onAppSelected = () => {
+      if (this.isValidHandlerApp(params.handlerApp)) {
+        handlerApp = params.handlerApp;
+
+        // Add the app to the type's list of possible handlers.
+        handlerInfo.addPossibleApplicationHandler(handlerApp);
+      }
+
+      chooseAppCallback(handlerApp);
+    };
+
     gSubDialog.open("chrome://global/content/appPicker.xul",
-                    null, params);
+                    null, params, onAppSelected);
 
-    if (this.isValidHandlerApp(params.handlerApp)) {
-      handlerApp = params.handlerApp;
-
-      // Add the app to the type's list of possible handlers.
-      handlerInfo.addPossibleApplicationHandler(handlerApp);
-    }
-
-    chooseAppCallback(handlerApp);
 #else
     let winTitle = this._prefsBundle.getString("fpTitleChooseApp");
     let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
@@ -1846,10 +1855,9 @@ var gApplicationsPane = {
         return this._getIconURLForSystemDefault(aHandlerInfo);
 
       case Ci.nsIHandlerInfo.useHelperApp:
-        let (preferredApp = aHandlerInfo.preferredApplicationHandler) {
-          if (this.isValidHandlerApp(preferredApp))
-            return this._getIconURLForHandlerApp(preferredApp);
-        }
+        let preferredApp = aHandlerInfo.preferredApplicationHandler;
+        if (this.isValidHandlerApp(preferredApp))
+          return this._getIconURLForHandlerApp(preferredApp);
         break;
 
       // This should never happen, but if preferredAction is set to some weird

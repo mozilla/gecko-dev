@@ -13,7 +13,6 @@
 #include "mozilla/gfx/Types.h"
 #include "nsColor.h"
 
-class nsIFrame;
 struct nsStyleFilter;
 template<class T> class nsTArray;
 
@@ -37,14 +36,14 @@ public:
    *   aFilter during the lifetime of nsCSSFilterInstance.
    * @param aShadowFallbackColor The color that should be used for
    *   drop-shadow() filters that don't specify a shadow color.
-   * @param aTargetBBoxInFilterSpace The frame of element being filtered, in
-   *   filter space.
+   * @param aTargetBoundsInFilterSpace The pre-filter visual overflow rect of
+   *   the frame being filtered, in filter space.
    * @param aFrameSpaceInCSSPxToFilterSpaceTransform The transformation from
    *   the filtered element's frame space in CSS pixels to filter space.
    */
   nsCSSFilterInstance(const nsStyleFilter& aFilter,
                       nscolor aShadowFallbackColor,
-                      const nsIntRect& aTargetBBoxInFilterSpace,
+                      const nsIntRect& aTargetBoundsInFilterSpace,
                       const gfxMatrix& aFrameSpaceInCSSPxToFilterSpaceTransform);
 
   /**
@@ -120,10 +119,10 @@ private:
   nscolor mShadowFallbackColor;
 
   /**
-   * The bounding box of the element being filtered, in filter space. Used for
-   * input bounds if this CSS filter is the first in the filter chain.
+   * The pre-filter overflow rect of the frame being filtered, in filter space.
+   * Used for input bounds if this CSS filter is the first in the filter chain.
    */
-  nsIntRect mTargetBBoxInFilterSpace;
+  nsIntRect mTargetBoundsInFilterSpace;
 
   /**
    * The transformation from the filtered element's frame space in CSS pixels to

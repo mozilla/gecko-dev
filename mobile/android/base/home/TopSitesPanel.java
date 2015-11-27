@@ -12,16 +12,20 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.mozilla.gecko.GeckoProfile;
+import org.mozilla.gecko.Locales;
 import org.mozilla.gecko.R;
+import org.mozilla.gecko.Restrictions;
+import org.mozilla.gecko.Tab;
+import org.mozilla.gecko.Tabs;
 import org.mozilla.gecko.Telemetry;
 import org.mozilla.gecko.TelemetryContract;
 import org.mozilla.gecko.db.BrowserContract.Thumbnails;
 import org.mozilla.gecko.db.BrowserContract.TopSites;
 import org.mozilla.gecko.db.BrowserDB;
-import org.mozilla.gecko.db.URLMetadata;
 import org.mozilla.gecko.favicons.Favicons;
 import org.mozilla.gecko.favicons.OnFaviconLoadedListener;
 import org.mozilla.gecko.gfx.BitmapUtils;
@@ -30,6 +34,9 @@ import org.mozilla.gecko.home.HomePager.OnUrlOpenListener;
 import org.mozilla.gecko.home.PinSiteDialog.OnSiteSelectedListener;
 import org.mozilla.gecko.home.TopSitesGridView.OnEditPinnedSiteListener;
 import org.mozilla.gecko.home.TopSitesGridView.TopSitesGridContextMenuInfo;
+import org.mozilla.gecko.restrictions.Restrictable;
+import org.mozilla.gecko.tiles.TilesRecorder;
+import org.mozilla.gecko.tiles.Tile;
 import org.mozilla.gecko.util.StringUtils;
 import org.mozilla.gecko.util.ThreadUtils;
 
@@ -105,8 +112,8 @@ public class TopSitesPanel extends HomeFragment {
         return new TopSitesPanel();
     }
 
-    private static boolean logDebug = Log.isLoggable(LOGTAG, Log.DEBUG);
-    private static boolean logVerbose = Log.isLoggable(LOGTAG, Log.VERBOSE);
+    private static final boolean logDebug = Log.isLoggable(LOGTAG, Log.DEBUG);
+    private static final boolean logVerbose = Log.isLoggable(LOGTAG, Log.VERBOSE);
 
     private static void debug(final String message) {
         if (logDebug) {
@@ -166,7 +173,7 @@ public class TopSitesPanel extends HomeFragment {
 
                 final String url = c.getString(c.getColumnIndexOrThrow(TopSites.URL));
 
-                Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, TelemetryContract.Method.LIST_ITEM);
+                Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, TelemetryContract.Method.LIST_ITEM, "top_sites");
 
                 // This item is a TwoLinePageRow, so we allow switch-to-tab.
                 mUrlOpenListener.onUrlOpen(url, EnumSet.of(OnUrlOpenListener.Flags.ALLOW_SWITCH_TO_TAB));
@@ -193,22 +200,113 @@ public class TopSitesPanel extends HomeFragment {
             }
         });
 
-        mGrid.setOnUrlOpenListener(mUrlOpenListener);
-        mGrid.setOnEditPinnedSiteListener(mEditPinnedSiteListener);
+        mGrid.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                TopSitesGridItemView item = (TopSitesGridItemView) view;
+
+                // Decode "user-entered" URLs before loading them.
+                String url = StringUtils.decodeUserEnteredUrl(item.getUrl());
+                int type = item.getType();
+
+                // If the url is empty, the user can pin a site.
+                // If not, navigate to the page given by the url.
+                if (type != TopSites.TYPE_BLANK) {
+                    if (mUrlOpenListener != null) {
+                        final TelemetryContract.Method method;
+                        if (type == TopSites.TYPE_SUGGESTED) {
+                            method = TelemetryContract.Method.SUGGESTION;
+                        } else {
+                            method = TelemetryContract.Method.GRID_ITEM;
+                        }
+                        Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, method, Integer.toString(position));
+
+                        // Record tile click events on non-private tabs.
+                        final Tab tab = Tabs.getInstance().getSelectedTab();
+                        if (!tab.isPrivate()) {
+                            final Locale locale = Locale.getDefault();
+                            final String localeTag = Locales.getLanguageTag(locale);
+                            TilesRecorder.recordAction(tab, TilesRecorder.ACTION_CLICK, position, getTilesSnapshot(), localeTag);
+                        }
+
+                        mUrlOpenListener.onUrlOpen(url, EnumSet.noneOf(OnUrlOpenListener.Flags.class));
+                    }
+                } else {
+                    if (mEditPinnedSiteListener != null) {
+                        mEditPinnedSiteListener.onEditPinnedSite(position, "");
+                    }
+                }
+            }
+        });
+
+        mGrid.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+
+                Cursor cursor = (Cursor) parent.getItemAtPosition(position);
+
+                TopSitesGridItemView item = (TopSitesGridItemView) view;
+                if (cursor == null || item.getType() == TopSites.TYPE_BLANK) {
+                    mGrid.setContextMenuInfo(null);
+                    return false;
+                }
+
+                TopSitesGridContextMenuInfo contextMenuInfo = new TopSitesGridContextMenuInfo(view, position, id);
+                updateContextMenuFromCursor(contextMenuInfo, cursor);
+                mGrid.setContextMenuInfo(contextMenuInfo);
+                return mGrid.showContextMenuForChild(mGrid);
+            }
+
+            /*
+             * Update the fields of a TopSitesGridContextMenuInfo object
+             * from a cursor.
+             *
+             * @param  info    context menu info object to be updated
+             * @param  cursor  used to update the context menu info object
+             */
+            private void updateContextMenuFromCursor(TopSitesGridContextMenuInfo info, Cursor cursor) {
+                info.url = cursor.getString(cursor.getColumnIndexOrThrow(TopSites.URL));
+                info.title = cursor.getString(cursor.getColumnIndexOrThrow(TopSites.TITLE));
+                info.type = cursor.getInt(cursor.getColumnIndexOrThrow(TopSites.TYPE));
+                info.historyId = cursor.getInt(cursor.getColumnIndexOrThrow(TopSites.HISTORY_ID));
+            }
+        });
 
         registerForContextMenu(mList);
         registerForContextMenu(mGrid);
+    }
+
+    private List<Tile> getTilesSnapshot() {
+        final int count = mGrid.getCount();
+        final ArrayList<Tile> snapshot = new ArrayList<>();
+        final BrowserDB db = GeckoProfile.get(getActivity()).getDB();
+        for (int i = 0; i < count; i++) {
+            final Cursor cursor = (Cursor) mGrid.getItemAtPosition(i);
+            final int type = cursor.getInt(cursor.getColumnIndexOrThrow(TopSites.TYPE));
+
+            if (type == TopSites.TYPE_BLANK) {
+                snapshot.add(null);
+                continue;
+            }
+
+            final String url = cursor.getString(cursor.getColumnIndexOrThrow(TopSites.URL));
+            final int id = db.getTrackingIdForUrl(url);
+            final boolean pinned = (type == TopSites.TYPE_PINNED);
+            snapshot.add(new Tile(id, pinned));
+        }
+        return snapshot;
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
 
-        // Discard any additional item clicks on the list
-        // as the panel is getting destroyed (see bug 930160).
+        // Discard any additional item clicks on the list as the
+        // panel is getting destroyed (see bugs 930160 & 1096958).
         mList.setOnItemClickListener(null);
-        mList = null;
+        mGrid.setOnItemClickListener(null);
 
+        mList = null;
         mGrid = null;
         mListAdapter = null;
         mGridAdapter = null;
@@ -244,15 +342,24 @@ public class TopSitesPanel extends HomeFragment {
             // Long pressed item was not a Top Sites GridView item. Superclass
             // can handle this.
             super.onCreateContextMenu(menu, view, menuInfo);
+
+            if (!Restrictions.isAllowed(view.getContext(), Restrictable.CLEAR_HISTORY)) {
+                menu.findItem(R.id.home_remove).setVisible(false);
+            }
+
             return;
         }
 
+        final Context context = view.getContext();
+
         // Long pressed item was a Top Sites GridView item, handle it.
-        MenuInflater inflater = new MenuInflater(view.getContext());
+        MenuInflater inflater = new MenuInflater(context);
         inflater.inflate(R.menu.home_contextmenu, menu);
 
         // Hide unused menu items.
         menu.findItem(R.id.home_edit_bookmark).setVisible(false);
+
+        menu.findItem(R.id.home_remove).setVisible(Restrictions.isAllowed(context, Restrictable.CLEAR_HISTORY));
 
         TopSitesGridContextMenuInfo info = (TopSitesGridContextMenuInfo) menuInfo;
         menu.setHeaderTitle(info.getDisplayTitle());
@@ -273,6 +380,14 @@ public class TopSitesPanel extends HomeFragment {
         if (!StringUtils.isShareableUrl(info.url) || GeckoProfile.get(getActivity()).inGuestMode()) {
             menu.findItem(R.id.home_share).setVisible(false);
         }
+
+        if (!Restrictions.isAllowed(context, Restrictable.PRIVATE_BROWSING)) {
+            menu.findItem(R.id.home_open_private_tab).setVisible(false);
+        }
+
+        // We only show these menu items on the reading list panel:
+        menu.findItem(R.id.mark_read).setVisible(false);
+        menu.findItem(R.id.mark_unread).setVisible(false);
     }
 
     @Override
@@ -284,13 +399,14 @@ public class TopSitesPanel extends HomeFragment {
 
         ContextMenuInfo menuInfo = item.getMenuInfo();
 
-        if (menuInfo == null || !(menuInfo instanceof TopSitesGridContextMenuInfo)) {
+        if (!(menuInfo instanceof TopSitesGridContextMenuInfo)) {
             return false;
         }
 
         TopSitesGridContextMenuInfo info = (TopSitesGridContextMenuInfo) menuInfo;
 
         final int itemId = item.getItemId();
+        final BrowserDB db = GeckoProfile.get(getActivity()).getDB();
 
         if (itemId == R.id.top_sites_pin) {
             final String url = info.url;
@@ -301,7 +417,7 @@ public class TopSitesPanel extends HomeFragment {
             ThreadUtils.postToBackgroundThread(new Runnable() {
                 @Override
                 public void run() {
-                    BrowserDB.pinSite(context.getContentResolver(), url, title, position);
+                    db.pinSite(context.getContentResolver(), url, title, position);
                 }
             });
 
@@ -316,7 +432,7 @@ public class TopSitesPanel extends HomeFragment {
             ThreadUtils.postToBackgroundThread(new Runnable() {
                 @Override
                 public void run() {
-                    BrowserDB.unpinSite(context.getContentResolver(), position);
+                    db.unpinSite(context.getContentResolver(), position);
                 }
             });
 
@@ -379,10 +495,11 @@ public class TopSitesPanel extends HomeFragment {
         public void onSiteSelected(final String url, final String title) {
             final int position = mPosition;
             final Context context = getActivity().getApplicationContext();
+            final BrowserDB db = GeckoProfile.get(getActivity()).getDB();
             ThreadUtils.postToBackgroundThread(new Runnable() {
                 @Override
                 public void run() {
-                    BrowserDB.pinSite(context.getContentResolver(), url, title, position);
+                    db.pinSite(context.getContentResolver(), url, title, position);
                 }
             });
         }
@@ -406,20 +523,22 @@ public class TopSitesPanel extends HomeFragment {
         // Max number of search results.
         private static final int SEARCH_LIMIT = 30;
         private static final String TELEMETRY_HISTOGRAM_LOAD_CURSOR = "FENNEC_TOPSITES_LOADER_TIME_MS";
-        private int mMaxGridEntries;
+        private final BrowserDB mDB;
+        private final int mMaxGridEntries;
 
         public TopSitesLoader(Context context) {
             super(context);
             mMaxGridEntries = context.getResources().getInteger(R.integer.number_of_top_sites);
+            mDB = GeckoProfile.get(context).getDB();
         }
 
         @Override
         public Cursor loadCursor() {
             final long start = SystemClock.uptimeMillis();
-            final Cursor cursor = BrowserDB.getTopSites(getContext().getContentResolver(), mMaxGridEntries, SEARCH_LIMIT);
+            final Cursor cursor = mDB.getTopSites(getContext().getContentResolver(), mMaxGridEntries, SEARCH_LIMIT);
             final long end = SystemClock.uptimeMillis();
             final long took = end - start;
-            Telemetry.HistogramAdd(TELEMETRY_HISTOGRAM_LOAD_CURSOR, (int) Math.min(took, Integer.MAX_VALUE));
+            Telemetry.addToHistogram(TELEMETRY_HISTOGRAM_LOAD_CURSOR, (int) Math.min(took, Integer.MAX_VALUE));
             return cursor;
         }
     }
@@ -455,12 +574,14 @@ public class TopSitesPanel extends HomeFragment {
     }
 
     public class TopSitesGridAdapter extends CursorAdapter {
+        private final BrowserDB mDB;
         // Cache to store the thumbnails.
         // Ensure that this is only accessed from the UI thread.
         private Map<String, ThumbnailInfo> mThumbnailInfos;
 
         public TopSitesGridAdapter(Context context, Cursor cursor) {
             super(context, cursor, 0);
+            mDB = GeckoProfile.get(context).getDB();
         }
 
         @Override
@@ -530,9 +651,9 @@ public class TopSitesPanel extends HomeFragment {
 
             // Suggested images have precedence over thumbnails, no need to wait
             // for them to be loaded. See: CursorLoaderCallbacks.onLoadFinished()
-            final String imageUrl = BrowserDB.getSuggestedImageUrlForUrl(decodedUrl);
+            final String imageUrl = mDB.getSuggestedImageUrlForUrl(decodedUrl);
             if (!TextUtils.isEmpty(imageUrl)) {
-                final int bgColor = BrowserDB.getSuggestedBackgroundColorForUrl(decodedUrl);
+                final int bgColor = mDB.getSuggestedBackgroundColorForUrl(decodedUrl);
                 view.displayThumbnail(imageUrl, bgColor);
                 return;
             }
@@ -552,7 +673,7 @@ public class TopSitesPanel extends HomeFragment {
             }
 
             // Otherwise, do this until the async lookup returns.
-            view.displayThumbnail(R.drawable.favicon);
+            view.displayThumbnail(R.drawable.favicon_globe);
 
             // Give each side enough information to shake hands later.
             listener.setLoadId(loadId);
@@ -584,7 +705,7 @@ public class TopSitesPanel extends HomeFragment {
         }
     }
 
-    private class CursorLoaderCallbacks implements LoaderCallbacks<Cursor> {
+    private class CursorLoaderCallbacks extends TransitionAwareCursorLoaderCallbacks {
         @Override
         public Loader<Cursor> onCreateLoader(int id, Bundle args) {
             trace("Creating TopSitesLoader: " + id);
@@ -602,7 +723,7 @@ public class TopSitesPanel extends HomeFragment {
          * Why that is... dunno.
          */
         @Override
-        public void onLoadFinished(Loader<Cursor> loader, Cursor c) {
+        protected void onLoadFinishedAfterTransitions(Loader<Cursor> loader, Cursor c) {
             debug("onLoadFinished: " + c.getCount() + " rows.");
 
             mListAdapter.swapCursor(c);
@@ -627,7 +748,8 @@ public class TopSitesPanel extends HomeFragment {
 
                 // Only try to fetch thumbnails for non-empty URLs that
                 // don't have an associated suggested image URL.
-                if (TextUtils.isEmpty(url) || BrowserDB.hasSuggestedImageUrl(url)) {
+                final GeckoProfile profile = GeckoProfile.get(getActivity());
+                if (TextUtils.isEmpty(url) || profile.getDB().hasSuggestedImageUrl(url)) {
                     continue;
                 }
 
@@ -647,6 +769,8 @@ public class TopSitesPanel extends HomeFragment {
 
         @Override
         public void onLoaderReset(Loader<Cursor> loader) {
+            super.onLoaderReset(loader);
+
             if (mListAdapter != null) {
                 mListAdapter.swapCursor(null);
             }
@@ -700,8 +824,9 @@ public class TopSitesPanel extends HomeFragment {
      */
     @SuppressWarnings("serial")
     static class ThumbnailsLoader extends AsyncTaskLoader<Map<String, ThumbnailInfo>> {
+        private final BrowserDB mDB;
         private Map<String, ThumbnailInfo> mThumbnailInfos;
-        private ArrayList<String> mUrls;
+        private final ArrayList<String> mUrls;
 
         private static final ArrayList<String> COLUMNS = new ArrayList<String>() {{
             add(TILE_IMAGE_URL_COLUMN);
@@ -711,6 +836,7 @@ public class TopSitesPanel extends HomeFragment {
         public ThumbnailsLoader(Context context, ArrayList<String> urls) {
             super(context);
             mUrls = urls;
+            mDB = GeckoProfile.get(context).getDB();
         }
 
         @Override
@@ -722,7 +848,7 @@ public class TopSitesPanel extends HomeFragment {
 
             // Query the DB for tile images.
             final ContentResolver cr = getContext().getContentResolver();
-            final Map<String, Map<String, Object>> metadata = URLMetadata.getForUrls(cr, mUrls, COLUMNS);
+            final Map<String, Map<String, Object>> metadata = mDB.getURLMetadata().getForURLs(cr, mUrls, COLUMNS);
 
             // Keep a list of urls that don't have tiles images. We'll use thumbnails for them instead.
             final List<String> thumbnailUrls = new ArrayList<String>();
@@ -742,7 +868,7 @@ public class TopSitesPanel extends HomeFragment {
             }
 
             // Query the DB for tile thumbnails.
-            final Cursor cursor = BrowserDB.getThumbnailsForUrls(cr, thumbnailUrls);
+            final Cursor cursor = mDB.getThumbnailsForUrls(cr, thumbnailUrls);
             if (cursor == null) {
                 return thumbnails;
             }

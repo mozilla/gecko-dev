@@ -47,8 +47,7 @@ function selectArea()
     var clipboardHelper = SpecialPowers.Cc["@mozilla.org/widget/clipboardhelper;1"]
                                        .getService(SpecialPowers.Ci.nsIClipboardHelper);
     clipboardHelper.copyStringToClipboard("COPY TEXT",
-                                          SpecialPowers.Ci.nsIClipboard.kSelectionClipboard,
-                                          document);
+                                          SpecialPowers.Ci.nsIClipboard.kSelectionClipboard);
   }
 
   setTimeout(checkSelectionClipboardText, 50, 0);
@@ -111,6 +110,7 @@ function pastedGlobal(event)
 }
 
 SimpleTest.waitForExplicitFinish();
+SimpleTest.requestFlakyTimeout("untriaged");
 SimpleTest.waitForFocus(function() {
   SpecialPowers.pushPrefEnv({"set": [["general.autoScroll", false]]}, selectArea);
 });

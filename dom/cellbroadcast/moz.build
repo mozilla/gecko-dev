@@ -8,12 +8,34 @@ DIRS += ['interfaces']
 
 EXPORTS.mozilla.dom += [
     'CellBroadcast.h',
+    'CellBroadcastMessage.h',
 ]
 
-SOURCES += [
+UNIFIED_SOURCES += [
     'CellBroadcast.cpp',
+    'CellBroadcastMessage.cpp',
+    'ipc/CellBroadcastIPCService.cpp',
+    'ipc/CellBroadcastParent.cpp',
 ]
 
-FAIL_ON_WARNINGS = True
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk' and CONFIG['MOZ_B2G_RIL'] and not CONFIG['DISABLE_MOZ_RIL_GEOLOC']:
+    EXTRA_COMPONENTS += [
+        'gonk/CellBroadcastService.js',
+        'gonk/CellBroadcastService.manifest',
+    ]
+
+EXPORTS.mozilla.dom.cellbroadcast += [
+    'ipc/CellBroadcastIPCService.h',
+    'ipc/CellBroadcastParent.h',
+]
+
+IPDL_SOURCES += [
+    'ipc/PCellBroadcast.ipdl',
+]
+
+include('/ipc/chromium/chromium-config.mozbuild')
 
 FINAL_LIBRARY = 'xul'
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wshadow']

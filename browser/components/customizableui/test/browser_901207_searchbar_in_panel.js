@@ -4,8 +4,8 @@
 
 "use strict";
 
-let openUILinkInCalled = false;
-let expectOpenUILinkInCall = false;
+var openUILinkInCalled = false;
+var expectOpenUILinkInCall = false;
 this.originalOpenUILinkIn = openUILinkIn;
 openUILinkIn = (aUrl, aWhichTab) => {
   is(aUrl, "about:home", "about:home should be requested to open.");
@@ -82,7 +82,7 @@ add_task(function() {
   yield shownPanelPromise;
 
   let chevron = document.getElementById("nav-bar-overflow-button");
-  yield waitForCondition(function() chevron.open);
+  yield waitForCondition(() => chevron.open);
 
   yield waitForSearchBarFocus();
 
@@ -116,7 +116,7 @@ add_task(function() {
     openUILinkInCalled = false;
 
     sendWebSearchKeyCommand();
-    yield waitForCondition(function() openUILinkInCalled);
+    yield waitForCondition(() => openUILinkInCalled);
     ok(openUILinkInCalled, "The search page should have been opened.")
     expectOpenUILinkInCall = false;
   } catch (e) {

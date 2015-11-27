@@ -295,18 +295,18 @@ ScaledFontDWrite::ScaledFontDWrite(uint8_t *aData, uint32_t aSize,
   key.mSize = aSize;
 
   RefPtr<IDWriteFontFile> fontFile;
-  if (FAILED(factory->CreateCustomFontFileReference(&key, sizeof(ffReferenceKey), DWriteFontFileLoader::Instance(), byRef(fontFile)))) {
+  if (FAILED(factory->CreateCustomFontFileReference(&key, sizeof(ffReferenceKey), DWriteFontFileLoader::Instance(), getter_AddRefs(fontFile)))) {
     gfxWarning() << "Failed to load font file from data!";
     return;
   }
 
   IDWriteFontFile *ff = fontFile;
-  if (FAILED(factory->CreateFontFace(DWRITE_FONT_FACE_TYPE_TRUETYPE, 1, &ff, aIndex, DWRITE_FONT_SIMULATIONS_NONE, byRef(mFontFace)))) {
+  if (FAILED(factory->CreateFontFace(DWRITE_FONT_FACE_TYPE_TRUETYPE, 1, &ff, aIndex, DWRITE_FONT_SIMULATIONS_NONE, getter_AddRefs(mFontFace)))) {
     gfxWarning() << "Failed to create font face from font file data!";
   }
 }
 
-TemporaryRef<Path>
+already_AddRefed<Path>
 ScaledFontDWrite::GetPathForGlyphs(const GlyphBuffer &aBuffer, const DrawTarget *aTarget)
 {
   if (aTarget->GetBackendType() != BackendType::DIRECT2D && aTarget->GetBackendType() != BackendType::DIRECT2D1_1) {
@@ -326,7 +326,7 @@ ScaledFontDWrite::GetPathForGlyphs(const GlyphBuffer &aBuffer, const DrawTarget 
 void
 ScaledFontDWrite::CopyGlyphsToBuilder(const GlyphBuffer &aBuffer, PathBuilder *aBuilder, BackendType aBackendType, const Matrix *aTransformHint)
 {
-  if (aBackendType != BackendType::DIRECT2D) {
+  if (aBackendType != BackendType::DIRECT2D && aBackendType != BackendType::DIRECT2D1_1) {
     ScaledFontBase::CopyGlyphsToBuilder(aBuffer, aBuilder, aBackendType, aTransformHint);
     return;
   }
@@ -371,7 +371,7 @@ ScaledFontDWrite::GetFontFileData(FontFileDataOutput aDataCallback, void *aBaton
   }
 
   RefPtr<IDWriteFontFile> file;
-  mFontFace->GetFiles(&fileCount, byRef(file));
+  mFontFace->GetFiles(&fileCount, getter_AddRefs(file));
 
   const void *referenceKey;
   UINT32 refKeySize;
@@ -382,10 +382,10 @@ ScaledFontDWrite::GetFontFileData(FontFileDataOutput aDataCallback, void *aBaton
   file->GetReferenceKey(&referenceKey, &refKeySize);
 
   RefPtr<IDWriteFontFileLoader> loader;
-  file->GetLoader(byRef(loader));
+  file->GetLoader(getter_AddRefs(loader));
   
   RefPtr<IDWriteFontFileStream> stream;
-  loader->CreateStreamFromKey(referenceKey, refKeySize, byRef(stream));
+  loader->CreateStreamFromKey(referenceKey, refKeySize, getter_AddRefs(stream));
 
   UINT64 fileSize64;
   stream->GetFileSize(&fileSize64);

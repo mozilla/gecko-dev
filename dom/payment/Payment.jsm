@@ -27,7 +27,7 @@ XPCOMUtils.defineLazyServiceGetter(this, "prefService",
                                    "@mozilla.org/preferences-service;1",
                                    "nsIPrefService");
 
-let PaymentManager =  {
+var PaymentManager =  {
   init: function init() {
     // Payment providers data are stored as a preference.
     this.registeredProviders = null;
@@ -45,7 +45,7 @@ let PaymentManager =  {
       }
     } catch(e) {}
 
-    for each (let msgname in PAYMENT_IPC_MSG_NAMES) {
+    for (let msgname of PAYMENT_IPC_MSG_NAMES) {
       ppmm.addMessageListener(msgname, this);
     }
 
@@ -236,8 +236,9 @@ let PaymentManager =  {
         if (systemAppId != Ci.nsIScriptSecurityManager.NO_APP_ID) {
           this.LOG("Granting firefox-accounts permission to " + provider.uri);
           let uri = Services.io.newURI(provider.uri, null, null);
-          let principal = Services.scriptSecurityManager
-                            .getAppCodebasePrincipal(uri, systemAppId, true);
+          let attrs = {appId: systemAppId, inBrowser: true};
+          let principal =
+            Services.scriptSecurityManager.createCodebasePrincipal(uri, attrs);
 
           Services.perms.addFromPrincipal(principal, "firefox-accounts",
                                           Ci.nsIPermissionManager.ALLOW_ACTION,
@@ -301,7 +302,7 @@ let PaymentManager =  {
       // the payment request information to be shown to the user.
       // Before decoding the JWT string we need to normalize it to be compliant
       // with RFC 4648.
-      segments[1] = segments[1].replace("-", "+", "g").replace("_", "/", "g");
+      segments[1] = segments[1].replace(/-/g, "+").replace(/_/g, "/");
       let payload = atob(segments[1]);
       if (this._debug) {
         this.LOG("Payload " + payload);
@@ -378,6 +379,8 @@ let PaymentManager =  {
     paymentFlowInfo.uri = aPaymentProvider.uri;
     paymentFlowInfo.requestMethod = aPaymentProvider.requestMethod;
     paymentFlowInfo.jwt = aJwt;
+    paymentFlowInfo.name = aPaymentProvider.name;
+    paymentFlowInfo.description = aPaymentProvider.description;
 
     let glue = Cc["@mozilla.org/payment/ui-glue;1"]
                .createInstance(Ci.nsIPaymentUIGlue);
@@ -398,7 +401,7 @@ let PaymentManager =  {
 
   observe: function observe(subject, topic, data) {
     if (topic == "xpcom-shutdown") {
-      for each (let msgname in PAYMENT_IPC_MSG_NAMES) {
+      for (let msgname of PAYMENT_IPC_MSG_NAMES) {
         ppmm.removeMessageListener(msgname, this);
       }
       this.registeredProviders = null;

@@ -27,7 +27,11 @@ struct BaseSize {
   void SizeTo(T aWidth, T aHeight) { width = aWidth; height = aHeight; }
 
   bool IsEmpty() const {
-    return width == 0 || height == 0;
+    return width <= 0 || height <= 0;
+  }
+
+  bool IsSquare() const {
+    return width == height;
   }
 
   // Note that '=' isn't defined so we'll get the
@@ -69,6 +73,9 @@ struct BaseSize {
   Sub operator/(T aScale) const {
     return Sub(width / aScale, height / aScale);
   }
+  friend Sub operator*(T aScale, const Sub& aSize) {
+    return Sub(aScale * aSize.width, aScale * aSize.height);
+  }
   void Scale(T aXScale, T aYScale) {
     width *= aXScale;
     height *= aYScale;
@@ -82,7 +89,7 @@ struct BaseSize {
   }
 };
 
-}
-}
+} // namespace gfx
+} // namespace mozilla
 
 #endif /* MOZILLA_GFX_BASESIZE_H_ */

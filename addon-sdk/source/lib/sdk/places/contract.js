@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
 "use strict";
 
 module.metadata = {
@@ -9,7 +8,6 @@ module.metadata = {
 };
 
 const { Cc, Ci } = require('chrome');
-const { EventEmitter } = require('../deprecated/events');
 const { isValidURI, URL } = require('../url');
 const { contract } = require('../util/contract');
 const { extend } = require('../util/object');
@@ -22,7 +20,7 @@ const validItem = {
   group: {
     is: ['object', 'number', 'undefined', 'null'],
     ok: function (value) {
-      return value && 
+      return value &&
         (value.toString && value.toString() === '[object Group]') ||
         typeof value === 'number' ||
         value.type === 'group';
@@ -31,7 +29,7 @@ const validItem = {
   },
   index: {
     is: ['undefined', 'null', 'number'],
-    map: function (value) value == null ? -1 : value,
+    map: value => value == null ? -1 : value,
     msg: 'The `index` property must be a number.'
   },
   updated: {
@@ -48,7 +46,7 @@ const validTitle = {
 
 const validURL = {
   url: {
-    is: ['string'], 
+    is: ['string'],
     ok: isValidURI,
     msg: 'The `url` property must be a valid URL.'
   }
@@ -57,7 +55,7 @@ const validURL = {
 const validTags = {
   tags: {
     is: ['object'],
-    ok: function (tags) tags instanceof Set,
+    ok: tags => tags instanceof Set,
     map: function (tags) {
       if (Array.isArray(tags))
         return new Set(tags);

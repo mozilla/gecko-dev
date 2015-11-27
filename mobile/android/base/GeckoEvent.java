@@ -25,16 +25,13 @@ import android.util.Log;
 import android.util.SparseArray;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
-import org.mozilla.gecko.mozglue.JNITarget;
-import org.mozilla.gecko.mozglue.RobocopTarget;
+import org.mozilla.gecko.annotation.JNITarget;
+import org.mozilla.gecko.annotation.RobocopTarget;
 
-/* We're not allowed to hold on to most events given to us
+/**
+ * We're not allowed to hold on to most events given to us
  * so we save the parts of the events we want to use in GeckoEvent.
  * Fields have different meanings depending on the event type.
- */
-
-/* This class is referenced by Robocop via reflection; use care when
- * modifying the signature.
  */
 @JNITarget
 public class GeckoEvent {
@@ -43,7 +40,7 @@ public class GeckoEvent {
     private static final int EVENT_FACTORY_SIZE = 5;
 
     // Maybe we're probably better to just make mType non final, and just store GeckoEvents in here...
-    private static SparseArray<ArrayBlockingQueue<GeckoEvent>> mEvents = new SparseArray<ArrayBlockingQueue<GeckoEvent>>();
+    private static final SparseArray<ArrayBlockingQueue<GeckoEvent>> mEvents = new SparseArray<ArrayBlockingQueue<GeckoEvent>>();
 
     public static GeckoEvent get(NativeGeckoEvent type) {
         synchronized (mEvents) {
@@ -73,11 +70,9 @@ public class GeckoEvent {
     @JNITarget
     private enum NativeGeckoEvent {
         NATIVE_POKE(0),
-        KEY_EVENT(1),
         MOTION_EVENT(2),
         SENSOR_EVENT(3),
         LOCATION_EVENT(5),
-        IME_EVENT(6),
         SIZE_CHANGED(8),
         APP_BACKGROUNDING(9),
         APP_FOREGROUNDING(10),
@@ -93,21 +88,18 @@ public class GeckoEvent {
         COMPOSITOR_PAUSE(29),
         COMPOSITOR_RESUME(30),
         NATIVE_GESTURE_EVENT(31),
-        IME_KEY_EVENT(32),
         CALL_OBSERVER(33),
         REMOVE_OBSERVER(34),
         LOW_MEMORY(35),
         NETWORK_LINK_CHANGE(36),
         TELEMETRY_HISTOGRAM_ADD(37),
-        PREFERENCES_OBSERVE(39),
-        PREFERENCES_GET(40),
-        PREFERENCES_REMOVE_OBSERVERS(41),
         TELEMETRY_UI_SESSION_START(42),
         TELEMETRY_UI_SESSION_STOP(43),
         TELEMETRY_UI_EVENT(44),
         GAMEPAD_ADDREMOVE(45),
         GAMEPAD_DATA(46),
-        LONG_PRESS(47);
+        LONG_PRESS(47),
+        ZOOMEDVIEW(48);
 
         public final int value;
 
@@ -115,63 +107,6 @@ public class GeckoEvent {
             this.value = value;
         }
     }
-
-    /**
-     * The DomKeyLocation enum encapsulates the DOM KeyboardEvent's constants.
-     * @see https://developer.mozilla.org/en-US/docs/DOM/KeyboardEvent#Key_location_constants
-     */
-    @JNITarget
-    public enum DomKeyLocation {
-        DOM_KEY_LOCATION_STANDARD(0),
-        DOM_KEY_LOCATION_LEFT(1),
-        DOM_KEY_LOCATION_RIGHT(2),
-        DOM_KEY_LOCATION_NUMPAD(3),
-        DOM_KEY_LOCATION_MOBILE(4),
-        DOM_KEY_LOCATION_JOYSTICK(5);
-
-        public final int value;
-
-        private DomKeyLocation(int value) {
-            this.value = value;
-        }
-    }
-
-    // Encapsulation of common IME actions.
-    @JNITarget
-    public enum ImeAction {
-        IME_SYNCHRONIZE(0),
-        IME_REPLACE_TEXT(1),
-        IME_SET_SELECTION(2),
-        IME_ADD_COMPOSITION_RANGE(3),
-        IME_UPDATE_COMPOSITION(4),
-        IME_REMOVE_COMPOSITION(5),
-        IME_ACKNOWLEDGE_FOCUS(6),
-        IME_COMPOSE_TEXT(7);
-
-        public final int value;
-
-        private ImeAction(int value) {
-            this.value = value;
-        }
-    }
-
-    public static final int IME_RANGE_CARETPOSITION = 1;
-    public static final int IME_RANGE_RAWINPUT = 2;
-    public static final int IME_RANGE_SELECTEDRAWTEXT = 3;
-    public static final int IME_RANGE_CONVERTEDTEXT = 4;
-    public static final int IME_RANGE_SELECTEDCONVERTEDTEXT = 5;
-
-    public static final int IME_RANGE_LINE_NONE = 0;
-    public static final int IME_RANGE_LINE_DOTTED = 1;
-    public static final int IME_RANGE_LINE_DASHED = 2;
-    public static final int IME_RANGE_LINE_SOLID = 3;
-    public static final int IME_RANGE_LINE_DOUBLE = 4;
-    public static final int IME_RANGE_LINE_WAVY = 5;
-
-    public static final int IME_RANGE_UNDERLINE = 1;
-    public static final int IME_RANGE_FORECOLOR = 2;
-    public static final int IME_RANGE_BACKCOLOR = 4;
-    public static final int IME_RANGE_LINECOLOR = 8;
 
     public static final int ACTION_MAGNIFY_START = 11;
     public static final int ACTION_MAGNIFY = 12;
@@ -198,39 +133,22 @@ public class GeckoEvent {
     private double mX;
     private double mY;
     private double mZ;
+    private double mW;
 
     private int mMetaState;
     private int mFlags;
-    private int mKeyCode;
-    private int mScanCode;
-    private int mUnicodeChar;
-    private int mBaseUnicodeChar; // mUnicodeChar without meta states applied
-    private int mDOMPrintableKeyValue;
-    private int mRepeatCount;
     private int mCount;
-    private int mStart;
-    private int mEnd;
     private String mCharacters;
     private String mCharactersExtra;
     private String mData;
-    private int mRangeType;
-    private int mRangeStyles;
-    private int mRangeLineStyle;
-    private boolean mRangeBoldLine;
-    private int mRangeForeColor;
-    private int mRangeBackColor;
-    private int mRangeLineColor;
     private Location mLocation;
-    private Address mAddress;
-    private DomKeyLocation mDomKeyLocation;
 
     private int     mConnectionType;
     private boolean mIsWifi;
     private int     mDHCPGateway;
 
-    private int mNativeWindow;
-
     private short mScreenOrientation;
+    private short mScreenAngle;
 
     private ByteBuffer mBuffer;
 
@@ -242,8 +160,6 @@ public class GeckoEvent {
     private boolean mGamepadButtonPressed;
     private float mGamepadButtonValue;
     private float[] mGamepadValues;
-
-    private String[] mPrefNames;
 
     private GeckoEvent(NativeGeckoEvent event) {
         mType = event.value;
@@ -261,12 +177,6 @@ public class GeckoEvent {
         return GeckoEvent.get(NativeGeckoEvent.NOOP);
     }
 
-    public static GeckoEvent createKeyEvent(KeyEvent k, int metaState) {
-        GeckoEvent event = GeckoEvent.get(NativeGeckoEvent.KEY_EVENT);
-        event.initKeyEvent(k, metaState);
-        return event;
-    }
-
     public static GeckoEvent createCompositorCreateEvent(int width, int height) {
         GeckoEvent event = GeckoEvent.get(NativeGeckoEvent.COMPOSITOR_CREATE);
         event.mWidth = width;
@@ -280,60 +190,6 @@ public class GeckoEvent {
 
     public static GeckoEvent createCompositorResumeEvent() {
         return GeckoEvent.get(NativeGeckoEvent.COMPOSITOR_RESUME);
-    }
-
-    private void initKeyEvent(KeyEvent k, int metaState) {
-        mAction = k.getAction();
-        mTime = k.getEventTime();
-        // Normally we expect k.getMetaState() to reflect the current meta-state; however,
-        // some software-generated key events may not have k.getMetaState() set, e.g. key
-        // events from Swype. Therefore, it's necessary to combine the key's meta-states
-        // with the meta-states that we keep separately in KeyListener
-        mMetaState = k.getMetaState() | metaState;
-        mFlags = k.getFlags();
-        mKeyCode = k.getKeyCode();
-        mScanCode = k.getScanCode();
-        mUnicodeChar = k.getUnicodeChar(mMetaState);
-        // e.g. for Ctrl+A, Android returns 0 for mUnicodeChar,
-        // but Gecko expects 'a', so we return that in mBaseUnicodeChar
-        mBaseUnicodeChar = k.getUnicodeChar(0);
-        mRepeatCount = k.getRepeatCount();
-        mCharacters = k.getCharacters();
-        if (mUnicodeChar >= ' ') {
-            mDOMPrintableKeyValue = mUnicodeChar;
-        } else {
-            int unmodifiedMetaState =
-                mMetaState & ~(KeyEvent.META_ALT_MASK |
-                               KeyEvent.META_CTRL_MASK |
-                               KeyEvent.META_META_MASK);
-            if (unmodifiedMetaState != mMetaState) {
-                mDOMPrintableKeyValue = k.getUnicodeChar(unmodifiedMetaState);
-            }
-        }
-        mDomKeyLocation = isJoystickButton(mKeyCode) ? DomKeyLocation.DOM_KEY_LOCATION_JOYSTICK
-                                                     : DomKeyLocation.DOM_KEY_LOCATION_MOBILE;
-    }
-
-    /**
-     * This method tests if a key is one of the described in:
-     * https://bugzilla.mozilla.org/show_bug.cgi?id=756504#c0
-     * @param keyCode int with the key code (Android key constant from KeyEvent)
-     * @return true if the key is one of the listed above, false otherwise.
-     */
-    private static boolean isJoystickButton(int keyCode) {
-        switch (keyCode) {
-            case KeyEvent.KEYCODE_DPAD_CENTER:
-            case KeyEvent.KEYCODE_DPAD_LEFT:
-            case KeyEvent.KEYCODE_DPAD_RIGHT:
-            case KeyEvent.KEYCODE_DPAD_DOWN:
-            case KeyEvent.KEYCODE_DPAD_UP:
-                return true;
-            default:
-                if (Versions.feature12Plus) {
-                    return KeyEvent.isGamepadButton(keyCode);
-                }
-                return GeckoEvent.isGamepadButton(keyCode);
-        }
     }
 
     /**
@@ -397,7 +253,7 @@ public class GeckoEvent {
                 return null;
             }
 
-            event.mPoints[0] = new Point(Math.round(geckoPoint.x), Math.round(geckoPoint.y));
+            event.mPoints[0] = new Point((int)Math.floor(geckoPoint.x), (int)Math.floor(geckoPoint.y));
 
             event.mX = size;
             event.mTime = System.currentTimeMillis();
@@ -478,7 +334,7 @@ public class GeckoEvent {
                 geckoPoint = GeckoAppShell.getLayerView().convertViewPointToLayerPoint(geckoPoint);
             }
 
-            mPoints[index] = new Point(Math.round(geckoPoint.x), Math.round(geckoPoint.y));
+            mPoints[index] = new Point((int)Math.floor(geckoPoint.x), (int)Math.floor(geckoPoint.y));
             mPointIndicies[index] = event.getPointerId(eventIndex);
 
             double radians = event.getOrientation(eventIndex);
@@ -551,7 +407,7 @@ public class GeckoEvent {
             event.mZ = s.values[2];
             break;
 
-        case 10 /* Requires API Level 9, so just use the raw value - Sensor.TYPE_LINEAR_ACCELEROMETER*/ :
+        case Sensor.TYPE_LINEAR_ACCELERATION:
             event = GeckoEvent.get(NativeGeckoEvent.SENSOR_EVENT);
             event.mFlags = GeckoHalDefines.SENSOR_LINEAR_ACCELERATION;
             event.mMetaState = HalSensorAccuracyFor(s.accuracy);
@@ -593,6 +449,35 @@ public class GeckoEvent {
             event.mMetaState = HalSensorAccuracyFor(s.accuracy);
             event.mX = s.values[0];
             break;
+
+        case Sensor.TYPE_ROTATION_VECTOR:
+            event = GeckoEvent.get(NativeGeckoEvent.SENSOR_EVENT);
+            event.mFlags = GeckoHalDefines.SENSOR_ROTATION_VECTOR;
+            event.mMetaState = HalSensorAccuracyFor(s.accuracy);
+            event.mX = s.values[0];
+            event.mY = s.values[1];
+            event.mZ = s.values[2];
+            if (s.values.length >= 4) {
+                event.mW = s.values[3];
+            } else {
+                // s.values[3] was optional in API <= 18, so we need to compute it
+                // The values form a unit quaternion, so we can compute the angle of
+                // rotation purely based on the given 3 values.
+                event.mW = 1 - s.values[0]*s.values[0] - s.values[1]*s.values[1] - s.values[2]*s.values[2];
+                event.mW = (event.mW > 0.0) ? Math.sqrt(event.mW) : 0.0;
+            }
+            break;
+
+        // case Sensor.TYPE_GAME_ROTATION_VECTOR: // API >= 18
+        case 15:
+            event = GeckoEvent.get(NativeGeckoEvent.SENSOR_EVENT);
+            event.mFlags = GeckoHalDefines.SENSOR_GAME_ROTATION_VECTOR;
+            event.mMetaState = HalSensorAccuracyFor(s.accuracy);
+            event.mX = s.values[0];
+            event.mY = s.values[1];
+            event.mZ = s.values[2];
+            event.mW = s.values[3];
+            break;
         }
         return event;
     }
@@ -600,73 +485,6 @@ public class GeckoEvent {
     public static GeckoEvent createLocationEvent(Location l) {
         GeckoEvent event = GeckoEvent.get(NativeGeckoEvent.LOCATION_EVENT);
         event.mLocation = l;
-        return event;
-    }
-
-    public static GeckoEvent createIMEEvent(ImeAction action) {
-        GeckoEvent event = GeckoEvent.get(NativeGeckoEvent.IME_EVENT);
-        event.mAction = action.value;
-        return event;
-    }
-
-    public static GeckoEvent createIMEKeyEvent(KeyEvent k) {
-        GeckoEvent event = GeckoEvent.get(NativeGeckoEvent.IME_KEY_EVENT);
-        event.initKeyEvent(k, 0);
-        return event;
-    }
-
-    public static GeckoEvent createIMEReplaceEvent(int start, int end, String text) {
-        return createIMETextEvent(false, start, end, text);
-    }
-
-    public static GeckoEvent createIMEComposeEvent(int start, int end, String text) {
-        return createIMETextEvent(true, start, end, text);
-    }
-
-    private static GeckoEvent createIMETextEvent(boolean compose, int start, int end, String text) {
-        GeckoEvent event = GeckoEvent.get(NativeGeckoEvent.IME_EVENT);
-        event.mAction = (compose ? ImeAction.IME_COMPOSE_TEXT : ImeAction.IME_REPLACE_TEXT).value;
-        event.mStart = start;
-        event.mEnd = end;
-        event.mCharacters = text;
-        return event;
-    }
-
-    public static GeckoEvent createIMESelectEvent(int start, int end) {
-        GeckoEvent event = GeckoEvent.get(NativeGeckoEvent.IME_EVENT);
-        event.mAction = ImeAction.IME_SET_SELECTION.value;
-        event.mStart = start;
-        event.mEnd = end;
-        return event;
-    }
-
-    public static GeckoEvent createIMECompositionEvent(int start, int end) {
-        GeckoEvent event = GeckoEvent.get(NativeGeckoEvent.IME_EVENT);
-        event.mAction = ImeAction.IME_UPDATE_COMPOSITION.value;
-        event.mStart = start;
-        event.mEnd = end;
-        return event;
-    }
-
-    public static GeckoEvent createIMERangeEvent(int start,
-                                                 int end, int rangeType,
-                                                 int rangeStyles,
-                                                 int rangeLineStyle,
-                                                 boolean rangeBoldLine,
-                                                 int rangeForeColor,
-                                                 int rangeBackColor,
-                                                 int rangeLineColor) {
-        GeckoEvent event = GeckoEvent.get(NativeGeckoEvent.IME_EVENT);
-        event.mAction = ImeAction.IME_ADD_COMPOSITION_RANGE.value;
-        event.mStart = start;
-        event.mEnd = end;
-        event.mRangeType = rangeType;
-        event.mRangeStyles = rangeStyles;
-        event.mRangeLineStyle = rangeLineStyle;
-        event.mRangeBoldLine = rangeBoldLine;
-        event.mRangeForeColor = rangeForeColor;
-        event.mRangeBackColor = rangeBackColor;
-        event.mRangeLineColor = rangeLineColor;
         return event;
     }
 
@@ -693,10 +511,6 @@ public class GeckoEvent {
         sb.append("{ \"x\" : ").append(metrics.viewportRectLeft)
           .append(", \"y\" : ").append(metrics.viewportRectTop)
           .append(", \"zoom\" : ").append(metrics.zoomFactor)
-          .append(", \"fixedMarginLeft\" : ").append(metrics.marginLeft)
-          .append(", \"fixedMarginTop\" : ").append(metrics.marginTop)
-          .append(", \"fixedMarginRight\" : ").append(metrics.marginRight)
-          .append(", \"fixedMarginBottom\" : ").append(metrics.marginBottom)
           .append(", \"displayPort\" :").append(displayPort.toJSON())
           .append('}');
         event.mCharactersExtra = sb.toString();
@@ -707,13 +521,6 @@ public class GeckoEvent {
         GeckoEvent event = GeckoEvent.get(NativeGeckoEvent.LOAD_URI);
         event.mCharacters = uri;
         event.mCharactersExtra = "";
-        return event;
-    }
-
-    public static GeckoEvent createWebappLoadEvent(String uri) {
-        GeckoEvent event = GeckoEvent.get(NativeGeckoEvent.LOAD_URI);
-        event.mCharacters = uri;
-        event.mCharactersExtra = "-webapp";
         return event;
     }
 
@@ -747,9 +554,21 @@ public class GeckoEvent {
         return event;
     }
 
-    public static GeckoEvent createScreenOrientationEvent(short aScreenOrientation) {
+    public static GeckoEvent createZoomedViewEvent(int tabId, int x, int y, int bufw, int bufh, float scaleFactor, ByteBuffer buffer) {
+        GeckoEvent event = GeckoEvent.get(NativeGeckoEvent.ZOOMEDVIEW);
+        event.mPoints = new Point[2];
+        event.mPoints[0] = new Point(x, y);
+        event.mPoints[1] = new Point(bufw, bufh);
+        event.mX = (double) scaleFactor;
+        event.mMetaState = tabId;
+        event.mBuffer = buffer;
+        return event;
+    }
+
+    public static GeckoEvent createScreenOrientationEvent(short aScreenOrientation, short aScreenAngle) {
         GeckoEvent event = GeckoEvent.get(NativeGeckoEvent.SCREENORIENTATION_CHANGED);
         event.mScreenOrientation = aScreenOrientation;
+        event.mScreenAngle = aScreenAngle;
         return event;
     }
 
@@ -764,29 +583,6 @@ public class GeckoEvent {
     public static GeckoEvent createRemoveObserverEvent(String observerKey) {
         GeckoEvent event = GeckoEvent.get(NativeGeckoEvent.REMOVE_OBSERVER);
         event.mCharacters = observerKey;
-        return event;
-    }
-
-    @RobocopTarget
-    public static GeckoEvent createPreferencesObserveEvent(int requestId, String[] prefNames) {
-        GeckoEvent event = GeckoEvent.get(NativeGeckoEvent.PREFERENCES_OBSERVE);
-        event.mCount = requestId;
-        event.mPrefNames = prefNames;
-        return event;
-    }
-
-    @RobocopTarget
-    public static GeckoEvent createPreferencesGetEvent(int requestId, String[] prefNames) {
-        GeckoEvent event = GeckoEvent.get(NativeGeckoEvent.PREFERENCES_GET);
-        event.mCount = requestId;
-        event.mPrefNames = prefNames;
-        return event;
-    }
-
-    @RobocopTarget
-    public static GeckoEvent createPreferencesRemoveObserversEvent(int requestId) {
-        GeckoEvent event = GeckoEvent.get(NativeGeckoEvent.PREFERENCES_REMOVE_OBSERVERS);
-        event.mCount = requestId;
         return event;
     }
 
@@ -806,6 +602,18 @@ public class GeckoEvent {
                                                               int value) {
         GeckoEvent event = GeckoEvent.get(NativeGeckoEvent.TELEMETRY_HISTOGRAM_ADD);
         event.mCharacters = histogram;
+        // Set the extras with null so that it cannot be mistaken with a keyed histogram.
+        event.mCharactersExtra = null;
+        event.mCount = value;
+        return event;
+    }
+
+    public static GeckoEvent createTelemetryKeyedHistogramAddEvent(String histogram,
+                                                                   String key,
+                                                                   int value) {
+        GeckoEvent event = GeckoEvent.get(NativeGeckoEvent.TELEMETRY_HISTOGRAM_ADD);
+        event.mCharacters = histogram;
+        event.mCharactersExtra = key;
         event.mCount = value;
         return event;
     }

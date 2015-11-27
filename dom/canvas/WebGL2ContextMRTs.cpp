@@ -6,8 +6,7 @@
 #include "WebGL2Context.h"
 #include "GLContext.h"
 
-using namespace mozilla;
-using namespace mozilla::dom;
+namespace mozilla {
 
 bool WebGL2Context::ValidateClearBuffer(const char* info, GLenum buffer, GLint drawbuffer, size_t elemCount)
 {
@@ -74,6 +73,7 @@ WebGL2Context::ClearBufferfv_base(GLenum buffer, GLint drawbuffer, const GLfloat
 void
 WebGL2Context::ClearBufferiv(GLenum buffer, GLint drawbuffer, const dom::Int32Array& value)
 {
+    value.ComputeLengthAndData();
     if (!ValidateClearBuffer("clearBufferiv", buffer, drawbuffer, value.Length())) {
         return;
     }
@@ -94,6 +94,7 @@ WebGL2Context::ClearBufferiv(GLenum buffer, GLint drawbuffer, const dom::Sequenc
 void
 WebGL2Context::ClearBufferuiv(GLenum buffer, GLint drawbuffer, const dom::Uint32Array& value)
 {
+    value.ComputeLengthAndData();
     if (!ValidateClearBuffer("clearBufferuiv", buffer, drawbuffer, value.Length())) {
         return;
     }
@@ -114,6 +115,7 @@ WebGL2Context::ClearBufferuiv(GLenum buffer, GLint drawbuffer, const dom::Sequen
 void
 WebGL2Context::ClearBufferfv(GLenum buffer, GLint drawbuffer, const dom::Float32Array& value)
 {
+    value.ComputeLengthAndData();
     if (!ValidateClearBuffer("clearBufferfv", buffer, drawbuffer, value.Length())) {
         return;
     }
@@ -140,3 +142,5 @@ WebGL2Context::ClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat depth, GLi
     MakeContextCurrent();
     gl->fClearBufferfi(buffer, drawbuffer, depth, stencil);
 }
+
+} // namespace mozilla

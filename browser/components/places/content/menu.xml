@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
 <bindings id="placesMenuBindings"
           xmlns="http://www.mozilla.org/xbl"
@@ -26,6 +26,10 @@
 
     <implementation>
 
+      <field name="AppConstants" readonly="true">
+        (Components.utils.import("resource://gre/modules/AppConstants.jsm", {})).AppConstants;
+      </field>
+
       <field name="_indicatorBar">
         document.getAnonymousElementByAttribute(this, "class",
                                                 "menupopup-drop-indicator-bar");
@@ -45,14 +49,11 @@
         <body><![CDATA[
           let target = aEvent.target;
 
-          // Don't draw the drop indicator outside of markers.
-          // The markers are hidden, since otherwise sometimes popups acquire
-          // scrollboxes on OS X, so we can't use them directly.
-          let firstChildTop = this._startMarker.nextSibling.boxObject.y;
-          let lastChildBottom = this._endMarker.previousSibling.boxObject.y +
-                                this._endMarker.previousSibling.boxObject.height;
-          let betweenMarkers = target.boxObject.y >= firstChildTop ||
-                               target.boxObject.y <= lastChildBottom;
+          // Don't draw the drop indicator outside of markers or if current
+          // node is not a Places node.
+          let betweenMarkers =
+            (this._startMarker.compareDocumentPosition(target) & Node.DOCUMENT_POSITION_FOLLOWING) &&
+            (this._endMarker.compareDocumentPosition(target) & Node.DOCUMENT_POSITION_PRECEDING);
 
           // Hide the dropmarker if current node is not a Places node.
           return !(target && target._placesNode && betweenMarkers);
@@ -106,9 +107,9 @@
 
             let tagName = PlacesUtils.nodeIsTagQuery(elt._placesNode) ?
                             elt._placesNode.title : null;
-            if ((PlacesUtils.nodeIsFolder(elt._placesNode) ||
-                 PlacesUtils.nodeIsTagQuery(elt._placesNode)) &&
-                !PlacesUtils.nodeIsReadOnly(elt._placesNode)) {
+            if ((PlacesUtils.nodeIsFolder(elt._placesNode) &&
+                 !PlacesUIUtils.isContentsReadOnly(elt._placesNode)) ||
+                PlacesUtils.nodeIsTagQuery(elt._placesNode)) {
               // This is a folder or a tag container.
               if (eventY - eltY < eltHeight * 0.20) {
                 // If mouse is in the top part of the element, drop above folder.
@@ -307,18 +308,18 @@
         if (elt.parentNode != this)
           return;
 
-#ifdef XP_MACOSX
-        // XXX: The following check is a temporary hack until bug 420033 is
-        // resolved.
-        let parentElt = elt.parent;
-        while (parentElt) {
-          if (parentElt.id == "bookmarksMenuPopup" ||
-              parentElt.id == "goPopup")
-            return;
+        if (this.AppConstants.platform === "macosx") {
+          // XXX: The following check is a temporary hack until bug 420033 is
+          // resolved.
+          let parentElt = elt.parent;
+          while (parentElt) {
+            if (parentElt.id == "bookmarksMenuPopup" ||
+                parentElt.id == "goPopup")
+              return;
 
-          parentElt = parentElt.parentNode;
+            parentElt = parentElt.parentNode;
+          }
         }
-#endif
 
         if (window.XULBrowserWindow) {
           let elt = event.target;
@@ -595,7 +596,7 @@
           let cs = getComputedStyle(container);
           let transitionProp = cs.transitionProperty;
           let transitionTime = parseFloat(cs.transitionDuration);
-          disablePointerEvents = (transitionProp.contains("transform") ||
+          disablePointerEvents = (transitionProp.includes("transform") ||
                                   transitionProp == "all") &&
                                  transitionTime > 0;
           this.setAttribute("disablepointereventsfortransition", disablePointerEvents);

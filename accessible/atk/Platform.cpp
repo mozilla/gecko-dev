@@ -19,6 +19,10 @@
 #endif
 #include <gtk/gtk.h>
 
+#if (MOZ_WIDGET_GTK == 3)
+extern "C" __attribute__((weak,visibility("default"))) int atk_bridge_adaptor_init(int*, char **[]);
+#endif
+
 using namespace mozilla;
 using namespace mozilla::a11y;
 
@@ -63,11 +67,13 @@ static GnomeAccessibilityModule sAtkBridge = {
     "gnome_accessibility_module_shutdown", nullptr
 };
 
+#if (MOZ_WIDGET_GTK == 2)
 static GnomeAccessibilityModule sGail = {
     "libgail.so", nullptr,
     "gnome_accessibility_module_init", nullptr,
     "gnome_accessibility_module_shutdown", nullptr
 };
+#endif
 
 static nsresult
 LoadGtkModule(GnomeAccessibilityModule& aModule)
@@ -94,7 +100,11 @@ LoadGtkModule(GnomeAccessibilityModule& aModule)
             else
                 subLen = loc2 - loc1;
             nsAutoCString sub(Substring(libPath, loc1, subLen));
+#if (MOZ_WIDGET_GTK == 2)
             sub.AppendLiteral("/gtk-2.0/modules/");
+#else
+            sub.AppendLiteral("/gtk-3.0/modules/");
+#endif
             sub.Append(aModule.libName);
             aModule.lib = PR_LoadLibrary(sub.get());
             if (aModule.lib)
@@ -158,19 +168,28 @@ a11y::PlatformInit()
     }
   }
 
+#if (MOZ_WIDGET_GTK == 2)
   // Load and initialize gail library.
   nsresult rv = LoadGtkModule(sGail);
   if (NS_SUCCEEDED(rv))
     (*sGail.init)();
+#endif
 
   // Initialize the MAI Utility class, it will overwrite gail_util.
   g_type_class_unref(g_type_class_ref(mai_util_get_type()));
 
   // Init atk-bridge now
   PR_SetEnv("NO_AT_BRIDGE=0");
-  rv = LoadGtkModule(sAtkBridge);
-  if (NS_SUCCEEDED(rv)) {
-    (*sAtkBridge.init)();
+#if (MOZ_WIDGET_GTK == 3)
+  if (atk_bridge_adaptor_init) {
+    atk_bridge_adaptor_init(nullptr, nullptr);
+  } else
+#endif
+  {
+    nsresult rv = LoadGtkModule(sAtkBridge);
+    if (NS_SUCCEEDED(rv)) {
+      (*sAtkBridge.init)();
+    }
   }
 
   if (!sToplevel_event_hook_added) {
@@ -209,6 +228,7 @@ a11y::PlatformShutdown()
         sAtkBridge.init = nullptr;
         sAtkBridge.shutdown = nullptr;
     }
+#if (MOZ_WIDGET_GTK == 2)
     if (sGail.lib) {
         // Do not shutdown gail because
         // 1) Maybe it's not init-ed by us. e.g. GtkEmbed
@@ -220,6 +240,7 @@ a11y::PlatformShutdown()
         sGail.init = nullptr;
         sGail.shutdown = nullptr;
     }
+#endif
     // if (sATKLib) {
     //     PR_UnloadLibrary(sATKLib);
     //     sATKLib = nullptr;
@@ -340,13 +361,12 @@ dbus_done:
 #endif
 
   //check gconf-2 setting
-static const char sGconfAccessibilityKey[] =
-    "/desktop/gnome/interface/accessibility";
+#define GCONF_A11Y_KEY "/desktop/gnome/interface/accessibility"
   nsresult rv = NS_OK;
   nsCOMPtr<nsIGConfService> gconf =
     do_GetService(NS_GCONFSERVICE_CONTRACTID, &rv);
   if (NS_SUCCEEDED(rv) && gconf)
-    gconf->GetBool(NS_LITERAL_CSTRING(sGconfAccessibilityKey), &sShouldEnable);
+    gconf->GetBool(NS_LITERAL_CSTRING(GCONF_A11Y_KEY), &sShouldEnable);
 
   return sShouldEnable;
 }

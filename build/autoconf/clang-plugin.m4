@@ -15,11 +15,11 @@ if test -n "$ENABLE_CLANG_PLUGIN"; then
 
     AC_MSG_CHECKING([for llvm-config])
     if test -z "$LLVMCONFIG"; then
-      LLVMCONFIG=`which llvm-config`
+      LLVMCONFIG=`$CXX -print-prog-name=llvm-config`
     fi
 
     if test -z "$LLVMCONFIG"; then
-      LLVMCONFIG=`$CXX -print-prog-name=llvm-config`
+      LLVMCONFIG=`which llvm-config`
     fi
 
     if test ! -x "$LLVMCONFIG"; then
@@ -33,9 +33,13 @@ if test -n "$ENABLE_CLANG_PLUGIN"; then
         AC_MSG_ERROR([Cannot find an llvm-config binary for building a clang plugin])
     fi
     LLVM_CXXFLAGS=`$LLVMCONFIG --cxxflags`
-    LLVM_LDFLAGS=`$LLVMCONFIG --ldflags --libs core mc analysis asmparser mcparser bitreader | xargs`
+    dnl The clang package we use on OSX is old, and its llvm-config doesn't
+    dnl recognize --system-libs, so ask for that separately.  llvm-config's
+    dnl failure here is benign, so we can ignore it if it happens.
+    LLVM_LDFLAGS=`$LLVMCONFIG --system-libs | xargs`
+    LLVM_LDFLAGS="$LLVM_LDFLAGS `$LLVMCONFIG --ldflags --libs core mc analysis asmparser mcparser bitreader option | xargs`"
 
-    if test "${OS_ARCH}" = "Darwin"; then
+    if test "${HOST_OS_ARCH}" = "Darwin"; then
         CLANG_LDFLAGS="-lclangFrontend -lclangDriver -lclangSerialization"
         CLANG_LDFLAGS="$CLANG_LDFLAGS -lclangParse -lclangSema -lclangAnalysis"
         CLANG_LDFLAGS="$CLANG_LDFLAGS -lclangEdit -lclangAST -lclangLex"

@@ -3,15 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 using struct gfxPoint from "gfxPoint.h";
-using struct nsIntRect from "nsRect.h";
 using nsIntRegion from "nsRegion.h";
-using struct nsIntSize from "nsSize.h";
 using struct mozilla::layers::MagicGrallocBufferHandle from "gfxipc/ShadowLayerUtils.h";
 using struct mozilla::layers::GrallocBufferRef from "gfxipc/ShadowLayerUtils.h";
 using struct mozilla::layers::SurfaceDescriptorX11 from "gfxipc/ShadowLayerUtils.h";
 using struct mozilla::null_t from "ipc/IPCMessageUtils.h";
 using mozilla::WindowsHandle from "ipc/IPCMessageUtils.h";
 using mozilla::gfx::SurfaceFormat from "mozilla/gfx/Types.h";
+using mozilla::gfx::IntRect from "mozilla/gfx/Rect.h";
 using mozilla::gfx::IntSize from "mozilla/gfx/Point.h";
 using gfxImageFormat from "gfxTypes.h";
 
@@ -39,6 +38,12 @@ struct SurfaceDescriptorD3D9 {
   uintptr_t texture;
 };
 
+struct SurfaceDescriptorFileMapping {
+  WindowsHandle handle;
+  SurfaceFormat format;
+  IntSize size;
+};
+
 struct SurfaceDescriptorDIB {
   // gfxWindowsSurface*
   uintptr_t surface;
@@ -50,10 +55,19 @@ struct SurfaceDescriptorD3D10 {
   IntSize size;
 };
 
+struct SurfaceDescriptorDXGIYCbCr {
+  WindowsHandle handleY;
+  WindowsHandle handleCb;
+  WindowsHandle handleCr;
+  IntSize size;
+  IntSize sizeY;
+  IntSize sizeCbCr;
+};
+
 struct SurfaceDescriptorMacIOSurface {
-  uint32_t surface;
+  uint32_t surfaceId;
   double scaleFactor;
-  bool hasAlpha;
+  bool isOpaque;
 };
 
 struct SurfaceTextureDescriptor {
@@ -63,22 +77,22 @@ struct SurfaceTextureDescriptor {
 
 struct EGLImageDescriptor {
   uintptr_t image; // `EGLImage` is a `void*`.
+  uintptr_t fence;
   IntSize size;
+  bool hasAlpha;
+};
+
+struct SurfaceDescriptorSharedGLTexture {
+  uint32_t texture;
+  uint32_t target;
+  uintptr_t fence;
+  IntSize size;
+  bool hasAlpha;
 };
 
 struct NewSurfaceDescriptorGralloc {
   MaybeMagicGrallocBufferHandle buffer;
-  /**
-   * android::GraphicBuffer has a size information. But there are cases
-   * that GraphicBuffer's size and actual video's size are different.
-   * Extra size member is necessary. See Bug 850566.
-   */
-  IntSize size;
-};
-
-struct SurfaceStreamDescriptor {
-  uintptr_t surfStream;
-  bool yflip;
+  bool isOpaque;
 };
 
 /**
@@ -92,7 +106,7 @@ struct SurfaceDescriptorShmem {
 /**
  * Used for "raw memory"-backed YCbCr and (flavors of) RGBA textures
  */
- struct SurfaceDescriptorMemory {
+struct SurfaceDescriptorMemory {
   uintptr_t data;
   SurfaceFormat format;
 };
@@ -103,12 +117,14 @@ union SurfaceDescriptor {
   SurfaceDescriptorD3D9;
   SurfaceDescriptorDIB;
   SurfaceDescriptorD3D10;
+  SurfaceDescriptorFileMapping;
+  SurfaceDescriptorDXGIYCbCr;
   SurfaceDescriptorX11;
   SurfaceTextureDescriptor;
   EGLImageDescriptor;
-  SurfaceStreamDescriptor;
   SurfaceDescriptorMacIOSurface;
   NewSurfaceDescriptorGralloc;
+  SurfaceDescriptorSharedGLTexture;
   null_t;
 };
 

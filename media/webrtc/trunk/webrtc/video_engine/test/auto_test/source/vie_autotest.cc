@@ -76,7 +76,6 @@ void ViEAutoTest::ViEExtendedTest()
     ViECodecExtendedTest();
     ViEImageProcessExtendedTest();
     ViERenderExtendedTest();
-    ViERtpRtcpExtendedTest();
 }
 
 void ViEAutoTest::ViEAPITest()
@@ -97,6 +96,9 @@ void ViEAutoTest::PrintVideoCodec(const webrtc::VideoCodec videoCodec)
     {
         case webrtc::kVideoCodecVP8:
             ViETest::Log("\tcodecType: VP8");
+            break;
+        case webrtc::kVideoCodecVP9:
+            ViETest::Log("\tcodecType: VP9");
             break;
         case webrtc::kVideoCodecI420:
             ViETest::Log("\tcodecType: I420");
@@ -136,7 +138,7 @@ void ViEAutoTest::PrintAudioCodec(const webrtc::CodecInst audioCodec)
     ViETest::Log("\t: %u", audioCodec.pacsize);
     ViETest::Log("\t: %u", audioCodec.plfreq);
     ViETest::Log("\t: %s", audioCodec.plname);
-    ViETest::Log("\t: %u", audioCodec.pltype);
+    ViETest::Log("\t: %d", audioCodec.pltype);
     ViETest::Log("\t: %u", audioCodec.rate);
     ViETest::Log("");
 }
@@ -149,4 +151,12 @@ void ViEAutoTest::RenderCaptureDeviceAndOutputStream(
       video_engine->render, capture_device->captureId, _window1, 0);
   RenderInWindow(
       video_engine->render, video_channel->videoChannel, _window2, 1);
+}
+
+void ViEAutoTest::StopRenderCaptureDeviceAndOutputStream(
+    TbInterfaces* video_engine,
+    TbVideoChannel* video_channel,
+    TbCaptureDevice* capture_device) {
+  StopRenderInWindow(video_engine->render, capture_device->captureId);
+  StopRenderInWindow(video_engine->render, video_channel->videoChannel);
 }

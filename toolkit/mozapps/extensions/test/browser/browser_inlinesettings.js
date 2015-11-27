@@ -69,7 +69,6 @@ function installAddon(aCallback) {
 function checkScrolling(aShouldHaveScrolled) {
   var detailView = gManagerWindow.document.getElementById("detail-view");
   var boxObject = detailView.boxObject;
-  boxObject.QueryInterface(Ci.nsIScrollBoxObject);
   ok(detailView.scrollHeight > boxObject.height, "Page should require scrolling");
   if (aShouldHaveScrolled)
     isnot(detailView.scrollTop, 0, "Page should have scrolled");
@@ -501,7 +500,7 @@ add_test(function() {
 
     // disable
     var button = gManagerWindow.document.getElementById("detail-disable-btn");
-    button.focus(); // make sure it's in view
+    button.scrollIntoView();
     EventUtils.synthesizeMouseAtCenter(button, { clickCount: 1 }, gManagerWindow);
 
     observer.checkHidden("inlinesettings1@tests.mozilla.org");
@@ -562,7 +561,7 @@ add_test(function() {
 
     // disable
     var button = gManagerWindow.document.getElementById("detail-disable-btn");
-    button.focus(); // make sure it's in view
+    button.scrollIntoView();
     EventUtils.synthesizeMouseAtCenter(button, { clickCount: 1 }, gManagerWindow);
     observer.checkNotHidden();
 
@@ -571,7 +570,7 @@ add_test(function() {
 
     // cancel pending disable
     button = gManagerWindow.document.getElementById("detail-enable-btn");
-    button.focus(); // make sure it's in view
+    button.scrollIntoView();
     EventUtils.synthesizeMouseAtCenter(button, { clickCount: 1 }, gManagerWindow);
     observer.checkNotDisplayed();
 

@@ -10,14 +10,20 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/BasicEvents.h"
+#include "mozilla/CheckedInt.h"
 #include "mozilla/EventForwards.h" // for KeyNameIndex, temporarily
 #include "mozilla/TextRange.h"
+#include "mozilla/FontRange.h"
 #include "nsCOMPtr.h"
 #include "nsIDOMKeyEvent.h"
 #include "nsITransferable.h"
 #include "nsRect.h"
 #include "nsStringGlue.h"
 #include "nsTArray.h"
+#include "WritingModes.h"
+
+class nsStringHashKey;
+template<class, class> class nsDataHashtable;
 
 /******************************************************************************
  * virtual keycode values
@@ -31,8 +37,6 @@ enum
 };
 
 #undef NS_DEFINE_VK
-
-#define kLatestSeqno UINT32_MAX
 
 namespace mozilla {
 
@@ -75,15 +79,18 @@ private:
   friend class dom::PBrowserParent;
   friend class dom::PBrowserChild;
 
+protected:
   WidgetKeyboardEvent()
   {
   }
 
 public:
-  virtual WidgetKeyboardEvent* AsKeyboardEvent() MOZ_OVERRIDE { return this; }
+  virtual WidgetKeyboardEvent* AsKeyboardEvent() override { return this; }
 
-  WidgetKeyboardEvent(bool aIsTrusted, uint32_t aMessage, nsIWidget* aWidget)
-    : WidgetInputEvent(aIsTrusted, aMessage, aWidget, eKeyboardEventClass)
+  WidgetKeyboardEvent(bool aIsTrusted, EventMessage aMessage,
+                      nsIWidget* aWidget,
+                      EventClassID aEventClassID = eKeyboardEventClass)
+    : WidgetInputEvent(aIsTrusted, aMessage, aWidget, aEventClassID)
     , keyCode(0)
     , charCode(0)
     , location(nsIDOMKeyEvent::DOM_KEY_LOCATION_STANDARD)
@@ -94,16 +101,20 @@ public:
     , mCodeNameIndex(CODE_NAME_INDEX_UNKNOWN)
     , mNativeKeyEvent(nullptr)
     , mUniqueId(0)
+#ifdef XP_MACOSX
+    , mNativeKeyCode(0)
+    , mNativeModifierFlags(0)
+#endif
   {
   }
 
-  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
+  virtual WidgetEvent* Duplicate() const override
   {
     MOZ_ASSERT(mClass == eKeyboardEventClass,
                "Duplicate() must be overridden by sub class");
     // Not copying widget, it is a weak reference.
     WidgetKeyboardEvent* result =
-      new WidgetKeyboardEvent(false, message, nullptr);
+      new WidgetKeyboardEvent(false, mMessage, nullptr);
     result->AssignKeyEventData(*this, true);
     result->mFlags = mFlags;
     return result;
@@ -148,6 +159,21 @@ public:
   // over long periods.
   uint32_t mUniqueId;
 
+#ifdef XP_MACOSX
+  // Values given by a native NSEvent, for use with Cocoa NPAPI plugins.
+  uint16_t mNativeKeyCode;
+  uint32_t mNativeModifierFlags;
+  nsString mNativeCharacters;
+  nsString mNativeCharactersIgnoringModifiers;
+  // If this is non-empty, create a text event for plugins instead of a
+  // keyboard event.
+  nsString mPluginTextEventString;
+#endif
+
+  // If the key should cause keypress events, this returns true.
+  // Otherwise, false.
+  bool ShouldCauseKeypressEvents() const;
+
   void GetDOMKeyName(nsAString& aKeyName)
   {
     if (mKeyNameIndex == KEY_NAME_INDEX_USE_STRING) {
@@ -165,10 +191,47 @@ public:
     GetDOMCodeName(mCodeNameIndex, aCodeName);
   }
 
+  bool IsModifierKeyEvent() const
+  {
+    return GetModifierForKeyName(mKeyNameIndex) != MODIFIER_NONE;
+  }
+
+  static void Shutdown();
+
+  /**
+   * ComputeLocationFromCodeValue() returns one of .location value
+   * (nsIDOMKeyEvent::DOM_KEY_LOCATION_*) which is the most preferred value
+   * for the specified specified code value.
+   */
+  static uint32_t ComputeLocationFromCodeValue(CodeNameIndex aCodeNameIndex);
+
+  /**
+   * ComputeKeyCodeFromKeyNameIndex() return a .keyCode value which can be
+   * mapped from the specified key value.  Note that this returns 0 if the
+   * key name index is KEY_NAME_INDEX_Unidentified or KEY_NAME_INDEX_USE_STRING.
+   * This means that this method is useful only for non-printable keys.
+   */
+  static uint32_t ComputeKeyCodeFromKeyNameIndex(KeyNameIndex aKeyNameIndex);
+
+  /**
+   * GetModifierForKeyName() returns a value of Modifier which is activated
+   * by the aKeyNameIndex.
+   */
+  static Modifier GetModifierForKeyName(KeyNameIndex aKeyNameIndex);
+
+  /**
+   * IsLockableModifier() returns true if aKeyNameIndex is a lockable modifier
+   * key such as CapsLock and NumLock.
+   */
+  static bool IsLockableModifier(KeyNameIndex aKeyNameIndex);
+
   static void GetDOMKeyName(KeyNameIndex aKeyNameIndex,
                             nsAString& aKeyName);
   static void GetDOMCodeName(CodeNameIndex aCodeNameIndex,
                              nsAString& aCodeName);
+
+  static KeyNameIndex GetKeyNameIndex(const nsAString& aKeyValue);
+  static CodeNameIndex GetCodeNameIndex(const nsAString& aCodeValue);
 
   static const char* GetCommandStr(Command aCommand);
 
@@ -191,70 +254,155 @@ public:
     // is destroyed.
     mNativeKeyEvent = nullptr;
     mUniqueId = aEvent.mUniqueId;
+#ifdef XP_MACOSX
+    mNativeKeyCode = aEvent.mNativeKeyCode;
+    mNativeModifierFlags = aEvent.mNativeModifierFlags;
+    mNativeCharacters.Assign(aEvent.mNativeCharacters);
+    mNativeCharactersIgnoringModifiers.
+      Assign(aEvent.mNativeCharactersIgnoringModifiers);
+    mPluginTextEventString.Assign(aEvent.mPluginTextEventString);
+#endif
   }
+
+private:
+  static const char16_t* kKeyNames[];
+  static const char16_t* kCodeNames[];
+  typedef nsDataHashtable<nsStringHashKey,
+                          KeyNameIndex> KeyNameIndexHashtable;
+  typedef nsDataHashtable<nsStringHashKey,
+                          CodeNameIndex> CodeNameIndexHashtable;
+  static KeyNameIndexHashtable* sKeyNameIndexHashtable;
+  static CodeNameIndexHashtable* sCodeNameIndexHashtable;
 };
 
-/******************************************************************************
- * mozilla::WidgetTextEvent
- *
- * XXX WidgetTextEvent is fired with compositionupdate event almost every time.
- *     This wastes performance and the cost of mantaining each platform's
- *     implementation.  Therefore, we should merge WidgetTextEvent and
- *     WidgetCompositionEvent.  Then, DOM compositionupdate should be fired
- *     from TextComposition automatically.
- ******************************************************************************/
 
-class WidgetTextEvent : public WidgetGUIEvent
+/******************************************************************************
+ * mozilla::InternalBeforeAfterKeyboardEvent
+ *
+ * This is extended from WidgetKeyboardEvent and is mapped to DOM event
+ * "BeforeAfterKeyboardEvent".
+ *
+ * Event mMessage: eBeforeKeyDown
+ *                 eBeforeKeyUp
+ *                 eAfterKeyDown
+ *                 eAfterKeyUp
+ ******************************************************************************/
+class InternalBeforeAfterKeyboardEvent : public WidgetKeyboardEvent
 {
 private:
   friend class dom::PBrowserParent;
   friend class dom::PBrowserChild;
-  friend class plugins::PPluginInstanceChild;
 
-  WidgetTextEvent()
-    : mSeqno(kLatestSeqno)
-    , isChar(false)
+  InternalBeforeAfterKeyboardEvent()
   {
   }
 
 public:
-  uint32_t mSeqno;
+  // Extra member for InternalBeforeAfterKeyboardEvent. Indicates whether
+  // default actions of keydown/keyup event is prevented.
+  Nullable<bool> mEmbeddedCancelled;
 
-public:
-  virtual WidgetTextEvent* AsTextEvent() MOZ_OVERRIDE { return this; }
+  virtual InternalBeforeAfterKeyboardEvent* AsBeforeAfterKeyboardEvent() override
+  {
+    return this;
+  }
 
-  WidgetTextEvent(bool aIsTrusted, uint32_t aMessage, nsIWidget* aWidget)
-    : WidgetGUIEvent(aIsTrusted, aMessage, aWidget, eTextEventClass)
-    , mSeqno(kLatestSeqno)
-    , isChar(false)
+  InternalBeforeAfterKeyboardEvent(bool aIsTrusted, EventMessage aMessage,
+                                   nsIWidget* aWidget)
+    : WidgetKeyboardEvent(aIsTrusted, aMessage, aWidget,
+                          eBeforeAfterKeyboardEventClass)
   {
   }
 
-  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
+  virtual WidgetEvent* Duplicate() const override
   {
-    MOZ_ASSERT(mClass == eTextEventClass,
+    MOZ_ASSERT(mClass == eBeforeAfterKeyboardEventClass,
                "Duplicate() must be overridden by sub class");
     // Not copying widget, it is a weak reference.
-    WidgetTextEvent* result = new WidgetTextEvent(false, message, nullptr);
-    result->AssignTextEventData(*this, true);
+    InternalBeforeAfterKeyboardEvent* result =
+      new InternalBeforeAfterKeyboardEvent(false, mMessage, nullptr);
+    result->AssignBeforeAfterKeyEventData(*this, true);
     result->mFlags = mFlags;
     return result;
   }
 
-  // The composition string or the commit string.
-  nsString theText;
-  // Indicates whether the event signifies printable text.
-  // XXX This is not a standard, and most platforms don't set this properly.
-  //     So, perhaps, we can get rid of this.
-  bool isChar;
+  void AssignBeforeAfterKeyEventData(
+         const InternalBeforeAfterKeyboardEvent& aEvent,
+         bool aCopyTargets)
+  {
+    AssignKeyEventData(aEvent, aCopyTargets);
+    mEmbeddedCancelled = aEvent.mEmbeddedCancelled;
+  }
 
-  nsRefPtr<TextRangeArray> mRanges;
+  void AssignBeforeAfterKeyEventData(
+         const WidgetKeyboardEvent& aEvent,
+         bool aCopyTargets)
+  {
+    AssignKeyEventData(aEvent, aCopyTargets);
+  }
+};
 
-  void AssignTextEventData(const WidgetTextEvent& aEvent, bool aCopyTargets)
+/******************************************************************************
+ * mozilla::WidgetCompositionEvent
+ ******************************************************************************/
+
+class WidgetCompositionEvent : public WidgetGUIEvent
+{
+private:
+  friend class mozilla::dom::PBrowserParent;
+  friend class mozilla::dom::PBrowserChild;
+
+  WidgetCompositionEvent()
+  {
+  }
+
+public:
+  virtual WidgetCompositionEvent* AsCompositionEvent() override
+  {
+    return this;
+  }
+
+  WidgetCompositionEvent(bool aIsTrusted, EventMessage aMessage,
+                         nsIWidget* aWidget)
+    : WidgetGUIEvent(aIsTrusted, aMessage, aWidget, eCompositionEventClass)
+    , mOriginalMessage(eVoidEvent)
+  {
+    // XXX compositionstart is cancelable in draft of DOM3 Events.
+    //     However, it doesn't make sense for us, we cannot cancel composition
+    //     when we send compositionstart event.
+    mFlags.mCancelable = false;
+  }
+
+  virtual WidgetEvent* Duplicate() const override
+  {
+    MOZ_ASSERT(mClass == eCompositionEventClass,
+               "Duplicate() must be overridden by sub class");
+    // Not copying widget, it is a weak reference.
+    WidgetCompositionEvent* result =
+      new WidgetCompositionEvent(false, mMessage, nullptr);
+    result->AssignCompositionEventData(*this, true);
+    result->mFlags = mFlags;
+    return result;
+  }
+
+  // The composition string or the commit string.  If the instance is a
+  // compositionstart event, this is initialized with selected text by
+  // TextComposition automatically.
+  nsString mData;
+
+  RefPtr<TextRangeArray> mRanges;
+
+  // If the instance is a clone of another event, mOriginalMessage stores
+  // the another event's mMessage.
+  EventMessage mOriginalMessage;
+
+  void AssignCompositionEventData(const WidgetCompositionEvent& aEvent,
+                                  bool aCopyTargets)
   {
     AssignGUIEventData(aEvent, aCopyTargets);
 
-    isChar = aEvent.isChar;
+    mData = aEvent.mData;
+    mOriginalMessage = aEvent.mOriginalMessage;
 
     // Currently, we don't need to copy the other members because they are
     // for internal use only (not available from JS).
@@ -270,70 +418,38 @@ public:
     return mRanges ? mRanges->TargetClauseOffset() : 0;
   }
 
+  uint32_t TargetClauseLength() const
+  {
+    uint32_t length = UINT32_MAX;
+    if (mRanges) {
+      length = mRanges->TargetClauseLength();
+    }
+    return length == UINT32_MAX ? mData.Length() : length;
+  }
+
   uint32_t RangeCount() const
   {
     return mRanges ? mRanges->Length() : 0;
   }
-};
 
-/******************************************************************************
- * mozilla::WidgetCompositionEvent
- ******************************************************************************/
-
-class WidgetCompositionEvent : public WidgetGUIEvent
-{
-private:
-  friend class mozilla::dom::PBrowserParent;
-  friend class mozilla::dom::PBrowserChild;
-
-  WidgetCompositionEvent()
-    : mSeqno(kLatestSeqno)
+  bool CausesDOMTextEvent() const
   {
+    return mMessage == eCompositionChange ||
+           mMessage == eCompositionCommit ||
+           mMessage == eCompositionCommitAsIs;
   }
 
-public:
-  uint32_t mSeqno;
-
-public:
-  virtual WidgetCompositionEvent* AsCompositionEvent() MOZ_OVERRIDE
+  bool CausesDOMCompositionEndEvent() const
   {
-    return this;
+    return mMessage == eCompositionEnd ||
+           mMessage == eCompositionCommit ||
+           mMessage == eCompositionCommitAsIs;
   }
 
-  WidgetCompositionEvent(bool aIsTrusted, uint32_t aMessage,
-                         nsIWidget* aWidget)
-    : WidgetGUIEvent(aIsTrusted, aMessage, aWidget, eCompositionEventClass)
-    , mSeqno(kLatestSeqno)
+  bool IsFollowedByCompositionEnd() const
   {
-    // XXX compositionstart is cancelable in draft of DOM3 Events.
-    //     However, it doesn't make sense for us, we cannot cancel composition
-    //     when we send compositionstart event.
-    mFlags.mCancelable = false;
-  }
-
-  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
-  {
-    MOZ_ASSERT(mClass == eCompositionEventClass,
-               "Duplicate() must be overridden by sub class");
-    // Not copying widget, it is a weak reference.
-    WidgetCompositionEvent* result =
-      new WidgetCompositionEvent(false, message, nullptr);
-    result->AssignCompositionEventData(*this, true);
-    result->mFlags = mFlags;
-    return result;
-  }
-
-  // The composition string or the commit string.  If the instance is a
-  // compositionstart event, this is initialized with selected text by
-  // TextComposition automatically.
-  nsString data;
-
-  void AssignCompositionEventData(const WidgetCompositionEvent& aEvent,
-                                  bool aCopyTargets)
-  {
-    AssignGUIEventData(aEvent, aCopyTargets);
-
-    data = aEvent.data;
+    return mOriginalMessage == eCompositionCommit ||
+           mOriginalMessage == eCompositionCommitAsIs;
   }
 };
 
@@ -353,21 +469,21 @@ private:
   }
 
 public:
-  virtual WidgetQueryContentEvent* AsQueryContentEvent() MOZ_OVERRIDE
+  virtual WidgetQueryContentEvent* AsQueryContentEvent() override
   {
     return this;
   }
 
-  WidgetQueryContentEvent(bool aIsTrusted, uint32_t aMessage,
+  WidgetQueryContentEvent(bool aIsTrusted, EventMessage aMessage,
                           nsIWidget* aWidget)
     : WidgetGUIEvent(aIsTrusted, aMessage, aWidget, eQueryContentEventClass)
     , mSucceeded(false)
-    , mWasAsync(false)
     , mUseNativeLineBreak(true)
+    , mWithFontRanges(false)
   {
   }
 
-  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
+  virtual WidgetEvent* Duplicate() const override
   {
     // This event isn't an internal event of any DOM event.
     NS_ASSERTION(!IsAllowedToDispatchDOMEvent(),
@@ -379,7 +495,7 @@ public:
   void InitForQueryTextContent(uint32_t aOffset, uint32_t aLength,
                                bool aUseNativeLineBreak = true)
   {
-    NS_ASSERTION(message == NS_QUERY_TEXT_CONTENT,
+    NS_ASSERTION(mMessage == eQueryTextContent,
                  "wrong initializer is called");
     mInput.mOffset = aOffset;
     mInput.mLength = aLength;
@@ -389,7 +505,7 @@ public:
   void InitForQueryCaretRect(uint32_t aOffset,
                              bool aUseNativeLineBreak = true)
   {
-    NS_ASSERTION(message == NS_QUERY_CARET_RECT,
+    NS_ASSERTION(mMessage == eQueryCaretRect,
                  "wrong initializer is called");
     mInput.mOffset = aOffset;
     mUseNativeLineBreak = aUseNativeLineBreak;
@@ -398,7 +514,7 @@ public:
   void InitForQueryTextRect(uint32_t aOffset, uint32_t aLength,
                             bool aUseNativeLineBreak = true)
   {
-    NS_ASSERTION(message == NS_QUERY_TEXT_RECT,
+    NS_ASSERTION(mMessage == eQueryTextRect,
                  "wrong initializer is called");
     mInput.mOffset = aOffset;
     mInput.mLength = aLength;
@@ -407,50 +523,96 @@ public:
 
   void InitForQueryDOMWidgetHittest(const mozilla::LayoutDeviceIntPoint& aPoint)
   {
-    NS_ASSERTION(message == NS_QUERY_DOM_WIDGET_HITTEST,
+    NS_ASSERTION(mMessage == eQueryDOMWidgetHittest,
                  "wrong initializer is called");
     refPoint = aPoint;
   }
 
+  void RequestFontRanges()
+  {
+    NS_ASSERTION(mMessage == eQueryTextContent,
+                 "not querying text content");
+    mWithFontRanges = true;
+  }
+
   uint32_t GetSelectionStart(void) const
   {
-    NS_ASSERTION(message == NS_QUERY_SELECTED_TEXT,
+    NS_ASSERTION(mMessage == eQuerySelectedText,
                  "not querying selection");
     return mReply.mOffset + (mReply.mReversed ? mReply.mString.Length() : 0);
   }
 
   uint32_t GetSelectionEnd(void) const
   {
-    NS_ASSERTION(message == NS_QUERY_SELECTED_TEXT,
+    NS_ASSERTION(mMessage == eQuerySelectedText,
                  "not querying selection");
     return mReply.mOffset + (mReply.mReversed ? 0 : mReply.mString.Length());
   }
 
+  mozilla::WritingMode GetWritingMode(void) const
+  {
+    NS_ASSERTION(mMessage == eQuerySelectedText ||
+                 mMessage == eQueryCaretRect ||
+                 mMessage == eQueryTextRect,
+                 "not querying selection or text rect");
+    return mReply.mWritingMode;
+  }
+
   bool mSucceeded;
-  bool mWasAsync;
   bool mUseNativeLineBreak;
+  bool mWithFontRanges;
   struct
   {
+    uint32_t EndOffset() const
+    {
+      CheckedInt<uint32_t> endOffset =
+        CheckedInt<uint32_t>(mOffset) + mLength;
+      return NS_WARN_IF(!endOffset.isValid()) ? UINT32_MAX : endOffset.value();
+    }
+
     uint32_t mOffset;
     uint32_t mLength;
   } mInput;
-  struct
+
+  struct Reply
   {
     void* mContentsRoot;
     uint32_t mOffset;
+    // mTentativeCaretOffset is used by only eQueryCharacterAtPoint.
+    // This is the offset where caret would be if user clicked at the refPoint.
+    uint32_t mTentativeCaretOffset;
     nsString mString;
-    // Finally, the coordinates is system coordinates.
-    nsIntRect mRect;
+    // mRect is used by eQueryTextRect, eQueryCaretRect, eQueryCharacterAtPoint
+    // and eQueryEditorRect. The coordinates is system coordinates relative to
+    // the top level widget of mFocusedWidget.  E.g., if a <xul:panel> which
+    // is owned by a window has focused editor, the offset of mRect is relative
+    // to the owner window, not the <xul:panel>.
+    mozilla::LayoutDeviceIntRect mRect;
     // The return widget has the caret. This is set at all query events.
     nsIWidget* mFocusedWidget;
+    // mozilla::WritingMode value at the end (focus) of the selection
+    mozilla::WritingMode mWritingMode;
+    // Used by eQuerySelectionAsTransferable
+    nsCOMPtr<nsITransferable> mTransferable;
+    // Used by eQueryTextContent with font ranges requested
+    nsAutoTArray<mozilla::FontRange, 1> mFontRanges;
     // true if selection is reversed (end < start)
     bool mReversed;
     // true if the selection exists
     bool mHasSelection;
     // true if DOM element under mouse belongs to widget
     bool mWidgetIsHit;
-    // used by NS_QUERY_SELECTION_AS_TRANSFERABLE
-    nsCOMPtr<nsITransferable> mTransferable;
+
+    Reply()
+      : mContentsRoot(nullptr)
+      , mOffset(NOT_FOUND)
+      , mTentativeCaretOffset(NOT_FOUND)
+      , mFocusedWidget(nullptr)
+      , mReversed(false)
+      , mHasSelection(false)
+      , mWidgetIsHit(false)
+    {
+    }
   } mReply;
 
   enum
@@ -478,8 +640,7 @@ private:
   friend class mozilla::dom::PBrowserChild;
 
   WidgetSelectionEvent()
-    : mSeqno(kLatestSeqno)
-    , mOffset(0)
+    : mOffset(0)
     , mLength(0)
     , mReversed(false)
     , mExpandToClusterBoundary(true)
@@ -488,17 +649,14 @@ private:
   }
 
 public:
-  uint32_t mSeqno;
-
-public:
-  virtual WidgetSelectionEvent* AsSelectionEvent() MOZ_OVERRIDE
+  virtual WidgetSelectionEvent* AsSelectionEvent() override
   {
     return this;
   }
 
-  WidgetSelectionEvent(bool aIsTrusted, uint32_t aMessage, nsIWidget* aWidget)
+  WidgetSelectionEvent(bool aIsTrusted, EventMessage aMessage,
+                       nsIWidget* aWidget)
     : WidgetGUIEvent(aIsTrusted, aMessage, aWidget, eSelectionEventClass)
-    , mSeqno(kLatestSeqno)
     , mOffset(0)
     , mLength(0)
     , mReversed(false)
@@ -508,7 +666,7 @@ public:
   {
   }
 
-  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
+  virtual WidgetEvent* Duplicate() const override
   {
     // This event isn't an internal event of any DOM event.
     NS_ASSERTION(!IsAllowedToDispatchDOMEvent(),
@@ -544,12 +702,12 @@ private:
   }
 
 public:
-  virtual InternalEditorInputEvent* AsEditorInputEvent() MOZ_OVERRIDE
+  virtual InternalEditorInputEvent* AsEditorInputEvent() override
   {
     return this;
   }
 
-  InternalEditorInputEvent(bool aIsTrusted, uint32_t aMessage,
+  InternalEditorInputEvent(bool aIsTrusted, EventMessage aMessage,
                            nsIWidget* aWidget)
     : InternalUIEvent(aIsTrusted, aMessage, aWidget, eEditorInputEventClass)
     , mIsComposing(false)
@@ -564,13 +722,13 @@ public:
     mFlags.mCancelable = false;
   }
 
-  virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
+  virtual WidgetEvent* Duplicate() const override
   {
     MOZ_ASSERT(mClass == eEditorInputEventClass,
                "Duplicate() must be overridden by sub class");
     // Not copying widget, it is a weak reference.
     InternalEditorInputEvent* result =
-      new InternalEditorInputEvent(false, message, nullptr);
+      new InternalEditorInputEvent(false, mMessage, nullptr);
     result->AssignEditorInputEventData(*this, true);
     result->mFlags = mFlags;
     return result;

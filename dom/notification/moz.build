@@ -18,22 +18,22 @@ EXTRA_JS_MODULES += [
 EXPORTS.mozilla.dom += [
     'DesktopNotification.h',
     'Notification.h',
+    'NotificationEvent.h',
 ]
 
 UNIFIED_SOURCES += [
     'DesktopNotification.cpp',
     'Notification.cpp',
+    'NotificationEvent.cpp',
 ]
-
-FAIL_ON_WARNINGS = True
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
 FINAL_LIBRARY = 'xul'
 LOCAL_INCLUDES += [
-    '/content/base/src',
     '/dom/base',
     '/dom/ipc',
+    '/dom/workers',
 ]
 
 XPCSHELL_TESTS_MANIFESTS += ['test/unit/xpcshell.ini']

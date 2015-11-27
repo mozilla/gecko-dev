@@ -50,6 +50,8 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "nsContentUtils.h"
+#include "nsIURI.h"
+#include "nsNetUtil.h"
 
 using namespace mozilla;
 
@@ -154,7 +156,8 @@ nsHTTPIndex::OnFTPControlLog(bool server, const char *msg)
 
     // We're going to run script via JS_CallFunctionName, so we need an
     // AutoEntryScript. This is Gecko specific and not in any spec.
-    dom::AutoEntryScript aes(globalObject);
+    dom::AutoEntryScript aes(globalObject,
+                             "nsHTTPIndex OnFTPControlLog");
     JSContext* cx = aes.cx();
 
     JS::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
@@ -227,7 +230,8 @@ nsHTTPIndex::OnStartRequest(nsIRequest *request, nsISupports* aContext)
 
     // We might run script via JS_SetProperty, so we need an AutoEntryScript.
     // This is Gecko specific and not in any spec.
-    dom::AutoEntryScript aes(globalObject);
+    dom::AutoEntryScript aes(globalObject,
+                             "nsHTTPIndex set HTTPIndex property");
     JSContext* cx = aes.cx();
 
     JS::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
@@ -237,22 +241,21 @@ nsHTTPIndex::OnStartRequest(nsIRequest *request, nsISupports* aContext)
     nsCOMPtr<nsIXPConnect> xpc(do_GetService(kXPConnectCID, &rv));
     if (NS_FAILED(rv)) return rv;
 
-    nsCOMPtr<nsIXPConnectJSObjectHolder> wrapper;
+    JS::Rooted<JSObject*> jsobj(cx);
     rv = xpc->WrapNative(cx,
                          global,
                          static_cast<nsIHTTPIndex*>(this),
                          NS_GET_IID(nsIHTTPIndex),
-                         getter_AddRefs(wrapper));
+                         jsobj.address());
 
     NS_ASSERTION(NS_SUCCEEDED(rv), "unable to xpconnect-wrap http-index");
     if (NS_FAILED(rv)) return rv;
 
-    JS::Rooted<JSObject*> jsobj(cx, wrapper->GetJSObject());
     NS_ASSERTION(jsobj,
                  "unable to get jsobj from xpconnect wrapper");
     if (!jsobj) return NS_ERROR_UNEXPECTED;
 
-    JS::Rooted<JS::Value> jslistener(cx, OBJECT_TO_JSVAL(jsobj));
+    JS::Rooted<JS::Value> jslistener(cx, JS::ObjectValue(*jsobj));
 
     // ...and stuff it into the global context
     bool ok = JS_SetProperty(cx, global, "HTTPIndex", jslistener);
@@ -946,12 +949,12 @@ nsHTTPIndex::FireTimer(nsITimer* aTimer, void* aClosure)
             rv = NS_NewChannel(getter_AddRefs(channel),
                                url,
                                nsContentUtils::GetSystemPrincipal(),
-                               nsILoadInfo::SEC_NORMAL,
+                               nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                                nsIContentPolicy::TYPE_OTHER);
           }
           if (NS_SUCCEEDED(rv) && (channel)) {
             channel->SetNotificationCallbacks(httpIndex);
-            rv = channel->AsyncOpen(httpIndex, aSource);
+            rv = channel->AsyncOpen2(httpIndex);
           }
         }
   }
@@ -1263,7 +1266,7 @@ NS_IMETHODIMP
 nsDirectoryViewerFactory::CreateInstance(const char *aCommand,
                                          nsIChannel* aChannel,
                                          nsILoadGroup* aLoadGroup,
-                                         const char* aContentType, 
+                                         const nsACString& aContentType, 
                                          nsIDocShell* aContainer,
                                          nsISupports* aExtraInfo,
                                          nsIStreamListener** aDocListenerResult,
@@ -1271,7 +1274,8 @@ nsDirectoryViewerFactory::CreateInstance(const char *aCommand,
 {
   nsresult rv;
 
-  bool viewSource = aContentType && strstr(aContentType, "view-source");
+  bool viewSource = FindInReadable(NS_LITERAL_CSTRING("view-source"),
+                                   aContentType);
 
   if (!viewSource &&
       Preferences::GetInt("network.dir.format", FORMAT_XUL) == FORMAT_XUL) {
@@ -1303,19 +1307,19 @@ nsDirectoryViewerFactory::CreateInstance(const char *aCommand,
     rv = NS_NewChannel(getter_AddRefs(channel),
                        uri,
                        nsContentUtils::GetSystemPrincipal(),
-                       nsILoadInfo::SEC_NORMAL,
+                       nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                        nsIContentPolicy::TYPE_OTHER,
-                       nullptr, // aChannelPolicy
                        aLoadGroup);
     if (NS_FAILED(rv)) return rv;
     
     nsCOMPtr<nsIStreamListener> listener;
-    rv = factory->CreateInstance(aCommand, channel, aLoadGroup, "application/vnd.mozilla.xul+xml",
+    rv = factory->CreateInstance(aCommand, channel, aLoadGroup,
+                                 NS_LITERAL_CSTRING("application/vnd.mozilla.xul+xml"),
                                  aContainer, aExtraInfo, getter_AddRefs(listener),
                                  aDocViewerResult);
     if (NS_FAILED(rv)) return rv;
 
-    rv = channel->AsyncOpen(listener, nullptr);
+    rv = channel->AsyncOpen2(listener);
     if (NS_FAILED(rv)) return rv;
     
     // Create an HTTPIndex object so that we can stuff it into the script context
@@ -1358,11 +1362,13 @@ nsDirectoryViewerFactory::CreateInstance(const char *aCommand,
   nsCOMPtr<nsIStreamListener> listener;
 
   if (viewSource) {
-    rv = factory->CreateInstance("view-source", aChannel, aLoadGroup, "text/html; x-view-type=view-source",
+    rv = factory->CreateInstance("view-source", aChannel, aLoadGroup,
+                                 NS_LITERAL_CSTRING("text/html; x-view-type=view-source"),
                                  aContainer, aExtraInfo, getter_AddRefs(listener),
                                  aDocViewerResult);
   } else {
-    rv = factory->CreateInstance("view", aChannel, aLoadGroup, "text/html",
+    rv = factory->CreateInstance("view", aChannel, aLoadGroup,
+                                 NS_LITERAL_CSTRING("text/html"),
                                  aContainer, aExtraInfo, getter_AddRefs(listener),
                                  aDocViewerResult);
   }

@@ -10,8 +10,9 @@
 #include "gfxContext.h"
 #include "mozilla/dom/SVGClipPathElement.h"
 #include "nsGkAtoms.h"
-#include "nsRenderingContext.h"
 #include "nsSVGEffects.h"
+#include "nsSVGPathGeometryElement.h"
+#include "nsSVGPathGeometryFrame.h"
 #include "nsSVGUtils.h"
 
 using namespace mozilla;
@@ -30,10 +31,12 @@ NS_NewSVGClipPathFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 NS_IMPL_FRAMEARENA_HELPERS(nsSVGClipPathFrame)
 
 nsresult
-nsSVGClipPathFrame::ApplyClipOrPaintClipMask(nsRenderingContext* aContext,
+nsSVGClipPathFrame::ApplyClipOrPaintClipMask(gfxContext& aContext,
                                              nsIFrame* aClippedFrame,
                                              const gfxMatrix& aMatrix)
 {
+  DrawTarget& aDrawTarget = *aContext.GetDrawTarget();
+
   // If the flag is set when we get here, it means this clipPath frame
   // has already been used painting the current clip, and the document
   // has a clip reference loop.
@@ -45,43 +48,42 @@ nsSVGClipPathFrame::ApplyClipOrPaintClipMask(nsRenderingContext* aContext,
 
   mMatrixForChildren = GetClipPathTransform(aClippedFrame) * aMatrix;
 
-  gfxContext *gfx = aContext->ThebesContext();
-
-  nsISVGChildFrame *singleClipPathChild = nullptr;
+  nsISVGChildFrame* singleClipPathChild = nullptr;
 
   if (IsTrivial(&singleClipPathChild)) {
-    // Notify our child that it's painting as part of a clipPath, and that
-    // we only require it to draw its path (it should skip filling, etc.):
-    SVGAutoRenderState mode(aContext, SVGAutoRenderState::CLIP);
-
-    if (!singleClipPathChild) {
-      // We have no children - the spec says clip away everything:
-      gfx->Rectangle(gfxRect());
-    } else {
-      nsIFrame* child = do_QueryFrame(singleClipPathChild);
-      nsIContent* childContent = child->GetContent();
-      if (childContent->IsSVG()) {
-        singleClipPathChild->NotifySVGChanged(
-                               nsISVGChildFrame::TRANSFORM_CHANGED);
-        gfxMatrix toChildsUserSpace =
-          static_cast<const nsSVGElement*>(childContent)->
-            PrependLocalTransformsTo(mMatrixForChildren,
-                                     nsSVGElement::eUserSpaceToParent);
-        singleClipPathChild->PaintSVG(aContext, toChildsUserSpace);
-      } else {
-        // else, again, clip everything away
-        gfx->Rectangle(gfxRect());
+    gfxContextMatrixAutoSaveRestore autoRestore(&aContext);
+    RefPtr<Path> clipPath;
+    if (singleClipPathChild) {
+      nsSVGPathGeometryFrame* pathFrame = do_QueryFrame(singleClipPathChild);
+      if (pathFrame) {
+        nsSVGPathGeometryElement* pathElement =
+          static_cast<nsSVGPathGeometryElement*>(pathFrame->GetContent());
+        gfxMatrix toChildsUserSpace = pathElement->
+          PrependLocalTransformsTo(mMatrixForChildren,
+                                   nsSVGElement::eUserSpaceToParent);
+        gfxMatrix newMatrix =
+          aContext.CurrentMatrix().PreMultiply(toChildsUserSpace).NudgeToIntegers();
+        if (!newMatrix.IsSingular()) {
+          aContext.SetMatrix(newMatrix);
+          clipPath = pathElement->GetOrBuildPath(aDrawTarget,
+                                                 nsSVGUtils::ToFillRule(pathFrame->StyleSVG()->mClipRule));
+        }
       }
     }
-    gfx->Clip();
-    gfx->NewPath();
+    if (clipPath) {
+      aContext.Clip(clipPath);
+    } else {
+      // The spec says clip away everything if we have no children or the
+      // clipping path otherwise can't be resolved:
+      aContext.Clip(Rect());
+    }
     return NS_OK;
   }
 
-  // Seems like this is a non-trivial clipPath, so we need to use a clip mask.
-
-  // Notify our children that they're painting into a clip mask:
-  SVGAutoRenderState mode(aContext, SVGAutoRenderState::CLIP_MASK);
+  // This is a non-trivial clipPath, so we need to paint its contents into a
+  // temporary surface and use that to mask the clipped content.  Note that
+  // nsSVGPathGeometryFrame::Render checks for the NS_STATE_SVG_CLIPPATH_CHILD
+  // state bit and paints into our mask surface using opaque black in that case.
 
   // Check if this clipPath is itself clipped by another clipPath:
   nsSVGClipPathFrame *clipPathFrame =
@@ -89,11 +91,14 @@ nsSVGClipPathFrame::ApplyClipOrPaintClipMask(nsRenderingContext* aContext,
   bool referencedClipIsTrivial;
   if (clipPathFrame) {
     referencedClipIsTrivial = clipPathFrame->IsTrivial();
-    gfx->Save();
+    aContext.Save();
     if (referencedClipIsTrivial) {
       clipPathFrame->ApplyClipOrPaintClipMask(aContext, aClippedFrame, aMatrix);
     } else {
-      gfx->PushGroup(gfxContentType::ALPHA);
+      Matrix maskTransform;
+      RefPtr<SourceSurface> mask = clipPathFrame->GetClipMask(aContext, aClippedFrame, aMatrix, &maskTransform);
+
+      aContext.PushGroupForBlendBack(gfxContentType::ALPHA, 1.0, mask, maskTransform);
     }
   }
 
@@ -115,18 +120,21 @@ nsSVGClipPathFrame::ApplyClipOrPaintClipMask(nsRenderingContext* aContext,
 
       if (clipPathFrame) {
         isTrivial = clipPathFrame->IsTrivial();
-        gfx->Save();
+        aContext.Save();
         if (isTrivial) {
           clipPathFrame->ApplyClipOrPaintClipMask(aContext, aClippedFrame, aMatrix);
         } else {
-          gfx->PushGroup(gfxContentType::ALPHA);
+          Matrix maskTransform;
+          RefPtr<SourceSurface> mask = clipPathFrame->GetClipMask(aContext, aClippedFrame, aMatrix, &maskTransform);
+
+          aContext.PushGroupForBlendBack(gfxContentType::ALPHA, 1.0, mask, maskTransform);
         }
       }
 
       gfxMatrix toChildsUserSpace = mMatrixForChildren;
       nsIFrame* child = do_QueryFrame(SVGFrame);
       nsIContent* childContent = child->GetContent();
-      if (childContent->IsSVG()) {
+      if (childContent->IsSVGElement()) {
         toChildsUserSpace =
           static_cast<const nsSVGElement*>(childContent)->
             PrependLocalTransformsTo(mMatrixForChildren,
@@ -136,41 +144,70 @@ nsSVGClipPathFrame::ApplyClipOrPaintClipMask(nsRenderingContext* aContext,
 
       if (clipPathFrame) {
         if (!isTrivial) {
-          gfx->PopGroupToSource();
-
-          gfx->PushGroup(gfxContentType::ALPHA);
-
-          clipPathFrame->ApplyClipOrPaintClipMask(aContext, aClippedFrame, aMatrix);
-          Matrix maskTransform;
-          RefPtr<SourceSurface> clipMaskSurface = gfx->PopGroupToSurface(&maskTransform);
-
-          if (clipMaskSurface) {
-            gfx->Mask(clipMaskSurface, maskTransform);
-          }
+          aContext.PopGroupAndBlend();
         }
-        gfx->Restore();
+        aContext.Restore();
       }
     }
   }
 
   if (clipPathFrame) {
     if (!referencedClipIsTrivial) {
-      gfx->PopGroupToSource();
-
-      gfx->PushGroup(gfxContentType::ALPHA);
-
-      clipPathFrame->ApplyClipOrPaintClipMask(aContext, aClippedFrame, aMatrix);
-      Matrix maskTransform;
-      RefPtr<SourceSurface> clipMaskSurface = gfx->PopGroupToSurface(&maskTransform);
-
-      if (clipMaskSurface) {
-        gfx->Mask(clipMaskSurface, maskTransform);
-      }
+      aContext.PopGroupAndBlend();
     }
-    gfx->Restore();
+    aContext.Restore();
   }
 
   return NS_OK;
+}
+
+already_AddRefed<SourceSurface>
+nsSVGClipPathFrame::GetClipMask(gfxContext& aReferenceContext, nsIFrame* aClippedFrame,
+                                const gfxMatrix& aMatrix, Matrix* aMaskTransform,
+                                SourceSurface* aInputMask, const Matrix& aInputMaskTransform)
+{
+  if (IsTrivial()) {
+    return nullptr;
+  }
+
+  IntRect intRect;
+  {
+    gfxContextMatrixAutoSaveRestore autoRestoreMatrix(&aReferenceContext);
+
+    aReferenceContext.SetMatrix(gfxMatrix());
+    gfxRect rect = aReferenceContext.GetClipExtents();
+    intRect = RoundedOut(ToRect(rect));
+  }
+
+  if (intRect.IsEmpty()) {
+    // We don't need to create a mask surface, all drawing is clipped anyway.
+    return nullptr;
+  }
+
+  RefPtr<DrawTarget> maskDT = aReferenceContext.GetDrawTarget()->CreateSimilarDrawTarget(intRect.Size(), SurfaceFormat::A8);
+
+  gfxMatrix mat =
+    aReferenceContext.CurrentMatrix() * gfxMatrix::Translation(-intRect.TopLeft());
+  {
+    RefPtr<gfxContext> ctx = new gfxContext(maskDT);
+    ctx->SetMatrix(mat);
+    ApplyClipOrPaintClipMask(*ctx, aClippedFrame, aMatrix);
+  }
+
+  mat.Invert();
+
+  if (aInputMask) {
+    MOZ_ASSERT(!aInputMaskTransform.HasNonTranslation());
+
+    RefPtr<SourceSurface> currentMask = maskDT->Snapshot();
+    maskDT->SetTransform(Matrix());
+    maskDT->ClearRect(Rect(0, 0, intRect.width, intRect.height));
+    maskDT->MaskSurface(SurfacePattern(currentMask, ExtendMode::CLAMP), aInputMask,
+                        Point(aInputMaskTransform._31 - intRect.x, aInputMaskTransform._32 - intRect.y));
+  }
+
+  *aMaskTransform = ToMatrix(mat);
+  return maskDT->Snapshot();
 }
 
 bool
@@ -313,7 +350,7 @@ nsSVGClipPathFrame::AttributeChanged(int32_t         aNameSpaceID,
                                             nsISVGChildFrame::TRANSFORM_CHANGED);
     }
     if (aAttribute == nsGkAtoms::clipPathUnits) {
-      nsSVGEffects::InvalidateRenderingObservers(this);
+      nsSVGEffects::InvalidateDirectRenderingObservers(this);
     }
   }
 
@@ -326,7 +363,7 @@ nsSVGClipPathFrame::Init(nsIContent*       aContent,
                          nsContainerFrame* aParent,
                          nsIFrame*         aPrevInFlow)
 {
-  NS_ASSERTION(aContent->IsSVG(nsGkAtoms::clipPath),
+  NS_ASSERTION(aContent->IsSVGElement(nsGkAtoms::clipPath),
                "Content is not an SVG clipPath!");
 
   AddStateBits(NS_STATE_SVG_CLIPPATH_CHILD);

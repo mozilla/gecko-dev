@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -7,26 +8,28 @@
 #define mozilla_dom_mobilemessage_MobileMessageManager_h
 
 #include "mozilla/Attributes.h"
-#include "mozilla/dom/UnionTypes.h"
 #include "mozilla/DOMEventTargetHelper.h"
 #include "nsIObserver.h"
 
 class nsISmsService;
-class nsIDOMMozSmsMessage;
-class nsIDOMMozMmsMessage;
 
 namespace mozilla {
 namespace dom {
 
+class Promise;
 class DOMRequest;
 class DOMCursor;
+class MmsMessage;
 struct MmsParameters;
 struct MmsSendParameters;
 struct MobileMessageFilter;
+class OwningLongOrSmsMessageOrMmsMessage;
+class SmsMessage;
 struct SmsSendParameters;
+struct SmscAddress;
 
-class MobileMessageManager MOZ_FINAL : public DOMEventTargetHelper
-                                     , public nsIObserver
+class MobileMessageManager final : public DOMEventTargetHelper
+                                 , public nsIObserver
 {
 public:
   NS_DECL_ISUPPORTS_INHERITED
@@ -44,7 +47,7 @@ public:
 
   // WrapperCache
   virtual JSObject*
-  WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL Interface
   already_AddRefed<DOMRequest>
@@ -61,7 +64,7 @@ public:
   Send(const Sequence<nsString>& aNumbers,
        const nsAString& aText,
        const SmsSendParameters& aSendParams,
-       nsTArray<nsRefPtr<DOMRequest>>& aReturn,
+       nsTArray<RefPtr<DOMRequest>>& aReturn,
        ErrorResult& aRv);
 
   already_AddRefed<DOMRequest>
@@ -78,15 +81,15 @@ public:
          ErrorResult& aRv);
 
   already_AddRefed<DOMRequest>
-  Delete(nsIDOMMozSmsMessage* aMessage,
+  Delete(SmsMessage& aMessage,
          ErrorResult& aRv);
 
   already_AddRefed<DOMRequest>
-  Delete(nsIDOMMozMmsMessage* aMessage,
+  Delete(MmsMessage& aMessage,
          ErrorResult& aRv);
 
   already_AddRefed<DOMRequest>
-  Delete(const Sequence<OwningLongOrMozSmsMessageOrMozMmsMessage>& aParams,
+  Delete(const Sequence<OwningLongOrSmsMessageOrMmsMessage>& aParams,
          ErrorResult& aRv);
 
   already_AddRefed<DOMCursor>
@@ -108,11 +111,16 @@ public:
               ErrorResult& aRv);
 
   already_AddRefed<DOMRequest>
-  RetrieveMMS(nsIDOMMozMmsMessage* aMessage,
+  RetrieveMMS(MmsMessage& aMessage,
               ErrorResult& aRv);
 
-  already_AddRefed<DOMRequest>
+  already_AddRefed<Promise>
   GetSmscAddress(const Optional<uint32_t>& aServiceId,
+                 ErrorResult& aRv);
+
+  already_AddRefed<Promise>
+  SetSmscAddress(const SmscAddress& aSmscAddress,
+                 const Optional<uint32_t>& aServiceId,
                  ErrorResult& aRv);
 
   IMPL_EVENT_HANDLER(received)
@@ -151,14 +159,6 @@ private:
 
   nsresult
   DispatchTrustedDeletedEventToSelf(nsISupports* aDeletedInfo);
-
-  /**
-   * Helper to get message ID from SMS/MMS Message object
-   */
-  nsresult
-  GetMessageId(JSContext* aCx,
-               const JS::Value& aMessage,
-               int32_t* aId);
 };
 
 } // namespace dom

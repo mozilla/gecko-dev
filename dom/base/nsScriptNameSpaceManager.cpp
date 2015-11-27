@@ -35,23 +35,6 @@
 
 using namespace mozilla;
 
-// Our extended PLDHashEntryHdr
-class GlobalNameMapEntry : public PLDHashEntryHdr
-{
-public:
-  // Our hash table ops don't care about the order of these members
-  nsString mKey;
-  nsGlobalNameStruct mGlobalName;
-
-  size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) {
-    // Measurement of the following members may be added later if DMD finds it
-    // is worthwhile:
-    // - mGlobalName
-    return mKey.SizeOfExcludingThisMustBeUnshared(aMallocSizeOf);
-  }
-};
-
-
 static PLDHashNumber
 GlobalNameHashHashKey(PLDHashTable *table, const void *key)
 {
@@ -99,9 +82,8 @@ GlobalNameHashClearEntry(PLDHashTable *table, PLDHashEntryHdr *entry)
   memset(&e->mGlobalName, 0, sizeof(nsGlobalNameStruct));
 }
 
-static bool
-GlobalNameHashInitEntry(PLDHashTable *table, PLDHashEntryHdr *entry,
-                        const void *key)
+static void
+GlobalNameHashInitEntry(PLDHashEntryHdr *entry, const void *key)
 {
   GlobalNameMapEntry *e = static_cast<GlobalNameMapEntry *>(entry);
   const nsAString *keyStr = static_cast<const nsAString *>(key);
@@ -112,7 +94,6 @@ GlobalNameHashInitEntry(PLDHashTable *table, PLDHashEntryHdr *entry,
   // This will set e->mGlobalName.mType to
   // nsGlobalNameStruct::eTypeNotInitialized
   memset(&e->mGlobalName, 0, sizeof(nsGlobalNameStruct));
-  return true;
 }
 
 NS_IMPL_ISUPPORTS(
@@ -121,20 +102,29 @@ NS_IMPL_ISUPPORTS(
   nsISupportsWeakReference,
   nsIMemoryReporter)
 
+static const PLDHashTableOps hash_table_ops =
+{
+  GlobalNameHashHashKey,
+  GlobalNameHashMatchEntry,
+  PLDHashTable::MoveEntryStub,
+  GlobalNameHashClearEntry,
+  GlobalNameHashInitEntry
+};
+
+#define GLOBALNAME_HASHTABLE_INITIAL_LENGTH   512
+
 nsScriptNameSpaceManager::nsScriptNameSpaceManager()
-  : mIsInitialized(false)
+  : mGlobalNames(&hash_table_ops, sizeof(GlobalNameMapEntry),
+                 GLOBALNAME_HASHTABLE_INITIAL_LENGTH)
+  , mNavigatorNames(&hash_table_ops, sizeof(GlobalNameMapEntry),
+                    GLOBALNAME_HASHTABLE_INITIAL_LENGTH)
 {
   MOZ_COUNT_CTOR(nsScriptNameSpaceManager);
 }
 
 nsScriptNameSpaceManager::~nsScriptNameSpaceManager()
 {
-  if (mIsInitialized) {
-    UnregisterWeakMemoryReporter(this);
-    // Destroy the hash
-    PL_DHashTableFinish(&mGlobalNames);
-    PL_DHashTableFinish(&mNavigatorNames);
-  }
+  UnregisterWeakMemoryReporter(this);
   MOZ_COUNT_DTOR(nsScriptNameSpaceManager);
 }
 
@@ -142,10 +132,7 @@ nsGlobalNameStruct *
 nsScriptNameSpaceManager::AddToHash(PLDHashTable *aTable, const nsAString *aKey,
                                     const char16_t **aClassName)
 {
-  GlobalNameMapEntry *entry =
-    static_cast<GlobalNameMapEntry *>
-               (PL_DHashTableOperate(aTable, aKey, PL_DHASH_ADD));
-
+  auto entry = static_cast<GlobalNameMapEntry*>(aTable->Add(aKey, fallible));
   if (!entry) {
     return nullptr;
   }
@@ -161,7 +148,7 @@ void
 nsScriptNameSpaceManager::RemoveFromHash(PLDHashTable *aTable,
                                          const nsAString *aKey)
 {
-  PL_DHashTableOperate(aTable, aKey, PL_DHASH_REMOVE);
+  aTable->Remove(aKey);
 }
 
 nsGlobalNameStruct*
@@ -170,13 +157,9 @@ nsScriptNameSpaceManager::GetConstructorProto(const nsGlobalNameStruct* aStruct)
   NS_ASSERTION(aStruct->mType == nsGlobalNameStruct::eTypeExternalConstructorAlias,
                "This function only works on constructor aliases!");
   if (!aStruct->mAlias->mProto) {
-    GlobalNameMapEntry *proto =
-      static_cast<GlobalNameMapEntry *>
-                 (PL_DHashTableOperate(&mGlobalNames,
-                                          &aStruct->mAlias->mProtoName,
-                                          PL_DHASH_LOOKUP));
-
-    if (PL_DHASH_ENTRY_IS_BUSY(proto)) {
+    auto proto = static_cast<GlobalNameMapEntry*>
+                            (mGlobalNames.Search(&aStruct->mAlias->mProtoName));
+    if (proto) {
       aStruct->mAlias->mProto = &proto->mGlobalName;
     }
   }
@@ -314,39 +297,9 @@ nsScriptNameSpaceManager::RegisterInterface(const char* aIfName,
   return NS_OK;
 }
 
-#define GLOBALNAME_HASHTABLE_INITIAL_LENGTH   512
-
 nsresult
 nsScriptNameSpaceManager::Init()
 {
-  static const PLDHashTableOps hash_table_ops =
-  {
-    PL_DHashAllocTable,
-    PL_DHashFreeTable,
-    GlobalNameHashHashKey,
-    GlobalNameHashMatchEntry,
-    PL_DHashMoveEntryStub,
-    GlobalNameHashClearEntry,
-    PL_DHashFinalizeStub,
-    GlobalNameHashInitEntry
-  };
-
-  mIsInitialized = PL_DHashTableInit(&mGlobalNames, &hash_table_ops,
-                                     nullptr, sizeof(GlobalNameMapEntry),
-                                     fallible_t(),
-                                     GLOBALNAME_HASHTABLE_INITIAL_LENGTH);
-  NS_ENSURE_TRUE(mIsInitialized, NS_ERROR_OUT_OF_MEMORY);
-
-  mIsInitialized = PL_DHashTableInit(&mNavigatorNames, &hash_table_ops,
-                                     nullptr, sizeof(GlobalNameMapEntry),
-                                     fallible_t(),
-                                     GLOBALNAME_HASHTABLE_INITIAL_LENGTH);
-  if (!mIsInitialized) {
-    PL_DHashTableFinish(&mGlobalNames);
-
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
   RegisterWeakMemoryReporter(this);
 
   nsresult rv = NS_OK;
@@ -387,12 +340,9 @@ nsGlobalNameStruct*
 nsScriptNameSpaceManager::LookupNameInternal(const nsAString& aName,
                                              const char16_t **aClassName)
 {
-  GlobalNameMapEntry *entry =
-    static_cast<GlobalNameMapEntry *>
-               (PL_DHashTableOperate(&mGlobalNames, &aName,
-                                        PL_DHASH_LOOKUP));
+  auto entry = static_cast<GlobalNameMapEntry*>(mGlobalNames.Search(&aName));
 
-  if (PL_DHASH_ENTRY_IS_BUSY(entry)) {
+  if (entry) {
     if (aClassName) {
       *aClassName = entry->mKey.get();
     }
@@ -408,16 +358,9 @@ nsScriptNameSpaceManager::LookupNameInternal(const nsAString& aName,
 const nsGlobalNameStruct*
 nsScriptNameSpaceManager::LookupNavigatorName(const nsAString& aName)
 {
-  GlobalNameMapEntry *entry =
-    static_cast<GlobalNameMapEntry *>
-               (PL_DHashTableOperate(&mNavigatorNames, &aName,
-                                     PL_DHASH_LOOKUP));
+  auto entry = static_cast<GlobalNameMapEntry*>(mNavigatorNames.Search(&aName));
 
-  if (!PL_DHASH_ENTRY_IS_BUSY(entry)) {
-    return nullptr;
-  }
-
-  return &entry->mGlobalName;
+  return entry ? &entry->mGlobalName : nullptr;
 }
 
 nsresult
@@ -537,8 +480,6 @@ nsScriptNameSpaceManager::RegisterDOMCIData(const char *aName,
                "Someone tries to register classinfo data for a class that isn't new or external!");
 
   s->mData = new nsExternalDOMClassInfoData;
-  NS_ENSURE_TRUE(s->mData, NS_ERROR_OUT_OF_MEMORY);
-
   s->mType = nsGlobalNameStruct::eTypeExternalClassInfo;
   s->mData->mName = aName;
   s->mData->mNameUTF16 = className;
@@ -648,7 +589,7 @@ nsScriptNameSpaceManager::OperateCategoryEntryHash(nsICategoryManager* aCategory
   // Copy CID onto the stack, so we can free it right away and avoid having
   // to add cleanup code at every exit point from this function.
   nsCID cid = *cidPtr;
-  nsMemory::Free(cidPtr);
+  free(cidPtr);
 
   if (type == nsGlobalNameStruct::eTypeExternalConstructor) {
     nsXPIDLCString constructorProto;
@@ -774,44 +715,6 @@ nsScriptNameSpaceManager::RegisterNavigatorDOMConstructor(
   }
 }
 
-struct NameClosure
-{
-  nsScriptNameSpaceManager::NameEnumerator enumerator;
-  void* closure;
-};
-
-static PLDHashOperator
-EnumerateName(PLDHashTable*, PLDHashEntryHdr *hdr, uint32_t, void* aClosure)
-{
-  GlobalNameMapEntry *entry = static_cast<GlobalNameMapEntry *>(hdr);
-  NameClosure* closure = static_cast<NameClosure*>(aClosure);
-  return closure->enumerator(entry->mKey, entry->mGlobalName, closure->closure);
-}
-
-void
-nsScriptNameSpaceManager::EnumerateGlobalNames(NameEnumerator aEnumerator,
-                                               void* aClosure)
-{
-  NameClosure closure = { aEnumerator, aClosure };
-  PL_DHashTableEnumerate(&mGlobalNames, EnumerateName, &closure);
-}
-
-void
-nsScriptNameSpaceManager::EnumerateNavigatorNames(NameEnumerator aEnumerator,
-                                                  void* aClosure)
-{
-  NameClosure closure = { aEnumerator, aClosure };
-  PL_DHashTableEnumerate(&mNavigatorNames, EnumerateName, &closure);
-}
-
-static size_t
-SizeOfEntryExcludingThis(PLDHashEntryHdr *aHdr, MallocSizeOf aMallocSizeOf,
-                         void *aArg)
-{
-  GlobalNameMapEntry* entry = static_cast<GlobalNameMapEntry*>(aHdr);
-  return entry->SizeOfExcludingThis(aMallocSizeOf);
-}
-
 MOZ_DEFINE_MALLOC_SIZE_OF(ScriptNameSpaceManagerMallocSizeOf)
 
 NS_IMETHODIMP
@@ -825,12 +728,22 @@ nsScriptNameSpaceManager::CollectReports(
 }
 
 size_t
-nsScriptNameSpaceManager::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
+nsScriptNameSpaceManager::SizeOfIncludingThis(
+    mozilla::MallocSizeOf aMallocSizeOf) const
 {
   size_t n = 0;
-  n += PL_DHashTableSizeOfExcludingThis(&mGlobalNames,
-         SizeOfEntryExcludingThis, aMallocSizeOf);
-  n += PL_DHashTableSizeOfExcludingThis(&mNavigatorNames,
-         SizeOfEntryExcludingThis, aMallocSizeOf);
+
+  n += mGlobalNames.ShallowSizeOfExcludingThis(aMallocSizeOf);
+  for (auto iter = mGlobalNames.ConstIter(); !iter.Done(); iter.Next()) {
+    auto entry = static_cast<GlobalNameMapEntry*>(iter.Get());
+    n += entry->SizeOfExcludingThis(aMallocSizeOf);
+  }
+
+  n += mNavigatorNames.ShallowSizeOfExcludingThis(aMallocSizeOf);
+  for (auto iter = mNavigatorNames.ConstIter(); !iter.Done(); iter.Next()) {
+    auto entry = static_cast<GlobalNameMapEntry*>(iter.Get());
+    n += entry->SizeOfExcludingThis(aMallocSizeOf);
+  }
+
   return n;
 }

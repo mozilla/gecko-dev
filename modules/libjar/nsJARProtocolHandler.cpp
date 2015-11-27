@@ -32,7 +32,7 @@ static NS_DEFINE_CID(kZipReaderCacheCID, NS_ZIPREADERCACHE_CID);
 nsJARProtocolHandler *gJarHandler = nullptr;
 
 nsJARProtocolHandler::nsJARProtocolHandler()
-: mIsMainProcess(XRE_GetProcessType() == GeckoProcessType_Default)
+: mIsMainProcess(XRE_IsParentProcess())
 {
     MOZ_ASSERT(NS_IsMainThread());
 }
@@ -192,7 +192,7 @@ nsJARProtocolHandler::NewURI(const nsACString &aSpec,
 {
     nsresult rv = NS_OK;
 
-    nsRefPtr<nsJARURI> jarURI = new nsJARURI();
+    RefPtr<nsJARURI> jarURI = new nsJARURI();
     if (!jarURI)
         return NS_ERROR_OUT_OF_MEMORY;
 
@@ -208,7 +208,9 @@ nsJARProtocolHandler::NewURI(const nsACString &aSpec,
 }
 
 NS_IMETHODIMP
-nsJARProtocolHandler::NewChannel(nsIURI *uri, nsIChannel **result)
+nsJARProtocolHandler::NewChannel2(nsIURI* uri,
+                                  nsILoadInfo* aLoadInfo,
+                                  nsIChannel** result)
 {
     nsJARChannel *chan = new nsJARChannel();
     if (!chan)
@@ -221,8 +223,21 @@ nsJARProtocolHandler::NewChannel(nsIURI *uri, nsIChannel **result)
         return rv;
     }
 
+    // set the loadInfo on the new channel
+    rv = chan->SetLoadInfo(aLoadInfo);
+    if (NS_FAILED(rv)) {
+        NS_RELEASE(chan);
+        return rv;
+    }
+
     *result = chan;
     return NS_OK;
+}
+
+NS_IMETHODIMP
+nsJARProtocolHandler::NewChannel(nsIURI *uri, nsIChannel **result)
+{
+    return NewChannel2(uri, nullptr, result);
 }
 
 

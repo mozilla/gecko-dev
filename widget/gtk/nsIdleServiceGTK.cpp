@@ -11,11 +11,9 @@
 #include "nsIServiceManager.h"
 #include "nsDebug.h"
 #include "prlink.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
-#ifdef PR_LOGGING
 static PRLogModuleInfo* sIdleLog = nullptr;
-#endif
 
 typedef bool (*_XScreenSaverQueryExtension_fn)(Display* dpy, int* event_base,
                                                  int* error_base);
@@ -34,13 +32,14 @@ NS_IMPL_ISUPPORTS_INHERITED0(nsIdleServiceGTK, nsIdleService)
 
 static void Initialize()
 {
+    if (!GDK_IS_X11_DISPLAY(gdk_display_get_default()))
+        return;
+
     // This will leak - See comments in ~nsIdleServiceGTK().
     PRLibrary* xsslib = PR_LoadLibrary("libXss.so.1");
     if (!xsslib) // ouch.
     {
-#ifdef PR_LOGGING
-        PR_LOG(sIdleLog, PR_LOG_WARNING, ("Failed to find libXss.so!\n"));
-#endif
+        MOZ_LOG(sIdleLog, LogLevel::Warning, ("Failed to find libXss.so!\n"));
         return;
     }
 
@@ -50,14 +49,13 @@ static void Initialize()
         PR_FindFunctionSymbol(xsslib, "XScreenSaverAllocInfo");
     _XSSQueryInfo = (_XScreenSaverQueryInfo_fn)
         PR_FindFunctionSymbol(xsslib, "XScreenSaverQueryInfo");
-#ifdef PR_LOGGING
+
     if (!_XSSQueryExtension)
-        PR_LOG(sIdleLog, PR_LOG_WARNING, ("Failed to get XSSQueryExtension!\n"));
+        MOZ_LOG(sIdleLog, LogLevel::Warning, ("Failed to get XSSQueryExtension!\n"));
     if (!_XSSAllocInfo)
-        PR_LOG(sIdleLog, PR_LOG_WARNING, ("Failed to get XSSAllocInfo!\n"));
+        MOZ_LOG(sIdleLog, LogLevel::Warning, ("Failed to get XSSAllocInfo!\n"));
     if (!_XSSQueryInfo)
-        PR_LOG(sIdleLog, PR_LOG_WARNING, ("Failed to get XSSQueryInfo!\n"));
-#endif
+        MOZ_LOG(sIdleLog, LogLevel::Warning, ("Failed to get XSSQueryInfo!\n"));
 
     sInitialized = true;
 }
@@ -65,10 +63,8 @@ static void Initialize()
 nsIdleServiceGTK::nsIdleServiceGTK()
     : mXssInfo(nullptr)
 {
-#ifdef PR_LOGGING
     if (!sIdleLog)
         sIdleLog = PR_NewLogModule("nsIIdleService");
-#endif
 
     Initialize();
 }
@@ -103,9 +99,7 @@ nsIdleServiceGTK::PollIdleTime(uint32_t *aIdleTime)
     // We might not have a display (cf. in xpcshell)
     Display *dplay = GDK_DISPLAY_XDISPLAY(gdk_display_get_default());
     if (!dplay) {
-#ifdef PR_LOGGING
-        PR_LOG(sIdleLog, PR_LOG_WARNING, ("No display found!\n"));
-#endif
+        MOZ_LOG(sIdleLog, LogLevel::Warning, ("No display found!\n"));
         return false;
     }
 
@@ -125,9 +119,7 @@ nsIdleServiceGTK::PollIdleTime(uint32_t *aIdleTime)
         return true;
     }
     // If we get here, we couldn't get to XScreenSaver:
-#ifdef PR_LOGGING
-    PR_LOG(sIdleLog, PR_LOG_WARNING, ("XSSQueryExtension returned false!\n"));
-#endif
+    MOZ_LOG(sIdleLog, LogLevel::Warning, ("XSSQueryExtension returned false!\n"));
     return false;
 }
 
@@ -136,4 +128,3 @@ nsIdleServiceGTK::UsePollMode()
 {
     return sInitialized;
 }
-

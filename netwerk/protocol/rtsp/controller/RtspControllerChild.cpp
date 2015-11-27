@@ -10,21 +10,22 @@
 #include "mozilla/net/NeckoChild.h"
 #include "nsITabChild.h"
 #include "nsILoadContext.h"
-#include "nsNetUtil.h"
 #include "mozilla/ipc/InputStreamUtils.h"
 #include "mozilla/ipc/URIUtils.h"
 #include "nsStringStream.h"
-#include "prlog.h"
-
-PRLogModuleInfo* gRtspChildLog = nullptr;
-#undef LOG
-#define LOG(args) PR_LOG(gRtspChildLog, PR_LOG_DEBUG, args)
+#include "mozilla/Logging.h"
 
 const uint32_t kRtspTotalTracks = 2;
+const unsigned long kRtspCommandDelayMs = 200;
+
 using namespace mozilla::ipc;
 
 namespace mozilla {
 namespace net {
+
+static LazyLogModule gRtspChildLog("nsRtspChild");
+#undef LOG
+#define LOG(args) MOZ_LOG(mozilla::net::gRtspChildLog, mozilla::LogLevel::Debug, args)
 
 NS_IMPL_ADDREF(RtspControllerChild)
 
@@ -64,11 +65,10 @@ RtspControllerChild::RtspControllerChild(nsIChannel *channel)
   , mChannel(channel)
   , mTotalTracks(0)
   , mSuspendCount(0)
+  , mTimerLock("RtspControllerChild.mTimerLock")
+  , mPlayTimer(nullptr)
+  , mPauseTimer(nullptr)
 {
-#if defined(PR_LOGGING)
-  if (!gRtspChildLog)
-    gRtspChildLog = PR_NewLogModule("nsRtspChild");
-#endif
   AddIPDLReference();
   gNeckoChild->SendPRtspControllerConstructor(this);
 }
@@ -108,6 +108,20 @@ RtspControllerChild::DisallowIPC()
   mIPCAllowed = false;
 }
 
+void
+RtspControllerChild::StopPlayAndPauseTimer()
+{
+  MutexAutoLock lock(mTimerLock);
+  if (mPlayTimer) {
+    mPlayTimer->Cancel();
+    mPlayTimer = nullptr;
+  }
+  if (mPauseTimer) {
+    mPauseTimer->Cancel();
+    mPauseTimer = nullptr;
+  }
+}
+
 //-----------------------------------------------------------------------------
 // RtspControllerChild::PRtspControllerChild
 //-----------------------------------------------------------------------------
@@ -117,9 +131,9 @@ RtspControllerChild::RecvOnMediaDataAvailable(
                        const nsCString& data,
                        const uint32_t& length,
                        const uint32_t& offset,
-                       const InfallibleTArray<RtspMetadataParam>& metaArray)
+                       InfallibleTArray<RtspMetadataParam>&& metaArray)
 {
-  nsRefPtr<RtspMetaData> meta = new RtspMetaData();
+  RefPtr<RtspMetaData> meta = new RtspMetaData();
   nsresult rv = meta->DeserializeRtspMetaData(metaArray);
   NS_ENSURE_SUCCESS(rv, true);
 
@@ -145,10 +159,10 @@ RtspControllerChild::GetMetaDataLength()
 bool
 RtspControllerChild::RecvOnConnected(
                        const uint8_t& index,
-                       const InfallibleTArray<RtspMetadataParam>& metaArray)
+                       InfallibleTArray<RtspMetadataParam>&& metaArray)
 {
   // Deserialize meta data.
-  nsRefPtr<RtspMetaData> meta = new RtspMetaData();
+  RefPtr<RtspMetaData> meta = new RtspMetaData();
   nsresult rv = meta->DeserializeRtspMetaData(metaArray);
   NS_ENSURE_SUCCESS(rv, true);
   meta->GetTotalTracks(&mTotalTracks);
@@ -174,6 +188,7 @@ RtspControllerChild::RecvOnDisconnected(
                        const uint8_t& index,
                        const nsresult& reason)
 {
+  StopPlayAndPauseTimer();
   DisallowIPC();
   LOG(("RtspControllerChild::RecvOnDisconnected for track %d reason = 0x%x", index, reason));
   if (mListener) {
@@ -186,6 +201,7 @@ RtspControllerChild::RecvOnDisconnected(
 bool
 RtspControllerChild::RecvAsyncOpenFailed(const nsresult& reason)
 {
+  StopPlayAndPauseTimer();
   DisallowIPC();
   LOG(("RtspControllerChild::RecvAsyncOpenFailed reason = 0x%x", reason));
   if (mListener) {
@@ -198,8 +214,8 @@ RtspControllerChild::RecvAsyncOpenFailed(const nsresult& reason)
 void
 RtspControllerChild::AddIPDLReference()
 {
-  NS_ABORT_IF_FALSE(!mIPCOpen,
-                    "Attempt to retain more than one IPDL reference");
+  MOZ_ASSERT(!mIPCOpen,
+             "Attempt to retain more than one IPDL reference");
   mIPCOpen = true;
   AllowIPC();
   AddRef();
@@ -208,7 +224,7 @@ RtspControllerChild::AddIPDLReference()
 void
 RtspControllerChild::ReleaseIPDLReference()
 {
-  NS_ABORT_IF_FALSE(mIPCOpen, "Attempt to release nonexistent IPDL reference");
+  MOZ_ASSERT(mIPCOpen, "Attempt to release nonexistent IPDL reference");
   mIPCOpen = false;
   DisallowIPC();
   Release();
@@ -234,8 +250,6 @@ enum IPCEvent
   SendPlayEvent,
   SendPauseEvent,
   SendSeekEvent,
-  SendResumeEvent,
-  SendSuspendEvent,
   SendStopEvent,
   SendPlaybackEndedEvent
 };
@@ -275,10 +289,6 @@ public:
       rv = mController->SendPause();
     } else if (mEvent == SendSeekEvent) {
       rv = mController->SendSeek(mSeekTime);
-    } else if (mEvent == SendResumeEvent) {
-      rv = mController->SendResume();
-    } else if (mEvent == SendSuspendEvent) {
-      rv = mController->SendSuspend();
     } else if (mEvent == SendStopEvent) {
       rv = mController->SendStop();
     } else if (mEvent == SendPlaybackEndedEvent) {
@@ -292,7 +302,7 @@ public:
     return NS_OK;
   }
 private:
-  nsRefPtr<RtspControllerChild> mController;
+  RefPtr<RtspControllerChild> mController;
   IPCEvent mEvent;
   uint64_t mSeekTime;
 };
@@ -305,14 +315,30 @@ RtspControllerChild::Play(void)
 {
   LOG(("RtspControllerChild::Play()"));
 
-  if (NS_IsMainThread()) {
-    if (!OKToSendIPC() || !SendPlay()) {
-      return NS_ERROR_FAILURE;
+  MutexAutoLock lock(mTimerLock);
+  // Cancel the pause timer if it is active because successive pause-play in a
+  // short duration is unncessary but could impair playback smoothing.
+  if (mPauseTimer) {
+    mPauseTimer->Cancel();
+    mPauseTimer = nullptr;
+  }
+
+  // Start a timer to delay the play operation for a short duration.
+  if (!mPlayTimer) {
+    mPlayTimer = do_CreateInstance("@mozilla.org/timer;1");
+    if (!mPlayTimer) {
+      return NS_ERROR_NOT_INITIALIZED;
     }
-  } else {
-    nsresult rv = NS_DispatchToMainThread(
-                    new SendIPCEvent(this, SendPlayEvent));
-    NS_ENSURE_SUCCESS(rv, rv);
+    // We have to dispatch the timer callback to the main thread because the
+    // decoder thread is a thread from nsIThreadPool and cannot be the timer
+    // target. Furthermore, IPC send functions should only be called from the
+    // main thread.
+    nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
+    mPlayTimer->SetTarget(mainThread);
+    mPlayTimer->InitWithFuncCallback(
+                  RtspControllerChild::PlayTimerCallback,
+                  this, kRtspCommandDelayMs,
+                  nsITimer::TYPE_ONE_SHOT);
   }
 
   return NS_OK;
@@ -323,14 +349,29 @@ RtspControllerChild::Pause(void)
 {
   LOG(("RtspControllerChild::Pause()"));
 
-  if (NS_IsMainThread()) {
-    if (!OKToSendIPC() || !SendPause()) {
-      return NS_ERROR_FAILURE;
+  MutexAutoLock lock(mTimerLock);
+  // Cancel the play timer if it is active because successive play-pause in a
+  // shrot duration is unnecessary but could impair playback smoothing.
+  if (mPlayTimer) {
+    mPlayTimer->Cancel();
+    mPlayTimer = nullptr;
+  }
+
+  // Start a timer to delay the pause operation for a short duration.
+  if (!mPauseTimer) {
+    mPauseTimer = do_CreateInstance("@mozilla.org/timer;1");
+    if (!mPauseTimer) {
+      return NS_ERROR_NOT_INITIALIZED;
     }
-  } else {
-    nsresult rv = NS_DispatchToMainThread(
-                    new SendIPCEvent(this, SendPauseEvent));
-    NS_ENSURE_SUCCESS(rv, rv);
+    // We have to dispatch the timer callback to the main thread because the
+    // decoder thread is a thread from nsIThreadPool and cannot be the timer
+    // target.
+    nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
+    mPauseTimer->SetTarget(mainThread);
+    mPauseTimer->InitWithFuncCallback(
+                  RtspControllerChild::PauseTimerCallback,
+                  this, kRtspCommandDelayMs,
+                  nsITimer::TYPE_ONE_SHOT);
   }
 
   return NS_OK;
@@ -343,15 +384,7 @@ RtspControllerChild::Resume(void)
   NS_ENSURE_TRUE(mSuspendCount > 0, NS_ERROR_UNEXPECTED);
 
   if (!--mSuspendCount) {
-    if (NS_IsMainThread()) {
-      if (!OKToSendIPC() || !SendResume()) {
-        return NS_ERROR_FAILURE;
-      }
-    } else {
-      nsresult rv = NS_DispatchToMainThread(
-                      new SendIPCEvent(this, SendResumeEvent));
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
+    return Play();
   }
 
   return NS_OK;
@@ -363,15 +396,7 @@ RtspControllerChild::Suspend(void)
   LOG(("RtspControllerChild::Suspend()"));
 
   if (!mSuspendCount++) {
-    if (NS_IsMainThread()) {
-      if (!OKToSendIPC() || !SendSuspend()) {
-        return NS_ERROR_FAILURE;
-      }
-    } else {
-      nsresult rv = NS_DispatchToMainThread(
-                      new SendIPCEvent(this, SendSuspendEvent));
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
+    return Pause();
   }
 
   return NS_OK;
@@ -399,6 +424,7 @@ NS_IMETHODIMP
 RtspControllerChild::Stop()
 {
   LOG(("RtspControllerChild::Stop()"));
+  StopPlayAndPauseTimer();
 
   if (NS_IsMainThread()) {
     if (!OKToSendIPC() || !SendStop()) {
@@ -430,6 +456,8 @@ NS_IMETHODIMP
 RtspControllerChild::PlaybackEnded()
 {
   LOG(("RtspControllerChild::PlaybackEnded"));
+
+  StopPlayAndPauseTimer();
 
   if (NS_IsMainThread()) {
     if (!OKToSendIPC() || !SendPlaybackEnded()) {
@@ -540,6 +568,45 @@ RtspControllerChild::AsyncOpen(nsIStreamingProtocolListener *aListener)
     return NS_ERROR_FAILURE;
   }
   return NS_OK;
+}
+
+//-----------------------------------------------------------------------------
+// RtspControllerChild static member methods
+//-----------------------------------------------------------------------------
+//static
+void
+RtspControllerChild::PlayTimerCallback(nsITimer *aTimer, void *aClosure)
+{
+  MOZ_ASSERT(aTimer);
+  MOZ_ASSERT(aClosure);
+  MOZ_ASSERT(NS_IsMainThread());
+
+  RtspControllerChild *self = static_cast<RtspControllerChild*>(aClosure);
+
+  MutexAutoLock lock(self->mTimerLock);
+  if (!self->mPlayTimer || !self->OKToSendIPC()) {
+    return;
+  }
+  self->SendPlay();
+  self->mPlayTimer = nullptr;
+}
+
+//static
+void
+RtspControllerChild::PauseTimerCallback(nsITimer *aTimer, void *aClosure)
+{
+  MOZ_ASSERT(aTimer);
+  MOZ_ASSERT(aClosure);
+  MOZ_ASSERT(NS_IsMainThread());
+
+  RtspControllerChild *self = static_cast<RtspControllerChild*>(aClosure);
+
+  MutexAutoLock lock(self->mTimerLock);
+  if (!self->mPauseTimer || !self->OKToSendIPC()) {
+    return;
+  }
+  self->SendPause();
+  self->mPauseTimer = nullptr;
 }
 
 } // namespace net

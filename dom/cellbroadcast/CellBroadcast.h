@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,7 +10,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/ErrorResult.h"
-#include "nsICellBroadcastProvider.h"
+#include "nsICellBroadcastService.h"
 #include "js/TypeDecls.h"
 
 class nsPIDOMWindow;
@@ -17,19 +18,19 @@ class nsPIDOMWindow;
 namespace mozilla {
 namespace dom {
 
-class CellBroadcast MOZ_FINAL : public DOMEventTargetHelper,
+class CellBroadcast final : public DOMEventTargetHelper,
                                 private nsICellBroadcastListener
 {
   /**
    * Class CellBroadcast doesn't actually expose nsICellBroadcastListener.
    * Instead, it owns an nsICellBroadcastListener derived instance mListener
-   * and passes it to nsICellBroadcastProvider. The onreceived events are first
+   * and passes it to nsICellBroadcastService. The onreceived events are first
    * delivered to mListener and then forwarded to its owner, CellBroadcast. See
    * also bug 775997 comment #51.
    */
   class Listener;
 
-  // MOZ_FINAL suppresses -Werror,-Wdelete-non-virtual-dtor
+  // final suppresses -Werror,-Wdelete-non-virtual-dtor
   ~CellBroadcast();
 
 public:
@@ -41,21 +42,20 @@ public:
   static already_AddRefed<CellBroadcast>
   Create(nsPIDOMWindow* aOwner, ErrorResult& aRv);
 
-  CellBroadcast() MOZ_DELETE;
+  CellBroadcast() = delete;
   CellBroadcast(nsPIDOMWindow *aWindow,
-                nsICellBroadcastProvider* aProvider);
+                nsICellBroadcastService* aService);
 
   nsPIDOMWindow*
   GetParentObject() const { return GetOwner(); }
 
   virtual JSObject*
-  WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   IMPL_EVENT_HANDLER(received)
 
 private:
-  nsCOMPtr<nsICellBroadcastProvider> mProvider;
-  nsRefPtr<Listener> mListener;
+  RefPtr<Listener> mListener;
 };
 
 } // namespace dom

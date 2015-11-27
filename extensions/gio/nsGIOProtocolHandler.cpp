@@ -16,8 +16,18 @@
 #include "nsIStringBundle.h"
 #include "nsIStandardURL.h"
 #include "nsMimeTypes.h"
+#include "nsNetCID.h"
 #include "nsNetUtil.h"
+#include "nsServiceManagerUtils.h"
+#include "nsIURI.h"
+#include "nsIAuthPrompt.h"
+#include "nsIChannel.h"
+#include "nsIInputStream.h"
+#include "nsIProtocolHandler.h"
+#include "nsNullPrincipal.h"
 #include "mozilla/Monitor.h"
+#include "plstr.h"
+#include "prtime.h"
 #include <gio/gio.h>
 #include <algorithm>
 
@@ -27,12 +37,8 @@
 //-----------------------------------------------------------------------------
 
 // NSPR_LOG_MODULES=gio:5
-#ifdef PR_LOGGING
 static PRLogModuleInfo *sGIOLog;
-#define LOG(args) PR_LOG(sGIOLog, PR_LOG_DEBUG, args)
-#else
-#define LOG(args)
-#endif
+#define LOG(args) MOZ_LOG(sGIOLog, mozilla::LogLevel::Debug, args)
 
 
 //-----------------------------------------------------------------------------
@@ -135,7 +141,7 @@ static void mount_operation_ask_password (GMountOperation   *mount_op,
                                           gpointer          user_data);
 //-----------------------------------------------------------------------------
 
-class nsGIOInputStream MOZ_FINAL : public nsIInputStream
+class nsGIOInputStream final : public nsIInputStream
 {
    ~nsGIOInputStream() { Close(); }
 
@@ -874,15 +880,15 @@ mount_operation_ask_password (GMountOperation   *mount_op,
   /* GIO should accept UTF8 */
   g_mount_operation_set_username(mount_op, NS_ConvertUTF16toUTF8(user).get());
   g_mount_operation_set_password(mount_op, NS_ConvertUTF16toUTF8(pass).get());
-  nsMemory::Free(user);
-  nsMemory::Free(pass);
+  free(user);
+  free(pass);
   g_mount_operation_reply(mount_op, G_MOUNT_OPERATION_HANDLED);
 }
 
 //-----------------------------------------------------------------------------
 
-class nsGIOProtocolHandler MOZ_FINAL : public nsIProtocolHandler
-                                     , public nsIObserver
+class nsGIOProtocolHandler final : public nsIProtocolHandler
+                                 , public nsIObserver
 {
   public:
     NS_DECL_ISUPPORTS
@@ -905,9 +911,7 @@ NS_IMPL_ISUPPORTS(nsGIOProtocolHandler, nsIProtocolHandler, nsIObserver)
 nsresult
 nsGIOProtocolHandler::Init()
 {
-#ifdef PR_LOGGING
   sGIOLog = PR_NewLogModule("gio");
-#endif
 
   nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
   if (prefs)
@@ -1045,7 +1049,9 @@ nsGIOProtocolHandler::NewURI(const nsACString &aSpec,
 }
 
 NS_IMETHODIMP
-nsGIOProtocolHandler::NewChannel(nsIURI *aURI, nsIChannel **aResult)
+nsGIOProtocolHandler::NewChannel2(nsIURI* aURI,
+                                  nsILoadInfo* aLoadInfo,
+                                  nsIChannel** aResult)
 {
   NS_ENSURE_ARG_POINTER(aURI);
   nsresult rv;
@@ -1055,23 +1061,27 @@ nsGIOProtocolHandler::NewChannel(nsIURI *aURI, nsIChannel **aResult)
   if (NS_FAILED(rv))
     return rv;
 
-  nsRefPtr<nsGIOInputStream> stream = new nsGIOInputStream(spec);
-  if (!stream)
-  {
-    rv = NS_ERROR_OUT_OF_MEMORY;
+  RefPtr<nsGIOInputStream> stream = new nsGIOInputStream(spec);
+  if (!stream) {
+    return NS_ERROR_OUT_OF_MEMORY;
   }
-  else
-  {
-    // start out assuming an unknown content-type.  we'll set the content-type
-    // to something better once we open the URI.
-    rv = NS_NewInputStreamChannel(aResult,
-                                  aURI,
-                                  stream,
-                                  NS_LITERAL_CSTRING(UNKNOWN_CONTENT_TYPE));
-    if (NS_SUCCEEDED(rv))
-      stream->SetChannel(*aResult);
+
+  rv = NS_NewInputStreamChannelInternal(aResult,
+                                        aURI,
+                                        stream,
+                                        NS_LITERAL_CSTRING(UNKNOWN_CONTENT_TYPE),
+                                        EmptyCString(), // aContentCharset
+                                        aLoadInfo);
+  if (NS_SUCCEEDED(rv)) {
+    stream->SetChannel(*aResult);
   }
   return rv;
+}
+
+NS_IMETHODIMP
+nsGIOProtocolHandler::NewChannel(nsIURI *aURI, nsIChannel **aResult)
+{
+    return NewChannel2(aURI, nullptr, aResult);
 }
 
 NS_IMETHODIMP

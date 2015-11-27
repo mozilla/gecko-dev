@@ -37,12 +37,12 @@ XPCOMUtils.defineLazyModuleGetter(this, "LightweightThemeManager",
                                   "resource://gre/modules/LightweightThemeManager.jsm");
 
 
-let gModuleName = "[CustomizeMode]";
+var gModuleName = "[CustomizeMode]";
 #include logging.js
 
-let gDisableAnimation = null;
+var gDisableAnimation = null;
 
-let gDraggingInToolbars;
+var gDraggingInToolbars;
 
 function CustomizeMode(aWindow) {
   if (gDisableAnimation === null) {
@@ -60,13 +60,16 @@ function CustomizeMode(aWindow) {
   // to the user when in customizing mode.
   this.visiblePalette = this.document.getElementById(kPaletteId);
   this.paletteEmptyNotice = this.document.getElementById("customization-empty");
-  this.paletteSpacer = this.document.getElementById("customization-spacer");
   this.tipPanel = this.document.getElementById("customization-tipPanel");
+  if (Services.prefs.getCharPref("general.skins.selectedSkin") != "classic/1.0") {
+    let lwthemeButton = this.document.getElementById("customization-lwtheme-button");
+    lwthemeButton.setAttribute("hidden", "true");
+  }
 #ifdef CAN_DRAW_IN_TITLEBAR
   this._updateTitlebarButton();
   Services.prefs.addObserver(kDrawInTitlebarPref, this, false);
-  this.window.addEventListener("unload", this);
 #endif
+  this.window.addEventListener("unload", this);
 };
 
 CustomizeMode.prototype = {
@@ -113,6 +116,16 @@ CustomizeMode.prototype = {
     } else {
       this.enter();
     }
+  },
+
+  swatchForTheme: function(aDocument) {
+   let lwthemeButton = aDocument.getElementById("customization-lwtheme-button");
+   let lwthemeIcon = aDocument.getAnonymousElementByAttribute(lwthemeButton,
+          "class", "button-icon");
+   let imageURL = LightweightThemeManager.currentTheme === null ?
+          "chrome://browser/skin/theme-switcher-icon.png" :
+          LightweightThemeManager.currentTheme.iconURL;
+    lwthemeIcon.style.backgroundImage = "url(" + imageURL + ")";
   },
 
   enter: function() {
@@ -273,9 +286,9 @@ CustomizeMode.prototype = {
         this.visiblePalette.clientTop;
         this.visiblePalette.setAttribute("showing", "true");
       }, 0);
-      this.paletteSpacer.hidden = true;
       this._updateEmptyPaletteNotice();
 
+      this.swatchForTheme(document);
       this.maybeShowTip(panelHolder);
 
       this._handler.isEnteringCustomizeMode = false;
@@ -296,10 +309,12 @@ CustomizeMode.prototype = {
         this.exit();
       }
     }.bind(this)).then(null, function(e) {
-      ERROR(e);
+      ERROR("Error entering customize mode", e);
       // We should ensure this has been called, and calling it again doesn't hurt:
       window.PanelUI.endBatchUpdate();
       this._handler.isEnteringCustomizeMode = false;
+      // Exit customize mode to ensure proper clean-up when entering failed.
+      this.exit();
     }.bind(this));
   },
 
@@ -351,7 +366,6 @@ CustomizeMode.prototype = {
     let documentElement = document.documentElement;
 
     // Hide the palette before starting the transition for increased perf.
-    this.paletteSpacer.hidden = false;
     this.visiblePalette.hidden = true;
     this.visiblePalette.removeAttribute("showing");
     this.paletteEmptyNotice.hidden = true;
@@ -459,6 +473,7 @@ CustomizeMode.prototype = {
         toolbar.removeAttribute("customizing");
 
       this.window.PanelUI.endBatchUpdate();
+      delete this._lastLightweightTheme;
       this._changed = false;
       this._transitioning = false;
       this._handler.isExitingCustomizeMode = false;
@@ -469,7 +484,7 @@ CustomizeMode.prototype = {
         this.enter();
       }
     }.bind(this)).then(null, function(e) {
-      ERROR(e);
+      ERROR("Error exiting customize mode", e);
       // We should ensure this has been called, and calling it again doesn't hurt:
       window.PanelUI.endBatchUpdate();
       this._handler.isExitingCustomizeMode = false;
@@ -730,6 +745,9 @@ CustomizeMode.prototype = {
       let unusedWidgets = CustomizableUI.getUnusedWidgets(toolboxPalette);
       for (let widget of unusedWidgets) {
         let paletteItem = this.makePaletteItem(widget, "palette");
+        if (!paletteItem) {
+          continue;
+        }
         fragment.appendChild(paletteItem);
       }
 
@@ -747,6 +765,15 @@ CustomizeMode.prototype = {
   //       while still getting rid of the need for overlays.
   makePaletteItem: function(aWidget, aPlace) {
     let widgetNode = aWidget.forWindow(this.window).node;
+    if (!widgetNode) {
+      ERROR("Widget with id " + aWidget.id + " does not return a valid node");
+      return null;
+    }
+    // Do not build a palette item for hidden widgets; there's not much to show.
+    if (widgetNode.hidden) {
+      return null;
+    }
+
     let wrapper = this.createOrUpdateWrapper(widgetNode, aPlace);
     wrapper.appendChild(widgetNode);
     return wrapper;
@@ -1057,6 +1084,7 @@ CustomizeMode.prototype = {
         }
         this._removeDragHandlers(target);
       }
+      this.areas.clear();
     }.bind(this)).then(null, ERROR);
   },
 
@@ -1265,7 +1293,8 @@ CustomizeMode.prototype = {
     const RECENT_LWT_COUNT = 5;
 
     function previewTheme(aEvent) {
-      LightweightThemeManager.previewTheme(aEvent.target.theme);
+      LightweightThemeManager.previewTheme(aEvent.target.theme.id != DEFAULT_THEME_ID ?
+                                           aEvent.target.theme : null);
     }
 
     function resetPreview() {
@@ -1279,7 +1308,14 @@ CustomizeMode.prototype = {
         let tbb = doc.createElement("toolbarbutton");
         tbb.theme = aTheme;
         tbb.setAttribute("label", aTheme.name);
-        tbb.setAttribute("image", aTheme.iconURL);
+        if (aDefaultTheme == aTheme) {
+          // The actual icon is set up so it looks nice in about:addons, but
+          // we'd like the version that's correct for the OS we're on, so we set
+          // an attribute that our styling will then use to display the icon.
+          tbb.setAttribute("defaulttheme", "true");
+        } else {
+          tbb.setAttribute("image", aTheme.iconURL);
+        }
         if (aTheme.description)
           tbb.setAttribute("tooltiptext", aTheme.description);
         tbb.setAttribute("tabindex", "0");
@@ -1365,12 +1401,14 @@ CustomizeMode.prototype = {
     let doc = aEvent.target.ownerDocument;
     let footer = doc.getElementById("customization-lwtheme-menu-footer");
     let recommendedLabel = doc.getElementById("customization-lwtheme-menu-recommended");
+    this.swatchForTheme(doc);
     for (let element of [footer, recommendedLabel]) {
       while (element.previousSibling &&
              element.previousSibling.localName == "toolbarbutton") {
         element.previousSibling.remove();
       }
     }
+    aEvent.target.removeAttribute("height");
   },
 
   _onUIChange: function() {
@@ -1435,11 +1473,9 @@ CustomizeMode.prototype = {
           this.exit();
         }
         break;
-#ifdef CAN_DRAW_IN_TITLEBAR
       case "unload":
         this.uninit();
         break;
-#endif
     }
   },
 
@@ -1606,7 +1642,6 @@ CustomizeMode.prototype = {
         if (!targetIsToolbar) {
           dragValue = "before";
         } else {
-          dragOverItem = this._findVisiblePreviousSiblingNode(targetParent.children[position]);
           // Check if the aDraggedItem is hovered past the first half of dragOverItem
           let window = dragOverItem.ownerDocument.defaultView;
           let direction = window.getComputedStyle(dragOverItem, null).direction;
@@ -1864,8 +1899,14 @@ CustomizeMode.prototype = {
       aEvent.dataTransfer.mozGetDataAt(kDragDataTypePrefix + documentId, 0);
 
     let draggedWrapper = document.getElementById("wrapper-" + draggedItemId);
-    draggedWrapper.hidden = false;
-    draggedWrapper.removeAttribute("mousedown");
+
+    // DraggedWrapper might no longer available if a widget node is
+    // destroyed after starting (but before stopping) a drag.
+    if (draggedWrapper) {
+      draggedWrapper.hidden = false;
+      draggedWrapper.removeAttribute("mousedown");
+    }
+
     if (this._dragOverItem) {
       this._cancelDragActive(this._dragOverItem);
       this._dragOverItem = null;

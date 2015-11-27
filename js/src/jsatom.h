@@ -19,11 +19,6 @@
 class JSAtom;
 class JSAutoByteString;
 
-struct JSIdArray {
-    int length;
-    js::HeapId vector[1];    /* actually, length jsid words */
-};
-
 namespace js {
 
 JS_STATIC_ASSERT(sizeof(HashNumber) == 4);
@@ -37,10 +32,10 @@ HashId(jsid id)
 struct JsidHasher
 {
     typedef jsid Lookup;
-    static HashNumber hash(const Lookup &l) {
+    static HashNumber hash(const Lookup& l) {
         return HashNumber(JSID_BITS(l));
     }
-    static bool match(const jsid &id, const Lookup &l) {
+    static bool match(const jsid& id, const Lookup& l) {
         return id == l;
     }
 };
@@ -49,8 +44,8 @@ struct JsidHasher
  * Return a printable, lossless char[] representation of a string-type atom.
  * The lifetime of the result matches the lifetime of bytes.
  */
-extern const char *
-AtomToPrintableString(ExclusiveContext *cx, JSAtom *atom, JSAutoByteString *bytes);
+extern const char*
+AtomToPrintableString(ExclusiveContext* cx, JSAtom* atom, JSAutoByteString* bytes);
 
 class AtomStateEntry
 {
@@ -60,14 +55,14 @@ class AtomStateEntry
 
   public:
     AtomStateEntry() : bits(0) {}
-    AtomStateEntry(const AtomStateEntry &other) : bits(other.bits) {}
-    AtomStateEntry(JSAtom *ptr, bool tagged)
+    AtomStateEntry(const AtomStateEntry& other) : bits(other.bits) {}
+    AtomStateEntry(JSAtom* ptr, bool tagged)
       : bits(uintptr_t(ptr) | uintptr_t(tagged))
     {
-        JS_ASSERT((uintptr_t(ptr) & 0x1) == 0);
+        MOZ_ASSERT((uintptr_t(ptr) & 0x1) == 0);
     }
 
-    bool isTagged() const {
+    bool isPinned() const {
         return bits & 0x1;
     }
 
@@ -75,11 +70,12 @@ class AtomStateEntry
      * Non-branching code sequence. Note that the const_cast is safe because
      * the hash function doesn't consider the tag to be a portion of the key.
      */
-    void setTagged(bool enabled) const {
-        const_cast<AtomStateEntry *>(this)->bits |= uintptr_t(enabled);
+    void setPinned(bool pinned) const {
+        const_cast<AtomStateEntry*>(this)->bits |= uintptr_t(pinned);
     }
 
-    JSAtom *asPtr() const;
+    JSAtom* asPtr() const;
+    JSAtom* asPtrUnbarriered() const;
 };
 
 struct AtomHasher
@@ -87,42 +83,66 @@ struct AtomHasher
     struct Lookup
     {
         union {
-            const JS::Latin1Char *latin1Chars;
-            const char16_t *twoByteChars;
+            const JS::Latin1Char* latin1Chars;
+            const char16_t* twoByteChars;
         };
         bool isLatin1;
         size_t length;
-        const JSAtom *atom; /* Optional. */
+        const JSAtom* atom; /* Optional. */
         JS::AutoCheckCannotGC nogc;
 
         HashNumber hash;
 
-        Lookup(const char16_t *chars, size_t length)
+        Lookup(const char16_t* chars, size_t length)
           : twoByteChars(chars), isLatin1(false), length(length), atom(nullptr)
         {
             hash = mozilla::HashString(chars, length);
         }
-        Lookup(const JS::Latin1Char *chars, size_t length)
+        Lookup(const JS::Latin1Char* chars, size_t length)
           : latin1Chars(chars), isLatin1(true), length(length), atom(nullptr)
         {
             hash = mozilla::HashString(chars, length);
         }
-        inline explicit Lookup(const JSAtom *atom);
+        inline explicit Lookup(const JSAtom* atom);
     };
 
-    static HashNumber hash(const Lookup &l) { return l.hash; }
-    static inline bool match(const AtomStateEntry &entry, const Lookup &lookup);
-    static void rekey(AtomStateEntry &k, const AtomStateEntry& newKey) { k = newKey; }
+    static HashNumber hash(const Lookup& l) { return l.hash; }
+    static inline bool match(const AtomStateEntry& entry, const Lookup& lookup);
+    static void rekey(AtomStateEntry& k, const AtomStateEntry& newKey) { k = newKey; }
 };
 
 typedef HashSet<AtomStateEntry, AtomHasher, SystemAllocPolicy> AtomSet;
+
+// This class is a wrapper for AtomSet that is used to ensure the AtomSet is
+// not modified. It should only expose read-only methods from AtomSet.
+// Note however that the atoms within the table can be marked during GC.
+class FrozenAtomSet
+{
+    AtomSet* mSet;
+
+public:
+    // This constructor takes ownership of the passed-in AtomSet.
+    explicit FrozenAtomSet(AtomSet* set) { mSet = set; }
+
+    ~FrozenAtomSet() { js_delete(mSet); }
+
+    AtomSet::Ptr readonlyThreadsafeLookup(const AtomSet::Lookup& l) const;
+
+    size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
+        return mSet->sizeOfIncludingThis(mallocSizeOf);
+    }
+
+    typedef AtomSet::Range Range;
+
+    AtomSet::Range all() const { return mSet->all(); }
+};
 
 class PropertyName;
 
 }  /* namespace js */
 
 extern bool
-AtomIsInterned(JSContext *cx, JSAtom *atom);
+AtomIsPinned(JSContext* cx, JSAtom* atom);
 
 /* Well-known predefined C strings. */
 #define DECLARE_PROTO_STR(name,code,init,clasp) extern const char js_##name##_str[];
@@ -157,7 +177,6 @@ extern const char js_import_str[];
 extern const char js_in_str[];
 extern const char js_instanceof_str[];
 extern const char js_interface_str[];
-extern const char js_new_str[];
 extern const char js_package_str[];
 extern const char js_private_str[];
 extern const char js_protected_str[];
@@ -180,36 +199,36 @@ namespace js {
  * Atom tracing and garbage collection hooks.
  */
 void
-MarkAtoms(JSTracer *trc);
+MarkAtoms(JSTracer* trc);
 
 void
-MarkPermanentAtoms(JSTracer *trc);
+MarkPermanentAtoms(JSTracer* trc);
 
 void
-MarkWellKnownSymbols(JSTracer *trc);
+MarkWellKnownSymbols(JSTracer* trc);
 
 /* N.B. must correspond to boolean tagging behavior. */
-enum InternBehavior
+enum PinningBehavior
 {
-    DoNotInternAtom = false,
-    InternAtom = true
+    DoNotPinAtom = false,
+    PinAtom = true
 };
 
-extern JSAtom *
-Atomize(ExclusiveContext *cx, const char *bytes, size_t length,
-        js::InternBehavior ib = js::DoNotInternAtom);
+extern JSAtom*
+Atomize(ExclusiveContext* cx, const char* bytes, size_t length,
+        js::PinningBehavior pin = js::DoNotPinAtom);
 
 template <typename CharT>
-extern JSAtom *
-AtomizeChars(ExclusiveContext *cx, const CharT *chars, size_t length,
-             js::InternBehavior ib = js::DoNotInternAtom);
+extern JSAtom*
+AtomizeChars(ExclusiveContext* cx, const CharT* chars, size_t length,
+             js::PinningBehavior pin = js::DoNotPinAtom);
 
-extern JSAtom *
-AtomizeString(ExclusiveContext *cx, JSString *str, js::InternBehavior ib = js::DoNotInternAtom);
+extern JSAtom*
+AtomizeString(ExclusiveContext* cx, JSString* str, js::PinningBehavior pin = js::DoNotPinAtom);
 
 template <AllowGC allowGC>
-extern JSAtom *
-ToAtom(ExclusiveContext *cx, typename MaybeRooted<Value, allowGC>::HandleType v);
+extern JSAtom*
+ToAtom(ExclusiveContext* cx, typename MaybeRooted<Value, allowGC>::HandleType v);
 
 enum XDRMode {
     XDR_ENCODE,
@@ -221,7 +240,7 @@ class XDRState;
 
 template<XDRMode mode>
 bool
-XDRAtom(XDRState<mode> *xdr, js::MutableHandleAtom atomp);
+XDRAtom(XDRState<mode>* xdr, js::MutableHandleAtom atomp);
 
 } /* namespace js */
 

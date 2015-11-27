@@ -29,16 +29,9 @@ public:
     void GetDPI(double *xDPI, double *yDPI);
 
     // this is in points!
-    virtual const gfxIntSize GetSize() const
+    virtual const mozilla::gfx::IntSize GetSize() const
     {
-        return gfxIntSize(mSize.width, mSize.height);
-    }
-
-    virtual int32_t GetDefaultContextFlags() const
-    {
-        return gfxContext::FLAG_SIMPLIFY_OPERATORS |
-               gfxContext::FLAG_DISABLE_SNAPPING |
-               gfxContext::FLAG_DISABLE_COPY_BACKGROUND;
+        return mozilla::gfx::IntSize(mSize.width, mSize.height);
     }
 
 private:

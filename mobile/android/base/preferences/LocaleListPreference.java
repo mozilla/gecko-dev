@@ -14,6 +14,7 @@ import java.util.Set;
 
 import org.mozilla.gecko.AppConstants.Versions;
 import org.mozilla.gecko.BrowserLocaleManager;
+import org.mozilla.gecko.Locales;
 import org.mozilla.gecko.R;
 
 import android.content.Context;
@@ -117,7 +118,7 @@ public class LocaleListPreference extends ListPreference {
         private final String nativeName;
 
         public LocaleDescriptor(String tag) {
-            this(BrowserLocaleManager.parseLocaleCode(tag), tag);
+            this(Locales.parseLocaleCode(tag), tag);
         }
 
         public LocaleDescriptor(Locale locale, String tag) {
@@ -172,6 +173,12 @@ public class LocaleListPreference extends ListPreference {
          *         on this device without known issues.
          */
         public boolean isUsable(CharacterValidator validator) {
+            if (Versions.preLollipop && this.tag.matches("[a-zA-Z]{3}.*")) {
+                // Earlier versions of Android can't load three-char locale code
+                // resources.
+                return false;
+            }
+
             // Oh, for Java 7 switch statements.
             if (this.tag.equals("bn-IN")) {
                 // Bengali sometimes has an English label if the Bengali script
@@ -192,6 +199,7 @@ public class LocaleListPreference extends ListPreference {
             // See documentation for CharacterValidator.
             // Note that bn-IN is checked here even if it passed above.
             if (this.tag.equals("or") ||
+                this.tag.equals("my") ||
                 this.tag.equals("pa-IN") ||
                 this.tag.equals("gu-IN") ||
                 this.tag.equals("bn-IN")) {
@@ -215,7 +223,7 @@ public class LocaleListPreference extends ListPreference {
 
         // Future: single-locale builds should be specified, too.
         if (shippingLocales == null) {
-            final String fallbackTag = BrowserLocaleManager.getFallbackLocaleTag();
+            final String fallbackTag = BrowserLocaleManager.getInstance().getFallbackLocaleTag();
             return new LocaleDescriptor[] { new LocaleDescriptor(fallbackTag) };
         }
 
@@ -256,7 +264,7 @@ public class LocaleListPreference extends ListPreference {
         if (tag == null || tag.equals("")) {
             return Locale.getDefault();
         }
-        return BrowserLocaleManager.parseLocaleCode(tag);
+        return Locales.parseLocaleCode(tag);
     }
 
     @Override
@@ -295,8 +303,11 @@ public class LocaleListPreference extends ListPreference {
         values[0] = "";
 
         for (int i = 0; i < count; ++i) {
-            entries[i + 1] = descriptors[i].getDisplayName();
-            values[i + 1] = descriptors[i].getTag();
+            final String displayName = descriptors[i].getDisplayName();
+            final String tag = descriptors[i].getTag();
+            Log.v(LOG_TAG, displayName + " => " + tag);
+            entries[i + 1] = displayName;
+            values[i + 1] = tag;
         }
 
         setEntries(entries);

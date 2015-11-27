@@ -22,11 +22,11 @@ NS_EVENT_CLASS(Internal, UIEvent)
 
 // TextEvents.h
 NS_EVENT_CLASS(Widget, KeyboardEvent)
-NS_EVENT_CLASS(Widget, TextEvent)
 NS_EVENT_CLASS(Widget, CompositionEvent)
 NS_EVENT_CLASS(Widget, QueryContentEvent)
 NS_EVENT_CLASS(Widget, SelectionEvent)
 NS_EVENT_CLASS(Internal, EditorInputEvent)
+NS_EVENT_CLASS(Internal, BeforeAfterKeyboardEvent)
 
 // MouseEvents.h
 NS_EVENT_CLASS(Widget, MouseEventBase)

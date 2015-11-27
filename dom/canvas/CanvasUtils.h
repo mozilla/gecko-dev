@@ -9,21 +9,19 @@
 #include "mozilla/CheckedInt.h"
 #include "mozilla/dom/ToJSValue.h"
 #include "jsapi.h"
+#include "mozilla/FloatingPoint.h"
 
 class nsIPrincipal;
 
 namespace mozilla {
 
-namespace gfx {
-class Matrix;
-}
-
 namespace dom {
 class HTMLCanvasElement;
-}
+} // namespace dom
 
 namespace CanvasUtils {
 
+bool GetCanvasContextType(const nsAString& str, dom::CanvasContextType* const out_type);
 
 // Check that the rectangle [x,y,w,h] is a subrectangle of [0,0,realWidth,realHeight]
 
@@ -53,7 +51,7 @@ void DoDrawImageSecurityCheck(dom::HTMLCanvasElement *aCanvasElement,
 bool CoerceDouble(JS::Value v, double* d);
 
     /* Float validation stuff */
-#define VALIDATE(_f)  if (!NS_finite(_f)) return false
+#define VALIDATE(_f)  if (!IsFinite(_f)) return false
 
 inline bool FloatValidate (double f1) {
     VALIDATE(f1);
@@ -89,18 +87,8 @@ inline bool FloatValidate (double f1, double f2, double f3, double f4, double f5
 
 template<typename T>
 nsresult
-JSValToDashArray(JSContext* cx, const JS::Value& val,
-                 FallibleTArray<T>& dashArray);
-
-template<typename T>
-JS::Value
-DashArrayToJSVal(FallibleTArray<T>& dashArray,
-                 JSContext* cx, mozilla::ErrorResult& rv);
-
-template<typename T>
-nsresult
 JSValToDashArray(JSContext* cx, const JS::Value& patternArray,
-                 FallibleTArray<T>& dashes)
+                 nsTArray<T>& dashes)
 {
     // The cap is pretty arbitrary.  16k should be enough for
     // anybody...
@@ -132,7 +120,7 @@ JSValToDashArray(JSContext* cx, const JS::Value& patternArray,
             } else if (d > 0.0) {
                 haveNonzeroElement = true;
             }
-            if (!dashes.AppendElement(d)) {
+            if (!dashes.AppendElement(d, mozilla::fallible)) {
                 return NS_ERROR_OUT_OF_MEMORY;
             }
         }
@@ -152,7 +140,7 @@ JSValToDashArray(JSContext* cx, const JS::Value& patternArray,
 
 template<typename T>
 void
-DashArrayToJSVal(FallibleTArray<T>& dashes,
+DashArrayToJSVal(nsTArray<T>& dashes,
                  JSContext* cx,
                  JS::MutableHandle<JS::Value> retval,
                  mozilla::ErrorResult& rv)
@@ -167,7 +155,7 @@ DashArrayToJSVal(FallibleTArray<T>& dashes,
     }
 }
 
-}
-}
+} // namespace CanvasUtils
+} // namespace mozilla
 
 #endif /* _CANVASUTILS_H_ */

@@ -4,10 +4,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#if defined(MOZ_LOGGING)
-#define FORCE_PR_LOG
-#endif
-
 #include "GetAddrInfo.h"
 #include "mozilla/net/DNS.h"
 #include "prnetdb.h"
@@ -20,32 +16,33 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/net/DNS.h"
 #include <algorithm>
+#include "prerror.h"
 
-#include "prlog.h"
-#if defined(PR_LOGGING)
-static PRLogModuleInfo *gGetAddrInfoLog = PR_NewLogModule("GetAddrInfo");
-#define LOG(msg, ...) \
-  PR_LOG(gGetAddrInfoLog, PR_LOG_DEBUG, ("[DNS]: " msg, ##__VA_ARGS__))
-#define LOG_WARNING(msg, ...) \
-  PR_LOG(gGetAddrInfoLog, PR_LOG_WARNING, ("[DNS]: " msg, ##__VA_ARGS__))
-#else
-#define LOG(args)
-#define LOG_WARNING(args)
+#if defined(ANDROID) && ANDROID_VERSION > 19
+#include <resolv_netid.h>
 #endif
 
+#include "mozilla/Logging.h"
+
 #if DNSQUERY_AVAILABLE
-// There is a bug in Windns.h where the type of parameter ppQueryResultsSet for
+// There is a bug in windns.h where the type of parameter ppQueryResultsSet for
 // DnsQuery_A is dependent on UNICODE being set. It should *always* be
 // PDNS_RECORDA, but if UNICODE is set it is PDNS_RECORDW. To get around this
 // we make sure that UNICODE is unset.
 #undef UNICODE
 #include <ws2tcpip.h>
 #undef GetAddrInfo
-#include <Windns.h>
+#include <windns.h>
 #endif
 
 namespace mozilla {
 namespace net {
+
+static LazyLogModule gGetAddrInfoLog("GetAddrInfo");
+#define LOG(msg, ...) \
+  MOZ_LOG(gGetAddrInfoLog, LogLevel::Debug, ("[DNS]: " msg, ##__VA_ARGS__))
+#define LOG_WARNING(msg, ...) \
+  MOZ_LOG(gGetAddrInfoLog, LogLevel::Warning, ("[DNS]: " msg, ##__VA_ARGS__))
 
 #if DNSQUERY_AVAILABLE
 ////////////////////////////
@@ -152,13 +149,68 @@ _GetAddrInfoShutdown_Windows()
   return NS_OK;
 }
 
+// If successful, returns in aResult a TTL value that is smaller or
+// equal with the one already there. Gets the TTL value by calling
+// to dnsapi->mDnsQueryFunc and iterating through the returned
+// records to find the one with the smallest TTL value.
 static MOZ_ALWAYS_INLINE nsresult
-_GetTTLData_Windows(const char* aHost, uint16_t* aResult)
+_GetMinTTLForRequestType_Windows(DnsapiInfo * dnsapi, const char* aHost,
+                                 uint16_t aRequestType, unsigned int* aResult)
 {
+  MOZ_ASSERT(dnsapi);
   MOZ_ASSERT(aHost);
   MOZ_ASSERT(aResult);
 
-  nsRefPtr<DnsapiInfo> dnsapi = nullptr;
+  PDNS_RECORDA dnsData = nullptr;
+  DNS_STATUS status = dnsapi->mDnsQueryFunc(
+    aHost,
+    aRequestType,
+    (DNS_QUERY_STANDARD | DNS_QUERY_NO_NETBT | DNS_QUERY_NO_HOSTS_FILE
+      | DNS_QUERY_NO_MULTICAST | DNS_QUERY_ACCEPT_TRUNCATED_RESPONSE
+      | DNS_QUERY_DONT_RESET_TTL_VALUES),
+    nullptr,
+    &dnsData,
+    nullptr);
+  if (status == DNS_INFO_NO_RECORDS || status == DNS_ERROR_RCODE_NAME_ERROR
+      || !dnsData) {
+    LOG("No DNS records found for %s. status=%X. aRequestType = %X\n",
+        aHost, status, aRequestType);
+    return NS_ERROR_FAILURE;
+  } else if (status != NOERROR) {
+    LOG_WARNING("DnsQuery_A failed with status %X.\n", status);
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  for (PDNS_RECORDA curRecord = dnsData; curRecord; curRecord = curRecord->pNext) {
+    // Only records in the answer section are important
+    if (curRecord->Flags.S.Section != DnsSectionAnswer) {
+      continue;
+    }
+
+    if (curRecord->wType == aRequestType) {
+      *aResult = std::min<unsigned int>(*aResult, curRecord->dwTtl);
+    } else {
+      LOG("Received unexpected record type %u in response for %s.\n",
+          curRecord->wType, aHost);
+    }
+  }
+
+  dnsapi->mDnsFreeFunc(dnsData, DNS_FREE_TYPE::DnsFreeRecordList);
+  return NS_OK;
+}
+
+static MOZ_ALWAYS_INLINE nsresult
+_GetTTLData_Windows(const char* aHost, uint16_t* aResult, uint16_t aAddressFamily)
+{
+  MOZ_ASSERT(aHost);
+  MOZ_ASSERT(aResult);
+  if (aAddressFamily != PR_AF_UNSPEC &&
+      aAddressFamily != PR_AF_INET &&
+      aAddressFamily != PR_AF_INET6) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  RefPtr<DnsapiInfo> dnsapi = nullptr;
   {
     OffTheBooksMutexAutoLock lock(*gDnsapiInfoLock);
     dnsapi = gDnsapiInfo;
@@ -169,39 +221,16 @@ _GetTTLData_Windows(const char* aHost, uint16_t* aResult)
     return NS_ERROR_NOT_INITIALIZED;
   }
 
-  PDNS_RECORDA dnsData = nullptr;
-  DNS_STATUS status = dnsapi->mDnsQueryFunc(
-      aHost,
-      DNS_TYPE_ANY,
-      (DNS_QUERY_STANDARD | DNS_QUERY_NO_NETBT | DNS_QUERY_NO_HOSTS_FILE
-        | DNS_QUERY_NO_MULTICAST | DNS_QUERY_ACCEPT_TRUNCATED_RESPONSE
-        | DNS_QUERY_DONT_RESET_TTL_VALUES),
-      nullptr,
-      &dnsData,
-      nullptr);
-  if (status == DNS_INFO_NO_RECORDS || status == DNS_ERROR_RCODE_NAME_ERROR
-      || !dnsData) {
-    LOG("No DNS records found for %s.\n", aHost);
-    return NS_ERROR_UNKNOWN_HOST;
-  } else if (status != NOERROR) {
-    LOG_WARNING("DnsQuery_A failed with status %X.\n", status);
-    return NS_ERROR_FAILURE;
-  }
-
+  // In order to avoid using ANY records which are not always implemented as a
+  // "Gimme what you have" request in hostname resolvers, we should send A
+  // and/or AAAA requests, based on the address family requested.
   unsigned int ttl = -1;
-  PDNS_RECORDA curRecord = dnsData;
-  for (; curRecord; curRecord = curRecord->pNext) {
-    // Only records in the answer section are important
-    if (curRecord->Flags.S.Section != DnsSectionAnswer) {
-      continue;
-    }
-
-    if (curRecord->wType == DNS_TYPE_A || curRecord->wType == DNS_TYPE_AAAA) {
-      ttl = std::min<unsigned int>(ttl, curRecord->dwTtl);
-    }
+  if (aAddressFamily == PR_AF_UNSPEC || aAddressFamily == PR_AF_INET) {
+    _GetMinTTLForRequestType_Windows(dnsapi, aHost, DNS_TYPE_A, &ttl);
   }
-
-  dnsapi->mDnsFreeFunc(dnsData, DNS_FREE_TYPE::DnsFreeRecordList);
+  if (aAddressFamily == PR_AF_UNSPEC || aAddressFamily == PR_AF_INET6) {
+    _GetMinTTLForRequestType_Windows(dnsapi, aHost, DNS_TYPE_AAAA, &ttl);
+  }
 
   {
     // dnsapi's destructor is not thread-safe, so we release explicitly here
@@ -219,13 +248,78 @@ _GetTTLData_Windows(const char* aHost, uint16_t* aResult)
 }
 #endif
 
+#if defined(ANDROID) && ANDROID_VERSION >= 19
+// Make the same as nspr functions.
+static MOZ_ALWAYS_INLINE PRAddrInfo*
+_Android_GetAddrInfoForNetInterface(const char* hostname,
+                                   uint16_t af,
+                                   uint16_t flags,
+                                   const char* aNetworkInterface)
+{
+  if ((af != PR_AF_INET && af != PR_AF_UNSPEC) ||
+      (flags & ~ PR_AI_NOCANONNAME) != PR_AI_ADDRCONFIG) {
+    PR_SetError(PR_INVALID_ARGUMENT_ERROR, 0);
+    return nullptr;
+  }
+
+  struct addrinfo *res, hints;
+  int rv;
+  memset(&hints, 0, sizeof(hints));
+  if (!(flags & PR_AI_NOCANONNAME)) {
+    hints.ai_flags |= AI_CANONNAME;
+  }
+
+#ifdef AI_ADDRCONFIG
+  if ((flags & PR_AI_ADDRCONFIG) &&
+      strcmp(hostname, "localhost") != 0 &&
+      strcmp(hostname, "localhost.localdomain") != 0 &&
+      strcmp(hostname, "localhost6") != 0 &&
+      strcmp(hostname, "localhost6.localdomain6") != 0) {
+    hints.ai_flags |= AI_ADDRCONFIG;
+  }
+#endif
+
+  hints.ai_family = (af == PR_AF_INET) ? AF_INET : AF_UNSPEC;
+  hints.ai_socktype = SOCK_STREAM;
+
+#if ANDROID_VERSION == 19
+  rv = android_getaddrinfoforiface(hostname, NULL, &hints, aNetworkInterface,
+                                   0, &res);
+#else
+  uint32_t netId = atoi(aNetworkInterface);
+  rv = android_getaddrinfofornet(hostname, NULL, &hints, netId, 0, &res);
+#endif
+
+#ifdef AI_ADDRCONFIG
+  if (rv == EAI_BADFLAGS && (hints.ai_flags & AI_ADDRCONFIG)) {
+    hints.ai_flags &= ~AI_ADDRCONFIG;
+#if ANDROID_VERSION == 19
+    rv = android_getaddrinfoforiface(hostname, NULL, &hints, aNetworkInterface,
+                                     0, &res);
+#else
+    uint32_t netId = atoi(aNetworkInterface);
+    rv = android_getaddrinfofornet(hostname, NULL, &hints, netId, 0, &res);
+#endif
+  }
+#endif
+
+  if (rv == 0) {
+    return (PRAddrInfo *) res;
+  }
+
+  PR_SetError(PR_DIRECTORY_LOOKUP_ERROR, rv);
+  return nullptr;
+}
+#endif
+
 ////////////////////////////////////
 // PORTABLE RUNTIME IMPLEMENTATION//
 ////////////////////////////////////
 
 static MOZ_ALWAYS_INLINE nsresult
 _GetAddrInfo_Portable(const char* aCanonHost, uint16_t aAddressFamily,
-                      uint16_t aFlags, AddrInfo** aAddrInfo)
+                      uint16_t aFlags, const char* aNetworkInterface,
+                      AddrInfo** aAddrInfo)
 {
   MOZ_ASSERT(aCanonHost);
   MOZ_ASSERT(aAddrInfo);
@@ -245,7 +339,18 @@ _GetAddrInfo_Portable(const char* aCanonHost, uint16_t aAddressFamily,
     aAddressFamily = PR_AF_UNSPEC;
   }
 
-  PRAddrInfo* prai = PR_GetAddrInfoByName(aCanonHost, aAddressFamily, prFlags);
+  PRAddrInfo* prai;
+#if defined(ANDROID) && ANDROID_VERSION >= 19
+  if (aNetworkInterface && aNetworkInterface[0] != '\0') {
+    prai = _Android_GetAddrInfoForNetInterface(aCanonHost,
+                                               aAddressFamily,
+                                               prFlags,
+                                               aNetworkInterface);
+  } else
+#endif
+  {
+    prai = PR_GetAddrInfoByName(aCanonHost, aAddressFamily, prFlags);
+  }
 
   if (!prai) {
     return NS_ERROR_UNKNOWN_HOST;
@@ -256,13 +361,15 @@ _GetAddrInfo_Portable(const char* aCanonHost, uint16_t aAddressFamily,
     canonName = PR_GetCanonNameFromAddrInfo(prai);
   }
 
-  nsAutoPtr<AddrInfo> ai(new AddrInfo(aCanonHost, prai, disableIPv4, canonName));
+  bool filterNameCollision = !(aFlags & nsHostResolver::RES_ALLOW_NAME_COLLISION);
+  RefPtr<AddrInfo> ai(new AddrInfo(aCanonHost, prai, disableIPv4,
+                                   filterNameCollision, canonName));
   PR_FreeAddrInfo(prai);
   if (ai->mAddresses.isEmpty()) {
     return NS_ERROR_UNKNOWN_HOST;
   }
 
-  *aAddrInfo = ai.forget();
+  ai.forget(aAddrInfo);
 
   return NS_OK;
 }
@@ -294,7 +401,7 @@ GetAddrInfoShutdown() {
 
 nsresult
 GetAddrInfo(const char* aHost, uint16_t aAddressFamily, uint16_t aFlags,
-            AddrInfo** aAddrInfo, bool aGetTtl)
+            const char* aNetworkInterface, AddrInfo** aAddrInfo, bool aGetTtl)
 {
   if (NS_WARN_IF(!aHost) || NS_WARN_IF(!aAddrInfo)) {
     return NS_ERROR_NULL_POINTER;
@@ -308,7 +415,8 @@ GetAddrInfo(const char* aHost, uint16_t aAddressFamily, uint16_t aFlags,
 #endif
 
   *aAddrInfo = nullptr;
-  nsresult rv = _GetAddrInfo_Portable(aHost, aAddressFamily, aFlags, aAddrInfo);
+  nsresult rv = _GetAddrInfo_Portable(aHost, aAddressFamily, aFlags,
+                                      aNetworkInterface, aAddrInfo);
 
 #if DNSQUERY_AVAILABLE
   if (aGetTtl && NS_SUCCEEDED(rv)) {
@@ -323,7 +431,7 @@ GetAddrInfo(const char* aHost, uint16_t aAddressFamily, uint16_t aFlags,
 
     LOG("Getting TTL for %s (cname = %s).", aHost, name);
     uint16_t ttl = 0;
-    nsresult ttlRv = _GetTTLData_Windows(name, &ttl);
+    nsresult ttlRv = _GetTTLData_Windows(name, &ttl, aAddressFamily);
     if (NS_SUCCEEDED(ttlRv)) {
       (*aAddrInfo)->ttl = ttl;
       LOG("Got TTL %u for %s (name = %s).", ttl, aHost, name);

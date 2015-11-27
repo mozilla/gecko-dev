@@ -11,7 +11,7 @@
 #ifndef MODULES_AUDIO_CODING_CODECS_G722_MAIN_INTERFACE_G722_INTERFACE_H_
 #define MODULES_AUDIO_CODING_CODECS_G722_MAIN_INTERFACE_G722_INTERFACE_H_
 
-#include "typedefs.h"
+#include "webrtc/typedefs.h"
 
 /*
  * Solution to support multiple instances
@@ -91,14 +91,13 @@ int16_t WebRtcG722_FreeEncoder(G722EncInst *G722enc_inst);
  * Output:
  *        - encoded           : The encoded data vector
  *
- * Return value               : >0 - Length (in bytes) of coded data
- *                              -1 - Error
+ * Return value              : Length (in bytes) of coded data
  */
 
-int16_t WebRtcG722_Encode(G722EncInst *G722enc_inst,
-                          int16_t *speechIn,
+int16_t WebRtcG722_Encode(G722EncInst* G722enc_inst,
+                          const int16_t* speechIn,
                           int16_t len,
-                          int16_t *encoded);
+                          uint8_t* encoded);
 
 
 /****************************************************************************
@@ -168,7 +167,7 @@ int16_t WebRtcG722_FreeDecoder(G722DecInst *G722dec_inst);
  */
 
 int16_t WebRtcG722_Decode(G722DecInst *G722dec_inst,
-                          int16_t *encoded,
+                          const uint8_t* encoded,
                           int16_t len,
                           int16_t *decoded,
                           int16_t *speechType);

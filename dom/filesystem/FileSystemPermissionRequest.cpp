@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -23,7 +23,7 @@ FileSystemPermissionRequest::RequestForTask(FileSystemTaskBase* aTask)
 {
   MOZ_ASSERT(aTask, "aTask should not be null!");
   MOZ_ASSERT(NS_IsMainThread());
-  nsRefPtr<FileSystemPermissionRequest> request =
+  RefPtr<FileSystemPermissionRequest> request =
     new FileSystemPermissionRequest(aTask);
   NS_DispatchToCurrentThread(request);
 }
@@ -37,7 +37,7 @@ FileSystemPermissionRequest::FileSystemPermissionRequest(
 
   mTask->GetPermissionAccessType(mPermissionAccess);
 
-  nsRefPtr<FileSystemBase> filesystem = mTask->GetFileSystem();
+  RefPtr<FileSystemBase> filesystem = mTask->GetFileSystem();
   if (!filesystem) {
     return;
   }
@@ -55,6 +55,7 @@ FileSystemPermissionRequest::FileSystemPermissionRequest(
   }
 
   mPrincipal = doc->NodePrincipal();
+  mRequester = new nsContentPermissionRequester(mWindow);
 }
 
 FileSystemPermissionRequest::~FileSystemPermissionRequest()
@@ -115,13 +116,13 @@ FileSystemPermissionRequest::Run()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  nsRefPtr<FileSystemBase> filesystem = mTask->GetFileSystem();
+  RefPtr<FileSystemBase> filesystem = mTask->GetFileSystem();
   if (!filesystem) {
     Cancel();
     return NS_OK;
   }
 
-  if (filesystem->IsTesting()) {
+  if (!filesystem->RequiresPermissionChecks()) {
     Allow(JS::UndefinedHandleValue);
     return NS_OK;
   }
@@ -132,6 +133,16 @@ FileSystemPermissionRequest::Run()
   }
 
   nsContentPermissionUtils::AskPermission(this, mWindow);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+FileSystemPermissionRequest::GetRequester(nsIContentPermissionRequester** aRequester)
+{
+  NS_ENSURE_ARG_POINTER(aRequester);
+
+  nsCOMPtr<nsIContentPermissionRequester> requester = mRequester;
+  requester.forget(aRequester);
   return NS_OK;
 }
 

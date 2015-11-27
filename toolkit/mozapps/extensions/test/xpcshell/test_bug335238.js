@@ -9,10 +9,11 @@ const PREF_SELECTED_LOCALE = "general.useragent.locale";
 // Disables security checking our updates which haven't been signed
 Services.prefs.setBoolPref("extensions.checkUpdateSecurity", false);
 
-const Ci = Components.interfaces;
-const Cu = Components.utils;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
 
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://testing-common/MockRegistrar.jsm");
 
 // This is the data we expect to see sent as part of the update url.
 var EXPECTED = [
@@ -105,16 +106,7 @@ var BlocklistService = {
   }
 };
 
-var BlocklistServiceFactory = {
-  createInstance: function (outer, iid) {
-    if (outer != null)
-      throw Components.results.NS_ERROR_NO_AGGREGATION;
-    return BlocklistService.QueryInterface(iid);
-  }
-};
-var registrar = Components.manager.QueryInterface(Ci.nsIComponentRegistrar);
-registrar.registerFactory(Components.ID("{61189e7a-6b1b-44b8-ac81-f180a6105085}"), "BlocklistService",
-                          "@mozilla.org/extensions/blocklist;1", BlocklistServiceFactory);
+MockRegistrar.register("@mozilla.org/extensions/blocklist;1", BlocklistService);
 
 var server;
 
@@ -162,7 +154,7 @@ function run_test() {
   Services.prefs.setCharPref(PREF_SELECTED_LOCALE, "en-US");
 
   startupManager();
-  installAllFiles([do_get_addon(a.addon) for each (a in ADDONS)], function() {
+  installAllFiles(ADDONS.map(a => do_get_addon(a.addon)), function() {
 
     restartManager();
     AddonManager.getAddonByID(ADDONS[1].id, callback_soon(function(addon) {
@@ -170,7 +162,7 @@ function run_test() {
       addon.userDisabled = true;
       restartManager();
 
-      AddonManager.getAddonsByIDs([a.id for each (a in ADDONS)], function(installedItems) {
+      AddonManager.getAddonsByIDs(ADDONS.map(a => a.id), function(installedItems) {
         installedItems.forEach(function(item) {
           updateListener.pendingCount++;
           item.findUpdates(updateListener, AddonManager.UPDATE_WHEN_USER_REQUESTED);

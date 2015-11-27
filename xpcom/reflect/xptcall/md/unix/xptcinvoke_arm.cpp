@@ -9,13 +9,12 @@
 
 #include "mozilla/Compiler.h"
 
-#if !defined(__arm__) && !(defined(LINUX) || defined(ANDROID))
-#error "This code is for Linux ARM only. Check that it works on your system, too.\nBeware that this code is highly compiler dependent."
+#if !defined(__arm__) && !(defined(LINUX) || defined(ANDROID) || defined(XP_IOS))
+#error "This code is for Linux/iOS ARM only. Check that it works on your system, too.\nBeware that this code is highly compiler dependent."
 #endif
 
 #if MOZ_IS_GCC
-#if MOZ_GCC_VERSION_AT_LEAST(4, 5, 0) \
-    && defined(__ARM_EABI__) && !defined(__ARM_PCS_VFP) && !defined(__ARM_PCS)
+#if defined(__ARM_EABI__) && !defined(__ARM_PCS_VFP) && !defined(__ARM_PCS)
 #error "Can't identify floating point calling conventions.\nPlease ensure that your toolchain defines __ARM_PCS or __ARM_PCS_VFP."
 #endif
 #endif
@@ -224,6 +223,7 @@ static inline void copy_dword(uint32_t* &ireg_args,
     *(uint64_t *)ireg_args = data;
     ireg_args += 2;
   } else {
+    ireg_args = end;
     if ((uint32_t)stack_args & 4) {
       stack_args++;
     }

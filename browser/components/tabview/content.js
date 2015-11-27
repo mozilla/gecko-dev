@@ -4,8 +4,8 @@
 
 "use strict";
 
-let Cu = Components.utils;
-let Ci = Components.interfaces;
+var Cu = Components.utils;
+var Ci = Components.interfaces;
 
 Cu.import("resource:///modules/tabview/utils.jsm");
 
@@ -20,7 +20,7 @@ this.__defineGetter__("webProgress", function () {
 // WindowEventHandler
 //
 // Handles events dispatched by the content window.
-let WindowEventHandler = {
+var WindowEventHandler = {
   // ----------
   // Function: onDOMWillOpenModalDialog
   // Sends a synchronous message when the "onDOMWillOpenModalDialog" event
@@ -56,12 +56,13 @@ addEventListener("MozAfterPaint", WindowEventHandler.onMozAfterPaint, false);
 // WindowMessageHandler
 //
 // Handles messages sent by the chrome process.
-let WindowMessageHandler = {
+var WindowMessageHandler = {
   // ----------
   // Function: isDocumentLoaded
   // Checks if the currently active document is loaded.
   isDocumentLoaded: function WMH_isDocumentLoaded(cx) {
-    let isLoaded = (content.document.readyState != "uninitialized" &&
+    let isLoaded = (content &&
+                    content.document.readyState != "uninitialized" &&
                     !webProgress.isLoadingDocument);
 
     sendAsyncMessage(cx.name, {isLoaded: isLoaded});
@@ -71,13 +72,21 @@ let WindowMessageHandler = {
   // Function: isImageDocument
   // Checks if the currently active document is an image document or not.
   isImageDocument: function WMH_isImageDocument(cx) {
-    let isImageDocument = (content.document instanceof Ci.nsIImageDocument);
+    let isImageDocument = (content &&
+                           content.document instanceof Ci.nsIImageDocument);
 
     sendAsyncMessage(cx.name, {isImageDocument: isImageDocument});
-  }
+  },
+
+  waitForDocumentLoad: function WMH_waitForDocumentLoad() {
+    addEventListener("load", function listener() {
+      removeEventListener("load", listener, true);
+      sendAsyncMessage("Panorama:documentLoaded");
+    }, true);
+  },
 };
 
 // add message listeners
 addMessageListener("Panorama:isDocumentLoaded", WindowMessageHandler.isDocumentLoaded);
 addMessageListener("Panorama:isImageDocument", WindowMessageHandler.isImageDocument);
-
+addMessageListener("Panorama:waitForDocumentLoad", WindowMessageHandler.waitForDocumentLoad);

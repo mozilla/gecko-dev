@@ -27,7 +27,7 @@ function test() {
   };
   let history = Cc["@mozilla.org/browser/history;1"]
                   .getService(Ci.mozIAsyncHistory);
-  history.updatePlaces({ uri: NetUtil.newURI("http://www.autofilltrimurl.com/")
+  history.updatePlaces({ uri: NetUtil.newURI("http://www.autofilltrimurl.com/whatever")
                        , visits: [ { transitionType: Ci.nsINavHistoryService.TRANSITION_TYPED
                                    , visitDate:      Date.now() * 1000
                                    } ]
@@ -44,7 +44,8 @@ function continue_test() {
 
     EventUtils.synthesizeKey(aTyped.substr(-1), {});
     waitForSearchComplete(function () {
-      is(gURLBar.value, aExpected, "trim was applied correctly");
+      info(`Got value: ${gURLBar.value}`);
+      is(gURLBar.value, aExpected, "Autofilled value is as expected");
       aCallback();
     });
   }
@@ -53,25 +54,20 @@ function continue_test() {
     test_autoFill("http://au", "http://autofilltrimurl.com/", function () {
       test_autoFill("http://www.autofilltrimurl.com", "http://www.autofilltrimurl.com/", function () {
         // Now ensure selecting from the popup correctly trims.
-        is(gURLBar.controller.matchCount, 1, "Found the expected number of matches");
+        if (Services.prefs.getBoolPref("browser.urlbar.unifiedcomplete"))
+          is(gURLBar.controller.matchCount, 2, "Found the expected number of matches");
+        else
+          is(gURLBar.controller.matchCount, 1, "Found the expected number of matches");
         EventUtils.synthesizeKey("VK_DOWN", {});
-        is(gURLBar.value, "www.autofilltrimurl.com", "trim was applied correctly");
+        is(gURLBar.textValue, "www.autofilltrimurl.com/whatever", "trim was applied correctly");
         gURLBar.closePopup();
-        waitForClearHistory(finish);
+        PlacesTestUtils.clearHistory().then(finish);
       });
     });
   });
 }
 
-function waitForClearHistory(aCallback) {
-  Services.obs.addObserver(function observeCH(aSubject, aTopic, aData) {
-    Services.obs.removeObserver(observeCH, PlacesUtils.TOPIC_EXPIRATION_FINISHED);
-    aCallback();
-  }, PlacesUtils.TOPIC_EXPIRATION_FINISHED, false);
-  PlacesUtils.bhistory.removeAllPages();
-}
-
-let gOnSearchComplete = null;
+var gOnSearchComplete = null;
 function waitForSearchComplete(aCallback) {
   info("Waiting for onSearchComplete");
   if (!gOnSearchComplete) {

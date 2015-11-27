@@ -4,12 +4,13 @@
 
 "use strict";
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
-const Cr = Components.results;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
+var Cr = Components.results;
 
 Cu.import("resource:///modules/tabview/utils.jsm");
+Cu.import("resource://gre/modules/AppConstants.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
@@ -22,8 +23,12 @@ XPCOMUtils.defineLazyGetter(this, "tabbrowserBundle", function() {
     createBundle("chrome://browser/locale/tabbrowser.properties");
 });
 
-function tabviewString(name) tabviewBundle.GetStringFromName('tabview.' + name);
-function tabbrowserString(name) tabbrowserBundle.GetStringFromName(name);
+function tabviewString(name) {
+  return tabviewBundle.GetStringFromName('tabview.' + name);
+}
+function tabbrowserString(name) {
+  return tabbrowserBundle.GetStringFromName(name);
+}
 
 XPCOMUtils.defineLazyGetter(this, "gPrefBranch", function() {
   return Services.prefs.getBranch("browser.panorama.");
@@ -39,7 +44,7 @@ var gTabViewDeck = gWindow.document.getElementById("tab-view-deck");
 var gBrowserPanel = gWindow.document.getElementById("browser-panel");
 var gTabViewFrame = gWindow.document.getElementById("tab-view");
 
-let AllTabs = {
+var AllTabs = {
   _events: {
     attrModified: "TabAttrModified",
     close:        "TabClose",
@@ -51,7 +56,7 @@ let AllTabs = {
   },
 
   get tabs() {
-    return Array.filter(gBrowser.tabs, function (tab) Utils.isValidXULTab(tab));
+    return Array.filter(gBrowser.tabs, tab => Utils.isValidXULTab(tab));
   },
 
   register: function AllTabs_register(eventName, callback) {

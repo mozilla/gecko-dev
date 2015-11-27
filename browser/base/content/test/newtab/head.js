@@ -6,31 +6,32 @@ const PREF_NEWTAB_DIRECTORYSOURCE = "browser.newtabpage.directory.source";
 
 Services.prefs.setBoolPref(PREF_NEWTAB_ENABLED, true);
 
-let tmp = {};
+var tmp = {};
 Cu.import("resource://gre/modules/Promise.jsm", tmp);
 Cu.import("resource://gre/modules/NewTabUtils.jsm", tmp);
-Cu.import("resource://gre/modules/DirectoryLinksProvider.jsm", tmp);
+Cu.import("resource:///modules/DirectoryLinksProvider.jsm", tmp);
+Cu.import("resource://testing-common/PlacesTestUtils.jsm", tmp);
 Cc["@mozilla.org/moz/jssubscript-loader;1"]
   .getService(Ci.mozIJSSubScriptLoader)
   .loadSubScript("chrome://browser/content/sanitize.js", tmp);
 Cu.import("resource://gre/modules/Timer.jsm", tmp);
-let {Promise, NewTabUtils, Sanitizer, clearTimeout, setTimeout, DirectoryLinksProvider} = tmp;
+var {Promise, NewTabUtils, Sanitizer, clearTimeout, setTimeout, DirectoryLinksProvider, PlacesTestUtils} = tmp;
 
-let uri = Services.io.newURI("about:newtab", null, null);
-let principal = Services.scriptSecurityManager.getNoAppCodebasePrincipal(uri);
+var uri = Services.io.newURI("about:newtab", null, null);
+var principal = Services.scriptSecurityManager.createCodebasePrincipal(uri, {});
 
-let isMac = ("nsILocalFileMac" in Ci);
-let isLinux = ("@mozilla.org/gnome-gconf-service;1" in Cc);
-let isWindows = ("@mozilla.org/windows-registry-key;1" in Cc);
-let gWindow = window;
+var isMac = ("nsILocalFileMac" in Ci);
+var isLinux = ("@mozilla.org/gnome-gconf-service;1" in Cc);
+var isWindows = ("@mozilla.org/windows-registry-key;1" in Cc);
+var gWindow = window;
 
 // Default to dummy/empty directory links
-let gDirectorySource = 'data:application/json,{"test":1}';
-let gOrigDirectorySource;
+var gDirectorySource = 'data:application/json,{"test":1}';
+var gOrigDirectorySource;
 
 // The tests assume all 3 rows and all 3 columns of sites are shown, but the
 // window may be too small to actually show everything.  Resize it if necessary.
-let requiredSize = {};
+var requiredSize = {};
 requiredSize.innerHeight =
   40 + 32 + // undo container + bottom margin
   44 + 32 + // search bar + bottom margin
@@ -40,7 +41,7 @@ requiredSize.innerWidth =
   (3 * (290 + 20)) + // 3 cols * (tile width + side margins)
   100; // breathing room
 
-let oldSize = {};
+var oldSize = {};
 Object.keys(requiredSize).forEach(prop => {
   info([prop, gBrowser.contentWindow[prop], requiredSize[prop]]);
   if (gBrowser.contentWindow[prop] < requiredSize[prop]) {
@@ -50,25 +51,28 @@ Object.keys(requiredSize).forEach(prop => {
     gBrowser.contentWindow[prop] = requiredSize[prop];
   }
 });
-let (screenHeight = {}, screenWidth = {}) {
-  Cc["@mozilla.org/gfx/screenmanager;1"].
-    getService(Ci.nsIScreenManager).
-    primaryScreen.
-    GetAvailRectDisplayPix({}, {}, screenWidth, screenHeight);
-  screenHeight = screenHeight.value;
-  screenWidth = screenWidth.value;
-  if (screenHeight < gBrowser.contentWindow.outerHeight) {
-    info("Warning: Browser outer height is now " +
-         gBrowser.contentWindow.outerHeight + ", which is larger than the " +
-         "available screen height, " + screenHeight +
-         ". That may cause problems.");
-  }
-  if (screenWidth < gBrowser.contentWindow.outerWidth) {
-    info("Warning: Browser outer width is now " +
-         gBrowser.contentWindow.outerWidth + ", which is larger than the " +
-         "available screen width, " + screenWidth +
-         ". That may cause problems.");
-  }
+
+var screenHeight = {};
+var screenWidth = {};
+Cc["@mozilla.org/gfx/screenmanager;1"].
+  getService(Ci.nsIScreenManager).
+  primaryScreen.
+  GetAvailRectDisplayPix({}, {}, screenWidth, screenHeight);
+screenHeight = screenHeight.value;
+screenWidth = screenWidth.value;
+
+if (screenHeight < gBrowser.contentWindow.outerHeight) {
+  info("Warning: Browser outer height is now " +
+       gBrowser.contentWindow.outerHeight + ", which is larger than the " +
+       "available screen height, " + screenHeight +
+       ". That may cause problems.");
+}
+
+if (screenWidth < gBrowser.contentWindow.outerWidth) {
+  info("Warning: Browser outer width is now " +
+       gBrowser.contentWindow.outerWidth + ", which is larger than the " +
+       "available screen width, " + screenWidth +
+       ". That may cause problems.");
 }
 
 registerCleanupFunction(function () {
@@ -112,24 +116,64 @@ function watchLinksChangeOnce() {
 
 /**
  * Provide the default test function to start our test runner.
+ *
+ * We need different code paths for tests that are still wired for
+ * `TestRunner` and tests that have been ported to `add_task` as
+ * we cannot have both in the same file.
  */
-function test() {
-  waitForExplicitFinish();
-  // start TestRunner.run() after directory links is downloaded and written to disk
-  watchLinksChangeOnce().then(() => {
-    // Wait for hidden page to update with the desired links
-    whenPagesUpdated(() => TestRunner.run(), true);
-  });
+function isTestPortedToAddTask() {
+  return gTestPath.endsWith("browser_newtab_bug722273.js");
+}
+if (!isTestPortedToAddTask()) {
+  this.test = function() {
+    waitForExplicitFinish();
+    // start TestRunner.run() after directory links is downloaded and written to disk
+    watchLinksChangeOnce().then(() => {
+      // Wait for hidden page to update with the desired links
+      whenPagesUpdated(() => TestRunner.run(), true);
+    });
 
-  // Save the original directory source (which is set globally for tests)
-  gOrigDirectorySource = Services.prefs.getCharPref(PREF_NEWTAB_DIRECTORYSOURCE);
-  Services.prefs.setCharPref(PREF_NEWTAB_DIRECTORYSOURCE, gDirectorySource);
+    // Save the original directory source (which is set globally for tests)
+    gOrigDirectorySource = Services.prefs.getCharPref(PREF_NEWTAB_DIRECTORYSOURCE);
+    Services.prefs.setCharPref(PREF_NEWTAB_DIRECTORYSOURCE, gDirectorySource);
+  }
+} else {
+  add_task(function* setup() {
+    registerCleanupFunction(function() {
+      return new Promise(resolve => {
+        function cleanupAndFinish() {
+          PlacesTestUtils.clearHistory().then(() => {
+            whenPagesUpdated(resolve);
+            NewTabUtils.restore();
+          });
+        }
+
+        let callbacks = NewTabUtils.links._populateCallbacks;
+        let numCallbacks = callbacks.length;
+
+        if (numCallbacks)
+          callbacks.splice(0, numCallbacks, cleanupAndFinish);
+        else
+          cleanupAndFinish();
+      });
+    });
+
+    let promiseReady = Task.spawn(function*() {
+      yield watchLinksChangeOnce();
+      yield new Promise(resolve => whenPagesUpdated(resolve, true));
+    });
+
+    // Save the original directory source (which is set globally for tests)
+    gOrigDirectorySource = Services.prefs.getCharPref(PREF_NEWTAB_DIRECTORYSOURCE);
+    Services.prefs.setCharPref(PREF_NEWTAB_DIRECTORYSOURCE, gDirectorySource);
+    yield promiseReady;
+  });
 }
 
 /**
  * The test runner that controls the execution flow of our tests.
  */
-let TestRunner = {
+var TestRunner = {
   /**
    * Starts the test runner.
    */
@@ -154,7 +198,7 @@ let TestRunner = {
    */
   finish: function () {
     function cleanupAndFinish() {
-      clearHistory(function () {
+      PlacesTestUtils.clearHistory().then(() => {
         whenPagesUpdated(finish);
         NewTabUtils.restore();
       });
@@ -214,7 +258,7 @@ function getCell(aIndex) {
  *          {url: "http://example2.com/", title: "site#2"},
  *          {url: "http://example3.com/", title: "site#3"}]
  */
-function setLinks(aLinks) {
+function setLinks(aLinks, aCallback = TestRunner.next) {
   let links = aLinks;
 
   if (typeof links == "string") {
@@ -229,27 +273,18 @@ function setLinks(aLinks) {
   // given entries and call populateCache() now again to make sure the cache
   // has the desired contents.
   NewTabUtils.links.populateCache(function () {
-    clearHistory(function () {
+    PlacesTestUtils.clearHistory().then(() => {
       fillHistory(links, function () {
         NewTabUtils.links.populateCache(function () {
           NewTabUtils.allPages.update();
-          TestRunner.next();
+          aCallback();
         }, true);
       });
     });
   });
 }
 
-function clearHistory(aCallback) {
-  Services.obs.addObserver(function observe(aSubject, aTopic, aData) {
-    Services.obs.removeObserver(observe, aTopic);
-    executeSoon(aCallback);
-  }, PlacesUtils.TOPIC_EXPIRATION_FINISHED, false);
-
-  PlacesUtils.history.removeAllPages();
-}
-
-function fillHistory(aLinks, aCallback) {
+function fillHistory(aLinks, aCallback = TestRunner.next) {
   let numLinks = aLinks.length;
   if (!numLinks) {
     if (aCallback)
@@ -275,7 +310,7 @@ function fillHistory(aLinks, aCallback) {
     };
 
     PlacesUtils.asyncHistory.updatePlaces(place, {
-      handleError: function () ok(false, "couldn't add visit to history"),
+      handleError: () => ok(false, "couldn't add visit to history"),
       handleResult: function () {},
       handleCompletion: function () {
         if (--numLinks == 0 && aCallback)
@@ -301,7 +336,8 @@ function setPinnedLinks(aLinks) {
     links = aLinks.split(/\s*,\s*/).map(function (id) {
       if (id)
         return {url: "http://example" + (id != "-1" ? id : "") + ".com/",
-                title: "site#" + id};
+                title: "site#" + id,
+                type: "history"};
     });
   }
 
@@ -324,9 +360,42 @@ function restore() {
 }
 
 /**
+ * Wait until a given condition becomes true.
+ */
+function waitForCondition(aConditionFn, aMaxTries=50, aCheckInterval=100) {
+  return new Promise((resolve, reject) => {
+    let tries = 0;
+
+    function tryNow() {
+      tries++;
+
+      if (aConditionFn()) {
+        resolve();
+      } else if (tries < aMaxTries) {
+        tryAgain();
+      } else {
+        reject("Condition timed out: " + aConditionFn.toSource());
+      }
+    }
+
+    function tryAgain() {
+      setTimeout(tryNow, aCheckInterval);
+    }
+
+    tryAgain();
+  });
+}
+
+/**
  * Creates a new tab containing 'about:newtab'.
  */
 function addNewTabPageTab() {
+  addNewTabPageTabPromise().then(TestRunner.next);
+}
+
+function addNewTabPageTabPromise() {
+  let deferred = Promise.defer();
+
   let tab = gWindow.gBrowser.selectedTab = gWindow.gBrowser.addTab("about:newtab");
   let browser = tab.linkedBrowser;
 
@@ -334,26 +403,31 @@ function addNewTabPageTab() {
     if (NewTabUtils.allPages.enabled) {
       // Continue when the link cache has been populated.
       NewTabUtils.links.populateCache(function () {
-        whenSearchInitDone();
+        deferred.resolve(whenSearchInitDone());
       });
     } else {
-      // It's important that we call next() asynchronously.
-      // 'yield addNewTabPageTab()' would fail if next() is called
-      // synchronously because the iterator is already executing.
-      executeSoon(TestRunner.next);
+      deferred.resolve();
     }
   }
 
-  // The new tab page might have been preloaded in the background.
+  // Wait for the new tab page to be loaded.
+  waitForBrowserLoad(browser, function () {
+    // Wait for the document to become visible in case it was preloaded.
+    waitForCondition(() => !browser.contentDocument.hidden).then(whenNewTabLoaded);
+  });
+
+  return deferred.promise;
+}
+
+function waitForBrowserLoad(browser, callback = TestRunner.next) {
   if (browser.contentDocument.readyState == "complete") {
-    whenNewTabLoaded();
+    executeSoon(callback);
     return;
   }
 
-  // Wait for the new tab page to be loaded.
   browser.addEventListener("load", function onLoad() {
     browser.removeEventListener("load", onLoad, true);
-    whenNewTabLoaded();
+    executeSoon(callback);
   }, true);
 }
 
@@ -461,33 +535,78 @@ function simulateExternalDrop(aDestIndex) {
  * @param aCallback The function that is called when we're done.
  */
 function startAndCompleteDragOperation(aSource, aDest, aCallback) {
-  // Start by pressing the left mouse button.
-  synthesizeNativeMouseLDown(aSource);
+  // The implementation of this function varies by platform because each
+  // platform has particular quirks that we need to deal with
 
-  // Move the mouse in 5px steps until the drag operation starts.
-  let offset = 0;
-  let interval = setInterval(() => {
-    synthesizeNativeMouseDrag(aSource, offset += 5);
-  }, 10);
+  if (isMac) {
+    // On OS X once the drag starts, Cocoa manages the drag session and
+    // gives us a limited amount of time to complete the drag operation. In
+    // some cases as soon as the first mouse-move event is received (the one
+    // that starts the drag session), Cocoa becomes blind to subsequent mouse
+    // events and completes the drag session all by itself. Therefore it is
+    // important that the first mouse-move we send is already positioned at
+    // the destination.
+    synthesizeNativeMouseLDown(aSource);
+    synthesizeNativeMouseDrag(aDest);
+    // In some tests, aSource and aDest are at the same position, so to ensure
+    // a drag session is created (instead of it just turning into a click) we
+    // move the mouse 10 pixels away and then back.
+    synthesizeNativeMouseDrag(aDest, 10);
+    synthesizeNativeMouseDrag(aDest);
+    // Finally, release the drag and have it run the callback when done.
+    synthesizeNativeMouseLUp(aDest).then(aCallback, Cu.reportError);
+  } else if (isWindows) {
+    // on Windows once the drag is initiated, Windows doesn't spin our
+    // message loop at all, so with async event synthesization the async
+    // messages never get processed while a drag is in progress. So if
+    // we did a mousedown followed by a mousemove, we would never be able
+    // to successfully dispatch the mouseup. Instead, we just skip the move
+    // entirely, so and just generate the up at the destination. This way
+    // Windows does the drag and also terminates it right away. Note that
+    // this only works for tests where aSource and aDest are sufficiently
+    // far to trigger a drag, otherwise it may just end up doing a click.
+    synthesizeNativeMouseLDown(aSource);
+    synthesizeNativeMouseLUp(aDest).then(aCallback, Cu.reportError);
+  } else if (isLinux) {
+    // Start by pressing the left mouse button.
+    synthesizeNativeMouseLDown(aSource);
 
-  // When the drag operation has started we'll move
-  // the dragged element to its target position.
-  aSource.addEventListener("dragstart", function onDragStart() {
-    aSource.removeEventListener("dragstart", onDragStart);
-    clearInterval(interval);
+    // Move the mouse in 5px steps until the drag operation starts.
+    // Note that we need to do this with pauses in between otherwise the
+    // synthesized events get coalesced somewhere in the guts of GTK. In order
+    // to successfully initiate a drag session in the case where aSource and
+    // aDest are at the same position, we synthesize a bunch of drags until
+    // we know the drag session has started, and then move to the destination.
+    let offset = 0;
+    let interval = setInterval(() => {
+      synthesizeNativeMouseDrag(aSource, offset += 5);
+    }, 10);
 
-    // Place the cursor above the drag target.
-    synthesizeNativeMouseMove(aDest);
-  });
+    // When the drag operation has started we'll move
+    // the dragged element to its target position.
+    aSource.addEventListener("dragstart", function onDragStart() {
+      aSource.removeEventListener("dragstart", onDragStart);
+      clearInterval(interval);
 
-  // As soon as the dragged element hovers the target, we'll drop it.
-  aDest.addEventListener("dragenter", function onDragEnter() {
-    aDest.removeEventListener("dragenter", onDragEnter);
+      // Place the cursor above the drag target.
+      synthesizeNativeMouseMove(aDest);
+    });
 
-    // Finish the drop operation.
-    synthesizeNativeMouseLUp(aDest);
-    aCallback();
-  });
+    // As soon as the dragged element hovers the target, we'll drop it.
+    // Note that we need to actually wait for the dragenter event here, because
+    // the mousemove synthesization is "more async" than the mouseup
+    // synthesization - they use different gdk APIs. If we don't wait, the
+    // up could get processed before the moves, dropping the item in the
+    // wrong position.
+    aDest.addEventListener("dragenter", function onDragEnter() {
+      aDest.removeEventListener("dragenter", onDragEnter);
+
+      // Finish the drop operation.
+      synthesizeNativeMouseLUp(aDest).then(aCallback, Cu.reportError);
+    });
+  } else {
+    throw "Unsupported platform";
+  }
 }
 
 /**
@@ -508,7 +627,8 @@ function createExternalDropIframe() {
   iframe.style.position = "absolute";
   iframe.style.zIndex = 50;
 
-  let margin = doc.getElementById("newtab-margin-top");
+  // the frame has to be attached to a visible element
+  let margin = doc.getElementById("newtab-search-container");
   margin.appendChild(iframe);
 
   iframe.addEventListener("load", function onLoad() {
@@ -539,7 +659,7 @@ function synthesizeNativeMouseLDown(aElement) {
  */
 function synthesizeNativeMouseLUp(aElement) {
   let msg = isWindows ? 4 : (isMac ? 2 : 7);
-  synthesizeNativeMouseEvent(aElement, msg);
+  return synthesizeNativeMouseEvent(aElement, msg);
 }
 
 /**
@@ -568,16 +688,25 @@ function synthesizeNativeMouseMove(aElement) {
  * @param aOffsetY The top offset that is added to the position (optional).
  */
 function synthesizeNativeMouseEvent(aElement, aMsg, aOffsetX = 0, aOffsetY = 0) {
-  let rect = aElement.getBoundingClientRect();
-  let win = aElement.ownerDocument.defaultView;
-  let x = aOffsetX + win.mozInnerScreenX + rect.left + rect.width / 2;
-  let y = aOffsetY + win.mozInnerScreenY + rect.top + rect.height / 2;
+  return new Promise((resolve, reject) => {
+    let rect = aElement.getBoundingClientRect();
+    let win = aElement.ownerDocument.defaultView;
+    let x = aOffsetX + win.mozInnerScreenX + rect.left + rect.width / 2;
+    let y = aOffsetY + win.mozInnerScreenY + rect.top + rect.height / 2;
 
-  let utils = win.QueryInterface(Ci.nsIInterfaceRequestor)
-                 .getInterface(Ci.nsIDOMWindowUtils);
+    let utils = win.QueryInterface(Ci.nsIInterfaceRequestor)
+                   .getInterface(Ci.nsIDOMWindowUtils);
 
-  let scale = utils.screenPixelsPerCSSPixel;
-  utils.sendNativeMouseEvent(x * scale, y * scale, aMsg, 0, null);
+    let scale = utils.screenPixelsPerCSSPixel;
+    let observer = {
+      observe: function(aSubject, aTopic, aData) {
+        if (aTopic == "mouseevent") {
+          resolve();
+        }
+      }
+    };
+    utils.sendNativeMouseEvent(x * scale, y * scale, aMsg, 0, null, observer);
+  });
 }
 
 /**
@@ -612,18 +741,14 @@ function createDragEvent(aEventType, aData) {
 /**
  * Resumes testing when all pages have been updated.
  * @param aCallback Called when done. If not specified, TestRunner.next is used.
- * @param aOnlyIfHidden If true, this resumes testing only when an update that
- *                      applies to pre-loaded, hidden pages is observed.  If
- *                      false, this resumes testing when any update is observed.
  */
-function whenPagesUpdated(aCallback, aOnlyIfHidden=false) {
+function whenPagesUpdated(aCallback = TestRunner.next) {
   let page = {
     observe: _ => _,
-    update: function (onlyIfHidden=false) {
-      if (onlyIfHidden == aOnlyIfHidden) {
-        NewTabUtils.allPages.unregister(this);
-        executeSoon(aCallback || TestRunner.next);
-      }
+
+    update() {
+      NewTabUtils.allPages.unregister(this);
+      executeSoon(aCallback);
     }
   };
 
@@ -637,15 +762,74 @@ function whenPagesUpdated(aCallback, aOnlyIfHidden=false) {
  * Waits for the response to the page's initial search state request.
  */
 function whenSearchInitDone() {
-  if (getContentWindow().gSearch._initialStateReceived) {
-    executeSoon(TestRunner.next);
-    return;
+  let deferred = Promise.defer();
+  let searchController = getContentWindow().gSearch._contentSearchController;
+  if (searchController.defaultEngine) {
+    return Promise.resolve();
   }
   let eventName = "ContentSearchService";
   getContentWindow().addEventListener(eventName, function onEvent(event) {
     if (event.detail.type == "State") {
       getContentWindow().removeEventListener(eventName, onEvent);
-      TestRunner.next();
+      // Wait for the search controller to receive the event, then resolve.
+      let resolver = function() {
+        if (searchController.defaultEngine) {
+          deferred.resolve();
+          return;
+        }
+        executeSoon(resolver);
+      }
+      executeSoon(resolver);
     }
   });
+  return deferred.promise;
+}
+
+/**
+ * Changes the newtab customization option and waits for the panel to open and close
+ *
+ * @param {string} aTheme
+ *        Can be any of("blank"|"classic"|"enhanced")
+ */
+function customizeNewTabPage(aTheme) {
+  let promise = ContentTask.spawn(gBrowser.selectedBrowser, aTheme, function*(aTheme) {
+
+    let document = content.document;
+    let panel = document.getElementById("newtab-customize-panel");
+    let customizeButton = document.getElementById("newtab-customize-button");
+
+    function panelOpened(opened) {
+      return new Promise( (resolve) => {
+        let options = {attributes: true, oldValue: true};
+        let observer = new content.MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            document.getElementById("newtab-customize-" + aTheme).click();
+            observer.disconnect();
+            if (opened == panel.hasAttribute("open")) {
+              resolve();
+            }
+          });
+        });
+        observer.observe(panel, options);
+      });
+    }
+
+    let opened = panelOpened(true);
+    customizeButton.click();
+    yield opened;
+
+    let closed = panelOpened(false);
+    customizeButton.click();
+    yield closed;
+  });
+
+  promise.then(TestRunner.next);
+}
+
+/**
+ * Reports presence of a scrollbar
+ */
+function hasScrollbar() {
+  let docElement = getContentDocument().documentElement;
+  return docElement.scrollHeight > docElement.clientHeight;
 }

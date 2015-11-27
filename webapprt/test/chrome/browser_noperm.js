@@ -1,8 +1,8 @@
 Cu.import("resource://webapprt/modules/WebappRT.jsm");
-let { AllPossiblePermissions } =
+var { AllPossiblePermissions } =
   Cu.import("resource://gre/modules/PermissionsInstaller.jsm", {});
-let { AppsUtils } = Cu.import("resource://gre/modules/AppsUtils.jsm", {});
-let { DOMApplicationRegistry } =
+var { AppsUtils } = Cu.import("resource://gre/modules/AppsUtils.jsm", {});
+var { DOMApplicationRegistry } =
   Cu.import("resource://gre/modules/Webapps.jsm", {});
 
 function test() {
@@ -18,12 +18,18 @@ function test() {
     let principal = document.getElementById("content").contentDocument.defaultView.document.nodePrincipal;
     is(DOMApplicationRegistry.getAppLocalIdByManifestURL(app.manifestURL), principal.appId, "Principal app ID correct");
 
+    let alwaysAllowed = ["indexedDB"]
+
     // Check if all the permissions of the app are unknown.
     for (let permName of AllPossiblePermissions) {
       // Get the value for the permission.
       let permValue = Services.perms.testExactPermissionFromPrincipal(principal, permName);
 
-      is(permValue, Ci.nsIPermissionManager.UNKNOWN_ACTION, "Permission " + permName + " unknown.");
+      if (alwaysAllowed.includes(permName)) {
+        is(permValue, Ci.nsIPermissionManager.ALLOW_ACTION, "Permission " + permName + " allowed.");
+      } else {
+        is(permValue, Ci.nsIPermissionManager.UNKNOWN_ACTION, "Permission " + permName + " unknown.");
+      }
     }
 
     finish();

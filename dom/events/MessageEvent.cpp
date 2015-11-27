@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,10 +9,10 @@
 #include "mozilla/dom/MessagePort.h"
 #include "mozilla/dom/MessagePortBinding.h"
 #include "mozilla/dom/MessagePortList.h"
-#include "mozilla/dom/UnionTypes.h"
 
 #include "mozilla/HoldDropJSObjects.h"
 #include "jsapi.h"
+#include "nsGlobalWindow.h" // So we can assign an nsGlobalWindow* to mWindowSource
 
 namespace mozilla {
 namespace dom {
@@ -19,7 +20,7 @@ namespace dom {
 NS_IMPL_CYCLE_COLLECTION_CLASS(MessageEvent)
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(MessageEvent, Event)
-  tmp->mData = JSVAL_VOID;
+  tmp->mData.setUndefined();
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mWindowSource)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mPortSource)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mPorts)
@@ -46,20 +47,20 @@ MessageEvent::MessageEvent(EventTarget* aOwner,
                            nsPresContext* aPresContext,
                            WidgetEvent* aEvent)
   : Event(aOwner, aPresContext, aEvent)
-  , mData(JSVAL_VOID)
+  , mData(JS::UndefinedValue())
 {
 }
 
 MessageEvent::~MessageEvent()
 {
-  mData = JSVAL_VOID;
+  mData.setUndefined();
   DropJSObjects(this);
 }
 
 JSObject*
-MessageEvent::WrapObject(JSContext* aCx)
+MessageEvent::WrapObjectInternal(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return mozilla::dom::MessageEventBinding::Wrap(aCx, this);
+  return mozilla::dom::MessageEventBinding::Wrap(aCx, this, aGivenProto);
 }
 
 NS_IMETHODIMP
@@ -67,7 +68,7 @@ MessageEvent::GetData(JSContext* aCx, JS::MutableHandle<JS::Value> aData)
 {
   ErrorResult rv;
   GetData(aCx, aData, rv);
-  return rv.ErrorCode();
+  return rv.StealNSResult();
 }
 
 void
@@ -119,14 +120,19 @@ MessageEvent::Constructor(const GlobalObject& aGlobal,
                           ErrorResult& aRv)
 {
   nsCOMPtr<EventTarget> t = do_QueryInterface(aGlobal.GetAsSupports());
-  nsRefPtr<MessageEvent> event = new MessageEvent(t, nullptr, nullptr);
+  return Constructor(t, aType, aParam, aRv);
+}
 
-  aRv = event->InitEvent(aType, aParam.mBubbles, aParam.mCancelable);
-  if (aRv.Failed()) {
-    return nullptr;
-  }
+/* static */ already_AddRefed<MessageEvent>
+MessageEvent::Constructor(EventTarget* aEventTarget,
+                          const nsAString& aType,
+                          const MessageEventInit& aParam,
+                          ErrorResult& aRv)
+{
+  RefPtr<MessageEvent> event = new MessageEvent(aEventTarget, nullptr, nullptr);
 
-  bool trusted = event->Init(t);
+  event->InitEvent(aType, aParam.mBubbles, aParam.mCancelable);
+  bool trusted = event->Init(aEventTarget);
   event->SetTrusted(trusted);
 
   event->mData = aParam.mData;
@@ -142,8 +148,8 @@ MessageEvent::Constructor(const GlobalObject& aGlobal,
   }
 
   if (!aParam.mSource.IsNull()) {
-    if (aParam.mSource.Value().IsWindowProxy()) {
-      event->mWindowSource = aParam.mSource.Value().GetAsWindowProxy();
+    if (aParam.mSource.Value().IsWindow()) {
+      event->mWindowSource = aParam.mSource.Value().GetAsWindow();
     } else {
       event->mPortSource = aParam.mSource.Value().GetAsMessagePort();
     }
@@ -152,12 +158,12 @@ MessageEvent::Constructor(const GlobalObject& aGlobal,
   }
 
   if (aParam.mPorts.WasPassed() && !aParam.mPorts.Value().IsNull()) {
-    nsTArray<nsRefPtr<MessagePortBase>> ports;
+    nsTArray<RefPtr<MessagePort>> ports;
     for (uint32_t i = 0, len = aParam.mPorts.Value().Value().Length(); i < len; ++i) {
       ports.AppendElement(aParam.mPorts.Value().Value()[i].get());
     }
 
-    event->mPorts = new MessagePortList(static_cast<EventBase*>(event), ports);
+    event->mPorts = new MessagePortList(static_cast<Event*>(event), ports);
   }
 
   return event.forget();
@@ -172,9 +178,7 @@ MessageEvent::InitMessageEvent(const nsAString& aType,
                                const nsAString& aLastEventId,
                                nsIDOMWindow* aSource)
 {
-  nsresult rv = Event::InitEvent(aType, aCanBubble, aCancelable);
-  NS_ENSURE_SUCCESS(rv, rv);
-
+  Event::InitEvent(aType, aCanBubble, aCancelable);
   mData = aData;
   mozilla::HoldJSObjects(this);
   mOrigin = aOrigin;
@@ -185,10 +189,54 @@ MessageEvent::InitMessageEvent(const nsAString& aType,
 }
 
 void
+MessageEvent::InitMessageEvent(JSContext* aCx, const nsAString& aType,
+                               bool aCanBubble, bool aCancelable,
+                               JS::Handle<JS::Value> aData,
+                               const nsAString& aOrigin,
+                               const nsAString& aLastEventId,
+                               const Nullable<WindowProxyOrMessagePort>& aSource,
+                               const Nullable<Sequence<OwningNonNull<MessagePort>>>& aPorts)
+{
+  Event::InitEvent(aType, aCanBubble, aCancelable);
+  mData = aData;
+  mozilla::HoldJSObjects(this);
+  mOrigin = aOrigin;
+  mLastEventId = aLastEventId;
+
+  mWindowSource = nullptr;
+  mPortSource = nullptr;
+
+  if (!aSource.IsNull()) {
+    if (aSource.Value().IsWindowProxy()) {
+      mWindowSource = aSource.Value().GetAsWindowProxy();
+    } else {
+      mPortSource = &aSource.Value().GetAsMessagePort();
+    }
+  }
+
+  mPorts = nullptr;
+
+  if (!aPorts.IsNull()) {
+    nsTArray<RefPtr<MessagePort>> ports;
+    for (uint32_t i = 0, len = aPorts.Value().Length(); i < len; ++i) {
+      ports.AppendElement(aPorts.Value()[i]);
+    }
+
+    mPorts = new MessagePortList(static_cast<Event*>(this), ports);
+  }
+}
+
+void
 MessageEvent::SetPorts(MessagePortList* aPorts)
 {
   MOZ_ASSERT(!mPorts && aPorts);
   mPorts = aPorts;
+}
+
+void
+MessageEvent::SetSource(mozilla::dom::MessagePort* aPort)
+{
+  mPortSource = aPort;
 }
 
 } // namespace dom
@@ -197,14 +245,11 @@ MessageEvent::SetPorts(MessagePortList* aPorts)
 using namespace mozilla;
 using namespace mozilla::dom;
 
-nsresult
-NS_NewDOMMessageEvent(nsIDOMEvent** aInstancePtrResult,
-                      EventTarget* aOwner,
+already_AddRefed<MessageEvent>
+NS_NewDOMMessageEvent(EventTarget* aOwner,
                       nsPresContext* aPresContext,
-                      WidgetEvent* aEvent) 
+                      WidgetEvent* aEvent)
 {
-  MessageEvent* it = new MessageEvent(aOwner, aPresContext, aEvent);
-  NS_ADDREF(it);
-  *aInstancePtrResult = static_cast<Event*>(it);
-  return NS_OK;
+  RefPtr<MessageEvent> it = new MessageEvent(aOwner, aPresContext, aEvent);
+  return it.forget();
 }

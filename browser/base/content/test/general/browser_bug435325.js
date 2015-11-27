@@ -3,7 +3,7 @@
 
 /* Ensure that clicking the button in the Offline mode neterror page makes the browser go online. See bug 435325. */
 
-let proxyPrefValue;
+var proxyPrefValue;
 
 function test() {
   waitForExplicitFinish();
@@ -56,12 +56,13 @@ function checkPage() {
   // the actual example.com.
   Services.prefs.setIntPref("network.proxy.type", proxyPrefValue);
 
+  Services.obs.addObserver(function observer(aSubject, aTopic) {
+    ok(!Services.io.offline, "After clicking the Try Again button, we're back " +
+                             "online.");
+    Services.obs.removeObserver(observer, "network:offline-status-changed", false);
+    finish();
+  }, "network:offline-status-changed", false);
   gBrowser.contentDocument.getElementById("errorTryAgain").click();
-
-  ok(!Services.io.offline, "After clicking the Try Again button, we're back " +
-                           "online.");
-
-  finish();
 }
 
 registerCleanupFunction(function() {

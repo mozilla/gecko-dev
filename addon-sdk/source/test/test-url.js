@@ -17,10 +17,8 @@ const file = require('sdk/io/file');
 const tabs = require('sdk/tabs');
 const { decode } = require('sdk/base64');
 
-const httpd = require('sdk/test/httpd');
+const httpd = require('./lib/httpd');
 const port = 8099;
-
-const defaultLocation = '{\'scheme\':\'about\',\'userPass\':null,\'host\':null,\'hostname\':null,\'port\':null,\'path\':\'addons\',\'pathname\':\'addons\',\'hash\':\'\',\'href\':\'about:addons\',\'origin\':\'about:\',\'protocol\':\'about:\',\'search\':\'\'}'.replace(/'/g, '"');
 
 exports.testResolve = function(assert) {
   assert.equal(URL('bar', 'http://www.foo.com/').toString(),
@@ -65,6 +63,7 @@ exports.testParseHttp = function(assert) {
   assert.equal(info.href, aUrl);
   assert.equal(info.hash, '#myhash');
   assert.equal(info.search, '?locale=en-US&otherArg=%20x%20');
+  assert.equal(info.fileName, 'bar');
 };
 
 exports.testParseHttpSearchAndHash = function (assert) {
@@ -109,6 +108,7 @@ exports.testParseChrome = function(assert) {
   assert.equal(info.port, null);
   assert.equal(info.userPass, null);
   assert.equal(info.path, '/content/blah');
+  assert.equal(info.fileName, 'blah');
 };
 
 exports.testParseAbout = function(assert) {
@@ -127,6 +127,7 @@ exports.testParseFTP = function(assert) {
   assert.equal(info.port, null);
   assert.equal(info.userPass, null);
   assert.equal(info.path, '/foo');
+  assert.equal(info.fileName, 'foo');
 };
 
 exports.testParseFTPWithUserPass = function(assert) {
@@ -175,13 +176,13 @@ exports.testFromFilename = function(assert) {
 
 exports.testURL = function(assert) {
   assert.ok(URL('h:foo') instanceof URL, 'instance is of correct type');
-  assert.throws(function() URL(),
+  assert.throws(() => URL(),
                     /malformed URI: undefined/i,
                     'url.URL should throw on undefined');
-  assert.throws(function() URL(''),
+  assert.throws(() => URL(''),
                     /malformed URI: /i,
                     'url.URL should throw on empty string');
-  assert.throws(function() URL('foo'),
+  assert.throws(() => URL('foo'),
                     /malformed URI: foo/i,
                     'url.URL should throw on invalid URI');
   assert.ok(URL('h:foo').scheme, 'has scheme');
@@ -193,7 +194,7 @@ exports.testURL = function(assert) {
                    'http://foo/mypath',
                    'relative URL resolved to base');
   // test relative + no base
-  assert.throws(function() URL('path').toString(),
+  assert.throws(() => URL('path').toString(),
                     /malformed URI: path/i,
                     'no base for relative URI should throw');
 
@@ -216,12 +217,16 @@ exports.testStringInterface = function(assert) {
 
   // make sure the standard URL properties are enumerable and not the String interface bits
   assert.equal(Object.keys(a),
-    'scheme,userPass,host,hostname,port,path,pathname,hash,href,origin,protocol,search',
+    'fileName,scheme,userPass,host,hostname,port,path,pathname,hash,href,origin,protocol,search',
     'enumerable key list check for URL.');
   assert.equal(
       JSON.stringify(a),
-      defaultLocation,
-      'JSON.stringify should return a object with correct props and vals.');
+      JSON.stringify(EM),
+      'JSON.stringify on url should return the url as a flat string');
+      // JSON.parse(JSON.stringify(url)) wont work like an url object
+      // (missing methods). this makes it easier to re-create an url
+      // instance from the whole string, and every place that
+      // accepts an url also works with a flat string.
 
   // make sure that the String interface exists and works as expected
   assert.equal(a.indexOf(':'), EM.indexOf(':'), 'indexOf on URL works');
@@ -339,7 +344,7 @@ exports.testWindowLocationMatch = function (assert, done) {
             assert.equal(urlObject[prop], loc[prop], prop + ' matches');
           }
 
-          tab.close(function() server.stop(done));
+          tab.close(() => server.stop(done));
         },
         contentScript: '(' + function () {
           let res = {};
@@ -387,6 +392,20 @@ exports.testLocalURLwithInvalidURL = function(assert) {
     assert.ok(!isLocalURL(aUri), aUri + ' is an invalid Local URL');
   });
 }
+
+exports.testFileName = function(assert) {
+  let urls = [
+    ['https://foo/bar.js', 'bar.js'],
+    ['app://myfxosapp/file.js', 'file.js'],
+    ['http://localhost:8888/file.js', 'file.js'],
+    ['http://foo/bar.js#hash', 'bar.js'],
+    ['http://foo/bar.js?q=go&query=yeah', 'bar.js'],
+    ['chrome://browser/content/content.js', 'content.js'],
+    ['resource://gre/foo.js', 'foo.js'],
+  ];
+
+  urls.forEach(([url, fileName]) => assert.equal(URL(url).fileName, fileName, 'file names are equal'));
+};
 
 function validURIs() {
   return [

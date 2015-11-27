@@ -9,6 +9,7 @@
 
 #include "nsContainerFrame.h"
 #include "nsStyleStructInlines.h"
+#include "nsCSSAnonBoxes.h"
 
 bool
 nsIFrame::IsFlexItem() const
@@ -19,15 +20,26 @@ nsIFrame::IsFlexItem() const
 }
 
 bool
+nsIFrame::IsFlexOrGridContainer() const
+{
+  nsIAtom* t = GetType();
+  return t == nsGkAtoms::flexContainerFrame ||
+         t == nsGkAtoms::gridContainerFrame;
+}
+
+bool
 nsIFrame::IsFlexOrGridItem() const
 {
-  if (GetParent()) {
-    nsIAtom* t = GetParent()->GetType();
-    return (t == nsGkAtoms::flexContainerFrame ||
-            t == nsGkAtoms::gridContainerFrame) &&
-      !(GetStateBits() & NS_FRAME_OUT_OF_FLOW);
-  }
-  return false;
+  return !(GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&
+         GetParent() &&
+         GetParent()->IsFlexOrGridContainer();
+}
+
+bool
+nsIFrame::IsTableCaption() const
+{
+  return StyleDisplay()->mDisplay == NS_STYLE_DISPLAY_TABLE_CAPTION &&
+    GetParent()->StyleContext()->GetPseudo() == nsCSSAnonBoxes::tableOuter;
 }
 
 bool
@@ -37,9 +49,9 @@ nsIFrame::IsFloating() const
 }
 
 bool
-nsIFrame::IsPositioned() const
+nsIFrame::IsAbsPosContaininingBlock() const
 {
-  return StyleDisplay()->IsPositioned(this);
+  return StyleDisplay()->IsAbsPosContainingBlock(this);
 }
 
 bool

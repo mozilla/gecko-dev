@@ -8,7 +8,7 @@
  * customization mode by handling customizationstarting and customizationending
  * events.
  */
-let CustomizationHandler = {
+var CustomizationHandler = {
   handleEvent: function(aEvent) {
     switch(aEvent.type) {
       case "customizationstarting":
@@ -52,7 +52,6 @@ let CustomizationHandler = {
   },
 
   _customizationChange: function() {
-    gHomeButton.updatePersonalToolbarStyle();
     PlacesToolbarHelper.customizeChange();
   },
 
@@ -61,9 +60,7 @@ let CustomizationHandler = {
     if (aDetails.changed) {
       gURLBar = document.getElementById("urlbar");
 
-      gProxyFavIcon = document.getElementById("page-proxy-favicon");
       gHomeButton.updateTooltip();
-      gIdentityHandler._cacheElements();
       XULBrowserWindow.init();
 
 #ifndef XP_MACOSX

@@ -105,7 +105,7 @@
 
   test(function () {
     assert_equals(document.getElementById("test5").labels.length, 0,
-                  "The number of labels should be 0 if the form control has an ancestor label elment that the for attribute points to another control.");
+                  "The number of labels should be 0 if the form control has an ancestor label element that the for attribute points to another control.");
     assert_equals(document.getElementById("lbl2").control, null,
                   "The labeled cotrol should be associated with the control whose ID is equal to the value of the 'for' attribute.");
   }, "A form control has no label 2.");
@@ -121,4 +121,8 @@
                   "The 'form' property for a label without a form owner should return null.");
   }, "Check that the labels property of a form control with no label returns a zero-length NodeList.");
 
+  // htmlFor attribute
+  test(function () {
+    assert_equals(document.getElementById("lbl2").htmlFor, "testx");
+  }, "A label's htmlFor attribute must reflect the for content attribute");
 </script>

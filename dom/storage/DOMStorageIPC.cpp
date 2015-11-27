@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -42,7 +43,7 @@ NS_IMETHODIMP_(MozExternalRefCountType) DOMStorageDBChild::Release(void)
 void
 DOMStorageDBChild::AddIPDLReference()
 {
-  NS_ABORT_IF_FALSE(!mIPCOpen, "Attempting to retain multiple IPDL references");
+  MOZ_ASSERT(!mIPCOpen, "Attempting to retain multiple IPDL references");
   mIPCOpen = true;
   AddRef();
 }
@@ -50,7 +51,7 @@ DOMStorageDBChild::AddIPDLReference()
 void
 DOMStorageDBChild::ReleaseIPDLReference()
 {
-  NS_ABORT_IF_FALSE(mIPCOpen, "Attempting to release non-existent IPDL reference");
+  MOZ_ASSERT(mIPCOpen, "Attempting to release non-existent IPDL reference");
   mIPCOpen = false;
   Release();
 }
@@ -214,7 +215,7 @@ DOMStorageDBChild::RecvObserve(const nsCString& aTopic,
 }
 
 bool
-DOMStorageDBChild::RecvScopesHavingData(const InfallibleTArray<nsCString>& aScopes)
+DOMStorageDBChild::RecvScopesHavingData(nsTArray<nsCString>&& aScopes)
 {
   for (uint32_t i = 0; i < aScopes.Length(); ++i) {
     ScopesHavingData().PutEntry(aScopes[i]);
@@ -253,7 +254,7 @@ DOMStorageDBChild::RecvLoadDone(const nsCString& aScope, const nsresult& aRv)
 bool
 DOMStorageDBChild::RecvLoadUsage(const nsCString& aScope, const int64_t& aUsage)
 {
-  nsRefPtr<DOMStorageUsageBridge> scopeUsage = mManager->GetScopeUsage(aScope);
+  RefPtr<DOMStorageUsageBridge> scopeUsage = mManager->GetScopeUsage(aScope);
   scopeUsage->LoadUsage(aUsage);
   return true;
 }
@@ -275,7 +276,7 @@ NS_IMPL_RELEASE(DOMStorageDBParent)
 void
 DOMStorageDBParent::AddIPDLReference()
 {
-  NS_ABORT_IF_FALSE(!mIPCOpen, "Attempting to retain multiple IPDL references");
+  MOZ_ASSERT(!mIPCOpen, "Attempting to retain multiple IPDL references");
   mIPCOpen = true;
   AddRef();
 }
@@ -283,12 +284,12 @@ DOMStorageDBParent::AddIPDLReference()
 void
 DOMStorageDBParent::ReleaseIPDLReference()
 {
-  NS_ABORT_IF_FALSE(mIPCOpen, "Attempting to release non-existent IPDL reference");
+  MOZ_ASSERT(mIPCOpen, "Attempting to release non-existent IPDL reference");
   mIPCOpen = false;
   Release();
 }
 
-namespace { // anon
+namespace {
 
 class SendInitialChildDataRunnable : public nsRunnable
 {
@@ -308,7 +309,7 @@ private:
     if (db) {
       InfallibleTArray<nsCString> scopes;
       db->GetScopesHavingData(&scopes);
-      mozilla::unused << mParent->SendScopesHavingData(scopes);
+      mozilla::Unused << mParent->SendScopesHavingData(scopes);
     }
 
     // We need to check if the device is in a low disk space situation, so
@@ -322,17 +323,17 @@ private:
     bool lowDiskSpace = false;
     diskSpaceWatcher->GetIsDiskFull(&lowDiskSpace);
     if (lowDiskSpace) {
-      mozilla::unused << mParent->SendObserve(
+      mozilla::Unused << mParent->SendObserve(
         nsDependentCString("low-disk-space"), EmptyCString());
     }
 
     return NS_OK;
   }
 
-  nsRefPtr<DOMStorageDBParent> mParent;
+  RefPtr<DOMStorageDBParent> mParent;
 };
 
-} // anon
+} // namespace
 
 DOMStorageDBParent::DOMStorageDBParent()
 : mIPCOpen(false)
@@ -347,7 +348,7 @@ DOMStorageDBParent::DOMStorageDBParent()
 
   // Cannot send directly from here since the channel
   // is not completely built at this moment.
-  nsRefPtr<SendInitialChildDataRunnable> r =
+  RefPtr<SendInitialChildDataRunnable> r =
     new SendInitialChildDataRunnable(this);
   NS_DispatchToCurrentThread(r);
 }
@@ -405,12 +406,12 @@ DOMStorageDBParent::RecvAsyncGetUsage(const nsCString& aScope)
   }
 
   // The object releases it self in LoadUsage method
-  nsRefPtr<UsageParentBridge> usage = new UsageParentBridge(this, aScope);
+  RefPtr<UsageParentBridge> usage = new UsageParentBridge(this, aScope);
   db->AsyncGetUsage(usage);
   return true;
 }
 
-namespace { // anon
+namespace {
 
 // We need another implementation of DOMStorageCacheBridge to do
 // synchronous IPC preload.  This class just receives Load* notifications
@@ -480,7 +481,7 @@ private:
   uint32_t mLoadedCount;
 };
 
-} // anon
+} // namespace
 
 bool
 DOMStorageDBParent::RecvPreload(const nsCString& aScope,
@@ -494,7 +495,7 @@ DOMStorageDBParent::RecvPreload(const nsCString& aScope,
     return false;
   }
 
-  nsRefPtr<SyncLoadCacheHelper> cache(
+  RefPtr<SyncLoadCacheHelper> cache(
     new SyncLoadCacheHelper(aScope, aAlreadyLoadedCount, aKeys, aValues, aRv));
 
   db->SyncPreload(cache, true);
@@ -513,7 +514,7 @@ DOMStorageDBParent::RecvAsyncAddItem(const nsCString& aScope,
 
   nsresult rv = db->AsyncAddItem(NewCache(aScope), aKey, aValue);
   if (NS_FAILED(rv) && mIPCOpen) {
-    mozilla::unused << SendError(rv);
+    mozilla::Unused << SendError(rv);
   }
 
   return true;
@@ -531,7 +532,7 @@ DOMStorageDBParent::RecvAsyncUpdateItem(const nsCString& aScope,
 
   nsresult rv = db->AsyncUpdateItem(NewCache(aScope), aKey, aValue);
   if (NS_FAILED(rv) && mIPCOpen) {
-    mozilla::unused << SendError(rv);
+    mozilla::Unused << SendError(rv);
   }
 
   return true;
@@ -548,7 +549,7 @@ DOMStorageDBParent::RecvAsyncRemoveItem(const nsCString& aScope,
 
   nsresult rv = db->AsyncRemoveItem(NewCache(aScope), aKey);
   if (NS_FAILED(rv) && mIPCOpen) {
-    mozilla::unused << SendError(rv);
+    mozilla::Unused << SendError(rv);
   }
 
   return true;
@@ -564,7 +565,7 @@ DOMStorageDBParent::RecvAsyncClear(const nsCString& aScope)
 
   nsresult rv = db->AsyncClear(NewCache(aScope));
   if (NS_FAILED(rv) && mIPCOpen) {
-    mozilla::unused << SendError(rv);
+    mozilla::Unused << SendError(rv);
   }
 
   return true;
@@ -589,14 +590,21 @@ DOMStorageDBParent::Observe(const char* aTopic,
                             const nsACString& aScopePrefix)
 {
   if (mIPCOpen) {
-    mozilla::unused << SendObserve(nsDependentCString(aTopic),
-                                   nsCString(aScopePrefix));
+#ifdef MOZ_NUWA_PROCESS
+    if (!(static_cast<ContentParent*>(Manager())->IsNuwaProcess() &&
+          ContentParent::IsNuwaReady())) {
+#endif
+      mozilla::Unused << SendObserve(nsDependentCString(aTopic),
+                                     nsCString(aScopePrefix));
+#ifdef MOZ_NUWA_PROCESS
+    }
+#endif
   }
 
   return NS_OK;
 }
 
-namespace { // anon
+namespace {
 
 // Results must be sent back on the main thread
 class LoadRunnable : public nsRunnable
@@ -630,7 +638,7 @@ public:
   { }
 
 private:
-  nsRefPtr<DOMStorageDBParent> mParent;
+  RefPtr<DOMStorageDBParent> mParent;
   TaskType mType;
   nsCString mScope;
   nsString mKey;
@@ -646,10 +654,10 @@ private:
     switch (mType)
     {
     case loadItem:
-      mozilla::unused << mParent->SendLoadItem(mScope, mKey, mValue);
+      mozilla::Unused << mParent->SendLoadItem(mScope, mKey, mValue);
       break;
     case loadDone:
-      mozilla::unused << mParent->SendLoadDone(mScope, mRv);
+      mozilla::Unused << mParent->SendLoadDone(mScope, mRv);
       break;
     }
 
@@ -657,7 +665,7 @@ private:
   }
 };
 
-} // anon
+} // namespace
 
 // DOMStorageDBParent::CacheParentBridge
 
@@ -670,7 +678,7 @@ DOMStorageDBParent::CacheParentBridge::LoadItem(const nsAString& aKey, const nsS
 
   ++mLoadedCount;
 
-  nsRefPtr<LoadRunnable> r =
+  RefPtr<LoadRunnable> r =
     new LoadRunnable(mParent, LoadRunnable::loadItem, mScope, aKey, aValue);
   NS_DispatchToMainThread(r);
   return true;
@@ -686,7 +694,7 @@ DOMStorageDBParent::CacheParentBridge::LoadDone(nsresult aRv)
 
   mLoaded = true;
 
-  nsRefPtr<LoadRunnable> r =
+  RefPtr<LoadRunnable> r =
     new LoadRunnable(mParent, LoadRunnable::loadDone, mScope, aRv);
   NS_DispatchToMainThread(r);
 }
@@ -700,7 +708,7 @@ DOMStorageDBParent::CacheParentBridge::LoadWait()
 
 // DOMStorageDBParent::UsageParentBridge
 
-namespace { // anon
+namespace {
 
 class UsageRunnable : public nsRunnable
 {
@@ -718,23 +726,23 @@ private:
       return NS_OK;
     }
 
-    mozilla::unused << mParent->SendLoadUsage(mScope, mUsage);
+    mozilla::Unused << mParent->SendLoadUsage(mScope, mUsage);
     return NS_OK;
   }
 
-  nsRefPtr<DOMStorageDBParent> mParent;
+  RefPtr<DOMStorageDBParent> mParent;
   nsCString mScope;
   int64_t mUsage;
 };
 
-} // anon
+} // namespace
 
 void
 DOMStorageDBParent::UsageParentBridge::LoadUsage(const int64_t aUsage)
 {
-  nsRefPtr<UsageRunnable> r = new UsageRunnable(mParent, mScope, aUsage);
+  RefPtr<UsageRunnable> r = new UsageRunnable(mParent, mScope, aUsage);
   NS_DispatchToMainThread(r);
 }
 
-} // ::dom
-} // ::mozilla
+} // namespace dom
+} // namespace mozilla

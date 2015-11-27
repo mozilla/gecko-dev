@@ -4,7 +4,7 @@
 
 #ifndef MERGED_COMPARTMENT
 
-const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
+var {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 this.EXPORTED_SYMBOLS = [
   "RESTRequest",
@@ -208,6 +208,23 @@ RESTRequest.prototype = {
   },
 
   /**
+   * Perform an HTTP PATCH.
+   *
+   * @param data
+   *        Data to be used as the request body. If this isn't a string
+   *        it will be JSONified automatically.
+   * @param onComplete
+   *        Short-circuit way to set the 'onComplete' method. Optional.
+   * @param onProgress
+   *        Short-circuit way to set the 'onProgress' method. Optional.
+   *
+   * @return the request object.
+   */
+  patch: function patch(data, onComplete, onProgress) {
+    return this.dispatch("PATCH", data, onComplete, onProgress);
+  },
+
+  /**
    * Perform an HTTP PUT.
    *
    * @param data
@@ -288,7 +305,12 @@ RESTRequest.prototype = {
     }
 
     // Create and initialize HTTP channel.
-    let channel = Services.io.newChannelFromURI(this.uri, null, null)
+    let channel = Services.io.newChannelFromURI2(this.uri,
+                                                 null,      // aLoadingNode
+                                                 Services.scriptSecurityManager.getSystemPrincipal(),
+                                                 null,      // aTriggeringPrincipal
+                                                 Ci.nsILoadInfo.SEC_NORMAL,
+                                                 Ci.nsIContentPolicy.TYPE_OTHER)
                           .QueryInterface(Ci.nsIRequest)
                           .QueryInterface(Ci.nsIHttpChannel);
     this.channel = channel;
@@ -307,7 +329,7 @@ RESTRequest.prototype = {
     }
 
     // Set HTTP request body.
-    if (method == "PUT" || method == "POST") {
+    if (method == "PUT" || method == "POST" || method == "PATCH") {
       // Convert non-string bodies into JSON.
       if (typeof data != "string") {
         data = JSON.stringify(data);
@@ -366,7 +388,7 @@ RESTRequest.prototype = {
                                      Cr.NS_ERROR_NET_TIMEOUT);
     if (!this.onComplete) {
       this._log.error("Unexpected error: onComplete not defined in " +
-                      "abortTimeout.")
+                      "abortTimeout.");
       return;
     }
     this.onComplete(error);
@@ -441,6 +463,7 @@ RESTRequest.prototype = {
     if (!statusSuccess) {
       let message = Components.Exception("", statusCode).name;
       let error = Components.Exception(message, statusCode);
+      this._log.debug(this.method + " " + uri + " failed: " + statusCode + " - " + message);
       this.onComplete(error);
       this.onComplete = this.onProgress = null;
       return;

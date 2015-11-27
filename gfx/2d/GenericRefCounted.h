@@ -11,6 +11,7 @@
 #define MOZILLA_GENERICREFCOUNTED_H_
 
 #include "mozilla/RefPtr.h"
+#include "mozilla/RefCounted.h"
 
 namespace mozilla {
 
@@ -57,7 +58,7 @@ class GenericRefCounted : public GenericRefCountedBase
     }
 
   public:
-    virtual void AddRef() {
+    virtual void AddRef() override {
       // Note: this method must be thread safe for GenericAtomicRefCounted.
       MOZ_ASSERT(int32_t(refCnt) >= 0);
 #ifndef MOZ_REFCOUNTED_LEAK_CHECKING
@@ -71,7 +72,7 @@ class GenericRefCounted : public GenericRefCountedBase
 #endif
     }
 
-    virtual void Release() {
+    virtual void Release() override {
       // Note: this method must be thread safe for GenericAtomicRefCounted.
       MOZ_ASSERT(int32_t(refCnt) > 0);
 #ifndef MOZ_REFCOUNTED_LEAK_CHECKING

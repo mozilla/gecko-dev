@@ -19,21 +19,7 @@
     info("unregister/index.html should not to be launched directly!");
   }
 
-  var tId = setTimeout(function() {
-    parent.postMessage({ controlled: false }, "*");
-    tId = null;
-  }, 2000);
-
-  navigator.serviceWorker.ready.then(function() {
-    if (tId == null) {
-      parent.postMessage("FAIL!!!", "*");
-      return;
-    }
-
-    clearTimeout(tId);
-    parent.postMessage({ controlled: true }, "*");
-  });
-
+  parent.postMessage({ controlled: !!navigator.serviceWorker.controller }, "*");
 </script>
 </pre>
 </body>

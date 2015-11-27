@@ -10,11 +10,14 @@
  * liability, trademark and document use rules apply.
  */
 
+[Constructor(DOMString typeArg, optional MouseEventInit mouseEventInitDict)]
 interface MouseEvent : UIEvent {
   readonly attribute long           screenX;
   readonly attribute long           screenY;
   readonly attribute long           clientX;
   readonly attribute long           clientY;
+  readonly attribute long           offsetX;
+  readonly attribute long           offsetY;
   readonly attribute boolean        ctrlKey;
   readonly attribute boolean        shiftKey;
   readonly attribute boolean        altKey;
@@ -23,12 +26,16 @@ interface MouseEvent : UIEvent {
   readonly attribute unsigned short buttons;
   readonly attribute EventTarget?   relatedTarget;
   readonly attribute DOMString?     region;
+
+  // Pointer Lock
+  readonly attribute long           movementX;
+  readonly attribute long           movementY;
+
   // Deprecated in DOM Level 3:
-  [Throws]
   void                              initMouseEvent(DOMString typeArg, 
                                                    boolean canBubbleArg, 
                                                    boolean cancelableArg, 
-                                                   WindowProxy? viewArg, 
+                                                   Window? viewArg,
                                                    long detailArg, 
                                                    long screenXArg, 
                                                    long screenYArg, 
@@ -44,42 +51,29 @@ interface MouseEvent : UIEvent {
   boolean                           getModifierState(DOMString keyArg);
 };
 
-
-// Event Constructor Syntax:
-[Constructor(DOMString typeArg, optional MouseEventInit mouseEventInitDict)]
-partial interface MouseEvent
-{
-};
-
 // Suggested initMouseEvent replacement initializer:
-dictionary MouseEventInit {
-  // Attributes from Event:
-  boolean        bubbles       = false;
-  boolean        cancelable    = false;
-
-  // Attributes from UIEvent:
-  WindowProxy?   view          = null;
-  long           detail        = 0;
-
+dictionary MouseEventInit : EventModifierInit {
   // Attributes for MouseEvent:
   long           screenX       = 0;
   long           screenY       = 0;
   long           clientX       = 0;
   long           clientY       = 0;
-  boolean        ctrlKey       = false;
-  boolean        shiftKey      = false;
-  boolean        altKey        = false;
-  boolean        metaKey       = false;
   short          button        = 0;
   // Note: "buttons" was not previously initializable through initMouseEvent!
   unsigned short buttons       = 0;
   EventTarget?   relatedTarget = null;
+
+  // Pointer Lock
+  long           movementX = 0;
+  long           movementY = 0;
 };
 
 // Mozilla extensions
 partial interface MouseEvent
 {
+  [BinaryName="movementX"]
   readonly attribute long mozMovementX;
+  [BinaryName="movementY"]
   readonly attribute long mozMovementY;
 
   // Finger or touch pressure event value
@@ -96,11 +90,10 @@ partial interface MouseEvent
 
   readonly attribute unsigned short mozInputSource;
 
-  [Throws]
   void                initNSMouseEvent(DOMString typeArg,
                                        boolean canBubbleArg,
                                        boolean cancelableArg,
-                                       WindowProxy? viewArg,
+                                       Window? viewArg,
                                        long detailArg,
                                        long screenXArg,
                                        long screenYArg,
@@ -114,6 +107,8 @@ partial interface MouseEvent
                                        EventTarget? relatedTargetArg,
                                        float pressure,
                                        unsigned short inputSourceArg);
+  [ChromeOnly]
+  readonly attribute boolean hitCluster; // True when touch occurs in a cluster of links
 
 };
 

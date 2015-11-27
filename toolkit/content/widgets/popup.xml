@@ -21,7 +21,7 @@
                                 onset="this.setAttribute('position', val); return val;"/>
       <property name="popupBoxObject">
         <getter>
-          return this.boxObject.QueryInterface(Components.interfaces.nsIPopupBoxObject);
+          return this.boxObject;
         </getter>
       </property>
 
@@ -69,7 +69,28 @@
         ]]>
         </body>
       </method>
-      
+
+      <method name="openPopupAtScreenRect">
+        <parameter name="aPosition"/>
+        <parameter name="aX"/>
+        <parameter name="aY"/>
+        <parameter name="aWidth"/>
+        <parameter name="aHeight"/>
+        <parameter name="aIsContextMenu"/>
+        <parameter name="aAttributesOverride"/>
+        <parameter name="aTriggerEvent"/>
+        <body>
+        <![CDATA[
+          try {
+            var popupBox = this.popupBoxObject;
+            if (popupBox)
+              popupBox.openPopupAtScreenRect(aPosition, aX, aY, aWidth, aHeight,
+                                             aIsContextMenu, aAttributesOverride, aTriggerEvent);
+          } catch(e) {}
+        ]]>
+        </body>
+      </method>
+
       <method name="showPopup">
         <parameter name="element"/>
         <parameter name="xpos"/>
@@ -87,14 +108,14 @@
           try {
             menuBox = this.parentNode.boxObject;
           } catch(e) {}
-          if (menuBox instanceof Components.interfaces.nsIMenuBoxObject)
+          if (menuBox instanceof MenuBoxObject)
             menuBox.openMenu(true);
           else if (popupBox)
             popupBox.showPopup(element, this, xpos, ypos, popuptype, anchoralignment, popupalignment);
         ]]>
         </body>
       </method>
-      
+
       <method name="hidePopup">
         <parameter name="cancel"/>
         <body>
@@ -102,14 +123,14 @@
           var popupBox = null;
           var menuBox = null;
           try {
-            popupBox = this.boxObject.QueryInterface(Components.interfaces.nsIPopupBoxObject);
+            popupBox = this.popupBoxObject;
           } catch(e) {}
           try {
             menuBox = this.parentNode.boxObject;
           } catch(e) {}
-          if (menuBox instanceof Components.interfaces.nsIMenuBoxObject)
+          if (menuBox instanceof MenuBoxObject)
             menuBox.openMenu(false);
-          else if (popupBox)
+          else if (popupBox instanceof PopupBoxObject)
             popupBox.hidePopup(cancel);
         ]]>
         </body>
@@ -251,7 +272,9 @@
             let tmp = {};
             Components.utils.import("resource://gre/modules/WindowDraggingUtils.jsm", tmp);
             let draghandle = new tmp.WindowDraggingElement(this);
-            draghandle.mouseDownCheck = function () this._dragBindingAlive;
+            draghandle.mouseDownCheck = function () {
+              return this._dragBindingAlive;
+            }
           } catch (e) {}
         }
       ]]>
@@ -633,8 +656,6 @@
 
             return false;
           }, this);
-
-          return false;
         ]]>
         </body>
       </method>

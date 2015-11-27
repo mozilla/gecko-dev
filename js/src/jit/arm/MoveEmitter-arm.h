@@ -7,18 +7,16 @@
 #ifndef jit_arm_MoveEmitter_arm_h
 #define jit_arm_MoveEmitter_arm_h
 
-#include "jit/IonMacroAssembler.h"
+#include "jit/MacroAssembler.h"
 #include "jit/MoveResolver.h"
 
 namespace js {
 namespace jit {
 
-class CodeGenerator;
-
 class MoveEmitterARM
 {
     uint32_t inCycle_;
-    MacroAssemblerARMCompat &masm;
+    MacroAssembler& masm;
 
     // Original stack push value.
     uint32_t pushedAtStart_;
@@ -38,24 +36,26 @@ class MoveEmitterARM
     void assertDone();
     Register tempReg();
     FloatRegister tempFloatReg();
-    Operand cycleSlot(uint32_t slot, uint32_t subslot) const;
-    Operand spillSlot() const;
-    Operand toOperand(const MoveOperand &operand, bool isFloat) const;
+    Address cycleSlot(uint32_t slot, uint32_t subslot) const;
+    Address spillSlot() const;
+    Address toAddress(const MoveOperand& operand) const;
 
-    void emitMove(const MoveOperand &from, const MoveOperand &to);
-    void emitFloat32Move(const MoveOperand &from, const MoveOperand &to);
-    void emitDoubleMove(const MoveOperand &from, const MoveOperand &to);
-    void breakCycle(const MoveOperand &from, const MoveOperand &to,
+    void emitMove(const MoveOperand& from, const MoveOperand& to);
+    void emitFloat32Move(const MoveOperand& from, const MoveOperand& to);
+    void emitDoubleMove(const MoveOperand& from, const MoveOperand& to);
+    void breakCycle(const MoveOperand& from, const MoveOperand& to,
                     MoveOp::Type type, uint32_t slot);
-    void completeCycle(const MoveOperand &from, const MoveOperand &to,
+    void completeCycle(const MoveOperand& from, const MoveOperand& to,
                        MoveOp::Type type, uint32_t slot);
-    void emit(const MoveOp &move);
+    void emit(const MoveOp& move);
 
   public:
-    MoveEmitterARM(MacroAssemblerARMCompat &masm);
+    MoveEmitterARM(MacroAssembler& masm);
     ~MoveEmitterARM();
-    void emit(const MoveResolver &moves);
+    void emit(const MoveResolver& moves);
     void finish();
+
+    void setScratchRegister(Register reg) {}
 };
 
 typedef MoveEmitterARM MoveEmitter;

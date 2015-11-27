@@ -22,11 +22,12 @@
 #define nsScriptNameSpaceManager_h__
 
 #include "mozilla/MemoryReporting.h"
+#include "nsBaseHashtable.h"
 #include "nsIMemoryReporter.h"
 #include "nsIScriptNameSpaceManager.h"
 #include "nsString.h"
 #include "nsID.h"
-#include "pldhash.h"
+#include "PLDHashTable.h"
 #include "nsDOMClassInfo.h"
 #include "nsIObserver.h"
 #include "nsWeakReference.h"
@@ -79,11 +80,22 @@ struct nsGlobalNameStruct
   mozilla::dom::ConstructorEnabled* mConstructorEnabled;
 };
 
+class GlobalNameMapEntry : public PLDHashEntryHdr
+{
+public:
+  // Our hash table ops don't care about the order of these members.
+  nsString mKey;
+  nsGlobalNameStruct mGlobalName;
 
-class nsIScriptContext;
+  size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
+    // Measurement of the following members may be added later if DMD finds it
+    // is worthwhile:
+    // - mGlobalName
+    return mKey.SizeOfExcludingThisIfUnshared(aMallocSizeOf);
+  }
+};
+
 class nsICategoryManager;
-class GlobalNameMapEntry;
-
 
 class nsScriptNameSpaceManager : public nsIObserver,
                                  public nsSupportsWeakReference,
@@ -173,12 +185,29 @@ public:
                      const nsGlobalNameStruct& aGlobalNameStruct,
                      void* aClosure);
 
-  void EnumerateGlobalNames(NameEnumerator aEnumerator,
-                            void* aClosure);
-  void EnumerateNavigatorNames(NameEnumerator aEnumerator,
-                               void* aClosure);
+  class NameIterator : public PLDHashTable::Iterator
+  {
+  public:
+    typedef PLDHashTable::Iterator Base;
+    explicit NameIterator(PLDHashTable* aTable) : Base(aTable) {}
+    NameIterator(NameIterator&& aOther) : Base(mozilla::Move(aOther.mTable)) {}
 
-  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf);
+    const GlobalNameMapEntry* Get() const
+    {
+      return static_cast<const GlobalNameMapEntry*>(Base::Get());
+    }
+
+  private:
+    NameIterator() = delete;
+    NameIterator(const NameIterator&) = delete;
+    NameIterator& operator=(const NameIterator&) = delete;
+    NameIterator& operator=(const NameIterator&&) = delete;
+  };
+
+  NameIterator GlobalNameIter()    { return NameIterator(&mGlobalNames); }
+  NameIterator NavigatorNameIter() { return NameIterator(&mNavigatorNames); }
+
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
 private:
   virtual ~nsScriptNameSpaceManager();
@@ -240,8 +269,6 @@ private:
 
   PLDHashTable mGlobalNames;
   PLDHashTable mNavigatorNames;
-
-  bool mIsInitialized;
 };
 
 #endif /* nsScriptNameSpaceManager_h__ */

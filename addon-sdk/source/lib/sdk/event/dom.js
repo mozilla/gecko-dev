@@ -10,17 +10,24 @@ module.metadata = {
 
 const { Ci } = require("chrome");
 
-let { emit } = require("./core");
-let { when: unload } = require("../system/unload");
-let listeners = new Map();
+var { emit } = require("./core");
+var { when: unload } = require("../system/unload");
+var listeners = new Map();
 
-let getWindowFrom = x =>
+const { Cu } = require("chrome");
+const { ShimWaiver } = Cu.import("resource://gre/modules/ShimWaiver.jsm");
+
+var getWindowFrom = x =>
                     x instanceof Ci.nsIDOMWindow ? x :
                     x instanceof Ci.nsIDOMDocument ? x.defaultView :
                     x instanceof Ci.nsIDOMNode ? x.ownerDocument.defaultView :
                     null;
 
 function removeFromListeners() {
+  ShimWaiver.getProperty(this, "removeEventListener")("DOMWindowClose", removeFromListeners);
+  for (let cleaner of listeners.get(this))
+    cleaner();
+
   listeners.delete(this);
 }
 
@@ -45,26 +52,25 @@ function open(target, type, options) {
   if (!window)
     throw new Error("Unable to obtain the owner window from the target given.");
 
-  let cleaners = listeners.get(window) || [];
-  cleaners.push(() => target.removeEventListener(type, listener, capture));
+  let cleaners = listeners.get(window);
+  if (!cleaners) {
+    cleaners = [];
+    listeners.set(window, cleaners);
 
-  listeners.set(window, cleaners);
+    // We need to remove from our map the `window` once is closed, to prevent
+    // memory leak
+    ShimWaiver.getProperty(window, "addEventListener")("DOMWindowClose", removeFromListeners);
+  }
 
-  // We need to remove from our map the `window` once is closed, to prevent
-  // memory leak
-  window.addEventListener("DOMWindowClose", removeFromListeners);
-
-  target.addEventListener(type, listener, capture);
+  cleaners.push(() => ShimWaiver.getProperty(target, "removeEventListener")(type, listener, capture));
+  ShimWaiver.getProperty(target, "addEventListener")(type, listener, capture);
 
   return output;
 }
 
 unload(() => {
-  for (let [window, cleaners] of listeners) {
-    cleaners.forEach(callback => callback())
-  }
-
-  listeners.clear();
+  for (let window of listeners.keys())
+    removeFromListeners.call(window);
 });
 
 exports.open = open;

@@ -80,7 +80,7 @@ writeInstallRDFToDir({
 // Keep track of the last time stamp we've used, so that we can keep moving
 // it forward (if we touch two different files in the same add-on with the same
 // timestamp we may not consider the change significant)
-let lastTimestamp = Date.now();
+var lastTimestamp = Date.now();
 
 /*
  * Helper function to touch a file and then test whether we detect the change.
@@ -189,7 +189,7 @@ add_task(function* uninstall_bootstrap() {
          ]);
   pe.uninstall();
   let xpiState = Services.prefs.getCharPref("extensions.xpiState");
-  do_check_false(xpiState.contains("\"packed-enabled@tests.mozilla.org\""));
+  do_check_false(xpiState.includes("\"packed-enabled@tests.mozilla.org\""));
 });
 
 /*

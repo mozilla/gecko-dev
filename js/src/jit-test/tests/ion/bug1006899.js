@@ -7,7 +7,7 @@ this.__defineGetter__("x",
   }
 );
 function callback(obj) {}
-setObjectMetadataCallback(callback);
+enableShellObjectMetadataCallback();
 evaluate("\
 var { ArrayType, StructType, uint32 } = TypedObject;\
   var L = 1024;\
@@ -15,4 +15,4 @@ var { ArrayType, StructType, uint32 } = TypedObject;\
   var matrix = new Matrix();\
   for (var i = 0; i < L; i++)\
     matrix[i][0] = x;\
-", { compileAndGo : true });
+", { isRunOnce : true });

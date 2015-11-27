@@ -93,9 +93,9 @@ function run_test() {
   var uri3 = uri("http://testuri/3");
   tagssvc.tagURI(uri3, [tagId, "tag 3", "456"]);
   var tags = tagssvc.getTagsForURI(uri3);
-  do_check_true(tags.indexOf(tagTitle) != -1);
-  do_check_true(tags.indexOf("tag 3") != -1);
-  do_check_true(tags.indexOf("456") != -1);
+  do_check_true(tags.includes(tagTitle));
+  do_check_true(tags.includes("tag 3"));
+  do_check_true(tags.includes("456"));
 
   // test mixed id/name tagging
   tagssvc.untagURI(uri3, [tagId, "tag 3", "456"]);
@@ -112,68 +112,79 @@ function run_test() {
             getService(Ci.nsITaggingService);
   var uri4Tags = tagssvc.getTagsForURI(uri4);
   do_check_eq(uri4Tags.length, 3);
-  do_check_true(uri4Tags.indexOf(tagTitle) != -1);
-  do_check_true(uri4Tags.indexOf("tag 3") != -1);
-  do_check_true(uri4Tags.indexOf("456") != -1);
+  do_check_true(uri4Tags.includes(tagTitle));
+  do_check_true(uri4Tags.includes("tag 3"));
+  do_check_true(uri4Tags.includes("456"));
 
   // Test sparse arrays.
-  let (curChildCount = tagRoot.childCount) {
-    try {
-      tagssvc.tagURI(uri1, [, "tagSparse"]);
-      do_check_eq(tagRoot.childCount, curChildCount + 1);
-    } catch (ex) {
-      do_throw("Passing a sparse array should not throw");
-    }
-    try {
-      tagssvc.untagURI(uri1, [, "tagSparse"]);
-      do_check_eq(tagRoot.childCount, curChildCount);
-    } catch (ex) {
-      do_throw("Passing a sparse array should not throw");
-    }
+  let curChildCount = tagRoot.childCount;
 
-    // Test that the API throws for bad arguments.
-    try {
-      tagssvc.tagURI(uri1, ["", "test"]);
-      do_throw("Passing a bad tags array should throw");
-    } catch (ex) {
-      do_check_eq(ex.name, "NS_ERROR_ILLEGAL_VALUE");
-    }
-    try {
-      tagssvc.untagURI(uri1, ["", "test"]);
-      do_throw("Passing a bad tags array should throw");
-    } catch (ex) {
-      do_check_eq(ex.name, "NS_ERROR_ILLEGAL_VALUE");
-    }
-    try {
-      tagssvc.tagURI(uri1, [0, "test"]);
-      do_throw("Passing a bad tags array should throw");
-    } catch (ex) {
-      do_check_eq(ex.name, "NS_ERROR_ILLEGAL_VALUE");
-    }
-    try {
-      tagssvc.tagURI(uri1, [0, "test"]);
-      do_throw("Passing a bad tags array should throw");
-    } catch (ex) {
-      do_check_eq(ex.name, "NS_ERROR_ILLEGAL_VALUE");
-    }
-    
-    // Tag name length should be limited to nsITaggingService.MAX_TAG_LENGTH (bug407821)
-    try {
-    
-      // generate a long tag name. i.e. looooo...oong_tag
-      var n = Ci.nsITaggingService.MAX_TAG_LENGTH;
-      var someOos = new Array(n).join('o');
-      var longTagName = "l" + someOos + "ng_tag";
-      
-      tagssvc.tagURI(uri1, ["short_tag", longTagName]);
-      do_throw("Passing a bad tags array should throw");
-      
-    } catch (ex) {
-      do_check_eq(ex.name, "NS_ERROR_ILLEGAL_VALUE");
-    }
-    
+  try {
+    tagssvc.tagURI(uri1, [, "tagSparse"]);
+    do_check_eq(tagRoot.childCount, curChildCount + 1);
+  } catch (ex) {
+    do_throw("Passing a sparse array should not throw");
+  }
+  try {
+    tagssvc.untagURI(uri1, [, "tagSparse"]);
+    do_check_eq(tagRoot.childCount, curChildCount);
+  } catch (ex) {
+    do_throw("Passing a sparse array should not throw");
+  }
+
+  // Test that the API throws for bad arguments.
+  try {
+    tagssvc.tagURI(uri1, ["", "test"]);
+    do_throw("Passing a bad tags array should throw");
+  } catch (ex) {
+    do_check_eq(ex.name, "NS_ERROR_ILLEGAL_VALUE");
+  }
+  try {
+    tagssvc.untagURI(uri1, ["", "test"]);
+    do_throw("Passing a bad tags array should throw");
+  } catch (ex) {
+    do_check_eq(ex.name, "NS_ERROR_ILLEGAL_VALUE");
+  }
+  try {
+    tagssvc.tagURI(uri1, [0, "test"]);
+    do_throw("Passing a bad tags array should throw");
+  } catch (ex) {
+    do_check_eq(ex.name, "NS_ERROR_ILLEGAL_VALUE");
+  }
+  try {
+    tagssvc.tagURI(uri1, [0, "test"]);
+    do_throw("Passing a bad tags array should throw");
+  } catch (ex) {
+    do_check_eq(ex.name, "NS_ERROR_ILLEGAL_VALUE");
+  }
+
+  // Tag name length should be limited to nsITaggingService.MAX_TAG_LENGTH (bug407821)
+  try {
+
+    // generate a long tag name. i.e. looooo...oong_tag
+    var n = Ci.nsITaggingService.MAX_TAG_LENGTH;
+    var someOos = new Array(n).join('o');
+    var longTagName = "l" + someOos + "ng_tag";
+
+    tagssvc.tagURI(uri1, ["short_tag", longTagName]);
+    do_throw("Passing a bad tags array should throw");
+
+  } catch (ex) {
+    do_check_eq(ex.name, "NS_ERROR_ILLEGAL_VALUE");
   }
 
   // cleanup
   tagRoot.containerOpen = false;
+
+  // Tagging service should trim tags (Bug967196)
+  let exampleURI = uri("http://www.example.com/");
+  PlacesUtils.tagging.tagURI(exampleURI, [ " test " ]);
+
+  let exampleTags = PlacesUtils.tagging.getTagsForURI(exampleURI);
+  do_check_eq(exampleTags.length, 1);
+  do_check_eq(exampleTags[0], "test");
+
+  PlacesUtils.tagging.untagURI(exampleURI, [ "test" ]);
+  exampleTags = PlacesUtils.tagging.getTagsForURI(exampleURI);
+  do_check_eq(exampleTags.length, 0);
 }

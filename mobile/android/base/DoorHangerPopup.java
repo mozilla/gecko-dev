@@ -6,32 +6,33 @@
 package org.mozilla.gecko;
 
 import java.util.HashSet;
-import java.util.List;
 
-import org.json.JSONArray;
+import android.text.TextUtils;
+import android.widget.PopupWindow;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.JSONArray;
 import org.mozilla.gecko.AppConstants.Versions;
-import org.mozilla.gecko.prompts.PromptInput;
 import org.mozilla.gecko.util.GeckoEventListener;
 import org.mozilla.gecko.util.ThreadUtils;
-import org.mozilla.gecko.widget.ArrowPopup;
+import org.mozilla.gecko.widget.AnchoredPopup;
 import org.mozilla.gecko.widget.DoorHanger;
 
 import android.content.Context;
 import android.util.Log;
 import android.view.View;
-import android.widget.CheckBox;
+import org.mozilla.gecko.widget.DoorhangerConfig;
 
-public class DoorHangerPopup extends ArrowPopup
+public class DoorHangerPopup extends AnchoredPopup
                              implements GeckoEventListener,
                                         Tabs.OnTabsChangedListener,
+                                        PopupWindow.OnDismissListener,
                                         DoorHanger.OnButtonClickListener {
     private static final String LOGTAG = "GeckoDoorHangerPopup";
 
     // Stores a set of all active DoorHanger notifications. A DoorHanger is
     // uniquely identified by its tabId and value.
-    private HashSet<DoorHanger> mDoorHangers;
+    private final HashSet<DoorHanger> mDoorHangers;
 
     // Whether or not the doorhanger popup is disabled.
     private boolean mDisabled;
@@ -45,6 +46,8 @@ public class DoorHangerPopup extends ArrowPopup
             "Doorhanger:Add",
             "Doorhanger:Remove");
         Tabs.registerOnTabsChangedListener(this);
+
+        setOnDismissListener(this);
     }
 
     void destroy() {
@@ -76,16 +79,12 @@ public class DoorHangerPopup extends ArrowPopup
     public void handleMessage(String event, JSONObject geckoObject) {
         try {
             if (event.equals("Doorhanger:Add")) {
-                final int tabId = geckoObject.getInt("tabID");
-                final String value = geckoObject.getString("value");
-                final String message = geckoObject.getString("message");
-                final JSONArray buttons = geckoObject.getJSONArray("buttons");
-                final JSONObject options = geckoObject.getJSONObject("options");
+                final DoorhangerConfig config = makeConfigFromJSON(geckoObject);
 
                 ThreadUtils.postToUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        addDoorHanger(tabId, value, message, buttons, options);
+                        addDoorHanger(config);
                     }
                 });
             } else if (event.equals("Doorhanger:Remove")) {
@@ -109,6 +108,41 @@ public class DoorHangerPopup extends ArrowPopup
         }
     }
 
+    private DoorhangerConfig makeConfigFromJSON(JSONObject json) throws JSONException {
+        final int tabId = json.getInt("tabID");
+        final String id = json.getString("value");
+
+        final String typeString = json.optString("category");
+        DoorHanger.Type doorhangerType = DoorHanger.Type.DEFAULT;
+        if (DoorHanger.Type.LOGIN.toString().equals(typeString)) {
+            doorhangerType = DoorHanger.Type.LOGIN;
+        } else if (DoorHanger.Type.GEOLOCATION.toString().equals(typeString)) {
+            doorhangerType = DoorHanger.Type.GEOLOCATION;
+        } else if (DoorHanger.Type.DESKTOPNOTIFICATION2.toString().equals(typeString)) {
+            doorhangerType = DoorHanger.Type.DESKTOPNOTIFICATION2;
+        }
+
+        final DoorhangerConfig config = new DoorhangerConfig(tabId, id, doorhangerType, this);
+
+        config.setMessage(json.getString("message"));
+        config.setOptions(json.getJSONObject("options"));
+
+        final JSONArray buttonArray = json.getJSONArray("buttons");
+        int numButtons = buttonArray.length();
+        if (numButtons > 2) {
+            Log.e(LOGTAG, "Doorhanger can have a maximum of two buttons!");
+            numButtons = 2;
+        }
+
+        for (int i = 0; i < numButtons; i++) {
+            final JSONObject buttonJSON = buttonArray.getJSONObject(i);
+            final boolean isPositive = buttonJSON.optBoolean("positive", false);
+            config.setButton(buttonJSON.getString("label"), buttonJSON.getInt("callback"), isPositive);
+        }
+
+        return config;
+    }
+
     // This callback is automatically executed on the UI thread.
     @Override
     public void onTabChanged(final Tab tab, final Tabs.TabEvents msg, final Object data) {
@@ -116,20 +150,13 @@ public class DoorHangerPopup extends ArrowPopup
             case CLOSED:
                 // Remove any doorhangers for a tab when it's closed (make
                 // a temporary set to avoid a ConcurrentModificationException)
-                HashSet<DoorHanger> doorHangersToRemove = new HashSet<DoorHanger>();
-                for (DoorHanger dh : mDoorHangers) {
-                    if (dh.getTabId() == tab.getId())
-                        doorHangersToRemove.add(dh);
-                }
-                for (DoorHanger dh : doorHangersToRemove) {
-                    removeDoorHanger(dh);
-                }
+                removeTabDoorHangers(tab.getId(), true);
                 break;
 
             case LOCATION_CHANGE:
                 // Only remove doorhangers if the popup is hidden or if we're navigating to a new URL
                 if (!isShowing() || !data.equals(tab.getURL()))
-                    removeTransientDoorHangers(tab.getId());
+                    removeTabDoorHangers(tab.getId(), false);
 
                 // Update the popup if the location change was on the current tab
                 if (Tabs.getInstance().isSelectedTab(tab))
@@ -149,15 +176,15 @@ public class DoorHangerPopup extends ArrowPopup
      *
      * This method must be called on the UI thread.
      */
-    void addDoorHanger(final int tabId, final String value, final String message,
-                       final JSONArray buttons, final JSONObject options) {
+    void addDoorHanger(DoorhangerConfig config) {
+        final int tabId = config.getTabId();
         // Don't add a doorhanger for a tab that doesn't exist
         if (Tabs.getInstance().getTab(tabId) == null) {
             return;
         }
 
         // Replace the doorhanger if it already exists
-        DoorHanger oldDoorHanger = getDoorHanger(tabId, value);
+        DoorHanger oldDoorHanger = getDoorHanger(tabId, config.getId());
         if (oldDoorHanger != null) {
             removeDoorHanger(oldDoorHanger);
         }
@@ -166,25 +193,12 @@ public class DoorHangerPopup extends ArrowPopup
             init();
         }
 
-        final DoorHanger newDoorHanger = new DoorHanger(mContext, tabId, value);
-        newDoorHanger.setMessage(message);
-        newDoorHanger.setOptions(options);
-
-        for (int i = 0; i < buttons.length(); i++) {
-            try {
-                JSONObject buttonObject = buttons.getJSONObject(i);
-                String label = buttonObject.getString("label");
-                String tag = String.valueOf(buttonObject.getInt("callback"));
-                newDoorHanger.addButton(label, tag, this);
-            } catch (JSONException e) {
-                Log.e(LOGTAG, "Error creating doorhanger button", e);
-            }
-        }
+        final DoorHanger newDoorHanger = DoorHanger.Get(mContext, config);
 
         mDoorHangers.add(newDoorHanger);
         mContent.addView(newDoorHanger);
 
-        // Only update the popup if we're adding a notifcation to the selected tab
+        // Only update the popup if we're adding a notification to the selected tab
         if (tabId == Tabs.getInstance().getSelectedTab().getId())
             updatePopup();
     }
@@ -194,32 +208,10 @@ public class DoorHangerPopup extends ArrowPopup
      * DoorHanger.OnButtonClickListener implementation
      */
     @Override
-    public void onButtonClick(DoorHanger dh, String tag) {
-        JSONObject response = new JSONObject();
-        try {
-            response.put("callback", tag);
-
-            CheckBox checkBox = dh.getCheckBox();
-            // If the checkbox is being used, pass its value
-            if (checkBox != null) {
-                response.put("checked", checkBox.isChecked());
-            }
-
-            List<PromptInput> doorHangerInputs = dh.getInputs();
-            if (doorHangerInputs != null) {
-                JSONObject inputs = new JSONObject();
-                for (PromptInput input : doorHangerInputs) {
-                    inputs.put(input.getId(), input.getValue());
-                }
-                response.put("inputs", inputs);
-            }
-        } catch (JSONException e) {
-            Log.e(LOGTAG, "Error creating onClick response", e);
-        }
-
+    public void onButtonClick(JSONObject response, DoorHanger doorhanger) {
         GeckoEvent e = GeckoEvent.createBroadcastEvent("Doorhanger:Reply", response.toString());
         GeckoAppShell.sendEventToGecko(e);
-        removeDoorHanger(dh);
+        removeDoorHanger(doorhanger);
         updatePopup();
     }
 
@@ -230,7 +222,7 @@ public class DoorHangerPopup extends ArrowPopup
      */
     DoorHanger getDoorHanger(int tabId, String value) {
         for (DoorHanger dh : mDoorHangers) {
-            if (dh.getTabId() == tabId && dh.getValue().equals(value))
+            if (dh.getTabId() == tabId && dh.getIdentifier().equals(value))
                 return dh;
         }
 
@@ -250,16 +242,22 @@ public class DoorHangerPopup extends ArrowPopup
 
     /**
      * Removes doorhangers for a given tab.
+     * @param tabId identifier of the tab to remove doorhangers from
+     * @param forceRemove boolean for force-removing tabs. If true, all doorhangers associated
+     *                    with  the tab specified are removed; if false, only remove the doorhangers
+     *                    that are not persistent, as specified by the doorhanger options.
      *
      * This method must be called on the UI thread.
      */
-    void removeTransientDoorHangers(int tabId) {
+    void removeTabDoorHangers(int tabId, boolean forceRemove) {
         // Make a temporary set to avoid a ConcurrentModificationException
         HashSet<DoorHanger> doorHangersToRemove = new HashSet<DoorHanger>();
         for (DoorHanger dh : mDoorHangers) {
             // Only remove transient doorhangers for the given tab
-            if (dh.getTabId() == tabId && dh.shouldRemove(isShowing()))
-                doorHangersToRemove.add(dh);
+            if (dh.getTabId() == tabId
+                && (forceRemove || (!forceRemove && dh.shouldRemove(isShowing())))) {
+                    doorHangersToRemove.add(dh);
+            }
         }
 
         for (DoorHanger dh : doorHangersToRemove) {
@@ -286,15 +284,21 @@ public class DoorHangerPopup extends ArrowPopup
         // Show doorhangers for the selected tab
         int tabId = tab.getId();
         boolean shouldShowPopup = false;
+        DoorHanger firstDoorhanger = null;
         for (DoorHanger dh : mDoorHangers) {
             if (dh.getTabId() == tabId) {
                 dh.setVisibility(View.VISIBLE);
                 shouldShowPopup = true;
+                if (firstDoorhanger == null) {
+                    firstDoorhanger = dh;
+                } else {
+                    dh.hideTitle();
+                }
             } else {
                 dh.setVisibility(View.GONE);
             }
         }
- 
+
         // Dismiss the popup if there are no doorhangers to show for this tab
         if (!shouldShowPopup) {
             dismiss();
@@ -305,6 +309,14 @@ public class DoorHangerPopup extends ArrowPopup
         if (isShowing()) {
             show();
             return;
+        }
+
+        final String baseDomain = tab.getBaseDomain();
+
+        if (TextUtils.isEmpty(baseDomain)) {
+            firstDoorhanger.hideTitle();
+        } else {
+            firstDoorhanger.showTitle(tab.getFavicon(), baseDomain);
         }
 
         // Make the popup focusable for accessibility. This gets done here
@@ -337,6 +349,12 @@ public class DoorHangerPopup extends ArrowPopup
         if (lastVisibleDoorHanger != null) {
             lastVisibleDoorHanger.hideDivider();
         }
+    }
+
+    @Override
+    public void onDismiss() {
+        final int tabId = Tabs.getInstance().getSelectedTab().getId();
+        removeTabDoorHangers(tabId, true);
     }
 
     @Override

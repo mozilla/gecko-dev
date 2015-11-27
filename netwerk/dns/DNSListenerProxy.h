@@ -18,7 +18,7 @@ class nsICancelable;
 namespace mozilla {
 namespace net {
 
-class DNSListenerProxy MOZ_FINAL
+class DNSListenerProxy final
     : public nsIDNSListener
     , public nsIDNSListenerProxy
 {
@@ -68,4 +68,5 @@ private:
 
 } // namespace net
 } // namespace mozilla
+
 #endif // DNSListenerProxy_h__

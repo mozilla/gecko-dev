@@ -11,35 +11,46 @@ XPIDL_SOURCES += [
 XPIDL_MODULE = 'MobileComponents'
 
 EXTRA_COMPONENTS += [
-    'ActivitiesGlue.js',
+    'AboutRedirector.js',
     'AddonUpdateService.js',
+    'AndroidActivitiesGlue.js',
     'BlocklistPrompt.js',
+    'BrowserCLH.js',
     'ColorPicker.js',
     'ContentDispatchChooser.js',
-    'ContentPermissionPrompt.js',
-    'DownloadManagerUI.js',
-    'FilePicker.js',
+    'DirectoryProvider.js',
+    'ImageBlockingPolicy.js',
     'LoginManagerPrompter.js',
     'NSSDialogService.js',
-    'PaymentsUI.js',
-    'PromptService.js',
-    'SiteSpecificUserAgent.js',
     'Snippets.js',
     'TabSource.js',
-    'WebappsUpdateTimer.js',
     'XPIDialogService.js',
 ]
 
-EXTRA_PP_COMPONENTS += [
-    'AboutRedirector.js',
-    'BrowserCLH.js',
-    'DirectoryProvider.js',
-    'HelperAppDialog.js',
-    'MobileComponents.manifest',
-    'SessionStore.js',
-    'Sidebar.js',
-]
+if not CONFIG['MOZ_B2GDROID']:
+    EXTRA_COMPONENTS += [
+        'ContentPermissionPrompt.js',
+        'FilePicker.js',
+        'HelperAppDialog.js',
+        'PromptService.js',
+        'SessionStore.js',
+        'SiteSpecificUserAgent.js',
+        'WebappsUpdateTimer.js',
+    ]
 
-DEFINES['ANDROID_PACKAGE_NAME'] = CONFIG['ANDROID_PACKAGE_NAME']
+if CONFIG['MOZ_PAY']:
+    if not CONFIG['MOZ_B2GDROID']:
+        EXTRA_COMPONENTS += [
+            'PaymentProviderStrategy.js',
+        ]
+    EXTRA_COMPONENTS += [
+        'PaymentsUI.js'
+    ]
+
+# Keep it this way if at all possible.  If you need preprocessing,
+# consider adding fields to AppConstants.jsm.
+EXTRA_PP_COMPONENTS += [
+    'MobileComponents.manifest',
+]
 
 DIRS += ['build']

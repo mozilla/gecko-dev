@@ -91,6 +91,66 @@
         buttonEl.disabled = true;
       }
 
+      function doOverride(buttonEl) {
+        var event = new CustomEvent("AboutNetErrorOverride", {bubbles:true});
+        document.dispatchEvent(event);
+        retryThis(buttonEl);
+      }
+
+      function toggleDisplay(node) {
+        toggle = {
+          '': 'block',
+          'none': 'block',
+          'block': 'none'
+        };
+        node.style.display = toggle[node.style.display];
+      }
+
+      function showCertificateErrorReporting() {
+        // Display error reporting UI
+        document.getElementById('certificateErrorReporting').style.display = 'block';
+
+        // Get the hostname and add it to the panel
+        document.getElementById('hostname').textContent = document.location.hostname;
+
+        // Register click handler for the certificateErrorReportingPanel
+        document.getElementById('showCertificateErrorReportingPanel')
+                .addEventListener('click', function togglePanelVisibility() {
+          var panel = document.getElementById('certificateErrorReportingPanel');
+          toggleDisplay(panel);
+
+          if (panel.style.display == "block") {
+            // send event to trigger telemetry ping
+            var event = new CustomEvent("AboutNetErrorUIExpanded", {bubbles:true});
+            document.dispatchEvent(event);
+          }
+        });
+      }
+
+      function showWeakCryptoAdvanced() {
+        // Display weak crypto advanced UI
+        document.getElementById("weakCryptoAdvanced").style.display = "block";
+
+        // Get the hostname and add it to the panel
+        var panel = document.getElementById("weakCryptoAdvancedPanel");
+        for (var span of panel.querySelectorAll("span.hostname")) {
+          span.textContent = document.location.hostname;
+        }
+
+        // Register click handler for the weakCryptoAdvancedPanel
+        document.getElementById("showWeakCryptoAdvancedPanel")
+                .addEventListener("click", () => toggleDisplay(panel));
+
+        var overrideLink = document.getElementById("overrideWeakCrypto");
+        overrideLink.addEventListener("click", () => doOverride(overrideLink), false);
+      }
+
+      function sendErrorReport() {
+        var event = new CustomEvent("AboutNetErrorSendReport", {bubbles:true});
+
+        document.dispatchEvent(event);
+      }
+
       function initPage()
       {
         var err = getErrorCode();
@@ -125,6 +185,26 @@
           errDesc.id = "errorLongDesc";
         }
 
+        if (err == "sslv3Used") {
+          var learnMoreText = document.getElementById("learn_more_ssl3");
+
+          document.getElementById("errorTitle").setAttribute("sslv3", "true");
+
+          var retryBtn = document.getElementById("errorTryAgain");
+          retryBtn.textContent = learnMoreText.textContent;
+          retryBtn.setAttribute("onclick", "learnMoreSSLV3()");
+        }
+
+        if (err == "weakCryptoUsed") {
+          var learnMoreText = document.getElementById("learn_more_weak_crypto");
+
+          document.getElementById("errorTitle").setAttribute("weakCrypto", "true");
+
+          var retryBtn = document.getElementById("errorTryAgain");
+          retryBtn.textContent = learnMoreText.textContent;
+          retryBtn.setAttribute("onclick", "learnMoreWeakCrypto()");
+        }
+
         // remove undisplayed errors to avoid bug 39098
         var errContainer = document.getElementById("errorContainer");
         errContainer.parentNode.removeChild(errContainer);
@@ -155,11 +235,51 @@
           document.getElementById("errorTryAgain").style.display = "none";
         }
 
-        if (err == "cspFrameAncestorBlocked") {
-          // Remove the "Try again" button for CSP frame ancestors violation, since it's
+        if (err == "cspBlocked") {
+          // Remove the "Try again" button for CSP violations, since it's
           // almost certainly useless. (Bug 553180)
           document.getElementById("errorTryAgain").style.display = "none";
         }
+
+        window.addEventListener("AboutNetErrorOptions", function(evt) {
+        // Pinning errors are of type nssFailure2
+          if (getErrorCode() == "nssFailure2") {
+            var learnMoreLink = document.getElementById("learnMoreLink");
+            // nssFailure2 also gets us other non-overrideable errors. Choose
+            // a "learn more" link based on description:
+            if (getDescription().includes("mozilla_pkix_error_key_pinning_failure")) {
+              learnMoreLink.href = "https://support.mozilla.org/kb/certificate-pinning-reports";
+            }
+
+            var options = JSON.parse(evt.detail);
+            if (options && options.enabled) {
+              var checkbox = document.getElementById('automaticallyReportInFuture');
+              showCertificateErrorReporting();
+              if (options.automatic) {
+                // set the checkbox
+                checkbox.checked = true;
+              }
+
+              checkbox.addEventListener('change', function(evt) {
+                  var event = new CustomEvent("AboutNetErrorSetAutomatic",
+                    {bubbles:true, detail:evt.target.checked});
+                  document.dispatchEvent(event);
+                }, false);
+
+              var reportBtn = document.getElementById('reportCertificateError');
+              var retryBtn = document.getElementById('reportCertificateErrorRetry');
+
+              reportBtn.addEventListener('click', sendErrorReport, false);
+              retryBtn.addEventListener('click', sendErrorReport, false);
+            }
+          }
+          if (getErrorCode() == "weakCryptoUsed") {
+            showWeakCryptoAdvanced();
+          }
+        }.bind(this), true, true);
+
+        var event = new CustomEvent("AboutNetErrorLoad", {bubbles:true});
+        document.dispatchEvent(event);
 
         if (err == "nssBadCert") {
           // Remove the "Try again" button for security exceptions, since it's
@@ -262,6 +382,17 @@
         return haystack.slice(-needle.length) == needle;
       }
 
+      function learnMoreSSLV3() {
+        location.href = "https://support.mozilla.org/kb/how-resolve-sslv3-error-messages-firefox";
+        // Ensure users don't re-click the button:
+        e.target.disabled = true;
+      }
+
+      function learnMoreWeakCrypto() {
+        location.href = "https://support.mozilla.org/kb/how-resolve-weak-crypto-error-messages-firefox";
+        // Ensure users don't re-click the button:
+        e.target.disabled = true;
+      }
     ]]></script>
   </head>
 
@@ -291,9 +422,13 @@
         <h1 id="et_nssFailure2">&nssFailure2.title;</h1>
         <h1 id="et_nssBadCert">&nssBadCert.title;</h1>
         <h1 id="et_malwareBlocked">&malwareBlocked.title;</h1>
-        <h1 id="et_cspFrameAncestorBlocked">&cspFrameAncestorBlocked.title;</h1>
+        <h1 id="et_unwantedBlocked">&unwantedBlocked.title;</h1>
+        <h1 id="et_forbiddenBlocked">&forbiddenBlocked.title;</h1>
+        <h1 id="et_cspBlocked">&cspBlocked.title;</h1>
         <h1 id="et_remoteXUL">&remoteXUL.title;</h1>
         <h1 id="et_corruptedContentError">&corruptedContentError.title;</h1>
+        <h1 id="et_sslv3Used">&sslv3Used.title;</h1>
+        <h1 id="et_weakCryptoUsed">&weakCryptoUsed.title;</h1>
       </div>
       <div id="errorDescriptionsContainer">
         <div id="ed_generic">&generic.longDesc;</div>
@@ -317,9 +452,15 @@
         <div id="ed_nssFailure2">&nssFailure2.longDesc2;</div>
         <div id="ed_nssBadCert">&nssBadCert.longDesc2;</div>
         <div id="ed_malwareBlocked">&malwareBlocked.longDesc;</div>
-        <div id="ed_cspFrameAncestorBlocked">&cspFrameAncestorBlocked.longDesc;</div>
+        <div id="ed_unwantedBlocked">&unwantedBlocked.longDesc;</div>
+        <div id="ed_forbiddenBlocked">&forbiddenBlocked.longDesc;</div>
+        <div id="ed_cspBlocked">&cspBlocked.longDesc;</div>
         <div id="ed_remoteXUL">&remoteXUL.longDesc;</div>
         <div id="ed_corruptedContentError">&corruptedContentError.longDesc;</div>
+        <div id="ed_sslv3Used">&sslv3Used.longDesc;</div>
+        <div id="learn_more_ssl3">&sslv3Used.learnMore;</div>
+        <div id="ed_weakCryptoUsed">&weakCryptoUsed.longDesc;</div>
+        <div id="learn_more_weak_crypto">&weakCryptoUsed.learnMore;</div>
       </div>
     </div>
 
@@ -348,6 +489,7 @@
           <a id="securityOverrideLink" href="javascript:showSecuritySection();" >&securityOverride.linkText;</a>
           <div id="securityOverrideContent" style="display: none;">&securityOverride.warningContent;</div>
         </div>
+
       </div>
 
       <!-- Retry Button -->
@@ -367,6 +509,46 @@
             parent.insertBefore(button, nextSibling);
         }
       </script>
+
+      <!-- UI for option to report certificate errors to Mozilla. Removed on
+           init for other error types .-->
+      <div id="certificateErrorReporting">
+        <a id="showCertificateErrorReportingPanel" href="#">&errorReporting.title;<span class="downArrow"> ▼</span></a>
+      </div>
+
+      <div id="certificateErrorReportingPanel">
+        <div id="certificateErrorReportingDescription">
+          <p>&errorReporting.longDesc;</p>
+          <p>
+            <input type="checkbox" id="automaticallyReportInFuture" />
+            <label for="automaticallyReportInFuture" id="automaticallyReportInFuture">&errorReporting.automatic;</label>
+          </p>
+        </div>
+        <div id="errorStatePanel">
+          <a href="https://support.mozilla.org/kb/tls-error-reports" id="learnMoreLink" target="new">&errorReporting.learnMore;</a>
+          <span id="reportingState">
+            <button id="reportCertificateError">&errorReporting.report;</button>
+            <button id="reportCertificateErrorRetry">&errorReporting.tryAgain;</button>
+            <span id="reportSendingMessage">&errorReporting.sending;</span>
+            <span id="reportSentMessage">&errorReporting.sent;</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- UI for option to override weak crypto errors. Removed on
+           init for other error types .-->
+      <div id="weakCryptoAdvanced">
+        <a id="showWeakCryptoAdvancedPanel" href="#">&weakCryptoAdvanced.title;<span class="downArrow"> &#x25bc;</span></a>
+      </div>
+
+      <div id="weakCryptoAdvancedPanel">
+        <div id="weakCryptoAdvancedDescription">
+          <p>&weakCryptoAdvanced.longDesc;</p>
+        </div>
+        <div id="overrideWeakCryptoPanel">
+          <a id="overrideWeakCrypto" href="#">&weakCryptoAdvanced.override;</a>
+        </div>
+      </div>
 
     </div>
 

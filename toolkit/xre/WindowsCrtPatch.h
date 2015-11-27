@@ -105,7 +105,7 @@ patched_RtlImageNtHeader(HMODULE module)
 {
   PIMAGE_NT_HEADERS headers = stub_RtlImageNtHeader(module);
 
-  if (module == GetModuleHandleA("msvcr120.dll")) {
+  if (module == GetModuleHandleW(L"msvcr120.dll")) {
     PatchModuleImports(module, headers);
   }
 
@@ -127,16 +127,16 @@ Init()
   MOZ_ASSERT(!GetModuleHandleA("msvcr120.dll"));
   MOZ_ASSERT(!GetModuleHandleA("msvcr120d.dll"));
 
-  // Temporary until we fully switch over to VS 2013:
-  MOZ_ASSERT(!GetModuleHandleA("msvcr100.dll"));
-  MOZ_ASSERT(!GetModuleHandleA("msvcr100d.dll"));
-
-#if defined(_M_IX86) && defined(_MSC_VER) && _MSC_VER >= 1800
-  if (!mozilla::IsXPSP3OrLater()) {
-    NtdllIntercept.Init("ntdll.dll");
-    NtdllIntercept.AddHook("RtlImageNtHeader",
-                           reinterpret_cast<intptr_t>(patched_RtlImageNtHeader),
-                           reinterpret_cast<void**>(&stub_RtlImageNtHeader));
+#if defined(_M_IX86) && defined(_MSC_VER)
+  if (!mozilla::IsWin2003OrLater()) {
+    // Test for the export because we can't trust the SP version (bug 1137609)
+    HMODULE kernel = GetModuleHandleA("kernel32.dll");
+    if (!kernel || !GetProcAddress(kernel, "GetLogicalProcessorInformation")) {
+      NtdllIntercept.Init("ntdll.dll");
+      NtdllIntercept.AddHook("RtlImageNtHeader",
+                             reinterpret_cast<intptr_t>(patched_RtlImageNtHeader),
+                             reinterpret_cast<void**>(&stub_RtlImageNtHeader));
+    }
   }
 #endif
 }

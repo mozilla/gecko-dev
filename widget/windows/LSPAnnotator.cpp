@@ -15,6 +15,7 @@
 #include "nsISupportsImpl.h"
 #include "nsServiceManagerUtils.h"
 #include "nsThreadUtils.h"
+#include "nsQueryObject.h"
 #include <windows.h>
 #include <ws2spi.h>
 
@@ -65,7 +66,7 @@ LSPAnnotationGatherer::Run()
     return NS_ERROR_FAILURE;
   }
 
-  nsAutoArrayPtr<char> byteArray(new char[size]);
+  auto byteArray = MakeUnique<char[]>(size);
   WSAPROTOCOL_INFOW* providers =
     reinterpret_cast<WSAPROTOCOL_INFOW*>(byteArray.get());
 

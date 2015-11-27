@@ -55,7 +55,7 @@ function init(aEvent)
   let defaults = Services.prefs.getDefaultBranch("");
   let channelLabel = document.getElementById("currentChannel");
   let currentChannelText = document.getElementById("currentChannelText");
-  channelLabel.value = UpdateChannel.get();
+  channelLabel.value = UpdateUtils.UpdateChannel;
   if (/^release($|\-)/.test(channelLabel.value))
       currentChannelText.hidden = true;
 #endif
@@ -72,8 +72,8 @@ Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/DownloadUtils.jsm");
 Components.utils.import("resource://gre/modules/AddonManager.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "UpdateChannel",
-                                  "resource://gre/modules/UpdateChannel.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "UpdateUtils",
+                                  "resource://gre/modules/UpdateUtils.jsm");
 
 var gAppUpdater;
 
@@ -490,7 +490,7 @@ appUpdater.prototype =
       return;
     }
 
-    this.selectPanel("apply");
+    this.selectPanel("applyBillboard");
   },
 
   /**

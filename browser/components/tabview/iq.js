@@ -19,10 +19,10 @@ function iQ(selector, context) {
 
 // A simple way to check for HTML strings or ID strings
 // (both of which we optimize for)
-let quickExpr = /^[^<]*(<[\w\W]+>)[^>]*$|^#([\w-]+)$/;
+var quickExpr = /^[^<]*(<[\w\W]+>)[^>]*$|^#([\w-]+)$/;
 
 // Match a standalone tag
-let rsingleTag = /^<(\w+)\s*\/?>(?:<\/\1>)?$/;
+var rsingleTag = /^<(\w+)\s*\/?>(?:<\/\1>)?$/;
 
 // ##########
 // Class: iQClass
@@ -646,7 +646,9 @@ iQClass.prototype = {
   // Binds the given function to the given event type. Also wraps the function
   // in a try/catch block that does a Utils.log on any errors.
   bind: function iQClass_bind(type, func) {
-    let handler = function(event) func.apply(this, [event]);
+    let handler = function(event) {
+      return func.apply(this, [event]);
+    };
 
     for (let i = 0; this[i] != null; i++) {
       let elem = this[i];
@@ -739,7 +741,7 @@ iQClass.prototype = {
 
 // ----------
 // Create various event aliases
-let events = [
+var events = [
   'keyup',
   'keydown',
   'keypress',

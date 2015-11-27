@@ -4,6 +4,7 @@
 
 package org.mozilla.mozstumbler.service.stumblerthread;
 
+import android.content.Context;
 import android.content.Intent;
 import android.location.Location;
 import android.os.AsyncTask;
@@ -16,10 +17,7 @@ import org.mozilla.mozstumbler.service.Prefs;
 import org.mozilla.mozstumbler.service.stumblerthread.blocklist.WifiBlockListInterface;
 import org.mozilla.mozstumbler.service.stumblerthread.datahandling.DataStorageManager;
 import org.mozilla.mozstumbler.service.stumblerthread.scanners.ScanManager;
-import org.mozilla.mozstumbler.service.stumblerthread.scanners.cellscanner.CellScanner;
-import org.mozilla.mozstumbler.service.stumblerthread.scanners.cellscanner.CellScannerNoWCDMA;
 import org.mozilla.mozstumbler.service.uploadthread.UploadAlarmReceiver;
-import org.mozilla.mozstumbler.service.utils.NetworkUtils;
 import org.mozilla.mozstumbler.service.utils.PersistentIntentService;
 
 // In stand-alone service mode (a.k.a passive scanning mode), this is created from PassiveServiceReceiver (by calling startService).
@@ -27,7 +25,7 @@ import org.mozilla.mozstumbler.service.utils.PersistentIntentService;
 //
 public class StumblerService extends PersistentIntentService
         implements DataStorageManager.StorageIsEmptyTracker {
-    private static final String LOG_TAG = AppGlobals.LOG_PREFIX + StumblerService.class.getSimpleName();
+    private static final String LOG_TAG = AppGlobals.makeLogTag(StumblerService.class.getSimpleName());
     public static final String ACTION_BASE = AppGlobals.ACTION_NAMESPACE;
     public static final String ACTION_START_PASSIVE = ACTION_BASE + ".START_PASSIVE";
     public static final String ACTION_EXTRA_MOZ_API_KEY = ACTION_BASE + ".MOZKEY";
@@ -69,8 +67,8 @@ public class StumblerService extends PersistentIntentService
         mScanManager.setWifiBlockList(list);
     }
 
-    public Prefs getPrefs() {
-        return Prefs.getInstance();
+    public Prefs getPrefs(Context c) {
+        return Prefs.getInstance(c);
     }
 
     public void checkPrefs() {
@@ -109,10 +107,6 @@ public class StumblerService extends PersistentIntentService
         return mScanManager.getCellInfoCount();
     }
 
-    public int getCurrentCellInfoCount() {
-        return mScanManager.getCurrentCellInfoCount();
-    }
-
     public boolean isGeofenced () {
         return mScanManager.isGeofenced();
     }
@@ -121,13 +115,9 @@ public class StumblerService extends PersistentIntentService
     // use (i.e. Fennec), init() can be called from this class's dedicated thread.
     // Safe to call more than once, ensure added code complies with that intent.
     protected void init() {
-        Prefs.createGlobalInstance(this);
-        NetworkUtils.createGlobalInstance(this);
+        // Ensure Prefs is created, so internal utility code can use getInstanceWithoutContext
+        Prefs.getInstance(this);
         DataStorageManager.createGlobalInstance(this, this);
-
-        if (!CellScanner.isCellScannerImplSet()) {
-            CellScanner.setCellScannerImpl(new CellScannerNoWCDMA(this));
-        }
 
         mReporter.startup(this);
     }
@@ -159,7 +149,7 @@ public class StumblerService extends PersistentIntentService
                 }
 
                 if (!sFirefoxStumblingEnabled.get()) {
-                    Prefs.getInstance().setFirefoxScanEnabled(false);
+                    Prefs.getInstance(StumblerService.this).setFirefoxScanEnabled(false);
                 }
 
                 if (DataStorageManager.getInstance() != null) {
@@ -191,19 +181,23 @@ public class StumblerService extends PersistentIntentService
             return;
         }
 
-        final boolean isScanEnabledInPrefs = Prefs.getInstance().getFirefoxScanEnabled();
+        final boolean isScanEnabledInPrefs = Prefs.getInstance(this).getFirefoxScanEnabled();
 
         if (!isScanEnabledInPrefs && intent.getBooleanExtra(ACTION_NOT_FROM_HOST_APP, false)) {
             stopSelf();
             return;
         }
 
-        if (!DataStorageManager.getInstance().isDirEmpty()) {
+        boolean hasFilesWaiting = !DataStorageManager.getInstance().isDirEmpty();
+        if (AppGlobals.isDebug) {
+            Log.d(LOG_TAG, "Files waiting:" + hasFilesWaiting);
+        }
+        if (hasFilesWaiting) {
             // non-empty on startup, schedule an upload
             // This is the only upload trigger in Firefox mode
             // Firefox triggers this ~4 seconds after startup (after Gecko is loaded), add a small delay to avoid
             // clustering with other operations that are triggered at this time.
-            final long lastAttemptedTime = Prefs.getInstance().getLastAttemptedUploadTime();
+            final long lastAttemptedTime = Prefs.getInstance(this).getLastAttemptedUploadTime();
             final long timeNow = System.currentTimeMillis();
 
             if (timeNow - lastAttemptedTime < PASSIVE_UPLOAD_FREQ_GUARD_MSEC) {
@@ -212,23 +206,23 @@ public class StumblerService extends PersistentIntentService
                     Log.d(LOG_TAG, "Upload attempt too frequent.");
                 }
             } else {
-                Prefs.getInstance().setLastAttemptedUploadTime(timeNow);
+                Prefs.getInstance(this).setLastAttemptedUploadTime(timeNow);
                 UploadAlarmReceiver.scheduleAlarm(this, DELAY_IN_SEC_BEFORE_STARTING_UPLOAD_IN_PASSIVE_MODE, false /* no repeat*/);
             }
         }
 
         if (!isScanEnabledInPrefs) {
-            Prefs.getInstance().setFirefoxScanEnabled(true);
+            Prefs.getInstance(this).setFirefoxScanEnabled(true);
         }
 
         String apiKey = intent.getStringExtra(ACTION_EXTRA_MOZ_API_KEY);
-        if (apiKey != null && !apiKey.equals(Prefs.getInstance().getMozApiKey())) {
-            Prefs.getInstance().setMozApiKey(apiKey);
+        if (apiKey != null && !apiKey.equals(Prefs.getInstance(this).getMozApiKey())) {
+            Prefs.getInstance(this).setMozApiKey(apiKey);
         }
 
         String userAgent = intent.getStringExtra(ACTION_EXTRA_USER_AGENT);
-        if (userAgent != null && !userAgent.equals(Prefs.getInstance().getUserAgent())) {
-            Prefs.getInstance().setUserAgent(userAgent);
+        if (userAgent != null && !userAgent.equals(Prefs.getInstance(this).getUserAgent())) {
+            Prefs.getInstance(this).setUserAgent(userAgent);
         }
 
         if (!mScanManager.isScanning()) {
@@ -237,6 +231,7 @@ public class StumblerService extends PersistentIntentService
     }
 
     // Note that in passive mode, having data isn't an upload trigger, it is triggered by the start intent
+    @Override
     public void notifyStorageStateEmpty(boolean isEmpty) {
         if (isEmpty) {
             UploadAlarmReceiver.cancelAlarm(this, !mScanManager.isPassiveMode());

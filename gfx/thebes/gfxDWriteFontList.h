@@ -59,7 +59,7 @@ public:
 
 protected:
     /** This font family's directwrite fontfamily object */
-    nsRefPtr<IDWriteFontFamily> mDWFamily;
+    RefPtr<IDWriteFontFamily> mDWFamily;
     bool mForceGDIClassic;
 };
 
@@ -80,8 +80,11 @@ public:
       : gfxFontEntry(aFaceName), mFont(aFont), mFontFile(nullptr),
         mForceGDIClassic(false)
     {
-        mItalic = (aFont->GetStyle() == DWRITE_FONT_STYLE_ITALIC ||
-                   aFont->GetStyle() == DWRITE_FONT_STYLE_OBLIQUE);
+        DWRITE_FONT_STYLE dwriteStyle = aFont->GetStyle();
+        mStyle = (dwriteStyle == DWRITE_FONT_STYLE_ITALIC ?
+                  NS_FONT_STYLE_ITALIC :
+                  (dwriteStyle == DWRITE_FONT_STYLE_OBLIQUE ?
+                   NS_FONT_STYLE_OBLIQUE : NS_FONT_STYLE_NORMAL));
         mStretch = FontStretchFromDWriteStretch(aFont->GetStretch());
         uint16_t weight = NS_ROUNDUP(aFont->GetWeight() - 50, 100);
 
@@ -101,19 +104,19 @@ public:
      * \param aFont DirectWrite font object
      * \param aWeight Weight of the font
      * \param aStretch Stretch of the font
-     * \param aItalic True if italic
+     * \param aStyle italic or oblique of font
      */
     gfxDWriteFontEntry(const nsAString& aFaceName,
                               IDWriteFont *aFont,
                               uint16_t aWeight,
                               int16_t aStretch,
-                              bool aItalic)
+                              uint8_t aStyle)
       : gfxFontEntry(aFaceName), mFont(aFont), mFontFile(nullptr),
         mForceGDIClassic(false)
     {
         mWeight = aWeight;
         mStretch = aStretch;
-        mItalic = aItalic;
+        mStyle = aStyle;
         mIsLocalUserFont = true;
         mIsCJK = UNINITIALIZED_VALUE;
     }
@@ -125,19 +128,19 @@ public:
      * \param aFontFile DirectWrite fontfile object
      * \param aWeight Weight of the font
      * \param aStretch Stretch of the font
-     * \param aItalic True if italic
+     * \param aStyle italic or oblique of font
      */
     gfxDWriteFontEntry(const nsAString& aFaceName,
                               IDWriteFontFile *aFontFile,
                               uint16_t aWeight,
                               int16_t aStretch,
-                              bool aItalic)
+                              uint8_t aStyle)
       : gfxFontEntry(aFaceName), mFont(nullptr), mFontFile(aFontFile),
         mForceGDIClassic(false)
     {
         mWeight = aWeight;
         mStretch = aStretch;
-        mItalic = aItalic;
+        mStyle = aStyle;
         mIsDataUserFont = true;
         mIsCJK = UNINITIALIZED_VALUE;
     }
@@ -146,7 +149,7 @@ public:
 
     virtual bool IsSymbolFont();
 
-    virtual hb_blob_t* GetFontTable(uint32_t aTableTag) MOZ_OVERRIDE;
+    virtual hb_blob_t* GetFontTable(uint32_t aTableTag) override;
 
     nsresult ReadCMAP(FontInfoData *aFontInfoData = nullptr);
 
@@ -165,7 +168,7 @@ protected:
     friend class gfxDWriteFontList;
 
     virtual nsresult CopyFontTable(uint32_t aTableTag,
-                                   FallibleTArray<uint8_t>& aBuffer) MOZ_OVERRIDE;
+                                   FallibleTArray<uint8_t>& aBuffer) override;
 
     virtual gfxFont *CreateFontInstance(const gfxFontStyle *aFontStyle,
                                         bool aNeedsBold);
@@ -180,12 +183,12 @@ protected:
      * A fontentry only needs to have either of these. If it has both only
      * the IDWriteFont will be used.
      */
-    nsRefPtr<IDWriteFont> mFont;
-    nsRefPtr<IDWriteFontFile> mFontFile;
+    RefPtr<IDWriteFont> mFont;
+    RefPtr<IDWriteFontFile> mFontFile;
 
     // font face corresponding to the mFont/mFontFile *without* any DWrite
     // style simulations applied
-    nsRefPtr<IDWriteFontFace> mFontFace;
+    RefPtr<IDWriteFontFace> mFontFace;
 
     DWRITE_FONT_FACE_TYPE mFaceType;
 
@@ -194,7 +197,7 @@ protected:
 };
 
 // custom text renderer used to determine the fallback font for a given char
-class FontFallbackRenderer MOZ_FINAL : public IDWriteTextRenderer
+class FontFallbackRenderer final : public IDWriteTextRenderer
 {
 public:
     FontFallbackRenderer(IDWriteFactory *aFactory)
@@ -327,7 +330,7 @@ public:
 
 protected:
     long mRefCount;
-    nsRefPtr<IDWriteFontCollection> mSystemFonts;
+    RefPtr<IDWriteFontCollection> mSystemFonts;
     nsString mFamilyName;
 };
 
@@ -349,12 +352,12 @@ public:
     virtual gfxFontEntry* LookupLocalFont(const nsAString& aFontName,
                                           uint16_t aWeight,
                                           int16_t aStretch,
-                                          bool aItalic);
+                                          uint8_t aStyle);
 
     virtual gfxFontEntry* MakePlatformFont(const nsAString& aFontName,
                                            uint16_t aWeight,
                                            int16_t aStretch,
-                                           bool aItalic,
+                                           uint8_t aStyle,
                                            const uint8_t* aFontData,
                                            uint32_t aLength);
     
@@ -364,10 +367,9 @@ public:
     IDWriteGdiInterop *GetGDIInterop() { return mGDIInterop; }
     bool UseGDIFontTableAccess() { return mGDIFontTableAccess; }
 
-    virtual gfxFontFamily* FindFamily(const nsAString& aFamily,
-                                      bool aUseSystemFonts = false);
-
-    virtual void GetFontFamilyList(nsTArray<nsRefPtr<gfxFontFamily> >& aFamilyArray);
+    gfxFontFamily* FindFamily(const nsAString& aFamily,
+                              gfxFontStyle* aStyle = nullptr,
+                              gfxFloat aDevToCssSize = 1.0) override;
 
     gfxFloat GetForceGDIClassicMaxFontSize() { return mForceGDIClassicMaxFontSize; }
 
@@ -405,16 +407,11 @@ private:
      */
     nsTArray<nsString> mNonExistingFonts;
 
-    typedef nsRefPtrHashtable<nsStringHashKey, gfxFontFamily> FontTable;
-
     /**
      * Table of font substitutes, we grab this from the registry to get
      * alternative font names.
      */
-    FontTable mFontSubstitutes;
-
-    bool mInitialized;
-    virtual nsresult DelayedInitFontList();
+    FontFamilyTable mFontSubstitutes;
 
     virtual already_AddRefed<FontInfoData> CreateFontInfoData();
 
@@ -422,14 +419,14 @@ private:
 
     // whether to use GDI font table access routines
     bool mGDIFontTableAccess;
-    nsRefPtr<IDWriteGdiInterop> mGDIInterop;
+    RefPtr<IDWriteGdiInterop> mGDIInterop;
 
-    nsRefPtr<FontFallbackRenderer> mFallbackRenderer;
-    nsRefPtr<IDWriteTextFormat>    mFallbackFormat;
+    RefPtr<FontFallbackRenderer> mFallbackRenderer;
+    RefPtr<IDWriteTextFormat>    mFallbackFormat;
 
-    nsRefPtr<IDWriteFontCollection> mSystemFonts;
+    RefPtr<IDWriteFontCollection> mSystemFonts;
 #ifdef MOZ_BUNDLED_FONTS
-    nsRefPtr<IDWriteFontCollection> mBundledFonts;
+    RefPtr<IDWriteFontCollection> mBundledFonts;
 #endif
 };
 

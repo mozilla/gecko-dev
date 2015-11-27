@@ -9,8 +9,8 @@
 #include "mozilla/ModuleUtils.h"
 #include "nsMimeTypes.h"
 
+#include "DecodePool.h"
 #include "ImageFactory.h"
-#include "RasterImage.h"
 #include "ShutdownTracker.h"
 #include "SurfaceCache.h"
 
@@ -19,7 +19,6 @@
 #include "imgRequest.h"
 #include "imgRequestProxy.h"
 #include "imgTools.h"
-#include "DiscardTracker.h"
 
 #include "nsICOEncoder.h"
 #include "nsPNGEncoder.h"
@@ -92,9 +91,8 @@ mozilla::image::InitModule()
   gfxPrefs::GetSingleton();
 
   mozilla::image::ShutdownTracker::Initialize();
-  mozilla::image::DiscardTracker::Initialize();
   mozilla::image::ImageFactory::Initialize();
-  mozilla::image::RasterImage::Initialize();
+  mozilla::image::DecodePool::Initialize();
   mozilla::image::SurfaceCache::Initialize();
   imgLoader::GlobalInit();
   sInitialized = true;
@@ -109,7 +107,6 @@ mozilla::image::ShutdownModule()
   }
   imgLoader::Shutdown();
   mozilla::image::SurfaceCache::Shutdown();
-  mozilla::image::DiscardTracker::Shutdown();
   sInitialized = false;
 }
 

@@ -9,6 +9,7 @@
  * liability, trademark and document use rules apply.
  */
 
+[Exposed=(Window,Worker)]
 interface IDBKeyRange {
   [Throws]
   readonly attribute any     lower;
@@ -26,4 +27,11 @@ interface IDBKeyRange {
   static IDBKeyRange upperBound (any upper, optional boolean open = false);
   [NewObject, Throws]
   static IDBKeyRange bound (any lower, any upper, optional boolean lowerOpen = false, optional boolean upperOpen = false);
+};
+
+[Exposed=(Window,Worker),
+ Func="mozilla::dom::indexedDB::IndexedDatabaseManager::ExperimentalFeaturesEnabled"]
+interface IDBLocaleAwareKeyRange : IDBKeyRange {
+  [NewObject, Throws]
+  static IDBLocaleAwareKeyRange bound (any lower, any upper, optional boolean lowerOpen = false, optional boolean upperOpen = false);
 };

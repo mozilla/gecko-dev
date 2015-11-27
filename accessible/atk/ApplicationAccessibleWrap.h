@@ -19,14 +19,14 @@ public:
   virtual ~ApplicationAccessibleWrap();
 
   // Accessible
-  virtual mozilla::a11y::ENameValueFlag Name(nsString& aName);
-  virtual bool InsertChildAt(uint32_t aIdx, Accessible* aChild) MOZ_OVERRIDE;
-  virtual bool RemoveChild(Accessible* aChild);
+  virtual mozilla::a11y::ENameValueFlag Name(nsString& aName) override;
+  virtual bool InsertChildAt(uint32_t aIdx, Accessible* aChild) override;
+  virtual bool RemoveChild(Accessible* aChild) override;
 
   /**
    * Return the atk object for app root accessible.
    */
-  NS_IMETHOD GetNativeInterface(void** aOutAccessible);
+  virtual void GetNativeInterface(void** aOutAccessible) override;
 };
 
 } // namespace a11y

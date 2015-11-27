@@ -9,7 +9,6 @@
 #define mozilla_a11y_ApplicationAccessible_h__
 
 #include "AccessibleWrap.h"
-#include "xpcAccessibleApplication.h"
 
 #include "nsIMutableArray.h"
 #include "nsIXULAppInfo.h"
@@ -27,38 +26,36 @@ namespace a11y {
  * the ApplicationAccessible instance.
  */
 
-class ApplicationAccessible : public AccessibleWrap,
-                              public xpcAccessibleApplication
+class ApplicationAccessible : public AccessibleWrap
 {
 public:
 
   ApplicationAccessible();
 
-  // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
 
   // Accessible
-  virtual void Shutdown();
-  virtual nsIntRect Bounds() const MOZ_OVERRIDE;
-  virtual already_AddRefed<nsIPersistentProperties> NativeAttributes() MOZ_OVERRIDE;
-  virtual GroupPos GroupPosition();
-  virtual ENameValueFlag Name(nsString& aName);
-  virtual void ApplyARIAState(uint64_t* aState) const;
-  virtual void Description(nsString& aDescription);
-  virtual void Value(nsString& aValue);
-  virtual mozilla::a11y::role NativeRole() MOZ_OVERRIDE;
-  virtual uint64_t State() MOZ_OVERRIDE;
-  virtual uint64_t NativeState() MOZ_OVERRIDE;
-  virtual Relation RelationByType(RelationType aType) MOZ_OVERRIDE;
+  virtual void Shutdown() override;
+  virtual nsIntRect Bounds() const override;
+  virtual already_AddRefed<nsIPersistentProperties> NativeAttributes() override;
+  virtual GroupPos GroupPosition() override;
+  virtual ENameValueFlag Name(nsString& aName) override;
+  virtual void ApplyARIAState(uint64_t* aState) const override;
+  virtual void Description(nsString& aDescription) override;
+  virtual void Value(nsString& aValue) override;
+  virtual mozilla::a11y::role NativeRole() override;
+  virtual uint64_t State() override;
+  virtual uint64_t NativeState() override;
+  virtual Relation RelationByType(RelationType aType) override;
 
   virtual Accessible* ChildAtPoint(int32_t aX, int32_t aY,
-                                   EWhichChildAtPoint aWhichChild);
-  virtual Accessible* FocusedChild();
+                                   EWhichChildAtPoint aWhichChild) override;
+  virtual Accessible* FocusedChild() override;
 
-  virtual void InvalidateChildren();
+  virtual void InvalidateChildren() override;
 
   // ActionAccessible
-  virtual KeyBinding AccessKey() const;
+  virtual KeyBinding AccessKey() const override;
 
   // ApplicationAccessible
   void AppName(nsAString& aName) const
@@ -91,13 +88,19 @@ protected:
   virtual ~ApplicationAccessible() {}
 
   // Accessible
-  virtual void CacheChildren();
+  virtual void CacheChildren() override;
   virtual Accessible* GetSiblingAtOffset(int32_t aOffset,
-                                         nsresult *aError = nullptr) const;
+                                         nsresult *aError = nullptr) const override;
 
 private:
   nsCOMPtr<nsIXULAppInfo> mAppInfo;
 };
+
+inline ApplicationAccessible*
+Accessible::AsApplication()
+{
+  return IsApplication() ? static_cast<ApplicationAccessible*>(this) : nullptr;
+}
 
 } // namespace a11y
 } // namespace mozilla

@@ -411,6 +411,98 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=753984
                               ["555-12345", {"string": "listboxoption"}]],
           expectedBraille: [[{"string": "listboxoptionAbbr"}, "555-12345"],
                             ["555-12345", {"string": "listboxoptionAbbr"}]]
+        }, {
+          accOrElmOrID: "columnheader",
+          oldAccOrElmOrID: "grid",
+          expectedUtterance: [[{"string": "columnInfo", "args": [1]},
+            {"string": "rowInfo", "args" :[1]}, "Sunday"], ["Sunday",
+            {"string": "columnInfo", "args": [1]},
+            {"string": "rowInfo", "args" :[1]}]],
+          expectedBraille: [[{"string": "cellInfoAbbr", "args": [1, 1]},
+            "Sunday"], ["Sunday", {"string": "cellInfoAbbr", "args": [1, 1]}]]
+        }, {
+          accOrElmOrID: "rowheader",
+          oldAccOrElmOrID: "grid",
+          expectedUtterance: [[{"string": "columnInfo", "args": [1]},
+            {"string": "rowInfo", "args": [2]}, "Sunday", "Week 1"], ["Week 1",
+            {"string": "columnInfo", "args": [1]},
+            {"string": "rowInfo", "args": [2]}, "Sunday"]],
+          expectedBraille: [[{"string": "cellInfoAbbr", "args": [1, 2]},
+            "Sunday", "Week 1"], ["Week 1",
+            {"string": "cellInfoAbbr", "args": [1, 2]}, "Sunday"]]
+        }, {
+          accOrElmOrID: "gridcell1",
+          oldAccOrElmOrID: "grid",
+          expectedUtterance: [["3"], ["3"]],
+          expectedBraille: [["3"], ["3"]]
+        }, {
+          accOrElmOrID: "gridcell2",
+          oldAccOrElmOrID: "grid",
+          expectedUtterance: [["4", "7"], ["4", "7"]],
+          expectedBraille: [["4", "7"], ["4", "7"]]
+        }, {
+          accOrElmOrID: "gridcell3",
+          oldAccOrElmOrID: "grid",
+          expectedUtterance: [[{"string": "stateSelected"}, "5"],
+                              ["5", {"string": "stateSelected"}]],
+          expectedBraille: [["5"], ["5"]],
+        }, {
+          accOrElmOrID: "frequency",
+          expectedUtterance: [[{"string": "stateCollapsed"},
+            {"string": "stateHasPopup"}, {"string": "combobox"}, "15 min"], [
+            "15 min", {"string": "stateCollapsed"}, {"string": "stateHasPopup"},
+            {"string": "combobox"}]],
+          expectedBraille: [[{"string": "comboboxAbbr"}, "15 min"], ["15 min",
+            {"string": "comboboxAbbr"}]]
+        }, {
+          accOrElmOrID: "selected-combobox-option",
+          oldAccOrElmOrID: "frequency",
+          expectedUtterance: [[{"string": "stateSelected"},
+            {"string": "comboboxoption"}, "15 min"], ["15 min",
+            {"string": "stateSelected"}, {"string": "comboboxoption"}]],
+          expectedBraille: [[{"string": "comboboxoptionAbbr"}, "15 min"], [
+            "15 min", {"string": "comboboxoptionAbbr"}]]
+        }, {
+          accOrElmOrID: "combobox-option",
+          oldAccOrElmOrID: "frequency",
+          expectedUtterance: [[{"string": "comboboxoption"}, "30 min"], [
+            "30 min", {"string": "comboboxoption"}]],
+          expectedBraille: [[{"string": "comboboxoptionAbbr"}, "30 min"], [
+            "30 min", {"string": "comboboxoptionAbbr"}]]
+        }, {
+          accOrElmOrID: "labelled-combobox",
+          expectedUtterance: [[{"string": "stateCollapsed"},
+            {"string": "stateHasPopup"}, {"string": "combobox"}, "Never",
+            "Intervals"], ["Intervals", "Never", {"string": "stateCollapsed"},
+            {"string": "stateHasPopup"}, {"string": "combobox"}]],
+          expectedBraille: [[{"string": "comboboxAbbr"}, "Never", "Intervals"],
+            ["Intervals", "Never", {"string": "comboboxAbbr"}]]
+        }, {
+          accOrElmOrID: "statusbar-1",
+          expectedUtterance: [["Last sync:", "2 days ago"],
+                              ["Last sync:", "2 days ago"]],
+          expectedBraille: [["Last sync:", "2 days ago"],
+                            ["Last sync:", "2 days ago"]]
+        }, {
+          accOrElmOrID: "statusbar-2",
+          expectedUtterance: [["Last sync: 30min ago"],
+                              ["Last sync: 30min ago"]],
+          expectedBraille: [["Last sync: 30min ago"], ["Last sync: 30min ago"]]
+        }, {
+          accOrElmOrID: "switch-1",
+          expectedUtterance: [[{"string": "stateOn"}, {"string": "switch"},
+            "Simple switch"], ["Simple switch", {"string": "stateOn"},
+            {"string": "switch"}]],
+          expectedBraille: [[{"string": "stateCheckedAbbr"}, "Simple switch"],
+            ["Simple switch", {"string": "stateCheckedAbbr"}]]
+        }, {
+          accOrElmOrID: "switch-2",
+          expectedUtterance: [[{"string": "stateOff"},
+            {"string": "switch"}, "Another switch"], ["Another switch",
+            {"string": "stateOff"}, {"string": "switch"}]],
+          expectedBraille: [
+            [{"string": "stateUncheckedAbbr"}, "Another switch"],
+            ["Another switch", {"string": "stateUncheckedAbbr"}]]
         }];
 
         // Test all possible utterance order preference values.
@@ -539,6 +631,37 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=753984
           555-12345
         </li>
       </ul>
+      <section id="grid" role="grid">
+        <ol role="row">
+          <li role="presentation"></li>
+          <li id="columnheader" role="columnheader" aria-label="Sunday">S</li>
+          <li role="columnheader">M</li>
+        </ol>
+        <ol role="row">
+          <li id="rowheader" role="rowheader" aria-label="Week 1">1</li>
+          <li id="gridcell1" role="gridcell"><span>3</span><div></div></li>
+          <li id="gridcell2" role="gridcell"><span>4</span><div>7</div></li>
+        </ol>
+        <ol role="row">
+          <li role="rowheader">2</li>
+          <li id="gridcell3" aria-selected="true" role="gridcell">5</li>
+          <li role="gridcell">6</li>
+        </ol>
+      </section>
+      <select id="frequency">
+        <option id="selected-combobox-option" value="15">15 min</option>
+        <option id="combobox-option" value="30">30 min</option>
+        <option value="null">Manual</option>
+      </select>
+      <select id="labelled-combobox" aria-label="Intervals">
+        <option value="15">Every 15 min</option>
+        <option value="30">Every 30 min</option>
+        <option value="null" selected>Never</option>
+      </select>
+      <div id="statusbar-1" role="status">Last sync:<span>2 days ago</span></div>
+      <div aria-label="Last sync: 30min ago" id="statusbar-2" role="status">I should be ignored</div>
+      <span id="switch-1" role="switch" aria-label="Simple switch" aria-checked="true"></span>
+      <span id="switch-2" role="switch" aria-label="Another switch" aria-checked="false"></span>
     </div>
   </body>
 </html>

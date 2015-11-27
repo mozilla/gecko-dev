@@ -7,12 +7,9 @@
 #define DOM_CAMERA_CAMERAPREFERENCES_H
 
 #include "nsString.h"
-
-#if defined(MOZ_HAVE_CXX11_STRONG_ENUMS) || defined(MOZ_HAVE_CXX11_ENUM_TYPE)
-// Older compilers that don't support strongly-typed enums
-// just typedef uint32_t to nsresult, which results in conflicting
-// overloaded members in CameraPreferences.
-#define CAMERAPREFERENCES_HAVE_SEPARATE_UINT32_AND_NSRESULT
+#include "nsIObserver.h"
+#ifdef MOZ_WIDGET_GONK
+#include "mozilla/StaticPtr.h"
 #endif
 
 namespace mozilla {
@@ -20,15 +17,21 @@ namespace mozilla {
 template<class T> class StaticAutoPtr;
 
 class CameraPreferences
+#ifdef MOZ_WIDGET_GONK
+  : public nsIObserver
+#endif
 {
 public:
+#ifdef MOZ_WIDGET_GONK
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIOBSERVER
+#endif
+
   static bool Initialize();
   static void Shutdown();
 
   static bool GetPref(const char* aPref, nsACString& aVal);
-#ifdef CAMERAPREFERENCES_HAVE_SEPARATE_UINT32_AND_NSRESULT
   static bool GetPref(const char* aPref, nsresult& aVal);
-#endif
   static bool GetPref(const char* aPref, uint32_t& aVal);
   static bool GetPref(const char* aPref, bool& aVal);
 
@@ -37,9 +40,7 @@ protected:
   static uint32_t PrefToIndex(const char* aPref);
 
   static void PreferenceChanged(const char* aPref, void* aClosure);
-#ifdef CAMERAPREFERENCES_HAVE_SEPARATE_UINT32_AND_NSRESULT
   static nsresult UpdatePref(const char* aPref, nsresult& aVar);
-#endif
   static nsresult UpdatePref(const char* aPref, uint32_t& aVar);
   static nsresult UpdatePref(const char* aPref, nsACString& aVar);
   static nsresult UpdatePref(const char* aPref, bool& aVar);
@@ -79,10 +80,23 @@ protected:
 
   static bool sPrefCameraParametersIsLowMemory;
 
+  static bool sPrefCameraParametersPermission;
+
+#ifdef MOZ_WIDGET_GONK
+  static StaticRefPtr<CameraPreferences> sObserver;
+
+  nsresult PreinitCameraHardware();
+
+protected:
+  // Objects may be instantiated for use as observers.
+  CameraPreferences() { }
+  virtual ~CameraPreferences() { }
+#else
 private:
-  // static class only
+  // Static class only.
   CameraPreferences();
   ~CameraPreferences();
+#endif
 };
 
 } // namespace mozilla

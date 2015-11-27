@@ -15,16 +15,15 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 
-#include "mozilla/NullPtr.h"
 #include "mozilla/unused.h"
 #include "mozilla/dom/Exceptions.h"
 #include "nsContentUtils.h"
-#include "nsString.h"
-#include "nsThreadUtils.h"
-
 #ifdef MOZ_CRASHREPORTER
 #include "nsExceptionHandler.h"
 #endif
+#include "mozilla/StackWalk.h"
+#include "nsString.h"
+#include "nsThreadUtils.h"
 
 namespace mozilla {
 
@@ -52,11 +51,11 @@ SandboxLogJSStack(void)
 
     // Don't stop unwinding if an attribute can't be read.
     fileName.SetIsVoid(true);
-    unused << frame->GetFilename(fileName);
+    Unused << frame->GetFilename(fileName);
     lineNumber = 0;
-    unused << frame->GetLineNumber(&lineNumber);
+    Unused << frame->GetLineNumber(&lineNumber);
     funName.SetIsVoid(true);
-    unused << frame->GetName(funName);
+    Unused << frame->GetName(funName);
 
     if (!funName.IsVoid() || !fileName.IsVoid()) {
       SANDBOX_LOG_ERROR("JS frame %d: %s %s line %d", i,
@@ -74,17 +73,46 @@ SandboxLogJSStack(void)
   }
 }
 
+static void SandboxPrintStackFrame(uint32_t aFrameNumber, void *aPC, void *aSP,
+                                   void *aClosure)
+{
+  char buf[1024];
+  MozCodeAddressDetails details;
+
+  MozDescribeCodeAddress(aPC, &details);
+  MozFormatCodeAddressDetails(buf, sizeof(buf), aFrameNumber, aPC, &details);
+  SANDBOX_LOG_ERROR("frame %s", buf);
+}
+
+static void
+SandboxLogCStack()
+{
+  // Skip 3 frames: one for this module, one for the signal handler in
+  // libmozsandbox, and one for the signal trampoline.
+  //
+  // Warning: this might not print any stack frames.  MozStackWalk
+  // can't walk past the signal trampoline on ARM (bug 968531), and
+  // x86 frame pointer walking may or may not work (bug 1082276).
+
+  MozStackWalk(SandboxPrintStackFrame, /* skip */ 3, /* max */ 0,
+               nullptr, 0, nullptr);
+  SANDBOX_LOG_ERROR("end of stack.");
+}
+
 static void
 SandboxCrash(int nr, siginfo_t *info, void *void_context)
 {
   pid_t pid = getpid(), tid = syscall(__NR_gettid);
+  bool dumped = false;
 
 #ifdef MOZ_CRASHREPORTER
-  bool dumped = CrashReporter::WriteMinidumpForSigInfo(nr, info, void_context);
-  if (!dumped) {
-    SANDBOX_LOG_ERROR("Failed to write minidump");
-  }
+  dumped = CrashReporter::WriteMinidumpForSigInfo(nr, info, void_context);
 #endif
+  if (!dumped) {
+    SANDBOX_LOG_ERROR("crash reporter is disabled (or failed);"
+                      " trying stack trace:");
+    SandboxLogCStack();
+  }
 
   // Do this last, in case it crashes or deadlocks.
   SandboxLogJSStack();
@@ -101,5 +129,9 @@ SandboxSetCrashFunc()
 {
   gSandboxCrashFunc = SandboxCrash;
 }
+
+#ifndef ANDROID
+SandboxCrashFunc gSandboxCrashFunc;
+#endif
 
 } // namespace mozilla

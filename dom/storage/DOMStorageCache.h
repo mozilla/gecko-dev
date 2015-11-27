@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -172,11 +173,11 @@ private:
   // cache) we need to refer our manager since removal of the cache from the hash
   // table is handled in the destructor by call to the manager.
   // Cache could potentially overlive the manager, hence the hard ref.
-  nsRefPtr<DOMStorageManager> mManager;
+  RefPtr<DOMStorageManager> mManager;
 
   // Reference to the usage counter object we check on for eTLD+1 quota limit.
   // Obtained from the manager during initialization (Init method).
-  nsRefPtr<DOMStorageUsage> mUsage;
+  RefPtr<DOMStorageUsage> mUsage;
 
   // Timer that holds this cache alive for a while after it has been preloaded.
   nsCOMPtr<nsITimer> mKeepAliveTimer;
@@ -263,7 +264,7 @@ private:
   int64_t mUsage[DOMStorageCache::kDataSetCount];
 };
 
-} // ::dom
-} // ::mozilla
+} // namespace dom
+} // namespace mozilla
 
 #endif

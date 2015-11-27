@@ -1,11 +1,11 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_bluetooth_ipc_bluetoothchild_h__
-#define mozilla_dom_bluetooth_ipc_bluetoothchild_h__
+#ifndef mozilla_dom_bluetooth_ipc_BluetoothChild_h
+#define mozilla_dom_bluetooth_ipc_BluetoothChild_h
 
 #include "mozilla/dom/bluetooth/BluetoothCommon.h"
 
@@ -56,25 +56,25 @@ protected:
   BeginShutdown();
 
   virtual void
-  ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
+  ActorDestroy(ActorDestroyReason aWhy) override;
 
   virtual bool
   RecvNotify(const BluetoothSignal& aSignal);
 
   virtual bool
-  RecvEnabled(const bool& aEnabled) MOZ_OVERRIDE;
+  RecvEnabled(const bool& aEnabled) override;
 
   virtual bool
-  RecvBeginShutdown() MOZ_OVERRIDE;
+  RecvBeginShutdown() override;
 
   virtual bool
-  RecvNotificationsStopped() MOZ_OVERRIDE;
+  RecvNotificationsStopped() override;
 
   virtual PBluetoothRequestChild*
-  AllocPBluetoothRequestChild(const Request& aRequest) MOZ_OVERRIDE;
+  AllocPBluetoothRequestChild(const Request& aRequest) override;
 
   virtual bool
-  DeallocPBluetoothRequestChild(PBluetoothRequestChild* aActor) MOZ_OVERRIDE;
+  DeallocPBluetoothRequestChild(PBluetoothRequestChild* aActor) override;
 };
 
 /*******************************************************************************
@@ -85,7 +85,7 @@ class BluetoothRequestChild : public PBluetoothRequestChild
 {
   friend class mozilla::dom::bluetooth::BluetoothChild;
 
-  nsRefPtr<BluetoothReplyRunnable> mReplyRunnable;
+  RefPtr<BluetoothReplyRunnable> mReplyRunnable;
 
 public:
   BluetoothRequestChild(BluetoothReplyRunnable* aReplyRunnable);
@@ -94,12 +94,12 @@ protected:
   virtual ~BluetoothRequestChild();
 
   virtual void
-  ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
+  ActorDestroy(ActorDestroyReason aWhy) override;
 
   virtual bool
-  Recv__delete__(const BluetoothReply& aReply) MOZ_OVERRIDE;
+  Recv__delete__(const BluetoothReply& aReply) override;
 };
 
 END_BLUETOOTH_NAMESPACE
 
-#endif // mozilla_dom_bluetooth_ipc_bluetoothchild_h__
+#endif // mozilla_dom_bluetooth_ipc_BluetoothChild_h

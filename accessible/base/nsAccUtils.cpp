@@ -37,9 +37,16 @@ nsAccUtils::SetAccAttr(nsIPersistentProperties *aAttributes,
                        nsIAtom *aAttrName, const nsAString& aAttrValue)
 {
   nsAutoString oldValue;
-  nsAutoCString attrName;
-
   aAttributes->SetStringProperty(nsAtomCString(aAttrName), aAttrValue, oldValue);
+}
+
+void
+nsAccUtils::SetAccAttr(nsIPersistentProperties *aAttributes,
+                       nsIAtom* aAttrName, nsIAtom* aAttrValue)
+{
+  nsAutoString oldValue;
+  aAttributes->SetStringProperty(nsAtomCString(aAttrName),
+                                 nsAtomString(aAttrValue), oldValue);
 }
 
 void
@@ -235,6 +242,27 @@ nsAccUtils::IsARIASelected(Accessible* aAccessible)
                 nsGkAtoms::_true, eCaseMatters);
 }
 
+Accessible*
+nsAccUtils::TableFor(Accessible* aRow)
+{
+  if (aRow) {
+    Accessible* table = aRow->Parent();
+    if (table) {
+      roles::Role tableRole = table->Role();
+      if (tableRole == roles::GROUPING) { // if there's a rowgroup.
+        table = table->Parent();
+        if (table)
+          tableRole = table->Role();
+      }
+
+      return (tableRole == roles::TABLE || tableRole == roles::TREE_TABLE ||
+              tableRole == roles::MATHML_TABLE) ? table : nullptr;
+    }
+  }
+
+  return nullptr;
+}
+
 HyperTextAccessible*
 nsAccUtils::GetTextContainer(nsINode* aNode)
 {
@@ -368,14 +396,7 @@ nsAccUtils::IsTextInterfaceSupportCorrect(Accessible* aAccessible)
     }
   }
 
-  if (foundText) {
-    // found text child node
-    nsCOMPtr<nsIAccessibleText> text = do_QueryObject(aAccessible);
-    if (!text)
-      return false;
-  }
-
-  return true;
+  return !foundText || aAccessible->IsHyperText();
 }
 #endif
 
@@ -400,7 +421,7 @@ nsAccUtils::TextLength(Accessible* aAccessible)
 
 bool
 nsAccUtils::MustPrune(Accessible* aAccessible)
-{ 
+{
   roles::Role role = aAccessible->Role();
 
   // Don't prune the tree for certain roles if the tree is more complex than

@@ -11,9 +11,10 @@
 #include "mozilla/Attributes.h"
 #include <map>
 
+#include "mozilla/layers/APZUtils.h"
+#include "mozilla/layers/LayersTypes.h"
 #include "mozilla/layout/PRenderFrameParent.h"
 #include "nsDisplayList.h"
-#include "RenderFrameUtils.h"
 
 class nsFrameLoader;
 class nsSubDocumentFrame;
@@ -24,11 +25,11 @@ class InputEvent;
 
 namespace layers {
 class APZCTreeManager;
+class AsyncDragMetrics;
 class TargetConfig;
-class LayerTransactionParent;
 struct TextureFactoryIdentifier;
 struct ScrollableLayerGuid;
-}
+} // namespace layers
 
 namespace layout {
 
@@ -36,15 +37,16 @@ class RemoteContentController;
 
 class RenderFrameParent : public PRenderFrameParent
 {
+  typedef mozilla::layers::AsyncDragMetrics AsyncDragMetrics;
   typedef mozilla::layers::FrameMetrics FrameMetrics;
   typedef mozilla::layers::ContainerLayer ContainerLayer;
   typedef mozilla::layers::Layer Layer;
   typedef mozilla::layers::LayerManager LayerManager;
   typedef mozilla::layers::TargetConfig TargetConfig;
-  typedef mozilla::layers::LayerTransactionParent LayerTransactionParent;
   typedef mozilla::ContainerLayerParameters ContainerLayerParameters;
   typedef mozilla::layers::TextureFactoryIdentifier TextureFactoryIdentifier;
   typedef mozilla::layers::ScrollableLayerGuid ScrollableLayerGuid;
+  typedef mozilla::layers::TouchBehaviorFlags TouchBehaviorFlags;
   typedef mozilla::layers::ZoomConstraints ZoomConstraints;
   typedef FrameMetrics::ViewID ViewID;
 
@@ -57,7 +59,6 @@ public:
    * them to asynchronously pan and zoom.
    */
   RenderFrameParent(nsFrameLoader* aFrameLoader,
-                    ScrollingBehavior aScrollingBehavior,
                     TextureFactoryIdentifier* aTextureFactoryIdentifier,
                     uint64_t* aId, bool* aSuccess);
   virtual ~RenderFrameParent();
@@ -78,38 +79,36 @@ public:
 
   void OwnerContentChanged(nsIContent* aContent);
 
-  void SetBackgroundColor(nscolor aColor) { mBackgroundColor = gfxRGBA(aColor); };
-
-  /**
-   * Notify the APZ code of an input event, and get back the untransformed event.
-   * @param aEvent the input event; this is modified in-place so that the async
-   *        transforms are unapplied. This can be passed to Gecko for hit testing
-   *        and normal event dispatch.
-   * @param aOutTargetGuid An out-parameter that will contain the identifier
-   *        of the APZC instance that handled the event, if one was found. This
-   *        argument may be null.
-   */
-  nsEventStatus NotifyInputEvent(WidgetInputEvent& aEvent,
-                                 ScrollableLayerGuid* aOutTargetGuid);
-
   void ZoomToRect(uint32_t aPresShellId, ViewID aViewId, const CSSRect& aRect);
 
-  void ContentReceivedTouch(const ScrollableLayerGuid& aGuid,
-                            bool aPreventDefault);
+  void ContentReceivedInputBlock(const ScrollableLayerGuid& aGuid,
+                                 uint64_t aInputBlockId,
+                                 bool aPreventDefault);
+  void SetTargetAPZC(uint64_t aInputBlockId,
+                     const nsTArray<ScrollableLayerGuid>& aTargets);
+  void SetAllowedTouchBehavior(uint64_t aInputBlockId,
+                               const nsTArray<TouchBehaviorFlags>& aFlags);
 
   void UpdateZoomConstraints(uint32_t aPresShellId,
                              ViewID aViewId,
-                             bool aIsRoot,
-                             const ZoomConstraints& aConstraints);
+                             const Maybe<ZoomConstraints>& aConstraints);
 
   bool HitTest(const nsRect& aRect);
 
+  void StartScrollbarDrag(const AsyncDragMetrics& aDragMetrics);
+
+  void GetTextureFactoryIdentifier(TextureFactoryIdentifier* aTextureFactoryIdentifier);
+
+  inline uint64_t GetLayersId() { return mLayersId; }
+
+  void TakeFocusForClickFromTap();
+
 protected:
-  void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
+  void ActorDestroy(ActorDestroyReason why) override;
 
-  virtual bool RecvNotifyCompositorTransaction() MOZ_OVERRIDE;
+  virtual bool RecvNotifyCompositorTransaction() override;
 
-  virtual bool RecvUpdateHitRegion(const nsRegion& aRegion) MOZ_OVERRIDE;
+  virtual bool RecvUpdateHitRegion(const nsRegion& aRegion) override;
 
 private:
   void TriggerRepaint();
@@ -122,13 +121,13 @@ private:
   // context.
   uint64_t mLayersId;
 
-  nsRefPtr<nsFrameLoader> mFrameLoader;
-  nsRefPtr<ContainerLayer> mContainer;
+  RefPtr<nsFrameLoader> mFrameLoader;
+  RefPtr<ContainerLayer> mContainer;
   // When our scrolling behavior is ASYNC_PAN_ZOOM, we have a nonnull
   // APZCTreeManager. It's used to manipulate the shadow layer tree
   // on the compositor thread.
-  nsRefPtr<layers::APZCTreeManager> mApzcTreeManager;
-  nsRefPtr<RemoteContentController> mContentController;
+  RefPtr<layers::APZCTreeManager> mApzcTreeManager;
+  RefPtr<RemoteContentController> mContentController;
 
   layers::APZCTreeManager* GetApzcTreeManager();
 
@@ -147,10 +146,10 @@ private:
   // It's possible for mFrameLoader==null and
   // mFrameLoaderDestroyed==false.
   bool mFrameLoaderDestroyed;
-  // this is gfxRGBA because that's what ColorLayer wants.
-  gfxRGBA mBackgroundColor;
 
   nsRegion mTouchRegion;
+
+  bool mAsyncPanZoomEnabled;
 };
 
 } // namespace layout
@@ -166,28 +165,26 @@ class nsDisplayRemote : public nsDisplayItem
   typedef mozilla::layout::RenderFrameParent RenderFrameParent;
 
 public:
-  nsDisplayRemote(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
-                  RenderFrameParent* aRemoteFrame)
-    : nsDisplayItem(aBuilder, aFrame)
-    , mRemoteFrame(aRemoteFrame)
-  {}
+  nsDisplayRemote(nsDisplayListBuilder* aBuilder, nsSubDocumentFrame* aFrame,
+                  RenderFrameParent* aRemoteFrame);
 
   virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
                                    LayerManager* aManager,
-                                   const ContainerLayerParameters& aParameters) MOZ_OVERRIDE
+                                   const ContainerLayerParameters& aParameters) override
   { return mozilla::LAYER_ACTIVE_FORCE; }
 
   virtual already_AddRefed<Layer>
   BuildLayer(nsDisplayListBuilder* aBuilder, LayerManager* aManager,
-             const ContainerLayerParameters& aContainerParameters) MOZ_OVERRIDE;
+             const ContainerLayerParameters& aContainerParameters) override;
 
   void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
-               HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames) MOZ_OVERRIDE;
+               HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames) override;
 
   NS_DISPLAY_DECL_NAME("Remote", TYPE_REMOTE)
 
 private:
   RenderFrameParent* mRemoteFrame;
+  mozilla::layers::EventRegionsOverride mEventRegionsOverride;
 };
 
 

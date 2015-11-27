@@ -62,8 +62,8 @@ public:
    * Called when you can read() from the fd without blocking.  Note that this
    * function is also called when you're at eof (read() returns 0 in this case).
    */
-  virtual void OnFileCanReadWithoutBlocking(int aFd) = 0;
-  virtual void OnFileCanWriteWithoutBlocking(int aFd) {};
+  virtual void OnFileCanReadWithoutBlocking(int aFd) override = 0;
+  virtual void OnFileCanWriteWithoutBlocking(int aFd) override {};
 
   NS_DECL_THREADSAFE_ISUPPORTS
 
@@ -84,7 +84,7 @@ public:
   virtual void StopWatching();
 
   NS_IMETHOD Observe(nsISupports* aSubject, const char* aTopic,
-                     const char16_t* aData)
+                     const char16_t* aData) override
   {
     MOZ_ASSERT(NS_IsMainThread());
     MOZ_ASSERT(!strcmp(aTopic, "xpcom-shutdown"));
@@ -180,10 +180,15 @@ private:
 
 #endif // XP_UNIX }
 
-
 class nsDumpUtils
 {
 public:
+
+  enum Mode {
+    CREATE,
+    CREATE_UNIQUE
+  };
+
   /**
    * This function creates a new unique file based on |aFilename| in a
    * world-readable temp directory. This is the system temp directory
@@ -193,7 +198,8 @@ public:
    */
   static nsresult OpenTempFile(const nsACString& aFilename,
                                nsIFile** aFile,
-                               const nsACString& aFoldername = EmptyCString());
+                               const nsACString& aFoldername = EmptyCString(),
+                               Mode aMode = CREATE_UNIQUE);
 };
 
 #endif

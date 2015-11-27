@@ -14,81 +14,85 @@ add_task(function* test_javascript_match() {
   let uri4 = NetUtil.newURI("http://t.foo/3");
   let uri5 = NetUtil.newURI("http://t.foo/4");
   let uri6 = NetUtil.newURI("http://t.foo/5");
+  let uri7 = NetUtil.newURI("http://t.foo/6");
 
-  yield promiseAddVisits([ { uri: uri1, title: "title" },
-                           { uri: uri2, title: "title" },
-                           { uri: uri3, title: "title",
-                             transition: TRANSITION_TYPED},
-                           { uri: uri4, title: "title",
-                             transition: TRANSITION_TYPED },
-                           { uri: uri6, title: "title",
-                             transition: TRANSITION_TYPED } ]);
+  yield PlacesTestUtils.addVisits([
+    { uri: uri1, title: "title" },
+    { uri: uri2, title: "title" },
+    { uri: uri3, title: "title", transition: TRANSITION_TYPED},
+    { uri: uri4, title: "title", transition: TRANSITION_TYPED },
+    { uri: uri6, title: "title", transition: TRANSITION_TYPED },
+    { uri: uri7, title: "title" }
+  ]);
 
-  addBookmark({ uri: uri2,
-                title: "title" });
-  addBookmark({ uri: uri4,
-                title: "title" });
-  addBookmark({ uri: uri5,
-                title: "title" });
-  addBookmark({ uri: uri6,
-                title: "title" });
+  yield addBookmark({ uri: uri2,
+                      title: "title" });
+  yield addBookmark({ uri: uri4,
+                      title: "title" });
+  yield addBookmark({ uri: uri5,
+                      title: "title" });
+  yield addBookmark({ uri: uri6,
+                      title: "title" });
 
-  // Now remove page 6 from history, so it is an unvisited, typed bookmark.
+  addOpenPages(uri7, 1);
+
+  // Now remove page 6 from history, so it is an unvisited bookmark.
   PlacesUtils.history.removePage(uri6);
 
-  do_log_info("Match everything");
+  do_print("Match everything");
   yield check_autocomplete({
     search: "foo",
-    matches: [ { uri: uri1, title: "title" },
-               { uri: uri2, title: "title" },
+    searchParam: "enable-actions",
+    matches: [ makeSearchMatch("foo", { heuristic: true }),
+               { uri: uri1, title: "title" },
+               { uri: uri2, title: "title", style: ["bookmark"] },
                { uri: uri3, title: "title" },
-               { uri: uri4, title: "title" },
-               { uri: uri5, title: "title" },
-               { uri: uri6, title: "title" } ]
+               { uri: uri4, title: "title", style: ["bookmark"] },
+               { uri: uri5, title: "title", style: ["bookmark"] },
+               { uri: uri6, title: "title", style: ["bookmark"] },
+               makeSwitchToTabMatch("http://t.foo/6", { title: "title" }),
+             ]
   });
 
-  do_log_info("Match only typed history");
+  // Note the next few tests do *not* get a search result as enable-actions
+  // isn't specified.
+  do_print("Match only typed history");
   yield check_autocomplete({
     search: "foo ^ ~",
     matches: [ { uri: uri3, title: "title" },
                { uri: uri4, title: "title" } ]
   });
 
-  do_log_info("Drop-down empty search matches only typed history");
+  do_print("Drop-down empty search matches only typed history");
   yield check_autocomplete({
     search: "",
     matches: [ { uri: uri3, title: "title" },
                { uri: uri4, title: "title" } ]
   });
 
-  do_log_info("Drop-down empty search matches everything");
-  Services.prefs.setIntPref("browser.urlbar.default.behavior.emptyRestriction", 0);
+  do_print("Drop-down empty search matches only bookmarks");
+  Services.prefs.setBoolPref("browser.urlbar.suggest.history", false);
+  Services.prefs.setBoolPref("browser.urlbar.suggest.bookmark", true);
   yield check_autocomplete({
     search: "",
-    matches: [ { uri: uri1, title: "title" },
-               { uri: uri2, title: "title" },
-               { uri: uri3, title: "title" },
-               { uri: uri4, title: "title" },
-               { uri: uri5, title: "title" },
-               { uri: uri6, title: "title" } ]
+    matches: [ { uri: uri2, title: "title", style: ["bookmark"] },
+               { uri: uri4, title: "title", style: ["bookmark"] },
+               { uri: uri5, title: "title", style: ["bookmark"] },
+               { uri: uri6, title: "title", style: ["bookmark"] } ]
   });
 
-  do_log_info("Drop-down empty search matches only typed");
-  Services.prefs.setIntPref("browser.urlbar.default.behavior.emptyRestriction", 32);
+  do_print("Drop-down empty search matches only open tabs");
+  Services.prefs.setBoolPref("browser.urlbar.suggest.bookmark", false);
   yield check_autocomplete({
     search: "",
-    matches: [ { uri: uri3, title: "title" },
-               { uri: uri4, title: "title" },
-               { uri: uri6, title: "title" } ]
+    searchParam: "enable-actions",
+    matches: [
+               makeSwitchToTabMatch("http://t.foo/6", { title: "title" }),
+             ]
   });
 
-  do_log_info("Drop-down empty search matches only typed history");
-  Services.prefs.clearUserPref("browser.urlbar.default.behavior.emptyRestriction");
-  yield check_autocomplete({
-    search: "",
-    matches: [ { uri: uri3, title: "title" },
-               { uri: uri4, title: "title" } ]
-  });
+  Services.prefs.clearUserPref("browser.urlbar.suggest.history");
+  Services.prefs.clearUserPref("browser.urlbar.suggest.bookmark");
 
   yield cleanup();
 });

@@ -4,44 +4,52 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-Program('jsapi-tests')
+GeckoProgram('jsapi-tests', linkage=None)
 
 UNIFIED_SOURCES += [
     'selfTest.cpp',
     'testAddPropertyPropcache.cpp',
     'testArgumentsObject.cpp',
     'testArrayBuffer.cpp',
-    'testBindCallable.cpp',
+    'testArrayBufferView.cpp',
     'testBug604087.cpp',
     'testCallNonGenericMethodOnProxy.cpp',
     'testChromeBuffer.cpp',
     'testClassGetter.cpp',
     'testCloneScript.cpp',
     'testContexts.cpp',
-    'testCustomIterator.cpp',
+    'testDateToLocaleString.cpp',
     'testDebugger.cpp',
     'testDeepFreeze.cpp',
     'testDefineGetterSetterNonEnumerable.cpp',
     'testDefineProperty.cpp',
     'testDefinePropertyIgnoredAttributes.cpp',
+    'testDifferentNewTargetInvokeConstructor.cpp',
     'testEnclosingFunction.cpp',
     'testErrorCopying.cpp',
     'testException.cpp',
     'testExternalStrings.cpp',
     'testFindSCCs.cpp',
+    'testForOfIterator.cpp',
+    'testForwardSetProperty.cpp',
     'testFreshGlobalEvalRedefinition.cpp',
-    'testFuncCallback.cpp',
     'testFunctionProperties.cpp',
     'testGCAllocator.cpp',
+    'testGCCellPtr.cpp',
+    'testGCChunkPool.cpp',
     'testGCExactRooting.cpp',
     'testGCFinalizeCallback.cpp',
     'testGCHeapPostBarriers.cpp',
+    'testGCMarking.cpp',
     'testGCOutOfMemory.cpp',
     'testGCStoreBufferRemoval.cpp',
+    'testGCUniqueId.cpp',
+    'testGCWeakRef.cpp',
+    'testGetPropertyDescriptor.cpp',
     'testHashTable.cpp',
-    'testHashTableInit.cpp',
     'testIndexToString.cpp',
     'testIntern.cpp',
+    'testIntlAvailableLocales.cpp',
     'testIntString.cpp',
     'testIntTypesABI.cpp',
     'testIsInsideNursery.cpp',
@@ -49,12 +57,12 @@ UNIFIED_SOURCES += [
     'testLookup.cpp',
     'testLooselyEqual.cpp',
     'testMappedArrayBuffer.cpp',
+    'testMutedErrors.cpp',
     'testNewObject.cpp',
+    'testNewTargetInvokeConstructor.cpp',
     'testNullRoot.cpp',
     'testObjectEmulatingUndefined.cpp',
     'testOOM.cpp',
-    'testOps.cpp',
-    'testOriginPrincipals.cpp',
     'testParseJSON.cpp',
     'testPersistentRooted.cpp',
     'testPreserveJitCode.cpp',
@@ -82,26 +90,35 @@ UNIFIED_SOURCES += [
     'testXDR.cpp',
 ]
 
+SOURCES += [
+    # There are clashing definitions of js::jit::AssemblerBuffer.
+    'testAssemblerBuffer.cpp',
+]
+
 if CONFIG['ENABLE_ION']:
     UNIFIED_SOURCES += [
         'testJitDCEinGVN.cpp',
         'testJitFoldsTo.cpp',
         'testJitGVN.cpp',
-        'testJitMoveEmitterCycles-mips.cpp',
+        'testJitMoveEmitterCycles-mips32.cpp',
         'testJitMoveEmitterCycles.cpp',
+        'testJitRangeAnalysis.cpp',
+        'testJitRegisterSet.cpp',
         'testJitRValueAlloc.cpp',
     ]
 
 DEFINES['EXPORT_JS_API'] = True
-# Building against js_static requires that we declare mfbt sybols "exported"
-# on its behalf.
-DEFINES['IMPL_MFBT'] = True
 
-LOCAL_INCLUDES += ['..']
-GENERATED_INCLUDES += ['..']
+LOCAL_INCLUDES += [
+    '!..',
+    '..',
+]
 
 USE_LIBS += [
     'static:js',
 ]
 
 OS_LIBS += CONFIG['MOZ_ZLIB_LIBS']
+
+if not CONFIG['GNU_CXX']:
+    ALLOW_COMPILER_WARNINGS = True

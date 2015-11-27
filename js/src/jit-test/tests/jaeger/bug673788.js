@@ -1,8 +1,14 @@
 // |jit-test| error: ReferenceError
+load(libdir + "immutable-prototype.js");
+
 p = Proxy.create({
-  has: function() {}
-})
-Object.prototype.__proto__ = p
+  has: function() {},
+  set: function() {}
+});
+
+if (globalPrototypeChainIsMutable())
+  Object.prototype.__proto__ = p;
+
 n = [];
 (function() {
   var a = [];

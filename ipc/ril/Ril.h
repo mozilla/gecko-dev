@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set sw=2 ts=8 et ft=cpp: */
+/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
+/* vim: set ts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -7,36 +7,45 @@
 #ifndef mozilla_ipc_Ril_h
 #define mozilla_ipc_Ril_h 1
 
-#include <mozilla/dom/workers/Workers.h>
-#include <mozilla/ipc/UnixSocket.h>
+#include "nsAutoPtr.h"
+#include "nsError.h"
+#include "nsTArray.h"
 
 namespace mozilla {
+
+namespace dom {
+namespace workers {
+
+class WorkerCrossThreadDispatcher;
+
+} // namespace workers
+} // namespace dom
+
 namespace ipc {
 
-class RilConsumer : public mozilla::ipc::UnixSocketConsumer
+class RilConsumer;
+
+class RilWorker final
 {
 public:
-  virtual ~RilConsumer() { }
+  static nsresult Register(
+    unsigned int aClientId,
+    mozilla::dom::workers::WorkerCrossThreadDispatcher* aDispatcher);
 
-  static nsresult Register(unsigned int aClientId,
-                           mozilla::dom::workers::WorkerCrossThreadDispatcher* aDispatcher);
   static void Shutdown();
 
 private:
-  RilConsumer(unsigned long aClientId,
-              mozilla::dom::workers::WorkerCrossThreadDispatcher* aDispatcher);
+  class RegisterConsumerTask;
+  class UnregisterConsumerTask;
 
-  virtual void ReceiveSocketData(nsAutoPtr<UnixSocketRawData>& aMessage);
+  RilWorker(mozilla::dom::workers::WorkerCrossThreadDispatcher* aDispatcher);
 
-  virtual void OnConnectSuccess();
-  virtual void OnConnectError();
-  virtual void OnDisconnect();
+  nsresult RegisterConsumer(unsigned int aClientId);
+  void     UnregisterConsumer(unsigned int aClientId);
 
-private:
-  nsRefPtr<mozilla::dom::workers::WorkerCrossThreadDispatcher> mDispatcher;
-  unsigned long mClientId;
-  nsCString mAddress;
-  bool mShutdown;
+  static nsTArray<nsAutoPtr<RilWorker>> sRilWorkers;
+
+  RefPtr<mozilla::dom::workers::WorkerCrossThreadDispatcher> mDispatcher;
 };
 
 } // namespace ipc

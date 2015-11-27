@@ -13,7 +13,7 @@
 #define mozilla_SplayTree_h
 
 #include "mozilla/Assertions.h"
-#include "mozilla/NullPtr.h"
+#include "mozilla/Attributes.h"
 
 namespace mozilla {
 
@@ -56,7 +56,7 @@ class SplayTree
   T* mRoot;
 
 public:
-  SplayTree()
+  MOZ_CONSTEXPR SplayTree()
     : mRoot(nullptr)
   {}
 
@@ -87,14 +87,11 @@ public:
     T* last = lookup(*aValue);
     int cmp = Comparator::compare(*aValue, *last);
 
-    T** parentPointer = (cmp < 0) ? &last->mLeft : &last->mRight;
-    MOZ_ASSERT(!*parentPointer);
-    *parentPointer = aValue;
-    aValue->mParent = last;
-
-    splay(aValue);
+    finishInsertion(last, cmp, aValue);
     return true;
   }
+
+  T* findOrInsert(const T& aValue);
 
   T* remove(const T& aValue)
   {
@@ -197,6 +194,19 @@ private:
     return parent;
   }
 
+  T* finishInsertion(T* aLast, int32_t aCmp, T* aNew)
+  {
+    MOZ_ASSERT(aCmp, "Nodes shouldn't be equal!");
+
+    T** parentPointer = (aCmp < 0) ? &aLast->mLeft : &aLast->mRight;
+    MOZ_ASSERT(!*parentPointer);
+    *parentPointer = aNew;
+    aNew->mParent = aLast;
+
+    splay(aNew);
+    return aNew;
+  }
+
   /**
    * Rotate the tree until |node| is at the root of the tree. Performing
    * the rotations in this fashion preserves the amortized balancing of
@@ -292,9 +302,27 @@ private:
     return aNode;
   }
 
-  SplayTree(const SplayTree&) MOZ_DELETE;
-  void operator=(const SplayTree&) MOZ_DELETE;
+  SplayTree(const SplayTree&) = delete;
+  void operator=(const SplayTree&) = delete;
 };
+
+template<typename T, class Comparator>
+T*
+SplayTree<T, Comparator>::findOrInsert(const T& aValue)
+{
+  if (!mRoot) {
+    mRoot = new T(aValue);
+    return mRoot;
+  }
+
+  T* last = lookup(aValue);
+  int cmp = Comparator::compare(aValue, *last);
+  if (!cmp) {
+    return last;
+  }
+
+  return finishInsertion(last, cmp, new T(aValue));
+}
 
 }  /* namespace mozilla */
 

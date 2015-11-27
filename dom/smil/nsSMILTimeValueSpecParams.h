@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -49,11 +50,11 @@ public:
   // The base element that this specification refers to.
   // For SYNCBASE types, this is the timebase
   // For EVENT and REPEAT types, this is the eventbase
-  nsRefPtr<nsIAtom> mDependentElemID;
+  RefPtr<nsIAtom> mDependentElemID;
 
   // The event to respond to.
   // Only used for EVENT types.
-  nsRefPtr<nsIAtom> mEventSymbol;
+  RefPtr<nsIAtom> mEventSymbol;
 
   // Indicates if this specification refers to the begin or end of the dependent
   // element.

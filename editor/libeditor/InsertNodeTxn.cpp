@@ -3,11 +3,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include <stdio.h>                      // for printf
+#include "InsertNodeTxn.h"
 
 #include "mozilla/dom/Selection.h"      // for Selection
 
-#include "InsertNodeTxn.h"
 #include "nsAString.h"
 #include "nsDebug.h"                    // for NS_ENSURE_TRUE, etc
 #include "nsEditor.h"                   // for nsEditor
@@ -61,11 +60,11 @@ InsertNodeTxn::DoTransaction()
 
   ErrorResult rv;
   mParent->InsertBefore(*mNode, ref, rv);
-  NS_ENSURE_SUCCESS(rv.ErrorCode(), rv.ErrorCode());
+  NS_ENSURE_TRUE(!rv.Failed(), rv.StealNSResult());
 
   // Only set selection to insertion point if editor gives permission
   if (mEditor.GetShouldTxnSetSelection()) {
-    nsRefPtr<Selection> selection = mEditor.GetSelection();
+    RefPtr<Selection> selection = mEditor.GetSelection();
     NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
     // Place the selection just after the inserted element
     selection->Collapse(mParent, mOffset + 1);
@@ -82,7 +81,7 @@ InsertNodeTxn::UndoTransaction()
 
   ErrorResult rv;
   mParent->RemoveChild(*mNode, rv);
-  return rv.ErrorCode();
+  return rv.StealNSResult();
 }
 
 NS_IMETHODIMP

@@ -15,13 +15,16 @@
  */
 
 #include "ICameraControl.h"
-
-#include <camera/Camera.h>
-
 #include "CameraCommon.h"
 #include "GonkCameraControl.h"
 #include "CameraPreferences.h"
 #include "TestGonkCameraControl.h"
+
+#ifdef MOZ_WIDGET_GONK
+#include <camera/Camera.h>
+#else
+#include "FallbackCameraPlatform.h"
+#endif
 
 using namespace mozilla;
 
@@ -123,7 +126,7 @@ ICameraControl::Create(uint32_t aCameraId)
 {
   nsCString test;
   CameraPreferences::GetPref("camera.control.test.enabled", test);
-  nsRefPtr<nsGonkCameraControl> control;
+  RefPtr<nsGonkCameraControl> control;
   if (test.EqualsASCII("control")) {
     NS_WARNING("Using test CameraControl layer");
     control = new TestGonkCameraControl(aCameraId);

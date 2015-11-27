@@ -9,6 +9,7 @@
 #define nsHTMLFrameset_h___
 
 #include "mozilla/Attributes.h"
+#include "mozilla/UniquePtr.h"
 #include "nsContainerFrame.h"
 #include "nsColor.h"
 
@@ -74,10 +75,10 @@ public:
 
   virtual void Init(nsIContent*       aContent,
                     nsContainerFrame* aParent,
-                    nsIFrame*         aPrevInFlow) MOZ_OVERRIDE;
+                    nsIFrame*         aPrevInFlow) override;
 
   virtual void SetInitialChildList(ChildListID  aListID,
-                                   nsFrameList& aChildList) MOZ_OVERRIDE;
+                                   nsFrameList& aChildList) override;
 
   static bool    gDragInProgress;
 
@@ -91,26 +92,26 @@ public:
 
   virtual nsresult HandleEvent(nsPresContext* aPresContext, 
                                mozilla::WidgetGUIEvent* aEvent,
-                               nsEventStatus* aEventStatus) MOZ_OVERRIDE;
+                               nsEventStatus* aEventStatus) override;
 
   virtual nsresult GetCursor(const nsPoint&    aPoint,
-                             nsIFrame::Cursor& aCursor) MOZ_OVERRIDE;
+                             nsIFrame::Cursor& aCursor) override;
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+                                const nsDisplayListSet& aLists) override;
 
   virtual void Reflow(nsPresContext*           aPresContext,
                       nsHTMLReflowMetrics&     aDesiredSize,
                       const nsHTMLReflowState& aReflowState,
-                      nsReflowStatus&          aStatus) MOZ_OVERRIDE;
+                      nsReflowStatus&          aStatus) override;
 
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
+  virtual nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
-  virtual bool IsLeaf() const MOZ_OVERRIDE;
+  virtual bool IsLeaf() const override;
   
   void StartMouseDrag(nsPresContext* aPresContext,
                       nsHTMLFramesetBorderFrame* aBorder,
@@ -187,19 +188,20 @@ protected:
   
   void SetBorderResize(nsHTMLFramesetBorderFrame* aBorderFrame);
 
-  static void FrameResizePrefCallback(const char* aPref, void* aClosure);
+  template<typename T, class D = mozilla::DefaultDelete<T>>
+  using UniquePtr = mozilla::UniquePtr<T, D>;
 
   nsFramesetDrag   mDrag;
   nsBorderColor    mEdgeColors;
   nsHTMLFramesetBorderFrame* mDragger;
   nsHTMLFramesetFrame* mTopLevelFrameset;
-  nsHTMLFramesetBorderFrame** mVerBorders;  // vertical borders
-  nsHTMLFramesetBorderFrame** mHorBorders;  // horizontal borders
-  nsFrameborder*   mChildFrameborder; // the frameborder attr of children
-  nsBorderColor*   mChildBorderColors;
-  nscoord*         mRowSizes;  // currently computed row sizes
-  nscoord*         mColSizes;  // currently computed col sizes
-  nsIntPoint       mFirstDragPoint;
+  UniquePtr<nsHTMLFramesetBorderFrame*[]> mVerBorders;  // vertical borders
+  UniquePtr<nsHTMLFramesetBorderFrame*[]> mHorBorders;  // horizontal borders
+  UniquePtr<nsFrameborder[]> mChildFrameborder; // the frameborder attr of children
+  UniquePtr<nsBorderColor[]> mChildBorderColors;
+  UniquePtr<nscoord[]> mRowSizes;  // currently computed row sizes
+  UniquePtr<nscoord[]> mColSizes;  // currently computed col sizes
+  mozilla::LayoutDeviceIntPoint mFirstDragPoint;
   int32_t          mNumRows;
   int32_t          mNumCols;
   int32_t          mNonBorderChildCount; 
@@ -212,7 +214,6 @@ protected:
   int32_t          mNextNeighborOrigSize;
   int32_t          mMinDrag;
   int32_t          mChildCount;
-  bool             mForceFrameResizability;
 };
 
 #endif

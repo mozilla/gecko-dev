@@ -17,10 +17,13 @@ function newURI(spec)
                                                     .newURI(spec, null, null);
 }
 
-function RemoteWebProgressRequest(spec, originalSpec)
+function RemoteWebProgressRequest(spec, originalSpec, requestCPOW)
 {
+  this.wrappedJSObject = this;
+
   this._uri = newURI(spec);
   this._originalURI = newURI(originalSpec);
+  this._requestCPOW = requestCPOW;
 }
 
 RemoteWebProgressRequest.prototype = {
@@ -31,10 +34,13 @@ RemoteWebProgressRequest.prototype = {
 };
 
 function RemoteWebProgress(aManager, aIsTopLevel) {
+  this.wrappedJSObject = this;
+
   this._manager = aManager;
 
   this._isLoadingDocument = false;
   this._DOMWindow = null;
+  this._DOMWindowID = 0;
   this._isTopLevel = aIsTopLevel;
   this._loadType = 0;
 }
@@ -54,7 +60,7 @@ RemoteWebProgress.prototype = {
 
   get isLoadingDocument() { return this._isLoadingDocument },
   get DOMWindow() { return this._DOMWindow; },
-  get DOMWindowID() { return 0; },
+  get DOMWindowID() { return this._DOMWindowID; },
   get isTopLevel() { return this._isTopLevel },
   get loadType() { return this._loadType; },
 
@@ -68,17 +74,60 @@ RemoteWebProgress.prototype = {
 };
 
 function RemoteWebProgressManager (aBrowser) {
-  this._browser = aBrowser;
   this._topLevelWebProgress = new RemoteWebProgress(this, true);
   this._progressListeners = [];
 
-  this._browser.messageManager.addMessageListener("Content:StateChange", this);
-  this._browser.messageManager.addMessageListener("Content:LocationChange", this);
-  this._browser.messageManager.addMessageListener("Content:SecurityChange", this);
-  this._browser.messageManager.addMessageListener("Content:StatusChange", this);
+  this.swapBrowser(aBrowser);
 }
 
+RemoteWebProgressManager.argumentsForAddonListener = function(kind, args) {
+  function checkType(arg, typ) {
+    if (!arg) {
+      return false;
+    }
+    return (arg instanceof typ) ||
+      (arg instanceof Ci.nsISupports && arg.wrappedJSObject instanceof typ);
+  }
+
+  // Arguments for a tabs listener are shifted over one since the
+  // <browser> element is passed as the first argument.
+  let webProgressIndex = 0;
+  let requestIndex = 1;
+  if (kind == "tabs") {
+    webProgressIndex = 1;
+    requestIndex = 2;
+  }
+
+  if (checkType(args[webProgressIndex], RemoteWebProgress)) {
+    args[webProgressIndex] = args[webProgressIndex].wrappedJSObject._webProgressCPOW;
+  }
+
+  if (checkType(args[requestIndex], RemoteWebProgressRequest)) {
+    args[requestIndex] = args[requestIndex].wrappedJSObject._requestCPOW;
+  }
+
+  return args;
+};
+
 RemoteWebProgressManager.prototype = {
+  swapBrowser: function(aBrowser) {
+    if (this._messageManager) {
+      this._messageManager.removeMessageListener("Content:StateChange", this);
+      this._messageManager.removeMessageListener("Content:LocationChange", this);
+      this._messageManager.removeMessageListener("Content:SecurityChange", this);
+      this._messageManager.removeMessageListener("Content:StatusChange", this);
+      this._messageManager.removeMessageListener("Content:ProgressChange", this);
+    }
+
+    this._browser = aBrowser;
+    this._messageManager = aBrowser.messageManager;
+    this._messageManager.addMessageListener("Content:StateChange", this);
+    this._messageManager.addMessageListener("Content:LocationChange", this);
+    this._messageManager.addMessageListener("Content:SecurityChange", this);
+    this._messageManager.addMessageListener("Content:StatusChange", this);
+    this._messageManager.addMessageListener("Content:ProgressChange", this);
+  },
+
   get topLevelWebProgress() {
     return this._topLevelWebProgress;
   },
@@ -102,11 +151,6 @@ RemoteWebProgressManager.prototype = {
       deserialized = helper.deserializeObject(aStatus)
       deserialized.QueryInterface(Ci.nsISSLStatus);
     }
-
-    // We must check the Extended Validation (EV) state here, on the chrome
-    // process, because NSS is needed for that determination.
-    if (deserialized && deserialized.isExtendedValidation)
-      aState |= Ci.nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL;
 
     return [deserialized, aState];
   },
@@ -139,25 +183,32 @@ RemoteWebProgressManager.prototype = {
     let json = aMessage.json;
     let objects = aMessage.objects;
 
+    let webProgress = null;
+    let isTopLevel = json.webProgress && json.webProgress.isTopLevel;
     // The top-level WebProgress is always the same, but because we don't
-    // really have a concept of subframes/content we always creat a new object
+    // really have a concept of subframes/content we always create a new object
     // for those.
-    let webProgress = json.isTopLevel ? this._topLevelWebProgress
-                                      : new RemoteWebProgress(this, false);
+    if (json.webProgress) {
+      webProgress = isTopLevel ? this._topLevelWebProgress
+                               : new RemoteWebProgress(this, false);
+
+      // Update the actual WebProgress fields.
+      webProgress._isLoadingDocument = json.webProgress.isLoadingDocument;
+      webProgress._DOMWindow = objects.DOMWindow;
+      webProgress._DOMWindowID = json.webProgress.DOMWindowID;
+      webProgress._loadType = json.webProgress.loadType;
+      webProgress._webProgressCPOW = objects.webProgress;
+    }
 
     // The WebProgressRequest object however is always dynamic.
     let request = null;
     if (json.requestURI) {
       request = new RemoteWebProgressRequest(json.requestURI,
-                                             json.originalRequestURI);
+                                             json.originalRequestURI,
+                                             objects.request);
     }
 
-    // Update the actual WebProgress fields.
-    webProgress._isLoadingDocument = json.isLoadingDocument;
-    webProgress._DOMWindow = objects.DOMWindow;
-    webProgress._loadType = json.loadType;
-
-    if (json.isTopLevel) {
+    if (isTopLevel) {
       this._browser._contentWindow = objects.contentWindow;
       this._browser._documentContentType = json.documentContentType;
     }
@@ -175,13 +226,15 @@ RemoteWebProgressManager.prototype = {
       this._browser.webNavigation.canGoBack = json.canGoBack;
       this._browser.webNavigation.canGoForward = json.canGoForward;
 
-      if (json.isTopLevel) {
+      if (isTopLevel) {
         this._browser.webNavigation._currentURI = location;
         this._browser._characterSet = json.charset;
         this._browser._documentURI = newURI(json.documentURI);
+        this._browser._contentTitle = json.title;
         this._browser._imageDocument = null;
         this._browser._mayEnableCharacterEncodingMenu = json.mayEnableCharacterEncodingMenu;
         this._browser._contentPrincipal = json.principal;
+        this._browser._isSyntheticDocument = json.synthetic;
       }
 
       this._callProgressListeners("onLocationChange", webProgress, request, location, flags);
@@ -190,7 +243,7 @@ RemoteWebProgressManager.prototype = {
     case "Content:SecurityChange":
       let [status, state] = this._fixSSLStatusAndState(json.status, json.state);
 
-      if (json.isTopLevel) {
+      if (isTopLevel) {
         // Invoking this getter triggers the generation of the underlying object,
         // which we need to access with ._securityUI, because .securityUI returns
         // a wrapper that makes _update inaccessible.
@@ -204,6 +257,10 @@ RemoteWebProgressManager.prototype = {
     case "Content:StatusChange":
       this._callProgressListeners("onStatusChange", webProgress, request, json.status, json.message);
       break;
+
+    case "Content:ProgressChange":
+      this._callProgressListeners("onProgressChange", webProgress, request, json.curSelf, json.maxSelf, json.curTotal, json.maxTotal);
+      break;
     }
-  }
+  },
 };

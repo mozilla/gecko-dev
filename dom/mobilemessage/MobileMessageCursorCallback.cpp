@@ -1,12 +1,18 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "MobileMessageCursorCallback.h"
+#include "MmsMessage.h"
+#include "MmsMessageInternal.h"
+#include "MobileMessageThread.h"
+#include "MobileMessageThreadInternal.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "nsIDOMDOMRequest.h"
-#include "nsIDOMMozSmsMessage.h"
+#include "SmsMessage.h"
+#include "SmsMessageInternal.h"
 #include "nsIMobileMessageCallback.h"
 #include "nsServiceManagerUtils.h"      // for do_GetService
 
@@ -79,6 +85,36 @@ MobileMessageCursor::FireSuccessWithNextPendingResult()
   // be empty.
   MOZ_ASSERT(mPendingResults.Length());
 
+  nsCOMPtr<nsISupports> result;
+
+  nsCOMPtr<nsIMobileMessageThread> internalThread =
+    do_QueryInterface(mPendingResults.LastElement());
+  if (internalThread) {
+    MobileMessageThreadInternal* thread =
+      static_cast<MobileMessageThreadInternal*>(internalThread.get());
+    result = new MobileMessageThread(GetOwner(), thread);
+  }
+
+  if (!result) {
+    nsCOMPtr<nsISmsMessage> internalSms =
+      do_QueryInterface(mPendingResults.LastElement());
+    if (internalSms) {
+      SmsMessageInternal* sms = static_cast<SmsMessageInternal*>(internalSms.get());
+      result = new SmsMessage(GetOwner(), sms);
+    }
+  }
+
+  if (!result) {
+    nsCOMPtr<nsIMmsMessage> internalMms =
+      do_QueryInterface(mPendingResults.LastElement());
+    if (internalMms) {
+      MmsMessageInternal* mms = static_cast<MmsMessageInternal*>(internalMms.get());
+      result = new MmsMessage(GetOwner(), mms);
+    }
+  }
+
+  MOZ_ASSERT(result);
+
   AutoJSAPI jsapi;
   if (NS_WARN_IF(!jsapi.Init(GetOwner()))) {
     return NS_ERROR_FAILURE;
@@ -87,7 +123,7 @@ MobileMessageCursor::FireSuccessWithNextPendingResult()
   JSContext* cx = jsapi.cx();
   JS::Rooted<JS::Value> val(cx);
   nsresult rv =
-    nsContentUtils::WrapNative(cx, mPendingResults.LastElement(), &val);
+    nsContentUtils::WrapNative(cx, result, &val);
   NS_ENSURE_SUCCESS(rv, rv);
 
   mPendingResults.RemoveElementAt(mPendingResults.Length() - 1);
@@ -115,7 +151,7 @@ MobileMessageCursorCallback::NotifyCursorError(int32_t aError)
 {
   MOZ_ASSERT(mDOMCursor);
 
-  nsRefPtr<DOMCursor> cursor = mDOMCursor.forget();
+  RefPtr<DOMCursor> cursor = mDOMCursor.forget();
 
   switch (aError) {
     case nsIMobileMessageCallback::NO_SIGNAL_ERROR:
@@ -169,7 +205,7 @@ MobileMessageCursorCallback::NotifyCursorDone()
 {
   MOZ_ASSERT(mDOMCursor);
 
-  nsRefPtr<DOMCursor> cursor = mDOMCursor.forget();
+  RefPtr<DOMCursor> cursor = mDOMCursor.forget();
   cursor->FireDone();
 
   return NS_OK;

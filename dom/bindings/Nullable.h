@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-*/
-/* vim: set ts=2 sw=2 et tw=79: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -29,13 +29,19 @@ public:
     : mValue()
   {}
 
-  explicit Nullable(T aValue)
+  explicit Nullable(const T& aValue)
     : mValue()
   {
     mValue.emplace(aValue);
   }
 
-  explicit Nullable(Nullable<T>&& aOther)
+  explicit Nullable(T&& aValue)
+    : mValue()
+  {
+    mValue.emplace(mozilla::Move(aValue));
+  }
+
+  Nullable(Nullable<T>&& aOther)
     : mValue(mozilla::Move(aOther.mValue))
   {}
 
@@ -48,9 +54,16 @@ public:
     mValue = aOther.mValue;
   }
 
-  void SetValue(T aValue) {
+  void SetValue(const T& aArgs)
+  {
     mValue.reset();
-    mValue.emplace(aValue);
+    mValue.emplace(aArgs);
+  }
+
+  void SetValue(T&& aArgs)
+  {
+    mValue.reset();
+    mValue.emplace(mozilla::Move(aArgs));
   }
 
   // For cases when |T| is some type with nontrivial copy behavior, we may want

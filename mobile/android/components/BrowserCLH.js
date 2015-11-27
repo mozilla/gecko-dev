@@ -14,29 +14,6 @@ function dump(a) {
   Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService).logStringMessage(a);
 }
 
-function openWindow(aParent, aURL, aTarget, aFeatures, aArgs) {
-  let argsArray = Cc["@mozilla.org/supports-array;1"].createInstance(Ci.nsISupportsArray);
-  let urlString = null;
-  let pinnedBool = Cc["@mozilla.org/supports-PRBool;1"].createInstance(Ci.nsISupportsPRBool);
-  let widthInt = Cc["@mozilla.org/supports-PRInt32;1"].createInstance(Ci.nsISupportsPRInt32);
-  let heightInt = Cc["@mozilla.org/supports-PRInt32;1"].createInstance(Ci.nsISupportsPRInt32);
-
-  if ("url" in aArgs) {
-    urlString = Cc["@mozilla.org/supports-string;1"].createInstance(Ci.nsISupportsString);
-    urlString.data = aArgs.url;
-  }
-  widthInt.data = "width" in aArgs ? aArgs.width : 1;
-  heightInt.data = "height" in aArgs ? aArgs.height : 1;
-  pinnedBool.data = "pinned" in aArgs ? aArgs.pinned : false;
-
-  argsArray.AppendElement(urlString, false);
-  argsArray.AppendElement(widthInt, false);
-  argsArray.AppendElement(heightInt, false);
-  argsArray.AppendElement(pinnedBool, false);
-  return Services.ww.openWindow(aParent, aURL, aTarget, aFeatures, argsArray);
-}
-
-
 function resolveURIInternal(aCmdLine, aArgument) {
   let uri = aCmdLine.resolveURI(aArgument);
   if (uri)
@@ -59,21 +36,18 @@ BrowserCLH.prototype = {
     let openURL = "about:home";
     let pinned = false;
 
-    let width = 1;
-    let height = 1;
-
     try {
       openURL = aCmdLine.handleFlagWithParam("url", false);
     } catch (e) { /* Optional */ }
-    try {
-      pinned = aCmdLine.handleFlag("webapp", false);
-    } catch (e) { /* Optional */ }
+
+    if (!openURL) {
+      // We don't have an URL on initial launch, and because the Fennec
+      // CLH is not used for initial launch, we simply return here.
+      return;
+    }
 
     try {
-      width = aCmdLine.handleFlagWithParam("width", false);
-    } catch (e) { /* Optional */ }
-    try {
-      height = aCmdLine.handleFlagWithParam("height", false);
+      pinned = aCmdLine.handleFlag("bookmark", false);
     } catch (e) { /* Optional */ }
 
     try {
@@ -81,28 +55,10 @@ BrowserCLH.prototype = {
       if (!uri)
         return;
 
-      // Let's get a head start on opening the network connection to the URI we are about to load
-      Services.io.QueryInterface(Ci.nsISpeculativeConnect).speculativeConnect(uri, null);
-
       let browserWin = Services.wm.getMostRecentWindow("navigator:browser");
       if (browserWin) {
-        if (!pinned) {
-          browserWin.browserDOMWindow.openURI(uri, null, Ci.nsIBrowserDOMWindow.OPEN_NEWTAB, Ci.nsIBrowserDOMWindow.OPEN_EXTERNAL);
-        }
-      } else {
-        let args = {
-          url: openURL,
-          pinned: pinned,
-          width: width,
-          height: height,
-        };
-
-        // Make sure webapps do not have: locationbar, personalbar, menubar, statusbar, and toolbar
-        let flags = "chrome,dialog=no";
-        if (!pinned)
-          flags += ",all";
-
-        browserWin = openWindow(null, "chrome://browser/content/browser.xul", "_blank", flags, args);
+        let whereFlags = pinned ? Ci.nsIBrowserDOMWindow.OPEN_SWITCHTAB : Ci.nsIBrowserDOMWindow.OPEN_NEWTAB;
+        browserWin.browserDOMWindow.openURI(uri, null, whereFlags, Ci.nsIBrowserDOMWindow.OPEN_EXTERNAL);
       }
 
       aCmdLine.preventDefault = true;

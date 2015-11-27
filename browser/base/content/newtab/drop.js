@@ -11,7 +11,7 @@ const DELAY_REARRANGE_MS = 100;
 /**
  * This singleton implements site dropping functionality.
  */
-let gDrop = {
+var gDrop = {
   /**
    * The last drop target.
    */
@@ -73,7 +73,7 @@ let gDrop = {
     });
 
     // Re-pin all shifted pinned cells.
-    pinnedSites.forEach(function (aSite) aSite.pin(sites.indexOf(aSite)), this);
+    pinnedSites.forEach(aSite => aSite.pin(sites.indexOf(aSite)));
   },
 
   /**

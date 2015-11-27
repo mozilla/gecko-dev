@@ -15,10 +15,10 @@ import android.location.LocationProvider;
 import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
-
 import org.mozilla.mozstumbler.service.AppGlobals;
 import org.mozilla.mozstumbler.service.AppGlobals.ActiveOrPassiveStumbling;
 import org.mozilla.mozstumbler.service.Prefs;
+import org.mozilla.mozstumbler.service.utils.TelemetryWrapper;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -34,7 +34,7 @@ public class GPSScanner implements LocationListener {
     public static final String NEW_STATUS_ARG_SATS = "sats";
     public static final String NEW_LOCATION_ARG_LOCATION = "location";
 
-    private static final String LOG_TAG = AppGlobals.LOG_PREFIX + GPSScanner.class.getSimpleName();
+    private static final String LOG_TAG = AppGlobals.makeLogTag(GPSScanner.class.getSimpleName());
     private static final int MIN_SAT_USED_IN_FIX = 3;
     private static final long ACTIVE_MODE_GPS_MIN_UPDATE_TIME_MS = 1000;
     private static final float ACTIVE_MODE_GPS_MIN_UPDATE_DISTANCE_M = 10;
@@ -48,7 +48,7 @@ public class GPSScanner implements LocationListener {
     private Location mLocation = new Location("internal");
     private boolean mAutoGeofencing;
     private boolean mIsPassiveMode;
-
+    private long mTelemetry_lastStartedMs;
     private final ScanManager mScanManager;
 
     public GPSScanner(Context context, ScanManager scanManager) {
@@ -65,15 +65,38 @@ public class GPSScanner implements LocationListener {
         }
     }
 
+    private boolean isGpsAvailable(LocationManager locationManager) {
+        if (locationManager == null ||
+            locationManager.getProvider(LocationManager.GPS_PROVIDER) == null) {
+            String msg = "No GPS available, scanning not started.";
+            Log.d(LOG_TAG, msg);
+            AppGlobals.guiLogError(msg);
+            return false;
+        }
+        return true;
+    }
+
     private void startPassiveMode() {
         LocationManager locationManager = (LocationManager) mContext.getSystemService(Context.LOCATION_SERVICE);
-        locationManager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER,
-                                               0,
-                                               0, this);
+        if (!isGpsAvailable(locationManager)) {
+            return;
+        }
+
+        locationManager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, 0, 0, this);
+
+        final int timeDiffSec = Long.valueOf((System.currentTimeMillis() - mTelemetry_lastStartedMs) / 1000).intValue();
+        if (mTelemetry_lastStartedMs > 0 && timeDiffSec > 0) {
+            TelemetryWrapper.addToHistogram(AppGlobals.TELEMETRY_TIME_BETWEEN_STARTS_SEC, timeDiffSec);
+        }
+        mTelemetry_lastStartedMs = System.currentTimeMillis();
     }
 
     private void startActiveMode() {
         LocationManager lm = getLocationManager();
+        if (!isGpsAvailable(lm)) {
+            return;
+        }
+
         lm.requestLocationUpdates(LocationManager.GPS_PROVIDER,
                                   ACTIVE_MODE_GPS_MIN_UPDATE_TIME_MS,
                                   ACTIVE_MODE_GPS_MIN_UPDATE_DISTANCE_M,
@@ -81,6 +104,7 @@ public class GPSScanner implements LocationListener {
 
         reportLocationLost();
         mGPSListener = new GpsStatus.Listener() {
+                @Override
                 public void onGpsStatusChanged(int event) {
                 if (event == GpsStatus.GPS_EVENT_SATELLITE_STATUS) {
                     GpsStatus status = getLocationManager().getGpsStatus(null);
@@ -144,7 +168,11 @@ public class GPSScanner implements LocationListener {
             mBlockList.updateBlocks();
         }
 
-        mAutoGeofencing = Prefs.getInstance().getGeofenceHere();
+        Prefs prefs = Prefs.getInstanceWithoutContext();
+        if (prefs == null) {
+            return;
+        }
+        mAutoGeofencing = prefs.getGeofenceHere();
     }
 
     public boolean isGeofenced() {
@@ -166,18 +194,19 @@ public class GPSScanner implements LocationListener {
 
         String provider = location.getProvider();
         if (!provider.toLowerCase().contains("gps")) {
-            sendToLogActivity(logMsg + "Discard fused/network location.");
+            Log.d(LOG_TAG, "Discard fused/network location.");
             // only interested in GPS locations
             return;
         }
 
+        final long timeDeltaMs = location.getTime() - mLocation.getTime();
+
         // Seem to get greater likelihood of non-fused location with higher update freq.
         // Check dist and time threshold here, not set on the listener.
         if (mIsPassiveMode) {
-            final long timeDelta = location.getTime() - mLocation.getTime();
             final boolean hasMoved = location.distanceTo(mLocation) > PASSIVE_GPS_MOVEMENT_MIN_DELTA_M;
 
-            if (timeDelta < PASSIVE_GPS_MIN_UPDATE_FREQ_MS || !hasMoved) {
+            if (timeDeltaMs < PASSIVE_GPS_MIN_UPDATE_FREQ_MS || !hasMoved) {
                 return;
             }
         }
@@ -190,13 +219,8 @@ public class GPSScanner implements LocationListener {
         sendToLogActivity(logMsg);
 
         if (mBlockList.contains(location)) {
-            Log.w(LOG_TAG, "Blocked location: " + location);
             reportLocationLost();
             return;
-        }
-
-        if (AppGlobals.isDebug) {
-            Log.d(LOG_TAG, "New location: " + location);
         }
 
         mLocation = location;
@@ -208,6 +232,11 @@ public class GPSScanner implements LocationListener {
 
         if (mIsPassiveMode) {
             mScanManager.newPassiveGpsLocation();
+        }
+
+        if (timeDeltaMs > 0) {
+            TelemetryWrapper.addToHistogram(AppGlobals.TELEMETRY_TIME_BETWEEN_RECEIVED_LOCATIONS_SEC,
+                    Long.valueOf(timeDeltaMs).intValue() / 1000);
         }
     }
 

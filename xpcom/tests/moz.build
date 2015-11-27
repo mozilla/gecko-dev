@@ -9,15 +9,11 @@ TEST_DIRS += [
     'component',
     'bug656331_component',
     'component_no_aslr',
+    'gtest',
 ]
 
 if CONFIG['OS_ARCH'] == 'WINNT':
     TEST_DIRS += ['windows']
-
-if CONFIG['DEHYDRA_PATH']:
-    TEST_DIRS += ['static-checker']
-
-FAIL_ON_WARNINGS = True
 
 EXPORTS.testing += [
     'TestHarness.h',
@@ -39,25 +35,24 @@ SimplePrograms([
 ])
 
 if CONFIG['OS_TARGET'] == 'WINNT':
-    SimplePrograms([
+    GeckoSimplePrograms([
         'TestBase64',
     ])
 
 if CONFIG['WRAP_STL_INCLUDES'] and not CONFIG['CLANG_CL']:
-    SimplePrograms([
+    GeckoSimplePrograms([
         'TestSTLWrappers',
     ])
 
 XPCSHELL_TESTS_MANIFESTS += ['unit/xpcshell.ini']
 
-CppUnitTests([
+GeckoCppUnitTests([
     'ShowAlignments',
     'TestAutoPtr',
     'TestAutoRef',
     'TestCOMArray',
     'TestCOMPtr',
     'TestCOMPtrEq',
-    'TestDeque',
     'TestFile',
     'TestHashtables',
     'TestID',
@@ -65,7 +60,6 @@ CppUnitTests([
     'TestObserverArray',
     'TestObserverService',
     'TestPipe',
-    'TestPLDHash',
     'TestStringAPI',
     'TestTArray',
     'TestTextFormatter',
@@ -73,29 +67,9 @@ CppUnitTests([
 ])
 
 if CONFIG['MOZ_MEMORY']:
-    CppUnitTests([
+    GeckoCppUnitTests([
         'TestJemalloc',
     ])
-
-# XXX Make these tests work in libxul builds.
-#CPP_UNIT_TESTS += [
-#    'TestArray',
-#    'TestCRT',
-#    'TestEncoding',
-#    'TestExpirationTracker',
-#    'TestPipes',
-#    'TestPriorityQueue',
-#    'TestStorageStream',
-#    'TestStrings',
-#    'TestSynchronization',
-#    'TestTArray',
-#    'TestThreadPool',
-#    'TestThreads',
-#    'TestTimeStamp',
-#    'TestXPIDLString',
-#    'TestUTF',
-#    'TestAtoms',
-#]
 
 # FIXME: bug 577500 TestStaticAtoms fails when run in dist/bin
 #CPP_UNIT_TESTS += [
@@ -105,7 +79,7 @@ if CONFIG['MOZ_MEMORY']:
 if CONFIG['MOZ_DEBUG'] and CONFIG['OS_ARCH'] not in ('WINNT'):
     # FIXME bug 523392: TestDeadlockDetector doesn't like Windows
     # FIXME bug 523378: also fails on OS X
-    CppUnitTests([
+    GeckoCppUnitTests([
         'TestDeadlockDetector',
         'TestDeadlockDetectorScalability',
     ])
@@ -115,6 +89,9 @@ XPIDL_SOURCES += [
     'NotXPCOMTest.idl',
 ]
 
+# Don't add our test-only .xpt files to the normal manifests
+XPIDL_NO_MANIFEST = True
+
 LOCAL_INCLUDES += [
     '../ds',
 ]
@@ -123,14 +100,5 @@ RESOURCE_FILES += [
     'test.properties',
 ]
 
-USE_LIBS += [
-    'mozalloc',
-    'nspr',
-    'xpcomglue_s',
-    'xul',
-]
-
-if CONFIG['MOZ_DMD']:
-    USE_LIBS += [
-        'dmd'
-    ]
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wshadow']

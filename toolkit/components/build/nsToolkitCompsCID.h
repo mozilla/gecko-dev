@@ -2,12 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#if defined(MOZ_UPDATER)
-# if !defined(MOZ_WIDGET_ANDROID)
-#  define USE_MOZ_UPDATER
-# endif
-#endif
-
 #define NS_ALERTSERVICE_CONTRACTID \
   "@mozilla.org/alerts-service;1"
 
@@ -90,10 +84,13 @@
 #define NS_APPSTARTUP_CONTRACTID \
   "@mozilla.org/toolkit/app-startup;1"
 
-#if defined(USE_MOZ_UPDATER)
+#if defined(MOZ_UPDATER) && !defined(MOZ_WIDGET_ANDROID)
 #define NS_UPDATEPROCESSOR_CONTRACTID \
   "@mozilla.org/updates/update-processor;1"
 #endif
+
+#define NS_ADDONCONTENTPOLICY_CONTRACTID \
+  "@mozilla.org/addons/content-policy;1"
 
 #define NS_ADDONPATHSERVICE_CONTRACTID \
     "@mozilla.org/addon-path-service;1"
@@ -146,9 +143,9 @@
  #define NS_URLCLASSIFIERPREFIXSET_CID \
 { 0x3d8579f0, 0x75fa, 0x4e00, { 0xba, 0x41, 0x38, 0x66, 0x1d, 0x5b, 0x5d, 0x17} }
 
-// {8a389f21-f821-4e29-9c6b-3de6f33cd7cf}
+// {7a258022-6765-11e5-b379-b37b1f2354be}
 #define NS_URLCLASSIFIERDBSERVICE_CID \
-{ 0x8a389f21, 0xf821, 0x4e29, { 0x9c, 0x6b, 0x3d, 0xe6, 0xf3, 0x3c, 0xd7, 0xcf} }
+{ 0x7a258022, 0x6765, 0x11e5, { 0xb3, 0x79, 0xb3, 0x7b, 0x1f, 0x23, 0x54, 0xbe} }
 
 // e1797597-f4d6-4dd3-a1e1-745ad352cd80
 #define NS_URLCLASSIFIERSTREAMUPDATER_CID \
@@ -173,7 +170,7 @@
 #define NS_FAVICONSERVICE_CID \
 { 0x984e3259, 0x9266, 0x49cf, { 0xb6, 0x05, 0x60, 0xb0, 0x22, 0xa0, 0x07, 0x56 } }
 
-#if defined(USE_MOZ_UPDATER)
+#if defined(MOZ_UPDATER) && !defined(MOZ_WIDGET_ANDROID)
 #define NS_UPDATEPROCESSOR_CID \
 { 0xf3dcf644, 0x79e8, 0x4f59, { 0xa1, 0xbb, 0x87, 0x84, 0x54, 0x48, 0x8e, 0xf9 } }
 #endif
@@ -183,6 +180,9 @@
 
 #define NS_APPLICATION_REPUTATION_SERVICE_CID \
 { 0x8576c950, 0xf4a2, 0x11e2, { 0xb7, 0x78, 0x08, 0x00, 0x20, 0x0c, 0x9a, 0x66 } }
+
+#define NS_ADDONCONTENTPOLICY_CID \
+{ 0xc26a8241, 0xecf4, 0x4aed, { 0x9f, 0x3c, 0xf1, 0xf5, 0xc7, 0x13, 0xb9, 0xa5 } }
 
 #define NS_ADDON_PATH_SERVICE_CID \
 { 0xa39f39d0, 0xdfb6, 0x11e3, { 0x8b, 0x68, 0x08, 0x00, 0x20, 0x0c, 0x9a, 0x66 } }

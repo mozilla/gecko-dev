@@ -4,6 +4,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+HAS_MISC_RULE = True
+
 XPCSHELL_TESTS_MANIFESTS += ['tests/unit/xpcshell.ini']
 
 XPIDL_SOURCES += [
@@ -20,6 +22,7 @@ EXPORTS.mozilla += [
 
 SOURCES += [
     'Telemetry.cpp',
+    'WebrtcTelemetry.cpp',
 ]
 
 EXTRA_COMPONENTS += [
@@ -28,20 +31,24 @@ EXTRA_COMPONENTS += [
 ]
 
 EXTRA_JS_MODULES += [
-    'TelemetryFile.jsm',
+    'TelemetryArchive.jsm',
+    'TelemetryController.jsm',
+    'TelemetryEnvironment.jsm',
     'TelemetryLog.jsm',
+    'TelemetryReportingPolicy.jsm',
+    'TelemetrySend.jsm',
+    'TelemetrySession.jsm',
     'TelemetryStopwatch.jsm',
+    'TelemetryStorage.jsm',
+    'TelemetryTimestamps.jsm',
+    'TelemetryUtils.jsm',
     'ThirdPartyCookieProbe.jsm',
     'UITelemetry.jsm',
 ]
 
-EXTRA_PP_JS_MODULES += [
-    'TelemetryPing.jsm',
+TESTING_JS_MODULES += [
+  'tests/unit/TelemetryArchiveTesting.jsm',
 ]
-
-FAIL_ON_WARNINGS = True
-
-MSVC_ENABLE_PGO = True
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
@@ -49,13 +56,28 @@ FINAL_LIBRARY = 'xul'
 
 GENERATED_FILES = [
     'TelemetryHistogramData.inc',
+    'TelemetryHistogramEnums.h',
 ]
 
-if CONFIG['MOZILLA_OFFICIAL']:
-    DEFINES['MOZILLA_OFFICIAL'] = True
+histogram_files = [
+    'Histograms.json',
+    '/dom/base/UseCounters.conf',
+    '/dom/base/nsDeprecatedOperationList.h',
+]
+
+data = GENERATED_FILES['TelemetryHistogramData.inc']
+data.script = 'gen-histogram-data.py'
+data.inputs = histogram_files
+
+enums = GENERATED_FILES['TelemetryHistogramEnums.h']
+enums.script = 'gen-histogram-enum.py'
+enums.inputs = histogram_files
+
+DEFINES['MOZ_APP_VERSION'] = '"%s"' % CONFIG['MOZ_APP_VERSION']
 
 LOCAL_INCLUDES += [
     '/xpcom/build',
     '/xpcom/threads',
 ]
 
+SPHINX_TREES['telemetry'] = 'docs'

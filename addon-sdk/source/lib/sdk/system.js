@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
 'use strict';
 
 module.metadata = {
@@ -10,8 +9,8 @@ module.metadata = {
 
 const { Cc, Ci, CC } = require('chrome');
 const options = require('@loader/options');
-const file = require('./io/file');
 const runtime = require("./system/runtime");
+const { when: unload } = require("./system/unload");
 
 const appStartup = Cc['@mozilla.org/toolkit/app-startup;1'].
                    getService(Ci.nsIAppStartup);
@@ -53,7 +52,7 @@ exports.env = require('./system/environment').env;
  * 'success' code 0. To exit with failure use `1`.
  * TODO: Improve platform to actually quit with an exit code.
  */
-let forcedExit = false;
+var forcedExit = false;
 exports.exit = function exit(code) {
   if (forcedExit) {
     // a forced exit was already tried
@@ -61,25 +60,38 @@ exports.exit = function exit(code) {
     return;
   }
 
-  // This is used by 'cfx' to find out exit code.
-  if ('resultFile' in options && options.resultFile) {
+  let resultsFile = 'resultFile' in options && options.resultFile;
+  function unloader() {
+    if (!options.resultFile) {
+      return;
+    }
+
+    // This is used by 'cfx' to find out exit code.
     let mode = PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE;
     let stream = openFile(options.resultFile, mode);
     let status = code ? 'FAIL' : 'OK';
     stream.write(status, status.length);
     stream.flush();
     stream.close();
+    return;
   }
 
   if (code == 0) {
     forcedExit = true;
   }
+
+  // Bug 856999: Prevent automatic kill of Firefox when running tests
+  if (options.noQuit) {
+    return unload(unloader);
+  }
+
+  unloader();
   appStartup.quit(code ? E_ATTEMPT : E_FORCE);
 };
 
 // Adapter for nodejs's stdout & stderr:
 // http://nodejs.org/api/process.html#process_process_stdout
-let stdout = Object.freeze({ write: dump, end: dump });
+var stdout = Object.freeze({ write: dump, end: dump });
 exports.stdout = stdout;
 exports.stderr = stdout;
 
@@ -109,7 +121,7 @@ exports.pathFor = function pathFor(id) {
  */
 exports.platform = runtime.OS.toLowerCase();
 
-const [, architecture, compiler] = runtime.XPCOMABI ? 
+const [, architecture, compiler] = runtime.XPCOMABI ?
                                    runtime.XPCOMABI.match(/^([^-]*)-(.*)$/) :
                                    [, null, null];
 

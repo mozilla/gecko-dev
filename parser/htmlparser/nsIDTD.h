@@ -46,8 +46,6 @@ enum nsDTDMode {
 };
 
 
-class nsIParser;
-class nsIURI;
 class nsIContentSink;
 class CParserContext;
 
@@ -127,12 +125,12 @@ public:
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIDTD, NS_IDTD_IID)
 
 #define NS_DECL_NSIDTD \
-    NS_IMETHOD WillBuildModel(  const CParserContext& aParserContext, nsITokenizer* aTokenizer, nsIContentSink* aSink);\
-    NS_IMETHOD DidBuildModel(nsresult anErrorCode);\
-    NS_IMETHOD BuildModel(nsITokenizer* aTokenizer, nsIContentSink* aSink);\
-    NS_IMETHOD_(bool) CanContain(int32_t aParent,int32_t aChild) const;\
-    NS_IMETHOD_(bool) IsContainer(int32_t aTag) const;\
-    NS_IMETHOD_(void)  Terminate();\
-    NS_IMETHOD_(int32_t) GetType();\
-    NS_IMETHOD_(nsDTDMode) GetMode() const;
+    NS_IMETHOD WillBuildModel(  const CParserContext& aParserContext, nsITokenizer* aTokenizer, nsIContentSink* aSink) override;\
+    NS_IMETHOD DidBuildModel(nsresult anErrorCode) override;\
+    NS_IMETHOD BuildModel(nsITokenizer* aTokenizer, nsIContentSink* aSink) override;\
+    NS_IMETHOD_(bool) CanContain(int32_t aParent,int32_t aChild) const override;\
+    NS_IMETHOD_(bool) IsContainer(int32_t aTag) const override;\
+    NS_IMETHOD_(void)  Terminate() override;\
+    NS_IMETHOD_(int32_t) GetType() override;\
+    NS_IMETHOD_(nsDTDMode) GetMode() const override;
 #endif /* nsIDTD_h___ */

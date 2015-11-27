@@ -1,3 +1,4 @@
+// |jit-test| test-also-noasmjs
 load(libdir + "asm.js");
 const TO_FLOAT32 = "var toF = glob.Math.fround;";
 const HEAP32 = "var f32 = new glob.Float32Array(heap);";
@@ -61,6 +62,8 @@ assertEq(asmLink(asmCompile('glob', 'ffi', 'heap', USE_ASM + TO_FLOAT32 + HEAP32
 assertEq(asmLink(asmCompile('glob', 'ffi', 'heap', USE_ASM + TO_FLOAT32 + HEAP32 + "function f() { f32[0] = 1.5; return +f32[0]; } return f"), this, null, heap)(), 1.5);
 assertEq(asmLink(asmCompile('glob', 'ffi', 'heap', USE_ASM + TO_FLOAT32 + HEAP32 + HEAP64 + "function f() { f64[0] = 1.5; return toF(f64[0]); } return f"), this, null, heap)(), 1.5);
 assertEq(asmLink(asmCompile('glob', 'ffi', 'heap', USE_ASM + TO_FLOAT32 + HEAP32 + HEAP64 + "function f() { f32[0] = toF(42); f64[0] = f32[0]; return +f64[0]; } return f"), this, null, heap)(), 42);
+
+assertEq(asmLink(asmCompile('glob', 'ffi', 'heap', USE_ASM + TO_FLOAT32 + HEAP32 + "function f() { f32[0] = toF(-1.4013e-45) / toF(42.); } return f"), this, null, heap)(), undefined);
 
 // Coercions
 // -> from Float32

@@ -763,14 +763,14 @@
         <xul:image class="warning-icon"/>
         <xul:label anonid="warning" flex="1"/>
         <xul:label anonid="warning-link" class="text-link"/>
-        <xul:button anonid="warning-btn" class="button-link"/>
+        <xul:button anonid="warning-btn" class="button-link" hidden="true"/>
         <xul:spacer flex="5000"/> <!-- Necessary to allow the message to wrap -->
       </xul:hbox>
       <xul:hbox anonid="error-container"
                 class="error">
         <xul:image class="error-icon"/>
         <xul:label anonid="error" flex="1"/>
-        <xul:label anonid="error-link" class="text-link"/>
+        <xul:label anonid="error-link" class="text-link" hidden="true"/>
         <xul:spacer flex="5000"/> <!-- Necessary to allow the message to wrap -->
       </xul:hbox>
       <xul:hbox anonid="pending-container"
@@ -787,7 +787,7 @@
         <xul:spacer flex="5000"/> <!-- Necessary to allow the message to wrap -->
       </xul:hbox>
 
-      <xul:hbox class="content-container">
+      <xul:hbox class="content-container" align="center">
         <xul:vbox class="icon-container">
           <xul:image anonid="icon" class="icon"/>
         </xul:vbox>
@@ -795,8 +795,7 @@
           <xul:hbox class="basicinfo-container">
               <xul:hbox class="name-container">
                 <xul:label anonid="name" class="name" crop="end" flex="1"
-                           xbl:inherits="value=name,tooltiptext=name"/>
-                <xul:label anonid="version" class="version"/>
+                           tooltip="addonitem-tooltip" xbl:inherits="value=name"/>
                 <xul:label class="disabled-postfix" value="&addon.disabled.postfix;"/>
                 <xul:label class="update-postfix" value="&addon.update.postfix;"/>
                 <xul:spacer flex="5000"/> <!-- Necessary to make the name crop -->
@@ -842,77 +841,77 @@
                             oncommand="document.getBindingParent(this).toggleReleaseNotes();"/>
               </xul:hbox>
             </xul:vbox>
-            <xul:vbox class="status-control-wrapper">
-              <xul:hbox class="status-container">
-                <xul:hbox anonid="checking-update" hidden="true">
-                  <xul:image class="spinner"/>
-                  <xul:label value="&addon.checkingForUpdates.label;"/>
-                </xul:hbox>
-                <xul:vbox anonid="update-available" class="update-available"
-                          hidden="true">
-                  <xul:checkbox anonid="include-update" class="include-update"
-                                label="&addon.includeUpdate.label;" checked="true"
-                                oncommand="document.getBindingParent(this).onIncludeUpdateChanged();"/>
-                  <xul:hbox class="update-info-container">
-                    <xul:label class="update-available-notice"
-                               value="&addon.updateAvailable.label;"/>
-                    <xul:button anonid="update-btn" class="addon-control update"
-                                label="&addon.updateNow.label;"
-                                tooltiptext="&addon.updateNow.tooltip;"
-                                oncommand="document.getBindingParent(this).upgrade();"/>
-                  </xul:hbox>
-                </xul:vbox>
-                <xul:hbox anonid="install-status" class="install-status"
-                          hidden="true"/>
-              </xul:hbox>
-              <xul:hbox anonid="control-container" class="control-container">
-                <xul:button anonid="preferences-btn"
-                            class="addon-control preferences"
-#ifdef XP_WIN
-                            label="&cmd.showPreferencesWin.label;"
-                            tooltiptext="&cmd.showPreferencesWin.tooltip;"
-#else
-                            label="&cmd.showPreferencesUnix.label;"
-                            tooltiptext="&cmd.showPreferencesUnix.tooltip;"
-#endif
-                            oncommand="document.getBindingParent(this).showPreferences();"/>
-                            <!-- label="&cmd.debugAddon.label;" -->
-                <xul:button anonid="debug-btn" class="addon-control debug"
-                            label="&cmd.debugAddon.label;"
-                            oncommand="document.getBindingParent(this).debug();"/>
-
-                <xul:button anonid="enable-btn"  class="addon-control enable"
-                            label="&cmd.enableAddon.label;"
-                            oncommand="document.getBindingParent(this).userDisabled = false;"/>
-                <xul:button anonid="disable-btn" class="addon-control disable"
-                            label="&cmd.disableAddon.label;"
-                            oncommand="document.getBindingParent(this).userDisabled = true;"/>
-                <xul:button anonid="remove-btn" class="addon-control remove"
-                            label="&cmd.uninstallAddon.label;"
-                            oncommand="document.getBindingParent(this).uninstall();"/>
-                <xul:menulist anonid="state-menulist"
-                              class="addon-control state"
-                              tooltiptext="&cmd.stateMenu.tooltip;">
-                  <xul:menupopup>
-                    <xul:menuitem anonid="ask-to-activate-menuitem"
-                                  class="addon-control"
-                                  label="&cmd.askToActivate.label;"
-                                  tooltiptext="&cmd.askToActivate.tooltip;"
-                                  oncommand="document.getBindingParent(this).userDisabled = AddonManager.STATE_ASK_TO_ACTIVATE;"/>
-                    <xul:menuitem anonid="always-activate-menuitem"
-                                  class="addon-control"
-                                  label="&cmd.alwaysActivate.label;"
-                                  tooltiptext="&cmd.alwaysActivate.tooltip;"
-                                  oncommand="document.getBindingParent(this).userDisabled = false;"/>
-                    <xul:menuitem anonid="never-activate-menuitem"
-                                  class="addon-control"
-                                  label="&cmd.neverActivate.label;"
-                                  tooltiptext="&cmd.neverActivate.tooltip;"
-                                  oncommand="document.getBindingParent(this).userDisabled = true;"/>
-                  </xul:menupopup>
-                </xul:menulist>
+          </xul:hbox>
+        </xul:vbox>
+        <xul:vbox class="status-control-wrapper">
+          <xul:hbox class="status-container">
+            <xul:hbox anonid="checking-update" hidden="true">
+              <xul:image class="spinner"/>
+              <xul:label value="&addon.checkingForUpdates.label;"/>
+            </xul:hbox>
+            <xul:vbox anonid="update-available" class="update-available"
+                      hidden="true">
+              <xul:checkbox anonid="include-update" class="include-update"
+                            label="&addon.includeUpdate.label;" checked="true"
+                            oncommand="document.getBindingParent(this).onIncludeUpdateChanged();"/>
+              <xul:hbox class="update-info-container">
+                <xul:label class="update-available-notice"
+                           value="&addon.updateAvailable.label;"/>
+                <xul:button anonid="update-btn" class="addon-control update"
+                            label="&addon.updateNow.label;"
+                            tooltiptext="&addon.updateNow.tooltip;"
+                            oncommand="document.getBindingParent(this).upgrade();"/>
               </xul:hbox>
             </xul:vbox>
+            <xul:hbox anonid="install-status" class="install-status"
+                      hidden="true"/>
+          </xul:hbox>
+          <xul:hbox anonid="control-container" class="control-container">
+            <xul:button anonid="preferences-btn"
+                        class="addon-control preferences"
+#ifdef XP_WIN
+                        label="&cmd.showPreferencesWin.label;"
+                        tooltiptext="&cmd.showPreferencesWin.tooltip;"
+#else
+                        label="&cmd.showPreferencesUnix.label;"
+                        tooltiptext="&cmd.showPreferencesUnix.tooltip;"
+#endif
+                        oncommand="document.getBindingParent(this).showPreferences();"/>
+                        <!-- label="&cmd.debugAddon.label;" -->
+            <xul:button anonid="debug-btn" class="addon-control debug"
+                        label="&cmd.debugAddon.label;"
+                        oncommand="document.getBindingParent(this).debug();"/>
+
+            <xul:button anonid="enable-btn"  class="addon-control enable"
+                        label="&cmd.enableAddon.label;"
+                        oncommand="document.getBindingParent(this).userDisabled = false;"/>
+            <xul:button anonid="disable-btn" class="addon-control disable"
+                        label="&cmd.disableAddon.label;"
+                        oncommand="document.getBindingParent(this).userDisabled = true;"/>
+            <xul:button anonid="remove-btn" class="addon-control remove"
+                        label="&cmd.uninstallAddon.label;"
+                        oncommand="document.getBindingParent(this).uninstall();"/>
+            <xul:menulist anonid="state-menulist"
+                          class="addon-control state"
+                          tooltiptext="&cmd.stateMenu.tooltip;">
+              <xul:menupopup>
+                <xul:menuitem anonid="ask-to-activate-menuitem"
+                              class="addon-control"
+                              label="&cmd.askToActivate.label;"
+                              tooltiptext="&cmd.askToActivate.tooltip;"
+                              oncommand="document.getBindingParent(this).userDisabled = AddonManager.STATE_ASK_TO_ACTIVATE;"/>
+                <xul:menuitem anonid="always-activate-menuitem"
+                              class="addon-control"
+                              label="&cmd.alwaysActivate.label;"
+                              tooltiptext="&cmd.alwaysActivate.tooltip;"
+                              oncommand="document.getBindingParent(this).userDisabled = false;"/>
+                <xul:menuitem anonid="never-activate-menuitem"
+                              class="addon-control"
+                              label="&cmd.neverActivate.label;"
+                              tooltiptext="&cmd.neverActivate.tooltip;"
+                              oncommand="document.getBindingParent(this).userDisabled = true;"/>
+              </xul:menupopup>
+            </xul:menulist>
           </xul:hbox>
         </xul:vbox>
       </xul:hbox>
@@ -920,6 +919,7 @@
 
     <implementation>
       <constructor><![CDATA[
+        this._installStatus = document.getAnonymousElementByAttribute(this, "anonid", "install-status");
         this._installStatus.mControl = this;
 
         this.setAttribute("contextmenu", "addonitem-popup");
@@ -978,9 +978,6 @@
       <field name="_info">
         document.getAnonymousElementByAttribute(this, "anonid",
                                                 "info");
-      </field>
-      <field name="_version">
-        document.getAnonymousElementByAttribute(this, "anonid", "version");
       </field>
       <field name="_experimentState">
         document.getAnonymousElementByAttribute(this, "anonid", "experiment-state");
@@ -1112,16 +1109,11 @@
 
           this.setAttribute("name", aAddon.name);
 
-          var iconURL = this.mAddon.iconURL;
+          var iconURL = AddonManager.getPreferredIconURL(aAddon, 48, window);
           if (iconURL)
             this._icon.src = iconURL;
           else
             this._icon.src = "";
-
-          if (shouldShowVersionNumber(this.mAddon))
-            this._version.value = this.mAddon.version;
-          else
-            this._version.hidden = true;
 
           if (this.mAddon.description)
             this._description.value = this.mAddon.description;
@@ -1247,6 +1239,14 @@
               this._errorLink.value = gStrings.ext.GetStringFromName("notification.blocked.link");
               this._errorLink.href = this.mAddon.blocklistURL;
               this._errorLink.hidden = false;
+            } else if (!isUpgrade && !isCorrectlySigned(this.mAddon) && SIGNING_REQUIRED) {
+              this.setAttribute("notification", "error");
+              this._error.textContent = gStrings.ext.formatStringFromName(
+                "notification.unsignedAndDisabled", [this.mAddon.name, gStrings.brandShortName], 2
+              );
+              this._errorLink.value = gStrings.ext.GetStringFromName("notification.unsigned.link");
+              this._errorLink.href = Services.urlFormatter.formatURLPref("app.support.baseURL") + "unsigned-addons";
+              this._errorLink.hidden = false;
             } else if ((!isUpgrade && !this.mAddon.isCompatible) && (AddonManager.checkCompatibility
             || (this.mAddon.blocklistState != Ci.nsIBlocklistService.STATE_SOFTBLOCKED))) {
               this.setAttribute("notification", "warning");
@@ -1256,6 +1256,14 @@
               );
               this._warningLink.hidden = true;
               this._warningBtn.hidden = true;
+            } else if (!isUpgrade && !isCorrectlySigned(this.mAddon)) {
+              this.setAttribute("notification", "warning");
+              this._warning.textContent = gStrings.ext.formatStringFromName(
+                "notification.unsigned", [this.mAddon.name, gStrings.brandShortName], 2
+              );
+              this._warningLink.value = gStrings.ext.GetStringFromName("notification.unsigned.link");
+              this._warningLink.href = Services.urlFormatter.formatURLPref("app.support.baseURL") + "unsigned-addons";
+              this._warningLink.hidden = false;
             } else if (!isUpgrade && this.mAddon.blocklistState == Ci.nsIBlocklistService.STATE_SOFTBLOCKED) {
               this.setAttribute("notification", "warning");
               this._warning.textContent = gStrings.ext.formatStringFromName(
@@ -1294,9 +1302,12 @@
               this._errorLink.value = gStrings.ext.GetStringFromName("notification.vulnerableNoUpdate.link");
               this._errorLink.href = this.mAddon.blocklistURL;
               this._errorLink.hidden = false;
-            } else if (this.mAddon.id == "gmp-gmpopenh264" && !this.mAddon.isInstalled) {
+            } else if (this.mAddon.isGMPlugin && !this.mAddon.isInstalled &&
+                       this.mAddon.isActive) {
               this.setAttribute("notification", "warning");
-              this._warning.textContent = gStrings.ext.GetStringFromName("notification.openH264Pending");
+              this._warning.textContent =
+                gStrings.ext.formatStringFromName("notification.gmpPending",
+                                                  [this.mAddon.name], 1);
             } else {
               this.removeAttribute("notification");
             }
@@ -1312,7 +1323,7 @@
             this._askToActivateMenuitem.disabled = !this.hasPermission("ask_to_activate");
             this._alwaysActivateMenuitem.disabled = !this.hasPermission("enable");
             this._neverActivateMenuitem.disabled = !this.hasPermission("disable");
-            if (this.mAddon.userDisabled === true) {
+            if (!this.mAddon.isActive) {
               this._stateMenulist.selectedItem = this._neverActivateMenuitem;
             } else if (this.mAddon.userDisabled == AddonManager.STATE_ASK_TO_ACTIVATE) {
               this._stateMenulist.selectedItem = this._askToActivateMenuitem;
@@ -1396,14 +1407,6 @@
               this._experimentTime.value = timeMessage;
             }
           }
-        ]]></body>
-      </method>
-
-      <method name="_updateUpgradeInfo">
-        <body><![CDATA[
-          // Only update the version string if we're displaying the upgrade info
-          if (this.hasAttribute("upgrade") && shouldShowVersionNumber(this.mAddon))
-            this._version.value = this.mManualUpdate.version;
         ]]></body>
       </method>
 
@@ -1644,6 +1647,7 @@
         <parameter name="aProperties"/>
         <body><![CDATA[
           if (aProperties.indexOf("appDisabled") != -1 ||
+              aProperties.indexOf("signedState") != -1 ||
               aProperties.indexOf("userDisabled") != -1)
             this._updateState();
         ]]></body>
@@ -1695,7 +1699,6 @@
 
           this.mManualUpdate = aInstall;
           this._showStatus("update-available");
-          this._updateUpgradeInfo();
         ]]></body>
       </method>
 
@@ -1897,8 +1900,7 @@
         </xul:vbox>
         <xul:vbox class="fade name-outer-container" flex="1">
           <xul:hbox class="name-container">
-            <xul:label anonid="name" class="name" crop="end"/>
-            <xul:label anonid="version" class="version" hidden="true"/>
+            <xul:label anonid="name" class="name" crop="end" tooltip="addonitem-tooltip"/>
           </xul:hbox>
         </xul:vbox>
         <xul:vbox class="install-status-container">
@@ -1919,9 +1921,6 @@
       </field>
       <field name="_name">
         document.getAnonymousElementByAttribute(this, "anonid", "name");
-      </field>
-      <field name="_version">
-        document.getAnonymousElementByAttribute(this, "anonid", "version");
       </field>
       <field name="_warning">
         document.getAnonymousElementByAttribute(this, "anonid", "warning");
@@ -1950,14 +1949,6 @@
             this._icon.src = this.mAddon.iconURL ||
                              (this.mInstall ? this.mInstall.iconURL : "");
             this._name.value = this.mAddon.name;
-
-            if (this.mAddon.version) {
-              this._version.value = this.mAddon.version;
-              this._version.hidden = false;
-            } else {
-              this._version.hidden = true;
-            }
-
           } else {
             this._icon.src = this.mInstall.iconURL;
             // AddonInstall.name isn't always available - fallback to filename
@@ -1970,13 +1961,6 @@
                        null, null);
               url.QueryInterface(Components.interfaces.nsIURL);
               this._name.value = url.fileName;
-            }
-
-            if (this.mInstall.version) {
-              this._version.value = this.mInstall.version;
-              this._version.hidden = false;
-            } else {
-              this._version.hidden = true;
             }
           }
 

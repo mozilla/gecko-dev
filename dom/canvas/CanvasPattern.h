@@ -17,24 +17,24 @@ class nsIPrincipal;
 namespace mozilla {
 namespace gfx {
 class SourceSurface;
-}
+} // namespace gfx
 
 namespace dom {
 class SVGMatrix;
 
-class CanvasPattern MOZ_FINAL : public nsWrapperCache
+class CanvasPattern final : public nsWrapperCache
 {
   ~CanvasPattern() {}
 public:
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(CanvasPattern)
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(CanvasPattern)
 
-  MOZ_BEGIN_NESTED_ENUM_CLASS(RepeatMode, uint8_t)
+  enum class RepeatMode : uint8_t {
     REPEAT,
     REPEATX,
     REPEATY,
     NOREPEAT
-  MOZ_END_NESTED_ENUM_CLASS(RepeatMode)
+  };
 
   CanvasPattern(CanvasRenderingContext2D* aContext,
                 gfx::SourceSurface* aSurface,
@@ -50,12 +50,11 @@ public:
     , mCORSUsed(CORSUsed)
     , mRepeat(aRepeat)
   {
-    SetIsDOMBinding();
   }
 
-  JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE
+  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override
   {
-    return CanvasPatternBinding::Wrap(aCx, this);
+    return CanvasPatternBinding::Wrap(aCx, this, aGivenProto);
   }
 
   CanvasRenderingContext2D* GetParentObject()
@@ -66,7 +65,7 @@ public:
   // WebIDL
   void SetTransform(SVGMatrix& matrix);
 
-  nsRefPtr<CanvasRenderingContext2D> mContext;
+  RefPtr<CanvasRenderingContext2D> mContext;
   RefPtr<gfx::SourceSurface> mSurface;
   nsCOMPtr<nsIPrincipal> mPrincipal;
   mozilla::gfx::Matrix mTransform;
@@ -75,9 +74,7 @@ public:
   const RepeatMode mRepeat;
 };
 
-MOZ_FINISH_NESTED_ENUM_CLASS(CanvasPattern::RepeatMode)
-
-}
-}
+} // namespace dom
+} // namespace mozilla
 
 #endif // mozilla_dom_CanvasPattern_h

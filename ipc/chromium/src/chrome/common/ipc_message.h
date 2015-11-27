@@ -14,10 +14,6 @@
 #include "GeckoTaskTracer.h"
 #endif
 
-#ifndef NDEBUG
-#define IPC_MESSAGE_LOG_ENABLED
-#endif
-
 #if defined(OS_POSIX)
 #include "nsAutoPtr.h"
 #endif
@@ -53,14 +49,15 @@ class Message : public Pickle {
   };
 
   enum PriorityValue {
-    PRIORITY_LOW = 1,
-    PRIORITY_NORMAL,
-    PRIORITY_HIGH
+    PRIORITY_NORMAL = 1,
+    PRIORITY_HIGH = 2,
+    PRIORITY_URGENT = 3
   };
 
   enum MessageCompression {
     COMPRESSION_NONE,
-    COMPRESSION_ENABLED
+    COMPRESSION_ENABLED,
+    COMPRESSION_ALL
   };
 
   virtual ~Message();
@@ -79,10 +76,17 @@ class Message : public Pickle {
   Message(const char* data, int data_len);
 
   Message(const Message& other);
+  Message(Message&& other);
   Message& operator=(const Message& other);
+  Message& operator=(Message&& other);
 
   PriorityValue priority() const {
     return static_cast<PriorityValue>(header()->flags & PRIORITY_MASK);
+  }
+
+  void set_priority(int prio) {
+    DCHECK((prio & ~PRIORITY_MASK) == 0);
+    header()->flags = (header()->flags & ~PRIORITY_MASK) | prio;
   }
 
   // True if this is a synchronous message.
@@ -95,19 +99,13 @@ class Message : public Pickle {
     return (header()->flags & INTERRUPT_BIT) != 0;
   }
 
-  // True if this is an urgent message.
-  bool is_urgent() const {
-    return (header()->flags & URGENT_BIT) != 0;
-  }
-
-  // True if this is an RPC message.
-  bool is_rpc() const {
-    return (header()->flags & RPC_BIT) != 0;
-  }
-
   // True if compression is enabled for this message.
-  bool compress() const {
-    return (header()->flags & COMPRESS_BIT) != 0;
+  MessageCompression compress_type() const {
+    return (header()->flags & COMPRESS_BIT) ?
+               COMPRESSION_ENABLED :
+               (header()->flags & COMPRESSALL_BIT) ?
+                   COMPRESSION_ALL :
+                   COMPRESSION_NONE;
   }
 
   // Set this on a reply to a synchronous message.
@@ -192,16 +190,16 @@ class Message : public Pickle {
     return header()->seqno;
   }
 
-  void set_seqno(int32_t seqno) {
-    header()->seqno = seqno;
+  void set_seqno(int32_t aSeqno) {
+    header()->seqno = aSeqno;
   }
 
   const char* const name() const {
     return name_;
   }
 
-  void set_name(const char* const name) {
-    name_ = name;
+  void set_name(const char* const aName) {
+    name_ = aName;
   }
 
 #if defined(OS_POSIX)
@@ -264,25 +262,6 @@ class Message : public Pickle {
 #endif
 #endif
 
-#ifdef IPC_MESSAGE_LOG_ENABLED
-  // Adds the outgoing time from Time::Now() at the end of the message and sets
-  // a bit to indicate that it's been added.
-  void set_sent_time(int64_t time);
-  int64_t sent_time() const;
-
-  void set_received_time(int64_t time) const;
-  int64_t received_time() const { return received_time_; }
-  void set_output_params(const std::wstring& op) const { output_params_ = op; }
-  const std::wstring& output_params() const { return output_params_; }
-  // The following four functions are needed so we can log sync messages with
-  // delayed replies.  We stick the log data from the sent message into the
-  // reply message, so that when it's sent and we have the output parameters
-  // we can log it.  As such, we set a flag on the sent message to not log it.
-  void set_sync_log_data(LogData* data) const { log_data_ = data; }
-  LogData* sync_log_data() const { return log_data_; }
-  void set_dont_log() const { dont_log_ = true; }
-  bool dont_log() const { return dont_log_; }
-#endif
 
   friend class Channel;
   friend class MessageReplyDeserializer;
@@ -294,14 +273,6 @@ class Message : public Pickle {
 
   void set_interrupt() {
     header()->flags |= INTERRUPT_BIT;
-  }
-
-  void set_urgent() {
-    header()->flags |= URGENT_BIT;
-  }
-
-  void set_rpc() {
-    header()->flags |= RPC_BIT;
   }
 
 #if !defined(OS_MACOSX)
@@ -319,8 +290,7 @@ class Message : public Pickle {
     HAS_SENT_TIME_BIT = 0x0080,
     INTERRUPT_BIT   = 0x0100,
     COMPRESS_BIT    = 0x0200,
-    URGENT_BIT      = 0x0400,
-    RPC_BIT         = 0x0800
+    COMPRESSALL_BIT = 0x0400,
   };
 
   struct Header : Pickle::Header {
@@ -362,7 +332,7 @@ class Message : public Pickle {
 
 #if defined(OS_POSIX)
   // The set of file descriptors associated with this message.
-  nsRefPtr<FileDescriptorSet> file_descriptor_set_;
+  RefPtr<FileDescriptorSet> file_descriptor_set_;
 
   // Ensure that a FileDescriptorSet is allocated
   void EnsureFileDescriptorSet();
@@ -378,13 +348,6 @@ class Message : public Pickle {
 
   const char* name_;
 
-#ifdef IPC_MESSAGE_LOG_ENABLED
-  // Used for logging.
-  mutable int64_t received_time_;
-  mutable std::wstring output_params_;
-  mutable LogData* log_data_;
-  mutable bool dont_log_;
-#endif
 };
 
 //------------------------------------------------------------------------------

@@ -28,9 +28,11 @@ function closeWindow(aClose, aPromptFunction)
     if (typeof(aPromptFunction) == "function" && !aPromptFunction())
       return false;
 
-  if (aClose)    
+  if (aClose) {
     window.close();
-  
+    return window.closed;
+  }
+
   return true;
 }
 
@@ -146,34 +148,6 @@ function goOnEvent(aNode, aEvent)
     if (controller)
       controller.onEvent(aEvent);
   }
-}
-
-function visitLink(aEvent) {
-  var node = aEvent.target;
-  while (node.nodeType != Node.ELEMENT_NODE)
-    node = node.parentNode;
-  var url = node.getAttribute("link");
-  if (!url)
-    return;
-
-  var protocolSvc = Components.classes["@mozilla.org/uriloader/external-protocol-service;1"]
-                              .getService(Components.interfaces.nsIExternalProtocolService);
-  var ioService = Components.classes["@mozilla.org/network/io-service;1"]
-                            .getService(Components.interfaces.nsIIOService);
-  var uri = ioService.newURI(url, null, null);
-
-  // if the scheme is not an exposed protocol, then opening this link
-  // should be deferred to the system's external protocol handler
-  if (protocolSvc.isExposedProtocol(uri.scheme)) {
-    var win = window.top;
-    if (win instanceof Components.interfaces.nsIDOMChromeWindow) {
-      while (win.opener && !win.opener.closed)
-        win = win.opener;
-    }
-    win.open(uri.spec);
-  }
-  else
-    protocolSvc.loadUrl(uri);
 }
 
 function setTooltipText(aID, aTooltipText)

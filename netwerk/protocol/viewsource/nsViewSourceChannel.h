@@ -18,13 +18,13 @@
 #include "nsIUploadChannel.h"
 #include "mozilla/Attributes.h"
 
-class nsViewSourceChannel MOZ_FINAL : public nsIViewSourceChannel,
-                                      public nsIStreamListener,
-                                      public nsIHttpChannel,
-                                      public nsIHttpChannelInternal,
-                                      public nsICachingChannel,
-                                      public nsIApplicationCacheChannel,
-                                      public nsIUploadChannel
+class nsViewSourceChannel final : public nsIViewSourceChannel,
+                                  public nsIStreamListener,
+                                  public nsIHttpChannel,
+                                  public nsIHttpChannelInternal,
+                                  public nsICachingChannel,
+                                  public nsIApplicationCacheChannel,
+                                  public nsIUploadChannel
 {
 
 public:
@@ -35,7 +35,7 @@ public:
     NS_DECL_NSISTREAMLISTENER
     NS_DECL_NSIREQUESTOBSERVER
     NS_DECL_NSIHTTPCHANNEL
-    NS_FORWARD_SAFE_NSICACHEINFOCHANNEL(mCachingChannel)
+    NS_FORWARD_SAFE_NSICACHEINFOCHANNEL(mCacheInfoChannel)
     NS_FORWARD_SAFE_NSICACHINGCHANNEL(mCachingChannel)
     NS_FORWARD_SAFE_NSIAPPLICATIONCACHECHANNEL(mApplicationCacheChannel)
     NS_FORWARD_SAFE_NSIAPPLICATIONCACHECONTAINER(mApplicationCacheChannel)
@@ -49,8 +49,14 @@ public:
 
     nsresult Init(nsIURI* uri);
 
-    nsresult InitSrcdoc(nsIURI* aURI, const nsAString &aSrcdoc,
-                                    nsIURI* aBaseURI);
+    nsresult InitSrcdoc(nsIURI* aURI,
+                        nsIURI* aBaseURI,
+                        const nsAString &aSrcdoc,
+                        nsINode *aLoadingNode,
+                        nsIPrincipal *aLoadingPrincipal,
+                        nsIPrincipal *aTriggeringPrincipal,
+                        nsSecurityFlags aSecurityFlags,
+                        nsContentPolicyType aContentPolicyType);
 
 protected:
     ~nsViewSourceChannel() {}
@@ -59,6 +65,7 @@ protected:
     nsCOMPtr<nsIHttpChannel>    mHttpChannel;
     nsCOMPtr<nsIHttpChannelInternal>    mHttpChannelInternal;
     nsCOMPtr<nsICachingChannel> mCachingChannel;
+    nsCOMPtr<nsICacheInfoChannel> mCacheInfoChannel;
     nsCOMPtr<nsIApplicationCacheChannel> mApplicationCacheChannel;
     nsCOMPtr<nsIUploadChannel>  mUploadChannel;
     nsCOMPtr<nsIStreamListener> mListener;

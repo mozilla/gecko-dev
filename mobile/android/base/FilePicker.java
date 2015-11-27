@@ -61,6 +61,7 @@ public class FilePicker implements GeckoEventListener {
                 mimeType = GeckoAppShell.getMimeTypeFromExtensions(message.optString("extensions"));
 
             showFilePickerAsync(title, mimeType, new ResultHandler() {
+                @Override
                 public void gotFile(String filename) {
                     try {
                         message.put("file", filename);
@@ -99,7 +100,7 @@ public class FilePicker implements GeckoEventListener {
     private List<Intent> getIntentsForFilePicker(final String mimeType,
                                                        final FilePickerResultHandler fileHandler) {
         // The base intent to use for the file picker. Even if this is an implicit intent, Android will
-        // still show a list of Activitiees that match this action/type.
+        // still show a list of Activities that match this action/type.
         Intent baseIntent;
         // A HashMap of Activities the base intent will show in the chooser. This is used
         // to filter activities from other intents so that we don't show duplicates.
@@ -198,7 +199,7 @@ public class FilePicker implements GeckoEventListener {
             title = getFilePickerTitle(mimeType);
         }
         Intent chooser = Intent.createChooser(base, title);
-        chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, intents.toArray(new Parcelable[]{}));
+        chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, intents.toArray(new Parcelable[intents.size()]));
         handler.gotIntent(chooser);
     }
 

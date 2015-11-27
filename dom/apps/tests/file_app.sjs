@@ -14,8 +14,7 @@ function makeResource(templatePath, version, apptype, role) {
 
   // Hack - This is necessary to make the tests pass, but hbambas says it
   // shouldn't be necessary. Comment it out and watch the tests fail.
-  if (templatePath == gAppTemplatePath &&
-      (apptype == 'cached' || apptype == 'trusted')) {
+  if (templatePath == gAppTemplatePath && apptype == 'cached') {
     res = res.replace('<html>', '<html manifest="file_app.sjs?apptype=' + apptype + '&getappcache=true">');
   }
   return res;
@@ -49,7 +48,7 @@ function handleRequest(request, response) {
 
   // Get the app type.
   var apptype = query.apptype;
-  if (apptype != 'hosted' && apptype != 'cached' && apptype != 'widget'  && apptype != 'invalidWidget' && apptype != 'trusted')
+  if (apptype != 'hosted' && apptype != 'cached' && apptype != 'widget'  && apptype != 'invalidWidget')
     throw "Invalid app type: " + apptype;
 
   var role = query.role;
@@ -90,7 +89,7 @@ function handleRequest(request, response) {
   //
   // NB: Among other reasons, we use the same sjs file here so that the version
   //     state is shared.
-  if ((apptype == 'cached' || apptype == 'trusted') &&
+  if ((apptype == 'cached') &&
       'getappcache' in query) {
     response.setHeader("Content-Type", "text/cache-manifest", false);
     response.write(makeResource(gAppcacheTemplatePath, version, apptype, role));
@@ -142,13 +141,12 @@ function readTemplate(path) {
   cis.init(fis, "UTF-8", 0, 0);
 
   var data = "";
-  let (str = {}) {
-    let read = 0;
-    do {
-      read = cis.readString(0xffffffff, str); // read as much as we can and put it in str.value
-      data += str.value;
-    } while (read != 0);
-  }
+  let str = {};
+  let read = 0;
+  do {
+    read = cis.readString(0xffffffff, str); // read as much as we can and put it in str.value
+    data += str.value;
+  } while (read != 0);
   cis.close();
   return data;
 }

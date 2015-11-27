@@ -92,7 +92,7 @@ int WebRtcIlbcfix_XcorrCoef(
       EnergyMod=(int16_t)WEBRTC_SPL_SHIFT_W32(Energy, Energyscale);
 
       /* Square cross correlation and store upper int16_t */
-      crossCorrSqMod=(int16_t)WEBRTC_SPL_MUL_16_16_RSFT(crossCorrmod, crossCorrmod, 16);
+      crossCorrSqMod = (int16_t)((crossCorrmod * crossCorrmod) >> 16);
 
       /* Calculate the total number of (dynamic) right shifts that have
          been performed on (crossCorr*crossCorr)/energy
@@ -131,9 +131,7 @@ int WebRtcIlbcfix_XcorrCoef(
     pos+=step;
 
     /* Do a +/- to get the next energy */
-    Energy += step*(WEBRTC_SPL_RSHIFT_W32(
-        ((int32_t)(*rp_end)*(*rp_end)) - ((int32_t)(*rp_beg)*(*rp_beg)),
-        shifts));
+    Energy += step * ((*rp_end * *rp_end - *rp_beg * *rp_beg) >> shifts);
     rp_beg+=step;
     rp_end+=step;
   }

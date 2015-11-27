@@ -22,7 +22,6 @@ class VolumeInfo;
 
 namespace system {
 
-class WakeLockCallback;
 class Volume;
 
 /***************************************************************************
@@ -31,8 +30,8 @@ class Volume;
 * classes.
 */
 
-class nsVolumeService MOZ_FINAL : public nsIVolumeService,
-                                  public nsIDOMMozWakeLockListener
+class nsVolumeService final : public nsIVolumeService,
+                              public nsIDOMMozWakeLockListener
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -45,10 +44,16 @@ public:
   //static nsVolumeService* GetSingleton();
   static void Shutdown();
 
-  void UpdateVolume(nsIVolume* aVolume, bool aNotifyObservers = true);
+  void DumpNoLock(const char* aLabel);
+
+  // To use this function, you have to create a new volume and pass it in.
+  void UpdateVolume(nsVolume* aVolume, bool aNotifyObservers = true);
   void UpdateVolumeIOThread(const Volume* aVolume);
 
+  void RecvVolumesFromParent(const nsTArray<dom::VolumeInfo>& aVolumes);
   void GetVolumesForIPC(nsTArray<dom::VolumeInfo>* aResult);
+
+  void RemoveVolumeByName(const nsAString& aName);
 
 private:
   ~nsVolumeService();
@@ -56,9 +61,9 @@ private:
   void CheckMountLock(const nsAString& aMountLockName,
                       const nsAString& aMountLockState);
   already_AddRefed<nsVolume> FindVolumeByMountLockName(const nsAString& aMountLockName);
-  already_AddRefed<nsVolume> FindVolumeByName(const nsAString& aName);
-  already_AddRefed<nsVolume> CreateOrFindVolumeByName(const nsAString& aName, bool aIsFake = false);
-  void GetVolumesFromParent();
+
+  already_AddRefed<nsVolume> FindVolumeByName(const nsAString& aName,
+                                              nsVolume::Array::index_type* aIndex = nullptr);
 
   Monitor mArrayMonitor;
   nsVolume::Array mVolumeArray;

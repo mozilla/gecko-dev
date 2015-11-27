@@ -13,6 +13,12 @@
 
 #include "AccessibleWrap.h"
 
+namespace mozilla {
+namespace a11y {
+class ProxyAccessible;
+}
+}
+
 #define MAI_TYPE_ATK_OBJECT             (mai_atk_object_get_type ())
 #define MAI_ATK_OBJECT(obj)             (G_TYPE_CHECK_INSTANCE_CAST ((obj), \
                                          MAI_TYPE_ATK_OBJECT, MaiAtkObject))
@@ -28,7 +34,39 @@
                                          MaiAtkObjectClass))
 GType mai_atk_object_get_type(void);
 GType mai_util_get_type();
+extern "C" GType mai_atk_socket_get_type(void);
+
+/* MaiAtkSocket */
+
+#define MAI_TYPE_ATK_SOCKET              (mai_atk_socket_get_type ())
+#define MAI_ATK_SOCKET(obj)              (G_TYPE_CHECK_INSTANCE_CAST ((obj),\
+                                          MAI_TYPE_ATK_SOCKET, MaiAtkSocket))
+#define MAI_IS_ATK_SOCKET(obj)           (G_TYPE_CHECK_INSTANCE_TYPE ((obj),\
+                                          MAI_TYPE_ATK_SOCKET))
+#define MAI_ATK_SOCKET_CLASS(klass)      (G_TYPE_CHECK_CLASS_CAST ((klass),\
+                                          MAI_TYPE_ATK_SOCKET,\
+                                          MaiAtkSocketClass))
+#define MAI_IS_ATK_SOCKET_CLASS(klass)   (G_TYPE_CHECK_CLASS_TYPE ((klass),\
+                                          MAI_TYPE_ATK_SOCKET))
+#define MAI_ATK_SOCKET_GET_CLASS(obj)    (G_TYPE_INSTANCE_GET_CLASS ((obj),\
+                                          MAI_TYPE_ATK_SOCKET,\
+                                          MaiAtkSocketClass))
+
+typedef struct _MaiAtkSocket
+{
+  AtkSocket parent;
+
+  mozilla::a11y::AccessibleWrap* accWrap;
+} MaiAtkSocket;
+
+typedef struct _MaiAtkSocketClass
+{
+  AtkSocketClass parent_class;
+} MaiAtkSocketClass;
+
 mozilla::a11y::AccessibleWrap* GetAccessibleWrap(AtkObject* aAtkObj);
+mozilla::a11y::ProxyAccessible* GetProxy(AtkObject* aAtkObj);
+AtkObject* GetWrapperFor(mozilla::a11y::ProxyAccessible* aProxy);
 
 extern int atkMajorVersion, atkMinorVersion;
 
@@ -42,5 +80,57 @@ IsAtkVersionAtLeast(int aMajor, int aMinor)
   return aMajor < atkMajorVersion ||
          (aMajor == atkMajorVersion && aMinor <= atkMinorVersion);
 }
+
+// This is or'd with the pointer in MaiAtkObject::accWrap if the wrap-ee is a
+// proxy.
+static const uintptr_t IS_PROXY = 1;
+
+/**
+ * This MaiAtkObject is a thin wrapper, in the MAI namespace, for AtkObject
+ */
+struct MaiAtkObject
+{
+  AtkObject parent;
+  /*
+   * The AccessibleWrap whose properties and features are exported
+   * via this object instance.
+   */
+  uintptr_t accWrap;
+
+  /*
+   * Get the AtkHyperlink for this atk object.
+   */
+  AtkHyperlink* GetAtkHyperlink();
+
+  /*
+   * Shutdown this AtkObject.
+   */
+  void Shutdown();
+
+  /*
+   * Notify atk of a state change on this AtkObject.
+   */
+  void FireStateChangeEvent(uint64_t aState, bool aEnabled);
+
+  /*
+   * Notify ATK of a text change within this ATK object.
+   */
+  void FireTextChangeEvent(const nsString& aStr, int32_t aStart, uint32_t aLen,
+                           bool aIsInsert, bool aIsFromUser);
+
+private:
+  /*
+   * do we have text-remove and text-insert signals if not we need to use
+   * text-changed see AccessibleWrap::FireAtkTextChangedEvent() and
+   * bug 619002
+   */
+  enum EAvailableAtkSignals {
+    eUnknown,
+    eHaveNewAtkTextSignals,
+    eNoNewAtkSignals
+  };
+
+  static EAvailableAtkSignals gAvailableAtkSignals;
+};
 
 #endif /* __NS_MAI_H__ */

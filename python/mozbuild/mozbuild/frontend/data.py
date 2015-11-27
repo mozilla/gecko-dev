@@ -15,38 +15,25 @@ contains the code for converting executed mozbuild files into these data
 structures.
 """
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
 
-import os
+from mozbuild.util import StrictOrderingOnAppendList
+from mozbuild.shellutil import quote as shell_quote
 
-from collections import OrderedDict
-from mozbuild.util import (
-    shell_quote,
-    StrictOrderingOnAppendList,
-)
 import mozpack.path as mozpath
 from .context import FinalTargetValue
+
+from ..util import (
+    group_unified_files,
+)
+
+from ..testing import (
+    all_test_flavors,
+)
 
 
 class TreeMetadata(object):
     """Base class for all data being captured."""
-
-    def __init__(self):
-        self._ack = False
-
-    def ack(self):
-        self._ack = True
-
-
-class ReaderSummary(TreeMetadata):
-    """A summary of what the reader did."""
-
-    def __init__(self, total_file_count, total_sandbox_execution_time,
-        total_emitter_execution_time):
-        TreeMetadata.__init__(self)
-        self.total_file_count = total_file_count
-        self.total_sandbox_execution_time = total_sandbox_execution_time
-        self.total_emitter_execution_time = total_emitter_execution_time
 
 
 class ContextDerived(TreeMetadata):
@@ -83,6 +70,12 @@ class ContextDerived(TreeMetadata):
 
         self.config = context.config
 
+        self._context = context
+
+    @property
+    def install_target(self):
+        return self._context['FINAL_TARGET']
+
     @property
     def relobjdir(self):
         return mozpath.relpath(self.objdir, self.topobjdir)
@@ -103,7 +96,6 @@ class DirectoryTraversal(ContextDerived):
     __slots__ = (
         'dirs',
         'test_dirs',
-        'tier_dirs',
     )
 
     def __init__(self, context):
@@ -111,7 +103,6 @@ class DirectoryTraversal(ContextDerived):
 
         self.dirs = []
         self.test_dirs = []
-        self.tier_dirs = OrderedDict()
 
 
 class BaseConfigSubstitution(ContextDerived):
@@ -158,19 +149,22 @@ class XPIDLFile(ContextDerived):
     """Describes an XPIDL file to be compiled."""
 
     __slots__ = (
+        'add_to_manifest',
         'basename',
         'source_path',
     )
 
-    def __init__(self, context, source, module):
+    def __init__(self, context, source, module, add_to_manifest):
         ContextDerived.__init__(self, context)
 
         self.source_path = source
         self.basename = mozpath.basename(source)
         self.module = module
+        self.add_to_manifest = add_to_manifest
 
-class Defines(ContextDerived):
-    """Context derived container object for DEFINES, which is an OrderedDict.
+class BaseDefines(ContextDerived):
+    """Context derived container object for DEFINES/HOST_DEFINES,
+    which are OrderedDicts.
     """
     __slots__ = ('defines')
 
@@ -192,6 +186,12 @@ class Defines(ContextDerived):
             self.defines.update(more_defines.defines)
         else:
             self.defines.update(more_defines)
+
+class Defines(BaseDefines):
+    pass
+
+class HostDefines(BaseDefines):
+    pass
 
 class Exports(ContextDerived):
     """Context derived container object for EXPORTS, which is a
@@ -243,6 +243,29 @@ class Resources(ContextDerived):
             defs.update(defines)
         self.defines = defs
 
+class BrandingFiles(ContextDerived):
+    """Sandbox container object for BRANDING_FILES, which is a
+    HierarchicalStringList.
+
+    We need an object derived from ContextDerived for use in the backend, so
+    this object fills that role. It just has a reference to the underlying
+    HierarchicalStringList, which is created when parsing BRANDING_FILES.
+    """
+    __slots__ = ('files')
+
+    def __init__(self, sandbox, files):
+        ContextDerived.__init__(self, sandbox)
+        self.files = files
+
+class JsPreferenceFile(ContextDerived):
+    """Context derived container object for a Javascript preference file.
+
+    Paths are assumed to be relative to the srcdir."""
+    __slots__ = ('path')
+
+    def __init__(self, context, path):
+        ContextDerived.__init__(self, context)
+        self.path = path
 
 class IPDLFile(ContextDerived):
     """Describes an individual .ipdl source file."""
@@ -474,12 +497,14 @@ class StaticLibrary(Library):
     """Context derived container object for a static library"""
     __slots__ = (
         'link_into',
+        'no_expand_lib',
     )
 
     def __init__(self, context, basename, real_name=None, is_sdk=False,
-        link_into=None):
+        link_into=None, no_expand_lib=False):
         Library.__init__(self, context, basename, real_name, is_sdk)
         self.link_into = link_into
+        self.no_expand_lib = no_expand_lib
 
 
 class SharedLibrary(Library):
@@ -594,6 +619,8 @@ class TestManifest(ContextDerived):
             install_prefix=None, relpath=None, dupe_manifest=False):
         ContextDerived.__init__(self, context)
 
+        assert flavor in all_test_flavors()
+
         self.path = path
         self.directory = mozpath.dirname(path)
         self.manifest = manifest
@@ -610,18 +637,6 @@ class TestManifest(ContextDerived):
 
 class LocalInclude(ContextDerived):
     """Describes an individual local include path."""
-
-    __slots__ = (
-        'path',
-    )
-
-    def __init__(self, context, path):
-        ContextDerived.__init__(self, context)
-
-        self.path = path
-
-class GeneratedInclude(ContextDerived):
-    """Describes an individual generated include path."""
 
     __slots__ = (
         'path',
@@ -728,6 +743,74 @@ class JavaJarData(object):
         self.javac_flags = list(javac_flags)
 
 
+class BaseSources(ContextDerived):
+    """Base class for files to be compiled during the build."""
+
+    __slots__ = (
+        'files',
+        'canonical_suffix',
+    )
+
+    def __init__(self, context, files, canonical_suffix):
+        ContextDerived.__init__(self, context)
+
+        self.files = files
+        self.canonical_suffix = canonical_suffix
+
+
+class Sources(BaseSources):
+    """Represents files to be compiled during the build."""
+
+    def __init__(self, context, files, canonical_suffix):
+        BaseSources.__init__(self, context, files, canonical_suffix)
+
+
+class GeneratedSources(BaseSources):
+    """Represents generated files to be compiled during the build."""
+
+    def __init__(self, context, files, canonical_suffix):
+        BaseSources.__init__(self, context, files, canonical_suffix)
+
+
+class HostSources(BaseSources):
+    """Represents files to be compiled for the host during the build."""
+
+    def __init__(self, context, files, canonical_suffix):
+        BaseSources.__init__(self, context, files, canonical_suffix)
+
+
+class UnifiedSources(BaseSources):
+    """Represents files to be compiled in a unified fashion during the build."""
+
+    __slots__ = (
+        'have_unified_mapping',
+        'unified_source_mapping'
+    )
+
+    def __init__(self, context, files, canonical_suffix, files_per_unified_file=16):
+        BaseSources.__init__(self, context, files, canonical_suffix)
+
+        self.have_unified_mapping = files_per_unified_file > 1
+
+        if self.have_unified_mapping:
+            # Sorted so output is consistent and we don't bump mtimes.
+            source_files = list(sorted(self.files))
+
+            # On Windows, path names have a maximum length of 255 characters,
+            # so avoid creating extremely long path names.
+            unified_prefix = context.relsrcdir
+            if len(unified_prefix) > 20:
+                unified_prefix = unified_prefix[-20:].split('/', 1)[-1]
+            unified_prefix = unified_prefix.replace('/', '_')
+
+            suffix = self.canonical_suffix[1:]
+            unified_prefix='Unified_%s_%s' % (suffix, unified_prefix)
+            self.unified_source_mapping = list(group_unified_files(source_files,
+                                                                   unified_prefix=unified_prefix,
+                                                                   unified_suffix=suffix,
+                                                                   files_per_unified_file=files_per_unified_file))
+
+
 class InstallationTarget(ContextDerived):
     """Describes the rules that affect where files get installed to."""
 
@@ -744,7 +827,7 @@ class InstallationTarget(ContextDerived):
         self.xpiname = context.get('XPI_NAME', '')
         self.subdir = context.get('DIST_SUBDIR', '')
         self.target = context['FINAL_TARGET']
-        self.enabled = not context.get('NO_DIST_INSTALL', False)
+        self.enabled = context['DIST_INSTALL'] is not False
 
     def is_custom(self):
         """Returns whether or not the target is not derived from the default
@@ -753,6 +836,56 @@ class InstallationTarget(ContextDerived):
         return FinalTargetValue(dict(
             XPI_NAME=self.xpiname,
             DIST_SUBDIR=self.subdir)) == self.target
+
+
+class FinalTargetFiles(ContextDerived):
+    """Sandbox container object for FINAL_TARGET_FILES, which is a
+    HierarchicalStringList.
+
+    We need an object derived from ContextDerived for use in the backend, so
+    this object fills that role. It just has a reference to the underlying
+    HierarchicalStringList, which is created when parsing FINAL_TARGET_FILES.
+    """
+    __slots__ = ('files', 'target')
+
+    def __init__(self, sandbox, files, target):
+        ContextDerived.__init__(self, sandbox)
+        self.files = files
+        self.target = target
+
+
+class DistFiles(ContextDerived):
+    """Sandbox container object for FINAL_TARGET_FILES, which is a
+    HierarchicalStringList.
+
+    We need an object derived from ContextDerived for use in the backend, so
+    this object fills that role. It just has a reference to the underlying
+    HierarchicalStringList, which is created when parsing DIST_FILES.
+    """
+    __slots__ = ('files', 'target')
+
+    def __init__(self, sandbox, files, target):
+        ContextDerived.__init__(self, sandbox)
+        self.files = files
+        self.target = target
+
+
+class GeneratedFile(ContextDerived):
+    """Represents a generated file."""
+
+    __slots__ = (
+        'script',
+        'method',
+        'output',
+        'inputs',
+    )
+
+    def __init__(self, context, script, method, output, inputs):
+        ContextDerived.__init__(self, context)
+        self.script = script
+        self.method = method
+        self.output = output
+        self.inputs = inputs
 
 
 class ClassPathEntry(object):
@@ -816,3 +949,53 @@ class AndroidEclipseProjectData(object):
         cpe.ignore_warnings = ignore_warnings
         self._classpathentries.append(cpe)
         return cpe
+
+
+class AndroidResDirs(ContextDerived):
+    """Represents Android resource directories."""
+
+    __slots__ = (
+        'paths',
+    )
+
+    def __init__(self, context, paths):
+        ContextDerived.__init__(self, context)
+        self.paths = paths
+
+class AndroidAssetsDirs(ContextDerived):
+    """Represents Android assets directories."""
+
+    __slots__ = (
+        'paths',
+    )
+
+    def __init__(self, context, paths):
+        ContextDerived.__init__(self, context)
+        self.paths = paths
+
+class AndroidExtraResDirs(ContextDerived):
+    """Represents Android extra resource directories.
+
+    Extra resources are resources provided by libraries and including in a
+    packaged APK, but not otherwise redistributed.  In practice, this means
+    resources included in Fennec but not in GeckoView.
+    """
+
+    __slots__ = (
+        'paths',
+    )
+
+    def __init__(self, context, paths):
+        ContextDerived.__init__(self, context)
+        self.paths = paths
+
+class AndroidExtraPackages(ContextDerived):
+    """Represents Android extra packages."""
+
+    __slots__ = (
+        'packages',
+    )
+
+    def __init__(self, context, packages):
+        ContextDerived.__init__(self, context)
+        self.packages = packages

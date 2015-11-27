@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -10,9 +10,9 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/dom/File.h"
 #include "nsAutoPtr.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsDOMFile.h"
 #include "nsPIDOMWindow.h"
 #include "nsWrapperCache.h"
 
@@ -36,7 +36,7 @@ class FileSystemBase;
 class Promise;
 class StringOrFileOrDirectory;
 
-class Directory MOZ_FINAL
+class Directory final
   : public nsISupports
   , public nsWrapperCache
 {
@@ -56,10 +56,10 @@ public:
   GetParentObject() const;
 
   virtual JSObject*
-  WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   void
-  GetName(nsString& aRetval) const;
+  GetName(nsAString& aRetval) const;
 
   already_AddRefed<Promise>
   CreateFile(const nsAString& aPath, const CreateFileOptions& aOptions,
@@ -76,6 +76,14 @@ public:
 
   already_AddRefed<Promise>
   RemoveDeep(const StringOrFileOrDirectory& aPath, ErrorResult& aRv);
+
+  // From https://microsoftedge.github.io/directory-upload/proposal.html#directory-interface :
+
+  void
+  GetPath(nsAString& aRetval) const;
+
+  already_AddRefed<Promise>
+  GetFilesAndDirectories();
 
   // =========== End WebIDL bindings.============
 
@@ -98,7 +106,7 @@ private:
   RemoveInternal(const StringOrFileOrDirectory& aPath, bool aRecursive,
                  ErrorResult& aRv);
 
-  nsRefPtr<FileSystemBase> mFileSystem;
+  RefPtr<FileSystemBase> mFileSystem;
   nsString mPath;
 };
 

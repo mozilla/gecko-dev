@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 sw=2 et tw=79: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -16,8 +16,8 @@
 class nsMimeType;
 class nsPluginElement;
 
-class nsMimeTypeArray MOZ_FINAL : public nsISupports,
-                                  public nsWrapperCache
+class nsMimeTypeArray final : public nsISupports,
+                              public nsWrapperCache
 {
 public:
   explicit nsMimeTypeArray(nsPIDOMWindow* aWindow);
@@ -26,7 +26,7 @@ public:
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(nsMimeTypeArray)
 
   nsPIDOMWindow* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   void Refresh();
 
@@ -47,29 +47,25 @@ protected:
 
   nsCOMPtr<nsPIDOMWindow> mWindow;
 
-  // mMimeTypes contains MIME types handled by non-hidden plugins, those
-  // popular plugins that must be exposed in navigator.plugins enumeration to
-  // avoid breaking web content. Likewise, mMimeTypes are exposed in
-  // navigator.mimeTypes enumeration.
-  nsTArray<nsRefPtr<nsMimeType> > mMimeTypes;
-
-  // mHiddenMimeTypes contains MIME types handled by plugins hidden from
-  // navigator.plugins enumeration or by an OS PreferredApplicationHandler.
-  // mHiddenMimeTypes are hidden from navigator.mimeTypes enumeration.
-  nsTArray<nsRefPtr<nsMimeType> > mHiddenMimeTypes;
+  // mMimeTypes contains MIME types handled by plugins or by an OS
+  // PreferredApplicationHandler.
+  nsTArray<RefPtr<nsMimeType> > mMimeTypes;
 };
 
-class nsMimeType MOZ_FINAL : public nsWrapperCache
+class nsMimeType final : public nsWrapperCache
 {
 public:
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(nsMimeType)
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(nsMimeType)
 
-  nsMimeType(nsPIDOMWindow* aWindow, nsPluginElement* aPluginElement,
-             uint32_t aPluginTagMimeIndex, const nsAString& aMimeType);
+  nsMimeType(nsPIDOMWindow* aWindow,
+             nsPluginElement* aPluginElement,
+             const nsAString& aType,
+             const nsAString& aDescription,
+             const nsAString& aExtension);
   nsMimeType(nsPIDOMWindow* aWindow, const nsAString& aMimeType);
   nsPIDOMWindow* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   const nsString& Type() const
   {
@@ -91,9 +87,10 @@ protected:
   // creates an explicit reference cycle through the plugin element's
   // mimetype array. We rely on the cycle collector to break this
   // cycle.
-  nsRefPtr<nsPluginElement> mPluginElement;
-  uint32_t mPluginTagMimeIndex;
+  RefPtr<nsPluginElement> mPluginElement;
   nsString mType;
+  nsString mDescription;
+  nsString mExtension;
 };
 
 #endif /* nsMimeTypeArray_h___ */

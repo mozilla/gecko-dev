@@ -361,7 +361,7 @@ gfxFontconfigUtils::GetFontList(nsIAtom *aLangGroup,
         NS_NOTREACHED("unexpected CSS generic font family");
 
     // The first in the list becomes the default in
-    // gFontsDialog.readFontSelection() if the preference-selected font is not
+    // FontBuilder.readFontSelection() if the preference-selected font is not
     // available, so put system configured defaults first.
     if (monospace)
         aListOfFonts.InsertElementAt(0, NS_LITERAL_STRING("monospace"));
@@ -598,7 +598,6 @@ gfxFontconfigUtils::UpdateFontListInternal(bool aForce)
     mFontsByFamily.Clear();
     mFontsByFullname.Clear();
     mLangSupportTable.Clear();
-    mAliasForMultiFonts.Clear();
 
     // Record the existing font families
     for (unsigned fs = 0; fs < ArrayLength(fontSets); ++fs) {
@@ -629,36 +628,6 @@ gfxFontconfigUtils::UpdateFontListInternal(bool aForce)
                     }
                 }
             }
-        }
-    }
-
-    // XXX we don't support all alias names.
-    // Because if we don't check whether the given font name is alias name,
-    // fontconfig converts the non existing font to sans-serif.
-    // This is not good if the web page specifies font-family
-    // that has Windows font name in the first.
-    NS_ENSURE_TRUE(Preferences::GetRootBranch(), NS_ERROR_FAILURE);
-    nsAdoptingCString list = Preferences::GetCString("font.alias-list");
-
-    if (!list.IsEmpty()) {
-        const char kComma = ',';
-        const char *p, *p_end;
-        list.BeginReading(p);
-        list.EndReading(p_end);
-        while (p < p_end) {
-            while (nsCRT::IsAsciiSpace(*p)) {
-                if (++p == p_end)
-                    break;
-            }
-            if (p == p_end)
-                break;
-            const char *start = p;
-            while (++p != p_end && *p != kComma)
-                /* nothing */ ;
-            nsAutoCString name(Substring(start, p));
-            name.CompressWhitespace(false, true);
-            mAliasForMultiFonts.AppendElement(name);
-            p++;
         }
     }
 

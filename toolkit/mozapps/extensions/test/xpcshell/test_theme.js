@@ -95,10 +95,12 @@ function run_test() {
     do_check_neq(d, null);
     do_check_false(d.skinnable);
     do_check_false(d.foreignInstall);
+    do_check_eq(d.signedState, undefined);
 
     do_check_neq(t1, null);
     do_check_false(t1.userDisabled);
     do_check_false(t1.appDisabled);
+    do_check_eq(t1.signedState, undefined);
     do_check_true(t1.isActive);
     do_check_true(t1.skinnable);
     do_check_true(t1.foreignInstall);
@@ -112,6 +114,7 @@ function run_test() {
     do_check_neq(t2, null);
     do_check_true(t2.userDisabled);
     do_check_false(t2.appDisabled);
+    do_check_eq(t2.signedState, undefined);
     do_check_false(t2.isActive);
     do_check_false(t2.skinnable);
     do_check_true(t2.foreignInstall);
@@ -1086,7 +1089,51 @@ function run_test_21() {
       p1.userDisabled = false;
       ensure_test_completed();
 
-      end_test();
+      run_test_22();
     });
   }));
+}
+
+// Detecting a new add-on during the startup file check should not disable an
+// active lightweight theme
+function run_test_22() {
+  restartManager();
+
+  AddonManager.getAddonsByIDs(["default@tests.mozilla.org",
+                               "1@personas.mozilla.org"], function([d, p1]) {
+    do_check_true(d.userDisabled);
+    do_check_false(d.appDisabled);
+    do_check_false(d.isActive);
+
+    do_check_false(p1.userDisabled);
+    do_check_false(p1.appDisabled);
+    do_check_true(p1.isActive);
+
+    writeInstallRDFForExtension({
+      id: "theme3@tests.mozilla.org",
+      version: "1.0",
+      name: "Test 3",
+      internalName: "theme3/1.0",
+      targetApplications: [{
+        id: "xpcshell@tests.mozilla.org",
+        minVersion: "1",
+        maxVersion: "2"
+      }]
+    }, profileDir);
+
+    restartManager();
+
+    AddonManager.getAddonsByIDs(["default@tests.mozilla.org",
+                                 "1@personas.mozilla.org"], function([d, p1]) {
+      do_check_true(d.userDisabled);
+      do_check_false(d.appDisabled);
+      do_check_false(d.isActive);
+
+      do_check_false(p1.userDisabled);
+      do_check_false(p1.appDisabled);
+      do_check_true(p1.isActive);
+
+      end_test();
+    });
+  });
 }

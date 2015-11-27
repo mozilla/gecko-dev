@@ -10,6 +10,8 @@ const notificationID = "indexedDB-permissions-prompt";
 function test()
 {
   waitForExplicitFinish();
+  // Avoids the actual prompt
+  setPermission(testPageURL, "indexedDB");
   executeSoon(test1);
 }
 
@@ -40,9 +42,9 @@ function test2()
   var win = OpenBrowserWindow({private: true});
   win.addEventListener("load", function onLoad() {
     win.removeEventListener("load", onLoad, false);
-    executeSoon(function() test3(win));
+    executeSoon(() => test3(win));
   }, false);
-  registerCleanupFunction(function() win.close());
+  registerCleanupFunction(() => win.close());
 }
 
 function test3(win)

@@ -4,9 +4,9 @@
 
 this.EXPORTED_SYMBOLS = ["WeaveCrypto"];
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cr = Components.results;
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
@@ -132,17 +132,16 @@ WeaveCrypto.prototype = {
 
         // XXX really want to be able to pass specific dlopen flags here.
         var nsslib;
-        try {
-            this.log("Trying NSS library without path");
-            nsslib = ctypes.open(path);
-        } catch(e) {
-            // In case opening the library without a full path fails,
-            // try again with a full path.
-            let file = Services.dirsvc.get("GreD", Ci.nsILocalFile);
-            file.append(path);
-            this.log("Trying again with path " + file.path);
-            nsslib = ctypes.open(file.path);
-        }
+#ifdef MOZ_NATIVE_NSS
+        // Search platform-dependent library paths for system NSS.
+        this.log("Trying NSS library without path");
+        nsslib = ctypes.open(path);
+#else
+        let file = Services.dirsvc.get("GreBinD", Ci.nsILocalFile);
+        file.append(path);
+        this.log("Trying NSS library with path " + file.path);
+        nsslib = ctypes.open(file.path);
+#endif
 
         this.log("Initializing NSS types and function declarations...");
 
@@ -539,7 +538,9 @@ WeaveCrypto.prototype = {
         }
     },
 
-    generateRandomIV : function() this.generateRandomBytes(this.ivLength),
+    generateRandomIV : function() {
+      return this.generateRandomBytes(this.ivLength);
+    },
 
     generateRandomBytes : function(byteCount) {
         this.log("generateRandomBytes() called");

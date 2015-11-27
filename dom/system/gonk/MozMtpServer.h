@@ -10,15 +10,11 @@
 #include "MozMtpCommon.h"
 #include "MozMtpDatabase.h"
 
+#include "mozilla/FileUtils.h"
+
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "nsIThread.h"
-
-namespace mozilla {
-namespace system {
-  class Volume;
-}
-}
 
 BEGIN_MTP_NAMESPACE
 using namespace android;
@@ -33,6 +29,9 @@ public:
     : MtpServer(aFd, aDatabase, aPtp, aFileGroup, aFilePerm, aDirectoryPerm)
   {
   }
+
+protected:
+  virtual ~RefCountedMtpServer() {}
 };
 
 class MozMtpServer
@@ -40,17 +39,20 @@ class MozMtpServer
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MozMtpServer)
 
+  bool Init();
   void Run();
-
-//  void UpdateStorage(android::MtpStorageID id, Volume *vol);
 
   already_AddRefed<RefCountedMtpServer> GetMtpServer();
   already_AddRefed<MozMtpDatabase> GetMozMtpDatabase();
 
+protected:
+  virtual ~MozMtpServer() {}
+
 private:
-  nsRefPtr<RefCountedMtpServer> mMtpServer;
-  nsRefPtr<MozMtpDatabase> mMozMtpDatabase;
+  RefPtr<RefCountedMtpServer> mMtpServer;
+  RefPtr<MozMtpDatabase> mMozMtpDatabase;
   nsCOMPtr<nsIThread> mServerThread;
+  ScopedClose mMtpUsbFd;
 };
 
 END_MTP_NAMESPACE

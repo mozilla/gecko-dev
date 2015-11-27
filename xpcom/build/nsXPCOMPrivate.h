@@ -1,11 +1,11 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* vim:set ts=4 sw=4 et cindent: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef nsXPComPrivate_h__
-#define nsXPComPrivate_h__
+#ifndef nsXPCOMPrivate_h__
+#define nsXPCOMPrivate_h__
 
 #include "nscore.h"
 #include "nsXPCOM.h"
@@ -14,7 +14,6 @@
 
 class nsStringContainer;
 class nsCStringContainer;
-class nsIComponentLoader;
 class nsPurpleBufferEntry;
 
 /**
@@ -44,7 +43,7 @@ typedef nsresult   (*NewNativeLocalFileFunc)(const nsACString& aPath,
                                              bool aFollowLinks,
                                              nsIFile** aResult);
 
-typedef nsresult   (*GetDebugFunc)(nsIDebug** aResult);
+typedef nsresult   (*GetDebugFunc)(nsIDebug2** aResult);
 
 typedef nsresult   (*StringContainerInitFunc)(nsStringContainer&);
 typedef nsresult   (*StringContainerInit2Func)(nsStringContainer&,
@@ -300,7 +299,9 @@ void LogTerm();
 
 extern bool gXPCOMShuttingDown;
 extern bool gXPCOMThreadsShutDown;
-extern char16_t* gGREPath; // Needed by the IPC layer from off the main thread
+
+// Needed by the IPC layer from off the main thread
+extern char16_t* gGREBinPath;
 
 namespace mozilla {
 namespace services {

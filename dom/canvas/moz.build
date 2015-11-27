@@ -4,8 +4,15 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-TEST_DIRS += ['test']
 TEST_DIRS += ['compiledtest']
+
+MOCHITEST_MANIFESTS += [
+    'test/crossorigin/mochitest.ini',
+    'test/mochitest-subsuite-webgl.ini',
+    'test/mochitest.ini',
+]
+
+MOCHITEST_CHROME_MANIFESTS += ['test/chrome/chrome.ini']
 
 EXPORTS += [
     'nsICanvasRenderingContextInternal.h',
@@ -18,27 +25,39 @@ EXPORTS.mozilla.ipc += [
 
 EXPORTS.mozilla.dom += [
     'CanvasGradient.h',
+    'CanvasPath.h',
     'CanvasPattern.h',
     'CanvasRenderingContext2D.h',
+    'CanvasRenderingContextHelper.h',
     'CanvasUtils.h',
+    'ImageBitmap.h',
+    'ImageBitmapSource.h',
     'ImageData.h',
+    'OffscreenCanvas.h',
     'TextMetrics.h',
+    'WebGLVertexArrayObject.h',
 ]
 
 # Canvas 2D and common sources
 UNIFIED_SOURCES += [
     'CanvasImageCache.cpp',
     'CanvasRenderingContext2D.cpp',
+    'CanvasRenderingContextHelper.cpp',
     'CanvasUtils.cpp',
     'DocumentRendererChild.cpp',
     'DocumentRendererParent.cpp',
+    'ImageBitmap.cpp',
     'ImageData.cpp',
+    'OffscreenCanvas.cpp',
 ]
 
 # WebGL Sources
 UNIFIED_SOURCES += [
     'MurmurHash3.cpp',
+    'TexUnpackBlob.cpp',
     'WebGL1Context.cpp',
+    'WebGL1ContextBuffers.cpp',
+    'WebGL1ContextUniforms.cpp',
     'WebGL2Context.cpp',
     'WebGL2ContextBuffers.cpp',
     'WebGL2ContextDraw.cpp',
@@ -46,24 +65,27 @@ UNIFIED_SOURCES += [
     'WebGL2ContextMRTs.cpp',
     'WebGL2ContextPrograms.cpp',
     'WebGL2ContextQueries.cpp',
+    'WebGL2ContextRenderbuffers.cpp',
     'WebGL2ContextSamplers.cpp',
+    'WebGL2ContextState.cpp',
     'WebGL2ContextSync.cpp',
     'WebGL2ContextTextures.cpp',
     'WebGL2ContextTransformFeedback.cpp',
     'WebGL2ContextUniforms.cpp',
     'WebGL2ContextVAOs.cpp',
+    'WebGL2ContextVertices.cpp',
     'WebGLActiveInfo.cpp',
     'WebGLBuffer.cpp',
     'WebGLContext.cpp',
-    'WebGLContextAsyncQueries.cpp',
     'WebGLContextBuffers.cpp',
     'WebGLContextDraw.cpp',
     'WebGLContextExtensions.cpp',
     'WebGLContextFramebufferOperations.cpp',
     'WebGLContextGL.cpp',
     'WebGLContextLossHandler.cpp',
-    'WebGLContextReporter.cpp',
     'WebGLContextState.cpp',
+    'WebGLContextTextures.cpp',
+    'WebGLContextUnchecked.cpp',
     'WebGLContextUtils.cpp',
     'WebGLContextValidate.cpp',
     'WebGLContextVertexArray.cpp',
@@ -80,6 +102,7 @@ UNIFIED_SOURCES += [
     'WebGLExtensionDebugRendererInfo.cpp',
     'WebGLExtensionDebugShaders.cpp',
     'WebGLExtensionDepthTexture.cpp',
+    'WebGLExtensionDisjointTimerQuery.cpp',
     'WebGLExtensionDrawBuffers.cpp',
     'WebGLExtensionElementIndexUint.cpp',
     'WebGLExtensionFragDepth.cpp',
@@ -94,8 +117,10 @@ UNIFIED_SOURCES += [
     'WebGLExtensionTextureHalfFloat.cpp',
     'WebGLExtensionTextureHalfFloatLinear.cpp',
     'WebGLExtensionVertexArray.cpp',
+    'WebGLFormats.cpp',
     'WebGLFramebuffer.cpp',
     'WebGLFramebufferAttachable.cpp',
+    'WebGLMemoryTracker.cpp',
     'WebGLObjectModel.cpp',
     'WebGLProgram.cpp',
     'WebGLQuery.cpp',
@@ -103,38 +128,46 @@ UNIFIED_SOURCES += [
     'WebGLSampler.cpp',
     'WebGLShader.cpp',
     'WebGLShaderPrecisionFormat.cpp',
+    'WebGLShaderValidator.cpp',
     'WebGLSync.cpp',
     'WebGLTexelConversions.cpp',
     'WebGLTexture.cpp',
+    'WebGLTextureUpload.cpp',
+    'WebGLTimerQuery.cpp',
     'WebGLTransformFeedback.cpp',
     'WebGLUniformLocation.cpp',
+    'WebGLValidateStrings.cpp',
     'WebGLVertexArray.cpp',
     'WebGLVertexArrayFake.cpp',
     'WebGLVertexArrayGL.cpp',
+    'WebGLVertexArrayObject.cpp',
 ]
+
 LOCAL_INCLUDES += [
     '/js/xpconnect/wrappers',
 ]
-
-FAIL_ON_WARNINGS = True
-
-MSVC_ENABLE_PGO = True
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
 FINAL_LIBRARY = 'xul'
 LOCAL_INCLUDES += [
-    '/content/base/src',
-    '/content/html/content/src',
-    '/content/svg/content/src',
-    '/content/xul/content/src',
+    '../workers',
     '/dom/base',
-    '/image/src',
+    '/dom/html',
+    '/dom/svg',
+    '/dom/workers',
+    '/dom/xul',
+    '/gfx/gl',
+    '/image',
     '/js/xpconnect/src',
     '/layout/generic',
     '/layout/style',
     '/layout/xul',
+    '/media/libyuv/include',
 ]
 
 CXXFLAGS += CONFIG['MOZ_CAIRO_CFLAGS']
 CXXFLAGS += CONFIG['TK_CFLAGS']
+
+LOCAL_INCLUDES += CONFIG['SKIA_INCLUDES']
+

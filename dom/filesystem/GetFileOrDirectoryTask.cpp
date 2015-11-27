@@ -1,5 +1,5 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,10 +8,12 @@
 
 #include "js/Value.h"
 #include "mozilla/dom/Directory.h"
+#include "mozilla/dom/File.h"
 #include "mozilla/dom/FileSystemBase.h"
 #include "mozilla/dom/FileSystemUtils.h"
 #include "mozilla/dom/Promise.h"
-#include "nsDOMFile.h"
+#include "mozilla/dom/ipc/BlobChild.h"
+#include "mozilla/dom/ipc/BlobParent.h"
 #include "nsIFile.h"
 #include "nsStringGlue.h"
 
@@ -44,7 +46,7 @@ GetFileOrDirectoryTask::GetFileOrDirectoryTask(
   : FileSystemTaskBase(aFileSystem, aParam, aParent)
   , mIsDirectory(false)
 {
-  MOZ_ASSERT(FileSystemUtils::IsParentProcess(),
+  MOZ_ASSERT(XRE_IsParentProcess(),
              "Only call from parent process!");
   MOZ_ASSERT(NS_IsMainThread(), "Only call on main thread!");
   MOZ_ASSERT(aFileSystem);
@@ -61,7 +63,7 @@ already_AddRefed<Promise>
 GetFileOrDirectoryTask::GetPromise()
 {
   MOZ_ASSERT(NS_IsMainThread(), "Only call on main thread!");
-  return nsRefPtr<Promise>(mPromise).forget();
+  return RefPtr<Promise>(mPromise).forget();
 }
 
 FileSystemParams
@@ -79,8 +81,7 @@ GetFileOrDirectoryTask::GetSuccessRequestResult() const
     return FileSystemDirectoryResponse(mTargetRealPath);
   }
 
-  nsRefPtr<DOMFile> file = new DOMFile(mTargetFileImpl);
-  BlobParent* actor = GetBlobParent(file);
+  BlobParent* actor = GetBlobParent(mTargetBlobImpl);
   if (!actor) {
     return FileSystemErrorResponse(NS_ERROR_DOM_FILESYSTEM_UNKNOWN_ERR);
   }
@@ -97,8 +98,7 @@ GetFileOrDirectoryTask::SetSuccessRequestResult(const FileSystemResponseValue& a
     case FileSystemResponseValue::TFileSystemFileResponse: {
       FileSystemFileResponse r = aValue;
       BlobChild* actor = static_cast<BlobChild*>(r.blobChild());
-      nsCOMPtr<nsIDOMBlob> blob = actor->GetBlob();
-      mTargetFileImpl = static_cast<DOMFile*>(blob.get())->Impl();
+      mTargetBlobImpl = actor->GetBlobImpl();
       mIsDirectory = false;
       break;
     }
@@ -118,7 +118,7 @@ GetFileOrDirectoryTask::SetSuccessRequestResult(const FileSystemResponseValue& a
 nsresult
 GetFileOrDirectoryTask::Work()
 {
-  MOZ_ASSERT(FileSystemUtils::IsParentProcess(),
+  MOZ_ASSERT(XRE_IsParentProcess(),
              "Only call from parent process!");
   MOZ_ASSERT(!NS_IsMainThread(), "Only call on worker thread!");
 
@@ -183,7 +183,7 @@ GetFileOrDirectoryTask::Work()
     return NS_ERROR_DOM_SECURITY_ERR;
   }
 
-  mTargetFileImpl = new DOMFileImplFile(file);
+  mTargetBlobImpl = new BlobImplFile(file);
 
   return NS_OK;
 }
@@ -198,22 +198,20 @@ GetFileOrDirectoryTask::HandlerCallback()
   }
 
   if (HasError()) {
-    nsRefPtr<DOMError> domError = new DOMError(mFileSystem->GetWindow(),
-      mErrorValue);
-    mPromise->MaybeRejectBrokenly(domError);
+    mPromise->MaybeReject(mErrorValue);
     mPromise = nullptr;
     return;
   }
 
   if (mIsDirectory) {
-    nsRefPtr<Directory> dir = new Directory(mFileSystem, mTargetRealPath);
+    RefPtr<Directory> dir = new Directory(mFileSystem, mTargetRealPath);
     mPromise->MaybeResolve(dir);
     mPromise = nullptr;
     return;
   }
 
-  nsCOMPtr<nsIDOMFile> file = new DOMFile(mTargetFileImpl);
-  mPromise->MaybeResolve(file);
+  RefPtr<Blob> blob = Blob::Create(mFileSystem->GetWindow(), mTargetBlobImpl);
+  mPromise->MaybeResolve(blob);
   mPromise = nullptr;
 }
 

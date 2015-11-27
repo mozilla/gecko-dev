@@ -14,8 +14,7 @@ EXPORTS.mozilla.net += [
     'RtspHandler.h',
 ]
 
-# These files cannot be built in unified mode because they force NSPR logging.
-SOURCES += [
+UNIFIED_SOURCES += [
     'controller/RtspController.cpp',
     'controller/RtspControllerChild.cpp',
     'controller/RtspControllerParent.cpp',
@@ -43,11 +42,13 @@ SOURCES += [
     'rtsp/RTSPSource.cpp',
 ]
 
-FAIL_ON_WARNINGS = True
-
-MSVC_ENABLE_PGO = True
-
 include('/ipc/chromium/chromium-config.mozbuild')
+
+# Suppress some GCC warnings being treated as errors:
+#  - about attributes on forward declarations for types that are already
+#    defined, which complains about an important MOZ_EXPORT for android::AString
+if CONFIG['GNU_CC']:
+  CXXFLAGS += ['-Wno-error=attributes']
 
 FINAL_LIBRARY = 'xul'
 
@@ -55,8 +56,8 @@ DEFINES['IMPL_NS_NET'] = True
 DEFINES['FORCE_PR_LOG'] = True
 
 LOCAL_INCLUDES += [
-    '../../base/src',
-    '/content/base/src',
+    '/dom/base',
+    '/netwerk/base',
     'controller',
     'rtsp',
 ]
@@ -65,8 +66,8 @@ for var in ('IMPL_NS_NET', 'FORCE_PR_LOG'):
     DEFINES[var] = True
 
 if CONFIG['ANDROID_VERSION'] == '15':
-    CXXFLAGS += ['-I%s/frameworks/base/media/libstagefright/mpeg2ts' % CONFIG['ANDROID_SOURCE']]
+    LOCAL_INCLUDES += ['%' + '%s/frameworks/base/media/libstagefright/mpeg2ts' % CONFIG['ANDROID_SOURCE']]
 else:
-    CXXFLAGS += ['-I%s/frameworks/av/media/libstagefright/mpeg2ts' % CONFIG['ANDROID_SOURCE']]
+    LOCAL_INCLUDES += ['%' + '%s/frameworks/av/media/libstagefright/mpeg2ts' % CONFIG['ANDROID_SOURCE']]
 
 CXXFLAGS += ['-Wno-multichar']

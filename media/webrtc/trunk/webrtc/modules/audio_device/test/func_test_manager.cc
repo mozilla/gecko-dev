@@ -96,7 +96,7 @@ AudioTransportImpl::AudioTransportImpl(AudioDeviceModule* audioDevice) :
     _recCount(0),
     _playCount(0)
 {
-    _resampler.Reset(48000, 48000, kResamplerSynchronousStereo);
+    _resampler.Reset(48000, 48000, 2);
 }
 
 AudioTransportImpl::~AudioTransportImpl()
@@ -292,7 +292,9 @@ int32_t AudioTransportImpl::NeedMorePlayData(
     const uint8_t nChannels,
     const uint32_t samplesPerSec,
     void* audioSamples,
-    uint32_t& nSamplesOut)
+    uint32_t& nSamplesOut,
+    int64_t* elapsed_time_ms,
+    int64_t* ntp_time_ms)
 {
     if (_fullDuplex)
     {
@@ -324,8 +326,7 @@ int32_t AudioTransportImpl::NeedMorePlayData(
                 if (nChannelsIn == 2 && nBytesPerSampleIn == 4)
                 {
                     // input is stereo => we will resample in stereo
-                    ret = _resampler.ResetIfNeeded(fsInHz, fsOutHz,
-                                                   kResamplerSynchronousStereo);
+                    ret = _resampler.ResetIfNeeded(fsInHz, fsOutHz, 2);
                     if (ret == 0)
                     {
                         if (nChannels == 2)
@@ -366,8 +367,7 @@ int32_t AudioTransportImpl::NeedMorePlayData(
                 {
                     // input is mono (can be "reduced from stereo" as well) =>
                     // we will resample in mono
-                    ret = _resampler.ResetIfNeeded(fsInHz, fsOutHz,
-                                                   kResamplerSynchronous);
+                    ret = _resampler.ResetIfNeeded(fsInHz, fsOutHz, 1);
                     if (ret == 0)
                     {
                         if (nChannels == 1)
@@ -536,14 +536,20 @@ int AudioTransportImpl::OnDataAvailable(const int voe_channels[],
   return 0;
 }
 
-void AudioTransportImpl::OnData(int voe_channel,
-                                const void* audio_data,
-                                int bits_per_sample, int sample_rate,
-                                int number_of_channels,
-                                int number_of_frames) {}
+void AudioTransportImpl::PushCaptureData(int voe_channel,
+                                         const void* audio_data,
+                                         int bits_per_sample, int sample_rate,
+                                         int number_of_channels,
+                                         int number_of_frames) {}
+
+void AudioTransportImpl::PullRenderData(int bits_per_sample, int sample_rate,
+                                        int number_of_channels,
+                                        int number_of_frames,
+                                        void* audio_data,
+                                        int64_t* elapsed_time_ms,
+                                        int64_t* ntp_time_ms) {}
 
 FuncTestManager::FuncTestManager() :
-    _processThread(NULL),
     _audioDevice(NULL),
     _audioEventObserver(NULL),
     _audioTransport(NULL)
@@ -564,7 +570,7 @@ FuncTestManager::~FuncTestManager()
 
 int32_t FuncTestManager::Init()
 {
-    EXPECT_TRUE((_processThread = ProcessThread::CreateProcessThread()) != NULL);
+    EXPECT_TRUE((_processThread = ProcessThread::Create()) != NULL);
     if (_processThread == NULL)
     {
         return -1;
@@ -605,7 +611,7 @@ int32_t FuncTestManager::Close()
     {
         _processThread->DeRegisterModule(_audioDevice);
         _processThread->Stop();
-        ProcessThread::DestroyProcessThread(_processThread);
+        _processThread.reset();
     }
 
     // delete the audio observer
@@ -649,6 +655,7 @@ int32_t FuncTestManager::DoTest(const TestType testType)
             TestSpeakerVolume();
             TestMicrophoneVolume();
             TestLoopback();
+            FALLTHROUGH();
         case TTAudioLayerSelection:
             TestAudioLayerSelection();
             break;
@@ -687,6 +694,7 @@ int32_t FuncTestManager::DoTest(const TestType testType)
             break;
         case TTMobileAPI:
             TestAdvancedMBAPI();
+            FALLTHROUGH();
         case TTTest:
             TestExtra();
             break;
@@ -727,6 +735,9 @@ int32_t FuncTestManager::TestAudioLayerSelection()
     } else if (audioLayer == AudioDeviceModule::kLinuxPulseAudio)
     {
         TEST_LOG("\nActiveAudioLayer: kLinuxPulseAudio\n \n");
+    } else if (audioLayer == AudioDeviceModule::kSndioAudio)
+    {
+        TEST_LOG("\nActiveAudioLayer: kSndioAudio\n \n");
     } else
     {
         TEST_LOG("\nActiveAudioLayer: INVALID\n \n");
@@ -772,7 +783,7 @@ int32_t FuncTestManager::TestAudioLayerSelection()
         {
             _processThread->DeRegisterModule(_audioDevice);
             _processThread->Stop();
-            ProcessThread::DestroyProcessThread(_processThread);
+            _processThread.reset();
         }
 
         // delete the audio observer
@@ -799,7 +810,7 @@ int32_t FuncTestManager::TestAudioLayerSelection()
         // ==================================================
         // Next, try to make fresh start with new audio layer
 
-        EXPECT_TRUE((_processThread = ProcessThread::CreateProcessThread()) != NULL);
+        EXPECT_TRUE((_processThread = ProcessThread::Create()) != NULL);
         if (_processThread == NULL)
         {
             return -1;
@@ -907,9 +918,12 @@ int32_t FuncTestManager::TestDeviceEnumeration()
 
 #ifdef _WIN32
     // default (-1)
+    // TODO(henrika): fix below test.
+#if 0
     EXPECT_EQ(0, audioDevice->PlayoutDeviceName(-1, name, guid));
     TEST_LOG("PlayoutDeviceName(%d):   default name=%s \n \
 	                 default guid=%s\n", -1, name, guid);
+#endif  // 0
 #else
     // should fail
     EXPECT_EQ(-1, audioDevice->PlayoutDeviceName(-1, name, guid));
@@ -929,9 +943,12 @@ int32_t FuncTestManager::TestDeviceEnumeration()
 
 #ifdef _WIN32
     // default (-1)
+    // TODO(henrika): fix below test.
+#if 0
     EXPECT_EQ(0, audioDevice->RecordingDeviceName(-1, name, guid));
     TEST_LOG("RecordingDeviceName(%d): default name=%s \n \
 	                 default guid=%s\n", -1, name, guid);
+#endif
 #else
     // should fail
     EXPECT_EQ(-1, audioDevice->PlayoutDeviceName(-1, name, guid));
@@ -1007,8 +1024,6 @@ int32_t FuncTestManager::TestDeviceSelection()
     {
         PRINT_STR(Stereo Playout, false);
     }
-    EXPECT_EQ(0, audioDevice->SpeakerIsAvailable(&available));
-    PRINT_STR(Speaker, available);
     EXPECT_EQ(0, audioDevice->SpeakerVolumeIsAvailable(&available));
     PRINT_STR(Speaker Volume, available);
     EXPECT_EQ(0, audioDevice->SpeakerMuteIsAvailable(&available));
@@ -1027,8 +1042,6 @@ int32_t FuncTestManager::TestDeviceSelection()
     {
         PRINT_STR(Stereo Playout, false);
     }
-    EXPECT_EQ(0, audioDevice->SpeakerIsAvailable(&available));
-    PRINT_STR(Speaker, available);
     EXPECT_EQ(0, audioDevice->SpeakerVolumeIsAvailable(&available));
     PRINT_STR(Speaker Volume, available);
     EXPECT_EQ(0, audioDevice->SpeakerMuteIsAvailable(&available));
@@ -1054,8 +1067,6 @@ int32_t FuncTestManager::TestDeviceSelection()
         {
             PRINT_STR(Stereo Playout, false);
         }
-        EXPECT_EQ(0, audioDevice->SpeakerIsAvailable(&available));
-        PRINT_STR(Speaker, available);
         EXPECT_EQ(0, audioDevice->SpeakerVolumeIsAvailable(&available));
         PRINT_STR(Speaker Volume, available);
         EXPECT_EQ(0, audioDevice->SpeakerMuteIsAvailable(&available));
@@ -1085,8 +1096,6 @@ int32_t FuncTestManager::TestDeviceSelection()
         // special fix to ensure that we don't log 'available' when recording is not OK
         PRINT_STR(Stereo Recording, false);
     }
-    EXPECT_EQ(0, audioDevice->MicrophoneIsAvailable(&available));
-    PRINT_STR(Microphone, available);
     EXPECT_EQ(0, audioDevice->MicrophoneVolumeIsAvailable(&available));
     PRINT_STR(Microphone Volume, available);
     EXPECT_EQ(0, audioDevice->MicrophoneMuteIsAvailable(&available));
@@ -1108,8 +1117,6 @@ int32_t FuncTestManager::TestDeviceSelection()
         // special fix to ensure that we don't log 'available' when recording is not OK
         PRINT_STR(Stereo Recording, false);
     }
-    EXPECT_EQ(0, audioDevice->MicrophoneIsAvailable(&available));
-    PRINT_STR(Microphone, available);
     EXPECT_EQ(0, audioDevice->MicrophoneVolumeIsAvailable(&available));
     PRINT_STR(Microphone Volume, available);
     EXPECT_EQ(0, audioDevice->MicrophoneMuteIsAvailable(&available));
@@ -1139,8 +1146,6 @@ int32_t FuncTestManager::TestDeviceSelection()
             // is not OK
             PRINT_STR(Stereo Recording, false);
         }
-        EXPECT_EQ(0, audioDevice->MicrophoneIsAvailable(&available));
-        PRINT_STR(Microphone, available);
         EXPECT_EQ(0, audioDevice->MicrophoneVolumeIsAvailable(&available));
         PRINT_STR(Microphone Volume, available);
         EXPECT_EQ(0, audioDevice->MicrophoneMuteIsAvailable(&available));
@@ -2689,7 +2694,7 @@ int32_t FuncTestManager::TestAdvancedMBAPI()
         " from the loudspeaker.\n\
 > Press any key to stop...\n \n");
     PAUSE(DEFAULT_PAUSE_TIME);
-    EXPECT_EQ(0, audioDevice->GetLoudspeakerStatus(loudspeakerOn));
+    EXPECT_EQ(0, audioDevice->GetLoudspeakerStatus(&loudspeakerOn));
     EXPECT_TRUE(loudspeakerOn);
 
     TEST_LOG("Set to not use speaker\n");
@@ -2698,7 +2703,7 @@ int32_t FuncTestManager::TestAdvancedMBAPI()
         " from the loudspeaker.\n\
 > Press any key to stop...\n \n");
     PAUSE(DEFAULT_PAUSE_TIME);
-    EXPECT_EQ(0, audioDevice->GetLoudspeakerStatus(loudspeakerOn));
+    EXPECT_EQ(0, audioDevice->GetLoudspeakerStatus(&loudspeakerOn));
     EXPECT_FALSE(loudspeakerOn);
 #endif
 

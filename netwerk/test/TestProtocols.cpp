@@ -15,7 +15,6 @@
 #include "TestCommon.h"
 #include <algorithm>
 
-#define FORCE_PR_LOG
 #include <stdio.h>
 #ifdef WIN32 
 #include <windows.h>
@@ -49,7 +48,6 @@
 #include "nsIPropertyBag2.h"
 #include "nsIWritablePropertyBag2.h"
 #include "nsITimedChannel.h"
-#include "nsChannelProperties.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/unused.h"
 #include "nsIScriptSecurityManager.h"
@@ -57,19 +55,18 @@
 #include "nsISimpleEnumerator.h"
 #include "nsStringAPI.h"
 #include "nsNetUtil.h"
-#include "prlog.h"
+#include "nsServiceManagerUtils.h"
+#include "mozilla/Logging.h"
 
 using namespace mozilla;
 
 namespace TestProtocols {
 
-#if defined(PR_LOGGING)
 //
 // set NSPR_LOG_MODULES=Test:5
 //
 static PRLogModuleInfo *gTestLog = nullptr;
-#endif
-#define LOG(args) PR_LOG(gTestLog, PR_LOG_DEBUG, args)
+#define LOG(args) MOZ_LOG(gTestLog, mozilla::LogLevel::Debug, args)
 
 static NS_DEFINE_CID(kIOServiceCID,              NS_IOSERVICE_CID);
 
@@ -314,7 +311,7 @@ TestAuthPrompt::PromptUsernameAndPassword(const char16_t *dialogTitle,
     int n;
 
     printf("Enter username: ");
-    unused << fgets(buf, sizeof(buf), stdin);
+    Unused << fgets(buf, sizeof(buf), stdin);
     n = strlen(buf);
     buf[n-1] = '\0'; // trim trailing newline
     *user = NS_StringCloneData(NS_ConvertUTF8toUTF16(buf));
@@ -565,7 +562,7 @@ InputTestConsumer::OnStopRequest(nsIRequest *request, nsISupports* context,
 // NotificationCallbacks
 //-----------------------------------------------------------------------------
 
-class NotificationCallbacks MOZ_FINAL : public nsIInterfaceRequestor {
+class NotificationCallbacks final : public nsIInterfaceRequestor {
 
     ~NotificationCallbacks() {}
 
@@ -575,7 +572,7 @@ public:
     NotificationCallbacks() {
     }
 
-    NS_IMETHOD GetInterface(const nsIID& iid, void* *result) {
+    NS_IMETHOD GetInterface(const nsIID& iid, void* *result) override {
         nsresult rv = NS_ERROR_FAILURE;
 
         if (iid.Equals(NS_GET_IID(nsIChannelEventSink))) {
@@ -644,7 +641,6 @@ nsresult StartLoadingURL(const char* aUrlString)
                            systemPrincipal,
                            nsILoadInfo::SEC_NORMAL,
                            nsIContentPolicy::TYPE_OTHER,
-                           nullptr,  // aChannelPolicy
                            nullptr,  // loadGroup
                            callbacks,
                            nsIRequest::LOAD_NORMAL,
@@ -652,7 +648,7 @@ nsresult StartLoadingURL(const char* aUrlString)
 
         NS_RELEASE(callbacks);
         if (NS_FAILED(rv)) {
-            LOG(("ERROR: NS_OpenURI failed for %s [rv=%x]\n", aUrlString, rv));
+            LOG(("ERROR: NS_NewChannel failed for %s [rv=%x]\n", aUrlString, rv));
             return rv;
         }
 
@@ -812,7 +808,7 @@ nsresult LoadURLFromConsole()
 {
     char buffer[1024];
     printf("Enter URL (\"q\" to start): ");
-    unused << scanf("%s", buffer);
+    Unused << scanf("%s", buffer);
     if (buffer[0]=='q') 
         gAskUserForInput = false;
     else
@@ -820,7 +816,7 @@ nsresult LoadURLFromConsole()
     return NS_OK;
 }
 
-} // namespace
+} // namespace TestProtocols
 
 using namespace TestProtocols;
 
@@ -838,9 +834,7 @@ main(int argc, char* argv[])
         return -1;
     }
 
-#if defined(PR_LOGGING)
     gTestLog = PR_NewLogModule("Test");
-#endif
 
     /* 
       The following code only deals with XPCOM registration stuff. and setting

@@ -1,4 +1,4 @@
-<!DOCTYPE HTML>
+﻿<!DOCTYPE HTML>
 <html>
 <head>
   <meta charset="utf-8">
@@ -118,8 +118,7 @@
       }
 
       SpecialPowers.setAllAppsLaunchable(true);
-      SpecialPowers.setBoolPref("dom.mozBrowserFramesEnabled", true);
-      runTest();
+      SpecialPowers.pushPrefEnv({"set":[["dom.mozBrowserFramesEnabled", true]]}, runTest);
     },
 
     // No confirmation needed when an app is installed
@@ -137,7 +136,7 @@
 
     // Uninstall the apps
     function() { uninstallApp(gApps[0]); },
-    function() { uninstallApp(gApps[1]); },
+    function() { uninstallApp(gApps[1]); }
   ];
 
   function runTest() {

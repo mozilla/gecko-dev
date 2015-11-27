@@ -25,17 +25,21 @@ class nsIFrame;
 class nsINode;
 class nsIPresShell;
 class nsITimer;
-class nsRenderingContext;
 
 namespace mozilla {
 namespace dom {
 class Selection;
-}
-}
+} // namespace dom
+namespace gfx {
+class DrawTarget;
+} // namespace gfx
+} // namespace mozilla
 
 //-----------------------------------------------------------------------------
-class nsCaret MOZ_FINAL : public nsISelectionListener
+class nsCaret final : public nsISelectionListener
 {
+    typedef mozilla::gfx::DrawTarget DrawTarget;
+
   public:
     nsCaret();
 
@@ -74,6 +78,21 @@ class nsCaret MOZ_FINAL : public nsISelectionListener
      *  because we're in non-editable/disabled content.
      */
     bool IsVisible();
+    /**
+     * AddForceHide() increases mHideCount and hide the caret even if
+     * SetVisible(true) has been or will be called.  This is useful when the
+     * caller wants to hide caret temporarily and it needs to cancel later.
+     * Especially, in the latter case, it's too difficult to decide if the
+     * caret should be actually visible or not because caret visible state
+     * is set from a lot of event handlers.  So, it's very stateful.
+     */
+    void AddForceHide();
+    /**
+     * RemoveForceHide() decreases mHideCount if it's over 0.
+     * If the value becomes 0, this may show the caret if SetVisible(true)
+     * has been called.
+     */
+    void RemoveForceHide();
     /** SetCaretReadOnly set the appearance of the caret
      *  @param inMakeReadonly true to show the caret in a 'read only' state,
      *         false to show the caret in normal, editing state
@@ -119,7 +138,7 @@ class nsCaret MOZ_FINAL : public nsISelectionListener
      *  Actually paint the caret onto the given rendering context.
      */
     void PaintCaret(nsDisplayListBuilder *aBuilder,
-                    nsRenderingContext *aCtx,
+                    DrawTarget& aDrawTarget,
                     nsIFrame *aForFrame,
                     const nsPoint &aOffset);
 
@@ -145,6 +164,19 @@ class nsCaret MOZ_FINAL : public nsISelectionListener
                                                uint8_t aBidiLevel,
                                                nsIFrame** aReturnFrame,
                                                int32_t* aReturnOffset);
+    static nsRect GetGeometryForFrame(nsIFrame* aFrame,
+                                      int32_t   aFrameOffset,
+                                      nscoord*  aBidiIndicatorSize);
+
+    // Get the frame and frame offset based on the focus node and focus offset
+    // of aSelection. If aOverrideNode and aOverride are provided, use them
+    // instead.
+    // @param aFrameOffset return the frame offset if non-null.
+    // @return the frame of the focus node.
+    static nsIFrame* GetFrameAndOffset(mozilla::dom::Selection* aSelection,
+                                       nsINode* aOverrideNode,
+                                       int32_t aOverrideOffset,
+                                       int32_t* aFrameOffset);
 
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
@@ -164,9 +196,6 @@ protected:
     };
     static Metrics ComputeMetrics(nsIFrame* aFrame, int32_t aOffset,
                                   nscoord aCaretHeight);
-    static nsRect GetGeometryForFrame(nsIFrame* aFrame,
-                                      int32_t   aFrameOffset,
-                                      nscoord*  aBidiIndicatorSize);
 
     void          ComputeCaretRects(nsIFrame* aFrame, int32_t aFrameOffset,
                                     nsRect* aCaretRect, nsRect* aHookRect);
@@ -196,6 +225,17 @@ protected:
      * Ignored if mOverrideContent is null.
      */
     int32_t               mOverrideOffset;
+    /**
+     * mBlinkCount is used to control the number of times to blink the caret
+     * before stopping the blink. This is reset each time we reset the
+     * blinking.
+     */
+    int32_t               mBlinkCount;
+    /**
+     * mHideCount is not 0, it means that somebody doesn't want the caret
+     * to be visible.  See AddForceHide() and RemoveForceHide().
+     */
+    uint32_t              mHideCount;
 
     /**
      * mIsBlinkOn is true when we're in a blink cycle where the caret is on.
@@ -220,6 +260,10 @@ protected:
      * it's in non-user-modifiable content.
      */
     bool                  mIgnoreUserModify;
+
+    // Preference
+    static bool sSelectionCaretEnabled;
+    static bool sSelectionCaretsAffectCaret;
 };
 
 #endif //nsCaret_h__

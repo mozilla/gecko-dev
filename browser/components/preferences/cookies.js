@@ -5,6 +5,8 @@
 
 const nsICookie = Components.interfaces.nsICookie;
 
+Components.utils.import("resource://gre/modules/PluralForm.jsm");
+
 var gCookiesWindow = {
   _cm               : Components.classes["@mozilla.org/cookiemanager;1"]
                                 .getService(Components.interfaces.nsICookieManager),
@@ -38,7 +40,7 @@ var gCookiesWindow = {
 
   _populateList: function (aInitialLoad) {
     this._loadCookies();
-    this._tree.treeBoxObject.view = this._view;
+    this._tree.view = this._view;
     if (aInitialLoad)
       this.sort("rawHost");
     if (this._view.rowCount > 0)
@@ -524,7 +526,7 @@ var gCookiesWindow = {
   },
 
   onCookieSelected: function () {
-    var properties, item;
+    var item;
     var seln = this._tree.view.selection;
     if (!this._view._filtered)
       item = this._view._getItemAtIndex(seln.currentIndex);
@@ -541,22 +543,19 @@ var gCookiesWindow = {
       for (var j = min.value; j <= max.value; ++j) {
         item = this._view._getItemAtIndex(j);
         if (!item) continue;
-        if (item.container && !item.open)
+        if (item.container)
           selectedCookieCount += item.cookies.length;
         else if (!item.container)
           ++selectedCookieCount;
       }
     }
-    var item = this._view._getItemAtIndex(seln.currentIndex);
-    if (item && seln.count == 1 && item.container && item.open)
-      selectedCookieCount += 2;
 
-    var removeCookie = document.getElementById("removeCookie");
-    var removeCookies = document.getElementById("removeCookies");
-    removeCookie.parentNode.selectedPanel =
-      selectedCookieCount == 1 ? removeCookie : removeCookies;
+    let buttonLabel = this._bundle.getString("removeSelectedCookies");
+    let removeSelectedCookies = document.getElementById("removeSelectedCookies");
+    removeSelectedCookies.label = PluralForm.get(selectedCookieCount, buttonLabel)
+                                            .replace("#1", selectedCookieCount);
 
-    removeCookie.disabled = removeCookies.disabled = !(seln.count > 0);
+    removeSelectedCookies.disabled = !(seln.count > 0);
   },
 
   performDeletion: function gCookiesWindow_performDeletion(deleteItems) {
@@ -790,7 +789,7 @@ var gCookiesWindow = {
 
     // Just reload the list to make sure deletions are respected
     this._loadCookies();
-    this._tree.treeBoxObject.view = this._view;
+    this._tree.view = this._view;
 
     // Restore sort order
     var sortby = this._lastSortProperty;

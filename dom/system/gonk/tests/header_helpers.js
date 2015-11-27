@@ -3,15 +3,15 @@
 
 "use strict";
 
-const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
+var {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 
-let subscriptLoader = Cc["@mozilla.org/moz/jssubscript-loader;1"]
+var subscriptLoader = Cc["@mozilla.org/moz/jssubscript-loader;1"]
                         .getService(Ci.mozIJSSubScriptLoader);
 
 /**
  * Start a new RIL worker.
- * 
+ *
  * @param custom_ns
  *        Namespace with symbols to be injected into the new worker
  *        namespace.
@@ -191,51 +191,3 @@ function newIncomingParcel(fakeParcelSize, response, request, data) {
 
   return bytes;
 }
-
-/**
- *
- */
-let ril_ns;
-function newRadioInterface() {
-  if (!ril_ns) {
-    ril_ns = {};
-    subscriptLoader.loadSubScript("resource://gre/components/RadioInterfaceLayer.js", ril_ns);
-  }
-
-  return {
-    __proto__: ril_ns.RadioInterface.prototype,
-  };
-}
-
-/**
- * Test whether specified function throws exception with expected
- * result.
- *
- * @param func
- *        Function to be tested.
- * @param message
- *        Message of expected exception. <code>null</code> for no throws.
- * @param stack
- *        Optional stack object to be printed. <code>null</code> for
- *        Components#stack#caller.
- */
-function do_check_throws(func, message, stack)
-{
-  if (!stack)
-    stack = Components.stack.caller;
-
-  try {
-    func();
-  } catch (exc) {
-    if (exc.message === message) {
-      return;
-    }
-    do_throw("expecting exception '" + message
-             + "', caught '" + exc.message + "'", stack);
-  }
-
-  if (message) {
-    do_throw("expecting exception '" + message + "', none thrown", stack);
-  }
-}
-

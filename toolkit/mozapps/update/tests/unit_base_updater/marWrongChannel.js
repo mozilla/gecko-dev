@@ -15,7 +15,7 @@ function run_test() {
   // application return code and update.status result.
   gTestFiles = gTestFilesCommon;
   gTestDirs = [];
-  setupUpdaterTest(FILE_WRONG_CHANNEL_MAR, false, false);
+  setupUpdaterTest(FILE_WRONG_CHANNEL_MAR);
 
   createUpdaterINI();
 
@@ -23,7 +23,8 @@ function run_test() {
   // Note that if execv is used, the updater process will turn into the
   // callback process, so its return code will be that of the callback
   // app.
-  runUpdate((USE_EXECV ? 0 : 1), STATE_FAILED_CHANNEL_MISMATCH_ERROR);
+  runUpdate((USE_EXECV ? 0 : 1), STATE_FAILED_CHANNEL_MISMATCH_ERROR,
+            checkUpdateApplied);
 }
 
 /**
@@ -31,11 +32,8 @@ function run_test() {
  * the test.
  */
 function checkUpdateApplied() {
-  if (IS_MACOSX || IS_WIN) {
-    // Check that the post update process was not launched.
-    do_check_false(getPostUpdateFile(".running").exists());
-  }
-
-  checkFilesAfterUpdateSuccess();
+  checkPostUpdateRunningFile(false);
+  checkFilesAfterUpdateSuccess(getApplyDirFile, false, false);
+  standardInit();
   doTestFinish();
 }

@@ -1,5 +1,3 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set shiftwidth=2 tabstop=2 autoindent cindent expandtab: */
 /* Copyright 2014 Mozilla Foundation
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +13,7 @@
 * limitations under the License.
 */
 /* jshint esnext:true */
-/* globals Components, PdfjsContentUtils, PdfJs */
+/* globals Components, PdfjsContentUtils, PdfJs, Services */
 
 'use strict';
 
@@ -31,7 +29,8 @@ Components.utils.import('resource://pdf.js/PdfjsContentUtils.jsm');
 // init content utils shim pdfjs will use to access privileged apis.
 PdfjsContentUtils.init();
 
-if (Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_CONTENT) {
+if (Services.appinfo.processType === Services.appinfo.PROCESS_TYPE_CONTENT) {
   // register various pdfjs factories that hook us into content loading.
   PdfJs.updateRegistration();
 }
+

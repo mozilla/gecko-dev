@@ -16,14 +16,11 @@ function testVal(aExpected) {
     value = value.substring(pos + range.length);
   }
   result += value;
-  is(result, aExpected);
+  is(result, aExpected,
+     "Correct part of the urlbar contents is highlighted");
 }
 
-add_task(function* () {
-  return new Promise(resolve => Services.search.init(resolve));
-});
-
-add_task(function* () {
+function test() {
   const prefname = "browser.urlbar.formatting.enabled";
 
   registerCleanupFunction(function () {
@@ -49,6 +46,9 @@ add_task(function* () {
   testVal("<www.>mozilla.org");
   testVal("<sub.>mozilla.org");
   testVal("<sub1.sub2.sub3.>mozilla.org");
+  testVal("<mozilla.com.>mozilla.com");
+  testVal("<https://mozilla.com:mozilla.com@>mozilla.com");
+  testVal("<mozilla.com:mozilla.com@>mozilla.com");
 
   testVal("<http://ftp.>mozilla.org");
   testVal("<ftp://ftp.>mozilla.org");
@@ -57,6 +57,8 @@ add_task(function* () {
   testVal("<https://sub1.sub2.sub3.>mozilla.org");
   testVal("<https://user:pass@sub1.sub2.sub3.>mozilla.org");
   testVal("<https://user:pass@>mozilla.org");
+  testVal("<user:pass@sub1.sub2.sub3.>mozilla.org");
+  testVal("<user:pass@>mozilla.org");
 
   testVal("<https://>mozilla.org</file.ext>");
   testVal("<https://>mozilla.org</sub/file.ext>");
@@ -97,7 +99,7 @@ add_task(function* () {
     testVal("<https://>" + IP);
     testVal("<https://>" + IP + "</file.ext>");
     testVal("<https://user:pass@>" + IP + "<:666/file.ext>");
-    testVal("<http://user:pass@>" + IP + "<:666/file.ext>");
+    testVal("<user:pass@>" + IP + "<:666/file.ext>");
   });
 
   testVal("mailto:admin@mozilla.org");
@@ -113,4 +115,4 @@ add_task(function* () {
   Services.prefs.setBoolPref(prefname, false);
 
   testVal("https://mozilla.org");
-});
+}

@@ -4,7 +4,7 @@
 
 this.EXPORTED_SYMBOLS = ["XPCOMUtils", "Services", "Utils", "Async", "Svc", "Str"];
 
-const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
+var {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
 
 Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://services-common/observers.js");
@@ -183,7 +183,7 @@ this.Utils = {
    */
   deferGetSet: function Utils_deferGetSet(obj, defer, prop) {
     if (Array.isArray(prop))
-      return prop.map(function(prop) Utils.deferGetSet(obj, defer, prop));
+      return prop.map(prop => Utils.deferGetSet(obj, defer, prop));
 
     let prot = obj.prototype;
 
@@ -204,7 +204,7 @@ this.Utils = {
 
   lazyStrings: function Weave_lazyStrings(name) {
     let bundle = "chrome://weave/locale/services/" + name + ".properties";
-    return function() new StringBundle(bundle);
+    return () => new StringBundle(bundle);
   },
 
   deepEquals: function eq(a, b) {
@@ -253,14 +253,14 @@ this.Utils = {
    */
   base32ToFriendly: function base32ToFriendly(input) {
     return input.toLowerCase()
-                .replace("l", '8', "g")
-                .replace("o", '9', "g");
+                .replace(/l/g, '8')
+                .replace(/o/g, '9');
   },
 
   base32FromFriendly: function base32FromFriendly(input) {
     return input.toUpperCase()
-                .replace("8", 'L', "g")
-                .replace("9", 'O', "g");
+                .replace(/8/g, 'L')
+                .replace(/9/g, 'O');
   },
 
   /**
@@ -477,7 +477,7 @@ this.Utils = {
 
     // 20-char sync key.
     if (pp.length == 23 &&
-        [5, 11, 17].every(function(i) pp[i] == '-')) {
+        [5, 11, 17].every(i => pp[i] == '-')) {
 
       return pp.slice(0, 5) + pp.slice(6, 11)
              + pp.slice(12, 17) + pp.slice(18, 23);
@@ -485,7 +485,7 @@ this.Utils = {
 
     // "Modern" 26-char key.
     if (pp.length == 31 &&
-        [1, 7, 13, 19, 25].every(function(i) pp[i] == '-')) {
+        [1, 7, 13, 19, 25].every(i => pp[i] == '-')) {
 
       return pp.slice(0, 1) + pp.slice(2, 7)
              + pp.slice(8, 13) + pp.slice(14, 19)
@@ -507,7 +507,7 @@ this.Utils = {
   arraySub: function arraySub(minuend, subtrahend) {
     if (!minuend.length || !subtrahend.length)
       return minuend;
-    return minuend.filter(function(i) subtrahend.indexOf(i) == -1);
+    return minuend.filter(i => subtrahend.indexOf(i) == -1);
   },
 
   /**
@@ -596,13 +596,30 @@ this.Utils = {
    * reset when we drop sync credentials, etc.
    */
   getSyncCredentialsHosts: function() {
+    let result = new Set(this.getSyncCredentialsHostsLegacy());
+    for (let host of this.getSyncCredentialsHostsFxA()) {
+      result.add(host);
+    }
+    return result;
+  },
+
+  /*
+   * Get the "legacy" identity hosts.
+   */
+  getSyncCredentialsHostsLegacy: function() {
+    // the legacy sync host
+    return new Set([PWDMGR_HOST]);
+  },
+
+  /*
+   * Get the FxA identity hosts.
+   */
+  getSyncCredentialsHostsFxA: function() {
     // This is somewhat expensive and the result static, so we cache the result.
-    if (this._syncCredentialsHosts) {
-      return this._syncCredentialsHosts;
+    if (this._syncCredentialsHostsFxA) {
+      return this._syncCredentialsHostsFxA;
     }
     let result = new Set();
-    // the legacy sync host
-    result.add(PWDMGR_HOST);
     // the FxA host
     result.add(FxAccountsCommon.FXA_PWDMGR_HOST);
     //
@@ -621,8 +638,41 @@ this.Utils = {
       let uri = Services.io.newURI(prefVal, null, null);
       result.add(uri.prePath);
     }
-    return this._syncCredentialsHosts = result;
+    return this._syncCredentialsHostsFxA = result;
   },
+
+  getDefaultDeviceName() {
+    // Generate a client name if we don't have a useful one yet
+    let env = Cc["@mozilla.org/process/environment;1"]
+                .getService(Ci.nsIEnvironment);
+    let user = env.get("USER") || env.get("USERNAME") ||
+               Svc.Prefs.get("account") || Svc.Prefs.get("username");
+    // A little hack for people using the the moz-build environment on Windows
+    // which sets USER to the literal "%USERNAME%" (yes, really)
+    if (user == "%USERNAME%" && env.get("USERNAME")) {
+      user = env.get("USERNAME");
+    }
+
+    let brand = new StringBundle("chrome://branding/locale/brand.properties");
+    let brandName = brand.get("brandShortName");
+
+    let appName;
+    try {
+      let syncStrings = new StringBundle("chrome://browser/locale/sync.properties");
+      appName = syncStrings.getFormattedString("sync.defaultAccountApplication", [brandName]);
+    } catch (ex) {}
+    appName = appName || brandName;
+
+    let system =
+      // 'device' is defined on unix systems
+      Cc["@mozilla.org/system-info;1"].getService(Ci.nsIPropertyBag2).get("device") ||
+      // hostname of the system, usually assigned by the user or admin
+      Cc["@mozilla.org/system-info;1"].getService(Ci.nsIPropertyBag2).get("host") ||
+      // fall back on ua info string
+      Cc["@mozilla.org/network/protocol;1?name=http"].getService(Ci.nsIHttpProtocolHandler).oscpu;
+
+    return Str.sync.get("client.name2", [user, appName, system]);
+  }
 };
 
 XPCOMUtils.defineLazyGetter(Utils, "_utf8Converter", function() {
@@ -640,7 +690,7 @@ Svc.Prefs = new Preferences(PREFS_BRANCH);
 Svc.DefaultPrefs = new Preferences({branch: PREFS_BRANCH, defaultBranch: true});
 Svc.Obs = Observers;
 
-let _sessionCID = Services.appinfo.ID == SEAMONKEY_ID ?
+var _sessionCID = Services.appinfo.ID == SEAMONKEY_ID ?
   "@mozilla.org/suite/sessionstore;1" :
   "@mozilla.org/browser/sessionstore;1";
 

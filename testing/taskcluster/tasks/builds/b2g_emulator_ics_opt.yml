@@ -1,0 +1,34 @@
+$inherits:
+  from: 'tasks/builds/b2g_emulator_base.yml'
+  variables:
+    build_type: 'opt'
+    build_name: 'emulator-ics'
+task:
+  workerType: emulator-ics
+  routes:
+    - 'index.buildbot.branches.{{project}}.emulator-ics'
+    - 'index.buildbot.revisions.{{head_rev}}.{{project}}.emulator-ics'
+  scopes:
+    - 'docker-worker:cache:workspace-emulator-ics-opt'
+    - 'docker-worker:cache:workspace-emulator-ics-opt-objdir-gecko-{{project}}'
+  metadata:
+    name: '[TC] B2G Emulator ICS (Opt)'
+
+  extra:
+    treeherderEnv:
+      - production
+      - staging
+    treeherder:
+      # Disable "TC" prefix...
+      groupSymbol: "?"
+      machine:
+        platform: b2g-emu-ics
+
+  payload:
+    cache:
+      workspace-emulator-ics-opt: /home/worker/workspace
+      workspace-emulator-ics-opt-objdir-gecko-{{project}}: /home/worker/objdir-gecko
+
+    env:
+      TARGET: 'emulator'
+      TOOLTOOL_MANIFEST: 'b2g/config/emulator-ics/releng-emulator-ics.tt'

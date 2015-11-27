@@ -15,6 +15,7 @@
 #include "nsCSSProperty.h"
 #include "nsStyleStructFwd.h"
 #include "nsCSSKeywords.h"
+#include "mozilla/UseCounter.h"
 
 // Length of the "--" prefix on custom names (such as custom property names,
 // and, in the future, custom media query names).
@@ -54,6 +55,17 @@
 #define VARIANT_NONNEGATIVE_DIMENSION 0x20000000 // Only lengths greater than or equal to 0.0
 // Keyword used iff gfx.font_rendering.opentype_svg.enabled is true:
 #define VARIANT_OPENTYPE_SVG_KEYWORD 0x40000000
+
+// Variants that can consume more than one token
+#define VARIANT_MULTIPLE_TOKENS \
+  (VARIANT_COLOR |            /* rgb(...), hsl(...), etc. */                  \
+   VARIANT_COUNTER |          /* counter(...), counters(...) */               \
+   VARIANT_ATTR |             /* attr(...) */                                 \
+   VARIANT_GRADIENT |         /* linear-gradient(...), etc. */                \
+   VARIANT_TIMING_FUNCTION |  /* cubic-bezier(...), steps(...) */             \
+   VARIANT_IMAGE_RECT |       /* -moz-image-rect(...) */                      \
+   VARIANT_CALC |             /* calc(...) */                                 \
+   VARIANT_ELEMENT)           /* -moz-element(...) */
 
 // Common combinations of variants
 #define VARIANT_AL   (VARIANT_AUTO | VARIANT_LENGTH)
@@ -103,9 +115,8 @@
 
 // Flags for the kFlagsTable bitfield (flags_ in nsCSSPropList.h)
 
-// A property that is a *-ltr-source or *-rtl-source property for one of
-// the directional pseudo-shorthand properties.
-#define CSS_PROPERTY_DIRECTIONAL_SOURCE           (1<<0)
+// This property is a logical property (such as padding-inline-start).
+#define CSS_PROPERTY_LOGICAL                      (1<<0)
 
 #define CSS_PROPERTY_VALUE_LIST_USES_COMMAS       (1<<1) /* otherwise spaces */
 
@@ -131,12 +142,14 @@
 // list.
 #define CSS_PROPERTY_IMAGE_IS_IN_ARRAY_0          (1<<6)
 
-// This is a property for which the computed value should generally be
-// reported as the computed value of a property of a different name.  In
-// particular, the directional box properties (margin-left-value, etc.)
-// should be reported as being margin-left, etc.  Call
-// nsCSSProps::OtherNameFor to get the other property.
-#define CSS_PROPERTY_REPORT_OTHER_NAME            (1<<7)
+// This is a logical property that represents some value associated with
+// a logical axis rather than a logical box side, and thus has two
+// corresponding physical properties it could set rather than four.  For
+// example, the block-size logical property has this flag set, as it
+// represents the size in either the block or inline axis dimensions, and
+// has two corresponding physical properties, width and height.  Must not
+// be used in conjunction with CSS_PROPERTY_LOGICAL_END_EDGE.
+#define CSS_PROPERTY_LOGICAL_AXIS                 (1<<7)
 
 // This property allows calc() between lengths and percentages and
 // stores such calc() expressions in its style structs (typically in an
@@ -198,23 +211,49 @@ static_assert((CSS_PROPERTY_PARSE_PROPERTY_MASK &
 // This property requires a stacking context.
 #define CSS_PROPERTY_CREATES_STACKING_CONTEXT     (1<<21)
 
-// This property is always enabled in UA sheets.  This is meant to be used
-// together with a pref that enables the property for non-UA sheets.
-// Note that if such a property has an alias, then any use of that alias
-// in an UA sheet will still be ignored unless the pref is enabled.
-// In other words, this bit has no effect on the use of aliases.
-#define CSS_PROPERTY_ALWAYS_ENABLED_IN_UA_SHEETS  (1<<22)
-
-// This property is always enabled in chrome and in certified apps. This is
-// meant to be used together with a pref that enables the property for
-// non-privileged content. Note that if such a property has an alias, then any
-// use of that alias in privileged content will still be ignored unless the
-// pref is enabled. In other words, this bit has no effect on the use of
-// aliases.
-#define CSS_PROPERTY_ALWAYS_ENABLED_IN_CHROME_OR_CERTIFIED_APP (1<<23)
+// The following two flags along with the pref defines where the this
+// property can be used:
+// * If none of the two flags is presented, the pref completely controls
+//   the availability of this property. And in that case, if it has no
+//   pref, this property is usable everywhere.
+// * If any of the flags is set, this property is always enabled in the
+//   specific contexts regardless of the value of the pref. If there is
+//   no pref for this property at all in this case, it is an internal-
+//   only property, which cannot be used anywhere else, and should be
+//   wrapped in "#ifndef CSS_PROP_LIST_EXCLUDE_INTERNAL".
+// Note that, these flags have no effect on the use of aliases of this
+// property.
+#define CSS_PROPERTY_ENABLED_MASK                 (3<<22)
+#define CSS_PROPERTY_ENABLED_IN_UA_SHEETS         (1<<22)
+#define CSS_PROPERTY_ENABLED_IN_CHROME            (1<<23)
+#define CSS_PROPERTY_ENABLED_IN_UA_SHEETS_AND_CHROME \
+  (CSS_PROPERTY_ENABLED_IN_UA_SHEETS | CSS_PROPERTY_ENABLED_IN_CHROME)
 
 // This property's unitless values are pixels.
 #define CSS_PROPERTY_NUMBERS_ARE_PIXELS           (1<<24)
+
+// This property is a logical property for one of the two block axis
+// sides (such as margin-block-start or margin-block-end).  Must only be
+// set if CSS_PROPERTY_LOGICAL is set.  When not set, the logical
+// property is for one of the two inline axis sides (such as
+// margin-inline-start or margin-inline-end).
+#define CSS_PROPERTY_LOGICAL_BLOCK_AXIS           (1<<25)
+
+// This property is a logical property for the "end" edge of the
+// axis determined by the presence or absence of
+// CSS_PROPERTY_LOGICAL_BLOCK_AXIS (such as margin-block-end or
+// margin-inline-end).  Must only be set if CSS_PROPERTY_LOGICAL is set.
+// When not set, the logical property is for the "start" edge (such as
+// margin-block-start or margin-inline-start).
+#define CSS_PROPERTY_LOGICAL_END_EDGE             (1<<26)
+
+// This property can be animated on the compositor.
+#define CSS_PROPERTY_CAN_ANIMATE_ON_COMPOSITOR    (1<<27)
+
+// This property is an internal property that is not represented
+// in the DOM.  Properties with this flag must be defined in an #ifndef
+// CSS_PROP_LIST_EXCLUDE_INTERNAL section of nsCSSPropList.h.
+#define CSS_PROPERTY_INTERNAL                     (1<<28)
 
 /**
  * Types of animatable values.
@@ -259,7 +298,7 @@ enum nsStyleAnimType {
   // nsStyleSVGPaint values
   eStyleAnimType_PaintServer,
 
-  // nsRefPtr<nsCSSShadowArray> values
+  // RefPtr<nsCSSShadowArray> values
   eStyleAnimType_Shadow,
 
   // property not animatable
@@ -268,7 +307,10 @@ enum nsStyleAnimType {
 
 class nsCSSProps {
 public:
-  typedef int16_t KTableValue;
+  struct KTableEntry {
+    nsCSSKeyword mKeyword;
+    int16_t mValue;
+  };
 
   static void AddRefTable(void);
   static void ReleaseTable(void);
@@ -279,8 +321,8 @@ public:
     eEnabledForAllContent = 0,
     // Enable a property in UA sheets.
     eEnabledInUASheets    = 0x01,
-    // Enable a property in privileged content, i.e. chrome or Certified Apps
-    eEnabledInChromeOrCertifiedApp = 0x02,
+    // Enable a property in chrome code.
+    eEnabledInChrome      = 0x02,
     // Special value to unconditionally enable a property. This implies all the
     // bits above, but is strictly more than just their OR-ed union.
     // This just skips any test so a property will be enabled even if it would
@@ -295,14 +337,23 @@ public:
                                       EnabledState aEnabled);
   static nsCSSProperty LookupProperty(const nsACString& aProperty,
                                       EnabledState aEnabled);
+  // As above, but looked up using a property's IDL name.
+  // eCSSPropertyExtra_variable won't be returned from these methods.
+  static nsCSSProperty LookupPropertyByIDLName(
+      const nsAString& aPropertyIDLName,
+      EnabledState aEnabled);
+  static nsCSSProperty LookupPropertyByIDLName(
+      const nsACString& aPropertyIDLName,
+      EnabledState aEnabled);
+
   // Returns whether aProperty is a custom property name, i.e. begins with
   // "--".  This assumes that the CSS Variables pref has been enabled.
   static bool IsCustomPropertyName(const nsAString& aProperty);
   static bool IsCustomPropertyName(const nsACString& aProperty);
 
   static inline bool IsShorthand(nsCSSProperty aProperty) {
-    NS_ABORT_IF_FALSE(0 <= aProperty && aProperty < eCSSProperty_COUNT,
-                 "out of range");
+    MOZ_ASSERT(0 <= aProperty && aProperty < eCSSProperty_COUNT,
+               "out of range");
     return (aProperty >= eCSSProperty_COUNT_no_shorthands);
   }
 
@@ -326,11 +377,6 @@ public:
   static const nsAFlatCString& GetStringValue(nsCSSFontDesc aFontDesc);
   static const nsAFlatCString& GetStringValue(nsCSSCounterDesc aCounterDesc);
 
-  // Get the property to report the computed value of aProperty as being
-  // the computed value of.  aProperty must have the
-  // CSS_PROPERTY_REPORT_OTHER_NAME bit set.
-  static nsCSSProperty OtherNameFor(nsCSSProperty aProperty);
-
   // Given a CSS Property and a Property Enum Value
   // Return back a const nsString& representation of the
   // value. Return back nullstr if no value is found
@@ -344,22 +390,22 @@ public:
   // otherwise, returns -1.
   // NOTE: Generally, clients should call FindKeyword() instead of this method.
   static int32_t FindIndexOfKeyword(nsCSSKeyword aKeyword,
-                                    const KTableValue aTable[]);
+                                    const KTableEntry aTable[]);
 
   // Find |aKeyword| in |aTable|, if found set |aValue| to its corresponding value.
   // If not found, return false and do not set |aValue|.
-  static bool FindKeyword(nsCSSKeyword aKeyword, const KTableValue aTable[],
+  static bool FindKeyword(nsCSSKeyword aKeyword, const KTableEntry aTable[],
                           int32_t& aValue);
   // Return the first keyword in |aTable| that has the corresponding value |aValue|.
   // Return |eCSSKeyword_UNKNOWN| if not found.
   static nsCSSKeyword ValueToKeywordEnum(int32_t aValue, 
-                                         const KTableValue aTable[]);
+                                         const KTableEntry aTable[]);
   // Ditto but as a string, return "" when not found.
   static const nsAFlatCString& ValueToKeyword(int32_t aValue,
-                                              const KTableValue aTable[]);
+                                              const KTableEntry aTable[]);
 
   static const nsStyleStructID kSIDTable[eCSSProperty_COUNT_no_shorthands];
-  static const KTableValue* const kKeywordTableTable[eCSSProperty_COUNT_no_shorthands];
+  static const KTableEntry* const kKeywordTableTable[eCSSProperty_COUNT_no_shorthands];
   static const nsStyleAnimType kAnimTypeTable[eCSSProperty_COUNT_no_shorthands];
   static const ptrdiff_t
     kStyleStructOffsetTable[eCSSProperty_COUNT_no_shorthands];
@@ -370,8 +416,8 @@ private:
 public:
   static inline bool PropHasFlags(nsCSSProperty aProperty, uint32_t aFlags)
   {
-    NS_ABORT_IF_FALSE(0 <= aProperty && aProperty < eCSSProperty_COUNT,
-                      "out of range");
+    MOZ_ASSERT(0 <= aProperty && aProperty < eCSSProperty_COUNT,
+               "out of range");
     MOZ_ASSERT(!(aFlags & CSS_PROPERTY_PARSE_PROPERTY_MASK),
                "The CSS_PROPERTY_PARSE_* values are not bitflags; don't pass "
                "them to PropHasFlags.  You probably want PropertyParseType "
@@ -381,16 +427,16 @@ public:
 
   static inline uint32_t PropertyParseType(nsCSSProperty aProperty)
   {
-    NS_ABORT_IF_FALSE(0 <= aProperty && aProperty < eCSSProperty_COUNT,
-                      "out of range");
+    MOZ_ASSERT(0 <= aProperty && aProperty < eCSSProperty_COUNT,
+               "out of range");
     return nsCSSProps::kFlagsTable[aProperty] &
            CSS_PROPERTY_PARSE_PROPERTY_MASK;
   }
 
   static inline uint32_t ValueRestrictions(nsCSSProperty aProperty)
   {
-    NS_ABORT_IF_FALSE(0 <= aProperty && aProperty < eCSSProperty_COUNT,
-                      "out of range");
+    MOZ_ASSERT(0 <= aProperty && aProperty < eCSSProperty_COUNT,
+               "out of range");
     return nsCSSProps::kFlagsTable[aProperty] &
            CSS_PROPERTY_VALUE_RESTRICTION_MASK;
   }
@@ -401,9 +447,8 @@ private:
 
 public:
   static inline uint32_t ParserVariant(nsCSSProperty aProperty) {
-    NS_ABORT_IF_FALSE(0 <= aProperty &&
-                      aProperty < eCSSProperty_COUNT_no_shorthands,
-                      "out of range");
+    MOZ_ASSERT(0 <= aProperty && aProperty < eCSSProperty_COUNT_no_shorthands,
+               "out of range");
     return nsCSSProps::kParserVariantTable[aProperty];
   }
 
@@ -416,9 +461,9 @@ private:
 public:
   static inline
   const nsCSSProperty * SubpropertyEntryFor(nsCSSProperty aProperty) {
-    NS_ABORT_IF_FALSE(eCSSProperty_COUNT_no_shorthands <= aProperty &&
-                      aProperty < eCSSProperty_COUNT,
-                      "out of range");
+    MOZ_ASSERT(eCSSProperty_COUNT_no_shorthands <= aProperty &&
+               aProperty < eCSSProperty_COUNT,
+               "out of range");
     return nsCSSProps::kSubpropertyTable[aProperty -
                                          eCSSProperty_COUNT_no_shorthands];
   }
@@ -427,10 +472,9 @@ public:
   // properties containing |aProperty|, sorted from those that contain
   // the most properties to those that contain the least.
   static const nsCSSProperty * ShorthandsContaining(nsCSSProperty aProperty) {
-    NS_ABORT_IF_FALSE(gShorthandsContainingPool, "uninitialized");
-    NS_ABORT_IF_FALSE(0 <= aProperty &&
-                      aProperty < eCSSProperty_COUNT_no_shorthands,
-                      "out of range");
+    MOZ_ASSERT(gShorthandsContainingPool, "uninitialized");
+    MOZ_ASSERT(0 <= aProperty && aProperty < eCSSProperty_COUNT_no_shorthands,
+               "out of range");
     return gShorthandsContainingTable[aProperty];
   }
 private:
@@ -452,8 +496,8 @@ public:
    * nsRuleNode builds the nsStyle* for aSID.
    */
   static size_t PropertyCountInStruct(nsStyleStructID aSID) {
-    NS_ABORT_IF_FALSE(0 <= aSID && aSID < nsStyleStructID_Length,
-                      "out of range");
+    MOZ_ASSERT(0 <= aSID && aSID < nsStyleStructID_Length,
+               "out of range");
     return gPropertyCountInStruct[aSID];
   }
   /**
@@ -461,22 +505,95 @@ public:
    * the range 0 <= index < PropertyCountInStruct(aSID).
    */
   static size_t PropertyIndexInStruct(nsCSSProperty aProperty) {
-    NS_ABORT_IF_FALSE(0 <= aProperty &&
-                         aProperty < eCSSProperty_COUNT_no_shorthands,
-                      "out of range");
+    MOZ_ASSERT(0 <= aProperty && aProperty < eCSSProperty_COUNT_no_shorthands,
+               "out of range");
     return gPropertyIndexInStruct[aProperty];
   }
 
 private:
+  // A table for logical property groups.  Indexes are
+  // nsCSSPropertyLogicalGroup values.
+  static const nsCSSProperty* const
+    kLogicalGroupTable[eCSSPropertyLogicalGroup_COUNT];
+
+public:
+  /**
+   * Returns an array of longhand physical properties which can be set by
+   * the argument, which must be a logical longhand property.  The returned
+   * array is terminated by an eCSSProperty_UNKNOWN value.  For example,
+   * given eCSSProperty_margin_block_start, returns an array of the four
+   * properties eCSSProperty_margin_top, eCSSProperty_margin_right,
+   * eCSSProperty_margin_bottom and eCSSProperty_margin_left, followed
+   * by the sentinel.
+   *
+   * When called with a property that has the CSS_PROPERTY_LOGICAL_AXIS
+   * flag, the returned array will have two values preceding the sentinel;
+   * otherwise it will have four.
+   *
+   * (Note that the running time of this function is proportional to the
+   * number of logical longhand properties that exist.  If we start
+   * getting too many of these properties, we should make kLogicalGroupTable
+   * be a simple array of eCSSProperty_COUNT length.)
+   */
+  static const nsCSSProperty* LogicalGroup(nsCSSProperty aProperty);
+
+private:
   static bool gPropertyEnabled[eCSSProperty_COUNT_with_aliases];
+
+private:
+  // Defined in the generated nsCSSPropsGenerated.inc.
+  static const char* const kIDLNameTable[eCSSProperty_COUNT];
+
+public:
+  /**
+   * Returns the IDL name of the specified property, which must be a
+   * longhand, logical or shorthand property.  The IDL name is the property
+   * name with any hyphen-lowercase character pairs replaced by an
+   * uppercase character:
+   * https://drafts.csswg.org/cssom/#css-property-to-idl-attribute
+   *
+   * As a special case, the string "cssFloat" is returned for the float
+   * property.  nullptr is returned for internal properties.
+   */
+  static const char* PropertyIDLName(nsCSSProperty aProperty)
+  {
+    MOZ_ASSERT(0 <= aProperty && aProperty < eCSSProperty_COUNT,
+               "out of range");
+    return kIDLNameTable[aProperty];
+  }
+
+private:
+  static const int32_t kIDLNameSortPositionTable[eCSSProperty_COUNT];
+
+public:
+  /**
+   * Returns the position of the specified property in a list of all
+   * properties sorted by their IDL name.
+   */
+  static int32_t PropertyIDLNameSortPosition(nsCSSProperty aProperty)
+  {
+    MOZ_ASSERT(0 <= aProperty && aProperty < eCSSProperty_COUNT,
+               "out of range");
+    return kIDLNameSortPositionTable[aProperty];
+  }
+
+  static bool IsEnabled(nsCSSProperty aProperty) {
+    MOZ_ASSERT(0 <= aProperty && aProperty < eCSSProperty_COUNT_with_aliases,
+               "out of range");
+    return gPropertyEnabled[aProperty];
+  }
+
+  // A table for the use counter associated with each CSS property.  If a
+  // property does not have a use counter defined in UseCounters.conf, then
+  // its associated entry is |eUseCounter_UNKNOWN|.
+  static const mozilla::UseCounter gPropertyUseCounter[eCSSProperty_COUNT_no_shorthands];
 
 public:
 
-  static bool IsEnabled(nsCSSProperty aProperty) {
-    NS_ABORT_IF_FALSE(0 <= aProperty &&
-                      aProperty < eCSSProperty_COUNT_with_aliases,
-                      "out of range");
-    return gPropertyEnabled[aProperty];
+  static mozilla::UseCounter UseCounterFor(nsCSSProperty aProperty) {
+    MOZ_ASSERT(0 <= aProperty && aProperty < eCSSProperty_COUNT_no_shorthands,
+               "out of range");
+    return gPropertyUseCounter[aProperty];
   }
 
   static bool IsEnabled(nsCSSProperty aProperty, EnabledState aEnabled)
@@ -488,12 +605,12 @@ public:
       return true;
     }
     if ((aEnabled & eEnabledInUASheets) &&
-        PropHasFlags(aProperty, CSS_PROPERTY_ALWAYS_ENABLED_IN_UA_SHEETS))
+        PropHasFlags(aProperty, CSS_PROPERTY_ENABLED_IN_UA_SHEETS))
     {
       return true;
     }
-    if ((aEnabled & eEnabledInChromeOrCertifiedApp) &&
-        PropHasFlags(aProperty, CSS_PROPERTY_ALWAYS_ENABLED_IN_CHROME_OR_CERTIFIED_APP))
+    if ((aEnabled & eEnabledInChrome) &&
+        PropHasFlags(aProperty, CSS_PROPERTY_ENABLED_IN_CHROME))
     {
       return true;
     }
@@ -502,163 +619,191 @@ public:
 
 public:
 
-#define CSSPROPS_FOR_SHORTHAND_SUBPROPERTIES(iter_, prop_)                    \
-  for (const nsCSSProperty* iter_ = nsCSSProps::SubpropertyEntryFor(prop_);   \
-       *iter_ != eCSSProperty_UNKNOWN; ++iter_) \
-    if (nsCSSProps::IsEnabled(*iter_))
+// Storing the enabledstate_ value in an nsCSSProperty variable is a small hack
+// to avoid needing a separate variable declaration for its real type
+// (nsCSSProps::EnabledState), which would then require using a block and
+// therefore a pair of macros by consumers for the start and end of the loop.
+#define CSSPROPS_FOR_SHORTHAND_SUBPROPERTIES(it_, prop_, enabledstate_)       \
+  for (const nsCSSProperty *it_ = nsCSSProps::SubpropertyEntryFor(prop_),     \
+                            es_ = (nsCSSProperty) (enabledstate_);            \
+       *it_ != eCSSProperty_UNKNOWN; ++it_)                                   \
+    if (nsCSSProps::IsEnabled(*it_, (nsCSSProps::EnabledState) es_))
 
   // Keyword/Enum value tables
-  static const KTableValue kAnimationDirectionKTable[];
-  static const KTableValue kAnimationFillModeKTable[];
-  static const KTableValue kAnimationIterationCountKTable[];
-  static const KTableValue kAnimationPlayStateKTable[];
-  static const KTableValue kAnimationTimingFunctionKTable[];
-  static const KTableValue kAppearanceKTable[];
-  static const KTableValue kAzimuthKTable[];
-  static const KTableValue kBackfaceVisibilityKTable[];
-  static const KTableValue kTransformStyleKTable[];
-  static const KTableValue kBackgroundAttachmentKTable[];
-  static const KTableValue kBackgroundOriginKTable[];
-  static const KTableValue kBackgroundPositionKTable[];
-  static const KTableValue kBackgroundRepeatKTable[];
-  static const KTableValue kBackgroundRepeatPartKTable[];
-  static const KTableValue kBackgroundSizeKTable[];
-  static const KTableValue kBlendModeKTable[];
-  static const KTableValue kBorderCollapseKTable[];
-  static const KTableValue kBorderColorKTable[];
-  static const KTableValue kBorderImageRepeatKTable[];
-  static const KTableValue kBorderImageSliceKTable[];
-  static const KTableValue kBorderStyleKTable[];
-  static const KTableValue kBorderWidthKTable[];
-  static const KTableValue kBoxAlignKTable[];
-  static const KTableValue kBoxDecorationBreakKTable[];
-  static const KTableValue kBoxDirectionKTable[];
-  static const KTableValue kBoxOrientKTable[];
-  static const KTableValue kBoxPackKTable[];
-  static const KTableValue kDominantBaselineKTable[];
-  static const KTableValue kFillRuleKTable[];
-  static const KTableValue kFilterFunctionKTable[];
-  static const KTableValue kImageRenderingKTable[];
-  static const KTableValue kShapeRenderingKTable[];
-  static const KTableValue kStrokeLinecapKTable[];
-  static const KTableValue kStrokeLinejoinKTable[];
-  static const KTableValue kStrokeContextValueKTable[];
-  static const KTableValue kVectorEffectKTable[];
-  static const KTableValue kTextAnchorKTable[];
-  static const KTableValue kTextRenderingKTable[];
-  static const KTableValue kColorInterpolationKTable[];
-  static const KTableValue kColumnFillKTable[];
-  static const KTableValue kBoxPropSourceKTable[];
-  static const KTableValue kBoxShadowTypeKTable[];
-  static const KTableValue kBoxSizingKTable[];
-  static const KTableValue kCaptionSideKTable[];
-  static const KTableValue kClearKTable[];
-  static const KTableValue kColorKTable[];
-  static const KTableValue kContentKTable[];
-  static const KTableValue kControlCharacterVisibilityKTable[];
-  static const KTableValue kCursorKTable[];
-  static const KTableValue kDirectionKTable[];
+  static const KTableEntry kAnimationDirectionKTable[];
+  static const KTableEntry kAnimationFillModeKTable[];
+  static const KTableEntry kAnimationIterationCountKTable[];
+  static const KTableEntry kAnimationPlayStateKTable[];
+  static const KTableEntry kAnimationTimingFunctionKTable[];
+  static const KTableEntry kAppearanceKTable[];
+  static const KTableEntry kAzimuthKTable[];
+  static const KTableEntry kBackfaceVisibilityKTable[];
+  static const KTableEntry kTransformStyleKTable[];
+  static const KTableEntry kBackgroundAttachmentKTable[];
+  static const KTableEntry kBackgroundOriginKTable[];
+  static const KTableEntry kBackgroundPositionKTable[];
+  static const KTableEntry kBackgroundRepeatKTable[];
+  static const KTableEntry kBackgroundRepeatPartKTable[];
+  static const KTableEntry kBackgroundSizeKTable[];
+  static const KTableEntry kBlendModeKTable[];
+  static const KTableEntry kBorderCollapseKTable[];
+  static const KTableEntry kBorderColorKTable[];
+  static const KTableEntry kBorderImageRepeatKTable[];
+  static const KTableEntry kBorderImageSliceKTable[];
+  static const KTableEntry kBorderStyleKTable[];
+  static const KTableEntry kBorderWidthKTable[];
+  static const KTableEntry kBoxAlignKTable[];
+  static const KTableEntry kBoxDecorationBreakKTable[];
+  static const KTableEntry kBoxDirectionKTable[];
+  static const KTableEntry kBoxOrientKTable[];
+  static const KTableEntry kBoxPackKTable[];
+  static const KTableEntry kClipShapeSizingKTable[];
+  static const KTableEntry kCounterRangeKTable[];
+  static const KTableEntry kCounterSpeakAsKTable[];
+  static const KTableEntry kCounterSymbolsSystemKTable[];
+  static const KTableEntry kCounterSystemKTable[];
+  static const KTableEntry kDominantBaselineKTable[];
+  static const KTableEntry kShapeRadiusKTable[];
+  static const KTableEntry kFillRuleKTable[];
+  static const KTableEntry kFilterFunctionKTable[];
+  static const KTableEntry kImageRenderingKTable[];
+  static const KTableEntry kShapeRenderingKTable[];
+  static const KTableEntry kStrokeLinecapKTable[];
+  static const KTableEntry kStrokeLinejoinKTable[];
+  static const KTableEntry kStrokeContextValueKTable[];
+  static const KTableEntry kVectorEffectKTable[];
+  static const KTableEntry kTextAnchorKTable[];
+  static const KTableEntry kTextRenderingKTable[];
+  static const KTableEntry kColorInterpolationKTable[];
+  static const KTableEntry kColumnFillKTable[];
+  static const KTableEntry kBoxPropSourceKTable[];
+  static const KTableEntry kBoxShadowTypeKTable[];
+  static const KTableEntry kBoxSizingKTable[];
+  static const KTableEntry kCaptionSideKTable[];
   // Not const because we modify its entries when the pref
-  // "layout.css.grid.enabled" changes:
-  static KTableValue kDisplayKTable[];
-  static const KTableValue kElevationKTable[];
-  static const KTableValue kEmptyCellsKTable[];
-  static const KTableValue kAlignContentKTable[];
-  static const KTableValue kAlignItemsKTable[];
-  static const KTableValue kAlignSelfKTable[];
-  static const KTableValue kFlexBasisKTable[];
-  static const KTableValue kFlexDirectionKTable[];
-  static const KTableValue kFlexWrapKTable[];
-  static const KTableValue kJustifyContentKTable[];
-  static const KTableValue kFloatKTable[];
-  static const KTableValue kFloatEdgeKTable[];
-  static const KTableValue kFontKTable[];
-  static const KTableValue kFontKerningKTable[];
-  static const KTableValue kFontSizeKTable[];
-  static const KTableValue kFontSmoothingKTable[];
-  static const KTableValue kFontStretchKTable[];
-  static const KTableValue kFontStyleKTable[];
-  static const KTableValue kFontSynthesisKTable[];
-  static const KTableValue kFontVariantKTable[];
-  static const KTableValue kFontVariantAlternatesKTable[];
-  static const KTableValue kFontVariantAlternatesFuncsKTable[];
-  static const KTableValue kFontVariantCapsKTable[];
-  static const KTableValue kFontVariantEastAsianKTable[];
-  static const KTableValue kFontVariantLigaturesKTable[];
-  static const KTableValue kFontVariantNumericKTable[];
-  static const KTableValue kFontVariantPositionKTable[];
-  static const KTableValue kFontWeightKTable[];
-  static const KTableValue kGridAutoFlowKTable[];
-  static const KTableValue kGridTrackBreadthKTable[];
-  static const KTableValue kImageOrientationKTable[];
-  static const KTableValue kImageOrientationFlipKTable[];
-  static const KTableValue kIMEModeKTable[];
-  static const KTableValue kLineHeightKTable[];
-  static const KTableValue kListStylePositionKTable[];
-  static const KTableValue kListStyleKTable[];
-  static const KTableValue kMaskTypeKTable[];
-  static const KTableValue kMathVariantKTable[];
-  static const KTableValue kMathDisplayKTable[];
-  static const KTableValue kContextOpacityKTable[];
-  static const KTableValue kContextPatternKTable[];
-  static const KTableValue kObjectFitKTable[];
-  static const KTableValue kOrientKTable[];
-  static const KTableValue kOutlineStyleKTable[];
-  static const KTableValue kOutlineColorKTable[];
-  static const KTableValue kOverflowKTable[];
-  static const KTableValue kOverflowSubKTable[];
-  static const KTableValue kOverflowClipBoxKTable[];
-  static const KTableValue kPageBreakKTable[];
-  static const KTableValue kPageBreakInsideKTable[];
-  static const KTableValue kPageMarksKTable[];
-  static const KTableValue kPageSizeKTable[];
-  static const KTableValue kPitchKTable[];
-  static const KTableValue kPointerEventsKTable[];
+  // "layout.css.float-logical-values.enabled" changes:
+  static KTableEntry kClearKTable[];
+  static const KTableEntry kColorKTable[];
+  static const KTableEntry kContentKTable[];
+  static const KTableEntry kControlCharacterVisibilityKTable[];
+  static const KTableEntry kCursorKTable[];
+  static const KTableEntry kDirectionKTable[];
+  // Not const because we modify its entries when various 
+  // "layout.css.*.enabled" prefs changes:
+  static KTableEntry kDisplayKTable[];
+  static const KTableEntry kElevationKTable[];
+  static const KTableEntry kEmptyCellsKTable[];
+  // -- tables for the align-/justify-content/items/self properties --
+  static const KTableEntry kAlignAllKeywords[];
+  static const KTableEntry kAlignOverflowPosition[]; // <overflow-position>
+  static const KTableEntry kAlignSelfPosition[];     // <self-position>
+  static const KTableEntry kAlignLegacy[];           // 'legacy'
+  static const KTableEntry kAlignLegacyPosition[];   // 'left/right/center'
+  static const KTableEntry kAlignAutoStretchBaseline[]; // 'auto/stretch/baseline/last-baseline'
+  static const KTableEntry kAlignAutoBaseline[]; // 'auto/baseline/last-baseline'
+  static const KTableEntry kAlignContentDistribution[]; // <content-distribution>
+  static const KTableEntry kAlignContentPosition[]; // <content-position>
+  static const KTableEntry kAlignSelfKTable[];
+  static const KTableEntry kJustifyContentKTable[];
+  // ------------------------------------------------------------------
+  static const KTableEntry kFlexDirectionKTable[];
+  static const KTableEntry kFlexWrapKTable[];
+  // Not const because we modify its entries when the pref
+  // "layout.css.float-logical-values.enabled" changes:
+  static KTableEntry kFloatKTable[];
+  static const KTableEntry kFloatEdgeKTable[];
+  static const KTableEntry kFontKTable[];
+  static const KTableEntry kFontKerningKTable[];
+  static const KTableEntry kFontSizeKTable[];
+  static const KTableEntry kFontSmoothingKTable[];
+  static const KTableEntry kFontStretchKTable[];
+  static const KTableEntry kFontStyleKTable[];
+  static const KTableEntry kFontSynthesisKTable[];
+  static const KTableEntry kFontVariantKTable[];
+  static const KTableEntry kFontVariantAlternatesKTable[];
+  static const KTableEntry kFontVariantAlternatesFuncsKTable[];
+  static const KTableEntry kFontVariantCapsKTable[];
+  static const KTableEntry kFontVariantEastAsianKTable[];
+  static const KTableEntry kFontVariantLigaturesKTable[];
+  static const KTableEntry kFontVariantNumericKTable[];
+  static const KTableEntry kFontVariantPositionKTable[];
+  static const KTableEntry kFontWeightKTable[];
+  static const KTableEntry kGridAutoFlowKTable[];
+  static const KTableEntry kGridTrackBreadthKTable[];
+  static const KTableEntry kHyphensKTable[];
+  static const KTableEntry kImageOrientationKTable[];
+  static const KTableEntry kImageOrientationFlipKTable[];
+  static const KTableEntry kIsolationKTable[];
+  static const KTableEntry kIMEModeKTable[];
+  static const KTableEntry kLineHeightKTable[];
+  static const KTableEntry kListStylePositionKTable[];
+  static const KTableEntry kListStyleKTable[];
+  static const KTableEntry kMaskTypeKTable[];
+  static const KTableEntry kMathVariantKTable[];
+  static const KTableEntry kMathDisplayKTable[];
+  static const KTableEntry kContainKTable[];
+  static const KTableEntry kContextOpacityKTable[];
+  static const KTableEntry kContextPatternKTable[];
+  static const KTableEntry kObjectFitKTable[];
+  static const KTableEntry kOrientKTable[];
+  static const KTableEntry kOutlineStyleKTable[];
+  static const KTableEntry kOutlineColorKTable[];
+  static const KTableEntry kOverflowKTable[];
+  static const KTableEntry kOverflowSubKTable[];
+  static const KTableEntry kOverflowClipBoxKTable[];
+  static const KTableEntry kPageBreakKTable[];
+  static const KTableEntry kPageBreakInsideKTable[];
+  static const KTableEntry kPageMarksKTable[];
+  static const KTableEntry kPageSizeKTable[];
+  static const KTableEntry kPitchKTable[];
+  static const KTableEntry kPointerEventsKTable[];
   // Not const because we modify its entries when the pref
   // "layout.css.sticky.enabled" changes:
-  static KTableValue kPositionKTable[];
-  static const KTableValue kRadialGradientShapeKTable[];
-  static const KTableValue kRadialGradientSizeKTable[];
-  static const KTableValue kRadialGradientLegacySizeKTable[];
-  static const KTableValue kResizeKTable[];
-  static const KTableValue kSpeakKTable[];
-  static const KTableValue kSpeakHeaderKTable[];
-  static const KTableValue kSpeakNumeralKTable[];
-  static const KTableValue kSpeakPunctuationKTable[];
-  static const KTableValue kSpeechRateKTable[];
-  static const KTableValue kStackSizingKTable[];
-  static const KTableValue kTableLayoutKTable[];
+  static KTableEntry kPositionKTable[];
+  static const KTableEntry kRadialGradientShapeKTable[];
+  static const KTableEntry kRadialGradientSizeKTable[];
+  static const KTableEntry kRadialGradientLegacySizeKTable[];
+  static const KTableEntry kResizeKTable[];
+  static const KTableEntry kRubyAlignKTable[];
+  static const KTableEntry kRubyPositionKTable[];
+  static const KTableEntry kScrollBehaviorKTable[];
+  static const KTableEntry kScrollSnapTypeKTable[];
+  static const KTableEntry kSpeakKTable[];
+  static const KTableEntry kSpeakHeaderKTable[];
+  static const KTableEntry kSpeakNumeralKTable[];
+  static const KTableEntry kSpeakPunctuationKTable[];
+  static const KTableEntry kSpeechRateKTable[];
+  static const KTableEntry kStackSizingKTable[];
+  static const KTableEntry kTableLayoutKTable[];
   // Not const because we modify its entries when the pref
   // "layout.css.text-align-true-value.enabled" changes:
-  static KTableValue kTextAlignKTable[];
-  static KTableValue kTextAlignLastKTable[];
-  static const KTableValue kTextCombineUprightKTable[];
-  static const KTableValue kTextDecorationLineKTable[];
-  static const KTableValue kTextDecorationStyleKTable[];
-  static const KTableValue kTextOrientationKTable[];
-  static const KTableValue kTextOverflowKTable[];
-  static const KTableValue kTextTransformKTable[];
-  static const KTableValue kTouchActionKTable[];
-  static const KTableValue kTransitionTimingFunctionKTable[];
-  static const KTableValue kUnicodeBidiKTable[];
-  static const KTableValue kUserFocusKTable[];
-  static const KTableValue kUserInputKTable[];
-  static const KTableValue kUserModifyKTable[];
-  static const KTableValue kUserSelectKTable[];
-  static const KTableValue kVerticalAlignKTable[];
-  static const KTableValue kVisibilityKTable[];
-  static const KTableValue kVolumeKTable[];
-  static const KTableValue kWhitespaceKTable[];
-  static const KTableValue kWidthKTable[]; // also min-width, max-width
-  static const KTableValue kWindowDraggingKTable[];
-  static const KTableValue kWindowShadowKTable[];
-  static const KTableValue kWordBreakKTable[];
-  static const KTableValue kWordWrapKTable[];
-  static const KTableValue kWritingModeKTable[];
-  static const KTableValue kHyphensKTable[];
-  static const KTableValue kCounterSystemKTable[];
-  static const KTableValue kCounterRangeKTable[];
-  static const KTableValue kCounterSpeakAsKTable[];
+  static KTableEntry kTextAlignKTable[];
+  static KTableEntry kTextAlignLastKTable[];
+  static const KTableEntry kTextCombineUprightKTable[];
+  static const KTableEntry kTextDecorationLineKTable[];
+  static const KTableEntry kTextDecorationStyleKTable[];
+  static const KTableEntry kTextOrientationKTable[];
+  static const KTableEntry kTextOverflowKTable[];
+  static const KTableEntry kTextTransformKTable[];
+  static const KTableEntry kTouchActionKTable[];
+  static const KTableEntry kTopLayerKTable[];
+  static const KTableEntry kTransformBoxKTable[];
+  static const KTableEntry kTransitionTimingFunctionKTable[];
+  static const KTableEntry kUnicodeBidiKTable[];
+  static const KTableEntry kUserFocusKTable[];
+  static const KTableEntry kUserInputKTable[];
+  static const KTableEntry kUserModifyKTable[];
+  static const KTableEntry kUserSelectKTable[];
+  static const KTableEntry kVerticalAlignKTable[];
+  static const KTableEntry kVisibilityKTable[];
+  static const KTableEntry kVolumeKTable[];
+  static const KTableEntry kWhitespaceKTable[];
+  static const KTableEntry kWidthKTable[]; // also min-width, max-width
+  static const KTableEntry kWindowDraggingKTable[];
+  static const KTableEntry kWindowShadowKTable[];
+  static const KTableEntry kWordBreakKTable[];
+  static const KTableEntry kWordWrapKTable[];
+  static const KTableEntry kWritingModeKTable[];
 };
 
 inline nsCSSProps::EnabledState operator|(nsCSSProps::EnabledState a,

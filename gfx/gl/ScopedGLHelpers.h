@@ -6,12 +6,17 @@
 #ifndef SCOPEDGLHELPERS_H_
 #define SCOPEDGLHELPERS_H_
 
+#include "GLDefs.h"
 #include "mozilla/UniquePtr.h"
-
-#include "GLContext.h"
 
 namespace mozilla {
 namespace gl {
+
+class GLContext;
+
+#ifdef DEBUG
+bool IsContextCurrent(GLContext* gl);
+#endif
 
 //RAII via CRTP!
 template <class Derived>
@@ -29,7 +34,7 @@ protected:
     {
         MOZ_ASSERT(&ScopedGLWrapper<Derived>::Unwrap == &Derived::Unwrap);
         MOZ_ASSERT(&Derived::UnwrapImpl);
-        MOZ_ASSERT(mGL->IsCurrent());
+        MOZ_ASSERT(IsContextCurrent(mGL));
     }
 
     virtual ~ScopedGLWrapper() {
@@ -40,6 +45,7 @@ protected:
 public:
     void Unwrap() {
         MOZ_ASSERT(!mIsUnwrapped);
+        MOZ_ASSERT(IsContextCurrent(mGL));
 
         Derived* derived = static_cast<Derived*>(this);
         derived->UnwrapImpl();
@@ -163,11 +169,8 @@ struct ScopedBindTexture
     friend struct ScopedGLWrapper<ScopedBindTexture>;
 
 protected:
-    GLuint mOldTex;
-    GLenum mTarget;
-
-private:
-    void Init(GLenum aTarget);
+    const GLenum mTarget;
+    const GLuint mOldTex;
 
 public:
     ScopedBindTexture(GLContext* aGL, GLuint aNewTex,
@@ -338,6 +341,38 @@ struct ScopedGLDrawState {
     GLContext* const mGL;
     GLuint packAlign;
 };
+
+struct ScopedPackAlignment
+    : public ScopedGLWrapper<ScopedPackAlignment>
+{
+    friend struct ScopedGLWrapper<ScopedPackAlignment>;
+
+protected:
+    GLint mOldVal;
+
+public:
+    ScopedPackAlignment(GLContext* aGL, GLint scopedVal);
+
+protected:
+    void UnwrapImpl();
+};
+
+
+struct ScopedUnpackAlignment
+    : public ScopedGLWrapper<ScopedUnpackAlignment>
+{
+    friend struct ScopedGLWrapper<ScopedUnpackAlignment>;
+
+protected:
+    GLint mOldVal;
+
+public:
+    ScopedUnpackAlignment(GLContext* gl, GLint scopedVal);
+
+protected:
+    void UnwrapImpl();
+};
+
 } /* namespace gl */
 } /* namespace mozilla */
 

@@ -13,7 +13,7 @@
 #ifdef MOZ_ANDROID_MAX_SDK_VERSION
               android:maxSdkVersion="@MOZ_ANDROID_MAX_SDK_VERSION@"
 #endif
-              android:targetSdkVersion="@ANDROID_TARGET_SDK@"/>
+              android:targetSdkVersion="22"/>
 
 #include ../services/manifests/FxAccountAndroidManifest_permissions.xml.in
 #include ../services/manifests/HealthReportAndroidManifest_permissions.xml.in
@@ -23,10 +23,8 @@
 #include ../search/manifests/SearchAndroidManifest_permissions.xml.in
 #endif
 
-#ifndef RELEASE_BUILD
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
-#endif
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.INTERNET"/>
@@ -40,13 +38,17 @@
     <uses-permission android:name="@ANDROID_PACKAGE_NAME@.permissions.PASSWORD_PROVIDER"/>
     <uses-permission android:name="@ANDROID_PACKAGE_NAME@.permissions.BROWSER_PROVIDER"/>
     <uses-permission android:name="@ANDROID_PACKAGE_NAME@.permissions.FORMHISTORY_PROVIDER"/>
+#ifdef MOZ_ANDROID_DOWNLOADS_INTEGRATION
     <uses-permission android:name="android.permission.DOWNLOAD_WITHOUT_NOTIFICATION" />
+#endif
 #ifdef MOZ_WEBSMS_BACKEND
     <!-- WebSMS -->
     <uses-permission android:name="android.permission.SEND_SMS"/>
     <uses-permission android:name="android.permission.RECEIVE_SMS"/>
     <uses-permission android:name="android.permission.WRITE_SMS"/>
     <uses-permission android:name="android.permission.READ_SMS"/>
+
+    <uses-feature android:name="android.hardware.telephony"/>
 #endif
 
     <uses-feature android:name="android.hardware.location" android:required="false"/>
@@ -58,6 +60,11 @@
     <uses-permission android:name="android.permission.READ_CONTACTS"/>
     <uses-permission android:name="android.permission.WRITE_CONTACTS"/>
     <uses-permission android:name="android.permission.GET_ACCOUNTS"/>
+#endif
+
+#ifdef MOZ_ANDROID_TAB_QUEUE
+    <!-- Tab Queue -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
 #endif
 
 #ifdef MOZ_ANDROID_BEAM
@@ -81,8 +88,10 @@
 
     <application android:label="@string/moz_app_displayname"
                  android:icon="@drawable/icon"
-                 android:name="org.mozilla.gecko.GeckoApplication"
+                 android:logo="@drawable/logo"
+                 android:name="@MOZ_ANDROID_APPLICATION_CLASS@"
                  android:hardwareAccelerated="true"
+                 android:allowBackup="false"
 # The preprocessor does not yet support arbitrary parentheses, so this cannot
 # be parenthesized thus to clarify that the logical AND operator has precedence:
 #   !defined(MOZILLA_OFFICIAL) || (defined(NIGHTLY_BUILD) && defined(MOZ_DEBUG))
@@ -99,9 +108,7 @@
         <meta-data android:name="com.google.android.gms.version" android:value="@integer/google_play_services_version" />
 #endif
 
-        <!-- If the windowSoftInputMode adjust* flag changes below, the
-             setSoftInputMode call in BrowserSearch#onStop must also be updated. -->
-        <activity android:name="org.mozilla.gecko.BrowserApp"
+        <activity android:name="@MOZ_ANDROID_BROWSER_INTENT_CLASS@"
                   android:label="@string/moz_app_displayname"
                   android:taskAffinity="@ANDROID_PACKAGE_NAME@.BROWSER"
                   android:alwaysRetainTaskState="true"
@@ -128,7 +135,7 @@
              for backwards compatibility. -->
         <activity-alias android:name=".App"
                         android:label="@MOZ_APP_DISPLAYNAME@"
-                        android:targetActivity="org.mozilla.gecko.BrowserApp">
+                        android:targetActivity="@MOZ_ANDROID_BROWSER_INTENT_CLASS@">
             <!-- android:priority ranges between -1000 and 1000.  We never want
                  another activity to usurp the MAIN action, so we ratchet our
                  priority up. -->
@@ -136,6 +143,7 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
                 <category android:name="android.intent.category.MULTIWINDOW_LAUNCHER"/>
+                <category android:name="android.intent.category.APP_BROWSER" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
 
@@ -165,6 +173,11 @@
                 <action android:name="org.mozilla.gecko.UPDATE"/>
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+#ifndef MOZ_ANDROID_TAB_QUEUE
+            <!-- The main reason for the Tab Queue build flag is to not mess with the VIEW intent filter
+                 before the rest of the plumbing is in place -->
+
+            <!-- The entry point for Intent.VIEW actions will move to the TabQueue activity -->
 
             <!-- Default browser intents -->
             <intent-filter>
@@ -187,7 +200,7 @@
                 <data android:mimeType="text/plain"/>
                 <data android:mimeType="application/xhtml+xml"/>
             </intent-filter>
-
+#endif
             <intent-filter>
                 <action android:name="android.intent.action.WEB_SEARCH" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -195,10 +208,6 @@
                 <data android:scheme="" />
                 <data android:scheme="http" />
                 <data android:scheme="https" />
-            </intent-filter>
-
-            <intent-filter>
-                <action android:name="android.intent.action.SEARCH" />
             </intent-filter>
 
             <!-- For XPI installs from websites and the download manager. -->
@@ -229,9 +238,6 @@
             </intent-filter>
 #endif
 
-            <meta-data android:name="android.app.searchable"
-                       android:resource="@xml/searchable" />
-
             <!-- For debugging -->
             <intent-filter>
                 <action android:name="org.mozilla.gecko.DEBUG" />
@@ -239,9 +245,50 @@
             </intent-filter>
         </activity-alias>
 
-        <activity android:name="org.mozilla.gecko.StartPane"
-                  android:theme="@style/GeckoStartPane"
-                  android:excludeFromRecents="true"/>
+        <service android:name="org.mozilla.gecko.GeckoService" />
+
+        <activity android:name="org.mozilla.gecko.trackingprotection.TrackingProtectionPrompt"
+                  android:launchMode="singleTop"
+                  android:theme="@style/OverlayActivity" />
+
+#ifdef MOZ_ANDROID_TAB_QUEUE
+        <!-- The main reason for the Tab Queue build flag is to not mess with the VIEW intent filter
+             before the rest of the plumbing is in place -->
+
+        <service android:name="org.mozilla.gecko.tabqueue.TabQueueService" />
+
+        <activity android:name="org.mozilla.gecko.tabqueue.TabQueuePrompt"
+                  android:launchMode="singleTop"
+                  android:theme="@style/OverlayActivity" />
+
+        <activity android:name="org.mozilla.gecko.tabqueue.TabQueueDispatcher"
+                  android:label="@MOZ_APP_DISPLAYNAME@"
+                  android:launchMode="singleTask"
+                  android:excludeFromRecents="true"
+                  android:taskAffinity="@ANDROID_PACKAGE_NAME@.TABQUEUE"
+                  android:theme="@style/TabQueueActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:scheme="about" />
+                <data android:scheme="javascript" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="file" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:mimeType="text/html"/>
+                <data android:mimeType="text/plain"/>
+                <data android:mimeType="application/xhtml+xml"/>
+            </intent-filter>
+        </activity>
+#endif
 
         <activity android:name="org.mozilla.gecko.webapp.Dispatcher"
             android:noHistory="true" >
@@ -264,6 +311,12 @@
           <intent-filter>
              <action android:name="org.mozilla.webapp.TASK_REMOVED" />
              <category android:name="android.intent.category.DEFAULT" />
+          </intent-filter>
+        </receiver>
+
+        <receiver android:name="org.mozilla.gecko.restrictions.RestrictionProvider">
+          <intent-filter>
+            <action android:name="android.intent.action.GET_RESTRICTION_ENTRIES" />
           </intent-filter>
         </receiver>
 
@@ -308,7 +361,7 @@
         <!-- Masquerade as the Resolver so that we can be opened from the Marketplace. -->
         <activity-alias
             android:name="com.android.internal.app.ResolverActivity"
-            android:targetActivity="org.mozilla.gecko.BrowserApp"
+            android:targetActivity="@MOZ_ANDROID_BROWSER_INTENT_CLASS@"
             android:exported="true" />
 
         <receiver android:name="org.mozilla.gecko.GeckoUpdateReceiver">
@@ -332,15 +385,13 @@
             </intent-filter>
         </receiver>
 
-        <activity android:name="org.mozilla.gecko.Restarter"
-                  android:process="@ANDROID_PACKAGE_NAME@Restarter"
-                  android:noHistory="true"
-                  android:theme="@style/Gecko">
-          <intent-filter>
-            <action android:name="org.mozilla.gecko.restart"/>
-            <action android:name="org.mozilla.gecko.restart_update"/>
-          </intent-filter>
-        </activity>
+        <service android:name="org.mozilla.gecko.Restarter"
+                 android:exported="false"
+                 android:process="@MANGLED_ANDROID_PACKAGE_NAME@.Restarter">
+        </service>
+
+        <receiver android:name="org.mozilla.gecko.AlarmReceiver" >
+        </receiver>
 
 #include ../services/manifests/FxAccountAndroidManifest_activities.xml.in
 #include ../services/manifests/HealthReportAndroidManifest_activities.xml.in
@@ -351,6 +402,7 @@
 
 #if MOZ_CRASHREPORTER
   <activity android:name="org.mozilla.gecko.CrashReporter"
+            android:process="@ANDROID_PACKAGE_NAME@.CrashReporter"
             android:label="@string/crash_reporter_title"
             android:icon="@drawable/crash_reporter"
             android:theme="@style/Gecko"
@@ -369,19 +421,18 @@
 
         <provider android:name="org.mozilla.gecko.db.BrowserProvider"
                   android:authorities="@ANDROID_PACKAGE_NAME@.db.browser"
-                  android:permission="@ANDROID_PACKAGE_NAME@.permissions.BROWSER_PROVIDER">
-
-            <path-permission android:pathPrefix="/search_suggest_query"
-                             android:readPermission="android.permission.GLOBAL_SEARCH" />
-
-        </provider>
+                  android:permission="@ANDROID_PACKAGE_NAME@.permissions.BROWSER_PROVIDER"/>
 
 #ifdef MOZ_ANDROID_SHARE_OVERLAY
-        <!-- Share overlay activity -->
+        <!-- Share overlay activity
+
+             Setting launchMode="singleTop" ensures onNewIntent is called when the Activity is
+             reused. Ideally we create a new instance but Android L breaks this (bug 1137928). -->
         <activity android:name="org.mozilla.gecko.overlays.ui.ShareDialog"
                   android:label="@string/overlay_share_label"
-                  android:theme="@style/ShareOverlayActivity"
+                  android:theme="@style/OverlayActivity"
                   android:configChanges="keyboard|keyboardHidden|mcc|mnc|locale|layoutDirection"
+                  android:launchMode="singleTop"
                   android:windowSoftInputMode="stateAlwaysHidden|adjustResize">
 
             <intent-filter>
@@ -427,6 +478,8 @@
 
         <provider android:name="org.mozilla.gecko.db.ReadingListProvider"
                   android:authorities="@ANDROID_PACKAGE_NAME@.db.readinglist"
+                  android:exported="false"
+                  android:label="@string/reading_list_title"
                   android:permission="@ANDROID_PACKAGE_NAME@.permissions.BROWSER_PROVIDER"/>
 
         <provider android:name="org.mozilla.gecko.db.SearchHistoryProvider"
@@ -448,6 +501,12 @@
 #include ../services/manifests/FxAccountAndroidManifest_services.xml.in
 #include ../services/manifests/HealthReportAndroidManifest_services.xml.in
 #include ../services/manifests/SyncAndroidManifest_services.xml.in
+
+        <service
+            android:name="org.mozilla.gecko.tabqueue.TabReceivedService"
+            android:exported="false" />
+
+
 #ifdef MOZ_ANDROID_SEARCH_ACTIVITY
 #include ../search/manifests/SearchAndroidManifest_services.xml.in
 #endif

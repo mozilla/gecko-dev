@@ -52,13 +52,13 @@
 // http://src.chromium.org/viewvc/blink/trunk/Source/wtf/FastMalloc.h
 // Since we don't allocate Decimal objects, no need.
 #define WTF_MAKE_FAST_ALLOCATED \
-  void ignore_this_dummy_method() MOZ_DELETE
+  void ignore_this_dummy_method() = delete
 
 namespace WebCore {
 
 namespace DecimalPrivate {
 class SpecialValueHandler;
-}
+} // namespace DecimalPrivate
 
 // This class represents decimal base floating point number.
 //
@@ -93,7 +93,7 @@ public:
         bool isSpecial() const { return m_formatClass == ClassInfinity || m_formatClass == ClassNaN; }
         bool isZero() const { return m_formatClass == ClassZero; }
         Sign sign() const { return m_sign; }
-        void setSign(Sign sign) { m_sign = sign; }
+        void setSign(Sign aSign) { m_sign = aSign; }
 
     private:
         enum FormatClass {
@@ -200,7 +200,7 @@ private:
 
 namespace mozilla {
   typedef WebCore::Decimal Decimal;
-}
+} // namespace mozilla
 
 #undef WTF_MAKE_FAST_ALLOCATED
 

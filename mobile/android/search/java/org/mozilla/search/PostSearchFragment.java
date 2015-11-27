@@ -4,9 +4,21 @@
 
 package org.mozilla.search;
 
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
+import java.net.URL;
+
+import org.mozilla.gecko.AppConstants;
+import org.mozilla.gecko.R;
+import org.mozilla.gecko.Telemetry;
+import org.mozilla.gecko.TelemetryContract;
+import org.mozilla.gecko.util.ColorUtils;
+import org.mozilla.search.providers.SearchEngine;
+
+import android.annotation.SuppressLint;
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.support.v4.app.Fragment;
@@ -23,11 +35,6 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import org.mozilla.gecko.AppConstants;
-import org.mozilla.gecko.Telemetry;
-import org.mozilla.gecko.TelemetryContract;
-import org.mozilla.search.providers.SearchEngine;
-
 public class PostSearchFragment extends Fragment {
 
     private static final String LOG_TAG = "PostSearchFragment";
@@ -38,6 +45,9 @@ public class PostSearchFragment extends Fragment {
     private WebView webview;
     private View errorView;
 
+    private String resultsPageHost;
+
+    @SuppressLint("SetJavaScriptEnabled")
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -70,6 +80,7 @@ public class PostSearchFragment extends Fragment {
         final String url = engine.resultsUriForQuery(query);
         // Only load urls if the url is different than the webview's current url.
         if (!TextUtils.equals(webview.getUrl(), url)) {
+            resultsPageHost = null;
             webview.loadUrl(Constants.ABOUT_BLANK);
             webview.loadUrl(url);
         }
@@ -89,26 +100,70 @@ public class PostSearchFragment extends Fragment {
         public void onPageStarted(WebView view, final String url, Bitmap favicon) {
             // Reset the error state.
             networkError = false;
-
-            // We keep URLs in the webview that are either about:blank or a search engine result page.
-            if (TextUtils.equals(url, Constants.ABOUT_BLANK) || engine.isSearchResultsPage(url)) {
-                // Keeping the URL in the webview is a noop.
-                return;
-            }
-
-            webview.stopLoading();
-
-            Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL,
-                    TelemetryContract.Method.CONTENT, "search-result");
-
-            final Intent i = new Intent(Intent.ACTION_VIEW);
-
-            // This sends the URL directly to fennec, rather than to Android.
-            i.setClassName(AppConstants.ANDROID_PACKAGE_NAME, AppConstants.BROWSER_INTENT_CLASS_NAME);
-            i.setData(Uri.parse(url));
-            startActivity(i);
         }
 
+        @Override
+        public boolean shouldOverrideUrlLoading(WebView view, String url) {
+            // Ignore about:blank URL loads and the first results page we try to load.
+            if (TextUtils.equals(url, Constants.ABOUT_BLANK) || resultsPageHost == null) {
+                return false;
+            }
+
+            String host = null;
+            try {
+                host = new URL(url).getHost();
+            } catch (MalformedURLException e) {
+                Log.e(LOG_TAG, "Error getting host from URL loading in webview", e);
+            }
+
+            // If the host name is the same as the results page, don't override the URL load, but
+            // do update the query in the search bar if possible.
+            if (TextUtils.equals(resultsPageHost, host)) {
+                // This won't work for results pages that redirect (e.g. Google in different country)
+                final String query = engine.queryForResultsUrl(url);
+                if (!TextUtils.isEmpty(query)) {
+                    ((AcceptsSearchQuery) getActivity()).onQueryChange(query);
+                }
+                return false;
+            }
+
+            try {
+                // If the url URI does not have an intent scheme, the intent data will be the entire
+                // URI and its action will be ACTION_VIEW.
+                final Intent i = Intent.parseUri(url, Intent.URI_INTENT_SCHEME);
+
+                // If the intent URI didn't specify a package, open this in Fennec.
+                if (i.getPackage() == null) {
+                    i.setClassName(AppConstants.ANDROID_PACKAGE_NAME, AppConstants.MOZ_ANDROID_BROWSER_INTENT_CLASS);
+                    Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL,
+                            TelemetryContract.Method.CONTENT, "search-result");
+                } else {
+                    Telemetry.sendUIEvent(TelemetryContract.Event.LAUNCH,
+                            TelemetryContract.Method.INTENT, "search-result");
+                }
+
+                i.addCategory(Intent.CATEGORY_BROWSABLE);
+                i.setComponent(null);
+                if (AppConstants.Versions.feature15Plus) {
+                    i.setSelector(null);
+                }
+
+                startActivity(i);
+                return true;
+            } catch (URISyntaxException e) {
+                Log.e(LOG_TAG, "Error parsing intent URI", e);
+            } catch (SecurityException e) {
+                Log.e(LOG_TAG, "SecurityException handling arbitrary intent content");
+            } catch (ActivityNotFoundException e) {
+                Log.e(LOG_TAG, "Intent not actionable");
+            }
+
+            return false;
+        }
+
+        // We are suppressing the 'deprecation' warning because the new method is only available starting with API
+        // level 23 and that's much higher than our current minSdkLevel (1208580).
+        @SuppressWarnings("deprecation")
         @Override
         public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
             Log.e(LOG_TAG, "Error loading search results: " + description);
@@ -124,7 +179,7 @@ public class PostSearchFragment extends Fragment {
 
                 final TextView message = (TextView) errorView.findViewById(R.id.empty_message);
                 message.setText(R.string.network_error_message);
-                message.setTextColor(getResources().getColor(R.color.network_error_link));
+                message.setTextColor(ColorUtils.getColor(view.getContext(), R.color.network_error_link));
                 message.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -140,6 +195,14 @@ public class PostSearchFragment extends Fragment {
             if (errorView != null) {
                 errorView.setVisibility(networkError ? View.VISIBLE : View.GONE);
                 webview.setVisibility(networkError ? View.GONE : View.VISIBLE);
+            }
+
+            if (!TextUtils.equals(url, Constants.ABOUT_BLANK) && resultsPageHost == null) {
+                try {
+                    resultsPageHost = new URL(url).getHost();
+                } catch (MalformedURLException e) {
+                    Log.e(LOG_TAG, "Error getting host from results page URL", e);
+                }
             }
         }
     }

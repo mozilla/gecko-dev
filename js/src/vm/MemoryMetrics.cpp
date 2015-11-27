@@ -46,10 +46,10 @@ MemoryReportingSundriesThreshold()
 
 template <typename CharT>
 static uint32_t
-HashStringChars(JSString *s)
+HashStringChars(JSString* s)
 {
     ScopedJSFreePtr<CharT> ownedChars;
-    const CharT *chars;
+    const CharT* chars;
     JS::AutoCheckCannotGC nogc;
     if (s->isLinear()) {
         chars = s->asLinear().chars<CharT>(nogc);
@@ -64,7 +64,7 @@ HashStringChars(JSString *s)
 }
 
 /* static */ HashNumber
-InefficientNonFlatteningStringHashPolicy::hash(const Lookup &l)
+InefficientNonFlatteningStringHashPolicy::hash(const Lookup& l)
 {
     return l->hasLatin1Chars()
            ? HashStringChars<Latin1Char>(l)
@@ -73,12 +73,12 @@ InefficientNonFlatteningStringHashPolicy::hash(const Lookup &l)
 
 template <typename Char1, typename Char2>
 static bool
-EqualStringsPure(JSString *s1, JSString *s2)
+EqualStringsPure(JSString* s1, JSString* s2)
 {
     if (s1->length() != s2->length())
         return false;
 
-    const Char1 *c1;
+    const Char1* c1;
     ScopedJSFreePtr<Char1> ownedChars1;
     JS::AutoCheckCannotGC nogc;
     if (s1->isLinear()) {
@@ -89,7 +89,7 @@ EqualStringsPure(JSString *s1, JSString *s2)
         c1 = ownedChars1;
     }
 
-    const Char2 *c2;
+    const Char2* c2;
     ScopedJSFreePtr<Char2> ownedChars2;
     if (s2->isLinear()) {
         c2 = s2->asLinear().chars<Char2>(nogc);
@@ -103,10 +103,10 @@ EqualStringsPure(JSString *s1, JSString *s2)
 }
 
 /* static */ bool
-InefficientNonFlatteningStringHashPolicy::match(const JSString *const &k, const Lookup &l)
+InefficientNonFlatteningStringHashPolicy::match(const JSString* const& k, const Lookup& l)
 {
     // We can't use js::EqualStrings, because that flattens our strings.
-    JSString *s1 = const_cast<JSString *>(k);
+    JSString* s1 = const_cast<JSString*>(k);
     if (k->hasLatin1Chars()) {
         return l->hasLatin1Chars()
                ? EqualStringsPure<Latin1Char, Latin1Char>(s1, l)
@@ -119,13 +119,13 @@ InefficientNonFlatteningStringHashPolicy::match(const JSString *const &k, const 
 }
 
 /* static */ HashNumber
-CStringHashPolicy::hash(const Lookup &l)
+CStringHashPolicy::hash(const Lookup& l)
 {
     return mozilla::HashString(l);
 }
 
 /* static */ bool
-CStringHashPolicy::match(const char *const &k, const Lookup &l)
+CStringHashPolicy::match(const char* const& k, const Lookup& l)
 {
     return strcmp(k, l) == 0;
 }
@@ -143,7 +143,7 @@ NotableStringInfo::NotableStringInfo()
 
 template <typename CharT>
 static void
-StoreStringChars(char *buffer, size_t bufferSize, JSString *str)
+StoreStringChars(char* buffer, size_t bufferSize, JSString* str)
 {
     const CharT* chars;
     ScopedJSFreePtr<CharT> ownedChars;
@@ -162,7 +162,7 @@ StoreStringChars(char *buffer, size_t bufferSize, JSString *str)
     PutEscapedString(buffer, bufferSize, chars, str->length(), /* quote */ 0);
 }
 
-NotableStringInfo::NotableStringInfo(JSString *str, const StringInfo &info)
+NotableStringInfo::NotableStringInfo(JSString* str, const StringInfo& info)
   : StringInfo(info),
     length(str->length())
 {
@@ -178,7 +178,7 @@ NotableStringInfo::NotableStringInfo(JSString *str, const StringInfo &info)
         StoreStringChars<char16_t>(buffer, bufferSize, str);
 }
 
-NotableStringInfo::NotableStringInfo(NotableStringInfo &&info)
+NotableStringInfo::NotableStringInfo(NotableStringInfo&& info)
   : StringInfo(Move(info)),
     length(info.length)
 {
@@ -186,7 +186,7 @@ NotableStringInfo::NotableStringInfo(NotableStringInfo &&info)
     info.buffer = nullptr;
 }
 
-NotableStringInfo &NotableStringInfo::operator=(NotableStringInfo &&info)
+NotableStringInfo& NotableStringInfo::operator=(NotableStringInfo&& info)
 {
     MOZ_ASSERT(this != &info, "self-move assignment is prohibited");
     this->~NotableStringInfo();
@@ -200,7 +200,7 @@ NotableClassInfo::NotableClassInfo()
 {
 }
 
-NotableClassInfo::NotableClassInfo(const char *className, const ClassInfo &info)
+NotableClassInfo::NotableClassInfo(const char* className, const ClassInfo& info)
   : ClassInfo(info)
 {
     size_t bytes = strlen(className) + 1;
@@ -210,14 +210,14 @@ NotableClassInfo::NotableClassInfo(const char *className, const ClassInfo &info)
     PodCopy(className_, className, bytes);
 }
 
-NotableClassInfo::NotableClassInfo(NotableClassInfo &&info)
+NotableClassInfo::NotableClassInfo(NotableClassInfo&& info)
   : ClassInfo(Move(info))
 {
     className_ = info.className_;
     info.className_ = nullptr;
 }
 
-NotableClassInfo &NotableClassInfo::operator=(NotableClassInfo &&info)
+NotableClassInfo& NotableClassInfo::operator=(NotableClassInfo&& info)
 {
     MOZ_ASSERT(this != &info, "self-move assignment is prohibited");
     this->~NotableClassInfo();
@@ -231,7 +231,7 @@ NotableScriptSourceInfo::NotableScriptSourceInfo()
 {
 }
 
-NotableScriptSourceInfo::NotableScriptSourceInfo(const char *filename, const ScriptSourceInfo &info)
+NotableScriptSourceInfo::NotableScriptSourceInfo(const char* filename, const ScriptSourceInfo& info)
   : ScriptSourceInfo(info)
 {
     size_t bytes = strlen(filename) + 1;
@@ -241,14 +241,14 @@ NotableScriptSourceInfo::NotableScriptSourceInfo(const char *filename, const Scr
     PodCopy(filename_, filename, bytes);
 }
 
-NotableScriptSourceInfo::NotableScriptSourceInfo(NotableScriptSourceInfo &&info)
+NotableScriptSourceInfo::NotableScriptSourceInfo(NotableScriptSourceInfo&& info)
   : ScriptSourceInfo(Move(info))
 {
     filename_ = info.filename_;
     info.filename_ = nullptr;
 }
 
-NotableScriptSourceInfo &NotableScriptSourceInfo::operator=(NotableScriptSourceInfo &&info)
+NotableScriptSourceInfo& NotableScriptSourceInfo::operator=(NotableScriptSourceInfo&& info)
 {
     MOZ_ASSERT(this != &info, "self-move assignment is prohibited");
     this->~NotableScriptSourceInfo();
@@ -259,16 +259,16 @@ NotableScriptSourceInfo &NotableScriptSourceInfo::operator=(NotableScriptSourceI
 
 } // namespace JS
 
-typedef HashSet<ScriptSource *, DefaultHasher<ScriptSource *>, SystemAllocPolicy> SourceSet;
+typedef HashSet<ScriptSource*, DefaultHasher<ScriptSource*>, SystemAllocPolicy> SourceSet;
 
 struct StatsClosure
 {
-    RuntimeStats *rtStats;
-    ObjectPrivateVisitor *opv;
+    RuntimeStats* rtStats;
+    ObjectPrivateVisitor* opv;
     SourceSet seenSources;
     bool anonymize;
 
-    StatsClosure(RuntimeStats *rt, ObjectPrivateVisitor *v, bool anon)
+    StatsClosure(RuntimeStats* rt, ObjectPrivateVisitor* v, bool anon)
       : rtStats(rt),
         opv(v),
         anonymize(anon)
@@ -280,7 +280,7 @@ struct StatsClosure
 };
 
 static void
-DecommittedArenasChunkCallback(JSRuntime *rt, void *data, gc::Chunk *chunk)
+DecommittedArenasChunkCallback(JSRuntime* rt, void* data, gc::Chunk* chunk)
 {
     // This case is common and fast to check.  Do it first.
     if (chunk->decommittedArenas.isAllClear())
@@ -291,19 +291,19 @@ DecommittedArenasChunkCallback(JSRuntime *rt, void *data, gc::Chunk *chunk)
         if (chunk->decommittedArenas.get(i))
             n += gc::ArenaSize;
     }
-    JS_ASSERT(n > 0);
-    *static_cast<size_t *>(data) += n;
+    MOZ_ASSERT(n > 0);
+    *static_cast<size_t*>(data) += n;
 }
 
 static void
-StatsZoneCallback(JSRuntime *rt, void *data, Zone *zone)
+StatsZoneCallback(JSRuntime* rt, void* data, Zone* zone)
 {
     // Append a new CompartmentStats to the vector.
-    RuntimeStats *rtStats = static_cast<StatsClosure *>(data)->rtStats;
+    RuntimeStats* rtStats = static_cast<StatsClosure*>(data)->rtStats;
 
     // CollectRuntimeStats reserves enough space.
     MOZ_ALWAYS_TRUE(rtStats->zoneStatsVector.growBy(1));
-    ZoneStats &zStats = rtStats->zoneStatsVector.back();
+    ZoneStats& zStats = rtStats->zoneStatsVector.back();
     if (!zStats.initStrings(rt))
         MOZ_CRASH("oom");
     rtStats->initExtraZoneStats(zone, &zStats);
@@ -311,18 +311,19 @@ StatsZoneCallback(JSRuntime *rt, void *data, Zone *zone)
 
     zone->addSizeOfIncludingThis(rtStats->mallocSizeOf_,
                                  &zStats.typePool,
-                                 &zStats.baselineStubsOptimized);
+                                 &zStats.baselineStubsOptimized,
+                                 &zStats.uniqueIdMap);
 }
 
 static void
-StatsCompartmentCallback(JSRuntime *rt, void *data, JSCompartment *compartment)
+StatsCompartmentCallback(JSRuntime* rt, void* data, JSCompartment* compartment)
 {
     // Append a new CompartmentStats to the vector.
-    RuntimeStats *rtStats = static_cast<StatsClosure *>(data)->rtStats;
+    RuntimeStats* rtStats = static_cast<StatsClosure*>(data)->rtStats;
 
     // CollectRuntimeStats reserves enough space.
     MOZ_ALWAYS_TRUE(rtStats->compartmentStatsVector.growBy(1));
-    CompartmentStats &cStats = rtStats->compartmentStatsVector.back();
+    CompartmentStats& cStats = rtStats->compartmentStatsVector.back();
     if (!cStats.initClasses(rt))
         MOZ_CRASH("oom");
     rtStats->initExtraCompartmentStats(compartment, &cStats);
@@ -337,16 +338,19 @@ StatsCompartmentCallback(JSRuntime *rt, void *data, JSCompartment *compartment)
                                         &cStats.compartmentObject,
                                         &cStats.compartmentTables,
                                         &cStats.innerViewsTable,
+                                        &cStats.lazyArrayBuffersTable,
+                                        &cStats.objectMetadataTable,
                                         &cStats.crossCompartmentWrappersTable,
                                         &cStats.regexpCompartment,
-                                        &cStats.savedStacksSet);
+                                        &cStats.savedStacksSet,
+                                        &cStats.nonSyntacticLexicalScopesTable);
 }
 
 static void
-StatsArenaCallback(JSRuntime *rt, void *data, gc::Arena *arena,
-                   JSGCTraceKind traceKind, size_t thingSize)
+StatsArenaCallback(JSRuntime* rt, void* data, gc::Arena* arena,
+                   JS::TraceKind traceKind, size_t thingSize)
 {
-    RuntimeStats *rtStats = static_cast<StatsClosure *>(data)->rtStats;
+    RuntimeStats* rtStats = static_cast<StatsClosure*>(data)->rtStats;
 
     // The admin space includes (a) the header and (b) the padding between the
     // end of the header and the start of the first GC thing.
@@ -357,13 +361,13 @@ StatsArenaCallback(JSRuntime *rt, void *data, gc::Arena *arena,
     // unused space like this:  arenaUnused = maxArenaUnused - arenaUsed.
     // We do this by setting arenaUnused to maxArenaUnused here, and then
     // subtracting thingSize for every used cell, in StatsCellCallback().
-    rtStats->currZoneStats->unusedGCThings += allocationSpace;
+    rtStats->currZoneStats->unusedGCThings.addToKind(traceKind, allocationSpace);
 }
 
-static CompartmentStats *
-GetCompartmentStats(JSCompartment *comp)
+static CompartmentStats*
+GetCompartmentStats(JSCompartment* comp)
 {
-    return static_cast<CompartmentStats *>(comp->compartmentStats);
+    return static_cast<CompartmentStats*>(comp->compartmentStats);
 }
 
 // FineGrained is used for normal memory reporting.  CoarseGrained is used by
@@ -376,8 +380,8 @@ enum Granularity {
 };
 
 static void
-AddClassInfo(Granularity granularity, CompartmentStats *cStats, const char *className,
-             JS::ClassInfo &info)
+AddClassInfo(Granularity granularity, CompartmentStats* cStats, const char* className,
+             JS::ClassInfo& info)
 {
     if (granularity == FineGrained) {
         if (!className)
@@ -399,105 +403,37 @@ AddClassInfo(Granularity granularity, CompartmentStats *cStats, const char *clas
 // profile speed for complex pages such as gmail.com.
 template <Granularity granularity>
 static void
-StatsCellCallback(JSRuntime *rt, void *data, void *thing, JSGCTraceKind traceKind,
+StatsCellCallback(JSRuntime* rt, void* data, void* thing, JS::TraceKind traceKind,
                   size_t thingSize)
 {
-    StatsClosure *closure = static_cast<StatsClosure *>(data);
-    RuntimeStats *rtStats = closure->rtStats;
-    ZoneStats *zStats = rtStats->currZoneStats;
+    StatsClosure* closure = static_cast<StatsClosure*>(data);
+    RuntimeStats* rtStats = closure->rtStats;
+    ZoneStats* zStats = rtStats->currZoneStats;
     switch (traceKind) {
-      case JSTRACE_OBJECT: {
-        JSObject *obj = static_cast<JSObject *>(thing);
-        CompartmentStats *cStats = GetCompartmentStats(obj->compartment());
+      case JS::TraceKind::Object: {
+        JSObject* obj = static_cast<JSObject*>(thing);
+        CompartmentStats* cStats = GetCompartmentStats(obj->compartment());
         JS::ClassInfo info;        // This zeroes all the sizes.
         info.objectsGCHeap += thingSize;
         obj->addSizeOfExcludingThis(rtStats->mallocSizeOf_, &info);
 
         cStats->classInfo.add(info);
 
-        const Class *clasp = obj->getClass();
-        const char *className = clasp->name;
+        const Class* clasp = obj->getClass();
+        const char* className = clasp->name;
         AddClassInfo(granularity, cStats, className, info);
 
-        if (ObjectPrivateVisitor *opv = closure->opv) {
-            nsISupports *iface;
+        if (ObjectPrivateVisitor* opv = closure->opv) {
+            nsISupports* iface;
             if (opv->getISupports_(obj, &iface) && iface)
                 cStats->objectsPrivate += opv->sizeOfIncludingThis(iface);
         }
         break;
       }
 
-      case JSTRACE_STRING: {
-        JSString *str = static_cast<JSString *>(thing);
-
-        JS::StringInfo info;
-        if (str->hasLatin1Chars()) {
-            info.gcHeapLatin1 = thingSize;
-            info.mallocHeapLatin1 = str->sizeOfExcludingThis(rtStats->mallocSizeOf_);
-        } else {
-            info.gcHeapTwoByte = thingSize;
-            info.mallocHeapTwoByte = str->sizeOfExcludingThis(rtStats->mallocSizeOf_);
-        }
-        info.numCopies = 1;
-
-        zStats->stringInfo.add(info);
-
-        // The primary use case for anonymization is automated crash submission
-        // (to help detect OOM crashes). In that case, we don't want to pay the
-        // memory cost required to do notable string detection.
-        if (granularity == FineGrained && !closure->anonymize) {
-            ZoneStats::StringsHashMap::AddPtr p = zStats->allStrings->lookupForAdd(str);
-            if (!p) {
-                // Ignore failure -- we just won't record the string as notable.
-                (void)zStats->allStrings->add(p, str, info);
-            } else {
-                p->value().add(info);
-            }
-        }
-        break;
-      }
-
-      case JSTRACE_SYMBOL:
-        zStats->symbolsGCHeap += thingSize;
-        break;
-
-      case JSTRACE_SHAPE: {
-        Shape *shape = static_cast<Shape *>(thing);
-        CompartmentStats *cStats = GetCompartmentStats(shape->compartment());
-        JS::ClassInfo info;        // This zeroes all the sizes.
-        if (shape->inDictionary())
-            info.shapesGCHeapDict += thingSize;
-        else
-            info.shapesGCHeapTree += thingSize;
-        shape->addSizeOfExcludingThis(rtStats->mallocSizeOf_, &info);
-        cStats->classInfo.add(info);
-
-        const BaseShape *base = shape->base();
-        const Class *clasp = base->clasp();
-        const char *className = clasp->name;
-        AddClassInfo(granularity, cStats, className, info);
-        break;
-      }
-
-      case JSTRACE_BASE_SHAPE: {
-        BaseShape *base = static_cast<BaseShape *>(thing);
-        CompartmentStats *cStats = GetCompartmentStats(base->compartment());
-
-        JS::ClassInfo info;        // This zeroes all the sizes.
-        info.shapesGCHeapBase += thingSize;
-        // No malloc-heap measurements.
-
-        cStats->classInfo.add(info);
-
-        const Class *clasp = base->clasp();
-        const char *className = clasp->name;
-        AddClassInfo(granularity, cStats, className, info);
-        break;
-      }
-
-      case JSTRACE_SCRIPT: {
-        JSScript *script = static_cast<JSScript *>(thing);
-        CompartmentStats *cStats = GetCompartmentStats(script->compartment());
+      case JS::TraceKind::Script: {
+        JSScript* script = static_cast<JSScript*>(thing);
+        CompartmentStats* cStats = GetCompartmentStats(script->compartment());
         cStats->scriptsGCHeap += thingSize;
         cStats->scriptsMallocHeapData += script->sizeOfData(rtStats->mallocSizeOf_);
         cStats->typeInferenceTypeScripts += script->sizeOfTypeScript(rtStats->mallocSizeOf_);
@@ -505,7 +441,7 @@ StatsCellCallback(JSRuntime *rt, void *data, void *thing, JSGCTraceKind traceKin
                                    &cStats->baselineStubsFallback);
         cStats->ionData += jit::SizeOfIonData(script, rtStats->mallocSizeOf_);
 
-        ScriptSource *ss = script->scriptSource();
+        ScriptSource* ss = script->scriptSource();
         SourceSet::AddPtr entry = closure->seenSources.lookupForAdd(ss);
         if (!entry) {
             (void)closure->seenSources.add(entry, ss); // Not much to be done on failure.
@@ -535,36 +471,104 @@ StatsCellCallback(JSRuntime *rt, void *data, void *thing, JSGCTraceKind traceKin
         break;
       }
 
-      case JSTRACE_LAZY_SCRIPT: {
-        LazyScript *lazy = static_cast<LazyScript *>(thing);
-        zStats->lazyScriptsGCHeap += thingSize;
-        zStats->lazyScriptsMallocHeap += lazy->sizeOfExcludingThis(rtStats->mallocSizeOf_);
+      case JS::TraceKind::String: {
+        JSString* str = static_cast<JSString*>(thing);
+
+        JS::StringInfo info;
+        if (str->hasLatin1Chars()) {
+            info.gcHeapLatin1 = thingSize;
+            info.mallocHeapLatin1 = str->sizeOfExcludingThis(rtStats->mallocSizeOf_);
+        } else {
+            info.gcHeapTwoByte = thingSize;
+            info.mallocHeapTwoByte = str->sizeOfExcludingThis(rtStats->mallocSizeOf_);
+        }
+        info.numCopies = 1;
+
+        zStats->stringInfo.add(info);
+
+        // The primary use case for anonymization is automated crash submission
+        // (to help detect OOM crashes). In that case, we don't want to pay the
+        // memory cost required to do notable string detection.
+        if (granularity == FineGrained && !closure->anonymize) {
+            ZoneStats::StringsHashMap::AddPtr p = zStats->allStrings->lookupForAdd(str);
+            if (!p) {
+                // Ignore failure -- we just won't record the string as notable.
+                (void)zStats->allStrings->add(p, str, info);
+            } else {
+                p->value().add(info);
+            }
+        }
         break;
       }
 
-      case JSTRACE_JITCODE: {
+      case JS::TraceKind::Symbol:
+        zStats->symbolsGCHeap += thingSize;
+        break;
+
+      case JS::TraceKind::BaseShape: {
+        BaseShape* base = static_cast<BaseShape*>(thing);
+        CompartmentStats* cStats = GetCompartmentStats(base->compartment());
+
+        JS::ClassInfo info;        // This zeroes all the sizes.
+        info.shapesGCHeapBase += thingSize;
+        // No malloc-heap measurements.
+
+        cStats->classInfo.add(info);
+
+        const Class* clasp = base->clasp();
+        const char* className = clasp->name;
+        AddClassInfo(granularity, cStats, className, info);
+        break;
+      }
+
+      case JS::TraceKind::JitCode: {
         zStats->jitCodesGCHeap += thingSize;
         // The code for a script is counted in ExecutableAllocator::sizeOfCode().
         break;
       }
 
-      case JSTRACE_TYPE_OBJECT: {
-        types::TypeObject *obj = static_cast<types::TypeObject *>(thing);
-        zStats->typeObjectsGCHeap += thingSize;
-        zStats->typeObjectsMallocHeap += obj->sizeOfExcludingThis(rtStats->mallocSizeOf_);
+      case JS::TraceKind::LazyScript: {
+        LazyScript* lazy = static_cast<LazyScript*>(thing);
+        zStats->lazyScriptsGCHeap += thingSize;
+        zStats->lazyScriptsMallocHeap += lazy->sizeOfExcludingThis(rtStats->mallocSizeOf_);
+        break;
+      }
+
+      case JS::TraceKind::Shape: {
+        Shape* shape = static_cast<Shape*>(thing);
+        CompartmentStats* cStats = GetCompartmentStats(shape->compartment());
+        JS::ClassInfo info;        // This zeroes all the sizes.
+        if (shape->inDictionary())
+            info.shapesGCHeapDict += thingSize;
+        else
+            info.shapesGCHeapTree += thingSize;
+        shape->addSizeOfExcludingThis(rtStats->mallocSizeOf_, &info);
+        cStats->classInfo.add(info);
+
+        const BaseShape* base = shape->base();
+        const Class* clasp = base->clasp();
+        const char* className = clasp->name;
+        AddClassInfo(granularity, cStats, className, info);
+        break;
+      }
+
+      case JS::TraceKind::ObjectGroup: {
+        ObjectGroup* group = static_cast<ObjectGroup*>(thing);
+        zStats->objectGroupsGCHeap += thingSize;
+        zStats->objectGroupsMallocHeap += group->sizeOfExcludingThis(rtStats->mallocSizeOf_);
         break;
       }
 
       default:
-        MOZ_CRASH("invalid traceKind");
+        MOZ_CRASH("invalid traceKind in StatsCellCallback");
     }
 
     // Yes, this is a subtraction:  see StatsArenaCallback() for details.
-    zStats->unusedGCThings -= thingSize;
+    zStats->unusedGCThings.addToKind(traceKind, -thingSize);
 }
 
 bool
-ZoneStats::initStrings(JSRuntime *rt)
+ZoneStats::initStrings(JSRuntime* rt)
 {
     isTotals = false;
     allStrings = rt->new_<StringsHashMap>();
@@ -577,7 +581,7 @@ ZoneStats::initStrings(JSRuntime *rt)
 }
 
 bool
-CompartmentStats::initClasses(JSRuntime *rt)
+CompartmentStats::initClasses(JSRuntime* rt)
 {
     isTotals = false;
     allClasses = rt->new_<ClassesHashMap>();
@@ -590,7 +594,7 @@ CompartmentStats::initClasses(JSRuntime *rt)
 }
 
 static bool
-FindNotableStrings(ZoneStats &zStats)
+FindNotableStrings(ZoneStats& zStats)
 {
     using namespace JS;
 
@@ -599,8 +603,8 @@ FindNotableStrings(ZoneStats &zStats)
 
     for (ZoneStats::StringsHashMap::Range r = zStats.allStrings->all(); !r.empty(); r.popFront()) {
 
-        JSString *str = r.front().key();
-        StringInfo &info = r.front().value();
+        JSString* str = r.front().key();
+        StringInfo& info = r.front().value();
 
         if (!info.isNotable())
             continue;
@@ -622,7 +626,7 @@ FindNotableStrings(ZoneStats &zStats)
 }
 
 static bool
-FindNotableClasses(CompartmentStats &cStats)
+FindNotableClasses(CompartmentStats& cStats)
 {
     using namespace JS;
 
@@ -633,8 +637,8 @@ FindNotableClasses(CompartmentStats &cStats)
          !r.empty();
          r.popFront())
     {
-        const char *className = r.front().key();
-        ClassInfo &info = r.front().value();
+        const char* className = r.front().key();
+        ClassInfo& info = r.front().value();
 
         // If this class isn't notable, or if we can't grow the notableStrings
         // vector, skip this string.
@@ -658,7 +662,7 @@ FindNotableClasses(CompartmentStats &cStats)
 }
 
 static bool
-FindNotableScriptSources(JS::RuntimeSizes &runtime)
+FindNotableScriptSources(JS::RuntimeSizes& runtime)
 {
     using namespace JS;
 
@@ -669,8 +673,8 @@ FindNotableScriptSources(JS::RuntimeSizes &runtime)
          !r.empty();
          r.popFront())
     {
-        const char *filename = r.front().key();
-        ScriptSourceInfo &info = r.front().value();
+        const char* filename = r.front().key();
+        ScriptSourceInfo& info = r.front().value();
 
         if (!info.isNotable())
             continue;
@@ -691,9 +695,9 @@ FindNotableScriptSources(JS::RuntimeSizes &runtime)
     return true;
 }
 
-JS_PUBLIC_API(bool)
-JS::CollectRuntimeStats(JSRuntime *rt, RuntimeStats *rtStats, ObjectPrivateVisitor *opv,
-                        bool anonymize)
+static bool
+CollectRuntimeStatsHelper(JSRuntime* rt, RuntimeStats* rtStats, ObjectPrivateVisitor* opv,
+                          bool anonymize, IterateCellCallback statsCellCallback)
 {
     if (!rtStats->compartmentStatsVector.reserve(rt->numCompartments))
         return false;
@@ -718,7 +722,7 @@ JS::CollectRuntimeStats(JSRuntime *rt, RuntimeStats *rtStats, ObjectPrivateVisit
                                         StatsZoneCallback,
                                         StatsCompartmentCallback,
                                         StatsArenaCallback,
-                                        StatsCellCallback<FineGrained>);
+                                        statsCellCallback);
 
     // Take the "explicit/js/runtime/" measurements.
     rt->addSizeOfIncludingThis(rtStats->mallocSizeOf_, &rtStats->runtime);
@@ -726,8 +730,8 @@ JS::CollectRuntimeStats(JSRuntime *rt, RuntimeStats *rtStats, ObjectPrivateVisit
     if (!FindNotableScriptSources(rtStats->runtime))
         return false;
 
-    ZoneStatsVector &zs = rtStats->zoneStatsVector;
-    ZoneStats &zTotals = rtStats->zTotals;
+    JS::ZoneStatsVector& zs = rtStats->zoneStatsVector;
+    ZoneStats& zTotals = rtStats->zTotals;
 
     // We don't look for notable strings for zTotals. So we first sum all the
     // zones' measurements to get the totals. Then we find the notable strings
@@ -741,8 +745,8 @@ JS::CollectRuntimeStats(JSRuntime *rt, RuntimeStats *rtStats, ObjectPrivateVisit
 
     MOZ_ASSERT(!zTotals.allStrings);
 
-    CompartmentStatsVector &cs = rtStats->compartmentStatsVector;
-    CompartmentStats &cTotals = rtStats->cTotals;
+    JS::CompartmentStatsVector& cs = rtStats->compartmentStatsVector;
+    CompartmentStats& cTotals = rtStats->cTotals;
 
     // As with the zones, we sum all compartments first, and then get the
     // notable classes within each zone.
@@ -762,9 +766,9 @@ JS::CollectRuntimeStats(JSRuntime *rt, RuntimeStats *rtStats, ObjectPrivateVisit
 #ifdef DEBUG
     // Check that the in-arena measurements look ok.
     size_t totalArenaSize = rtStats->zTotals.gcHeapArenaAdmin +
-                            rtStats->zTotals.unusedGCThings +
+                            rtStats->zTotals.unusedGCThings.totalSize() +
                             rtStats->gcHeapGCThings;
-    JS_ASSERT(totalArenaSize % gc::ArenaSize == 0);
+    MOZ_ASSERT(totalArenaSize % gc::ArenaSize == 0);
 #endif
 
     for (CompartmentsIter comp(rt, WithAtoms); !comp.done(); comp.next())
@@ -781,66 +785,73 @@ JS::CollectRuntimeStats(JSRuntime *rt, RuntimeStats *rtStats, ObjectPrivateVisit
     rtStats->gcHeapUnusedArenas = rtStats->gcHeapChunkTotal -
                                   rtStats->gcHeapDecommittedArenas -
                                   rtStats->gcHeapUnusedChunks -
-                                  rtStats->zTotals.unusedGCThings -
+                                  rtStats->zTotals.unusedGCThings.totalSize() -
                                   rtStats->gcHeapChunkAdmin -
                                   rtStats->zTotals.gcHeapArenaAdmin -
                                   rtStats->gcHeapGCThings;
     return true;
 }
 
+JS_PUBLIC_API(bool)
+JS::CollectRuntimeStats(JSRuntime *rt, RuntimeStats *rtStats, ObjectPrivateVisitor *opv,
+                        bool anonymize)
+{
+    return CollectRuntimeStatsHelper(rt, rtStats, opv, anonymize, StatsCellCallback<FineGrained>);
+}
+
 JS_PUBLIC_API(size_t)
-JS::SystemCompartmentCount(JSRuntime *rt)
+JS::SystemCompartmentCount(JSRuntime* rt)
 {
     size_t n = 0;
     for (CompartmentsIter comp(rt, WithAtoms); !comp.done(); comp.next()) {
-        if (comp->isSystem)
+        if (comp->isSystem())
             ++n;
     }
     return n;
 }
 
 JS_PUBLIC_API(size_t)
-JS::UserCompartmentCount(JSRuntime *rt)
+JS::UserCompartmentCount(JSRuntime* rt)
 {
     size_t n = 0;
     for (CompartmentsIter comp(rt, WithAtoms); !comp.done(); comp.next()) {
-        if (!comp->isSystem)
+        if (!comp->isSystem())
             ++n;
     }
     return n;
 }
 
 JS_PUBLIC_API(size_t)
-JS::PeakSizeOfTemporary(const JSRuntime *rt)
+JS::PeakSizeOfTemporary(const JSRuntime* rt)
 {
     return rt->tempLifoAlloc.peakSizeOfExcludingThis();
 }
 
 namespace JS {
 
-JS_PUBLIC_API(bool)
-AddSizeOfTab(JSRuntime *rt, HandleObject obj, MallocSizeOf mallocSizeOf, ObjectPrivateVisitor *opv,
-             TabSizes *sizes)
+class SimpleJSRuntimeStats : public JS::RuntimeStats
 {
-    class SimpleJSRuntimeStats : public JS::RuntimeStats
-    {
-      public:
-        explicit SimpleJSRuntimeStats(MallocSizeOf mallocSizeOf)
-          : JS::RuntimeStats(mallocSizeOf)
-        {}
+  public:
+    explicit SimpleJSRuntimeStats(MallocSizeOf mallocSizeOf)
+      : JS::RuntimeStats(mallocSizeOf)
+    {}
 
-        virtual void initExtraZoneStats(JS::Zone *zone, JS::ZoneStats *zStats)
-            MOZ_OVERRIDE
-        {}
+    virtual void initExtraZoneStats(JS::Zone* zone, JS::ZoneStats* zStats)
+        override
+    {}
 
-        virtual void initExtraCompartmentStats(
-            JSCompartment *c, JS::CompartmentStats *cStats) MOZ_OVERRIDE
-        {}
-    };
+    virtual void initExtraCompartmentStats(
+        JSCompartment* c, JS::CompartmentStats* cStats) override
+    {}
+};
 
+JS_PUBLIC_API(bool)
+AddSizeOfTab(JSRuntime* rt, HandleObject obj, MallocSizeOf mallocSizeOf, ObjectPrivateVisitor* opv,
+             TabSizes* sizes)
+{
     SimpleJSRuntimeStats rtStats(mallocSizeOf);
 
-    JS::Zone *zone = GetObjectZone(obj);
+    JS::Zone* zone = GetObjectZone(obj);
 
     if (!rtStats.compartmentStatsVector.reserve(zone->compartments.length()))
         return false;
@@ -853,11 +864,13 @@ AddSizeOfTab(JSRuntime *rt, HandleObject obj, MallocSizeOf mallocSizeOf, ObjectP
     StatsClosure closure(&rtStats, opv, /* anonymize = */ false);
     if (!closure.init())
         return false;
-    IterateZoneCompartmentsArenasCells(rt, zone, &closure, StatsZoneCallback,
-                                       StatsCompartmentCallback, StatsArenaCallback,
+    IterateZoneCompartmentsArenasCells(rt, zone, &closure,
+                                       StatsZoneCallback,
+                                       StatsCompartmentCallback,
+                                       StatsArenaCallback,
                                        StatsCellCallback<CoarseGrained>);
 
-    JS_ASSERT(rtStats.zoneStatsVector.length() == 1);
+    MOZ_ASSERT(rtStats.zoneStatsVector.length() == 1);
     rtStats.zTotals.addSizes(rtStats.zoneStatsVector[0]);
 
     for (size_t i = 0; i < rtStats.compartmentStatsVector.length(); i++)
@@ -868,6 +881,39 @@ AddSizeOfTab(JSRuntime *rt, HandleObject obj, MallocSizeOf mallocSizeOf, ObjectP
 
     rtStats.zTotals.addToTabSizes(sizes);
     rtStats.cTotals.addToTabSizes(sizes);
+
+    return true;
+}
+
+JS_PUBLIC_API(bool)
+AddServoSizeOf(JSRuntime *rt, MallocSizeOf mallocSizeOf, ObjectPrivateVisitor *opv,
+               ServoSizes *sizes)
+{
+    SimpleJSRuntimeStats rtStats(mallocSizeOf);
+
+    // No need to anonymize because the results will be aggregated.
+    if (!CollectRuntimeStatsHelper(rt, &rtStats, opv, /* anonymize = */ false,
+                                   StatsCellCallback<CoarseGrained>))
+        return false;
+
+#ifdef DEBUG
+    size_t gcHeapTotalOriginal = sizes->gcHeapUsed +
+                                 sizes->gcHeapUnused +
+                                 sizes->gcHeapAdmin +
+                                 sizes->gcHeapDecommitted;
+#endif
+
+    rtStats.addToServoSizes(sizes);
+    rtStats.zTotals.addToServoSizes(sizes);
+    rtStats.cTotals.addToServoSizes(sizes);
+
+#ifdef DEBUG
+    size_t gcHeapTotal = sizes->gcHeapUsed +
+                         sizes->gcHeapUnused +
+                         sizes->gcHeapAdmin +
+                         sizes->gcHeapDecommitted;
+    MOZ_ASSERT(rtStats.gcHeapChunkTotal == gcHeapTotal - gcHeapTotalOriginal);
+#endif
 
     return true;
 }

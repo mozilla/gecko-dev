@@ -12,10 +12,8 @@ import tempfile
 import xml.dom.minidom
 import zipfile
 
-import mozdevice
 import mozfile
 import mozlog
-from mozlog import structured
 
 import errors
 
@@ -27,9 +25,9 @@ class Version(object):
 
     def __init__(self):
         self._info = {}
-        self._logger = structured.get_default_logger(component='mozversion')
+        self._logger = mozlog.get_default_logger(component='mozversion')
         if not self._logger:
-            self._logger = mozlog.getLogger('mozversion')
+            self._logger = mozlog.unstructured.getLogger('mozversion')
 
     def get_gecko_info(self, path):
         for type, section in INI_DATA_MAPPING:
@@ -42,11 +40,11 @@ class Version(object):
     def _parse_ini_file(self, fp, type, section):
         config = ConfigParser.RawConfigParser()
         config.readfp(fp)
-        name_map = {'CodeName': 'display_name',
-                    'SourceRepository': 'repository',
-                    'SourceStamp': 'changeset'}
-        for key in ('BuildID', 'Name', 'CodeName', 'Version',
-                    'SourceRepository', 'SourceStamp'):
+        name_map = {'codename': 'display_name',
+                    'milestone': 'version',
+                    'sourcerepository': 'repository',
+                    'sourcestamp': 'changeset'}
+        for key, value in config.items(section):
             name = name_map.get(key, key).lower()
             self._info['%s_%s' % (type, name)] = config.has_option(
                 section, key) and config.get(section, key) or None
@@ -64,44 +62,51 @@ class LocalFennecVersion(Version):
 
     def get_gecko_info(self, path):
         archive = zipfile.ZipFile(path, 'r')
+        archive_list = archive.namelist()
         for type, section in INI_DATA_MAPPING:
             filename = "%s.ini" % type
-            if filename in archive.namelist():
+            if filename in archive_list:
                 self._parse_ini_file(archive.open(filename), type,
                                      section)
             else:
                 self._logger.warning('Unable to find %s' % filename)
+
+        if "package-name.txt" in archive_list:
+            self._info["package_name"] = \
+                archive.open("package-name.txt").readlines()[0].strip()
 
 
 class LocalVersion(Version):
 
     def __init__(self, binary, **kwargs):
         Version.__init__(self, **kwargs)
-        path = None
-
-        def find_location(path):
-            if os.path.exists(os.path.join(path, 'application.ini')):
-                return path
-
-            if sys.platform == 'darwin':
-                path = os.path.join(os.path.dirname(path), 'Resources')
-
-            if os.path.exists(os.path.join(path, 'application.ini')):
-                return path
-            else:
-                return None
 
         if binary:
-            if not os.path.exists(binary):
+            # on Windows, the binary may be specified with or without the
+            # .exe extension
+            if not os.path.exists(binary) and not os.path.exists(binary +
+                                                                 '.exe'):
                 raise IOError('Binary path does not exist: %s' % binary)
-            path = find_location(os.path.dirname(os.path.realpath(binary)))
+            path = os.path.dirname(os.path.realpath(binary))
         else:
-            path = find_location(os.getcwd())
+            path = os.getcwd()
 
-        if not path:
-            raise errors.LocalAppNotFoundError(path)
+        if not self.check_location(path):
+            if sys.platform == 'darwin':
+                resources_path = os.path.join(os.path.dirname(path),
+                                              'Resources')
+                if self.check_location(resources_path):
+                    path = resources_path
+                else:
+                    raise errors.LocalAppNotFoundError(path)
+            else:
+                raise errors.LocalAppNotFoundError(path)
 
         self.get_gecko_info(path)
+
+    def check_location(self, path):
+        return (os.path.exists(os.path.join(path, 'application.ini'))
+                and os.path.exists(os.path.join(path, 'platform.ini')))
 
 
 class B2GVersion(Version):
@@ -179,11 +184,21 @@ class LocalB2GVersion(B2GVersion):
 class RemoteB2GVersion(B2GVersion):
 
     def __init__(self, sources=None, dm_type='adb', host=None,
-                 device_serial=None, **kwargs):
+                 device_serial=None, adb_host=None, adb_port=None,
+                 **kwargs):
         B2GVersion.__init__(self, sources, **kwargs)
 
+        try:
+            import mozdevice
+        except ImportError:
+            self._logger.critical("mozdevice is required to get the version"
+                                  " of a remote device")
+            raise
+
         if dm_type == 'adb':
-            dm = mozdevice.DeviceManagerADB(deviceSerial=device_serial)
+            dm = mozdevice.DeviceManagerADB(deviceSerial=device_serial,
+                                            serverHost=adb_host,
+                                            serverPort=adb_port)
         elif dm_type == 'sut':
             if not host:
                 raise errors.RemoteAppNotFoundError(
@@ -231,25 +246,30 @@ class RemoteB2GVersion(B2GVersion):
                     self._info[desired_props[key]] = value
 
         if self._info.get('device_id', '').lower() == 'flame':
-            self._info['device_firmware_version_base'] = dm._runCmd(
-                ['shell', 'getprop', 't2m.sw.version']).output[0]
+            for prop in ['ro.boot.bootloader', 't2m.sw.version']:
+                value = dm.shellCheckOutput(['getprop', prop])
+                if value:
+                    self._info['device_firmware_version_base'] = value
+                    break
 
 
 def get_version(binary=None, sources=None, dm_type=None, host=None,
-                device_serial=None):
+                device_serial=None, adb_host=None, adb_port=None):
     """
     Returns the application version information as a dict. You can specify
     a path to the binary of the application or an Android APK file (to get
     version information for Firefox for Android). If this is omitted then the
     current directory is checked for the existance of an application.ini
-    file. If not found, then it is assumed the target application is a remote
-    Firefox OS instance.
+    file. If not found and that the binary path was not specified, then it is
+    assumed the target application is a remote Firefox OS instance.
 
     :param binary: Path to the binary for the application or Android APK file
     :param sources: Path to the sources.xml file (Firefox OS)
     :param dm_type: Device manager type. Must be 'adb' or 'sut' (Firefox OS)
     :param host: Host address of remote Firefox OS instance (SUT)
     :param device_serial: Serial identifier of Firefox OS device (ADB)
+    :param adb_host: Host address of ADB server
+    :param adb_port: Port of ADB server
     """
     try:
         if binary and zipfile.is_zipfile(binary) and 'AndroidManifest.xml' in \
@@ -260,13 +280,15 @@ def get_version(binary=None, sources=None, dm_type=None, host=None,
             if version._info.get('application_name') == 'B2G':
                 version = LocalB2GVersion(binary, sources=sources)
     except errors.LocalAppNotFoundError:
-        try:
-            version = RemoteB2GVersion(sources=sources,
-                                       dm_type=dm_type,
-                                       host=host,
-                                       device_serial=device_serial)
-        except errors.RemoteAppNotFoundError:
-            raise errors.AppNotFoundError('No application found')
+        if binary:
+            # we had a binary argument, do not search for remote B2G
+            raise
+        version = RemoteB2GVersion(sources=sources,
+                                   dm_type=dm_type,
+                                   host=host,
+                                   adb_host=adb_host,
+                                   adb_port=adb_port,
+                                   device_serial=device_serial)
 
     for (key, value) in sorted(version._info.items()):
         if value:
@@ -281,26 +303,38 @@ def cli(args=sys.argv[1:]):
     parser.add_argument(
         '--binary',
         help='path to application binary or apk')
-    parser.add_argument(
+    fxos = parser.add_argument_group('Firefox OS')
+    fxos.add_argument(
         '--sources',
-        help='path to sources.xml (Firefox OS only)')
-    parser.add_argument(
+        help='path to sources.xml')
+    fxos.add_argument(
         '--device',
-        help='serial identifier of device to target (Firefox OS only)')
-    structured.commandline.add_logging_group(parser)
+        help='serial identifier of device to target')
+    fxos.add_argument(
+        '--adb-host',
+        help='host running adb')
+    fxos.add_argument(
+        '--adb-port',
+        help='port running adb')
+    mozlog.commandline.add_logging_group(
+        parser,
+        include_formatters=mozlog.commandline.TEXT_FORMATTERS
+    )
 
     args = parser.parse_args()
     dm_type = os.environ.get('DM_TRANS', 'adb')
     host = os.environ.get('TEST_DEVICE')
 
-    structured.commandline.setup_logging(
+    mozlog.commandline.setup_logging(
         'mozversion', args, {'mach': sys.stdout})
 
     get_version(binary=args.binary,
                 sources=args.sources,
                 dm_type=dm_type,
                 host=host,
-                device_serial=args.device)
+                device_serial=args.device,
+                adb_host=args.adb_host,
+                adb_port=args.adb_port)
 
 if __name__ == '__main__':
     cli()

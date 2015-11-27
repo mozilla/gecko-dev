@@ -13,10 +13,10 @@
 
 // This header is included to get the nested declaration of Packet structure.
 
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/modules/rtp_rtcp/interface/fec_receiver.h"
 #include "webrtc/modules/rtp_rtcp/interface/rtp_rtcp_defines.h"
 #include "webrtc/modules/rtp_rtcp/source/forward_error_correction.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
@@ -25,19 +25,20 @@ class CriticalSectionWrapper;
 
 class FecReceiverImpl : public FecReceiver {
  public:
-  FecReceiverImpl(const int32_t id, RtpData* callback);
+  FecReceiverImpl(RtpData* callback);
   virtual ~FecReceiverImpl();
 
-  virtual int32_t AddReceivedRedPacket(const RTPHeader& rtp_header,
-                                       const uint8_t* incoming_rtp_packet,
-                                       int packet_length,
-                                       uint8_t ulpfec_payload_type) OVERRIDE;
+  int32_t AddReceivedRedPacket(const RTPHeader& rtp_header,
+                               const uint8_t* incoming_rtp_packet,
+                               size_t packet_length,
+                               uint8_t ulpfec_payload_type) override;
 
-  virtual int32_t ProcessReceivedFec() OVERRIDE;
+  int32_t ProcessReceivedFec() override;
+
+  FecPacketCounter GetPacketCounter() const override;
 
  private:
-  int id_;
-  scoped_ptr<CriticalSectionWrapper> crit_sect_;
+  rtc::scoped_ptr<CriticalSectionWrapper> crit_sect_;
   RtpData* recovered_packet_callback_;
   ForwardErrorCorrection* fec_;
   // TODO(holmer): In the current version received_packet_list_ is never more
@@ -45,6 +46,7 @@ class FecReceiverImpl : public FecReceiver {
   // arrives. We should remove the list.
   ForwardErrorCorrection::ReceivedPacketList received_packet_list_;
   ForwardErrorCorrection::RecoveredPacketList recovered_packet_list_;
+  FecPacketCounter packet_counter_;
 };
 }  // namespace webrtc
 

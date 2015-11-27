@@ -40,7 +40,7 @@ struct LooseEqualityData
     JS::RootedValue poszero;
     JS::RootedValue negzero;
 
-    explicit LooseEqualityData(JSContext *cx)
+    explicit LooseEqualityData(JSContext* cx)
       : qNaN(cx),
         sNaN(cx),
         d42(cx),
@@ -51,20 +51,20 @@ struct LooseEqualityData
         poszero(cx),
         negzero(cx)
     {
-        qNaN = DOUBLE_TO_JSVAL(numeric_limits<double>::quiet_NaN());
-        sNaN = DOUBLE_TO_JSVAL(numeric_limits<double>::signaling_NaN());
-        d42 = DOUBLE_TO_JSVAL(42.0);
-        i42 = INT_TO_JSVAL(42);
-        undef = JSVAL_VOID;
-        null = JSVAL_NULL;
-        obj = OBJECT_TO_JSVAL(JS::CurrentGlobalOrNull(cx));
-        poszero = DOUBLE_TO_JSVAL(0.0);
-        negzero = DOUBLE_TO_JSVAL(-0.0);
+        qNaN = JS::CanonicalizedDoubleValue(numeric_limits<double>::quiet_NaN());
+        sNaN = JS::CanonicalizedDoubleValue(numeric_limits<double>::signaling_NaN());
+        d42 = JS::DoubleValue(42.0);
+        i42 = JS::Int32Value(42);
+        undef = JS::UndefinedValue();
+        null = JS::NullValue();
+        obj = JS::ObjectOrNullValue(JS::CurrentGlobalOrNull(cx));
+        poszero = JS::DoubleValue(0.0);
+        negzero = JS::DoubleValue(-0.0);
 #ifdef XP_WIN
 # define copysign _copysign
 #endif
-        JS_ASSERT(copysign(1.0, poszero.toDouble()) == 1.0);
-        JS_ASSERT(copysign(1.0, negzero.toDouble()) == -1.0);
+        MOZ_RELEASE_ASSERT(copysign(1.0, poszero.toDouble()) == 1.0);
+        MOZ_RELEASE_ASSERT(copysign(1.0, negzero.toDouble()) == -1.0);
 #ifdef XP_WIN
 # undef copysign
 #endif

@@ -56,11 +56,17 @@ class CacheObserver : public nsIObserver
   static uint32_t const CompressionLevel()
     { return sCompressionLevel; }
   static uint32_t const HalfLifeSeconds()
-    { return sHalfLifeHours * 60 * 60; }
+    { return sHalfLifeHours * 60.0F * 60.0F; }
   static int32_t const HalfLifeExperiment()
     { return sHalfLifeExperiment; }
   static bool const ClearCacheOnShutdown()
     { return sSanitizeOnShutdown && sClearCacheOnShutdown; }
+  static bool const CacheFSReported()
+    { return sCacheFSReported; }
+  static void SetCacheFSReported();
+  static bool const HashStatsReported()
+    { return sHashStatsReported; }
+  static void SetHashStatsReported();
   static void ParentDirOverride(nsIFile ** aDir);
 
   static bool const EntryIsTooBig(int64_t aSize, bool aUsingDisk);
@@ -69,6 +75,8 @@ private:
   static CacheObserver* sSelf;
 
   void StoreDiskCacheCapacity();
+  void StoreCacheFSReported();
+  void StoreHashStatsReported();
   void AttachToPreferences();
 
   static uint32_t sUseNewCache;
@@ -82,21 +90,23 @@ private:
   static uint32_t sDiskFreeSpaceHardLimit;
   static bool sSmartCacheSizeEnabled;
   static uint32_t sPreloadChunkCount;
-  static uint32_t sMaxMemoryEntrySize;
-  static uint32_t sMaxDiskEntrySize;
+  static int32_t sMaxMemoryEntrySize;
+  static int32_t sMaxDiskEntrySize;
   static uint32_t sMaxDiskChunksMemoryUsage;
   static uint32_t sMaxDiskPriorityChunksMemoryUsage;
   static uint32_t sCompressionLevel;
-  static uint32_t sHalfLifeHours;
+  static float sHalfLifeHours;
   static int32_t sHalfLifeExperiment;
   static bool sSanitizeOnShutdown;
   static bool sClearCacheOnShutdown;
+  static bool sCacheFSReported;
+  static bool sHashStatsReported;
 
   // Non static properties, accessible via sSelf
   nsCOMPtr<nsIFile> mCacheParentDirectoryOverride;
 };
 
-} // net
-} // mozilla
+} // namespace net
+} // namespace mozilla
 
 #endif

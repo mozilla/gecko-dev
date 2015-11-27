@@ -13,36 +13,25 @@
 [Global=(Worker,ServiceWorker),
  Exposed=ServiceWorker]
 interface ServiceWorkerGlobalScope : WorkerGlobalScope {
-  // FIXME(nsm): Bug 982725
-  // readonly attribute CacheList caches;
+  [SameObject] readonly attribute Clients clients;
+  [SameObject] readonly attribute ServiceWorkerRegistration registration;
 
-  // FIXME(nsm): Bug 982726
-  // A container for a list of window objects, identifiable by ID, that
-  // correspond to windows (or workers) that are "controlled" by this SW
-  // readonly attribute ServiceWorkerClients clients;
-
-  [Unforgeable] readonly attribute DOMString scope;
-
-  // FIXME(nsm): Bug 995484
-  // ResponsePromise<any> fetch((Request or [EnsureUTF16] DOMString) request);
-
-  void update();
-
-  [Throws]
-  Promise<boolean> unregister();
+  [Throws, NewObject]
+  Promise<boolean> skipWaiting();
 
   attribute EventHandler oninstall;
   attribute EventHandler onactivate;
+
+  [Func="mozilla::dom::workers::ServiceWorkerGlobalScope::InterceptionEnabled"]
   attribute EventHandler onfetch;
-  attribute EventHandler onbeforeevicted;
-  attribute EventHandler onevicted;
 
   // The event.source of these MessageEvents are instances of Client
   attribute EventHandler onmessage;
-
-  // close() method inherited from WorkerGlobalScope is not exposed.
-  // FIXME(nsm): For now, overridden so it can be a no-op.
-  void close();
 };
 
+// These are from w3c.github.io/push-api/
+partial interface ServiceWorkerGlobalScope {
+  attribute EventHandler onpush;
+  attribute EventHandler onpushsubscriptionchange;
+};
 

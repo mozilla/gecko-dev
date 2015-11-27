@@ -5,7 +5,7 @@
 
 package org.mozilla.gecko;
 
-import org.mozilla.gecko.mozglue.RobocopTarget;
+import org.mozilla.gecko.annotation.RobocopTarget;
 
 /**
  * Holds data definitions for our UI Telemetry implementation.
@@ -49,8 +49,20 @@ public interface TelemetryContract {
         LOCALE_BROWSER_SELECTED("locale.browser.selected.1"),
         LOCALE_BROWSER_UNSELECTED("locale.browser.unselected.1"),
 
-        // Set default panel.
-        PANEL_SET_DEFAULT("setdefault.1"),
+        // Hide a built-in home panel.
+        PANEL_HIDE("panel.hide.1"),
+
+        // Move a home panel up or down.
+        PANEL_MOVE("panel.move.1"),
+
+        // Remove a custom home panel.
+        PANEL_REMOVE("panel.remove.1"),
+
+        // Set default home panel.
+        PANEL_SET_DEFAULT("panel.setdefault.1"),
+
+        // Show a hidden built-in home panel.
+        PANEL_SHOW("panel.show.1"),
 
         // Pinning an item.
         PIN("pin.1"),
@@ -78,6 +90,9 @@ public interface TelemetryContract {
 
         // Sharing content.
         SHARE("share.1"),
+
+        // Show a UI element.
+        SHOW("show.1"),
 
         // Undoing a user action.
         // Note: Only used in JavaScript for now, but here for completeness.
@@ -154,12 +169,21 @@ public interface TelemetryContract {
         // No method is specified.
         NONE(null),
 
+        // Action triggered from a notification in the Android notification bar.
+        NOTIFICATION("notification"),
+
         // Action triggered from a pageaction in the URLBar.
         // Note: Only used in JavaScript for now, but here for completeness.
         PAGEACTION("pageaction"),
 
+        // Action triggered from one of a series of views, such as ViewPager.
+        PANEL("panel"),
+
         // Action triggered from a settings screen.
         SETTINGS("settings"),
+
+        // Actions triggered from the share overlay.
+        SHARE_OVERLAY("shareoverlay"),
 
         // Action triggered from a suggestion provided to the user.
         SUGGESTION("suggestion"),
@@ -197,6 +221,9 @@ public interface TelemetryContract {
     public enum Session {
         // Awesomescreen (including frecency search) is active.
         AWESOMESCREEN("awesomescreen.1"),
+
+        // Used to tag experiments being run.
+        EXPERIMENT("experiment.1"),
 
         // Started the very first time we believe the application has been launched.
         FIRSTRUN("firstrun.1"),

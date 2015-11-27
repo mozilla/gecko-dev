@@ -3,6 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+Components.utils.import("resource://gre/modules/AppConstants.jsm");
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/TelemetryStopwatch.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "MigrationUtils",
@@ -113,20 +114,21 @@ var PlacesOrganizer = {
     PlacesSearchBox.init();
 
     window.addEventListener("AppCommand", this, true);
-#ifdef XP_MACOSX
-    // 1. Map Edit->Find command to OrganizerCommand_find:all.  Need to map
-    // both the menuitem and the Find key.
-    var findMenuItem = document.getElementById("menu_find");
-    findMenuItem.setAttribute("command", "OrganizerCommand_find:all");
-    var findKey = document.getElementById("key_find");
-    findKey.setAttribute("command", "OrganizerCommand_find:all");
 
-    // 2. Disable some keybindings from browser.xul
-    var elements = ["cmd_handleBackspace", "cmd_handleShiftBackspace"];
-    for (var i=0; i < elements.length; i++) {
-      document.getElementById(elements[i]).setAttribute("disabled", "true");
+    if (AppConstants.platform === "macosx") {
+      // 1. Map Edit->Find command to OrganizerCommand_find:all.  Need to map
+      // both the menuitem and the Find key.
+      let findMenuItem = document.getElementById("menu_find");
+      findMenuItem.setAttribute("command", "OrganizerCommand_find:all");
+      let findKey = document.getElementById("key_find");
+      findKey.setAttribute("command", "OrganizerCommand_find:all");
+
+      // 2. Disable some keybindings from browser.xul
+      let elements = ["cmd_handleBackspace", "cmd_handleShiftBackspace"];
+      for (let i = 0; i < elements.length; i++) {
+        document.getElementById(elements[i]).setAttribute("disabled", "true");
+      }
     }
-#endif
 
     // remove the "Properties" context-menu item, we've our own details pane
     document.getElementById("placesContext")
@@ -360,7 +362,8 @@ var PlacesOrganizer = {
    * cookies, history, preferences, and bookmarks.
    */
   importFromBrowser: function PO_importFromBrowser() {
-    MigrationUtils.showMigrationWizard(window);
+    // We pass in the type of source we're using for use in telemetry:
+    MigrationUtils.showMigrationWizard(window, [MigrationUtils.MIGRATION_ENTRYPOINT_PLACES]);
   },
 
   /**
@@ -592,7 +595,7 @@ var PlacesOrganizer = {
         infoBox.setAttribute("minimal", "true");
       infoBox.removeAttribute("wasminimal");
       infoBoxExpanderWrapper.hidden =
-        this._additionalInfoFields.every(function (id)
+        this._additionalInfoFields.every(id =>
           document.getElementById(id).collapsed);
     }
     additionalInfoBroadcaster.hidden = infoBox.getAttribute("minimal") == "true";
@@ -615,7 +618,8 @@ var PlacesOrganizer = {
     // Make sure the infoBox UI is visible if we need to use it, we hide it
     // below when we don't.
     infoBox.hidden = false;
-    var aSelectedNode = aNodeList.length == 1 ? aNodeList[0] : null;
+    let selectedNode = aNodeList.length == 1 ? aNodeList[0] : null;
+
     // If a textbox within a panel is focused, force-blur it so its contents
     // are saved
     if (gEditItemOverlay.itemId != -1) {
@@ -627,12 +631,12 @@ var PlacesOrganizer = {
 
       // don't update the panel if we are already editing this node unless we're
       // in multi-edit mode
-      if (aSelectedNode) {
-        var concreteId = PlacesUtils.getConcreteItemId(aSelectedNode);
-        var nodeIsSame = gEditItemOverlay.itemId == aSelectedNode.itemId ||
+      if (selectedNode) {
+        var concreteId = PlacesUtils.getConcreteItemId(selectedNode);
+        var nodeIsSame = gEditItemOverlay.itemId == selectedNode.itemId ||
                          gEditItemOverlay.itemId == concreteId ||
-                         (aSelectedNode.itemId == -1 && gEditItemOverlay.uri &&
-                          gEditItemOverlay.uri == aSelectedNode.uri);
+                         (selectedNode.itemId == -1 && gEditItemOverlay.uri &&
+                          gEditItemOverlay.uri == selectedNode.uri);
         if (nodeIsSame && detailsDeck.selectedIndex == 1 &&
             !gEditItemOverlay.multiEdit)
           return;
@@ -642,70 +646,54 @@ var PlacesOrganizer = {
     // Clean up the panel before initing it again.
     gEditItemOverlay.uninitPanel(false);
 
-    if (aSelectedNode && !PlacesUtils.nodeIsSeparator(aSelectedNode)) {
+    if (selectedNode && !PlacesUtils.nodeIsSeparator(selectedNode)) {
       detailsDeck.selectedIndex = 1;
       // Using the concrete itemId is arguably wrong.  The bookmarks API
       // does allow setting properties for folder shortcuts as well, but since
       // the UI does not distinct between the couple, we better just show
       // the concrete item properties for shortcuts to root nodes.
-      var concreteId = PlacesUtils.getConcreteItemId(aSelectedNode);
+      var concreteId = PlacesUtils.getConcreteItemId(selectedNode);
       var isRootItem = concreteId != -1 && PlacesUtils.isRootItem(concreteId);
       var readOnly = isRootItem ||
-                     aSelectedNode.parent.itemId == PlacesUIUtils.leftPaneFolderId;
+                     selectedNode.parent.itemId == PlacesUIUtils.leftPaneFolderId;
       var useConcreteId = isRootItem ||
-                          PlacesUtils.nodeIsTagQuery(aSelectedNode);
+                          PlacesUtils.nodeIsTagQuery(selectedNode);
       var itemId = -1;
       if (concreteId != -1 && useConcreteId)
         itemId = concreteId;
-      else if (aSelectedNode.itemId != -1)
-        itemId = aSelectedNode.itemId;
+      else if (selectedNode.itemId != -1)
+        itemId = selectedNode.itemId;
       else
-        itemId = PlacesUtils._uri(aSelectedNode.uri);
+        itemId = PlacesUtils._uri(selectedNode.uri);
 
-      gEditItemOverlay.initPanel(itemId, { hiddenRows: ["folderPicker"]
-                                         , forceReadOnly: readOnly
-                                         , titleOverride: aSelectedNode.title
-                                         });
+      gEditItemOverlay.initPanel({ node: selectedNode
+                                 , hiddenRows: ["folderPicker"] });
 
-      // Dynamically generated queries, like history date containers, have
-      // itemId !=0 and do not exist in history.  For them the panel is
-      // read-only, but empty, since it can't get a valid title for the object.
-      // In such a case we force the title using the selectedNode one, for UI
-      // polishness.
-      if (aSelectedNode.itemId == -1 &&
-          (PlacesUtils.nodeIsDay(aSelectedNode) ||
-           PlacesUtils.nodeIsHost(aSelectedNode)))
-        gEditItemOverlay._element("namePicker").value = aSelectedNode.title;
-
-      this._detectAndSetDetailsPaneMinimalState(aSelectedNode);
+      this._detectAndSetDetailsPaneMinimalState(selectedNode);
     }
-    else if (!aSelectedNode && aNodeList[0]) {
-      var itemIds = [];
-      for (var i = 0; i < aNodeList.length; i++) {
-        if (!PlacesUtils.nodeIsBookmark(aNodeList[i]) &&
-            !PlacesUtils.nodeIsURI(aNodeList[i])) {
-          detailsDeck.selectedIndex = 0;
-          var selectItemDesc = document.getElementById("selectItemDescription");
-          var itemsCountLabel = document.getElementById("itemsCountText");
-          selectItemDesc.hidden = false;
-          itemsCountLabel.value =
-            PlacesUIUtils.getPluralString("detailsPane.itemsCountLabel",
-                                          aNodeList.length, [aNodeList.length]);
-          infoBox.hidden = true;
-          return;
-        }
-        itemIds[i] = aNodeList[i].itemId != -1 ? aNodeList[i].itemId :
-                     PlacesUtils._uri(aNodeList[i].uri);
+    else if (!selectedNode && aNodeList[0]) {
+      if (aNodeList.every(PlacesUtils.nodeIsURI)) {
+        let uris = [for (node of aNodeList) PlacesUtils._uri(node.uri)];
+        detailsDeck.selectedIndex = 1;
+        gEditItemOverlay.initPanel({ uris
+                                   , hiddenRows: ["folderPicker",
+                                                  "loadInSidebar",
+                                                  "location",
+                                                  "keyword",
+                                                  "description",
+                                                  "name"]});
+        this._detectAndSetDetailsPaneMinimalState(selectedNode);
       }
-      detailsDeck.selectedIndex = 1;
-      gEditItemOverlay.initPanel(itemIds,
-                                 { hiddenRows: ["folderPicker",
-                                                "loadInSidebar",
-                                                "location",
-                                                "keyword",
-                                                "description",
-                                                "name"]});
-      this._detectAndSetDetailsPaneMinimalState(aSelectedNode);
+      else {
+        detailsDeck.selectedIndex = 0;
+        let selectItemDesc = document.getElementById("selectItemDescription");
+        let itemsCountLabel = document.getElementById("itemsCountText");
+        selectItemDesc.hidden = false;
+        itemsCountLabel.value =
+          PlacesUIUtils.getPluralString("detailsPane.itemsCountLabel",
+                                        aNodeList.length, [aNodeList.length]);
+        infoBox.hidden = true;
+      }
     }
     else {
       detailsDeck.selectedIndex = 0;
@@ -1240,7 +1228,6 @@ var ViewMenu = {
       url:          { key: "URI",          dir: "ascending"  },
       date:         { key: "DATE",         dir: "descending" },
       visitCount:   { key: "VISITCOUNT",   dir: "descending" },
-      keyword:      { key: "KEYWORD",      dir: "ascending"  },
       dateAdded:    { key: "DATEADDED",    dir: "descending" },
       lastModified: { key: "LASTMODIFIED", dir: "descending" },
       description:  { key: "ANNOTATION",
@@ -1263,7 +1250,7 @@ var ViewMenu = {
   }
 }
 
-let ContentArea = {
+var ContentArea = {
   _specialViews: new Map(),
 
   init: function CA_init() {
@@ -1322,7 +1309,9 @@ let ContentArea = {
                                            options: aOptions || new Object() });
   },
 
-  get currentView() PlacesUIUtils.getViewForNode(this._deck.selectedPanel),
+  get currentView() {
+    return PlacesUIUtils.getViewForNode(this._deck.selectedPanel);
+  },
   set currentView(aNewView) {
     let oldView = this.currentView;
     if (oldView != aNewView) {
@@ -1336,7 +1325,9 @@ let ContentArea = {
     return aNewView;
   },
 
-  get currentPlace() this.currentView.place,
+  get currentPlace() {
+    return this.currentView.place;
+  },
   set currentPlace(aQueryString) {
     let oldView = this.currentView;
     let newView = this.getContentViewForQueryString(aQueryString);
@@ -1365,11 +1356,11 @@ let ContentArea = {
       // On Windows and Linux the menu buttons are menus wrapped in a menubar.
       if (elt.id == "placesMenu") {
         for (let menuElt of elt.childNodes) {
-          menuElt.hidden = options.toolbarSet.indexOf(menuElt.id) == -1;
+          menuElt.hidden = !options.toolbarSet.includes(menuElt.id);
         }
       }
       else {
-        elt.hidden = options.toolbarSet.indexOf(elt.id) == -1;
+        elt.hidden = !options.toolbarSet.includes(elt.id);
       }
     }
   },
@@ -1396,17 +1387,21 @@ let ContentArea = {
   }
 };
 
-let ContentTree = {
+var ContentTree = {
   init: function CT_init() {
     this._view = document.getElementById("placeContent");
   },
 
-  get view() this._view,
+  get view() {
+    return this._view;
+  },
 
-  get viewOptions() Object.seal({
-    showDetailsPane: true,
-    toolbarSet: "back-button, forward-button, organizeButton, viewMenu, maintenanceButton, libraryToolbarSpacer, searchFilter"
-  }),
+  get viewOptions() {
+    return Object.seal({
+      showDetailsPane: true,
+      toolbarSet: "back-button, forward-button, organizeButton, viewMenu, maintenanceButton, libraryToolbarSpacer, searchFilter"
+    });
+  },
 
   openSelectedNode: function CT_openSelectedNode(aEvent) {
     let view = this.view;

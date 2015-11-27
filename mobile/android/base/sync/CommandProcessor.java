@@ -4,27 +4,23 @@
 
 package org.mozilla.gecko.sync;
 
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.mozilla.gecko.background.common.log.Logger;
+import org.mozilla.gecko.db.BrowserContract;
+import org.mozilla.gecko.sync.repositories.NullCursorException;
+import org.mozilla.gecko.sync.repositories.android.ClientsDatabaseAccessor;
+import org.mozilla.gecko.sync.repositories.domain.ClientRecord;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.mozilla.gecko.BrowserLocaleManager;
-import org.mozilla.gecko.R;
-import org.mozilla.gecko.background.common.log.Logger;
-import org.mozilla.gecko.sync.repositories.NullCursorException;
-import org.mozilla.gecko.sync.repositories.android.ClientsDatabaseAccessor;
-import org.mozilla.gecko.sync.repositories.domain.ClientRecord;
-
-import android.app.Notification;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.content.Context;
-import android.content.Intent;
-import android.net.Uri;
 
 /**
  * Process commands received from Sync clients.
@@ -42,7 +38,7 @@ import android.net.Uri;
  */
 public class CommandProcessor {
   private static final String LOG_TAG = "Command";
-  private static AtomicInteger currentId = new AtomicInteger();
+  private static final AtomicInteger currentId = new AtomicInteger();
   protected ConcurrentHashMap<String, CommandRunner> commands = new ConcurrentHashMap<String, CommandRunner>();
 
   private final static CommandProcessor processor = new CommandProcessor();
@@ -240,48 +236,27 @@ public class CommandProcessor {
     }
   }
 
-  private static volatile boolean didUpdateLocale = false;
-
-  @SuppressWarnings("deprecation")
   public static void displayURI(final List<String> args, final Context context) {
     // We trust the client sender that these exist.
     final String uri = args.get(0);
     final String clientId = args.get(1);
-
     Logger.pii(LOG_TAG, "Received a URI for display: " + uri + " from " + clientId);
+
+    if (uri == null) {
+      Logger.pii(LOG_TAG, "URI is null – ignoring");
+      return;
+    }
 
     String title = null;
     if (args.size() == 3) {
       title = args.get(2);
     }
 
-    // We don't care too much about races, but let's try to avoid
-    // unnecessary work.
-    if (!didUpdateLocale) {
-      BrowserLocaleManager.getInstance().getAndApplyPersistedLocale(context);
-      didUpdateLocale = true;
-    }
-
-    final String ns = Context.NOTIFICATION_SERVICE;
-    final NotificationManager notificationManager = (NotificationManager) context.getSystemService(ns);
-
-    // Create a Notification.
-    final int icon = R.drawable.icon;
-    String notificationTitle = context.getString(R.string.sync_new_tab);
-    if (title != null) {
-      notificationTitle = notificationTitle.concat(": " + title);
-    }
-
-    final long when = System.currentTimeMillis();
-    Notification notification = new Notification(icon, notificationTitle, when);
-    notification.flags = Notification.FLAG_AUTO_CANCEL;
-
-    // Set pending intent associated with the notification.
-    Intent notificationIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
-    PendingIntent contentIntent = PendingIntent.getActivity(context, 0, notificationIntent, 0);
-    notification.setLatestEventInfo(context, notificationTitle, uri, contentIntent);
-
-    // Send notification.
-    notificationManager.notify(currentId.getAndIncrement(), notification);
+    final Intent sendTabNotificationIntent = new Intent();
+    sendTabNotificationIntent.setClassName(context, BrowserContract.TAB_RECEIVED_SERVICE_CLASS_NAME);
+    sendTabNotificationIntent.setData(Uri.parse(uri));
+    sendTabNotificationIntent.putExtra(Intent.EXTRA_TITLE, title);
+    sendTabNotificationIntent.putExtra(BrowserContract.EXTRA_CLIENT_GUID, clientId);
+    final ComponentName componentName = context.startService(sendTabNotificationIntent);
   }
 }

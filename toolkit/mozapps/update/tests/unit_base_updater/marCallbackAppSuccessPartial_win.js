@@ -8,14 +8,15 @@ function run_test() {
   setupTestCommon();
   gTestFiles = gTestFilesPartialSuccess;
   gTestDirs = gTestDirsPartialSuccess;
-  setupUpdaterTest(FILE_PARTIAL_MAR, false, false);
+  setupUpdaterTest(FILE_PARTIAL_MAR);
 
   gCallbackBinFile = "exe0.exe";
 
-  runUpdate(0, STATE_SUCCEEDED);
+  runUpdate(0, STATE_SUCCEEDED, checkUpdateFinished);
 }
 
-function checkUpdateApplied() {
-  checkFilesAfterUpdateSuccess();
+function checkUpdateFinished() {
+  checkFilesAfterUpdateSuccess(getApplyDirFile, false, false);
+  standardInit();
   checkCallbackAppLog();
 }

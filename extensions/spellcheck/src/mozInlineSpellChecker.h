@@ -24,7 +24,6 @@
 #undef KeyPress
 #endif
 
-class nsIDOMMouseEventListener;
 class mozInlineSpellWordUtil;
 class mozInlineSpellChecker;
 class mozInlineSpellResume;
@@ -56,7 +55,7 @@ public:
     return mOp == eOpChange && !mRange;
   }
 
-  nsRefPtr<mozInlineSpellChecker> mSpellChecker;
+  RefPtr<mozInlineSpellChecker> mSpellChecker;
 
   // The total number of words checked in this sequence, using this tally tells
   // us when to stop. This count is preserved as we continue checking in new
@@ -73,14 +72,14 @@ public:
 
   // Used for events where we have already computed the range to use. It can
   // also be nullptr in these cases where we need to check the entire range.
-  nsRefPtr<nsRange> mRange;
+  RefPtr<nsRange> mRange;
 
   // If we happen to know something was inserted, this is that range.
   // Can be nullptr (this only allows an optimization, so not setting doesn't hurt)
-  nsRefPtr<nsRange> mCreatedRange;
+  RefPtr<nsRange> mCreatedRange;
 
   // Contains the range computed for the current word. Can be nullptr.
-  nsRefPtr<nsRange> mNoCheckRange;
+  RefPtr<nsRange> mNoCheckRange;
 
   // Indicates the position of the cursor for the event (so we can compute
   // mNoCheckRange). It can be nullptr if we don't care about the cursor position
@@ -116,10 +115,10 @@ protected:
                                     nsIDOMRange** aRange);
 };
 
-class mozInlineSpellChecker MOZ_FINAL : public nsIInlineSpellChecker,
-                                        public nsIEditActionListener,
-                                        public nsIDOMEventListener,
-                                        public nsSupportsWeakReference
+class mozInlineSpellChecker final : public nsIInlineSpellChecker,
+                                    public nsIEditActionListener,
+                                    public nsIDOMEventListener,
+                                    public nsSupportsWeakReference
 {
 private:
   friend class mozInlineSpellStatus;
@@ -171,7 +170,7 @@ private:
 
   // When mPendingSpellCheck is non-null, this is the callback passed when
   // it was initialized.
-  nsRefPtr<InitEditorSpellCheckCallback> mPendingInitEditorSpellCheckCallback;
+  RefPtr<InitEditorSpellCheckCallback> mPendingInitEditorSpellCheckCallback;
 
   // Set when we have spellchecked after the last edit operation. See the
   // commment at the top of the .cpp file for more info.

@@ -36,6 +36,7 @@
 #include "nsContentUtils.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/MouseEvents.h"
+#include "mozilla/UniquePtr.h"
 
 using namespace mozilla;
 
@@ -50,7 +51,7 @@ public:
   int32_t index;
 };
 
-class nsSplitterFrameInner MOZ_FINAL : public nsIDOMEventListener
+class nsSplitterFrameInner final : public nsIDOMEventListener
 {
 protected:
   virtual ~nsSplitterFrameInner();
@@ -104,7 +105,7 @@ public:
   ResizeType GetResizeAfter();
   State GetState();
 
-  void Reverse(nsSplitterInfo*& aIndexes, int32_t aCount);
+  void Reverse(UniquePtr<nsSplitterInfo[]>& aIndexes, int32_t aCount);
   bool SupportsCollapseDirection(CollapseDirection aDirection);
 
   void EnsureOrient();
@@ -116,8 +117,8 @@ public:
   nscoord mCurrentPos;
   nsIFrame* mParentBox;
   bool mPressed;
-  nsSplitterInfo* mChildInfosBefore;
-  nsSplitterInfo* mChildInfosAfter;
+  UniquePtr<nsSplitterInfo[]> mChildInfosBefore;
+  UniquePtr<nsSplitterInfo[]> mChildInfosAfter;
   int32_t mChildInfosBeforeCount;
   int32_t mChildInfosAfterCount;
   State mState;
@@ -144,8 +145,6 @@ nsSplitterFrameInner::GetResizeBefore()
 
 nsSplitterFrameInner::~nsSplitterFrameInner() 
 {
-  delete[] mChildInfosBefore;
-  delete[] mChildInfosAfter;
 }
 
 nsSplitterFrameInner::ResizeType
@@ -198,13 +197,13 @@ nsSplitterFrameInner::GetState()
 nsIFrame*
 NS_NewSplitterFrame (nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
-  return new (aPresShell) nsSplitterFrame(aPresShell, aContext);
+  return new (aPresShell) nsSplitterFrame(aContext);
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsSplitterFrame)
 
-nsSplitterFrame::nsSplitterFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
-: nsBoxFrame(aPresShell, aContext),
+nsSplitterFrame::nsSplitterFrame(nsStyleContext* aContext)
+: nsBoxFrame(aContext),
   mInner(0)
 {
 }
@@ -272,8 +271,6 @@ nsSplitterFrame::Init(nsIContent*       aContent,
   mInner = new nsSplitterFrameInner(this);
 
   mInner->AddRef();
-  mInner->mChildInfosAfter = nullptr;
-  mInner->mChildInfosBefore = nullptr;
   mInner->mState = nsSplitterFrameInner::Open;
   mInner->mDragging = false;
 
@@ -288,7 +285,7 @@ nsSplitterFrame::Init(nsIContent*       aContent,
         aContent->SetAttr(kNameSpaceID_None, nsGkAtoms::orient,
                           NS_LITERAL_STRING("vertical"), false);
         nsStyleContext* parentStyleContext = StyleContext()->GetParent();
-        nsRefPtr<nsStyleContext> newContext = PresContext()->StyleSet()->
+        RefPtr<nsStyleContext> newContext = PresContext()->StyleSet()->
           ResolveStyleFor(aContent->AsElement(), parentStyleContext);
         SetStyleContextWithoutNotification(newContext);
       }
@@ -387,17 +384,20 @@ nsSplitterFrame::HandleEvent(nsPresContext* aPresContext,
   }
 
   nsWeakFrame weakFrame(this);
-  nsRefPtr<nsSplitterFrameInner> kungFuDeathGrip(mInner);
-  switch (aEvent->message) {
-    case NS_MOUSE_MOVE: 
+  RefPtr<nsSplitterFrameInner> kungFuDeathGrip(mInner);
+  switch (aEvent->mMessage) {
+    case eMouseMove: 
       mInner->MouseDrag(aPresContext, aEvent);
-    break;
+      break;
   
-    case NS_MOUSE_BUTTON_UP:
+    case eMouseUp:
       if (aEvent->AsMouseEvent()->button == WidgetMouseEvent::eLeftButton) {
         mInner->MouseUp(aPresContext, aEvent);
       }
-    break;
+      break;
+
+    default:
+      break;
   }
 
   NS_ENSURE_STATE(weakFrame.IsAlive());
@@ -429,8 +429,6 @@ nsSplitterFrameInner::MouseUp(nsPresContext* aPresContext,
     //printf("MouseUp\n");
   }
 
-  delete[] mChildInfosBefore;
-  delete[] mChildInfosAfter;
   mChildInfosBefore = nullptr;
   mChildInfosAfter = nullptr;
   mChildInfosBeforeCount = 0;
@@ -477,7 +475,9 @@ nsSplitterFrameInner::MouseDrag(nsPresContext* aPresContext,
 
     nscoord oldPos = pos;
 
-    ResizeChildTo(aPresContext, pos, mChildInfosBefore, mChildInfosAfter, mChildInfosBeforeCount, mChildInfosAfterCount, bounded);
+    ResizeChildTo(aPresContext, pos,
+                  mChildInfosBefore.get(), mChildInfosAfter.get(),
+                  mChildInfosBeforeCount, mChildInfosAfterCount, bounded);
 
     State currentState = GetState();
     bool supportsBefore = SupportsCollapseDirection(Before);
@@ -634,9 +634,9 @@ nsSplitterFrameInner::MouseDown(nsIDOMEvent* aMouseEvent)
   if (childIndex == childCount - 1 && GetResizeAfter() != Grow)
     return NS_OK;
 
-  nsRefPtr<nsRenderingContext> rc =
-    outerPresContext->PresShell()->CreateReferenceRenderingContext();
-  nsBoxLayoutState state(outerPresContext, rc);
+  nsRenderingContext rc(
+    outerPresContext->PresShell()->CreateReferenceRenderingContext());
+  nsBoxLayoutState state(outerPresContext, &rc);
   mCurrentPos = 0;
   mPressed = true;
 
@@ -648,10 +648,8 @@ nsSplitterFrameInner::MouseDown(nsIDOMEvent* aMouseEvent)
   ResizeType resizeBefore = GetResizeBefore();
   ResizeType resizeAfter  = GetResizeAfter();
 
-  delete[] mChildInfosBefore;
-  delete[] mChildInfosAfter;
-  mChildInfosBefore = new nsSplitterInfo[childCount];
-  mChildInfosAfter  = new nsSplitterInfo[childCount];
+  mChildInfosBefore = MakeUnique<nsSplitterInfo[]>(childCount);
+  mChildInfosAfter  = MakeUnique<nsSplitterInfo[]>(childCount);
 
   // create info 2 lists. One of the children before us and one after.
   int32_t count = 0;
@@ -724,12 +722,8 @@ nsSplitterFrameInner::MouseDown(nsIDOMEvent* aMouseEvent)
     Reverse(mChildInfosAfter, mChildInfosAfterCount);
 
     // Now swap the two arrays.
-    nscoord newAfterCount = mChildInfosBeforeCount;
-    mChildInfosBeforeCount = mChildInfosAfterCount;
-    mChildInfosAfterCount = newAfterCount;
-    nsSplitterInfo* temp = mChildInfosAfter;
-    mChildInfosAfter = mChildInfosBefore;
-    mChildInfosBefore = temp;
+    Swap(mChildInfosBeforeCount, mChildInfosAfterCount);
+    Swap(mChildInfosBefore, mChildInfosAfter);
   }
 
   // if resizebefore is not Farthest, reverse the list because the first child
@@ -788,15 +782,14 @@ nsSplitterFrameInner::MouseMove(nsIDOMEvent* aMouseEvent)
 }
 
 void
-nsSplitterFrameInner::Reverse(nsSplitterInfo*& aChildInfos, int32_t aCount)
+nsSplitterFrameInner::Reverse(UniquePtr<nsSplitterInfo[]>& aChildInfos, int32_t aCount)
 {
-    nsSplitterInfo* infos = new nsSplitterInfo[aCount];
+    UniquePtr<nsSplitterInfo[]> infos(new nsSplitterInfo[aCount]);
 
     for (int i=0; i < aCount; i++)
        infos[i] = aChildInfos[aCount - 1 - i];
 
-    delete[] aChildInfos;
-    aChildInfos = infos;
+    aChildInfos = Move(infos);
 }
 
 bool
@@ -895,8 +888,10 @@ nsSplitterFrameInner::AdjustChildren(nsPresContext* aPresContext)
   EnsureOrient();
   bool isHorizontal = !mOuter->IsHorizontal();
 
-  AdjustChildren(aPresContext, mChildInfosBefore, mChildInfosBeforeCount, isHorizontal);
-  AdjustChildren(aPresContext, mChildInfosAfter, mChildInfosAfterCount, isHorizontal);
+  AdjustChildren(aPresContext, mChildInfosBefore.get(),
+                 mChildInfosBeforeCount, isHorizontal);
+  AdjustChildren(aPresContext, mChildInfosAfter.get(),
+                 mChildInfosAfterCount, isHorizontal);
 }
 
 static nsIFrame* GetChildBoxForContent(nsIFrame* aParentBox, nsIContent* aContent)
@@ -1047,8 +1042,6 @@ nsSplitterFrameInner::ResizeChildTo(nsPresContext* aPresContext,
     if (aBounded) {
        aDiff += spaceLeft;
        AddRemoveSpace(spaceLeft, aChildrenBeforeInfos,aChildrenBeforeCount,spaceLeft);
-    } else {
-      spaceLeft = 0;
     }
   }
 }

@@ -4,7 +4,7 @@
 
 "use strict";
 
-const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
+var {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
@@ -37,9 +37,9 @@ XPCOMUtils.defineLazyGetter(this, "CP", function () {
 XPCOMUtils.defineLazyServiceGetter(this, "gSystemMessenger",
                                    "@mozilla.org/system-message-internal;1",
                                    "nsISystemMessagesInternal");
-XPCOMUtils.defineLazyServiceGetter(this, "gRIL",
-                                   "@mozilla.org/ril;1",
-                                   "nsIRadioInterfaceLayer");
+XPCOMUtils.defineLazyServiceGetter(this, "gIccService",
+                                   "@mozilla.org/icc/iccservice;1",
+                                   "nsIIccService");
 
 /**
  * Helpers for WAP PDU processing.
@@ -84,7 +84,7 @@ this.WapPushManager = {
     let msg;
     let authInfo = null;
     if (contentType === "application/vnd.wap.mms-message") {
-      let mmsService = Cc["@mozilla.org/mms/rilmmsservice;1"]
+      let mmsService = Cc["@mozilla.org/mms/gonkmmsservice;1"]
                        .getService(Ci.nsIMmsService);
       mmsService.QueryInterface(Ci.nsIWapPushApplication)
                 .receiveWapPush(data.array, data.array.length, data.offset, options);
@@ -104,7 +104,8 @@ this.WapPushManager = {
         let mac = params && params.mac;
         authInfo = CP.Authenticator.check(data.array.subarray(data.offset),
                                           sec, mac, function getNetworkPin() {
-          let imsi = gRIL.getRadioInterface(options.serviceId).rilContext.imsi;
+          let icc = gIccService.getIccByServiceId(options.serviceId);
+          let imsi = icc ? icc.imsi : null;
           return CP.Authenticator.formatImsi(imsi);
         });
       }
@@ -160,7 +161,7 @@ this.WapPushManager = {
   },
 };
 
-let debug;
+var debug;
 if (DEBUG) {
   debug = function (s) {
     dump("-*- WapPushManager: " + s + "\n");

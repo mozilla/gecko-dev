@@ -4,11 +4,15 @@
 
 // Functional tests for inline autocomplete
 
+const PREF_AUTOCOMPLETE_ENABLED = "browser.urlbar.autocomplete.enabled";
+
 add_task(function* test_disabling_autocomplete() {
-  do_log_info("Check disabling autocomplete disables autofill");
-  Services.prefs.setBoolPref("browser.urlbar.autocomplete.enabled", false);
-  yield promiseAddVisits({ uri: NetUtil.newURI("http://visit.mozilla.org"),
-                           transition: TRANSITION_TYPED });
+  do_print("Check disabling autocomplete disables autofill");
+  Services.prefs.setBoolPref(PREF_AUTOCOMPLETE_ENABLED, false);
+  yield PlacesTestUtils.addVisits({
+    uri: NetUtil.newURI("http://visit.mozilla.org"),
+    transition: TRANSITION_TYPED
+  });
   yield check_autocomplete({
     search: "vis",
     autofilled: "vis",
@@ -18,11 +22,11 @@ add_task(function* test_disabling_autocomplete() {
 });
 
 add_task(function* test_urls_order() {
-  do_log_info("Add urls, check for correct order");
+  do_print("Add urls, check for correct order");
   let places = [{ uri: NetUtil.newURI("http://visit1.mozilla.org") },
                 { uri: NetUtil.newURI("http://visit2.mozilla.org"),
                   transition: TRANSITION_TYPED }];
-  yield promiseAddVisits(places);
+  yield PlacesTestUtils.addVisits(places);
   yield check_autocomplete({
     search: "vis",
     autofilled: "visit2.mozilla.org/",
@@ -32,9 +36,9 @@ add_task(function* test_urls_order() {
 });
 
 add_task(function* test_ignore_prefix() {
-  do_log_info("Add urls, make sure www and http are ignored");
+  do_print("Add urls, make sure www and http are ignored");
   Services.prefs.setBoolPref("browser.urlbar.autoFill.typed", false);
-  yield promiseAddVisits(NetUtil.newURI("http://www.visit1.mozilla.org"));
+  yield PlacesTestUtils.addVisits(NetUtil.newURI("http://www.visit1.mozilla.org"));
   yield check_autocomplete({
     search: "visit1",
     autofilled: "visit1.mozilla.org/",
@@ -44,9 +48,9 @@ add_task(function* test_ignore_prefix() {
 });
 
 add_task(function* test_after_host() {
-  do_log_info("Autocompleting after an existing host completes to the url");
+  do_print("Autocompleting after an existing host completes to the url");
   Services.prefs.setBoolPref("browser.urlbar.autoFill.typed", false);
-  yield promiseAddVisits(NetUtil.newURI("http://www.visit3.mozilla.org"));
+  yield PlacesTestUtils.addVisits(NetUtil.newURI("http://www.visit3.mozilla.org"));
   yield check_autocomplete({
     search: "visit3.mozilla.org/",
     autofilled: "visit3.mozilla.org/",
@@ -56,9 +60,9 @@ add_task(function* test_after_host() {
 });
 
 add_task(function* test_respect_www() {
-  do_log_info("Searching for www.me should yield www.me.mozilla.org/");
+  do_print("Searching for www.me should yield www.me.mozilla.org/");
   Services.prefs.setBoolPref("browser.urlbar.autoFill.typed", false);
-  yield promiseAddVisits(NetUtil.newURI("http://www.me.mozilla.org"));
+  yield PlacesTestUtils.addVisits(NetUtil.newURI("http://www.me.mozilla.org"));
   yield check_autocomplete({
     search: "www.me",
     autofilled: "www.me.mozilla.org/",
@@ -68,10 +72,10 @@ add_task(function* test_respect_www() {
 });
 
 add_task(function* test_bookmark_first() {
-  do_log_info("With a bookmark and history, the query result should be the bookmark");
+  do_print("With a bookmark and history, the query result should be the bookmark");
   Services.prefs.setBoolPref("browser.urlbar.autoFill.typed", false);
-  addBookmark({ uri: NetUtil.newURI("http://bookmark1.mozilla.org/") });
-  yield promiseAddVisits(NetUtil.newURI("http://bookmark1.mozilla.org/foo"));
+  yield addBookmark({ uri: NetUtil.newURI("http://bookmark1.mozilla.org/") });
+  yield PlacesTestUtils.addVisits(NetUtil.newURI("http://bookmark1.mozilla.org/foo"));
   yield check_autocomplete({
     search: "bookmark",
     autofilled: "bookmark1.mozilla.org/",
@@ -81,11 +85,11 @@ add_task(function* test_bookmark_first() {
 });
 
 add_task(function* test_full_path() {
-  do_log_info("Check to make sure we get the proper results with full paths");
+  do_print("Check to make sure we get the proper results with full paths");
   Services.prefs.setBoolPref("browser.urlbar.autoFill.typed", false);
   let places = [{ uri: NetUtil.newURI("http://smokey.mozilla.org/foo/bar/baz?bacon=delicious") },
                 { uri: NetUtil.newURI("http://smokey.mozilla.org/foo/bar/baz?bacon=smokey") }];
-  yield promiseAddVisits(places);
+  yield PlacesTestUtils.addVisits(places);
   yield check_autocomplete({
     search: "smokey",
     autofilled: "smokey.mozilla.org/",
@@ -95,11 +99,11 @@ add_task(function* test_full_path() {
 });
 
 add_task(function* test_complete_to_slash() {
-  do_log_info("Check to make sure we autocomplete to the following '/'");
+  do_print("Check to make sure we autocomplete to the following '/'");
   Services.prefs.setBoolPref("browser.urlbar.autoFill.typed", false);
   let places = [{ uri: NetUtil.newURI("http://smokey.mozilla.org/foo/bar/baz?bacon=delicious") },
                 { uri: NetUtil.newURI("http://smokey.mozilla.org/foo/bar/baz?bacon=smokey") }];
-  yield promiseAddVisits(places);
+  yield PlacesTestUtils.addVisits(places);
   yield check_autocomplete({
     search: "smokey.mozilla.org/fo",
     autofilled: "smokey.mozilla.org/foo/",
@@ -109,11 +113,11 @@ add_task(function* test_complete_to_slash() {
 });
 
 add_task(function* test_complete_to_slash_with_www() {
-  do_log_info("Check to make sure we autocomplete to the following '/'");
+  do_print("Check to make sure we autocomplete to the following '/'");
   Services.prefs.setBoolPref("browser.urlbar.autoFill.typed", false);
   let places = [{ uri: NetUtil.newURI("http://www.smokey.mozilla.org/foo/bar/baz?bacon=delicious") },
                 { uri: NetUtil.newURI("http://www.smokey.mozilla.org/foo/bar/baz?bacon=smokey") }];
-  yield promiseAddVisits(places);
+  yield PlacesTestUtils.addVisits(places);
   yield check_autocomplete({
     search: "smokey.mozilla.org/fo",
     autofilled: "smokey.mozilla.org/foo/",
@@ -123,9 +127,9 @@ add_task(function* test_complete_to_slash_with_www() {
 });
 
 add_task(function* test_complete_querystring() {
-  do_log_info("Check to make sure we autocomplete after ?");
+  do_print("Check to make sure we autocomplete after ?");
   Services.prefs.setBoolPref("browser.urlbar.autoFill.typed", false);
-  yield promiseAddVisits(NetUtil.newURI("http://smokey.mozilla.org/foo?bacon=delicious"));
+  yield PlacesTestUtils.addVisits(NetUtil.newURI("http://smokey.mozilla.org/foo?bacon=delicious"));
   yield check_autocomplete({
     search: "smokey.mozilla.org/foo?",
     autofilled: "smokey.mozilla.org/foo?bacon=delicious",
@@ -135,13 +139,33 @@ add_task(function* test_complete_querystring() {
 });
 
 add_task(function* test_complete_fragment() {
-  do_log_info("Check to make sure we autocomplete after #");
+  do_print("Check to make sure we autocomplete after #");
   Services.prefs.setBoolPref("browser.urlbar.autoFill.typed", false);
-  yield promiseAddVisits(NetUtil.newURI("http://smokey.mozilla.org/foo?bacon=delicious#bar"));
+  yield PlacesTestUtils.addVisits(NetUtil.newURI("http://smokey.mozilla.org/foo?bacon=delicious#bar"));
   yield check_autocomplete({
     search: "smokey.mozilla.org/foo?bacon=delicious#bar",
     autofilled: "smokey.mozilla.org/foo?bacon=delicious#bar",
     completed: "http://smokey.mozilla.org/foo?bacon=delicious#bar",
   });
   yield cleanup();
+});
+
+add_task(function* test_autocomplete_enabled_pref() {
+  Services.prefs.setBoolPref(PREF_AUTOCOMPLETE_ENABLED, false);
+  let types = ["history", "bookmark", "openpage"];
+  for (type of types) {
+    do_check_eq(Services.prefs.getBoolPref("browser.urlbar.suggest." + type), false,
+                "suggest." + type + "pref should be false");
+  }
+  Services.prefs.setBoolPref(PREF_AUTOCOMPLETE_ENABLED, true);
+  for (type of types) {
+    do_check_eq(Services.prefs.getBoolPref("browser.urlbar.suggest." + type), true,
+                "suggest." + type + "pref should be true");
+  }
+
+  // Clear prefs.
+  Services.prefs.clearUserPref(PREF_AUTOCOMPLETE_ENABLED);
+  for (type of types) {
+    Services.prefs.clearUserPref("browser.urlbar.suggest." + type);
+  }
 });

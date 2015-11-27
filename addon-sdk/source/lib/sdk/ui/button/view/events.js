@@ -7,10 +7,12 @@
 module.metadata = {
   'stability': 'experimental',
   'engines': {
-    'Firefox': '*'
+    'Firefox': '*',
+    'SeaMonkey': '*',
+    'Thunderbird': '*'
   }
 };
 
-let channel = {};
+var channel = {};
 
 exports.events = channel;

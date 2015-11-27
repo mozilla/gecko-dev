@@ -3,6 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "mozilla/Snprintf.h"
 #include "nsILocaleService.h"
 #include "nsDateTimeFormatCID.h"
 #include "nsIDateTimeFormat.h"
@@ -26,14 +27,14 @@ class nsScriptableDateFormat : public nsIScriptableDateFormat {
                             int32_t hour, 
                             int32_t minute, 
                             int32_t second, 
-                            char16_t **dateTimeString);
+                            char16_t **dateTimeString) override;
 
   NS_IMETHOD FormatDate(const char16_t *locale, 
                         nsDateFormatSelector dateFormatSelector, 
                         int32_t year, 
                         int32_t month, 
                         int32_t day, 
-                        char16_t **dateString)
+                        char16_t **dateString) override
                         {return FormatDateTime(locale, dateFormatSelector, kTimeFormatNone, 
                                                year, month, day, 0, 0, 0, dateString);}
 
@@ -42,7 +43,7 @@ class nsScriptableDateFormat : public nsIScriptableDateFormat {
                         int32_t hour, 
                         int32_t minute, 
                         int32_t second, 
-                        char16_t **timeString)
+                        char16_t **timeString) override
                         {return FormatDateTime(locale, kDateFormatNone, timeFormatSelector, 
                                                1999, 1, 1, hour, minute, second, timeString);}
 
@@ -113,7 +114,7 @@ NS_IMETHODIMP nsScriptableDateFormat::FormatDateTime(
     // if mktime fails (e.g. year <= 1970), then try NSPR.
     PRTime prtime;
     char string[32];
-    sprintf(string, "%.2d/%.2d/%d %.2d:%.2d:%.2d", month, day, year, hour, minute, second);
+    snprintf_literal(string, "%.2d/%.2d/%d %.2d:%.2d:%.2d", month, day, year, hour, minute, second);
     if (PR_SUCCESS != PR_ParseTimeString(string, false, &prtime))
       return NS_ERROR_INVALID_ARG;
 

@@ -13,6 +13,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/TypeTraits.h"
+#include "Types.h"
 
 namespace mozilla {
 namespace gfx {
@@ -105,13 +106,13 @@ struct BaseRect {
   // (including edges) of *this and aRect. If there are no points in that
   // intersection, returns an empty rectangle with x/y set to the std::max of the x/y
   // of *this and aRect.
-  Sub Intersect(const Sub& aRect) const
+  MOZ_WARN_UNUSED_RESULT Sub Intersect(const Sub& aRect) const
   {
     Sub result;
     result.x = std::max<T>(x, aRect.x);
     result.y = std::max<T>(y, aRect.y);
-    result.width = std::min<T>(XMost(), aRect.XMost()) - result.x;
-    result.height = std::min<T>(YMost(), aRect.YMost()) - result.y;
+    result.width = std::min<T>(x - result.x + width, aRect.x - result.x + aRect.width);
+    result.height = std::min<T>(y - result.y + height, aRect.y - result.y + aRect.height);
     if (result.width < 0 || result.height < 0) {
       result.SizeTo(0, 0);
     }
@@ -133,7 +134,7 @@ struct BaseRect {
   // this and aRect2.
   // Thus, empty input rectangles are ignored.
   // If both rectangles are empty, returns this.
-  Sub Union(const Sub& aRect) const
+  MOZ_WARN_UNUSED_RESULT Sub Union(const Sub& aRect) const
   {
     if (IsEmpty()) {
       return aRect;
@@ -146,7 +147,7 @@ struct BaseRect {
   // Returns the smallest rectangle that contains both the points (including
   // edges) of both aRect1 and aRect2.
   // Thus, empty input rectangles are allowed to affect the result.
-  Sub UnionEdges(const Sub& aRect) const
+  MOZ_WARN_UNUSED_RESULT Sub UnionEdges(const Sub& aRect) const
   {
     Sub result;
     result.x = std::min(x, aRect.x);
@@ -174,6 +175,23 @@ struct BaseRect {
   void UnionRectEdges(const Sub& aRect1, const Sub& aRect2)
   {
     *static_cast<Sub*>(this) = aRect1.UnionEdges(aRect2);
+  }
+
+  // Expands the rect to include the point
+  void ExpandToEnclose(const Point& aPoint)
+  {
+    if (aPoint.x < x) {
+      width = XMost() - aPoint.x;
+      x = aPoint.x;
+    } else if (aPoint.x > XMost()) {
+      width = aPoint.x - x;
+    }
+    if (aPoint.y < y) {
+      height = YMost() - aPoint.y;
+      y = aPoint.y;
+    } else if (aPoint.y > YMost()) {
+      height = aPoint.y - y;
+    }
   }
 
   void SetRect(T aX, T aY, T aWidth, T aHeight)
@@ -207,20 +225,6 @@ struct BaseRect {
     height += aMargin.TopBottom();
   }
   void Inflate(const SizeT& aSize) { Inflate(aSize.width, aSize.height); }
-
-  void InflateToMultiple(const SizeT& aMultiple)
-  {
-    T xMost = XMost();
-    T yMost = YMost();
-
-    x = static_cast<T>(floor(x / aMultiple.width)) * aMultiple.width;
-    y = static_cast<T>(floor(y / aMultiple.height)) * aMultiple.height;
-    xMost = static_cast<T>(ceil(x / aMultiple.width)) * aMultiple.width;
-    yMost = static_cast<T>(ceil(y / aMultiple.height)) * aMultiple.height;
-
-    width = xMost - x;
-    height = yMost - y;
-  }
 
   void Deflate(T aD) { Deflate(aD, aD); }
   void Deflate(T aDx, T aDy)
@@ -311,6 +315,33 @@ struct BaseRect {
   Point TopRight() const { return Point(XMost(), y); }
   Point BottomLeft() const { return Point(x, YMost()); }
   Point BottomRight() const { return Point(XMost(), YMost()); }
+  Point AtCorner(int aCorner) const {
+    switch (aCorner) {
+      case RectCorner::TopLeft: return TopLeft();
+      case RectCorner::TopRight: return TopRight();
+      case RectCorner::BottomRight: return BottomRight();
+      case RectCorner::BottomLeft: return BottomLeft();
+    }
+    MOZ_CRASH("Incomplete switch");
+  }
+  Point CCWCorner(mozilla::Side side) const {
+    switch (side) {
+      case NS_SIDE_TOP: return TopLeft();
+      case NS_SIDE_RIGHT: return TopRight();
+      case NS_SIDE_BOTTOM: return BottomRight();
+      case NS_SIDE_LEFT: return BottomLeft();
+    }
+    MOZ_CRASH("Incomplete switch");
+  }
+  Point CWCorner(mozilla::Side side) const {
+    switch (side) {
+      case NS_SIDE_TOP: return TopRight();
+      case NS_SIDE_RIGHT: return BottomRight();
+      case NS_SIDE_BOTTOM: return BottomLeft();
+      case NS_SIDE_LEFT: return TopLeft();
+    }
+    MOZ_CRASH("Incomplete switch");
+  }
   Point Center() const { return Point(x, y) + Point(width, height)/2; }
   SizeT Size() const { return SizeT(width, height); }
 
@@ -321,6 +352,18 @@ struct BaseRect {
   T Height() const { return height; }
   T XMost() const { return x + width; }
   T YMost() const { return y + height; }
+
+  // Get the coordinate of the edge on the given side.
+  T Edge(mozilla::Side aSide) const
+  {
+    switch (aSide) {
+      case NS_SIDE_TOP: return Y();
+      case NS_SIDE_RIGHT: return XMost();
+      case NS_SIDE_BOTTOM: return YMost();
+      case NS_SIDE_LEFT: return X();
+    }
+    MOZ_CRASH("Incomplete switch");
+  }
 
   // Moves one edge of the rect without moving the opposite edge.
   void SetLeftEdge(T aX) {
@@ -480,18 +523,18 @@ struct BaseRect {
    * Clamp aPoint to this rectangle. It is allowed to end up on any
    * edge of the rectangle.
    */
-  Point ClampPoint(const Point& aPoint) const
+  MOZ_WARN_UNUSED_RESULT Point ClampPoint(const Point& aPoint) const
   {
     return Point(std::max(x, std::min(XMost(), aPoint.x)),
                  std::max(y, std::min(YMost(), aPoint.y)));
   }
 
   /**
-   * Clamp this rectangle to be inside aRect. The function returns a copy of
-   * this rect after it is forced inside the bounds of aRect. It will attempt to
-   * retain the size but will shrink the dimensions that don't fit.
+   * Translate this rectangle to be inside aRect. If it doesn't fit inside
+   * aRect then the dimensions that don't fit will be shrunk so that they
+   * do fit. The resulting rect is returned.
    */
-  Sub ForceInside(const Sub& aRect) const
+  MOZ_WARN_UNUSED_RESULT Sub MoveInsideAndClamp(const Sub& aRect) const
   {
     Sub rect(std::max(aRect.x, x),
              std::max(aRect.y, y),
@@ -515,7 +558,7 @@ private:
   bool operator!=(const Sub& aRect) const { return false; }
 };
 
-}
-}
+} // namespace gfx
+} // namespace mozilla
 
 #endif /* MOZILLA_GFX_BASERECT_H_ */

@@ -4,15 +4,14 @@
 
 # Integrates the xpcshell test runner with mach.
 
+from __future__ import absolute_import
+
 import os
-import re
-import sys
 
 import mozpack.path as mozpath
 
 from mozbuild.base import (
     MachCommandBase,
-    MozbuildObject,
 )
 
 from mach.decorators import (
@@ -21,25 +20,8 @@ from mach.decorators import (
     Command,
 )
 
-class JetpackRunner(MozbuildObject):
-    """Run jetpack tests."""
-    def run_tests(self, **kwargs):
-        self._run_make(target='jetpack-tests')
-
 @CommandProvider
 class MachCommands(MachCommandBase):
-    @Command('jetpack-test', category='testing',
-        description='Runs the jetpack test suite (Add-on SDK).')
-    def run_jetpack_test(self, **params):
-        # We should probably have a utility function to ensure the tree is
-        # ready to run tests. Until then, we just create the state dir (in
-        # case the tree wasn't built with mach).
-        self._ensure_state_subdir_exists('.')
-
-        jetpack = self._spawn(JetpackRunner)
-
-        jetpack.run_tests(**params)
-
     @Command('generate-addon-sdk-moz-build', category='misc',
         description='Generates the moz.build file for the addon-sdk/ directory.')
     def run_addon_sdk_moz_build(self, **params):
@@ -48,14 +30,14 @@ class MachCommands(MachCommandBase):
         dirs_to_files = {}
 
         for path, dirs, files in os.walk(js_src_dir):
-            js_files = [f for f in files if f.endswith(('.js', '.jsm'))]
+            js_files = [f for f in files if f.endswith(('.js', '.jsm', '.html'))]
             if not js_files:
                 continue
 
             relative = mozpath.relpath(path, js_src_dir)
             dirs_to_files[relative] = js_files
 
-        moz_build = """# AUTOMATICALLY GENERATED FROM moz.build.in AND mach.  DO NOT EDIT.
+        moz_build = """# AUTOMATICALLY GENERATED FROM mozbuild.template AND mach.  DO NOT EDIT.
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -103,7 +85,8 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] != "gonk":
                     path = d.split('/')
                     module_path = ''.join('.' + p if p.find('-') == -1 else "['%s']" % p for p in path)
                     dir_path = d + '/'
-                filelist = ["'source/lib/%s%s'" % (dir_path, f) for f in sorted(files)]
+                filelist = ["'source/lib/%s%s'" % (dir_path, f)
+                            for f in sorted(files, key=lambda x: x.lower())]
                 js_modules.append("EXTRA_JS_MODULES.commonjs%s += [\n    %s,\n]\n"
                                   % (module_path, ',\n    '.join(filelist)))
             stringified = '\n'.join(js_modules)

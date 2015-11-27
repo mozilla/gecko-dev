@@ -3,10 +3,6 @@
 
 "use strict";
 
-let tmp = {};
-Cu.import("resource:///modules/sessionstore/SessionSaver.jsm", tmp);
-let {SessionSaver} = tmp;
-
 const URL = ROOT + "browser_454908_sample.html";
 const PASS = "pwd-" + Math.random();
 
@@ -28,7 +24,7 @@ add_task(function* test_dont_save_passwords() {
   yield setInputValue(browser, {id: "passwd", value: PASS});
 
   // Close and restore the tab.
-  gBrowser.removeTab(tab);
+  yield promiseRemoveTab(tab);
   tab = ss.undoCloseTab(window, 0);
   browser = tab.linkedBrowser;
   yield promiseTabRestored(tab);
@@ -43,9 +39,8 @@ add_task(function* test_dont_save_passwords() {
   yield forceSaveState();
   yield promiseForEachSessionRestoreFile((state, key) =>
     // Ensure that we have not saved our password.
-    ok(!state.contains(PASS), "password has not been written to file " + key)
+    ok(!state.includes(PASS), "password has not been written to file " + key)
   );
-
 
   // Cleanup.
   gBrowser.removeTab(tab);

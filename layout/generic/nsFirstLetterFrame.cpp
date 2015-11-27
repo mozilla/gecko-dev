@@ -60,7 +60,7 @@ nsFirstLetterFrame::Init(nsIContent*       aContent,
                          nsContainerFrame* aParent,
                          nsIFrame*         aPrevInFlow)
 {
-  nsRefPtr<nsStyleContext> newSC;
+  RefPtr<nsStyleContext> newSC;
   if (aPrevInFlow) {
     // Get proper style context for ourselves.  We're creating the frame
     // that represents everything *except* the first letter, so just create
@@ -147,7 +147,7 @@ nsFirstLetterFrame::ComputeSize(nsRenderingContext *aRenderingContext,
                                 const LogicalSize& aMargin,
                                 const LogicalSize& aBorder,
                                 const LogicalSize& aPadding,
-                                uint32_t aFlags)
+                                ComputeSizeFlags aFlags)
 {
   if (GetPrevInFlow()) {
     // We're wrapping the text *after* the first letter, so behave like an
@@ -164,9 +164,9 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
                            const nsHTMLReflowState& aReflowState,
                            nsReflowStatus&          aReflowStatus)
 {
+  MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("nsFirstLetterFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aMetrics, aReflowStatus);
-  nsresult rv = NS_OK;
 
   // Grab overflow list
   DrainOverflowFrames(aPresContext);
@@ -195,17 +195,17 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
     WritingMode kidWritingMode = GetWritingMode(kid);
     LogicalSize kidAvailSize = availSize.ConvertTo(kidWritingMode, wm);
     nsHTMLReflowState rs(aPresContext, aReflowState, kid, kidAvailSize);
-    nsLineLayout ll(aPresContext, nullptr, &aReflowState, nullptr);
+    nsLineLayout ll(aPresContext, nullptr, &aReflowState, nullptr, nullptr);
 
     ll.BeginLineReflow(bp.IStart(wm), bp.BStart(wm),
                        availSize.ISize(wm), NS_UNCONSTRAINEDSIZE,
                        false, true, kidWritingMode,
-                       aReflowState.AvailableWidth());
+                       nsSize(aReflowState.AvailableWidth(),
+                              aReflowState.AvailableHeight()));
     rs.mLineLayout = &ll;
     ll.SetInFirstLetter(true);
     ll.SetFirstLetterStyleOK(true);
 
-    kid->WillReflow(aPresContext);
     kid->Reflow(aPresContext, kidMetrics, rs, aReflowStatus);
 
     ll.EndLineReflow();
@@ -227,6 +227,15 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
     aMetrics.SetSize(wm, convertedSize);
     aMetrics.SetBlockStartAscent(kidMetrics.BlockStartAscent() +
                                  bp.BStart(wm));
+
+    // Ensure that the overflow rect contains the child textframe's
+    // overflow rect.
+    // Note that if this is floating, the overline/underline drawable
+    // area is in the overflow rect of the child textframe.
+    aMetrics.UnionOverflowAreasWithDesiredBounds();
+    ConsiderChildOverflow(aMetrics.mOverflowAreas, kid);
+
+    FinishAndStoreOverflow(&aMetrics);
   }
   else {
     // Pretend we are a span and reflow the child frame
@@ -245,15 +254,8 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
     aMetrics.ISize(lineWM) = ll->EndSpan(this) + bp.IStartEnd(wm);
     ll->SetInFirstLetter(false);
 
-    nsLayoutUtils::SetBSizeFromFontMetrics(this, aMetrics, aReflowState,
-                                           bp, lineWM, wm);
+    nsLayoutUtils::SetBSizeFromFontMetrics(this, aMetrics, bp, lineWM, wm);
   }
-
-  // Ensure that the overflow rect contains the child textframe's overflow rect.
-  // Note that if this is floating, the overline/underline drawable area is in
-  // the overflow rect of the child textframe.
-  aMetrics.UnionOverflowAreasWithDesiredBounds();
-  ConsiderChildOverflow(aMetrics.mOverflowAreas, kid);
 
   if (!NS_INLINE_IS_BREAK_BEFORE(aReflowStatus)) {
     // Create a continuation or remove existing continuations based on
@@ -272,12 +274,7 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
       // Create a continuation for the child frame if it doesn't already
       // have one.
       if (!IsFloating()) {
-        nsIFrame* nextInFlow;
-        rv = CreateNextInFlow(kid, nextInFlow);
-        if (NS_FAILED(rv)) {
-          return;
-        }
-    
+        CreateNextInFlow(kid);
         // And then push it to our overflow list
         const nsFrameList& overflow = mFrames.RemoveFramesAfter(kid);
         if (overflow.NotEmpty()) {
@@ -293,8 +290,6 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
       }
     }
   }
-
-  FinishAndStoreOverflow(&aMetrics);
 
   NS_FRAME_SET_TRUNCATION(aReflowStatus, aReflowState, aMetrics);
 }
@@ -331,7 +326,7 @@ nsFirstLetterFrame::CreateContinuationForFloatingParent(nsPresContext* aPresCont
   // doesn't have the first letter styling.
   nsStyleContext* parentSC = this->StyleContext()->GetParent();
   if (parentSC) {
-    nsRefPtr<nsStyleContext> newSC;
+    RefPtr<nsStyleContext> newSC;
     newSC = presShell->StyleSet()->ResolveStyleForNonElement(parentSC);
     continuation->SetStyleContext(newSC);
     nsLayoutUtils::MarkDescendantsDirty(continuation);
@@ -379,7 +374,7 @@ nsFirstLetterFrame::DrainOverflowFrames(nsPresContext* aPresContext)
   // are reflowed)
   nsIFrame* kid = mFrames.FirstChild();
   if (kid) {
-    nsRefPtr<nsStyleContext> sc;
+    RefPtr<nsStyleContext> sc;
     nsIContent* kidContent = kid->GetContent();
     if (kidContent) {
       NS_ASSERTION(kidContent->IsNodeOfType(nsINode::eTEXT),

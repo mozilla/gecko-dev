@@ -20,16 +20,13 @@ class nsIContent;
 class nsIDOMDocument;
 class nsIAtom;
 class nsIDOMDocumentFragment;
-class nsIDOMElement;
-class nsIStyleSheet;
-class nsIDOMNode;
 class nsITransformObserver;
 class nsNodeInfoManager;
 class nsIDocument;
 class nsINode;
 
-class txTransformNotifier MOZ_FINAL : public nsIScriptLoaderObserver,
-                                      public nsICSSLoaderObserver
+class txTransformNotifier final : public nsIScriptLoaderObserver,
+                                  public nsICSSLoaderObserver
 {
 public:
     txTransformNotifier();
@@ -40,7 +37,7 @@ public:
     // nsICSSLoaderObserver
     NS_IMETHOD StyleSheetLoaded(mozilla::CSSStyleSheet* aSheet,
                                 bool aWasAlternate,
-                                nsresult aStatus) MOZ_OVERRIDE;
+                                nsresult aStatus) override;
 
     void Init(nsITransformObserver* aObserver);
     nsresult AddScriptElement(nsIScriptElement* aElement);
@@ -99,13 +96,13 @@ private:
                                         // until then the opened element is
                                         // kept in mOpenedElement
     nsCOMPtr<mozilla::dom::Element> mOpenedElement;
-    nsRefPtr<nsNodeInfoManager> mNodeInfoManager;
+    RefPtr<nsNodeInfoManager> mNodeInfoManager;
 
     nsCOMArray<nsINode> mCurrentNodeStack;
 
     nsCOMPtr<nsIContent> mNonAddedNode;
 
-    nsRefPtr<txTransformNotifier> mNotifier;
+    RefPtr<txTransformNotifier> mNotifier;
 
     uint32_t mTreeDepth, mBadChildLevel;
     nsCString mRefreshString;

@@ -14,7 +14,7 @@ const {interfaces: Ci, results: Cr, utils: Cu} = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-let APP_INFO = {
+var APP_INFO = {
   vendor: "Mozilla",
   name: "xpcshell",
   ID: "xpcshell@tests.mozilla.org",
@@ -26,8 +26,22 @@ let APP_INFO = {
   logConsoleErrors: true,
   OS: "XPCShell",
   XPCOMABI: "noarch-spidermonkey",
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIXULAppInfo, Ci.nsIXULRuntime]),
-  invalidateCachesOnRestart: function() {},
+
+  invalidateCachesOnRestart() {},
+
+  // nsIWinAppHelper
+  get userCanElevate() {
+    return false;
+  },
+
+  QueryInterface(iid) {
+    let interfaces = [ Ci.nsIXULAppInfo, Ci.nsIXULRuntime ];
+    if ("nsIWinAppHelper" in Ci)
+      interfaces.push(Ci.nsIWinAppHelper);
+    if (!interfaces.some(v => iid.equals(v)))
+      throw Cr.NS_ERROR_NO_INTERFACE;
+    return this;
+  }
 };
 
 

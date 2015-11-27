@@ -3,53 +3,68 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef WEBGLUNIFORMLOCATION_H_
-#define WEBGLUNIFORMLOCATION_H_
+#ifndef WEBGL_UNIFORM_LOCATION_H_
+#define WEBGL_UNIFORM_LOCATION_H_
+
+#include "GLDefs.h"
+#include "mozilla/WeakPtr.h"
+#include "nsCycleCollectionParticipant.h" // NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS
+#include "nsISupportsImpl.h" // NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING
+#include "nsWrapperCache.h"
 
 #include "WebGLObjectModel.h"
-#include "WebGLUniformInfo.h"
+
+struct JSContext;
 
 namespace mozilla {
-
+class WebGLActiveInfo;
+class WebGLContext;
 class WebGLProgram;
 
-class WebGLUniformLocation MOZ_FINAL
-    : public WebGLContextBoundObject
+namespace webgl {
+struct LinkedProgramInfo;
+} // namespace webgl
+
+class WebGLUniformLocation final
+    : public nsWrapperCache
+    , public WebGLContextBoundObject
 {
 public:
-    WebGLUniformLocation(WebGLContext *context, WebGLProgram *program, GLint location, const WebGLUniformInfo& info);
-
-    // needed for certain helper functions like ValidateObject.
-    // WebGLUniformLocation's can't be 'Deleted' in the WebGL sense.
-    bool IsDeleted() const { return false; }
-
-    const WebGLUniformInfo &Info() const { return mInfo; }
-
-    WebGLProgram *Program() const { return mProgram; }
-    GLint Location() const { return mLocation; }
-    uint32_t ProgramGeneration() const { return mProgramGeneration; }
-    int ElementSize() const { return mElementSize; }
-
-    JSObject* WrapObject(JSContext *cx);
-
+    NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(WebGLUniformLocation)
     NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(WebGLUniformLocation)
-    NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(WebGLUniformLocation)
 
-protected:
-    ~WebGLUniformLocation() {
+    virtual JSObject* WrapObject(JSContext* js, JS::Handle<JSObject*> givenProto) override;
+
+    WebGLContext* GetParentObject() const {
+        return mContext;
     }
 
-    // nsRefPtr, not WebGLRefPtr, so that we don't prevent the program from being explicitly deleted.
-    // we just want to avoid having a dangling pointer.
-    nsRefPtr<WebGLProgram> mProgram;
+    const WeakPtr<const webgl::LinkedProgramInfo> mLinkInfo;
+    const GLuint mLoc;
+    const WebGLActiveInfo* const mActiveInfo;
 
-    uint32_t mProgramGeneration;
-    GLint mLocation;
-    WebGLUniformInfo mInfo;
-    int mElementSize;
-    friend class WebGLProgram;
+    WebGLUniformLocation(WebGLContext* webgl, const webgl::LinkedProgramInfo* linkInfo,
+                         GLuint loc, const WebGLActiveInfo* activeInfo);
+
+    bool ValidateForProgram(WebGLProgram* prog, WebGLContext* webgl,
+                            const char* funcName) const;
+    bool ValidateSamplerSetter(GLint value, WebGLContext* webgl,
+                               const char* funcName) const;
+    bool ValidateSizeAndType(uint8_t setterElemSize, GLenum setterType,
+                             WebGLContext* webgl, const char* funcName) const;
+    bool ValidateArrayLength(uint8_t setterElemSize, size_t setterArraySize,
+                             WebGLContext* webgl, const char* funcName) const;
+
+    JS::Value GetUniform(JSContext* js, WebGLContext* webgl) const;
+
+    // Needed for certain helper functions like ValidateObject.
+    // `WebGLUniformLocation`s can't be 'Deleted' in the WebGL sense.
+    bool IsDeleted() const { return false; }
+
+protected:
+    ~WebGLUniformLocation();
 };
 
 } // namespace mozilla
 
-#endif
+#endif // WEBGL_UNIFORM_LOCATION_H_

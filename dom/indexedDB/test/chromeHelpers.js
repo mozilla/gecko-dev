@@ -3,15 +3,13 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-const { 'classes': Cc, 'interfaces': Ci, 'utils': Cu } = Components;
+var { 'classes': Cc, 'interfaces': Ci, 'utils': Cu } = Components;
 
-let testGenerator = testSteps();
+var testGenerator = testSteps();
 
 if (!window.runTest) {
   window.runTest = function()
   {
-    Cu.importGlobalProperties(["indexedDB"]);
-
     SimpleTest.waitForExplicitFinish();
 
     testGenerator.next();

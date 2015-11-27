@@ -3,14 +3,15 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  *
- * Helper functions related to fetching process information. Used by _psutil_osx
- * module methods.
+ * Helper functions related to fetching process information.
+ * Used by _psutil_osx module methods.
  */
+
 
 #include <Python.h>
 #include <assert.h>
 #include <errno.h>
-#include <limits.h>  /* for INT_MAX */
+#include <limits.h>  // for INT_MAX
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -31,20 +32,16 @@ psutil_pid_exists(long pid)
     int kill_ret;
 
     // save some time if it's an invalid PID
-    if (pid < 0) {
+    if (pid < 0)
         return 0;
-    }
-
     // if kill returns success of permission denied we know it's a valid PID
     kill_ret = kill(pid , 0);
-    if ( (0 == kill_ret) || (EPERM == errno) ) {
+    if ( (0 == kill_ret) || (EPERM == errno))
         return 1;
-    }
 
     // otherwise return 0 for PID not found
     return 0;
 }
-
 
 
 /*
@@ -58,12 +55,12 @@ psutil_pid_exists(long pid)
 int
 psutil_get_proc_list(kinfo_proc **procList, size_t *procCount)
 {
-    /* Declaring mib as const requires use of a cast since the
-     * sysctl prototype doesn't include the const modifier. */
+    // Declaring mib as const requires use of a cast since the
+    // sysctl prototype doesn't include the const modifier.
     static const int mib3[3] = { CTL_KERN, KERN_PROC, KERN_PROC_ALL };
     size_t           size, size2;
     void            *ptr;
-    int              err, lim = 8;  /* some limit */
+    int              err, lim = 8;  // some limit
 
     assert( procList != NULL);
     assert(*procList == NULL);
@@ -71,7 +68,8 @@ psutil_get_proc_list(kinfo_proc **procList, size_t *procCount)
 
     *procCount = 0;
 
-    /* We start by calling sysctl with ptr == NULL and size == 0.
+    /*
+     * We start by calling sysctl with ptr == NULL and size == 0.
      * That will succeed, and set size to the appropriate length.
      * We then allocate a buffer of at least that size and call
      * sysctl with that buffer.  If that succeeds, we're done.
@@ -84,34 +82,29 @@ psutil_get_proc_list(kinfo_proc **procList, size_t *procCount)
      */
     while (lim-- > 0) {
         size = 0;
-        if (sysctl((int *)mib3, 3, NULL, &size, NULL, 0) == -1) {
+        if (sysctl((int *)mib3, 3, NULL, &size, NULL, 0) == -1)
             return errno;
-        }
-
-        size2 = size + (size >> 3);  /* add some */
+        size2 = size + (size >> 3);  // add some
         if (size2 > size) {
             ptr = malloc(size2);
-            if (ptr == NULL) {
+            if (ptr == NULL)
                 ptr = malloc(size);
-            } else {
+            else
                 size = size2;
-            }
         }
         else {
             ptr = malloc(size);
         }
-        if (ptr == NULL) {
+        if (ptr == NULL)
             return ENOMEM;
-        }
 
         if (sysctl((int *)mib3, 3, ptr, &size, NULL, 0) == -1) {
             err = errno;
             free(ptr);
-            if (err != ENOMEM) {
+            if (err != ENOMEM)
                 return err;
-            }
-
-        } else {
+        }
+        else {
             *procList = (kinfo_proc *)ptr;
             *procCount = size / sizeof(kinfo_proc);
             return 0;
@@ -121,7 +114,7 @@ psutil_get_proc_list(kinfo_proc **procList, size_t *procCount)
 }
 
 
-/* Read the maximum argument size for processes */
+// Read the maximum argument size for processes
 int
 psutil_get_argmax()
 {
@@ -129,15 +122,14 @@ psutil_get_argmax()
     int mib[] = { CTL_KERN, KERN_ARGMAX };
     size_t size = sizeof(argmax);
 
-    if (sysctl(mib, 2, &argmax, &size, NULL, 0) == 0) {
+    if (sysctl(mib, 2, &argmax, &size, NULL, 0) == 0)
         return argmax;
-    }
     return 0;
 }
 
 
-/* return process args as a python list */
-PyObject*
+// return process args as a python list
+PyObject *
 psutil_get_arg_list(long pid)
 {
     int mib[3];
@@ -151,12 +143,11 @@ psutil_get_arg_list(long pid)
     PyObject *arg = NULL;
     PyObject *arglist = NULL;
 
-    //special case for PID 0 (kernel_task) where cmdline cannot be fetched
-    if (pid == 0) {
+    // special case for PID 0 (kernel_task) where cmdline cannot be fetched
+    if (pid == 0)
         return Py_BuildValue("[]");
-    }
 
-    /* read argmax and allocate memory for argument space. */
+    // read argmax and allocate memory for argument space.
     argmax = psutil_get_argmax();
     if (! argmax) {
         PyErr_SetFromErrno(PyExc_OSError);
@@ -169,23 +160,23 @@ psutil_get_arg_list(long pid)
         goto error;
     }
 
-    /* read argument space */
+    // read argument space
     mib[0] = CTL_KERN;
     mib[1] = KERN_PROCARGS2;
     mib[2] = pid;
     if (sysctl(mib, 3, procargs, &argmax, NULL, 0) < 0) {
-        if (EINVAL == errno) { // invalid == access denied OR nonexistent PID
-            if ( psutil_pid_exists(pid) ) {
+        if (EINVAL == errno) {
+            // EINVAL == access denied OR nonexistent PID
+            if (psutil_pid_exists(pid))
                 AccessDenied();
-            } else {
+            else
                 NoSuchProcess();
-            }
         }
         goto error;
     }
 
     arg_end = &procargs[argmax];
-    /* copy the number of arguments to nargs */
+    // copy the number of arguments to nargs
     memcpy(&nargs, procargs, sizeof(nargs));
 
     arg_ptr = procargs + sizeof(nargs);
@@ -199,12 +190,11 @@ psutil_get_arg_list(long pid)
 
     // skip ahead to the first argument
     for (; arg_ptr < arg_end; arg_ptr++) {
-        if (*arg_ptr != '\0') {
+        if (*arg_ptr != '\0')
             break;
-        }
     }
 
-    /* iterate through arguments */
+    // iterate through arguments
     curr_arg = arg_ptr;
     arglist = Py_BuildValue("[]");
     if (!arglist)
@@ -255,9 +245,7 @@ psutil_get_kinfo_proc(pid_t pid, struct kinfo_proc *kp)
         return -1;
     }
 
-    /*
-     * sysctl succeeds but len is zero, happens when process has gone away
-     */
+    // sysctl succeeds but len is zero, happens when process has gone away
     if (len == 0) {
         NoSuchProcess();
         return -1;

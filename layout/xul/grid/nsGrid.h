@@ -10,9 +10,8 @@
 #include "nsStackLayout.h"
 #include "nsIGridPart.h"
 #include "nsCOMPtr.h"
+#include "mozilla/UniquePtr.h"
 
-class nsGridRowGroupLayout;
-class nsGridRowLayout;
 class nsBoxLayoutState;
 class nsGridCell;
 
@@ -86,8 +85,9 @@ private:
 
   void FreeMap();
   void FindRowsAndColumns(nsIFrame** aRows, nsIFrame** aColumns);
-  void BuildRows(nsIFrame* aBox, int32_t aSize, nsGridRow** aColumnsRows, bool aIsHorizontal = true);
-  nsGridCell* BuildCellMap(int32_t aRows, int32_t aColumns);
+  mozilla::UniquePtr<nsGridRow[]> BuildRows(nsIFrame* aBox, int32_t aSize,
+                                            bool aIsHorizontal = true);
+  mozilla::UniquePtr<nsGridCell[]> BuildCellMap(int32_t aRows, int32_t aColumns);
   void PopulateCellMap(nsGridRow* aRows, nsGridRow* aColumns, int32_t aRowCount, int32_t aColumnCount, bool aIsHorizontal = true);
   void CountRowsColumns(nsIFrame* aBox, int32_t& aRowCount, int32_t& aComputedColumnCount);
   void SetLargestSize(nsSize& aSize, nscoord aHeight, bool aIsHorizontal = true);
@@ -98,10 +98,10 @@ private:
   nsIFrame* mBox;
 
   // an array of row object
-  nsGridRow* mRows;
+  mozilla::UniquePtr<nsGridRow[]> mRows;
 
   // an array of columns objects.
-  nsGridRow* mColumns;
+  mozilla::UniquePtr<nsGridRow[]> mColumns;
 
   // the first in the <grid> that implements the <rows> tag.
   nsIFrame* mRowsBox;
@@ -122,7 +122,7 @@ private:
   int32_t mExtraColumnCount;
 
   // x,y array of cells in the rows and columns
-  nsGridCell* mCellMap;
+  mozilla::UniquePtr<nsGridCell[]> mCellMap;
 
   // a flag that when true suppresses all other MarkDirties. This
   // prevents lots of extra work being done.

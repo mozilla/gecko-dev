@@ -3,7 +3,7 @@ function test() {
   testNext();
 }
 
-let pairs = [
+var pairs = [
   ["javascript:", ""],
   ["javascript:1+1", "1+1"],
   ["javascript:document.domain", "document.domain"],
@@ -16,7 +16,7 @@ let pairs = [
   ["data:data:text/html,javascript:alert('hi!')", "data:data:text/html,javascript:alert('hi!')"],
 ];
 
-let clipboardHelper = Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper);
+var clipboardHelper = Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper);
 
 function paste(input, cb) {
   waitForClipboard(input, function() {
@@ -41,7 +41,7 @@ function testNext() {
 
   gURLBar.focus();
   paste(inputValue, function() {
-    is(gURLBar.value, expectedURL, "entering '" + inputValue + "' strips relevant bits.");
+    is(gURLBar.textValue, expectedURL, "entering '" + inputValue + "' strips relevant bits.");
 
     setTimeout(testNext, 0);
   });

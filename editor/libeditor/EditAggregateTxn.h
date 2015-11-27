@@ -31,8 +31,8 @@ public:
 
   NS_DECL_EDITTXN
 
-  NS_IMETHOD RedoTransaction();
-  NS_IMETHOD Merge(nsITransaction *aTransaction, bool *aDidMerge);
+  NS_IMETHOD RedoTransaction() override;
+  NS_IMETHOD Merge(nsITransaction *aTransaction, bool *aDidMerge) override;
 
   /** append a transaction to this aggregate */
   NS_IMETHOD AppendChild(EditTxn *aTxn);
@@ -43,7 +43,7 @@ public:
 protected:
   virtual ~EditAggregateTxn();
 
-  nsTArray< nsRefPtr<EditTxn> > mChildren;
+  nsTArray< RefPtr<EditTxn> > mChildren;
   nsCOMPtr<nsIAtom> mName;
 };
 

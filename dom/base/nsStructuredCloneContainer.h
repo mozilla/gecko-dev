@@ -1,7 +1,6 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: set ts=8 sw=2 et tw=80:
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -10,6 +9,7 @@
 
 #include "nsIStructuredCloneContainer.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/dom/ipc/StructuredCloneData.h"
 
 #define NS_STRUCTUREDCLONECONTAINER_CONTRACTID \
   "@mozilla.org/docshell/structured-clone-container;1"
@@ -21,7 +21,9 @@
   {0xb8, 0x5f, 0x13, 0xce, 0xd8, 0x89, 0xee, 0xec} \
 }
 
-class nsStructuredCloneContainer MOZ_FINAL : public nsIStructuredCloneContainer
+class nsStructuredCloneContainer final
+  : public nsIStructuredCloneContainer
+  , public mozilla::dom::ipc::StructuredCloneData
 {
   public:
     nsStructuredCloneContainer();
@@ -32,10 +34,6 @@ class nsStructuredCloneContainer MOZ_FINAL : public nsIStructuredCloneContainer
   private:
     ~nsStructuredCloneContainer();
 
-    uint64_t* mData;
-
-    // This needs to be size_t rather than a PR-type so it matches the JS API.
-    size_t mSize;
     uint32_t mVersion;
 };
 

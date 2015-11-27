@@ -1,31 +1,68 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-function* check_a11y_label(inputText, expectedLabel) {
-  gURLBar.focus();
-  gURLBar.value = inputText.slice(0, -1);
-  EventUtils.synthesizeKey(inputText.slice(-1) , {});
-  yield promiseSearchComplete();
-  // On Linux, the popup may or may not be open at this stage. So we need
-  // additional checks to ensure we wait long enough.
-  yield promisePopupShown(gURLBar.popup);
+const UNIFIEDCOMPLETE_PREF = "browser.urlbar.unifiedcomplete";
+const SUGGEST_ALL_PREF = "browser.search.suggest.enabled";
+const SUGGEST_URLBAR_PREF = "browser.urlbar.suggest.searches";
+const TEST_ENGINE_BASENAME = "searchSuggestionEngine.xml";
 
-  let firstResult = gURLBar.popup.richlistbox.firstChild;
-  is(firstResult.getAttribute("type"), "action switchtab", "Expect right type attribute");
-  is(firstResult.label, expectedLabel, "Result a11y label should be as expected");
-}
-
-add_task(function*() {
+add_task(function* prepare() {
   // This test is only relevant if UnifiedComplete is enabled.
-  if (!Services.prefs.getBoolPref("browser.urlbar.unifiedcomplete"))
-    return;
+  Services.prefs.setBoolPref(UNIFIEDCOMPLETE_PREF, true);
+  registerCleanupFunction(() => {
+    Services.prefs.clearUserPref(UNIFIEDCOMPLETE_PREF);
+  });
+});
 
+add_task(function* switchToTab() {
   let tab = gBrowser.addTab("about:about");
   yield promiseTabLoaded(tab);
 
   let actionURL = makeActionURI("switchtab", {url: "about:about"}).spec;
-  yield check_a11y_label("% about", "about:about " + actionURL + " Tab");
+  yield promiseAutocompleteResultPopup("% about");
 
+  ok(gURLBar.popup.richlistbox.children.length > 1, "Should get at least 2 results");
+  let result = gURLBar.popup.richlistbox.children[1];
+  is(result.getAttribute("type"), "action switchtab", "Expect right type attribute");
+  is(result.label, "about:about about:about Tab", "Result a11y label should be: <title> <url> Tab");
+
+  gURLBar.popup.hidePopup();
   yield promisePopupHidden(gURLBar.popup);
   gBrowser.removeTab(tab);
+});
+
+add_task(function* searchSuggestions() {
+  let engine = yield promiseNewSearchEngine(TEST_ENGINE_BASENAME);
+  let oldCurrentEngine = Services.search.currentEngine;
+  Services.search.currentEngine = engine;
+  Services.prefs.setBoolPref(SUGGEST_ALL_PREF, true);
+  Services.prefs.setBoolPref(SUGGEST_URLBAR_PREF, true);
+  registerCleanupFunction(function () {
+    Services.search.currentEngine = oldCurrentEngine;
+    Services.prefs.clearUserPref(SUGGEST_ALL_PREF);
+    Services.prefs.clearUserPref(SUGGEST_URLBAR_PREF);
+  });
+
+  yield promiseAutocompleteResultPopup("foo");
+  // Don't assume that the search doesn't match history or bookmarks left around
+  // by earlier tests.
+  Assert.ok(gURLBar.popup.richlistbox.children.length >= 3,
+            "Should get at least heuristic result + two search suggestions");
+  // The first expected search is the search term itself since the heuristic
+  // result will come before the search suggestions.
+  let expectedSearches = [
+    "foo",
+    "foofoo",
+    "foobar",
+  ];
+  for (let child of gURLBar.popup.richlistbox.children) {
+    if (child.getAttribute("type").split(/\s+/).indexOf("searchengine") >= 0) {
+      Assert.ok(expectedSearches.length > 0);
+      let suggestion = expectedSearches.shift();
+      Assert.equal(child.label, suggestion + " browser_searchSuggestionEngine searchSuggestionEngine.xml Search",
+                   "Result label should be: <search term> <engine name> Search");
+    }
+  }
+  Assert.ok(expectedSearches.length == 0);
+  gURLBar.closePopup();
 });

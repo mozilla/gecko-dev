@@ -1,16 +1,17 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
 'use strict';
 
-let {
-  Loader, main, unload, parseStack, generateMap, resolve, join
+var {
+  Loader, main, unload, parseStack, generateMap, resolve, join,
+  Require, Module
 } = require('toolkit/loader');
-let { readURI } = require('sdk/net/url');
+var { readURI } = require('sdk/net/url');
 
-let root = module.uri.substr(0, module.uri.lastIndexOf('/'))
+var root = module.uri.substr(0, module.uri.lastIndexOf('/'));
 
+const app = require('sdk/system/xul-app');
 
 // The following adds Debugger constructor to the global namespace.
 const { Cu } = require('chrome');
@@ -56,6 +57,10 @@ exports['test join'] = function (assert) {
     'resource://my/path/yeah/whoa');
   assert.equal(join('resource://my/path/yeah/yuh', './whoa'),
     'resource://my/path/yeah/yuh/whoa');
+  assert.equal(join('resource:///my/path/yeah/yuh', '../whoa'),
+    'resource:///my/path/yeah/whoa');
+  assert.equal(join('resource:///my/path/yeah/yuh', './whoa'),
+    'resource:///my/path/yeah/yuh/whoa');
   assert.equal(join('file:///my/path/yeah/yuh', '../whoa'),
     'file:///my/path/yeah/whoa');
   assert.equal(join('file:///my/path/yeah/yuh', './whoa'),
@@ -331,7 +336,7 @@ exports['test console global by default'] = function (assert) {
   let uri = root + '/fixtures/loader/globals/';
   let loader = Loader({ paths: { '': uri }});
   let program = main(loader, 'main');
- 
+
   assert.ok(typeof program.console === 'object', 'global `console` exists');
   assert.ok(typeof program.console.log === 'function', 'global `console.log` exists');
 
@@ -366,12 +371,245 @@ exports['test shared globals'] = function(assert) {
   unload(loader);
 }
 
-exports["test require#resolve"] = function(assert) {
-  let root = require.resolve("sdk/tabs").replace(/commonjs\.path\/(.*)$/, "") + "commonjs.path/";
-  assert.ok(/^resource:\/\/extensions\.modules\.[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}-at-jetpack\.commonjs\.path\/$/.test(root), "correct resolution root");
+exports['test prototype of global'] = function (assert) {
+  let uri = root + '/fixtures/loader/globals/';
+  let loader = Loader({ paths: { '': uri }, sharedGlobal: true,
+                        sandboxPrototype: { globalFoo: 5 }});
 
-  assert.equal(root + "sdk/tabs.js", require.resolve("sdk/tabs"), "correct resolution of sdk module");
-  assert.equal(root + "toolkit/loader.js", require.resolve("toolkit/loader"), "correct resolution of sdk module");
+  let program = main(loader, 'main');
+
+  assert.ok(program.globalFoo === 5, '`globalFoo` exists');
 };
 
-require('test').run(exports);
+exports["test require#resolve"] = function(assert) {
+  let foundRoot = require.resolve("sdk/tabs").replace(/sdk\/tabs.js$/, "");
+  assert.ok(root, foundRoot, "correct resolution root");
+
+  assert.equal(foundRoot + "sdk/tabs.js", require.resolve("sdk/tabs"), "correct resolution of sdk module");
+  assert.equal(foundRoot + "toolkit/loader.js", require.resolve("toolkit/loader"), "correct resolution of sdk module");
+};
+
+const modulesURI = require.resolve("toolkit/loader").replace("toolkit/loader.js", "");
+exports["test loading a loader"] = function(assert) {
+  const loader = Loader({ paths: { "": modulesURI } });
+
+  const require = Require(loader, module);
+
+  const requiredLoader = require("toolkit/loader");
+
+  assert.equal(requiredLoader.Loader, Loader,
+               "got the same Loader instance");
+
+  const jsmLoader = Cu.import(require.resolve("toolkit/loader"), {}).Loader;
+
+  assert.equal(jsmLoader.Loader, requiredLoader.Loader,
+               "loading loader via jsm returns same loader");
+
+  unload(loader);
+};
+
+exports['test loader on unsupported modules with checkCompatibility true'] = function(assert) {
+  let loader = Loader({
+    paths: { '': root + "/" },
+    checkCompatibility: true
+  });
+  let require = Require(loader, module);
+
+  assert.throws(() => {
+    if (!app.is('Firefox')) {
+      require('fixtures/loader/unsupported/firefox');
+    }
+    else {
+      require('fixtures/loader/unsupported/fennec');
+    }
+  }, /^Unsupported Application/, "throws Unsupported Application");
+
+  unload(loader);
+};
+
+exports['test loader on unsupported modules with checkCompatibility false'] = function(assert) {
+  let loader = Loader({
+    paths: { '': root + "/" },
+    checkCompatibility: false
+  });
+  let require = Require(loader, module);
+
+  try {
+    if (!app.is('Firefox')) {
+      require('fixtures/loader/unsupported/firefox');
+    }
+    else {
+      require('fixtures/loader/unsupported/fennec');
+    }
+    assert.pass("loaded unsupported module without an error");
+  }
+  catch(e) {
+    assert.fail(e);
+  }
+
+  unload(loader);
+};
+
+exports['test loader on unsupported modules with checkCompatibility default'] = function(assert) {
+  let loader = Loader({ paths: { '': root + "/" } });
+  let require = Require(loader, module);
+
+  try {
+    if (!app.is('Firefox')) {
+      require('fixtures/loader/unsupported/firefox');
+    }
+    else {
+      require('fixtures/loader/unsupported/fennec');
+    }
+    assert.pass("loaded unsupported module without an error");
+  }
+  catch(e) {
+    assert.fail(e);
+  }
+
+  unload(loader);
+};
+
+exports["test Cu.import of toolkit/loader"] = (assert) => {
+  const toolkitLoaderURI = require.resolve("toolkit/loader");
+  const loaderModule = Cu.import(toolkitLoaderURI).Loader;
+  const { Loader, Require, Main } = loaderModule;
+  const version = "0.1.0";
+  const id = `fxos_${version.replace(".", "_")}_simulator@mozilla.org`;
+  const uri = `resource://${encodeURIComponent(id.replace("@", "at"))}/`;
+
+  const loader = Loader({
+    paths: {
+      "./": uri + "lib/",
+      // Can't just put `resource://gre/modules/commonjs/` as it
+      // won't take module overriding into account.
+      "": toolkitLoaderURI.replace("toolkit/loader.js", "")
+    },
+    globals: {
+      console: console
+    },
+    modules: {
+      "toolkit/loader": loaderModule,
+      addon: {
+        id: "simulator",
+        version: "0.1",
+        uri: uri
+      }
+    }
+  });
+
+  let require_ = Require(loader, { id: "./addon" });
+  assert.equal(typeof(loaderModule),
+               typeof(require_("toolkit/loader")),
+               "module returned is whatever was mapped to it");
+};
+
+exports["test Cu.import in b2g style"] = (assert) => {
+  const {FakeCu} = require("./loader/b2g");
+  const toolkitLoaderURI = require.resolve("toolkit/loader");
+  const b2g = new FakeCu();
+
+  const exported = {};
+  const loader = b2g.import(toolkitLoaderURI, exported);
+
+  assert.equal(typeof(exported.Loader),
+               "function",
+               "loader is a function");
+  assert.equal(typeof(exported.Loader.Loader),
+               "function",
+               "Loader.Loader is a funciton");
+};
+
+exports['test lazy globals'] = function (assert) {
+  let uri = root + '/fixtures/loader/lazy/';
+  let gotFoo = false;
+  let foo = {};
+  let modules = {
+    get foo() {
+      gotFoo = true;
+      return foo;
+    }
+  };
+  let loader = Loader({ paths: { '': uri }, modules: modules});
+  assert.ok(!gotFoo, "foo hasn't been accessed during loader instanciation");
+  let program = main(loader, 'main');
+  assert.ok(!gotFoo, "foo hasn't been accessed during module loading");
+  assert.equal(program.useFoo(), foo, "foo mock works");
+  assert.ok(gotFoo, "foo has been accessed only when we first try to use it");
+};
+
+exports['test user global'] = function(assert) {
+  // Test case for bug 827792
+  let com = {};
+  let loader = require('toolkit/loader');
+  let loadOptions = require('@loader/options');
+  let options = loader.override(loadOptions,
+                                {globals: loader.override(loadOptions.globals,
+                                                          {com: com,
+                                                           console: console,
+                                                           dump: dump})});
+  let subloader = loader.Loader(options);
+  let userRequire = loader.Require(subloader, module);
+  let userModule = userRequire("./loader/user-global");
+
+  assert.equal(userModule.getCom(), com,
+               "user module returns expected `com` global");
+};
+
+exports['test custom require caching'] = function(assert) {
+  const loader = Loader({
+    paths: { '': root + "/" },
+    require: (id, require) => {
+      // Just load it normally
+      return require(id);
+    }
+  });
+  const require = Require(loader, module);
+
+  let data = require('fixtures/loader/json/mutation.json');
+  assert.equal(data.value, 1, 'has initial value');
+  data.value = 2;
+  let newdata = require('fixtures/loader/json/mutation.json');
+  assert.equal(
+    newdata.value,
+    2,
+    'JSON objects returned should be cached and the same instance'
+  );
+};
+
+exports['test caching when proxying a loader'] = function(assert) {
+  const parentRequire = require;
+  const loader = Loader({
+    paths: { '': root + "/" },
+    require: (id, childRequire) => {
+      if(id === 'gimmejson') {
+        return childRequire('fixtures/loader/json/mutation.json')
+      }
+      // Load it with the original (global) require
+      return parentRequire(id);
+    }
+  });
+  const childRequire = Require(loader, module);
+
+  let data = childRequire('./fixtures/loader/json/mutation.json');
+  assert.equal(data.value, 1, 'data has initial value');
+  data.value = 2;
+
+  let newdata = childRequire('./fixtures/loader/json/mutation.json');
+  assert.equal(newdata.value, 2, 'data has changed');
+
+  let childData = childRequire('gimmejson');
+  assert.equal(childData.value, 1, 'data from child loader has initial value');
+  childData.value = 3;
+  let newChildData = childRequire('gimmejson');
+  assert.equal(newChildData.value, 3, 'data from child loader has changed');
+
+  data = childRequire('./fixtures/loader/json/mutation.json');
+  assert.equal(data.value, 2, 'data from parent loader has not changed');
+
+  // Set it back to the original value just in case (this instance
+  // will be shared across tests)
+  data.value = 1;
+}
+
+require('sdk/test').run(exports);

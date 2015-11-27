@@ -36,6 +36,7 @@
 #include "nptest_utils.h"
 #include "nptest_platform.h"
 
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/IntentionalCrash.h"
 
 #include <stdlib.h>
@@ -58,14 +59,9 @@
 #include <pthread.h>
 #endif
 
-#include "mozilla/NullPtr.h"
-
 using namespace std;
 
 #define PLUGIN_VERSION     "1.0.0.0"
-#define ARRAY_LENGTH(a) (sizeof(a)/sizeof(a[0]))
-#define STATIC_ASSERT(condition)                                \
-    extern void np_static_assert(int arg[(condition) ? 1 : -1])
 
 extern const char *sPluginName;
 extern const char *sPluginDescription;
@@ -126,6 +122,7 @@ static bool stopWatchingInstanceCount(NPObject* npobj, const NPVariant* args, ui
 static bool getLastMouseX(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 static bool getLastMouseY(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 static bool getPaintCount(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
+static bool resetPaintCount(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 static bool getWidthAtLastPaint(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 static bool setInvalidateDuringPaint(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 static bool setSlowPaint(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
@@ -171,6 +168,11 @@ static bool getLastKeyText(NPObject* npobj, const NPVariant* args, uint32_t argC
 static bool getNPNVdocumentOrigin(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 static bool getMouseUpEventCount(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 static bool queryContentsScaleFactor(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
+static bool echoString(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
+static bool startAudioPlayback(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
+static bool stopAudioPlayback(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
+static bool getAudioMuted(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
+static bool nativeWidgetIsVisible(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 
 static const NPUTF8* sPluginMethodIdentifierNames[] = {
   "npnEvaluateTest",
@@ -191,6 +193,7 @@ static const NPUTF8* sPluginMethodIdentifierNames[] = {
   "getLastMouseX",
   "getLastMouseY",
   "getPaintCount",
+  "resetPaintCount",
   "getWidthAtLastPaint",
   "setInvalidateDuringPaint",
   "setSlowPaint",
@@ -235,9 +238,14 @@ static const NPUTF8* sPluginMethodIdentifierNames[] = {
   "getLastKeyText",
   "getNPNVdocumentOrigin",
   "getMouseUpEventCount",
-  "queryContentsScaleFactor"
+  "queryContentsScaleFactor",
+  "echoString",
+  "startAudioPlayback",
+  "stopAudioPlayback",
+  "audioMuted",
+  "nativeWidgetIsVisible",
 };
-static NPIdentifier sPluginMethodIdentifiers[ARRAY_LENGTH(sPluginMethodIdentifierNames)];
+static NPIdentifier sPluginMethodIdentifiers[MOZ_ARRAY_LENGTH(sPluginMethodIdentifierNames)];
 static const ScriptableFunction sPluginMethodFunctions[] = {
   npnEvaluateTest,
   npnInvokeTest,
@@ -257,6 +265,7 @@ static const ScriptableFunction sPluginMethodFunctions[] = {
   getLastMouseX,
   getLastMouseY,
   getPaintCount,
+  resetPaintCount,
   getWidthAtLastPaint,
   setInvalidateDuringPaint,
   setSlowPaint,
@@ -301,17 +310,23 @@ static const ScriptableFunction sPluginMethodFunctions[] = {
   getLastKeyText,
   getNPNVdocumentOrigin,
   getMouseUpEventCount,
-  queryContentsScaleFactor
+  queryContentsScaleFactor,
+  echoString,
+  startAudioPlayback,
+  stopAudioPlayback,
+  getAudioMuted,
+  nativeWidgetIsVisible,
 };
 
-STATIC_ASSERT(ARRAY_LENGTH(sPluginMethodIdentifierNames) ==
-              ARRAY_LENGTH(sPluginMethodFunctions));
+static_assert(MOZ_ARRAY_LENGTH(sPluginMethodIdentifierNames) ==
+              MOZ_ARRAY_LENGTH(sPluginMethodFunctions),
+              "Arrays should have the same size");
 
 static const NPUTF8* sPluginPropertyIdentifierNames[] = {
   "propertyAndMethod"
 };
-static NPIdentifier sPluginPropertyIdentifiers[ARRAY_LENGTH(sPluginPropertyIdentifierNames)];
-static NPVariant sPluginPropertyValues[ARRAY_LENGTH(sPluginPropertyIdentifierNames)];
+static NPIdentifier sPluginPropertyIdentifiers[MOZ_ARRAY_LENGTH(sPluginPropertyIdentifierNames)];
+static NPVariant sPluginPropertyValues[MOZ_ARRAY_LENGTH(sPluginPropertyIdentifierNames)];
 
 struct URLNotifyData
 {
@@ -388,9 +403,9 @@ static void initializeIdentifiers()
 {
   if (!sIdentifiersInitialized) {
     NPN_GetStringIdentifiers(sPluginMethodIdentifierNames,
-        ARRAY_LENGTH(sPluginMethodIdentifierNames), sPluginMethodIdentifiers);
+        MOZ_ARRAY_LENGTH(sPluginMethodIdentifierNames), sPluginMethodIdentifiers);
     NPN_GetStringIdentifiers(sPluginPropertyIdentifierNames,
-        ARRAY_LENGTH(sPluginPropertyIdentifierNames), sPluginPropertyIdentifiers);
+        MOZ_ARRAY_LENGTH(sPluginPropertyIdentifierNames), sPluginPropertyIdentifiers);
 
     sIdentifiersInitialized = true;
 
@@ -404,9 +419,9 @@ static void initializeIdentifiers()
 static void clearIdentifiers()
 {
   memset(sPluginMethodIdentifiers, 0,
-      ARRAY_LENGTH(sPluginMethodIdentifiers) * sizeof(NPIdentifier));
+      MOZ_ARRAY_LENGTH(sPluginMethodIdentifiers) * sizeof(NPIdentifier));
   memset(sPluginPropertyIdentifiers, 0,
-      ARRAY_LENGTH(sPluginPropertyIdentifiers) * sizeof(NPIdentifier));
+      MOZ_ARRAY_LENGTH(sPluginPropertyIdentifiers) * sizeof(NPIdentifier));
 
   sIdentifiersInitialized = false;
 }
@@ -562,39 +577,6 @@ DuplicateNPVariant(NPVariant& aDest, const NPVariant& aSrc)
   }
 }
 
-void
-drawAsyncBitmapColor(InstanceData* instanceData)
-{
-  NPP npp = instanceData->npp;
-
-  uint32_t *pixelData = (uint32_t*)instanceData->backBuffer->bitmap.data;
-
-  uint32_t rgba = instanceData->scriptableObject->drawColor;
-
-  unsigned char subpixels[4];
-  subpixels[0] = rgba & 0xFF;
-  subpixels[1] = (rgba & 0xFF00) >> 8;
-  subpixels[2] = (rgba & 0xFF0000) >> 16;
-  subpixels[3] = (rgba & 0xFF000000) >> 24;
-
-  subpixels[0] = uint8_t(float(subpixels[3] * subpixels[0]) / 0xFF);
-  subpixels[1] = uint8_t(float(subpixels[3] * subpixels[1]) / 0xFF);
-  subpixels[2] = uint8_t(float(subpixels[3] * subpixels[2]) / 0xFF);
-  uint32_t premultiplied;
-  memcpy(&premultiplied, subpixels, sizeof(premultiplied));
-
-  for (uint32_t* lastPixel = pixelData + instanceData->backBuffer->size.width * instanceData->backBuffer->size.height;
-	pixelData < lastPixel;
-	++pixelData) {
-    *pixelData = premultiplied;
-  }
-
-  NPN_SetCurrentAsyncSurface(npp, instanceData->backBuffer, nullptr);
-  NPAsyncSurface *oldFront = instanceData->frontBuffer;
-  instanceData->frontBuffer = instanceData->backBuffer;
-  instanceData->backBuffer = oldFront;
-}
-
 static bool bug813906(NPP npp, const char* const function, const char* const url, const char* const frame)
 {
   NPObject *windowObj = nullptr;
@@ -718,7 +700,7 @@ NP_EXPORT(NPError) NP_Initialize(NPNetscapeFuncs* bFuncs, NPPluginFuncs* pFuncs)
 
   initializeIdentifiers();
 
-  for (unsigned int i = 0; i < ARRAY_LENGTH(sPluginPropertyValues); i++) {
+  for (unsigned int i = 0; i < MOZ_ARRAY_LENGTH(sPluginPropertyValues); i++) {
     VOID_TO_NPVARIANT(sPluginPropertyValues[i]);
   }
 
@@ -769,7 +751,7 @@ NPError OSCALL NP_Shutdown()
 {
   clearIdentifiers();
 
-  for (unsigned int i = 0; i < ARRAY_LENGTH(sPluginPropertyValues); i++) {
+  for (unsigned int i = 0; i < MOZ_ARRAY_LENGTH(sPluginPropertyValues); i++) {
     NPN_ReleaseVariantValue(&sPluginPropertyValues[i]);
   }
 
@@ -796,8 +778,6 @@ NPP_New(NPMIMEType pluginType, NPP instance, uint16_t mode, int16_t argc, char* 
 
   // set up our our instance data
   InstanceData* instanceData = new InstanceData;
-  if (!instanceData)
-    return NPERR_OUT_OF_MEMORY_ERROR;
   instanceData->npp = instance;
   instanceData->streamMode = NP_ASFILEONLY;
   instanceData->testFunction = FUNCTION_NONE;
@@ -817,6 +797,8 @@ NPP_New(NPMIMEType pluginType, NPP instance, uint16_t mode, int16_t argc, char* 
   instanceData->npnNewStream = false;
   instanceData->invalidateDuringPaint = false;
   instanceData->slowPaint = false;
+  instanceData->playingAudio = false;
+  instanceData->audioMuted = false;
   instanceData->writeCount = 0;
   instanceData->writeReadyCount = 0;
   memset(&instanceData->window, 0, sizeof(instanceData->window));
@@ -829,9 +811,6 @@ NPP_New(NPMIMEType pluginType, NPP instance, uint16_t mode, int16_t argc, char* 
   instanceData->eventModel = 0;
   instanceData->closeStream = false;
   instanceData->wantsAllStreams = false;
-  instanceData->asyncDrawing = AD_NONE;
-  instanceData->frontBuffer = nullptr;
-  instanceData->backBuffer = nullptr;
   instanceData->mouseUpEventCount = 0;
   instanceData->bugMode = -1;
   instance->pdata = instanceData;
@@ -868,18 +847,6 @@ NPP_New(NPMIMEType pluginType, NPP instance, uint16_t mode, int16_t argc, char* 
     else if (strcmp(argn[i], "wmode") == 0) {
       if (strcmp(argv[i], "window") == 0) {
         requestWindow = true;
-      }
-    }
-    else if (strcmp(argn[i], "asyncmodel") == 0) {
-      if (strcmp(argv[i], "bitmap") == 0) {
-        if (pluginSupportsAsyncBitmapDrawing()) {
-          instanceData->asyncDrawing = AD_BITMAP;
-        }
-      }
-      if (strcmp(argv[i], "dxgi") == 0) {
-        if (pluginSupportsAsyncDXGIDrawing()) {
-          instanceData->asyncDrawing = AD_DXGI;
-        }
       }
     }
     if (strcmp(argn[i], "streammode") == 0) {
@@ -996,27 +963,6 @@ NPP_New(NPMIMEType pluginType, NPP instance, uint16_t mode, int16_t argc, char* 
     NPN_SetValue(instance, NPPVpluginTransparentBool, (void*)true);
   }
 
-  if (instanceData->asyncDrawing == AD_BITMAP) {
-    NPBool supportsAsyncBitmap = false;
-    if ((NPN_GetValue(instance, NPNVsupportsAsyncBitmapSurfaceBool, &supportsAsyncBitmap) == NPERR_NO_ERROR) &&
-        supportsAsyncBitmap) {
-      NPN_SetValue(instance, NPPVpluginDrawingModel, (void*)NPDrawingModelAsyncBitmapSurface);
-    } else {
-      instanceData->asyncDrawing = AD_NONE;
-    }
-  }
-#ifdef XP_WIN
-  else if (instanceData->asyncDrawing == AD_DXGI) {
-    NPBool supportsAsyncDXGI = false;
-    if ((NPN_GetValue(instance, NPNVsupportsAsyncWindowsDXGISurfaceBool, &supportsAsyncDXGI) == NPERR_NO_ERROR) &&
-        supportsAsyncDXGI) {
-      NPN_SetValue(instance, NPPVpluginDrawingModel, (void*)NPDrawingModelAsyncWindowsDXGISurface);
-    } else {
-      instanceData->asyncDrawing = AD_NONE;
-    }
-  }
-#endif
-
   instanceData->lastReportedPrivateModeState = false;
   instanceData->lastMouseX = instanceData->lastMouseY = -1;
   instanceData->widthAtLastPaint = -1;
@@ -1026,7 +972,7 @@ NPP_New(NPMIMEType pluginType, NPP instance, uint16_t mode, int16_t argc, char* 
   NPError err = pluginInstanceInit(instanceData);
   if (err != NPERR_NO_ERROR) {
     NPN_ReleaseObject(scriptableObject);
-    free(instanceData);
+    delete instanceData;
     return err;
   }
 
@@ -1108,16 +1054,6 @@ NPP_Destroy(NPP instance, NPSavedData** save)
     currentrange = nextrange;
   }
 
-  if (instanceData->frontBuffer) {
-    NPN_SetCurrentAsyncSurface(instance, nullptr, nullptr);
-    NPN_FinalizeAsyncSurface(instance, instanceData->frontBuffer);
-    NPN_MemFree(instanceData->frontBuffer);
-  }
-  if (instanceData->backBuffer) {
-    NPN_FinalizeAsyncSurface(instance, instanceData->backBuffer);
-    NPN_MemFree(instanceData->backBuffer);
-  }
-
   pluginInstanceShutdown(instanceData);
   NPN_ReleaseObject(instanceData->scriptableObject);
 
@@ -1150,36 +1086,6 @@ NPP_SetWindow(NPP instance, NPWindow* window)
     pluginWidgetInit(instanceData, oldWindow);
   }
 
-  if (instanceData->asyncDrawing == AD_BITMAP) {
-    if (instanceData->frontBuffer &&
-	instanceData->frontBuffer->size.width >= 0 &&
-       (uint32_t)instanceData->frontBuffer->size.width == window->width &&
-       instanceData ->frontBuffer->size.height >= 0 &&
-       (uint32_t)instanceData->frontBuffer->size.height == window->height) {
-          return NPERR_NO_ERROR;
-    }
-    if (instanceData->frontBuffer) {
-      NPN_FinalizeAsyncSurface(instance, instanceData->frontBuffer);
-      NPN_MemFree(instanceData->frontBuffer);
-    }
-    if (instanceData->backBuffer) {
-      NPN_FinalizeAsyncSurface(instance, instanceData->backBuffer);
-      NPN_MemFree(instanceData->backBuffer);
-    }
-    instanceData->frontBuffer = (NPAsyncSurface*)NPN_MemAlloc(sizeof(NPAsyncSurface));
-    instanceData->backBuffer = (NPAsyncSurface*)NPN_MemAlloc(sizeof(NPAsyncSurface));
-
-    NPSize size;
-    size.width = window->width;
-    size.height = window->height;
-
-    memcpy(instanceData->backBuffer, instanceData->frontBuffer, sizeof(NPAsyncSurface));
-
-    NPN_InitAsyncSurface(instance, &size, NPImageFormatBGRA32, nullptr, instanceData->frontBuffer);
-    NPN_InitAsyncSurface(instance, &size, NPImageFormatBGRA32, nullptr, instanceData->backBuffer);
-
-    drawAsyncBitmapColor(instanceData);
-  }
   return NPERR_NO_ERROR;
 }
 
@@ -1547,6 +1453,11 @@ NPP_SetValue(NPP instance, NPNVariable variable, void* value)
   if (variable == NPNVprivateModeBool) {
     InstanceData* instanceData = (InstanceData*)(instance->pdata);
     instanceData->lastReportedPrivateModeState = bool(*static_cast<NPBool*>(value));
+    return NPERR_NO_ERROR;
+  }
+  if (variable == NPNVmuteAudioBool) {
+    InstanceData* instanceData = (InstanceData*)(instance->pdata);
+    instanceData->audioMuted = bool(*static_cast<NPBool*>(value));
     return NPERR_NO_ERROR;
   }
   return NPERR_GENERIC_ERROR;
@@ -1932,25 +1843,6 @@ NPN_URLRedirectResponse(NPP instance, void* notifyData, NPBool allow)
   return sBrowserFuncs->urlredirectresponse(instance, notifyData, allow);
 }
 
-NPError
-NPN_InitAsyncSurface(NPP instance, NPSize *size, NPImageFormat format,
-                     void *initData, NPAsyncSurface *surface)
-{
-  return sBrowserFuncs->initasyncsurface(instance, size, format, initData, surface);
-}
-
-NPError
-NPN_FinalizeAsyncSurface(NPP instance, NPAsyncSurface *surface)
-{
-  return sBrowserFuncs->finalizeasyncsurface(instance, surface);
-}
-
-void
-NPN_SetCurrentAsyncSurface(NPP instance, NPAsyncSurface *surface, NPRect *changed)
-{
-  sBrowserFuncs->setcurrentasyncsurface(instance, surface, changed);
-}
-
 //
 // npruntime object functions
 //
@@ -1979,7 +1871,7 @@ scriptableInvalidate(NPObject* npobj)
 bool
 scriptableHasMethod(NPObject* npobj, NPIdentifier name)
 {
-  for (int i = 0; i < int(ARRAY_LENGTH(sPluginMethodIdentifiers)); i++) {
+  for (int i = 0; i < int(MOZ_ARRAY_LENGTH(sPluginMethodIdentifiers)); i++) {
     if (name == sPluginMethodIdentifiers[i])
       return true;
   }
@@ -2005,7 +1897,7 @@ scriptableInvoke(NPObject* npobj, NPIdentifier name, const NPVariant* args, uint
     return false;
   }
 
-  for (int i = 0; i < int(ARRAY_LENGTH(sPluginMethodIdentifiers)); i++) {
+  for (int i = 0; i < int(MOZ_ARRAY_LENGTH(sPluginMethodIdentifiers)); i++) {
     if (name == sPluginMethodIdentifiers[i])
       return sPluginMethodFunctions[i](npobj, args, argCount, result);
   }
@@ -2074,7 +1966,7 @@ scriptableHasProperty(NPObject* npobj, NPIdentifier name)
       Crash();
     }
   }
-  for (int i = 0; i < int(ARRAY_LENGTH(sPluginPropertyIdentifiers)); i++) {
+  for (int i = 0; i < int(MOZ_ARRAY_LENGTH(sPluginPropertyIdentifiers)); i++) {
     if (name == sPluginPropertyIdentifiers[i]) {
       return true;
     }
@@ -2085,7 +1977,7 @@ scriptableHasProperty(NPObject* npobj, NPIdentifier name)
 bool
 scriptableGetProperty(NPObject* npobj, NPIdentifier name, NPVariant* result)
 {
-  for (int i = 0; i < int(ARRAY_LENGTH(sPluginPropertyIdentifiers)); i++) {
+  for (int i = 0; i < int(MOZ_ARRAY_LENGTH(sPluginPropertyIdentifiers)); i++) {
     if (name == sPluginPropertyIdentifiers[i]) {
       DuplicateNPVariant(*result, sPluginPropertyValues[i]);
       return true;
@@ -2097,7 +1989,7 @@ scriptableGetProperty(NPObject* npobj, NPIdentifier name, NPVariant* result)
 bool
 scriptableSetProperty(NPObject* npobj, NPIdentifier name, const NPVariant* value)
 {
-  for (int i = 0; i < int(ARRAY_LENGTH(sPluginPropertyIdentifiers)); i++) {
+  for (int i = 0; i < int(MOZ_ARRAY_LENGTH(sPluginPropertyIdentifiers)); i++) {
     if (name == sPluginPropertyIdentifiers[i]) {
       NPN_ReleaseVariantValue(&sPluginPropertyValues[i]);
       DuplicateNPVariant(sPluginPropertyValues[i], *value);
@@ -2110,9 +2002,13 @@ scriptableSetProperty(NPObject* npobj, NPIdentifier name, const NPVariant* value
 bool
 scriptableRemoveProperty(NPObject* npobj, NPIdentifier name)
 {
-  for (int i = 0; i < int(ARRAY_LENGTH(sPluginPropertyIdentifiers)); i++) {
+  for (int i = 0; i < int(MOZ_ARRAY_LENGTH(sPluginPropertyIdentifiers)); i++) {
     if (name == sPluginPropertyIdentifiers[i]) {
       NPN_ReleaseVariantValue(&sPluginPropertyValues[i]);
+
+      // Avoid double frees (see test_propertyAndMethod.html, which deletes a
+      // property that doesn't exist).
+      VOID_TO_NPVARIANT(sPluginPropertyValues[i]);
       return true;
     }
   }
@@ -2122,14 +2018,14 @@ scriptableRemoveProperty(NPObject* npobj, NPIdentifier name)
 bool
 scriptableEnumerate(NPObject* npobj, NPIdentifier** identifier, uint32_t* count)
 {
-  const int bufsize = sizeof(NPIdentifier) * ARRAY_LENGTH(sPluginMethodIdentifierNames);
+  const int bufsize = sizeof(NPIdentifier) * MOZ_ARRAY_LENGTH(sPluginMethodIdentifierNames);
   NPIdentifier* ids = (NPIdentifier*) NPN_MemAlloc(bufsize);
   if (!ids)
     return false;
 
   memcpy(ids, sPluginMethodIdentifiers, bufsize);
   *identifier = ids;
-  *count = ARRAY_LENGTH(sPluginMethodIdentifierNames);
+  *count = MOZ_ARRAY_LENGTH(sPluginMethodIdentifierNames);
   return true;
 }
 
@@ -2542,6 +2438,18 @@ getPaintCount(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVaria
 }
 
 static bool
+resetPaintCount(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result)
+{
+  if (argCount != 0)
+    return false;
+
+  NPP npp = static_cast<TestNPObject*>(npobj)->npp;
+  InstanceData* id = static_cast<InstanceData*>(npp->pdata);
+  id->paintCount = 0;
+  return true;
+}
+
+static bool
 getWidthAtLastPaint(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result)
 {
   if (argCount != 0)
@@ -2848,16 +2756,7 @@ setColor(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* r
   r.top = 0;
   r.right = id->window.width;
   r.bottom = id->window.height;
-  if (id->asyncDrawing == AD_NONE) {
-    NPN_InvalidateRect(npp, &r);
-  } else if (id->asyncDrawing == AD_BITMAP) {
-    drawAsyncBitmapColor(id);
-  }
-#ifdef XP_WIN
-  else if (id->asyncDrawing == AD_DXGI) {
-    pluginDrawAsyncDxgiColor(id);
-  }
-#endif
+  NPN_InvalidateRect(npp, &r);
 
   VOID_TO_NPVARIANT(*result);
   return true;
@@ -3438,6 +3337,27 @@ destroySharedGfxStuff(NPObject* npobj, const NPVariant* args,
 }
 #endif
 
+#if defined(XP_WIN)
+bool
+nativeWidgetIsVisible(NPObject* npobj, const NPVariant* args,
+                        uint32_t argCount, NPVariant* result)
+{
+  NPP npp = static_cast<TestNPObject*>(npobj)->npp;
+  InstanceData* id = static_cast<InstanceData*>(npp->pdata);
+  bool visible = pluginNativeWidgetIsVisible(id);
+  BOOLEAN_TO_NPVARIANT(visible, *result);
+  return true;
+}
+#else
+bool
+nativeWidgetIsVisible(NPObject* npobj, const NPVariant* args,
+                      uint32_t argCount, NPVariant* result)
+{
+  // XXX Not implemented!
+  return false;
+}
+#endif
+
 bool
 callOnDestroy(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result)
 {
@@ -3527,7 +3447,7 @@ getTopLevelWindowActivationEventCount(NPObject* npobj, const NPVariant* args, ui
 }
 
 // Returns top-level window activation state as indicated by Cocoa NPAPI's
-// NPCocoaEventWindowFocusChanged events - 'true' if active, 'false' if not.
+// NPCocoaEventFocusChanged events - 'true' if active, 'false' if not.
 // Throws an exception if no events have been received and thus this state
 // is unknown.
 bool
@@ -3817,3 +3737,68 @@ bool queryContentsScaleFactor(NPObject* npobj, const NPVariant* args, uint32_t a
   DOUBLE_TO_NPVARIANT(scaleFactor, *result);
   return true;
 }
+
+bool echoString(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result)
+{
+  if (argCount != 1) {
+    return false;
+  }
+
+  if (!NPVARIANT_IS_STRING(args[0])) {
+    return false;
+  }
+
+  const NPString& arg = NPVARIANT_TO_STRING(args[0]);
+  NPUTF8* buffer = static_cast<NPUTF8*>(NPN_MemAlloc(sizeof(NPUTF8) * arg.UTF8Length));
+  if (!buffer) {
+    return false;
+  }
+
+  std::copy(arg.UTF8Characters, arg.UTF8Characters + arg.UTF8Length, buffer);
+  STRINGN_TO_NPVARIANT(buffer, arg.UTF8Length, *result);
+
+  return true;
+}
+
+static bool
+toggleAudioPlayback(NPObject* npobj, uint32_t argCount, bool playingAudio, NPVariant* result)
+{
+  if (argCount != 0) {
+    return false;
+  }
+
+  NPP npp = static_cast<TestNPObject*>(npobj)->npp;
+  InstanceData* id = static_cast<InstanceData*>(npp->pdata);
+  id->playingAudio = playingAudio;
+
+  NPN_SetValue(npp, NPPVpluginIsPlayingAudio, (void*)playingAudio);
+
+  VOID_TO_NPVARIANT(*result);
+  return true;
+}
+
+static bool
+startAudioPlayback(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result)
+{
+  return toggleAudioPlayback(npobj, argCount, true, result);
+}
+
+static bool
+stopAudioPlayback(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result)
+{
+  return toggleAudioPlayback(npobj, argCount, false, result);
+}
+
+static bool
+getAudioMuted(NPObject* npobj, const NPVariant* args, uint32_t argCount, NPVariant* result)
+{
+  if (argCount != 0) {
+    return false;
+  }
+
+  NPP npp = static_cast<TestNPObject*>(npobj)->npp;
+  InstanceData* id = static_cast<InstanceData*>(npp->pdata);
+  BOOLEAN_TO_NPVARIANT(id->audioMuted, *result);
+  return true;
+}
+

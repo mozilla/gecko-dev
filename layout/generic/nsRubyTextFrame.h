@@ -9,7 +9,9 @@
 #ifndef nsRubyTextFrame_h___
 #define nsRubyTextFrame_h___
 
-#include "nsContainerFrame.h"
+#include "nsRubyContentFrame.h"
+
+typedef nsRubyContentFrame nsRubyTextFrameSuper;
 
 /**
  * Factory function.
@@ -18,7 +20,7 @@
 nsContainerFrame* NS_NewRubyTextFrame(nsIPresShell* aPresShell,
                                       nsStyleContext* aContext);
 
-class nsRubyTextFrame MOZ_FINAL : public nsContainerFrame
+class nsRubyTextFrame final : public nsRubyTextFrameSuper
 {
 public:
   NS_DECL_FRAMEARENA_HELPERS
@@ -26,30 +28,32 @@ public:
   NS_DECL_QUERYFRAME
 
   // nsIFrame overrides
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
+  virtual bool CanContinueTextRun() const override;
+
+#ifdef DEBUG_FRAME_DUMP
+  virtual nsresult GetFrameName(nsAString& aResult) const override;
+#endif
+
+  virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
+                                const nsRect&           aDirtyRect,
+                                const nsDisplayListSet& aLists) override;
+
   virtual void Reflow(nsPresContext* aPresContext,
                       nsHTMLReflowMetrics& aDesiredSize,
                       const nsHTMLReflowState& aReflowState,
-                      nsReflowStatus& aStatus) MOZ_OVERRIDE;
-  virtual bool IsFrameOfType(uint32_t aFlags) const MOZ_OVERRIDE;
-  virtual void AddInlineMinISize(nsRenderingContext *aRenderingContext,
-                                 InlineMinISizeData *aData) MOZ_OVERRIDE;
-  virtual void AddInlinePrefISize(nsRenderingContext *aRenderingContext,
-                                  InlinePrefISizeData *aData) MOZ_OVERRIDE;
-  virtual nscoord GetMinISize(nsRenderingContext *aRenderingContext) MOZ_OVERRIDE;
-  virtual nscoord GetPrefISize(nsRenderingContext *aRenderingContext) MOZ_OVERRIDE;
-  virtual nscoord GetLogicalBaseline(mozilla::WritingMode aWritingMode)
-    const MOZ_OVERRIDE;
+                      nsReflowStatus& aStatus) override;
 
-#ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
-#endif
+  bool IsAutoHidden() const
+  {
+    return GetStateBits() & NS_RUBY_TEXT_FRAME_AUTOHIDE;
+  }
 
 protected:
   friend nsContainerFrame* NS_NewRubyTextFrame(nsIPresShell* aPresShell,
                                                nsStyleContext* aContext);
-  explicit nsRubyTextFrame(nsStyleContext* aContext) : nsContainerFrame(aContext) {}
-  nscoord mBaseline;
+  explicit nsRubyTextFrame(nsStyleContext* aContext)
+    : nsRubyTextFrameSuper(aContext) {}
 };
 
 #endif /* nsRubyTextFrame_h___ */

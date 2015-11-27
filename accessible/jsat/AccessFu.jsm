@@ -20,6 +20,8 @@ const ACCESSFU_ENABLE = 1;
 const ACCESSFU_AUTO = 2;
 
 const SCREENREADER_SETTING = 'accessibility.screenreader';
+const QUICKNAV_MODES_PREF = 'accessibility.accessfu.quicknav_modes';
+const QUICKNAV_INDEX_PREF = 'accessibility.accessfu.quicknav_index';
 
 this.AccessFu = { // jshint ignore:line
   /**
@@ -86,8 +88,6 @@ this.AccessFu = { // jshint ignore:line
     Cu.import('resource://gre/modules/accessibility/PointerAdapter.jsm');
     Cu.import('resource://gre/modules/accessibility/Presentation.jsm');
 
-    Logger.info('Enabled');
-
     for (let mm of Utils.AllMessageManagers) {
       this._addMessageListeners(mm);
       this._loadFrameScript(mm);
@@ -103,11 +103,18 @@ this.AccessFu = { // jshint ignore:line
 
     // Populate quicknav modes
     this._quicknavModesPref =
-      new PrefCache(
-        'accessibility.accessfu.quicknav_modes',
-        (aName, aValue) => {
-          this.Input.quickNavMode.updateModes(aValue);
-        }, true);
+      new PrefCache(QUICKNAV_MODES_PREF, (aName, aValue, aFirstRun) => {
+        this.Input.quickNavMode.updateModes(aValue);
+        if (!aFirstRun) {
+          // If the modes change, reset the current mode index to 0.
+          Services.prefs.setIntPref(QUICKNAV_INDEX_PREF, 0);
+        }
+      }, true);
+
+    this._quicknavCurrentModePref =
+      new PrefCache(QUICKNAV_INDEX_PREF, (aName, aValue) => {
+        this.Input.quickNavMode.updateCurrentMode(Number(aValue));
+      }, true);
 
     // Check for output notification
     this._notifyOutputPref =
@@ -125,6 +132,8 @@ this.AccessFu = { // jshint ignore:line
     Services.obs.addObserver(this, 'Accessibility:Focus', false);
     Services.obs.addObserver(this, 'Accessibility:ActivateObject', false);
     Services.obs.addObserver(this, 'Accessibility:LongPress', false);
+    Services.obs.addObserver(this, 'Accessibility:ScrollForward', false);
+    Services.obs.addObserver(this, 'Accessibility:ScrollBackward', false);
     Services.obs.addObserver(this, 'Accessibility:MoveByGranularity', false);
     Utils.win.addEventListener('TabOpen', this);
     Utils.win.addEventListener('TabClose', this);
@@ -135,9 +144,7 @@ this.AccessFu = { // jshint ignore:line
       delete this.readyCallback;
     }
 
-    if (Utils.MozBuildApp !== 'mobile/android') {
-      this.announce('screenReaderStarted');
-    }
+    Logger.info('AccessFu:Enabled');
   },
 
   /**
@@ -150,13 +157,7 @@ this.AccessFu = { // jshint ignore:line
 
     this._enabled = false;
 
-    Logger.info('Disabled');
-
     Utils.win.document.removeChild(this.stylesheet.get());
-
-    if (Utils.MozBuildApp !== 'mobile/android') {
-      this.announce('screenReaderStopped');
-    }
 
     for (let mm of Utils.AllMessageManagers) {
       mm.sendAsyncMessage('AccessFu:Stop');
@@ -178,6 +179,8 @@ this.AccessFu = { // jshint ignore:line
     Services.obs.removeObserver(this, 'Accessibility:Focus');
     Services.obs.removeObserver(this, 'Accessibility:ActivateObject');
     Services.obs.removeObserver(this, 'Accessibility:LongPress');
+    Services.obs.removeObserver(this, 'Accessibility:ScrollForward');
+    Services.obs.removeObserver(this, 'Accessibility:ScrollBackward');
     Services.obs.removeObserver(this, 'Accessibility:MoveByGranularity');
 
     delete this._quicknavModesPref;
@@ -187,6 +190,8 @@ this.AccessFu = { // jshint ignore:line
       this.doneCallback();
       delete this.doneCallback;
     }
+
+    Logger.info('AccessFu:Disabled');
   },
 
   _enableOrDisable: function _enableOrDisable() {
@@ -224,9 +229,6 @@ this.AccessFu = { // jshint ignore:line
         break;
       case 'AccessFu:Input':
         this.Input.setEditState(aMessage.json);
-        break;
-      case 'AccessFu:ActivateContextMenu':
-        this.Input.activateContextMenu(aMessage.json);
         break;
       case 'AccessFu:DoScroll':
         this.Input.doScroll(aMessage.json);
@@ -274,7 +276,6 @@ this.AccessFu = { // jshint ignore:line
     aMessageManager.addMessageListener('AccessFu:Present', this);
     aMessageManager.addMessageListener('AccessFu:Input', this);
     aMessageManager.addMessageListener('AccessFu:Ready', this);
-    aMessageManager.addMessageListener('AccessFu:ActivateContextMenu', this);
     aMessageManager.addMessageListener('AccessFu:DoScroll', this);
   },
 
@@ -282,7 +283,6 @@ this.AccessFu = { // jshint ignore:line
     aMessageManager.removeMessageListener('AccessFu:Present', this);
     aMessageManager.removeMessageListener('AccessFu:Input', this);
     aMessageManager.removeMessageListener('AccessFu:Ready', this);
-    aMessageManager.removeMessageListener('AccessFu:ActivateContextMenu', this);
     aMessageManager.removeMessageListener('AccessFu:DoScroll', this);
   },
 
@@ -300,16 +300,26 @@ this.AccessFu = { // jshint ignore:line
         this._enableOrDisable();
         break;
       case 'Accessibility:NextObject':
-        this.Input.moveCursor('moveNext', 'Simple', 'gesture');
-        break;
       case 'Accessibility:PreviousObject':
-        this.Input.moveCursor('movePrevious', 'Simple', 'gesture');
+      {
+        let rule = aData ?
+          aData.substr(0, 1).toUpperCase() + aData.substr(1).toLowerCase() :
+          'Simple';
+        let method = aTopic.replace(/Accessibility:(\w+)Object/, 'move$1');
+        this.Input.moveCursor(method, rule, 'gesture');
         break;
+      }
       case 'Accessibility:ActivateObject':
         this.Input.activateCurrent(JSON.parse(aData));
         break;
       case 'Accessibility:LongPress':
         this.Input.sendContextMenuMessage();
+        break;
+      case 'Accessibility:ScrollForward':
+        this.Input.androidScroll('forward');
+        break;
+      case 'Accessibility:ScrollBackward':
+        this.Input.androidScroll('backward');
         break;
       case 'Accessibility:Focus':
         this._focused = JSON.parse(aData);
@@ -413,14 +423,6 @@ this.AccessFu = { // jshint ignore:line
       let dpr = win.devicePixelRatio;
       let offset = { left: -win.mozInnerScreenX, top: -win.mozInnerScreenY };
 
-      if (!aBrowser.contentWindow) {
-        // OOP browser, add offset of browser.
-        // The offset of the browser element in relation to its parent window.
-        let clientRect = aBrowser.getBoundingClientRect();
-        let win = aBrowser.ownerDocument.defaultView;
-        offset.left += clientRect.left + win.mozInnerScreenX;
-        offset.top += clientRect.top + win.mozInnerScreenY;
-      }
       // Add the offset; the offset is in CSS pixels, so multiply the
       // devicePixelRatio back in before adding to preserve unit consistency.
       bounds = bounds.translate(offset.left * dpr, offset.top * dpr);
@@ -512,7 +514,10 @@ var Output = {
 
   stop: function stop() {
     if (this.highlightBox) {
-      Utils.win.document.documentElement.removeChild(this.highlightBox.get());
+      let highlightBox = this.highlightBox.get();
+      if (highlightBox) {
+        highlightBox.remove();
+      }
       delete this.highlightBox;
     }
   },
@@ -528,16 +533,17 @@ var Output = {
       {
         let highlightBox = null;
         if (!this.highlightBox) {
+          let doc = Utils.win.document;
           // Add highlight box
           highlightBox = Utils.win.document.
             createElementNS('http://www.w3.org/1999/xhtml', 'div');
-          Utils.win.document.documentElement.appendChild(highlightBox);
+          let parent = doc.body || doc.documentElement;
+          parent.appendChild(highlightBox);
           highlightBox.id = 'virtual-cursor-box';
 
           // Add highlight inset for inner shadow
           highlightBox.appendChild(
-            Utils.win.document.createElementNS(
-              'http://www.w3.org/1999/xhtml', 'div'));
+            doc.createElementNS('http://www.w3.org/1999/xhtml', 'div'));
 
           this.highlightBox = Cu.getWeakReference(highlightBox);
         } else {
@@ -664,8 +670,8 @@ var Input = {
       case 'doubletap1':
         this.activateCurrent();
         break;
-      case 'taphold1':
-        this.sendContextMenuMessage();
+      case 'doubletaphold1':
+        Utils.dispatchChromeEvent('accessibility-control', 'quicknav-menu');
         break;
       case 'swiperight1':
         this.moveCursor('moveNext', 'Simple', 'gestures');
@@ -674,10 +680,11 @@ var Input = {
         this.moveCursor('movePrevious', 'Simple', 'gesture');
         break;
       case 'swipeup1':
-        this.contextAction('backward');
+        this.moveCursor(
+          'movePrevious', this.quickNavMode.current, 'gesture', true);
         break;
       case 'swipedown1':
-        this.contextAction('forward');
+        this.moveCursor('moveNext', this.quickNavMode.current, 'gesture', true);
         break;
       case 'exploreend1':
       case 'dwellend1':
@@ -729,6 +736,12 @@ var Input = {
       case 'swipeup3':
         this.quickNavMode.previous();
         AccessFu.announce('quicknav_' + this.quickNavMode.current);
+        break;
+      case 'tripletap3':
+        Utils.dispatchChromeEvent('accessibility-control', 'toggle-shade');
+        break;
+      case 'tap2':
+        Utils.dispatchChromeEvent('accessibility-control', 'toggle-pause');
         break;
     }
   },
@@ -829,25 +842,27 @@ var Input = {
     }
   },
 
-  moveCursor: function moveCursor(aAction, aRule, aInputType) {
+  moveCursor: function moveCursor(aAction, aRule, aInputType, aAdjustRange) {
     let mm = Utils.getMessageManager(Utils.CurrentBrowser);
     mm.sendAsyncMessage('AccessFu:MoveCursor',
-                        {action: aAction, rule: aRule,
-                         origin: 'top', inputType: aInputType});
+                        { action: aAction, rule: aRule,
+                          origin: 'top', inputType: aInputType,
+                          adjustRange: aAdjustRange });
   },
 
-  contextAction: function contextAction(aDirection) {
-    // XXX: For now, the only supported context action is adjusting a range.
+  androidScroll: function androidScroll(aDirection) {
     let mm = Utils.getMessageManager(Utils.CurrentBrowser);
-    mm.sendAsyncMessage('AccessFu:AdjustRange', {direction: aDirection});
+    mm.sendAsyncMessage('AccessFu:AndroidScroll',
+                        { direction: aDirection, origin: 'top' });
   },
 
   moveByGranularity: function moveByGranularity(aDetails) {
-    const MOVEMENT_GRANULARITY_PARAGRAPH = 8;
+    const GRANULARITY_PARAGRAPH = 8;
+    const GRANULARITY_LINE = 4;
 
     if (!this.editState.editing) {
-      if (aDetails.granularity === MOVEMENT_GRANULARITY_PARAGRAPH) {
-        this.moveCursor('move' + aDetails.direction, 'Paragraph', 'gesture');
+      if (aDetails.granularity & (GRANULARITY_PARAGRAPH | GRANULARITY_LINE)) {
+        this.moveCursor('move' + aDetails.direction, 'Simple', 'gesture');
         return;
       }
     } else {
@@ -873,15 +888,6 @@ var Input = {
   sendContextMenuMessage: function sendContextMenuMessage() {
     let mm = Utils.getMessageManager(Utils.CurrentBrowser);
     mm.sendAsyncMessage('AccessFu:ContextMenu', {});
-  },
-
-  activateContextMenu: function activateContextMenu(aDetails) {
-    if (Utils.MozBuildApp === 'mobile/android') {
-      let p = AccessFu.adjustContentBounds(aDetails.bounds,
-                                           Utils.CurrentBrowser, true).center();
-      Services.obs.notifyObservers(null, 'Gesture:LongPress',
-                                   JSON.stringify({x: p.x, y: p.y}));
-    }
   },
 
   setEditState: function setEditState(aEditState) {
@@ -957,15 +963,15 @@ var Input = {
     },
 
     previous: function quickNavMode_previous() {
-      if (--this._currentIndex < 0) {
-        this._currentIndex = this.modes.length - 1;
-      }
+      Services.prefs.setIntPref(QUICKNAV_INDEX_PREF,
+        this._currentIndex > 0 ?
+          this._currentIndex - 1 : this.modes.length - 1);
     },
 
     next: function quickNavMode_next() {
-      if (++this._currentIndex >= this.modes.length) {
-        this._currentIndex = 0;
-      }
+      Services.prefs.setIntPref(QUICKNAV_INDEX_PREF,
+        this._currentIndex + 1 >= this.modes.length ?
+          0 : this._currentIndex + 1);
     },
 
     updateModes: function updateModes(aModes) {
@@ -976,7 +982,10 @@ var Input = {
       }
     },
 
-    _currentIndex: -1
+    updateCurrentMode: function updateCurrentMode(aModeIndex) {
+      Logger.debug('Quicknav mode:', this.modes[aModeIndex]);
+      this._currentIndex = aModeIndex;
+    }
   }
 };
 AccessFu.Input = Input;

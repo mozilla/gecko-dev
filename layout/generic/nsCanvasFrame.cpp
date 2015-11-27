@@ -6,6 +6,9 @@
 /* rendering object that goes directly inside the document's scrollbars */
 
 #include "nsCanvasFrame.h"
+
+#include "AccessibleCaretEventHub.h"
+#include "gfxUtils.h"
 #include "nsContainerFrame.h"
 #include "nsCSSRendering.h"
 #include "nsPresContext.h"
@@ -19,6 +22,7 @@
 #include "nsFrameManager.h"
 #include "gfxPlatform.h"
 #include "nsPrintfCString.h"
+#include "mozilla/dom/AnonymousContent.h"
 // for touchcaret
 #include "nsContentList.h"
 #include "nsContentCreatorFunctions.h"
@@ -33,6 +37,7 @@
 //#define DEBUG_CANVAS_FOCUS
 
 using namespace mozilla;
+using namespace mozilla::dom;
 using namespace mozilla::layout;
 using namespace mozilla::gfx;
 
@@ -49,6 +54,26 @@ NS_QUERYFRAME_HEAD(nsCanvasFrame)
   NS_QUERYFRAME_ENTRY(nsIAnonymousContentCreator)
 NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
 
+NS_IMPL_ISUPPORTS(nsCanvasFrame::DummyTouchListener, nsIDOMEventListener)
+
+void
+nsCanvasFrame::ShowCustomContentContainer()
+{
+  if (mCustomContentContainer) {
+    mCustomContentContainer->UnsetAttr(kNameSpaceID_None, nsGkAtoms::hidden, true);
+  }
+}
+
+void
+nsCanvasFrame::HideCustomContentContainer()
+{
+  if (mCustomContentContainer) {
+    mCustomContentContainer->SetAttr(kNameSpaceID_None, nsGkAtoms::hidden,
+                                     NS_LITERAL_STRING("true"),
+                                     true);
+  }
+}
+
 nsresult
 nsCanvasFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
 {
@@ -61,7 +86,7 @@ nsCanvasFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
   ErrorResult er;
   // We won't create touch caret element if preference is not enabled.
   if (PresShell::TouchCaretPrefEnabled()) {
-    nsRefPtr<dom::NodeInfo> nodeInfo;
+    RefPtr<NodeInfo> nodeInfo;
 
     // Create and append touch caret frame.
     nodeInfo = doc->NodeInfoManager()->GetNodeInfo(nsGkAtoms::div, nullptr,
@@ -70,20 +95,21 @@ nsCanvasFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
     NS_ENSURE_TRUE(nodeInfo, NS_ERROR_OUT_OF_MEMORY);
 
     rv = NS_NewHTMLElement(getter_AddRefs(mTouchCaretElement), nodeInfo.forget(),
-                           mozilla::dom::NOT_FROM_PARSER);
+                           NOT_FROM_PARSER);
     NS_ENSURE_SUCCESS(rv, rv);
     aElements.AppendElement(mTouchCaretElement);
-
-    // Add a _moz_anonclass attribute as touch caret selector.
-    mTouchCaretElement->SetAttribute(NS_LITERAL_STRING("_moz_anonclass"),
-                                     NS_LITERAL_STRING("mozTouchCaret"), er);
-    NS_ENSURE_SUCCESS(er.ErrorCode(), er.ErrorCode());
 
     // Set touch caret to visibility: hidden by default.
     nsAutoString classValue;
     classValue.AppendLiteral("moz-touchcaret hidden");
     rv = mTouchCaretElement->SetAttr(kNameSpaceID_None, nsGkAtoms::_class,
                                      classValue, true);
+
+    if (!mDummyTouchListener) {
+      mDummyTouchListener = new DummyTouchListener();
+    }
+    mTouchCaretElement->AddEventListener(NS_LITERAL_STRING("touchstart"),
+                                         mDummyTouchListener, false);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -91,23 +117,69 @@ nsCanvasFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
     // Selection caret
     mSelectionCaretsStartElement = doc->CreateHTMLElement(nsGkAtoms::div);
     aElements.AppendElement(mSelectionCaretsStartElement);
+    nsCOMPtr<mozilla::dom::Element> selectionCaretsStartElementInner = doc->CreateHTMLElement(nsGkAtoms::div);
+    mSelectionCaretsStartElement->AppendChildTo(selectionCaretsStartElementInner, false);
 
     mSelectionCaretsEndElement = doc->CreateHTMLElement(nsGkAtoms::div);
     aElements.AppendElement(mSelectionCaretsEndElement);
+    nsCOMPtr<mozilla::dom::Element> selectionCaretsEndElementInner = doc->CreateHTMLElement(nsGkAtoms::div);
+    mSelectionCaretsEndElement->AppendChildTo(selectionCaretsEndElementInner, false);
 
-    mSelectionCaretsStartElement->SetAttribute(NS_LITERAL_STRING("_moz_anonclass"),
-                                               NS_LITERAL_STRING("mozTouchCaret"), er);
     rv = mSelectionCaretsStartElement->SetAttr(kNameSpaceID_None, nsGkAtoms::_class,
                                                NS_LITERAL_STRING("moz-selectioncaret-left hidden"),
                                                true);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    mSelectionCaretsEndElement->SetAttribute(NS_LITERAL_STRING("_moz_anonclass"),
-                                             NS_LITERAL_STRING("mozTouchCaret"), er);
     rv = mSelectionCaretsEndElement->SetAttr(kNameSpaceID_None, nsGkAtoms::_class,
                                              NS_LITERAL_STRING("moz-selectioncaret-right hidden"),
                                              true);
+
+    if (!mDummyTouchListener) {
+      mDummyTouchListener = new DummyTouchListener();
+    }
+    mSelectionCaretsStartElement->AddEventListener(NS_LITERAL_STRING("touchstart"),
+                                                   mDummyTouchListener, false);
+    mSelectionCaretsEndElement->AddEventListener(NS_LITERAL_STRING("touchstart"),
+                                                 mDummyTouchListener, false);
     NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  // Create the custom content container.
+  mCustomContentContainer = doc->CreateHTMLElement(nsGkAtoms::div);
+#ifdef DEBUG
+  // We restyle our mCustomContentContainer, even though it's root anonymous
+  // content.  Normally that's not OK because the frame constructor doesn't know
+  // how to order the frame tree in such cases, but we make this work for this
+  // particular case, so it's OK.
+  mCustomContentContainer->SetProperty(nsGkAtoms::restylableAnonymousNode,
+                                       reinterpret_cast<void*>(true));
+#endif // DEBUG
+
+  aElements.AppendElement(mCustomContentContainer);
+
+  // XXX add :moz-native-anonymous or will that be automatically set?
+  rv = mCustomContentContainer->SetAttr(kNameSpaceID_None, nsGkAtoms::_class,
+                                        NS_LITERAL_STRING("moz-custom-content-container"),
+                                        true);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // Append all existing AnonymousContent nodes stored at document level if any.
+  size_t len = doc->GetAnonymousContents().Length();
+  for (size_t i = 0; i < len; ++i) {
+    nsCOMPtr<Element> node = doc->GetAnonymousContents()[i]->GetContentNode();
+    mCustomContentContainer->AppendChildTo(node->AsContent(), true);
+  }
+
+  // Only create a frame for mCustomContentContainer if it has some children.
+  if (len == 0) {
+    HideCustomContentContainer();
+  }
+
+  RefPtr<AccessibleCaretEventHub> eventHub =
+    PresContext()->GetPresShell()->GetAccessibleCaretEventHub();
+  if (eventHub) {
+    // AccessibleCaret will insert anonymous caret elements.
+    eventHub->Init();
   }
 
   return NS_OK;
@@ -127,6 +199,8 @@ nsCanvasFrame::AppendAnonymousContentTo(nsTArray<nsIContent*>& aElements, uint32
   if (mSelectionCaretsEndElement) {
     aElements.AppendElement(mSelectionCaretsEndElement);
   }
+
+  aElements.AppendElement(mCustomContentContainer);
 }
 
 void
@@ -138,9 +212,42 @@ nsCanvasFrame::DestroyFrom(nsIFrame* aDestructRoot)
     sf->RemoveScrollPositionListener(this);
   }
 
+  if (mTouchCaretElement) {
+    mTouchCaretElement->RemoveEventListener(NS_LITERAL_STRING("touchstart"),
+                                            mDummyTouchListener, false);
+  }
+
+  if (mSelectionCaretsStartElement) {
+    mSelectionCaretsStartElement->RemoveEventListener(NS_LITERAL_STRING("touchstart"),
+                                                      mDummyTouchListener, false);
+  }
+
+  if (mSelectionCaretsEndElement) {
+    mSelectionCaretsEndElement->RemoveEventListener(NS_LITERAL_STRING("touchstart"),
+                                                    mDummyTouchListener, false);
+  }
+
   nsContentUtils::DestroyAnonymousContent(&mTouchCaretElement);
   nsContentUtils::DestroyAnonymousContent(&mSelectionCaretsStartElement);
   nsContentUtils::DestroyAnonymousContent(&mSelectionCaretsEndElement);
+
+  // Elements inserted in the custom content container have the same lifetime as
+  // the document, so before destroying the container, make sure to keep a clone
+  // of each of them at document level so they can be re-appended on reframe.
+  if (mCustomContentContainer) {
+    nsCOMPtr<nsIDocument> doc = mContent->OwnerDoc();
+    ErrorResult rv;
+
+    nsTArray<RefPtr<mozilla::dom::AnonymousContent>>& docAnonContents =
+      doc->GetAnonymousContents();
+    for (size_t i = 0, len = docAnonContents.Length(); i < len; ++i) {
+      AnonymousContent* content = docAnonContents[i];
+      nsCOMPtr<nsINode> clonedElement = content->GetContentNode()->CloneNode(true, rv);
+      content->SetContentNode(clonedElement->AsElement());
+    }
+  }
+  nsContentUtils::DestroyAnonymousContent(&mCustomContentContainer);
+
   nsContainerFrame::DestroyFrom(aDestructRoot);
 }
 
@@ -242,18 +349,23 @@ nsDisplayCanvasBackgroundColor::Paint(nsDisplayListBuilder* aBuilder,
   nsPoint offset = ToReferenceFrame();
   nsRect bgClipRect = frame->CanvasArea() + offset;
   if (NS_GET_A(mColor) > 0) {
-    aCtx->SetColor(mColor);
-    aCtx->FillRect(bgClipRect);
+    DrawTarget* drawTarget = aCtx->GetDrawTarget();
+    int32_t appUnitsPerDevPixel = mFrame->PresContext()->AppUnitsPerDevPixel();
+    Rect devPxRect =
+      NSRectToSnappedRect(bgClipRect, appUnitsPerDevPixel, *drawTarget);
+    drawTarget->FillRect(devPxRect, ColorPattern(ToDeviceColor(mColor)));
   }
 }
 
 #ifdef MOZ_DUMP_PAINTING
 void
-nsDisplayCanvasBackgroundColor::WriteDebugInfo(nsACString& aTo)
+nsDisplayCanvasBackgroundColor::WriteDebugInfo(std::stringstream& aStream)
 {
-  aTo += nsPrintfCString(" (rgba %d,%d,%d,%d)",
-          NS_GET_R(mColor), NS_GET_G(mColor),
-          NS_GET_B(mColor), NS_GET_A(mColor));
+  aStream << " (rgba "
+          << (int)NS_GET_R(mColor) << ","
+          << (int)NS_GET_G(mColor) << ","
+          << (int)NS_GET_B(mColor) << ","
+          << (int)NS_GET_A(mColor) << ")";
 }
 #endif
 
@@ -273,8 +385,8 @@ nsDisplayCanvasBackgroundImage::Paint(nsDisplayListBuilder* aBuilder,
   nsPoint offset = ToReferenceFrame();
   nsRect bgClipRect = frame->CanvasArea() + offset;
 
-  nsRefPtr<nsRenderingContext> context;
-  nsRefPtr<gfxContext> dest = aCtx->ThebesContext();
+  nsRenderingContext context;
+  RefPtr<gfxContext> dest = aCtx->ThebesContext();
   RefPtr<DrawTarget> dt;
   gfxRect destRect;
 #ifndef MOZ_GFX_OPTIMIZE_MOBILE
@@ -292,23 +404,22 @@ nsDisplayCanvasBackgroundImage::Paint(nsDisplayListBuilder* aBuilder,
     }
     dt = destDT->CreateSimilarDrawTarget(IntSize(ceil(destRect.width), ceil(destRect.height)), SurfaceFormat::B8G8R8A8);
     if (dt) {
-      nsRefPtr<gfxContext> ctx = new gfxContext(dt);
+      RefPtr<gfxContext> ctx = new gfxContext(dt);
       ctx->SetMatrix(
         ctx->CurrentMatrix().Translate(-destRect.x, -destRect.y));
-      context = new nsRenderingContext();
-      context->Init(aCtx->DeviceContext(), ctx);
+      context.Init(ctx);
     }
   }
 #endif
 
   PaintInternal(aBuilder,
-                dt ? context.get() : aCtx,
+                dt ? &context : aCtx,
                 dt ? bgClipRect: mVisibleRect,
                 &bgClipRect);
 
   if (dt) {
     BlitSurface(dest->GetDrawTarget(), destRect, dt);
-    frame->Properties().Set(nsIFrame::CachedBackgroundImageDT(), dt.forget().drop());
+    frame->Properties().Set(nsIFrame::CachedBackgroundImageDT(), dt.forget().take());
   }
 }
 
@@ -340,7 +451,7 @@ public:
   }
 
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder,
-                           bool* aSnap) MOZ_OVERRIDE
+                           bool* aSnap) override
   {
     *aSnap = false;
     // This is an overestimate, but that's not a problem.
@@ -349,7 +460,7 @@ public:
   }
 
   virtual void Paint(nsDisplayListBuilder* aBuilder,
-                     nsRenderingContext* aCtx) MOZ_OVERRIDE
+                     nsRenderingContext* aCtx) override
   {
     nsCanvasFrame* frame = static_cast<nsCanvasFrame*>(mFrame);
     frame->PaintFocus(*aCtx, ToReferenceFrame());
@@ -416,6 +527,15 @@ nsCanvasFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   nsIFrame* kid;
   for (kid = GetFirstPrincipalChild(); kid; kid = kid->GetNextSibling()) {
+    // Skip touch/selection caret frame if we do not build caret.
+    if (!aBuilder->IsBuildingCaret()) {
+      if(kid->GetContent() == mTouchCaretElement ||
+         kid->GetContent() == mSelectionCaretsStartElement||
+         kid->GetContent() == mSelectionCaretsEndElement) {
+        continue;
+      }
+    }
+
     // Put our child into its own pseudo-stack.
     BuildDisplayListForChild(aBuilder, kid, aDirtyRect, aLists);
   }
@@ -505,6 +625,7 @@ nsCanvasFrame::Reflow(nsPresContext*           aPresContext,
                       const nsHTMLReflowState& aReflowState,
                       nsReflowStatus&          aStatus)
 {
+  MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("nsCanvasFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
   NS_FRAME_TRACE_REFLOW_IN("nsCanvasFrame::Reflow");
@@ -552,25 +673,29 @@ nsCanvasFrame::Reflow(nsPresContext*           aPresContext,
       kidReflowState(aPresContext, aReflowState, kidFrame,
                      aReflowState.AvailableSize(kidFrame->GetWritingMode()));
 
-    if (aReflowState.mFlags.mVResize &&
-        (kidFrame->GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_HEIGHT)) {
-      // Tell our kid it's being vertically resized too.  Bit of a
+    if (aReflowState.IsBResize() &&
+        (kidFrame->GetStateBits() & NS_FRAME_CONTAINS_RELATIVE_BSIZE)) {
+      // Tell our kid it's being block-dir resized too.  Bit of a
       // hack for framesets.
-      kidReflowState.mFlags.mVResize = true;
+      kidReflowState.SetBResize(true);
     }
 
-    nsPoint kidPt(kidReflowState.ComputedPhysicalMargin().left,
-                  kidReflowState.ComputedPhysicalMargin().top);
+    WritingMode wm = aReflowState.GetWritingMode();
+    WritingMode kidWM = kidReflowState.GetWritingMode();
+    nsSize containerSize = aReflowState.ComputedPhysicalSize();
 
-    kidReflowState.ApplyRelativePositioning(&kidPt);
+    LogicalMargin margin = kidReflowState.ComputedLogicalMargin();
+    LogicalPoint kidPt(kidWM, margin.IStart(kidWM), margin.BStart(kidWM));
+
+    kidReflowState.ApplyRelativePositioning(&kidPt, containerSize);
 
     // Reflow the frame
     ReflowChild(kidFrame, aPresContext, kidDesiredSize, kidReflowState,
-                kidPt.x, kidPt.y, 0, aStatus);
+                kidWM, kidPt, containerSize, 0, aStatus);
 
     // Complete the reflow and position and size the child frame
     FinishReflowChild(kidFrame, aPresContext, kidDesiredSize, &kidReflowState,
-                      kidPt.x, kidPt.y, 0);
+                      kidWM, kidPt, containerSize, 0);
 
     if (!NS_FRAME_IS_FULLY_COMPLETE(aStatus)) {
       nsIFrame* nextFrame = kidFrame->GetNextInFlow();
@@ -608,7 +733,6 @@ nsCanvasFrame::Reflow(nsPresContext*           aPresContext,
     // Return our desired size. Normally it's what we're told, but
     // sometimes we can be given an unconstrained height (when a window
     // is sizing-to-content), and we should compute our desired height.
-    WritingMode wm = aReflowState.GetWritingMode();
     LogicalSize finalSize(wm);
     finalSize.ISize(wm) = aReflowState.ComputedISize();
     if (aReflowState.ComputedBSize() == NS_UNCONSTRAINEDSIZE) {
@@ -621,7 +745,7 @@ nsCanvasFrame::Reflow(nsPresContext*           aPresContext,
     aDesiredSize.SetSize(wm, finalSize);
     aDesiredSize.SetOverflowAreasToDesiredBounds();
     aDesiredSize.mOverflowAreas.UnionWith(
-      kidDesiredSize.mOverflowAreas + kidPt);
+      kidDesiredSize.mOverflowAreas + kidFrame->GetPosition());
   }
 
   if (prevCanvasFrame) {

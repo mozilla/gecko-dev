@@ -5,26 +5,11 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 using struct mozilla::void_t from "ipc/IPCMessageUtils.h";
-using struct IPC::MozCallForwardingOptions from "mozilla/dom/mobileconnection/MobileConnectionIPCSerializer.h";
+using nsMobileCallForwardingOptions from "mozilla/dom/mobileconnection/MobileConnectionIPCSerializer.h";
 
 namespace mozilla {
 namespace dom {
 namespace telephony {
-
-struct IPCCallStateData
-{
-  uint32_t callIndex;
-  uint16_t callState;
-  nsString number;
-  uint16_t numberPresentation;
-  nsString name;
-  uint16_t namePresentation;
-  bool     isOutGoing;
-  bool     isEmergency;
-  bool     isConference;
-  bool     isSwitchable;
-  bool     isMergeable;
-};
 
 struct IPCCdmaWaitingCallData
 {
@@ -38,7 +23,7 @@ union AdditionalInformation {
   void_t;
   uint16_t;
   nsString[];
-  MozCallForwardingOptions[];
+  nsMobileCallForwardingOptions[];
 };
 
 } /* namespace telephony */

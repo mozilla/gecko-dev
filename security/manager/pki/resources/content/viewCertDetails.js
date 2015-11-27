@@ -7,12 +7,12 @@ const nsX509CertDB = "@mozilla.org/security/x509certdb;1";
 const nsIX509CertDB = Components.interfaces.nsIX509CertDB;
 const nsPK11TokenDB = "@mozilla.org/security/pk11tokendb;1";
 const nsIPK11TokenDB = Components.interfaces.nsIPK11TokenDB;
-const nsIPKIParamBlock = Components.interfaces.nsIPKIParamBlock;
 const nsIASN1Object = Components.interfaces.nsIASN1Object;
 const nsIASN1Sequence = Components.interfaces.nsIASN1Sequence;
 const nsIASN1PrintableItem = Components.interfaces.nsIASN1PrintableItem;
 const nsIASN1Tree = Components.interfaces.nsIASN1Tree;
 const nsASN1Tree = "@mozilla.org/security/nsASN1Tree;1"
+const nsIDialogParamBlock = Components.interfaces.nsIDialogParamBlock;
 
 var bundle;
 
@@ -78,9 +78,8 @@ function setWindowName()
     //var cert = certdb.findCertByNickname(token, myName);
     cert = certdb.findCertByNickname(null, myName);
   } else {
-    var pkiParams = window.arguments[0].QueryInterface(nsIPKIParamBlock);
-    var isupport = pkiParams.getISupportAtIndex(1);
-    cert = isupport.QueryInterface(nsIX509Cert);
+    var params = window.arguments[0].QueryInterface(nsIDialogParamBlock);
+    var cert = params.objects.queryElementAt(0, nsIX509Cert);
     document.title = certDetails + '"' + cert.windowTitle + '"'; // XXX l10n?
   }
 
@@ -123,8 +122,8 @@ function addTreeItemToTreeChild(treeChild,label,value,addTwistie)
 }
 
 function displaySelected() {
-  var asn1Tree = document.getElementById('prettyDumpTree').
-                     treeBoxObject.view.QueryInterface(nsIASN1Tree);
+  var asn1Tree = document.getElementById('prettyDumpTree')
+          .view.QueryInterface(nsIASN1Tree);
   var items = asn1Tree.selection;
   var certDumpVal = document.getElementById('certDumpVal');
   if (items.currentIndex != -1) {
@@ -140,8 +139,7 @@ function BuildPrettyPrint(cert)
   var certDumpTree = Components.classes[nsASN1Tree].
                           createInstance(nsIASN1Tree);
   certDumpTree.loadASN1Structure(cert.ASN1Structure);
-  document.getElementById('prettyDumpTree').
-           treeBoxObject.view =  certDumpTree;
+  document.getElementById('prettyDumpTree').view = certDumpTree;
 }
 
 function addAttributeFromCert(nodeName, value)
@@ -256,8 +254,8 @@ function DisplayGeneralDataFromCert(cert)
 
 function updateCertDump()
 {
-  var asn1Tree = document.getElementById('prettyDumpTree').
-                     treeBoxObject.view.QueryInterface(nsIASN1Tree);
+  var asn1Tree = document.getElementById('prettyDumpTree')
+          .view.QueryInterface(nsIASN1Tree);
 
   var tree = document.getElementById('treesetDump');
   if (tree.currentIndex < 0) {

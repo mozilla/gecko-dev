@@ -16,8 +16,8 @@
 namespace mozilla {
 namespace net {
 
-class RtspController : public nsIStreamingProtocolController
-                     , public nsIStreamingProtocolListener
+class RtspController final : public nsIStreamingProtocolController
+                           , public nsIStreamingProtocolListener
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -25,6 +25,8 @@ public:
   NS_DECL_NSISTREAMINGPROTOCOLLISTENER
 
   RtspController(nsIChannel *channel);
+
+protected:
   ~RtspController();
 
 private:
@@ -50,5 +52,7 @@ private:
 };
 
 }
+
 } // namespace mozilla::net
+
 #endif

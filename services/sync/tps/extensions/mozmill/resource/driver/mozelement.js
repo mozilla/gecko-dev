@@ -9,9 +9,9 @@ var EXPORTED_SYMBOLS = ["Elem", "Selector", "ID", "Link", "XPath", "Name", "Look
 
 const NAMESPACE_XUL = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
 
 var EventUtils = {};  Cu.import('resource://mozmill/stdlib/EventUtils.js', EventUtils);
 
@@ -1012,7 +1012,7 @@ MozMillDropList.prototype = Object.create(MozMillElement.prototype, {
         if (index != undefined) {
           if (index == -1) {
             this.dispatchEvent('focus', false);
-            this.element.boxObject.QueryInterface(Ci.nsIMenuBoxObject).activeChild = null;
+            this.element.boxObject.activeChild = null;
             this.dispatchEvent('change', true);
 
             broker.pass({'function':'MozMillDropList.select()'});

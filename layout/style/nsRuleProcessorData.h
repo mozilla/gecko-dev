@@ -22,12 +22,11 @@
 #include "mozilla/BloomFilter.h"
 #include "mozilla/EventStates.h"
 #include "mozilla/GuardObjects.h"
+#include "mozilla/dom/Element.h"
 
-class nsAttrValue;
 class nsIAtom;
 class nsIContent;
 class nsICSSPseudoComparator;
-class nsIStyleSheet;
 struct TreeMatchContext;
 
 /**
@@ -227,7 +226,7 @@ struct MOZ_STACK_CLASS TreeMatchContext {
   }
 
   /* Helper class for maintaining the ancestor state */
-  class MOZ_STACK_CLASS AutoAncestorPusher {
+  class MOZ_RAII AutoAncestorPusher {
   public:
     explicit AutoAncestorPusher(TreeMatchContext& aTreeMatchContext
                                 MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
@@ -297,7 +296,7 @@ struct MOZ_STACK_CLASS TreeMatchContext {
    * in cases where we may or may not want to be skipping flex/grid-item
    * style fixup for a particular chunk of code).
    */
-  class MOZ_STACK_CLASS AutoParentDisplayBasedStyleFixupSkipper {
+  class MOZ_RAII AutoParentDisplayBasedStyleFixupSkipper {
   public:
     explicit AutoParentDisplayBasedStyleFixupSkipper(TreeMatchContext& aTreeMatchContext,
                                                      bool aSkipParentDisplayBasedStyleFixup = true
@@ -397,7 +396,7 @@ struct MOZ_STACK_CLASS TreeMatchContext {
     , mVisitedHandling(aVisitedHandling)
     , mDocument(aDocument)
     , mScopedRoot(nullptr)
-    , mIsHTMLDocument(aDocument->IsHTML())
+    , mIsHTMLDocument(aDocument->IsHTMLDocument())
     , mCompatMode(aDocument->GetCompatibilityMode())
     , mUsingPrivateBrowsing(false)
     , mSkippingParentDisplayBasedStyleFixup(false)
@@ -576,16 +575,20 @@ struct MOZ_STACK_CLASS AttributeRuleProcessorData :
                              nsIAtom* aAttribute,
                              int32_t aModType,
                              bool aAttrHasChanged,
+                             const nsAttrValue* aOtherValue,
                              TreeMatchContext& aTreeMatchContext)
     : ElementDependentRuleProcessorData(aPresContext, aElement, nullptr,
                                         aTreeMatchContext),
       mAttribute(aAttribute),
+      mOtherValue(aOtherValue),
       mModType(aModType),
       mAttrHasChanged(aAttrHasChanged)
   {
     NS_PRECONDITION(!aTreeMatchContext.mForStyling, "Not styling here!");
   }
   nsIAtom* mAttribute; // |HasAttributeDependentStyle| for which attribute?
+  // non-null if we have the value.
+  const nsAttrValue* mOtherValue;
   int32_t mModType;    // The type of modification (see nsIDOMMutationEvent).
   bool mAttrHasChanged; // Whether the attribute has already changed.
 };

@@ -8,7 +8,7 @@
 
 this.EXPORTED_SYMBOLS = ["EngineSynchronizer"];
 
-const {utils: Cu} = Components;
+var {utils: Cu} = Components;
 
 Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://services-sync/constants.js");
@@ -31,7 +31,7 @@ this.EngineSynchronizer = function EngineSynchronizer(service) {
 }
 
 EngineSynchronizer.prototype = {
-  sync: function sync() {
+  sync: function sync(engineNamesToSync) {
     if (!this.onComplete) {
       throw new Error("onComplete handler not installed.");
     }
@@ -96,6 +96,9 @@ EngineSynchronizer.prototype = {
       return;
     }
 
+    // We only honor the "hint" of what engines to Sync if this isn't
+    // a first sync.
+    let allowEnginesHint = false;
     // Wipe data in the desired direction if necessary
     switch (Svc.Prefs.get("firstSync")) {
       case "resetClient":
@@ -106,6 +109,9 @@ EngineSynchronizer.prototype = {
         break;
       case "wipeRemote":
         this.service.wipeRemote(engineManager.enabledEngineNames);
+        break;
+      default:
+        allowEnginesHint = true;
         break;
     }
 
@@ -138,13 +144,22 @@ EngineSynchronizer.prototype = {
     } catch (ex) {
       this._log.debug("Updating enabled engines failed: " +
                       Utils.exceptionStr(ex));
-      this.service.errorHandler.checkServerError(ex);
+      this.service.errorHandler.checkServerError(ex, "meta/global");
       this.onComplete(ex);
       return;
     }
 
+    // If the engines to sync has been specified, we sync in the order specified.
+    let enginesToSync;
+    if (allowEnginesHint && engineNamesToSync) {
+      this._log.info("Syncing specified engines", engineNamesToSync);
+      enginesToSync = engineManager.get(engineNamesToSync).filter(e => e.enabled);
+    } else {
+      this._log.info("Syncing all enabled engines.");
+      enginesToSync = engineManager.getEnabled();
+    }
     try {
-      for (let engine of engineManager.getEnabled()) {
+      for (let engine of enginesToSync) {
         // If there's any problems with syncing the engine, report the failure
         if (!(this._syncEngine(engine)) || this.service.status.enforceBackoff) {
           this._log.info("Aborting sync for failure in " + engine.name);
@@ -289,7 +304,7 @@ EngineSynchronizer.prototype = {
     }
 
     // Any remaining engines were either enabled locally or disabled remotely.
-    for each (let engineName in enabled) {
+    for (let engineName of enabled) {
       let engine = engineManager.get(engineName);
       if (Svc.Prefs.get("engineStatusChanged." + engine.prefName, false)) {
         this._log.trace("The " + engineName + " engine was enabled locally.");

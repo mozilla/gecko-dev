@@ -6,7 +6,7 @@
 /* -------------------------------------------------------------------
 To Build This:
 
-  You need to add this to the the makefile.win in mozilla/content/base/src:
+  You need to add this to the the makefile.win in mozilla/dom/base:
 
 	.\$(OBJDIR)\nsFlyOwnPrintDialog.obj	\
 
@@ -19,8 +19,6 @@ WIN_LIBS=                                       \
         comdlg32.lib
 
 ---------------------------------------------------------------------- */
-
-#define NOMINMAX 1
 
 #include "plstr.h"
 #include <windows.h>
@@ -494,8 +492,8 @@ static HWND CreateGroupBox(HINSTANCE        aHInst,
 // Localizes and initializes the radio buttons and group
 static void InitializeExtendedDialog(HWND hdlg, int16_t aHowToEnableFrameUI) 
 {
-  NS_ABORT_IF_FALSE(aHowToEnableFrameUI != nsIPrintSettings::kFrameEnableNone,
-                    "should not be called");
+  MOZ_ASSERT(aHowToEnableFrameUI != nsIPrintSettings::kFrameEnableNone,
+             "should not be called");
 
   // Localize the new controls in the print dialog
   nsCOMPtr<nsIStringBundle> strBundle;
@@ -682,7 +680,7 @@ static UINT CALLBACK PrintHookProc(HWND hdlg, UINT uiMsg, WPARAM wParam, LPARAM 
 //   This function assumes that aPrintName has already been converted from 
 //   unicode
 //
-static HGLOBAL CreateGlobalDevModeAndInit(const nsXPIDLString& aPrintName, nsIPrintSettings* aPS)
+HGLOBAL CreateGlobalDevModeAndInit(const nsXPIDLString& aPrintName, nsIPrintSettings* aPS)
 {
   HGLOBAL hGlobalDevMode = nullptr;
 

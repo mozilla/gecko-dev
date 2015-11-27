@@ -37,29 +37,29 @@ class nsMIMEInfoBase : public nsIMIMEInfo {
     NS_DECL_THREADSAFE_ISUPPORTS
 
     // I'd use NS_DECL_NSIMIMEINFO, but I don't want GetHasDefaultHandler
-    NS_IMETHOD GetFileExtensions(nsIUTF8StringEnumerator **_retval);
-    NS_IMETHOD SetFileExtensions(const nsACString & aExtensions);
-    NS_IMETHOD ExtensionExists(const nsACString & aExtension, bool *_retval);
-    NS_IMETHOD AppendExtension(const nsACString & aExtension);
-    NS_IMETHOD GetPrimaryExtension(nsACString & aPrimaryExtension);
-    NS_IMETHOD SetPrimaryExtension(const nsACString & aPrimaryExtension);
-    NS_IMETHOD GetType(nsACString & aType);
-    NS_IMETHOD GetMIMEType(nsACString & aMIMEType);
-    NS_IMETHOD GetDescription(nsAString & aDescription);
-    NS_IMETHOD SetDescription(const nsAString & aDescription);
-    NS_IMETHOD Equals(nsIMIMEInfo *aMIMEInfo, bool *_retval);
-    NS_IMETHOD GetPreferredApplicationHandler(nsIHandlerApp * *aPreferredAppHandler);
-    NS_IMETHOD SetPreferredApplicationHandler(nsIHandlerApp * aPreferredAppHandler);
-    NS_IMETHOD GetPossibleApplicationHandlers(nsIMutableArray * *aPossibleAppHandlers);
-    NS_IMETHOD GetDefaultDescription(nsAString & aDefaultDescription);
-    NS_IMETHOD LaunchWithFile(nsIFile *aFile);
+    NS_IMETHOD GetFileExtensions(nsIUTF8StringEnumerator **_retval) override;
+    NS_IMETHOD SetFileExtensions(const nsACString & aExtensions) override;
+    NS_IMETHOD ExtensionExists(const nsACString & aExtension, bool *_retval) override;
+    NS_IMETHOD AppendExtension(const nsACString & aExtension) override;
+    NS_IMETHOD GetPrimaryExtension(nsACString & aPrimaryExtension) override;
+    NS_IMETHOD SetPrimaryExtension(const nsACString & aPrimaryExtension) override;
+    NS_IMETHOD GetType(nsACString & aType) override;
+    NS_IMETHOD GetMIMEType(nsACString & aMIMEType) override;
+    NS_IMETHOD GetDescription(nsAString & aDescription) override;
+    NS_IMETHOD SetDescription(const nsAString & aDescription) override;
+    NS_IMETHOD Equals(nsIMIMEInfo *aMIMEInfo, bool *_retval) override;
+    NS_IMETHOD GetPreferredApplicationHandler(nsIHandlerApp * *aPreferredAppHandler) override;
+    NS_IMETHOD SetPreferredApplicationHandler(nsIHandlerApp * aPreferredAppHandler) override;
+    NS_IMETHOD GetPossibleApplicationHandlers(nsIMutableArray * *aPossibleAppHandlers) override;
+    NS_IMETHOD GetDefaultDescription(nsAString & aDefaultDescription) override;
+    NS_IMETHOD LaunchWithFile(nsIFile *aFile) override;
     NS_IMETHOD LaunchWithURI(nsIURI *aURI,
-                             nsIInterfaceRequestor *aWindowContext);
-    NS_IMETHOD GetPreferredAction(nsHandlerInfoAction *aPreferredAction);
-    NS_IMETHOD SetPreferredAction(nsHandlerInfoAction aPreferredAction);
-    NS_IMETHOD GetAlwaysAskBeforeHandling(bool *aAlwaysAskBeforeHandling);
-    NS_IMETHOD SetAlwaysAskBeforeHandling(bool aAlwaysAskBeforeHandling); 
-    NS_IMETHOD GetPossibleLocalHandlers(nsIArray **_retval); 
+                             nsIInterfaceRequestor *aWindowContext) override;
+    NS_IMETHOD GetPreferredAction(nsHandlerInfoAction *aPreferredAction) override;
+    NS_IMETHOD SetPreferredAction(nsHandlerInfoAction aPreferredAction) override;
+    NS_IMETHOD GetAlwaysAskBeforeHandling(bool *aAlwaysAskBeforeHandling) override;
+    NS_IMETHOD SetAlwaysAskBeforeHandling(bool aAlwaysAskBeforeHandling) override; 
+    NS_IMETHOD GetPossibleLocalHandlers(nsIArray **_retval) override; 
 
     enum HandlerClass {
       eMIMEInfo,

@@ -4,6 +4,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsMathMLContainerFrame.h"
+
+#include "gfxUtils.h"
+#include "mozilla/gfx/2D.h"
+#include "nsLayoutUtils.h"
 #include "nsPresContext.h"
 #include "nsIPresShell.h"
 #include "nsStyleContext.h"
@@ -20,12 +24,11 @@
 #include "nsMathMLElement.h"
 
 using namespace mozilla;
+using namespace mozilla::gfx;
 
 //
 // nsMathMLContainerFrame implementation
 //
-
-NS_IMPL_FRAMEARENA_HELPERS(nsMathMLContainerFrame)
 
 NS_QUERYFRAME_HEAD(nsMathMLContainerFrame)
   NS_QUERYFRAME_ENTRY(nsIMathMLFrame)
@@ -46,14 +49,16 @@ nsMathMLContainerFrame::ReflowError(nsRenderingContext& aRenderingContext,
 
   ///////////////
   // Set font
-  nsRefPtr<nsFontMetrics> fm;
-  nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm));
-  aRenderingContext.SetFont(fm);
+  RefPtr<nsFontMetrics> fm;
+  nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm),
+                                        nsLayoutUtils::
+                                        FontSizeInflationFor(this));
 
   // bounding metrics
   nsAutoString errorMsg; errorMsg.AssignLiteral("invalid-markup");
   mBoundingMetrics =
-    aRenderingContext.GetBoundingMetrics(errorMsg.get(), errorMsg.Length());
+    nsLayoutUtils::AppUnitBoundsOfString(errorMsg.get(), errorMsg.Length(),
+                                         *fm, aRenderingContext);
 
   // reflow metrics
   WritingMode wm = aDesiredSize.GetWritingMode();
@@ -81,7 +86,7 @@ public:
 #endif
 
   virtual void Paint(nsDisplayListBuilder* aBuilder,
-                     nsRenderingContext* aCtx) MOZ_OVERRIDE;
+                     nsRenderingContext* aCtx) override;
   NS_DISPLAY_DECL_NAME("MathMLError", TYPE_MATHML_ERROR)
 };
 
@@ -89,20 +94,23 @@ void nsDisplayMathMLError::Paint(nsDisplayListBuilder* aBuilder,
                                  nsRenderingContext* aCtx)
 {
   // Set color and font ...
-  nsRefPtr<nsFontMetrics> fm;
+  RefPtr<nsFontMetrics> fm;
   nsLayoutUtils::GetFontMetricsForFrame(mFrame, getter_AddRefs(fm));
-  aCtx->SetFont(fm);
 
   nsPoint pt = ToReferenceFrame();
-  aCtx->SetColor(NS_RGB(255,0,0));
-  aCtx->FillRect(nsRect(pt, mFrame->GetSize()));
-  aCtx->SetColor(NS_RGB(255,255,255));
+  int32_t appUnitsPerDevPixel = mFrame->PresContext()->AppUnitsPerDevPixel();
+  DrawTarget* drawTarget = aCtx->GetDrawTarget();
+  Rect rect = NSRectToSnappedRect(nsRect(pt, mFrame->GetSize()),
+                                  appUnitsPerDevPixel,
+                                  *drawTarget);
+  ColorPattern red(ToDeviceColor(Color(1.f, 0.f, 0.f, 1.f)));
+  drawTarget->FillRect(rect, red);
 
-  nscoord ascent = aCtx->FontMetrics()->MaxAscent();
-
+  aCtx->ThebesContext()->SetColor(Color(1.f, 1.f, 1.f));
+  nscoord ascent = fm->MaxAscent();
   NS_NAMED_LITERAL_STRING(errorMsg, "invalid-markup");
-  aCtx->DrawString(errorMsg.get(), uint32_t(errorMsg.Length()),
-                   pt.x, pt.y+ascent);
+  nsLayoutUtils::DrawUniDirString(errorMsg.get(), uint32_t(errorMsg.Length()),
+                                  nsPoint(pt.x, pt.y + ascent), *fm, *aCtx);
 }
 
 /* /////////////
@@ -119,13 +127,8 @@ IsForeignChild(const nsIFrame* aFrame)
     aFrame->GetType() == nsGkAtoms::blockFrame;
 }
 
-static void
-DestroyHTMLReflowMetrics(void *aPropertyValue)
-{
-  delete static_cast<nsHTMLReflowMetrics*>(aPropertyValue);
-}
-
-NS_DECLARE_FRAME_PROPERTY(HTMLReflowMetricsProperty, DestroyHTMLReflowMetrics)
+NS_DECLARE_FRAME_PROPERTY(HTMLReflowMetricsProperty,
+                          DeleteValue<nsHTMLReflowMetrics>)
 
 /* static */ void
 nsMathMLContainerFrame::SaveReflowAndBoundingMetricsFor(nsIFrame*                  aFrame,
@@ -702,8 +705,7 @@ nsMathMLContainerFrame::ReLayoutChildren(nsIFrame* aParentFrame)
     NS_ASSERTION(content, "dangling frame without a content node");
     if (!content)
       break;
-    if (content->GetNameSpaceID() == kNameSpaceID_MathML &&
-        content->Tag() == nsGkAtoms::math)
+    if (content->IsMathMLElement(nsGkAtoms::math))
       break;
 
     frame = parent;
@@ -887,6 +889,8 @@ nsMathMLContainerFrame::Reflow(nsPresContext*           aPresContext,
                                const nsHTMLReflowState& aReflowState,
                                nsReflowStatus&          aStatus)
 {
+  MarkInReflow();
+  mPresentationData.flags &= ~NS_MATHML_ERROR;
   aDesiredSize.Width() = aDesiredSize.Height() = 0;
   aDesiredSize.SetBlockStartAscent(0);
   aDesiredSize.mBoundingMetrics = nsBoundingMetrics();
@@ -969,38 +973,50 @@ nsMathMLContainerFrame::Reflow(nsPresContext*           aPresContext,
 static nscoord AddInterFrameSpacingToSize(nsHTMLReflowMetrics&    aDesiredSize,
                                           nsMathMLContainerFrame* aFrame);
 
+/* virtual */ void
+nsMathMLContainerFrame::MarkIntrinsicISizesDirty()
+{
+  mIntrinsicWidth = NS_INTRINSIC_WIDTH_UNKNOWN;
+  nsContainerFrame::MarkIntrinsicISizesDirty();
+}
+
+void
+nsMathMLContainerFrame::UpdateIntrinsicWidth(nsRenderingContext* aRenderingContext)
+{
+  if (mIntrinsicWidth == NS_INTRINSIC_WIDTH_UNKNOWN) {
+    nsHTMLReflowMetrics desiredSize(GetWritingMode());
+    GetIntrinsicISizeMetrics(aRenderingContext, desiredSize);
+
+    // Include the additional width added by FixInterFrameSpacing to ensure
+    // consistent width calculations.
+    AddInterFrameSpacingToSize(desiredSize, this);
+    mIntrinsicWidth = desiredSize.ISize(GetWritingMode());
+  }
+}
+
 /* virtual */ nscoord
-nsMathMLContainerFrame::GetMinISize(nsRenderingContext *aRenderingContext)
+nsMathMLContainerFrame::GetMinISize(nsRenderingContext* aRenderingContext)
 {
   nscoord result;
   DISPLAY_MIN_WIDTH(this, result);
-  nsHTMLReflowMetrics desiredSize(GetWritingMode());
-  GetIntrinsicISizeMetrics(aRenderingContext, desiredSize);
-
-  // Include the additional width added by FixInterFrameSpacing to ensure
-  // consistent width calculations.
-  AddInterFrameSpacingToSize(desiredSize, this);
-  result = desiredSize.ISize(GetWritingMode());
+  UpdateIntrinsicWidth(aRenderingContext);
+  result = mIntrinsicWidth;
   return result;
 }
 
 /* virtual */ nscoord
-nsMathMLContainerFrame::GetPrefISize(nsRenderingContext *aRenderingContext)
+nsMathMLContainerFrame::GetPrefISize(nsRenderingContext* aRenderingContext)
 {
   nscoord result;
   DISPLAY_PREF_WIDTH(this, result);
-  nsHTMLReflowMetrics desiredSize(GetWritingMode());
-  GetIntrinsicISizeMetrics(aRenderingContext, desiredSize);
-
-  // Include the additional width added by FixInterFrameSpacing to ensure
-  // consistent width calculations.
-  AddInterFrameSpacingToSize(desiredSize, this);
-  result = desiredSize.ISize(GetWritingMode());
+  UpdateIntrinsicWidth(aRenderingContext);
+  result = mIntrinsicWidth;
   return result;
 }
 
 /* virtual */ void
-nsMathMLContainerFrame::GetIntrinsicISizeMetrics(nsRenderingContext* aRenderingContext, nsHTMLReflowMetrics& aDesiredSize)
+nsMathMLContainerFrame::GetIntrinsicISizeMetrics(nsRenderingContext* aRenderingContext,
+                                                 nsHTMLReflowMetrics& aDesiredSize)
 {
   // Get child widths
   nsIFrame* childFrame = mFrames.FirstChild();
@@ -1245,7 +1261,7 @@ private:
     GetItalicCorrection(mSize.mBoundingMetrics,
                         leftCorrection, rightCorrection);
     if (!mChildFrame->GetPrevSibling() &&
-        mParentFrame->GetContent()->Tag() == nsGkAtoms::msqrt_) {
+        mParentFrame->GetContent()->IsMathMLElement(nsGkAtoms::msqrt_)) {
       // Remove leading correction in <msqrt> because the sqrt glyph itself is
       // there first.
       if (!mRTL) {
@@ -1321,10 +1337,10 @@ nsMathMLContainerFrame::PositionRowChildFrames(nscoord aOffsetX,
 
 class ForceReflow : public nsIReflowCallback {
 public:
-  virtual bool ReflowFinished() MOZ_OVERRIDE {
+  virtual bool ReflowFinished() override {
     return true;
   }
-  virtual void ReflowCallbackCanceled() MOZ_OVERRIDE {}
+  virtual void ReflowCallbackCanceled() override {}
 };
 
 // We only need one of these so we just make it a static global, no need
@@ -1338,7 +1354,7 @@ nsMathMLContainerFrame::SetIncrementScriptLevel(int32_t aChildIndex, bool aIncre
   if (!child)
     return;
   nsIContent* content = child->GetContent();
-  if (!content->IsMathML())
+  if (!content->IsMathMLElement())
     return;
   nsMathMLElement* element = static_cast<nsMathMLElement*>(content);
 
@@ -1397,9 +1413,8 @@ AddInterFrameSpacingToSize(nsHTMLReflowMetrics&    aDesiredSize,
   if (MOZ_UNLIKELY(!parentContent)) {
     return 0;
   }
-  nsIAtom *parentTag = parentContent->Tag();
-  if (parentContent->GetNameSpaceID() == kNameSpaceID_MathML && 
-      (parentTag == nsGkAtoms::math || parentTag == nsGkAtoms::mtd_)) {
+  if (parentContent->IsAnyOfMathMLElements(nsGkAtoms::math,
+                                           nsGkAtoms::mtd_)) {
     gap = GetInterFrameSpacingFor(aFrame->StyleFont()->mScriptLevel,
                                   parent, aFrame);
     // add our own italic correction
@@ -1563,14 +1578,14 @@ nsMathMLContainerFrame::ReportParseError(const char16_t* aAttribute,
                                          const char16_t* aValue)
 {
   const char16_t* argv[] = 
-    { aValue, aAttribute, mContent->Tag()->GetUTF16String() };
+    { aValue, aAttribute, mContent->NodeInfo()->NameAtom()->GetUTF16String() };
   return ReportErrorToConsole("AttributeParsingError", argv, 3);
 }
 
 nsresult
 nsMathMLContainerFrame::ReportChildCountError()
 {
-  const char16_t* arg = mContent->Tag()->GetUTF16String();
+  const char16_t* arg = mContent->NodeInfo()->NameAtom()->GetUTF16String();
   return ReportErrorToConsole("ChildCountIncorrect", &arg, 1);
 }
 
@@ -1578,7 +1593,8 @@ nsresult
 nsMathMLContainerFrame::ReportInvalidChildError(nsIAtom* aChildTag)
 {
   const char16_t* argv[] =
-    { aChildTag->GetUTF16String(), mContent->Tag()->GetUTF16String() };
+    { aChildTag->GetUTF16String(),
+      mContent->NodeInfo()->NameAtom()->GetUTF16String() };
   return ReportErrorToConsole("InvalidChild", argv, 2);
 }
 

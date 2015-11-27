@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -17,7 +18,7 @@ namespace mozilla {
 namespace dom {
 
 // http://www.w3.org/TR/resource-timing/#performanceresourcetiming
-class PerformanceResourceTiming MOZ_FINAL : public PerformanceEntry
+class PerformanceResourceTiming final : public PerformanceEntry
 {
 public:
   typedef mozilla::TimeStamp TimeStamp;
@@ -28,14 +29,15 @@ public:
       PerformanceEntry)
 
   PerformanceResourceTiming(nsPerformanceTiming* aPerformanceTiming,
-                            nsPerformance* aPerformance);
+                            nsPerformance* aPerformance,
+                            const nsAString& aName);
 
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
 
-  virtual DOMHighResTimeStamp StartTime() const;
+  virtual DOMHighResTimeStamp StartTime() const override;
 
-  virtual DOMHighResTimeStamp Duration() const
+  virtual DOMHighResTimeStamp Duration() const override
   {
     return ResponseEnd() - StartTime();
   }
@@ -48,6 +50,16 @@ public:
   void SetInitiatorType(const nsAString& aInitiatorType)
   {
     mInitiatorType = aInitiatorType;
+  }
+
+  void GetNextHopProtocol(nsAString& aNextHopProtocol) const
+  {
+    aNextHopProtocol = mNextHopProtocol;
+  }
+
+  void SetNextHopProtocol(const nsAString& aNextHopProtocol)
+  {
+    mNextHopProtocol = aNextHopProtocol;
   }
 
   DOMHighResTimeStamp FetchStart() const {
@@ -121,11 +133,50 @@ public:
     return 0;
   }
 
+  virtual const PerformanceResourceTiming* ToResourceTiming() const override
+  {
+    return this;
+  }
+
+  uint64_t TransferSize() const
+  {
+    return mTiming && mTiming->TimingAllowed() ? mTransferSize : 0;
+  }
+
+  uint64_t EncodedBodySize() const
+  {
+    return mTiming && mTiming->TimingAllowed() ? mEncodedBodySize : 0;
+  }
+
+  uint64_t DecodedBodySize() const
+  {
+    return mTiming && mTiming->TimingAllowed() ? mDecodedBodySize : 0;
+  }
+
+  void SetEncodedBodySize(uint64_t aEncodedBodySize)
+  {
+    mEncodedBodySize = aEncodedBodySize;
+  }
+
+  void SetTransferSize(uint64_t aTransferSize)
+  {
+    mTransferSize = aTransferSize;
+  }
+
+  void SetDecodedBodySize(uint64_t aDecodedBodySize)
+  {
+    mDecodedBodySize = aDecodedBodySize;
+  }
+
 protected:
   virtual ~PerformanceResourceTiming();
 
   nsString mInitiatorType;
-  nsRefPtr<nsPerformanceTiming> mTiming;
+  nsString mNextHopProtocol;
+  RefPtr<nsPerformanceTiming> mTiming;
+  uint64_t mEncodedBodySize;
+  uint64_t mTransferSize;
+  uint64_t mDecodedBodySize;
 };
 
 } // namespace dom

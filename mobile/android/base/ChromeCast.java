@@ -37,16 +37,35 @@ import android.util.Log;
 class ChromeCast implements GeckoMediaPlayer {
     private static final boolean SHOW_DEBUG = false;
 
-    static final String MIRROR_RECIEVER_APP_ID = "D40D28D6";
+    static final String MIRROR_RECEIVER_APP_ID = "08FF1091";
 
     private final Context context;
     private final RouteInfo route;
     private GoogleApiClient apiClient;
     private RemoteMediaPlayer remoteMediaPlayer;
-    private boolean canMirror;
+    private final boolean canMirror;
     private String mSessionId;
     private MirrorChannel mMirrorChannel;
     private boolean mApplicationStarted = false;
+
+    // EventCallback which is actually a GeckoEventCallback is sometimes being invoked more
+    // than once. That causes the IllegalStateException to be thrown. To prevent a crash,
+    // catch the exception and report it as an error to the log.
+    private static void sendSuccess(final EventCallback callback, final String msg) {
+        try {
+            callback.sendSuccess(msg);
+        } catch (final IllegalStateException e) {
+            Log.e(LOGTAG, "Attempting to invoke callback.sendSuccess more than once.", e);
+        }
+    }
+
+    private static void sendError(final EventCallback callback, final String msg) {
+        try {
+            callback.sendError(msg);
+        } catch (final IllegalStateException e) {
+            Log.e(LOGTAG, "Attempting to invoke callback.sendError more than once.", e);
+        }
+    }
 
     // Callback to start playback of a url on a remote device
     private class VideoPlayCallback implements ResultCallback<ApplicationConnectionResult>,
@@ -67,13 +86,23 @@ class ChromeCast implements GeckoMediaPlayer {
         @Override
         public void onStatusUpdated() {
             MediaStatus mediaStatus = remoteMediaPlayer.getMediaStatus();
-            boolean isPlaying = mediaStatus.getPlayerState() == MediaStatus.PLAYER_STATE_PLAYING;
 
-            // TODO: Do we want to shutdown when there are errors?
-            if (mediaStatus.getPlayerState() == MediaStatus.PLAYER_STATE_IDLE &&
-                mediaStatus.getIdleReason() == MediaStatus.IDLE_REASON_FINISHED) {
-
-                GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Casting:Stop", null));
+            switch (mediaStatus.getPlayerState()) {
+            case MediaStatus.PLAYER_STATE_PLAYING:
+                GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("MediaPlayer:Playing", null));
+                break;
+            case MediaStatus.PLAYER_STATE_PAUSED:
+                GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("MediaPlayer:Paused", null));
+                break;
+            case MediaStatus.PLAYER_STATE_IDLE:
+                // TODO: Do we want to shutdown when there are errors?
+                if (mediaStatus.getIdleReason() == MediaStatus.IDLE_REASON_FINISHED) {
+                    GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Casting:Stop", null));
+                }
+                break;
+            default:
+                // TODO: Do we need to handle other status such as buffering / unknown?
+                break;
             }
         }
 
@@ -101,7 +130,7 @@ class ChromeCast implements GeckoMediaPlayer {
 
                 startPlayback();
             } else {
-                callback.sendError(status.toString());
+                sendError(callback, status.toString());
             }
         }
 
@@ -118,13 +147,13 @@ class ChromeCast implements GeckoMediaPlayer {
                     @Override
                     public void onResult(MediaChannelResult result) {
                         if (result.getStatus().isSuccess()) {
-                            callback.sendSuccess(null);
+                            sendSuccess(callback, null);
                             debug("Media loaded successfully");
                             return;
                         }
 
                         debug("Media load failed " + result.getStatus());
-                        callback.sendError(result.getStatus().toString());
+                        sendError(callback, result.getStatus().toString());
                     }
                 });
 
@@ -135,23 +164,27 @@ class ChromeCast implements GeckoMediaPlayer {
                 debug("Problem opening media during loading", e);
             }
 
-            callback.sendError("");
+            sendError(callback, "");
         }
     }
 
     public ChromeCast(Context context, RouteInfo route) {
         int status =  GooglePlayServicesUtil.isGooglePlayServicesAvailable(context);
         if (status != ConnectionResult.SUCCESS) {
-            throw new IllegalStateException("Play services are required for Chromecast support (go status code " + status + ")");
+            throw new IllegalStateException("Play services are required for Chromecast support (got status code " + status + ")");
         }
 
         this.context = context;
         this.route = route;
-        this.canMirror = route.supportsControlCategory(CastMediaControlIntent.categoryForCast(MIRROR_RECIEVER_APP_ID));
+        this.canMirror = route.supportsControlCategory(CastMediaControlIntent.categoryForCast(MIRROR_RECEIVER_APP_ID));
     }
 
-    // This dumps everything we can find about the device into JSON. This will hopefully make it
-    // easier to filter out duplicate devices from different sources in js.
+    /**
+     *  This dumps everything we can find about the device into JSON. This will hopefully make it
+     *  easier to filter out duplicate devices from different sources in JS.
+     *  Returns null if the device can't be found.
+     */
+    @Override
     public JSONObject toJSON() {
         final JSONObject obj = new JSONObject();
         try {
@@ -168,13 +201,14 @@ class ChromeCast implements GeckoMediaPlayer {
             obj.put("mirror", canMirror);
             // For now we just assume all of these are Google devices
             obj.put("manufacturer", "Google Inc.");
-        } catch(JSONException ex) {
+        } catch (JSONException ex) {
             debug("Error building route", ex);
         }
 
         return obj;
     }
 
+    @Override
     public void load(final String title, final String url, final String type, final EventCallback callback) {
         final CastDevice device = CastDevice.getFromBundle(route.getExtras());
         Cast.CastOptions.Builder apiOptionsBuilder = Cast.CastOptions.builder(device, new Cast.Listener() {
@@ -193,9 +227,10 @@ class ChromeCast implements GeckoMediaPlayer {
             .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
                 @Override
                 public void onConnected(Bundle connectionHint) {
-                    if (!apiClient.isConnected()) {
+                    // Sometimes apiClient is null here. See bug 1061032
+                    if (apiClient != null && !apiClient.isConnected()) {
                         debug("Connection failed");
-                        callback.sendError("Not connected");
+                        sendError(callback, "Not connected");
                         return;
                     }
 
@@ -217,14 +252,16 @@ class ChromeCast implements GeckoMediaPlayer {
         apiClient.connect();
     }
 
+    @Override
     public void start(final EventCallback callback) {
         // Nothing to be done here
-        callback.sendSuccess(null);
+        sendSuccess(callback, null);
     }
 
+    @Override
     public void stop(final EventCallback callback) {
         // Nothing to be done here
-        callback.sendSuccess(null);
+        sendSuccess(callback, null);
     }
 
     public boolean verifySession(final EventCallback callback) {
@@ -240,7 +277,7 @@ class ChromeCast implements GeckoMediaPlayer {
         if (msg != null) {
             debug(msg);
             if (callback != null) {
-                callback.sendError(msg);
+                sendError(callback, msg);
             }
             return false;
         }
@@ -248,75 +285,93 @@ class ChromeCast implements GeckoMediaPlayer {
         return true;
     }
 
+    @Override
     public void play(final EventCallback callback) {
         if (!verifySession(callback)) {
             return;
         }
 
-        remoteMediaPlayer.play(apiClient).setResultCallback(new ResultCallback<MediaChannelResult>() {
-            @Override
-            public void onResult(MediaChannelResult result) {
-                Status status = result.getStatus();
-                if (!status.isSuccess()) {
-                    debug("Unable to play: " + status.getStatusCode());
-                    callback.sendError(status.toString());
-                } else {
-                    callback.sendSuccess(null);
+        try {
+            remoteMediaPlayer.play(apiClient).setResultCallback(new ResultCallback<MediaChannelResult>() {
+                @Override
+                public void onResult(MediaChannelResult result) {
+                    Status status = result.getStatus();
+                    if (!status.isSuccess()) {
+                        debug("Unable to play: " + status.getStatusCode());
+                        sendError(callback, status.toString());
+                    } else {
+                        sendSuccess(callback, null);
+                    }
                 }
-            }
-        });
+            });
+        } catch(IllegalStateException ex) {
+            // The media player may throw if the session has been killed. For now, we're just catching this here.
+            sendError(callback, "Error playing");
+        }
     }
 
+    @Override
     public void pause(final EventCallback callback) {
         if (!verifySession(callback)) {
             return;
         }
 
-        remoteMediaPlayer.pause(apiClient).setResultCallback(new ResultCallback<MediaChannelResult>() {
-            @Override
-            public void onResult(MediaChannelResult result) {
-                Status status = result.getStatus();
-                if (!status.isSuccess()) {
-                    debug("Unable to pause: " + status.getStatusCode());
-                    callback.sendError(status.toString());
-                } else {
-                    callback.sendSuccess(null);
+        try {
+            remoteMediaPlayer.pause(apiClient).setResultCallback(new ResultCallback<MediaChannelResult>() {
+                @Override
+                public void onResult(MediaChannelResult result) {
+                    Status status = result.getStatus();
+                    if (!status.isSuccess()) {
+                        debug("Unable to pause: " + status.getStatusCode());
+                        sendError(callback, status.toString());
+                    } else {
+                        sendSuccess(callback, null);
+                    }
                 }
-            }
-        });
+            });
+        } catch(IllegalStateException ex) {
+            // The media player may throw if the session has been killed. For now, we're just catching this here.
+            sendError(callback, "Error pausing");
+        }
     }
 
+    @Override
     public void end(final EventCallback callback) {
         if (!verifySession(callback)) {
             return;
         }
 
-        Cast.CastApi.stopApplication(apiClient).setResultCallback(new ResultCallback<Status>() {
-            @Override
-            public void onResult(Status result) {
-                if (result.isSuccess()) {
-                    try {
-                        Cast.CastApi.removeMessageReceivedCallbacks(apiClient, remoteMediaPlayer.getNamespace());
-                        remoteMediaPlayer = null;
-                        mSessionId = null;
-                        apiClient.disconnect();
-                        apiClient = null;
+        try {
+            Cast.CastApi.stopApplication(apiClient).setResultCallback(new ResultCallback<Status>() {
+                @Override
+                public void onResult(Status result) {
+                    if (result.isSuccess()) {
+                        try {
+                            Cast.CastApi.removeMessageReceivedCallbacks(apiClient, remoteMediaPlayer.getNamespace());
+                            remoteMediaPlayer = null;
+                            mSessionId = null;
+                            apiClient.disconnect();
+                            apiClient = null;
 
-                        if (callback != null) {
-                            callback.sendSuccess(null);
+                            if (callback != null) {
+                                sendSuccess(callback, null);
+                            }
+
+                            return;
+                        } catch(Exception ex) {
+                            debug("Error ending", ex);
                         }
+                    }
 
-                        return;
-                    } catch(Exception ex) {
-                        debug("Error ending", ex);
+                    if (callback != null) {
+                        sendError(callback, result.getStatus().toString());
                     }
                 }
-
-                if (callback != null) {
-                    callback.sendError(result.getStatus().toString());
-                }
-            }
-        });
+            });
+        } catch(IllegalStateException ex) {
+            // The media player may throw if the session has been killed. For now, we're just catching this here.
+            sendError(callback, "Error stopping");
+        }
     }
 
     class MirrorChannel implements MessageReceivedCallback {
@@ -353,13 +408,13 @@ class ChromeCast implements GeckoMediaPlayer {
         }
     }
     private class MirrorCallback implements ResultCallback<ApplicationConnectionResult> {
-
         final EventCallback callback;
         MirrorCallback(final EventCallback callback) {
             this.callback = callback;
         }
 
 
+        @Override
         public void onResult(ApplicationConnectionResult result) {
             Status status = result.getStatus();
             if (status.isSuccess()) {
@@ -377,24 +432,26 @@ class ChromeCast implements GeckoMediaPlayer {
                                                              mMirrorChannel
                                                              .getNamespace(),
                                                              mMirrorChannel);
-                    callback.sendSuccess(null);
+                    sendSuccess(callback, null);
                 } catch (IOException e) {
                     Log.e(LOGTAG, "Exception while creating channel", e);
                 }
 
                 GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Casting:Mirror", route.getId()));
             } else {
-                callback.sendError(status.toString());
+                sendError(callback, status.toString());
             }
         }
     }
 
+    @Override
     public void message(String msg, final EventCallback callback) {
         if (mMirrorChannel != null) {
             mMirrorChannel.sendMessage(msg);
         }
     }
 
+    @Override
     public void mirror(final EventCallback callback) {
         final CastDevice device = CastDevice.getFromBundle(route.getExtras());
         Cast.CastOptions.Builder apiOptionsBuilder = Cast.CastOptions.builder(device, new Cast.Listener() {
@@ -413,13 +470,14 @@ class ChromeCast implements GeckoMediaPlayer {
             .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
                     @Override
                     public void onConnected(Bundle connectionHint) {
-                        if (!apiClient.isConnected()) {
+                        // Sometimes apiClient is null here. See bug 1061032
+                        if (apiClient == null || !apiClient.isConnected()) {
                             return;
                         }
 
                         // Launch the media player app and launch this url once its loaded
                         try {
-                            Cast.CastApi.launchApplication(apiClient, MIRROR_RECIEVER_APP_ID, true)
+                            Cast.CastApi.launchApplication(apiClient, MIRROR_RECEIVER_APP_ID, true)
                                 .setResultCallback(new MirrorCallback(callback));
                         } catch (Exception e) {
                             debug("Failed to launch application", e);

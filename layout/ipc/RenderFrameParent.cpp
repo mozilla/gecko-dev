@@ -8,18 +8,23 @@
 #include "base/basictypes.h"
 
 #include "BasicLayers.h"
+#include "gfxPrefs.h"
 #ifdef MOZ_ENABLE_D3D9_LAYER
 # include "LayerManagerD3D9.h"
 #endif //MOZ_ENABLE_D3D9_LAYER
 #include "mozilla/BrowserElementParent.h"
+#include "mozilla/EventForwards.h"  // for Modifiers
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/TabParent.h"
 #include "mozilla/layers/APZCTreeManager.h"
+#include "mozilla/layers/APZThreadUtils.h"
 #include "mozilla/layers/CompositorParent.h"
 #include "mozilla/layers/LayerTransactionParent.h"
 #include "nsContentUtils.h"
+#include "nsFocusManager.h"
 #include "nsFrameLoader.h"
 #include "nsIObserver.h"
+#include "nsStyleStructInlines.h"
 #include "nsSubDocumentFrame.h"
 #include "nsView.h"
 #include "nsViewportFrame.h"
@@ -28,6 +33,10 @@
 #include "mozilla/layers/CompositorChild.h"
 #include "ClientLayerManager.h"
 #include "FrameLayerBuilder.h"
+
+#ifdef MOZ_ANDROID_APZ
+#include "AndroidBridge.h"
+#endif
 
 using namespace mozilla::dom;
 using namespace mozilla::gfx;
@@ -73,6 +82,9 @@ already_AddRefed<LayerManager>
 GetFrom(nsFrameLoader* aFrameLoader)
 {
   nsIDocument* doc = aFrameLoader->GetOwnerDoc();
+  if (!doc) {
+    return nullptr;
+  }
   return nsContentUtils::LayerManagerForDocument(doc);
 }
 
@@ -81,21 +93,37 @@ public:
   explicit RemoteContentController(RenderFrameParent* aRenderFrame)
     : mUILoop(MessageLoop::current())
     , mRenderFrame(aRenderFrame)
-    , mHaveZoomConstraints(false)
   { }
 
-  virtual void RequestContentRepaint(const FrameMetrics& aFrameMetrics) MOZ_OVERRIDE
+  virtual void RequestContentRepaint(const FrameMetrics& aFrameMetrics) override
   {
-    // We always need to post requests into the "UI thread" otherwise the
-    // requests may get processed out of order.
-    mUILoop->PostTask(
-      FROM_HERE,
-      NewRunnableMethod(this, &RemoteContentController::DoRequestContentRepaint,
-                        aFrameMetrics));
+    MOZ_ASSERT(NS_IsMainThread());
+    if (mRenderFrame) {
+      TabParent* browser = TabParent::GetFrom(mRenderFrame->Manager());
+      browser->UpdateFrame(aFrameMetrics);
+    }
+  }
+
+  virtual void RequestFlingSnap(const FrameMetrics::ViewID& aScrollId,
+                                const mozilla::CSSPoint& aDestination) override
+  {
+    if (MessageLoop::current() != mUILoop) {
+      // We have to send this message from the "UI thread" (main
+      // thread).
+      mUILoop->PostTask(
+        FROM_HERE,
+        NewRunnableMethod(this, &RemoteContentController::RequestFlingSnap,
+                          aScrollId, aDestination));
+      return;
+    }
+    if (mRenderFrame) {
+      TabParent* browser = TabParent::GetFrom(mRenderFrame->Manager());
+      browser->RequestFlingSnap(aScrollId, aDestination);
+    }
   }
 
   virtual void AcknowledgeScrollUpdate(const FrameMetrics::ViewID& aScrollId,
-                                       const uint32_t& aScrollGeneration) MOZ_OVERRIDE
+                                       const uint32_t& aScrollGeneration) override
   {
     if (MessageLoop::current() != mUILoop) {
       // We have to send this message from the "UI thread" (main
@@ -107,14 +135,14 @@ public:
       return;
     }
     if (mRenderFrame) {
-      TabParent* browser = static_cast<TabParent*>(mRenderFrame->Manager());
+      TabParent* browser = TabParent::GetFrom(mRenderFrame->Manager());
       browser->AcknowledgeScrollUpdate(aScrollId, aScrollGeneration);
     }
   }
 
   virtual void HandleDoubleTap(const CSSPoint& aPoint,
-                               int32_t aModifiers,
-                               const ScrollableLayerGuid& aGuid) MOZ_OVERRIDE
+                               Modifiers aModifiers,
+                               const ScrollableLayerGuid& aGuid) override
   {
     if (MessageLoop::current() != mUILoop) {
       // We have to send this message from the "UI thread" (main
@@ -126,14 +154,14 @@ public:
       return;
     }
     if (mRenderFrame) {
-      TabParent* browser = static_cast<TabParent*>(mRenderFrame->Manager());
+      TabParent* browser = TabParent::GetFrom(mRenderFrame->Manager());
       browser->HandleDoubleTap(aPoint, aModifiers, aGuid);
     }
   }
 
   virtual void HandleSingleTap(const CSSPoint& aPoint,
-                               int32_t aModifiers,
-                               const ScrollableLayerGuid& aGuid) MOZ_OVERRIDE
+                               Modifiers aModifiers,
+                               const ScrollableLayerGuid& aGuid) override
   {
     if (MessageLoop::current() != mUILoop) {
       // We have to send this message from the "UI thread" (main
@@ -145,14 +173,16 @@ public:
       return;
     }
     if (mRenderFrame) {
-      TabParent* browser = static_cast<TabParent*>(mRenderFrame->Manager());
+      mRenderFrame->TakeFocusForClickFromTap();
+      TabParent* browser = TabParent::GetFrom(mRenderFrame->Manager());
       browser->HandleSingleTap(aPoint, aModifiers, aGuid);
     }
   }
 
   virtual void HandleLongTap(const CSSPoint& aPoint,
-                             int32_t aModifiers,
-                             const ScrollableLayerGuid& aGuid) MOZ_OVERRIDE
+                             Modifiers aModifiers,
+                             const ScrollableLayerGuid& aGuid,
+                             uint64_t aInputBlockId) override
   {
     if (MessageLoop::current() != mUILoop) {
       // We have to send this message from the "UI thread" (main
@@ -160,69 +190,28 @@ public:
       mUILoop->PostTask(
         FROM_HERE,
         NewRunnableMethod(this, &RemoteContentController::HandleLongTap,
-                          aPoint, aModifiers, aGuid));
+                          aPoint, aModifiers, aGuid, aInputBlockId));
       return;
     }
     if (mRenderFrame) {
-      TabParent* browser = static_cast<TabParent*>(mRenderFrame->Manager());
-      browser->HandleLongTap(aPoint, aModifiers, aGuid);
-    }
-  }
-
-  virtual void HandleLongTapUp(const CSSPoint& aPoint,
-                               int32_t aModifiers,
-                               const ScrollableLayerGuid& aGuid) MOZ_OVERRIDE
-  {
-    if (MessageLoop::current() != mUILoop) {
-      // We have to send this message from the "UI thread" (main
-      // thread).
-      mUILoop->PostTask(
-        FROM_HERE,
-        NewRunnableMethod(this, &RemoteContentController::HandleLongTapUp,
-                          aPoint, aModifiers, aGuid));
-      return;
-    }
-    if (mRenderFrame) {
-      TabParent* browser = static_cast<TabParent*>(mRenderFrame->Manager());
-      browser->HandleLongTapUp(aPoint, aModifiers, aGuid);
+      TabParent* browser = TabParent::GetFrom(mRenderFrame->Manager());
+      browser->HandleLongTap(aPoint, aModifiers, aGuid, aInputBlockId);
     }
   }
 
   void ClearRenderFrame() { mRenderFrame = nullptr; }
 
-  virtual void SendAsyncScrollDOMEvent(bool aIsRoot,
-                                       const CSSRect& aContentRect,
-                                       const CSSSize& aContentSize) MOZ_OVERRIDE
+  virtual void PostDelayedTask(Task* aTask, int aDelayMs) override
   {
-    if (MessageLoop::current() != mUILoop) {
-      mUILoop->PostTask(
-        FROM_HERE,
-        NewRunnableMethod(this,
-                          &RemoteContentController::SendAsyncScrollDOMEvent,
-                          aIsRoot, aContentRect, aContentSize));
-      return;
-    }
-    if (mRenderFrame && aIsRoot) {
-      TabParent* browser = static_cast<TabParent*>(mRenderFrame->Manager());
-      BrowserElementParent::DispatchAsyncScrollEvent(browser, aContentRect,
-                                                     aContentSize);
-    }
+#ifdef MOZ_ANDROID_APZ
+    AndroidBridge::Bridge()->PostTaskToUiThread(aTask, aDelayMs);
+#else
+    (MessageLoop::current() ? MessageLoop::current() : mUILoop)->
+       PostDelayedTask(FROM_HERE, aTask, aDelayMs);
+#endif
   }
 
-  virtual void PostDelayedTask(Task* aTask, int aDelayMs) MOZ_OVERRIDE
-  {
-    MessageLoop::current()->PostDelayedTask(FROM_HERE, aTask, aDelayMs);
-  }
-
-  virtual bool GetRootZoomConstraints(ZoomConstraints* aOutConstraints)
-  {
-    if (mHaveZoomConstraints && aOutConstraints) {
-      *aOutConstraints = mZoomConstraints;
-    }
-    return mHaveZoomConstraints;
-  }
-
-  virtual bool GetTouchSensitiveRegion(CSSRect* aOutRegion)
+  virtual bool GetTouchSensitiveRegion(CSSRect* aOutRegion) override
   {
     if (mTouchSensitiveRegion.IsEmpty())
       return false;
@@ -233,7 +222,7 @@ public:
 
   virtual void NotifyAPZStateChange(const ScrollableLayerGuid& aGuid,
                                     APZStateChange aChange,
-                                    int aArg)
+                                    int aArg) override
   {
     if (MessageLoop::current() != mUILoop) {
       mUILoop->PostTask(
@@ -243,58 +232,65 @@ public:
       return;
     }
     if (mRenderFrame) {
-      TabParent* browser = static_cast<TabParent*>(mRenderFrame->Manager());
+      TabParent* browser = TabParent::GetFrom(mRenderFrame->Manager());
       browser->NotifyAPZStateChange(aGuid.mScrollId, aChange, aArg);
     }
   }
 
-  // Methods used by RenderFrameParent to set fields stored here.
+  void NotifyMozMouseScrollEvent(const FrameMetrics::ViewID& aScrollId, const nsString& aEvent) override {
+    if (MessageLoop::current() != mUILoop) {
+      mUILoop->PostTask(
+        FROM_HERE,
+        NewRunnableMethod(this, &RemoteContentController::NotifyMozMouseScrollEvent, aScrollId, aEvent));
+      return;
+    }
 
-  void SaveZoomConstraints(const ZoomConstraints& aConstraints)
-  {
-    mHaveZoomConstraints = true;
-    mZoomConstraints = aConstraints;
+    if (mRenderFrame) {
+      TabParent* browser = TabParent::GetFrom(mRenderFrame->Manager());
+      browser->NotifyMouseScrollTestEvent(aScrollId, aEvent);
+    }
   }
+
+  void NotifyFlushComplete() override {
+    MOZ_ASSERT(NS_IsMainThread());
+    if (mRenderFrame) {
+      TabParent* browser = TabParent::GetFrom(mRenderFrame->Manager());
+      browser->NotifyFlushComplete();
+    }
+  }
+
+  // Methods used by RenderFrameParent to set fields stored here.
 
   void SetTouchSensitiveRegion(const nsRegion& aRegion)
   {
     mTouchSensitiveRegion = aRegion;
   }
 private:
-  void DoRequestContentRepaint(const FrameMetrics& aFrameMetrics)
-  {
-    if (mRenderFrame) {
-      TabParent* browser = static_cast<TabParent*>(mRenderFrame->Manager());
-      browser->UpdateFrame(aFrameMetrics);
-    }
-  }
-
   MessageLoop* mUILoop;
   RenderFrameParent* mRenderFrame;
 
-  bool mHaveZoomConstraints;
-  ZoomConstraints mZoomConstraints;
   nsRegion mTouchSensitiveRegion;
 };
 
 RenderFrameParent::RenderFrameParent(nsFrameLoader* aFrameLoader,
-                                     ScrollingBehavior aScrollingBehavior,
                                      TextureFactoryIdentifier* aTextureFactoryIdentifier,
                                      uint64_t* aId,
                                      bool* aSuccess)
   : mLayersId(0)
   , mFrameLoader(aFrameLoader)
   , mFrameLoaderDestroyed(false)
-  , mBackgroundColor(gfxRGBA(1, 1, 1))
+  , mAsyncPanZoomEnabled(false)
 {
+  *aId = 0;
   *aSuccess = false;
   if (!mFrameLoader) {
     return;
   }
 
-  *aId = 0;
+  RefPtr<LayerManager> lm = GetFrom(mFrameLoader);
 
-  nsRefPtr<LayerManager> lm = GetFrom(mFrameLoader);
+  mAsyncPanZoomEnabled = lm && lm->AsyncPanZoomEnabled();
+
   // Perhaps the document containing this frame currently has no presentation?
   if (lm && lm->GetBackendType() == LayersBackend::LAYERS_CLIENT) {
     *aTextureFactoryIdentifier =
@@ -303,7 +299,7 @@ RenderFrameParent::RenderFrameParent(nsFrameLoader* aFrameLoader,
     *aTextureFactoryIdentifier = TextureFactoryIdentifier();
   }
 
-  if (XRE_GetProcessType() == GeckoProcessType_Default) {
+  if (XRE_IsParentProcess()) {
     // Our remote frame will push layers updates to the compositor,
     // and we'll keep an indirect reference to that tree.
     *aId = mLayersId = CompositorParent::AllocateLayerTreeId();
@@ -312,17 +308,15 @@ RenderFrameParent::RenderFrameParent(nsFrameLoader* aFrameLoader,
         static_cast<ClientLayerManager*>(lm.get());
       clientManager->GetRemoteRenderer()->SendNotifyChildCreated(mLayersId);
     }
-    if (aScrollingBehavior == ASYNC_PAN_ZOOM) {
+    if (mAsyncPanZoomEnabled) {
       mContentController = new RemoteContentController(this);
       CompositorParent::SetControllerForLayerTree(mLayersId, mContentController);
     }
-  } else if (XRE_GetProcessType() == GeckoProcessType_Content) {
+  } else if (XRE_IsContentProcess()) {
     ContentChild::GetSingleton()->SendAllocateLayerTreeId(aId);
     mLayersId = *aId;
     CompositorChild::Get()->SendNotifyChildCreated(mLayersId);
   }
-  // Set a default RenderFrameParent
-  mFrameLoader->SetCurrentRemoteFrame(this);
   *aSuccess = true;
 }
 
@@ -333,7 +327,11 @@ RenderFrameParent::GetApzcTreeManager()
   // created and the static getter knows which CompositorParent is
   // instantiated with this layers ID. That's why try to fetch it when
   // we first need it and cache the result.
-  if (!mApzcTreeManager) {
+  // Note: the IsParentProcess check is to deal with nested content process
+  // scenarios, since in those cases we can have RenderFrameParent instances
+  // in a child process, but the APZC machinery is not in that process. Bug
+  // 1020199 should fix this more comprehensively.
+  if (!mApzcTreeManager && mAsyncPanZoomEnabled && XRE_IsParentProcess()) {
     mApzcTreeManager = CompositorParent::GetAPZCTreeManager(mLayersId);
   }
   return mApzcTreeManager.get();
@@ -356,22 +354,24 @@ RenderFrameParent::BuildLayer(nsDisplayListBuilder* aBuilder,
                               nsDisplayItem* aItem,
                               const ContainerLayerParameters& aContainerParameters)
 {
-  NS_ABORT_IF_FALSE(aFrame,
-                    "makes no sense to have a shadow tree without a frame");
-  NS_ABORT_IF_FALSE(!mContainer ||
-                    IsTempLayerManager(aManager) ||
-                    mContainer->Manager() == aManager,
-                    "retaining manager changed out from under us ... HELP!");
+  MOZ_ASSERT(aFrame,
+             "makes no sense to have a shadow tree without a frame");
+  MOZ_ASSERT(!mContainer ||
+             IsTempLayerManager(aManager) ||
+             mContainer->Manager() == aManager,
+             "retaining manager changed out from under us ... HELP!");
 
   if (IsTempLayerManager(aManager) ||
       (mContainer && mContainer->Manager() != aManager)) {
     // This can happen if aManager is a "temporary" manager, or if the
     // widget's layer manager changed out from under us.  We need to
     // FIXME handle the former case somehow, probably with an API to
-    // draw a manager's subtree.  The latter is bad bad bad, but the
-    // the NS_ABORT_IF_FALSE() above will flag it.  Returning nullptr
-    // here will just cause the shadow subtree not to be rendered.
-    NS_WARNING("Remote iframe not rendered");
+    // draw a manager's subtree.  The latter is bad bad bad, but the the
+    // MOZ_ASSERT() above will flag it.  Returning nullptr here will just
+    // cause the shadow subtree not to be rendered.
+    if (!aContainerParameters.mForEventsOnly) {
+      NS_WARNING("Remote iframe not rendered");
+    }
     return nullptr;
   }
 
@@ -380,7 +380,7 @@ RenderFrameParent::BuildLayer(nsDisplayListBuilder* aBuilder,
     return nullptr;
   }
 
-  nsRefPtr<Layer> layer =
+  RefPtr<Layer> layer =
     (aManager->GetLayerBuilder()->GetLeafLayerFor(aBuilder, aItem));
   if (!layer) {
     layer = aManager->CreateRefLayer();
@@ -396,11 +396,10 @@ RenderFrameParent::BuildLayer(nsDisplayListBuilder* aBuilder,
   // container, but our display item is LAYER_ACTIVE_FORCE which
   // forces all layers above to be active.
   MOZ_ASSERT(aContainerParameters.mOffset == nsIntPoint());
-  gfx::Matrix4x4 m;
-  m.Translate(offset.x, offset.y, 0.0);
+  gfx::Matrix4x4 m = gfx::Matrix4x4::Translation(offset.x, offset.y, 0.0);
   // Remote content can't be repainted by us, so we multiply down
   // the resolution that our container expects onto our container.
-  m.Scale(aContainerParameters.mXScale, aContainerParameters.mYScale, 1.0);
+  m.PreScale(aContainerParameters.mXScale, aContainerParameters.mYScale, 1.0);
   layer->SetBaseTransform(m);
 
   return layer.forget();
@@ -409,25 +408,26 @@ RenderFrameParent::BuildLayer(nsDisplayListBuilder* aBuilder,
 void
 RenderFrameParent::OwnerContentChanged(nsIContent* aContent)
 {
-  NS_ABORT_IF_FALSE(mFrameLoader->GetOwnerContent() == aContent,
-                    "Don't build new map if owner is same!");
-}
+  MOZ_ASSERT(!mFrameLoader || mFrameLoader->GetOwnerContent() == aContent,
+             "Don't build new map if owner is same!");
 
-nsEventStatus
-RenderFrameParent::NotifyInputEvent(WidgetInputEvent& aEvent,
-                                    ScrollableLayerGuid* aOutTargetGuid)
-{
-  if (GetApzcTreeManager()) {
-    return GetApzcTreeManager()->ReceiveInputEvent(aEvent, aOutTargetGuid);
+  RefPtr<LayerManager> lm = mFrameLoader ? GetFrom(mFrameLoader) : nullptr;
+  // Perhaps the document containing this frame currently has no presentation?
+  if (lm && lm->GetBackendType() == LayersBackend::LAYERS_CLIENT) {
+    ClientLayerManager *clientManager =
+      static_cast<ClientLayerManager*>(lm.get());
+    clientManager->GetRemoteRenderer()->SendAdoptChild(mLayersId);
   }
-  return nsEventStatus_eIgnore;
+  // The APZCTreeManager associated with this RenderFrameParent may have changed
+  // so reset it and let GetApzcTreeManager() pick it up again.
+  mApzcTreeManager = nullptr;
 }
 
 void
 RenderFrameParent::ActorDestroy(ActorDestroyReason why)
 {
   if (mLayersId != 0) {
-    if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    if (XRE_IsContentProcess()) {
       ContentChild::GetSingleton()->SendDeallocateLayerTreeId(mLayersId);
     } else {
       CompositorParent::DeallocateLayerTreeId(mLayersId);
@@ -440,15 +440,6 @@ RenderFrameParent::ActorDestroy(ActorDestroyReason why)
     }
   }
 
-  if (mFrameLoader && mFrameLoader->GetCurrentRemoteFrame() == this) {
-    // XXX this might cause some weird issues ... we'll just not
-    // redraw the part of the window covered by this until the "next"
-    // remote frame has a layer-tree transaction.  For
-    // why==NormalShutdown, we'll definitely want to do something
-    // better, especially as nothing guarantees another Update() from
-    // the "next" remote layer tree.
-    mFrameLoader->SetCurrentRemoteFrame(nullptr);
-  }
   mFrameLoader = nullptr;
 }
 
@@ -476,8 +467,6 @@ RenderFrameParent::RecvUpdateHitRegion(const nsRegion& aRegion)
 void
 RenderFrameParent::TriggerRepaint()
 {
-  mFrameLoader->SetCurrentRemoteFrame(this);
-
   nsIFrame* docFrame = mFrameLoader->GetPrimaryFrameOfOwningContent();
   if (!docFrame) {
     // Bad, but nothing we can do about it (XXX/cjones: or is there?
@@ -526,28 +515,59 @@ RenderFrameParent::ZoomToRect(uint32_t aPresShellId, ViewID aViewId,
 }
 
 void
-RenderFrameParent::ContentReceivedTouch(const ScrollableLayerGuid& aGuid,
-                                        bool aPreventDefault)
+RenderFrameParent::ContentReceivedInputBlock(const ScrollableLayerGuid& aGuid,
+                                             uint64_t aInputBlockId,
+                                             bool aPreventDefault)
 {
   if (aGuid.mLayersId != mLayersId) {
     // Guard against bad data from hijacked child processes
-    NS_ERROR("Unexpected layers id in ContentReceivedTouch; dropping message...");
+    NS_ERROR("Unexpected layers id in ContentReceivedInputBlock; dropping message...");
     return;
   }
   if (GetApzcTreeManager()) {
-    GetApzcTreeManager()->ContentReceivedTouch(aGuid, aPreventDefault);
+    APZThreadUtils::RunOnControllerThread(NewRunnableMethod(
+        GetApzcTreeManager(), &APZCTreeManager::ContentReceivedInputBlock,
+        aInputBlockId, aPreventDefault));
+  }
+}
+
+void
+RenderFrameParent::SetTargetAPZC(uint64_t aInputBlockId,
+                                 const nsTArray<ScrollableLayerGuid>& aTargets)
+{
+  for (size_t i = 0; i < aTargets.Length(); i++) {
+    if (aTargets[i].mLayersId != mLayersId) {
+      // Guard against bad data from hijacked child processes
+      NS_ERROR("Unexpected layers id in SetTargetAPZC; dropping message...");
+      return;
+    }
+  }
+  if (GetApzcTreeManager()) {
+    // need a local var to disambiguate between the SetTargetAPZC overloads.
+    void (APZCTreeManager::*setTargetApzcFunc)(uint64_t, const nsTArray<ScrollableLayerGuid>&)
+        = &APZCTreeManager::SetTargetAPZC;
+    APZThreadUtils::RunOnControllerThread(NewRunnableMethod(
+        GetApzcTreeManager(), setTargetApzcFunc,
+        aInputBlockId, aTargets));
+  }
+}
+
+void
+RenderFrameParent::SetAllowedTouchBehavior(uint64_t aInputBlockId,
+                                           const nsTArray<TouchBehaviorFlags>& aFlags)
+{
+  if (GetApzcTreeManager()) {
+    APZThreadUtils::RunOnControllerThread(NewRunnableMethod(
+        GetApzcTreeManager(), &APZCTreeManager::SetAllowedTouchBehavior,
+        aInputBlockId, aFlags));
   }
 }
 
 void
 RenderFrameParent::UpdateZoomConstraints(uint32_t aPresShellId,
                                          ViewID aViewId,
-                                         bool aIsRoot,
-                                         const ZoomConstraints& aConstraints)
+                                         const Maybe<ZoomConstraints>& aConstraints)
 {
-  if (mContentController && aIsRoot) {
-    mContentController->SaveZoomConstraints(aConstraints);
-  }
   if (GetApzcTreeManager()) {
     GetApzcTreeManager()->UpdateZoomConstraints(ScrollableLayerGuid(mLayersId, aPresShellId, aViewId),
                                                 aConstraints);
@@ -560,8 +580,75 @@ RenderFrameParent::HitTest(const nsRect& aRect)
   return mTouchRegion.Contains(aRect);
 }
 
-}  // namespace layout
-}  // namespace mozilla
+void
+RenderFrameParent::StartScrollbarDrag(const AsyncDragMetrics& aDragMetrics)
+{
+  if (GetApzcTreeManager()) {
+    uint64_t layersId = GetLayersId();
+    ScrollableLayerGuid guid(layersId, aDragMetrics.mPresShellId,
+                             aDragMetrics.mViewId);
+
+    APZThreadUtils::RunOnControllerThread(
+      NewRunnableMethod(GetApzcTreeManager(),
+                        &APZCTreeManager::StartScrollbarDrag,
+                        guid, aDragMetrics));
+  }
+}
+
+void
+RenderFrameParent::GetTextureFactoryIdentifier(TextureFactoryIdentifier* aTextureFactoryIdentifier)
+{
+  RefPtr<LayerManager> lm = mFrameLoader ? GetFrom(mFrameLoader) : nullptr;
+  // Perhaps the document containing this frame currently has no presentation?
+  if (lm && lm->GetBackendType() == LayersBackend::LAYERS_CLIENT) {
+    *aTextureFactoryIdentifier =
+      static_cast<ClientLayerManager*>(lm.get())->GetTextureFactoryIdentifier();
+  } else {
+    *aTextureFactoryIdentifier = TextureFactoryIdentifier();
+  }
+}
+
+void
+RenderFrameParent::TakeFocusForClickFromTap()
+{
+  nsIFocusManager* fm = nsFocusManager::GetFocusManager();
+  if (!fm) {
+    return;
+  }
+  nsCOMPtr<nsIContent> owner = mFrameLoader->GetOwnerContent();
+  if (!owner) {
+    return;
+  }
+  nsCOMPtr<nsIDOMElement> element = do_QueryInterface(owner);
+  if (!element) {
+    return;
+  }
+  fm->SetFocus(element, nsIFocusManager::FLAG_BYMOUSE |
+                        nsIFocusManager::FLAG_BYTOUCH |
+                        nsIFocusManager::FLAG_NOSCROLL);
+}
+
+} // namespace layout
+} // namespace mozilla
+
+nsDisplayRemote::nsDisplayRemote(nsDisplayListBuilder* aBuilder,
+                                 nsSubDocumentFrame* aFrame,
+                                 RenderFrameParent* aRemoteFrame)
+  : nsDisplayItem(aBuilder, aFrame)
+  , mRemoteFrame(aRemoteFrame)
+  , mEventRegionsOverride(EventRegionsOverride::NoOverride)
+{
+  if (aBuilder->IsBuildingLayerEventRegions()) {
+    bool frameIsPointerEventsNone = !aFrame->PassPointerEventsToChildren()
+        && (aFrame->StyleVisibility()->GetEffectivePointerEvents(aFrame) == NS_STYLE_POINTER_EVENTS_NONE);
+    if (aBuilder->IsInsidePointerEventsNoneDoc() || frameIsPointerEventsNone) {
+      mEventRegionsOverride |= EventRegionsOverride::ForceEmptyHitRegion;
+    }
+    if (nsLayoutUtils::HasDocumentLevelListenersForApzAwareEvents(aFrame->PresContext()->PresShell())) {
+      mEventRegionsOverride |= EventRegionsOverride::ForceDispatchToContent;
+    }
+  }
+}
 
 already_AddRefed<Layer>
 nsDisplayRemote::BuildLayer(nsDisplayListBuilder* aBuilder,
@@ -571,7 +658,10 @@ nsDisplayRemote::BuildLayer(nsDisplayListBuilder* aBuilder,
   int32_t appUnitsPerDevPixel = mFrame->PresContext()->AppUnitsPerDevPixel();
   nsIntRect visibleRect = GetVisibleRect().ToNearestPixels(appUnitsPerDevPixel);
   visibleRect += aContainerParameters.mOffset;
-  nsRefPtr<Layer> layer = mRemoteFrame->BuildLayer(aBuilder, mFrame, aManager, visibleRect, this, aContainerParameters);
+  RefPtr<Layer> layer = mRemoteFrame->BuildLayer(aBuilder, mFrame, aManager, visibleRect, this, aContainerParameters);
+  if (layer && layer->AsContainerLayer()) {
+    layer->AsContainerLayer()->SetEventRegionsOverride(mEventRegionsOverride);
+  }
   return layer.forget();
 }
 

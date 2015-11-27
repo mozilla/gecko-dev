@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
 module.metadata = {
@@ -17,7 +16,7 @@ const method = require("method/core");
 // and all the XUL nodes share same type / prototype.
 // Probably this is more generic and belongs some place else, but
 // we can move it later once this will be relevant.
-let dispatcher = hint => {
+var dispatcher = hint => {
   const base = method(hint);
   // Make a map for storing predicate, implementation mappings.
   let implementations = new Map();

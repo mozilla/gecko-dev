@@ -5,26 +5,23 @@
 
 package org.mozilla.gecko;
 
-import org.mozilla.gecko.gfx.BitmapUtils;
-import org.mozilla.gecko.util.GeckoEventListener;
+import java.util.HashMap;
+import java.util.Iterator;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.mozilla.gecko.gfx.BitmapUtils;
+import org.mozilla.gecko.mozglue.ContextUtils.SafeIntent;
+import org.mozilla.gecko.util.GeckoEventListener;
 
-import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.content.BroadcastReceiver;
-import android.content.IntentFilter;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
-
-import java.util.Iterator;
-import java.util.HashMap;
 
 public final class NotificationHelper implements GeckoEventListener {
     public static final String HELPER_BROADCAST_ACTION = AppConstants.ANDROID_PACKAGE_NAME + ".helperBroadcastAction";
@@ -64,7 +61,7 @@ public final class NotificationHelper implements GeckoEventListener {
     private static final String CLEARED_EVENT = "notification-cleared";
     private static final String CLOSED_EVENT = "notification-closed";
 
-    private Context mContext;
+    private final Context mContext;
 
     // Holds a list of notifications that should be cleared if the Fennec Activity is shut down.
     // Will not include ongoing or persistent notifications that are tied to Gecko's lifecycle.
@@ -110,7 +107,7 @@ public final class NotificationHelper implements GeckoEventListener {
         return i.getBooleanExtra(HELPER_NOTIFICATION, false);
     }
 
-    public void handleNotificationIntent(Intent i) {
+    public void handleNotificationIntent(SafeIntent i) {
         final Uri data = i.getData();
         if (data == null) {
             Log.e(LOGTAG, "handleNotificationEvent: empty data");
@@ -128,14 +125,14 @@ public final class NotificationHelper implements GeckoEventListener {
             mClearableNotifications.remove(id);
             // If Gecko isn't running, we throw away events where the notification was cancelled.
             // i.e. Don't bug the user if they're just closing a bunch of notifications.
-            if (!GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning)) {
+            if (!GeckoThread.isRunning()) {
                 return;
             }
         }
 
         JSONObject args = new JSONObject();
 
-        // The handler and cookie parameters are optional
+        // The handler and cookie parameters are optional.
         final String handler = data.getQueryParameter(HANDLER_ATTR);
         final String cookie = i.getStringExtra(COOKIE_ATTR);
 
@@ -195,6 +192,7 @@ public final class NotificationHelper implements GeckoEventListener {
         notificationIntent.setData(dataUri);
         notificationIntent.putExtra(HELPER_NOTIFICATION, true);
         notificationIntent.putExtra(COOKIE_ATTR, message.optString(COOKIE_ATTR));
+        notificationIntent.setClass(mContext, GeckoAppShell.getGeckoInterface().getActivity().getClass());
         return notificationIntent;
     }
 

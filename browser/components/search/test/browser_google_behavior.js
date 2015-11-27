@@ -7,52 +7,15 @@
 
 "use strict";
 
-const BROWSER_SEARCH_PREF      = "browser.search.";
-
-const MOZ_PARAM_LOCALE         = /\{moz:locale\}/g;
-const MOZ_PARAM_DIST_ID        = /\{moz:distributionID\}/g;
-const MOZ_PARAM_OFFICIAL       = /\{moz:official\}/g;
-
-let runtime = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime);
-// Custom search parameters
-const MOZ_OFFICIAL = runtime.isOfficialBranding ? "official" : "unofficial";
-
-var google_client;
-switch (runtime.defaultUpdateChannel) {
-case "beta":
-  google_client = "firefox-beta";
-  break;
-case "aurora":
-  google_client = "firefox-aurora";
-  break;
-case "nightly":
-  google_client = "firefox-nightly";
-  break;
-default:
-  google_client = "firefox-a";
-  break;
-}
-
-const GOOGLE_CLIENT = google_client;
-const MOZ_DISTRIBUTION_ID = runtime.distributionID;
-
 function test() {
   let engine = Services.search.getEngineByName("Google");
   ok(engine, "Google is installed");
 
-  is(Services.search.defaultEngine, engine, "Check that Google is the default search engine");
+  let previouslySelectedEngine = Services.search.currentEngine;
+  Services.search.currentEngine = engine;
+  engine.alias = "g";
 
-  let distributionID;
-  try {
-    distributionID = Services.prefs.getCharPref(BROWSER_SEARCH_PREF + "distributionID");
-  } catch (ex) {
-    distributionID = MOZ_DISTRIBUTION_ID;
-  }
-
-  let base = "https://www.google.com/search?q=foo&ie=utf-8&oe=utf-8&aq=t&rls={moz:distributionID}:{moz:locale}:{moz:official}&client=" + GOOGLE_CLIENT;
-  base = base.replace(MOZ_PARAM_LOCALE, getLocale());
-  base = base.replace(MOZ_PARAM_DIST_ID, distributionID);
-  base = base.replace(MOZ_PARAM_OFFICIAL, MOZ_OFFICIAL);
+  let base = "https://www.google.com/search?q=foo&ie=utf-8&oe=utf-8";
 
   let url;
 
@@ -66,7 +29,7 @@ function test() {
   var gTests = [
     {
       name: "context menu search",
-      searchURL: base + "&channel=rcs",
+      searchURL: base,
       run: function () {
         // Simulate a contextmenu search
         // FIXME: This is a bit "low-level"...
@@ -75,7 +38,7 @@ function test() {
     },
     {
       name: "keyword search",
-      searchURL: base + "&channel=fflb",
+      searchURL: base,
       run: function () {
         gURLBar.value = "? foo";
         gURLBar.focus();
@@ -83,8 +46,17 @@ function test() {
       }
     },
     {
+      name: "keyword search",
+      searchURL: base,
+      run: function () {
+        gURLBar.value = "g foo";
+        gURLBar.focus();
+        EventUtils.synthesizeKey("VK_RETURN", {});
+      }
+    },
+    {
       name: "search bar search",
-      searchURL: base + "&channel=sb",
+      searchURL: base,
       run: function () {
         let sb = BrowserSearch.searchBar;
         sb.focus();
@@ -97,7 +69,7 @@ function test() {
     },
     {
       name: "new tab search",
-      searchURL: base + "&channel=nts",
+      searchURL: base,
       run: function () {
         function doSearch(doc) {
           // Re-add the listener, and perform a search
@@ -138,49 +110,10 @@ function test() {
           }
         }, true);
       }
-    },
-    {
-      name: "home page search",
-      searchURL: base + "&channel=np&source=hp",
-      run: function () {
-        // Bug 992270: Ignore uncaught about:home exceptions (related to snippets from IndexedDB)
-        ignoreAllUncaughtExceptions(true);
-
-        // load about:home, but remove the listener first so it doesn't
-        // get in the way
-        gBrowser.removeProgressListener(listener);
-        gBrowser.loadURI("about:home");
-        info("Waiting for about:home load");
-        tab.linkedBrowser.addEventListener("load", function load(event) {
-          if (event.originalTarget != tab.linkedBrowser.contentDocument ||
-              event.target.location.href == "about:blank") {
-            info("skipping spurious load event");
-            return;
-          }
-          tab.linkedBrowser.removeEventListener("load", load, true);
-
-          // Observe page setup
-          let doc = gBrowser.contentDocument;
-          let mutationObserver = new MutationObserver(function (mutations) {
-            for (let mutation of mutations) {
-              if (mutation.attributeName == "searchEngineName") {
-                // Re-add the listener, and perform a search
-                gBrowser.addProgressListener(listener);
-                doc.getElementById("searchText").value = "foo";
-                doc.getElementById("searchSubmit").click();
-              }
-            }
-          });
-          mutationObserver.observe(doc.documentElement, { attributes: true });
-        }, true);
-      }
     }
   ];
 
   function nextTest() {
-    // Make sure we listen again for uncaught exceptions in the next test or cleanup.
-    ignoreAllUncaughtExceptions(false);
-
     if (gTests.length) {
       gCurrTest = gTests.shift();
       info("Running : " + gCurrTest.name);
@@ -214,8 +147,10 @@ function test() {
   }
 
   registerCleanupFunction(function () {
+    engine.alias = undefined;
     gBrowser.removeProgressListener(listener);
     gBrowser.removeTab(tab);
+    Services.search.currentEngine = previouslySelectedEngine;
   });
 
   tab.linkedBrowser.addEventListener("load", function load() {

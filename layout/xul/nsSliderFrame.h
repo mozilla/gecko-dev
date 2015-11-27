@@ -14,13 +14,12 @@
 #include "nsITimer.h"
 #include "nsIDOMEventListener.h"
 
-class nsString;
 class nsITimer;
 class nsSliderFrame;
 
 nsIFrame* NS_NewSliderFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 
-class nsSliderMediator MOZ_FINAL : public nsIDOMEventListener
+class nsSliderMediator final : public nsIDOMEventListener
 {
 public:
 
@@ -32,7 +31,7 @@ public:
 
   virtual void SetSlider(nsSliderFrame* aSlider) { mSlider = aSlider; }
 
-  NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent) MOZ_OVERRIDE;
+  NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent) override;
 
 protected:
   virtual ~nsSliderMediator() {}
@@ -47,59 +46,61 @@ public:
 
   friend class nsSliderMediator;
 
-  nsSliderFrame(nsIPresShell* aShell, nsStyleContext* aContext);
+  explicit nsSliderFrame(nsStyleContext* aContext);
   virtual ~nsSliderFrame();
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE {
+  virtual nsresult GetFrameName(nsAString& aResult) const override {
     return MakeFrameName(NS_LITERAL_STRING("SliderFrame"), aResult);
   }
 #endif
 
-  virtual nsSize GetPrefSize(nsBoxLayoutState& aBoxLayoutState) MOZ_OVERRIDE;
-  virtual nsSize GetMinSize(nsBoxLayoutState& aBoxLayoutState) MOZ_OVERRIDE;
-  virtual nsSize GetMaxSize(nsBoxLayoutState& aBoxLayoutState) MOZ_OVERRIDE;
-  NS_IMETHOD DoLayout(nsBoxLayoutState& aBoxLayoutState) MOZ_OVERRIDE;
+  virtual nsSize GetPrefSize(nsBoxLayoutState& aBoxLayoutState) override;
+  virtual nsSize GetMinSize(nsBoxLayoutState& aBoxLayoutState) override;
+  virtual nsSize GetMaxSize(nsBoxLayoutState& aBoxLayoutState) override;
+  NS_IMETHOD DoLayout(nsBoxLayoutState& aBoxLayoutState) override;
 
   // nsIFrame overrides
-  virtual void DestroyFrom(nsIFrame* aDestructRoot) MOZ_OVERRIDE;
+  virtual void DestroyFrom(nsIFrame* aDestructRoot) override;
 
   virtual void BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
                                            const nsRect&           aDirtyRect,
-                                           const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+                                           const nsDisplayListSet& aLists) override;
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
+                                const nsDisplayListSet& aLists) override;
  
   virtual nsresult AttributeChanged(int32_t aNameSpaceID,
                                     nsIAtom* aAttribute,
-                                    int32_t aModType) MOZ_OVERRIDE;
+                                    int32_t aModType) override;
 
   virtual void Init(nsIContent*       aContent,
                     nsContainerFrame* aParent,
-                    nsIFrame*         asPrevInFlow) MOZ_OVERRIDE;
+                    nsIFrame*         asPrevInFlow) override;
 
 
   virtual nsresult HandleEvent(nsPresContext* aPresContext,
                                mozilla::WidgetGUIEvent* aEvent,
-                               nsEventStatus* aEventStatus) MOZ_OVERRIDE;
+                               nsEventStatus* aEventStatus) override;
 
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
 
   // nsContainerFrame overrides
   virtual void SetInitialChildList(ChildListID     aListID,
-                                   nsFrameList&    aChildList) MOZ_OVERRIDE;
+                                   nsFrameList&    aChildList) override;
   virtual void AppendFrames(ChildListID     aListID,
-                            nsFrameList&    aFrameList) MOZ_OVERRIDE;
+                            nsFrameList&    aFrameList) override;
   virtual void InsertFrames(ChildListID     aListID,
                             nsIFrame*       aPrevFrame,
-                            nsFrameList&    aFrameList) MOZ_OVERRIDE;
+                            nsFrameList&    aFrameList) override;
   virtual void RemoveFrame(ChildListID     aListID,
-                           nsIFrame*       aOldFrame) MOZ_OVERRIDE;
+                           nsIFrame*       aOldFrame) override;
 
   nsresult StartDrag(nsIDOMEvent* aEvent);
   nsresult StopDrag();
+
+  bool StartAPZDrag(mozilla::WidgetGUIEvent* aEvent);
 
   static int32_t GetCurrentPosition(nsIContent* content);
   static int32_t GetMinPosition(nsIContent* content);
@@ -111,26 +112,30 @@ public:
 
   NS_IMETHOD HandlePress(nsPresContext* aPresContext,
                          mozilla::WidgetGUIEvent* aEvent,
-                         nsEventStatus* aEventStatus) MOZ_OVERRIDE;
+                         nsEventStatus* aEventStatus) override;
 
   NS_IMETHOD HandleMultiplePress(nsPresContext* aPresContext,
                                  mozilla::WidgetGUIEvent* aEvent,
                                  nsEventStatus* aEventStatus,
-                                 bool aControlHeld) MOZ_OVERRIDE
+                                 bool aControlHeld) override
   {
     return NS_OK;
   }
 
   NS_IMETHOD HandleDrag(nsPresContext* aPresContext,
                         mozilla::WidgetGUIEvent* aEvent,
-                        nsEventStatus* aEventStatus) MOZ_OVERRIDE
+                        nsEventStatus* aEventStatus) override
   {
     return NS_OK;
   }
 
   NS_IMETHOD HandleRelease(nsPresContext* aPresContext,
                            mozilla::WidgetGUIEvent* aEvent,
-                           nsEventStatus* aEventStatus) MOZ_OVERRIDE;
+                           nsEventStatus* aEventStatus) override;
+
+  // Return the ratio the scrollbar thumb should move in proportion to the
+  // scrolled frame.
+  float GetThumbRatio() const;
 
 private:
 
@@ -166,7 +171,7 @@ private:
   void PageScroll(nscoord aChange);
  
   nsPoint mDestinationPoint;
-  nsRefPtr<nsSliderMediator> mMediator;
+  RefPtr<nsSliderMediator> mMediator;
 
   float mRatio;
 
@@ -183,6 +188,12 @@ private:
   // slider. This allows notifications to tell how a slider's current position
   // was changed.
   bool mUserChanged;
+
+  // true if we've handed off the scrolling to APZ. This means that we should
+  // ignore scrolling events as the position will be updated by APZ. If we were
+  // to process these events then the scroll position update would conflict
+  // causing the scroll position to jump.
+  bool mScrollingWithAPZ;
 
   static bool gMiddlePref;
   static int32_t gSnapMultiplier;

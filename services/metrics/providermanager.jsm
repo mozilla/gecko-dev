@@ -101,14 +101,16 @@ this.ProviderManager.prototype = Object.freeze({
    *
    * @param category
    *        (string) Name of category from which to query and load.
+   * @param providerDiagnostic
+   *        (function) Optional, called with the name of the provider currently being initialized.
    * @return a newly spawned Task.
    */
-  registerProvidersFromCategoryManager: function (category) {
+  registerProvidersFromCategoryManager: function (category, providerDiagnostic) {
     this._log.info("Registering providers from category: " + category);
     let cm = Cc["@mozilla.org/categorymanager;1"]
                .getService(Ci.nsICategoryManager);
 
-    let promises = [];
+    let promiseList = [];
     let enumerator = cm.enumerateCategory(category);
     while (enumerator.hasMoreElements()) {
       let entry = enumerator.getNext()
@@ -125,7 +127,7 @@ this.ProviderManager.prototype = Object.freeze({
 
         let promise = this.registerProviderFromType(ns[entry]);
         if (promise) {
-          promises.push(promise);
+          promiseList.push({name: entry, promise: promise});
         }
       } catch (ex) {
         this._recordProviderError(entry,
@@ -135,9 +137,12 @@ this.ProviderManager.prototype = Object.freeze({
       }
     }
 
-    return Task.spawn(function wait() {
-      for (let promise of promises) {
-        yield promise;
+    return Task.spawn(function* wait() {
+      for (let entry of promiseList) {
+        if (providerDiagnostic) {
+          providerDiagnostic(entry.name);
+        }
+        yield entry.promise;
       }
     });
   },
@@ -277,7 +282,8 @@ this.ProviderManager.prototype = Object.freeze({
         }
       }
 
-      for each (let providerType in this._pullOnlyProviders) {
+      for (let name in this._pullOnlyProviders) {
+        let providerType = this._pullOnlyProviders[name];
         // Short-circuit if we're no longer registering.
         if (this._pullOnlyProvidersState != this.PULL_ONLY_REGISTERING) {
           this._log.debug("Aborting pull-only provider registration.");
@@ -431,8 +437,11 @@ this.ProviderManager.prototype = Object.freeze({
    * provided their constant data. A side-effect of this promise fulfillment
    * is that the manager is populated with the obtained collection results.
    * The resolved value to the promise is this `ProviderManager` instance.
+   *
+   * @param providerDiagnostic
+   *        (function) Optional, called with the name of the provider currently being initialized.
    */
-  collectConstantData: function () {
+  collectConstantData: function (providerDiagnostic=null) {
     let entries = [];
 
     for (let [name, entry] of this._providers) {
@@ -450,18 +459,20 @@ this.ProviderManager.prototype = Object.freeze({
     };
 
     return this._callCollectOnProviders(entries, "collectConstantData",
-                                        onCollect);
+                                        onCollect, providerDiagnostic);
   },
 
   /**
    * Calls collectDailyData on all providers.
    */
-  collectDailyData: function () {
+  collectDailyData: function (providerDiagnostic=null) {
     return this._callCollectOnProviders(this._providers.values(),
-                                        "collectDailyData");
+                                        "collectDailyData",
+                                        null,
+                                        providerDiagnostic);
   },
 
-  _callCollectOnProviders: function (entries, fnProperty, onCollect=null) {
+  _callCollectOnProviders: function (entries, fnProperty, onCollect=null, providerDiagnostic=null) {
     let promises = [];
 
     for (let entry of entries) {
@@ -497,7 +508,7 @@ this.ProviderManager.prototype = Object.freeze({
       promises.push([provider.name, promise]);
     }
 
-    return this._handleCollectionPromises(promises);
+    return this._handleCollectionPromises(promises, providerDiagnostic);
   },
 
   /**
@@ -509,9 +520,13 @@ this.ProviderManager.prototype = Object.freeze({
    * The promise is resolved even if one of the underlying collection
    * promises is rejected.
    */
-  _handleCollectionPromises: function (promises) {
+  _handleCollectionPromises: function (promises, providerDiagnostic=null) {
     return Task.spawn(function waitForPromises() {
       for (let [name, promise] of promises) {
+        if (providerDiagnostic) {
+          providerDiagnostic(name);
+        }
+
         try {
           yield promise;
           this._log.debug("Provider collected successfully: " + name);

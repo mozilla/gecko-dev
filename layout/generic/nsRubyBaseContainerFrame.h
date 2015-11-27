@@ -10,9 +10,6 @@
 #define nsRubyBaseContainerFrame_h___
 
 #include "nsContainerFrame.h"
-#include "nsRubyTextContainerFrame.h"
-#include "nsRubyBaseFrame.h"
-#include "nsRubyTextFrame.h"
 
 /**
  * Factory function.
@@ -21,7 +18,11 @@
 nsContainerFrame* NS_NewRubyBaseContainerFrame(nsIPresShell* aPresShell,
                                                nsStyleContext* aContext);
 
-class nsRubyBaseContainerFrame MOZ_FINAL : public nsContainerFrame
+namespace mozilla {
+struct RubyColumn;
+} // namespace mozilla
+
+class nsRubyBaseContainerFrame final : public nsContainerFrame
 {
 public:
   NS_DECL_FRAMEARENA_HELPERS
@@ -29,33 +30,59 @@ public:
   NS_DECL_QUERYFRAME
 
   // nsIFrame overrides
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
-  virtual bool IsFrameOfType(uint32_t aFlags) const MOZ_OVERRIDE;
-  virtual bool CanContinueTextRun() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
+  virtual bool IsFrameOfType(uint32_t aFlags) const override;
+  virtual bool CanContinueTextRun() const override;
+  virtual void AddInlineMinISize(nsRenderingContext *aRenderingContext,
+                                 InlineMinISizeData *aData) override;
+  virtual void AddInlinePrefISize(nsRenderingContext *aRenderingContext,
+                                  InlinePrefISizeData *aData) override;
+  virtual mozilla::LogicalSize
+    ComputeSize(nsRenderingContext *aRenderingContext,
+                mozilla::WritingMode aWritingMode,
+                const mozilla::LogicalSize& aCBSize,
+                nscoord aAvailableISize,
+                const mozilla::LogicalSize& aMargin,
+                const mozilla::LogicalSize& aBorder,
+                const mozilla::LogicalSize& aPadding,
+                ComputeSizeFlags aFlags) override;
   virtual void Reflow(nsPresContext* aPresContext,
                       nsHTMLReflowMetrics& aDesiredSize,
                       const nsHTMLReflowState& aReflowState,
-                      nsReflowStatus& aStatus) MOZ_OVERRIDE;
+                      nsReflowStatus& aStatus) override;
+
+  virtual nscoord
+    GetLogicalBaseline(mozilla::WritingMode aWritingMode) const override;
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
+  virtual nsresult GetFrameName(nsAString& aResult) const override;
 #endif
-
-  void AppendTextContainer(nsIFrame* aFrame);
-  void ClearTextContainers();
 
 protected:
   friend nsContainerFrame*
     NS_NewRubyBaseContainerFrame(nsIPresShell* aPresShell,
                                  nsStyleContext* aContext);
   explicit nsRubyBaseContainerFrame(nsStyleContext* aContext) : nsContainerFrame(aContext) {}
-  /*
-   * The ruby text containers that belong to the ruby segment defined by
-   * this ruby base container. These text containers are located at the start
-   * of reflow for the ruby frame (parent) and cleared at the end of that
-   * reflow.
-   */
-  nsTArray<nsRubyTextContainerFrame*> mTextContainers;
+
+  struct ReflowState;
+  nscoord ReflowColumns(const ReflowState& aReflowState,
+                        nsReflowStatus& aStatus);
+  nscoord ReflowOneColumn(const ReflowState& aReflowState,
+                          uint32_t aColumnIndex,
+                          const mozilla::RubyColumn& aColumn,
+                          nsReflowStatus& aStatus);
+  nscoord ReflowSpans(const ReflowState& aReflowState);
+
+  struct PullFrameState;
+
+  // Pull ruby base and corresponding ruby text frames from
+  // continuations after them.
+  void PullOneColumn(nsLineLayout* aLineLayout,
+                     PullFrameState& aPullFrameState,
+                     mozilla::RubyColumn& aColumn,
+                     bool& aIsComplete);
+
+  nscoord mBaseline;
 };
 
 #endif /* nsRubyBaseContainerFrame_h___ */

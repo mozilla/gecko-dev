@@ -7,6 +7,7 @@ package org.mozilla.gecko.db;
 import java.io.File;
 import java.util.HashMap;
 
+import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.gecko.GeckoThread;
 import org.mozilla.gecko.Telemetry;
@@ -97,6 +98,10 @@ public abstract class SQLiteBridgeContentProvider extends ContentProvider {
             }
             mDatabasePerProfile = null;
         }
+
+        if (AppConstants.Versions.feature11Plus) {
+            super.shutdown();
+        }
     }
 
     @Override
@@ -137,7 +142,7 @@ public abstract class SQLiteBridgeContentProvider extends ContentProvider {
 
             // if Gecko is not running, we should bail out. Otherwise we try to
             // let Gecko build the database for us
-            if (!GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning)) {
+            if (!GeckoThread.isRunning()) {
                 Log.e(mLogTag, "Can not set up database. Gecko is not running");
                 return null;
             }
@@ -446,7 +451,7 @@ public abstract class SQLiteBridgeContentProvider extends ContentProvider {
             return;
         }
 
-        Telemetry.HistogramAdd(histogram, op.getBucket());
+        Telemetry.addToHistogram(histogram, op.getBucket());
     }
 
     protected abstract String getDBName();

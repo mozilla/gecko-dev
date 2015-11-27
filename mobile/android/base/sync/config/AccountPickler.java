@@ -102,8 +102,8 @@ public class AccountPickler {
       final SyncAccountParameters params, final boolean syncAutomatically) {
     final ExtendedJSONObject o = params.asJSON();
     o.put(Constants.JSON_KEY_SYNC_AUTOMATICALLY, Boolean.valueOf(syncAutomatically));
-    o.put(Constants.JSON_KEY_VERSION, new Long(VERSION));
-    o.put(Constants.JSON_KEY_TIMESTAMP, new Long(System.currentTimeMillis()));
+    o.put(Constants.JSON_KEY_VERSION, Long.valueOf(VERSION));
+    o.put(Constants.JSON_KEY_TIMESTAMP, Long.valueOf(System.currentTimeMillis()));
 
     PrintStream ps = null;
     try {
@@ -171,8 +171,8 @@ public class AccountPickler {
     Integer timestamp = json.getIntegerSafely(Constants.JSON_KEY_TIMESTAMP);
     if (version == null || timestamp == null) {
       Logger.warn(LOG_TAG, "Did not find version or timestamp in pickle file; ignoring.");
-      version = new Integer(-1);
-      timestamp = new Integer(-1);
+      version = -1;
+      timestamp = -1;
     }
 
     Logger.info(LOG_TAG, "Un-pickled Android account named " + params.username + " (version " + version + ", pickled at " + timestamp + ").");

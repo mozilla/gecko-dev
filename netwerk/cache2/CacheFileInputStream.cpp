@@ -444,7 +444,7 @@ CacheFileInputStream::ReleaseChunk()
     mWaitingForUpdate = false;
   }
 
-  mFile->ReleaseOutsideLock(mChunk.forget().take());
+  mFile->ReleaseOutsideLock(mChunk.forget());
 }
 
 void
@@ -631,5 +631,5 @@ CacheFileInputStream::SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) co
   return mallocSizeOf(this);
 }
 
-} // net
-} // mozilla
+} // namespace net
+} // namespace mozilla

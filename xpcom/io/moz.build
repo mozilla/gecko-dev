@@ -9,6 +9,7 @@ XPIDL_SOURCES += [
     'nsIAsyncOutputStream.idl',
     'nsIBinaryInputStream.idl',
     'nsIBinaryOutputStream.idl',
+    'nsICloneableInputStream.idl',
     'nsIConverterInputStream.idl',
     'nsIConverterOutputStream.idl',
     'nsIDirectoryEnumerator.idl',
@@ -83,10 +84,14 @@ EXPORTS += [
 
 EXPORTS.mozilla += [
     'Base64.h',
+    'SnappyCompressOutputStream.h',
+    'SnappyFrameUtils.h',
+    'SnappyUncompressInputStream.h',
 ]
 
 UNIFIED_SOURCES += [
     'Base64.cpp',
+    'crc32c.c',
     'nsAnonymousTemporaryFile.cpp',
     'nsAppFileLocationProvider.cpp',
     'nsBinaryStream.cpp',
@@ -107,6 +112,9 @@ UNIFIED_SOURCES += [
     'nsStringStream.cpp',
     'nsUnicharInputStream.cpp',
     'nsWildCard.cpp',
+    'SnappyCompressOutputStream.cpp',
+    'SnappyFrameUtils.cpp',
+    'SnappyUncompressInputStream.cpp',
     'SpecialSystemDirectory.cpp',
 ]
 
@@ -115,9 +123,9 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
         'CocoaFileUtils.mm',
     ]
 
-FAIL_ON_WARNINGS = True
-
-MSVC_ENABLE_PGO = True
+if CONFIG['GNU_CC']:
+    CFLAGS += ['-Wshadow']
+    CXXFLAGS += ['-Wshadow']
 
 include('/ipc/chromium/chromium-config.mozbuild')
 
@@ -126,4 +134,4 @@ FINAL_LIBRARY = 'xul'
 if CONFIG['OS_ARCH'] == 'Linux' and 'lib64' in CONFIG['libdir']:
     DEFINES['HAVE_USR_LIB64_DIR'] = True
 
-GENERATED_INCLUDES += ['..']
+LOCAL_INCLUDES += ['!..']

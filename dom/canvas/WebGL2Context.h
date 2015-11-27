@@ -10,10 +10,16 @@
 
 namespace mozilla {
 
+class ErrorResult;
 class WebGLSampler;
 class WebGLSync;
 class WebGLTransformFeedback;
 class WebGLVertexArrayObject;
+namespace dom {
+class OwningUnsignedLongOrUint32ArrayOrBoolean;
+class OwningWebGLBufferOrLongLong;
+class ArrayBufferViewOrSharedArrayBufferView;
+} // namespace dom
 
 class WebGL2Context
     : public WebGLContext
@@ -25,7 +31,7 @@ public:
     static bool IsSupported();
     static WebGL2Context* Create();
 
-    virtual bool IsWebGL2() const MOZ_OVERRIDE
+    virtual bool IsWebGL2() const override
     {
         return true;
     }
@@ -33,16 +39,24 @@ public:
     // -------------------------------------------------------------------------
     // IMPLEMENT nsWrapperCache
 
-    virtual JSObject* WrapObject(JSContext *cx) MOZ_OVERRIDE;
-
+    virtual JSObject* WrapObject(JSContext* cx, JS::Handle<JSObject*> givenProto) override;
 
     // -------------------------------------------------------------------------
     // Buffer objects - WebGL2ContextBuffers.cpp
 
     void CopyBufferSubData(GLenum readTarget, GLenum writeTarget,
                            GLintptr readOffset, GLintptr writeOffset, GLsizeiptr size);
-    void GetBufferSubData(GLenum target, GLintptr offset, const dom::ArrayBuffer& returnedData);
-    void GetBufferSubData(GLenum target, GLintptr offset, const dom::ArrayBufferView& returnedData);
+
+private:
+    template<typename BufferT>
+    void GetBufferSubDataT(GLenum target, GLintptr offset, const BufferT& data);
+
+public:
+    void GetBufferSubData(GLenum target, GLintptr offset,
+                          const dom::Nullable<dom::ArrayBuffer>& maybeData);
+    void GetBufferSubData(GLenum target, GLintptr offset,
+                          const dom::SharedArrayBuffer& data);
+
 
     // -------------------------------------------------------------------------
     // Framebuffer objects - WebGL2ContextFramebuffers.cpp
@@ -50,12 +64,25 @@ public:
     void BlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
                          GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
                          GLbitfield mask, GLenum filter);
-    void FramebufferTextureLayer(GLenum target, GLenum attachment, GLuint texture, GLint level, GLint layer);
-    void GetInternalformatParameter(JSContext*, GLenum target, GLenum internalformat, GLenum pname, JS::MutableHandleValue retval);
-    void InvalidateFramebuffer(GLenum target, const dom::Sequence<GLenum>& attachments);
+    void FramebufferTextureLayer(GLenum target, GLenum attachment, WebGLTexture* texture, GLint level, GLint layer);
+
+    virtual JS::Value GetFramebufferAttachmentParameter(JSContext* cx, GLenum target,
+                                                        GLenum attachment, GLenum pname,
+                                                        ErrorResult& rv) override;
+
+    void InvalidateFramebuffer(GLenum target, const dom::Sequence<GLenum>& attachments,
+                               ErrorResult& rv);
     void InvalidateSubFramebuffer (GLenum target, const dom::Sequence<GLenum>& attachments, GLint x, GLint y,
-                                   GLsizei width, GLsizei height);
+                                   GLsizei width, GLsizei height, ErrorResult& rv);
     void ReadBuffer(GLenum mode);
+
+
+    // -------------------------------------------------------------------------
+    // Renderbuffer objects - WebGL2ContextRenderbuffers.cpp
+
+    void GetInternalformatParameter(JSContext*, GLenum target, GLenum internalformat,
+                                    GLenum pname, JS::MutableHandleValue retval,
+                                    ErrorResult& rv);
     void RenderbufferStorageMultisample(GLenum target, GLsizei samples, GLenum internalformat,
                                         GLsizei width, GLsizei height);
 
@@ -63,33 +90,47 @@ public:
     // -------------------------------------------------------------------------
     // Texture objects - WebGL2ContextTextures.cpp
 
-    void TexStorage2D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height);
-    void TexStorage3D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height,
-                      GLsizei depth);
+    void TexStorage2D(GLenum target, GLsizei levels, GLenum internalFormat, GLsizei width,
+                      GLsizei height);
+    void TexStorage3D(GLenum target, GLsizei levels, GLenum internalFormat, GLsizei width,
+                      GLsizei height, GLsizei depth);
+    void TexImage3D(GLenum target, GLint level, GLenum internalFormat, GLsizei width,
+                    GLsizei height, GLsizei depth, GLint border, GLenum unpackFormat,
+                    GLenum unpackType,
+                    const dom::Nullable<dom::ArrayBufferViewOrSharedArrayBufferView>& pixels);
+    void TexSubImage3D(GLenum target, GLint level, GLint xOffset, GLint yOffset,
+                       GLint zOffset, GLsizei width, GLsizei height, GLsizei depth,
+                       GLenum unpackFormat, GLenum unpackType,
+                       const dom::Nullable<dom::ArrayBufferViewOrSharedArrayBufferView>& pixels,
+                       ErrorResult& out_rv);
+    void TexSubImage3D(GLenum target, GLint level, GLint xOffset, GLint yOffset,
+                       GLint zOffset, GLenum unpackFormat, GLenum unpackType,
+                       dom::ImageData* data, ErrorResult& out_rv);
+protected:
+    void TexSubImage3D(GLenum target, GLint level, GLint xOffset, GLint yOffset,
+                       GLint zOffset, GLenum unpackFormat, GLenum unpackType,
+                       dom::Element* elem, ErrorResult* const out_rv);
+public:
+    template<class T>
+    inline void
+    TexSubImage3D(GLenum target, GLint level, GLint xOffset, GLint yOffset, GLint zOffset,
+                  GLenum unpackFormat, GLenum unpackType, T& elem, ErrorResult& out_rv)
+    {
+        TexSubImage3D(target, level, xOffset, yOffset, zOffset, unpackFormat, unpackType,
+                      &elem, &out_rv);
+    }
 
-    void TexSubImage3D(GLenum target, GLint level,
-                       GLint xoffset, GLint yoffset, GLint zoffset,
-                       GLsizei width, GLsizei height, GLsizei depth,
-                       GLenum format, GLenum type, const Nullable<dom::ArrayBufferView>& pixels,
-                       ErrorResult& rv);
-    void TexSubImage3D(GLenum target, GLint level,
-                       GLint xoffset, GLint yoffset, GLint zoffset,
-                       GLenum format, GLenum type, dom::ImageData* data,
-                       ErrorResult& rv);
-    template<class ElementType>
-    void TexSubImage3D(GLenum target, GLint level,
-                       GLint xoffset, GLint yoffset, GLint zoffset,
-                       GLenum format, GLenum type, ElementType& elt, ErrorResult& rv)
-    {}
-
-    void CopyTexSubImage3D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset,
-                           GLint x, GLint y, GLsizei width, GLsizei height);
-    void CompressedTexImage3D(GLenum target, GLint level, GLenum internalformat,
+    void CopyTexSubImage3D(GLenum target, GLint level, GLint xOffset, GLint yOffset,
+                           GLint zOffset, GLint x, GLint y, GLsizei width,
+                           GLsizei height);
+    void CompressedTexImage3D(GLenum target, GLint level, GLenum internalFormat,
                               GLsizei width, GLsizei height, GLsizei depth,
-                              GLint border, GLsizei imageSize, const dom::ArrayBufferView& data);
-    void CompressedTexSubImage3D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset,
-                                 GLsizei width, GLsizei height, GLsizei depth,
-                                 GLenum format, GLsizei imageSize, const dom::ArrayBufferView& data);
+                              GLint border,
+                              const dom::ArrayBufferViewOrSharedArrayBufferView& data);
+    void CompressedTexSubImage3D(GLenum target, GLint level, GLint xOffset, GLint yOffset,
+                                 GLint zOffset, GLsizei width, GLsizei height,
+                                 GLsizei depth, GLenum sizedUnpackFormat,
+                                 const dom::ArrayBufferViewOrSharedArrayBufferView& data);
 
 
     // -------------------------------------------------------------------------
@@ -101,27 +142,119 @@ public:
     // Uniforms and attributes - WebGL2ContextUniforms.cpp
     void VertexAttribIPointer(GLuint index, GLint size, GLenum type, GLsizei stride, GLintptr offset);
 
+    // GL 3.0 & ES 3.0
     void Uniform1ui(WebGLUniformLocation* location, GLuint v0);
     void Uniform2ui(WebGLUniformLocation* location, GLuint v0, GLuint v1);
     void Uniform3ui(WebGLUniformLocation* location, GLuint v0, GLuint v1, GLuint v2);
     void Uniform4ui(WebGLUniformLocation* location, GLuint v0, GLuint v1, GLuint v2, GLuint v3);
-    void Uniform1uiv(WebGLUniformLocation* location, const dom::Sequence<GLuint>& value);
-    void Uniform2uiv(WebGLUniformLocation* location, const dom::Sequence<GLuint>& value);
-    void Uniform3uiv(WebGLUniformLocation* location, const dom::Sequence<GLuint>& value);
-    void Uniform4uiv(WebGLUniformLocation* location, const dom::Sequence<GLuint>& value);
-    void UniformMatrix2x3fv(WebGLUniformLocation* location, bool transpose, const dom::Float32Array& value);
-    void UniformMatrix2x3fv(WebGLUniformLocation* location, bool transpose, const dom::Sequence<GLfloat>& value);
-    void UniformMatrix3x2fv(WebGLUniformLocation* location, bool transpose, const dom::Float32Array& value);
-    void UniformMatrix3x2fv(WebGLUniformLocation* location, bool transpose, const dom::Sequence<GLfloat>& value);
-    void UniformMatrix2x4fv(WebGLUniformLocation* location, bool transpose, const dom::Float32Array& value);
-    void UniformMatrix2x4fv(WebGLUniformLocation* location, bool transpose, const dom::Sequence<GLfloat>& value);
-    void UniformMatrix4x2fv(WebGLUniformLocation* location, bool transpose, const dom::Float32Array& value);
-    void UniformMatrix4x2fv(WebGLUniformLocation* location, bool transpose, const dom::Sequence<GLfloat>& value);
-    void UniformMatrix3x4fv(WebGLUniformLocation* location, bool transpose, const dom::Float32Array& value);
-    void UniformMatrix3x4fv(WebGLUniformLocation* location, bool transpose, const dom::Sequence<GLfloat>& value);
-    void UniformMatrix4x3fv(WebGLUniformLocation* location, bool transpose, const dom::Float32Array& value);
-    void UniformMatrix4x3fv(WebGLUniformLocation* location, bool transpose, const dom::Sequence<GLfloat>& value);
 
+private:
+    void Uniform1uiv_base(WebGLUniformLocation* loc, size_t arrayLength, const GLuint* data);
+    void Uniform2uiv_base(WebGLUniformLocation* loc, size_t arrayLength, const GLuint* data);
+    void Uniform3uiv_base(WebGLUniformLocation* loc, size_t arrayLength, const GLuint* data);
+    void Uniform4uiv_base(WebGLUniformLocation* loc, size_t arrayLength, const GLuint* data);
+
+public:
+    void Uniform1uiv(WebGLUniformLocation* loc, const dom::Sequence<GLuint>& arr) {
+        Uniform1uiv_base(loc, arr.Length(), arr.Elements());
+    }
+    void Uniform2uiv(WebGLUniformLocation* loc, const dom::Sequence<GLuint>& arr) {
+        Uniform2uiv_base(loc, arr.Length(), arr.Elements());
+    }
+    void Uniform3uiv(WebGLUniformLocation* loc, const dom::Sequence<GLuint>& arr) {
+        Uniform3uiv_base(loc, arr.Length(), arr.Elements());
+    }
+    void Uniform4uiv(WebGLUniformLocation* loc, const dom::Sequence<GLuint>& arr) {
+        Uniform4uiv_base(loc, arr.Length(), arr.Elements());
+    }
+    void Uniform1uiv(WebGLUniformLocation* loc, const dom::Uint32Array& arr) {
+        arr.ComputeLengthAndData();
+        Uniform1uiv_base(loc, arr.Length(), arr.Data());
+    }
+    void Uniform2uiv(WebGLUniformLocation* loc, const dom::Uint32Array& arr) {
+        arr.ComputeLengthAndData();
+        Uniform2uiv_base(loc, arr.Length(), arr.Data());
+    }
+    void Uniform3uiv(WebGLUniformLocation* loc, const dom::Uint32Array& arr) {
+        arr.ComputeLengthAndData();
+        Uniform3uiv_base(loc, arr.Length(), arr.Data());
+    }
+    void Uniform4uiv(WebGLUniformLocation* loc, const dom::Uint32Array& arr) {
+        arr.ComputeLengthAndData();
+        Uniform4uiv_base(loc, arr.Length(), arr.Data());
+    }
+
+private:
+    void UniformMatrix2x3fv_base(WebGLUniformLocation* loc, bool transpose,
+                                 size_t arrayLength, const GLfloat* data);
+    void UniformMatrix3x2fv_base(WebGLUniformLocation* loc, bool transpose,
+                                 size_t arrayLength, const GLfloat* data);
+    void UniformMatrix2x4fv_base(WebGLUniformLocation* loc, bool transpose,
+                                 size_t arrayLength, const GLfloat* data);
+    void UniformMatrix4x2fv_base(WebGLUniformLocation* loc, bool transpose,
+                                 size_t arrayLength, const GLfloat* data);
+    void UniformMatrix3x4fv_base(WebGLUniformLocation* loc, bool transpose,
+                                 size_t arrayLength, const GLfloat* data);
+    void UniformMatrix4x3fv_base(WebGLUniformLocation* loc, bool transpose,
+                                 size_t arrayLength, const GLfloat* data);
+
+public:
+    // GL 2.1 & ES 3.0
+    void UniformMatrix2x3fv(WebGLUniformLocation* loc, bool transpose, const dom::Sequence<GLfloat>& value){
+        UniformMatrix2x3fv_base(loc, transpose, value.Length(), value.Elements());
+    }
+    void UniformMatrix2x4fv(WebGLUniformLocation* loc, bool transpose, const dom::Sequence<GLfloat>& value){
+        UniformMatrix2x4fv_base(loc, transpose, value.Length(), value.Elements());
+    }
+    void UniformMatrix3x2fv(WebGLUniformLocation* loc, bool transpose, const dom::Sequence<GLfloat>& value){
+        UniformMatrix3x2fv_base(loc, transpose, value.Length(), value.Elements());
+    }
+    void UniformMatrix3x4fv(WebGLUniformLocation* loc, bool transpose, const dom::Sequence<GLfloat>& value){
+        UniformMatrix3x4fv_base(loc, transpose, value.Length(), value.Elements());
+    }
+    void UniformMatrix4x2fv(WebGLUniformLocation* loc, bool transpose, const dom::Sequence<GLfloat>& value){
+        UniformMatrix4x2fv_base(loc, transpose, value.Length(), value.Elements());
+    }
+    void UniformMatrix4x3fv(WebGLUniformLocation* loc, bool transpose, const dom::Sequence<GLfloat>& value){
+        UniformMatrix4x3fv_base(loc, transpose, value.Length(), value.Elements());
+    }
+
+    void UniformMatrix2x3fv(WebGLUniformLocation* loc, bool transpose, const dom::Float32Array& value){
+        value.ComputeLengthAndData();
+        UniformMatrix2x3fv_base(loc, transpose, value.Length(), value.Data());
+    }
+
+    void UniformMatrix2x4fv(WebGLUniformLocation* loc, bool transpose, const dom::Float32Array& value){
+        value.ComputeLengthAndData();
+        UniformMatrix2x4fv_base(loc, transpose, value.Length(), value.Data());
+    }
+
+    void UniformMatrix3x2fv(WebGLUniformLocation* loc, bool transpose, const dom::Float32Array& value){
+        value.ComputeLengthAndData();
+        UniformMatrix3x2fv_base(loc, transpose, value.Length(), value.Data());
+    }
+
+    void UniformMatrix3x4fv(WebGLUniformLocation* loc, bool transpose, const dom::Float32Array& value){
+        value.ComputeLengthAndData();
+        UniformMatrix3x4fv_base(loc, transpose, value.Length(), value.Data());
+    }
+
+    void UniformMatrix4x2fv(WebGLUniformLocation* loc, bool transpose, const dom::Float32Array& value){
+        value.ComputeLengthAndData();
+        UniformMatrix4x2fv_base(loc, transpose, value.Length(), value.Data());
+    }
+
+    void UniformMatrix4x3fv(WebGLUniformLocation* loc, bool transpose, const dom::Float32Array& value){
+        value.ComputeLengthAndData();
+        UniformMatrix4x3fv_base(loc, transpose, value.Length(), value.Data());
+    }
+
+private:
+    void VertexAttribI4iv(GLuint index, size_t length, const GLint* v);
+    void VertexAttribI4uiv(GLuint index, size_t length, const GLuint* v);
+
+public:
+    // GL 3.0 & ES 3.0
     void VertexAttribI4i(GLuint index, GLint x, GLint y, GLint z, GLint w);
     void VertexAttribI4iv(GLuint index, const dom::Sequence<GLint>& v);
     void VertexAttribI4ui(GLuint index, GLuint x, GLuint y, GLuint z, GLuint w);
@@ -160,16 +293,18 @@ public:
 
     bool ValidateClearBuffer(const char* info, GLenum buffer, GLint drawbuffer, size_t elemCount);
 
+
     // -------------------------------------------------------------------------
     // Query Objects - WebGL2ContextQueries.cpp
-    // TODO(djg): Implemented in WebGLContext
-    /* already_AddRefed<WebGLQuery> CreateQuery();
+
+    already_AddRefed<WebGLQuery> CreateQuery();
     void DeleteQuery(WebGLQuery* query);
     bool IsQuery(WebGLQuery* query);
     void BeginQuery(GLenum target, WebGLQuery* query);
     void EndQuery(GLenum target);
-    JS::Value GetQuery(JSContext*, GLenum target, GLenum pname); */
+    already_AddRefed<WebGLQuery> GetQuery(GLenum target, GLenum pname);
     void GetQueryParameter(JSContext*, WebGLQuery* query, GLenum pname, JS::MutableHandleValue retval);
+
 
     // -------------------------------------------------------------------------
     // Sampler Objects - WebGL2ContextSamplers.cpp
@@ -200,17 +335,17 @@ public:
 
     // -------------------------------------------------------------------------
     // Transform Feedback - WebGL2ContextTransformFeedback.cpp
+
     already_AddRefed<WebGLTransformFeedback> CreateTransformFeedback();
     void DeleteTransformFeedback(WebGLTransformFeedback* tf);
     bool IsTransformFeedback(WebGLTransformFeedback* tf);
-    void BindTransformFeedback(GLenum target, GLuint id);
+    void BindTransformFeedback(GLenum target, WebGLTransformFeedback* tf);
     void BeginTransformFeedback(GLenum primitiveMode);
     void EndTransformFeedback();
-    void TransformFeedbackVaryings(WebGLProgram* program, GLsizei count,
-                                   const dom::Sequence<nsString>& varyings, GLenum bufferMode);
-    already_AddRefed<WebGLActiveInfo> GetTransformFeedbackVarying(WebGLProgram* program, GLuint index);
     void PauseTransformFeedback();
     void ResumeTransformFeedback();
+    void TransformFeedbackVaryings(WebGLProgram* program, const dom::Sequence<nsString>& varyings, GLenum bufferMode);
+    already_AddRefed<WebGLActiveInfo> GetTransformFeedbackVarying(WebGLProgram* program, GLuint index);
 
 
     // -------------------------------------------------------------------------
@@ -220,14 +355,24 @@ public:
     void BindBufferBase(GLenum target, GLuint index, WebGLBuffer* buffer);
     void BindBufferRange(GLenum target, GLuint index, WebGLBuffer* buffer, GLintptr offset, GLsizeiptr size);
 */
-    void GetIndexedParameter(JSContext*, GLenum target, GLuint index, JS::MutableHandleValue retval);
-    void GetUniformIndices(WebGLProgram* program, const dom::Sequence<nsString>& uniformNames, dom::Nullable< nsTArray<GLuint> >& retval);
-    void GetActiveUniforms(WebGLProgram* program, const dom::Sequence<GLuint>& uniformIndices, GLenum pname,
+    virtual JS::Value GetParameter(JSContext* cx, GLenum pname, ErrorResult& rv) override;
+    void GetIndexedParameter(GLenum target, GLuint index,
+                             dom::Nullable<dom::OwningWebGLBufferOrLongLong>& retval);
+    void GetUniformIndices(WebGLProgram* program,
+                           const dom::Sequence<nsString>& uniformNames,
+                           dom::Nullable< nsTArray<GLuint> >& retval);
+    void GetActiveUniforms(WebGLProgram* program,
+                           const dom::Sequence<GLuint>& uniformIndices, GLenum pname,
                            dom::Nullable< nsTArray<GLint> >& retval);
     GLuint GetUniformBlockIndex(WebGLProgram* program, const nsAString& uniformBlockName);
-    void GetActiveUniformBlockParameter(JSContext*, WebGLProgram* program, GLuint uniformBlockIndex, GLenum pname, JS::MutableHandleValue retval);
-    void GetActiveUniformBlockName(WebGLProgram* program, GLuint uniformBlockIndex, dom::DOMString& retval);
-    void UniformBlockBinding(WebGLProgram* program, GLuint uniformBlockIndex, GLuint uniformBlockBinding);
+    void GetActiveUniformBlockParameter(JSContext*, WebGLProgram* program,
+                                        GLuint uniformBlockIndex, GLenum pname,
+                                        dom::Nullable<dom::OwningUnsignedLongOrUint32ArrayOrBoolean>& retval,
+                                        ErrorResult& rv);
+    void GetActiveUniformBlockName(WebGLProgram* program, GLuint uniformBlockIndex,
+                                   nsAString& retval);
+    void UniformBlockBinding(WebGLProgram* program, GLuint uniformBlockIndex,
+                             GLuint uniformBlockBinding);
 
 
     // -------------------------------------------------------------------------
@@ -241,8 +386,22 @@ public:
 */
 
 private:
-
     WebGL2Context();
+    virtual UniquePtr<webgl::FormatUsageAuthority>
+    CreateFormatUsage(gl::GLContext* gl) const override;
+
+    virtual bool IsTexParamValid(GLenum pname) const override;
+
+    void UpdateBoundQuery(GLenum target, WebGLQuery* query);
+
+    // CreateVertexArrayImpl is assumed to be infallible.
+    virtual WebGLVertexArray* CreateVertexArrayImpl() override;
+    virtual bool ValidateAttribPointerType(bool integerMode, GLenum type, GLsizei* alignment, const char* info) override;
+    virtual bool ValidateBufferTarget(GLenum target, const char* info) override;
+    virtual bool ValidateBufferIndexedTarget(GLenum target, const char* info) override;
+    virtual bool ValidateBufferUsageEnum(GLenum usage, const char* info) override;
+    virtual bool ValidateQueryTarget(GLenum target, const char* info) override;
+    virtual bool ValidateUniformMatrixTranspose(bool transpose, const char* info) override;
 };
 
 } // namespace mozilla

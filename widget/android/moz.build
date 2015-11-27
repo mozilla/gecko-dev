@@ -4,6 +4,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+DIRS += [
+    'bindings',
+    'jni',
+]
+
 XPIDL_SOURCES += [
     'nsIAndroidBridge.idl',
 ]
@@ -14,17 +19,19 @@ EXPORTS += [
     'AndroidBridge.h',
     'AndroidJavaWrappers.h',
     'AndroidJNIWrapper.h',
+    'GeneratedJNINatives.h',
     'GeneratedJNIWrappers.h',
 ]
 
-SOURCES += [
+UNIFIED_SOURCES += [
     'AndroidBridge.cpp',
+    'AndroidContentController.cpp',
     'AndroidDirectTexture.cpp',
     'AndroidGraphicBuffer.cpp',
     'AndroidJavaWrappers.cpp',
     'AndroidJNI.cpp',
     'AndroidJNIWrapper.cpp',
-    'APZCCallbackHandler.cpp',
+    'ANRReporter.cpp',
     'GeneratedJNIWrappers.cpp',
     'GfxInfo.cpp',
     'NativeJSContainer.cpp',
@@ -41,8 +48,6 @@ SOURCES += [
     'nsWindow.cpp',
 ]
 
-FAIL_ON_WARNINGS = True
-
 include('/ipc/chromium/chromium-config.mozbuild')
 
 FINAL_LIBRARY = 'xul'
@@ -51,11 +56,10 @@ LOCAL_INCLUDES += [
     '/docshell/base',
     '/dom/base',
     '/dom/system/android',
-    '/netwerk/base/src',
+    '/netwerk/base',
     '/netwerk/cache',
+    '/widget',
     '/widget/android/android',
-    '/widget/shared',
-    '/widget/xpwidgets',
 ]
 
 #DEFINES['DEBUG_WIDGETS'] = True

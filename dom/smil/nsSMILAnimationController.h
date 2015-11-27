@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -22,10 +23,11 @@ struct nsSMILTargetIdentifier;
 class nsIDocument;
 
 namespace mozilla {
+class RestyleTracker;
 namespace dom {
 class SVGAnimationElement;
-}
-}
+} // namespace dom
+} // namespace mozilla
 
 //----------------------------------------------------------------------
 // nsSMILAnimationController
@@ -40,8 +42,8 @@ class SVGAnimationElement;
 // a compound document. These time containers can be paused individually or
 // here, at the document level.
 //
-class nsSMILAnimationController MOZ_FINAL : public nsSMILTimeContainer,
-                                            public nsARefreshObserver
+class nsSMILAnimationController final : public nsSMILTimeContainer,
+                                        public nsARefreshObserver
 {
 public:
   explicit nsSMILAnimationController(nsIDocument* aDoc);
@@ -50,15 +52,15 @@ public:
   void Disconnect();
 
   // nsSMILContainer
-  virtual void Pause(uint32_t aType) MOZ_OVERRIDE;
-  virtual void Resume(uint32_t aType) MOZ_OVERRIDE;
-  virtual nsSMILTime GetParentTime() const MOZ_OVERRIDE;
+  virtual void Pause(uint32_t aType) override;
+  virtual void Resume(uint32_t aType) override;
+  virtual nsSMILTime GetParentTime() const override;
 
   // nsARefreshObserver
-  NS_IMETHOD_(MozExternalRefCountType) AddRef() MOZ_OVERRIDE;
-  NS_IMETHOD_(MozExternalRefCountType) Release() MOZ_OVERRIDE;
+  NS_IMETHOD_(MozExternalRefCountType) AddRef() override;
+  NS_IMETHOD_(MozExternalRefCountType) Release() override;
 
-  virtual void WillRefresh(mozilla::TimeStamp aTime) MOZ_OVERRIDE;
+  virtual void WillRefresh(mozilla::TimeStamp aTime) override;
 
   // Methods for registering and enumerating animation elements
   void RegisterAnimationElement(mozilla::dom::SVGAnimationElement* aAnimationElement);
@@ -72,10 +74,8 @@ public:
 
   void SetResampleNeeded()
   {
-    if (!mRunningSample) {
-      if (!mResampleNeeded) {
-        FlagDocumentNeedsFlush();
-      }
+    if (!mRunningSample && !mResampleNeeded) {
+      FlagDocumentNeedsFlush();
       mResampleNeeded = true;
     }
   }
@@ -102,8 +102,16 @@ public:
   void NotifyRefreshDriverDestroying(nsRefreshDriver* aRefreshDriver);
 
   // Helper to check if we have any animation elements at all
-  bool HasRegisteredAnimations()
-  { return mAnimationElementTable.Count() != 0; }
+  bool HasRegisteredAnimations() const
+  {
+    return mAnimationElementTable.Count() != 0;
+  }
+
+  void AddStyleUpdatesTo(mozilla::RestyleTracker& aTracker);
+  bool MightHavePendingStyleUpdates() const
+  {
+    return mMightHavePendingStyleUpdates;
+  }
 
 protected:
   ~nsSMILAnimationController();
@@ -113,28 +121,6 @@ protected:
   typedef nsTHashtable<TimeContainerPtrKey> TimeContainerHashtable;
   typedef nsPtrHashKey<mozilla::dom::SVGAnimationElement> AnimationElementPtrKey;
   typedef nsTHashtable<AnimationElementPtrKey> AnimationElementHashtable;
-
-  struct SampleTimeContainerParams
-  {
-    TimeContainerHashtable* mActiveContainers;
-    bool                    mSkipUnchangedContainers;
-  };
-
-  struct SampleAnimationParams
-  {
-    TimeContainerHashtable* mActiveContainers;
-    nsSMILCompositorTable*  mCompositorTable;
-  };
-
-  struct GetMilestoneElementsParams
-  {
-    nsTArray<nsRefPtr<mozilla::dom::SVGAnimationElement> > mElements;
-    nsSMILMilestone                                        mMilestone;
-  };
-
-  // Cycle-collection implementation helpers
-  static PLDHashOperator CompositorTableEntryTraverse(
-      nsSMILCompositor* aCompositor, void* aArg);
 
   // Returns mDocument's refresh driver, if it's got one.
   nsRefreshDriver* GetRefreshDriver();
@@ -147,27 +133,13 @@ protected:
   void MaybeStartSampling(nsRefreshDriver* aRefreshDriver);
 
   // Sample-related callbacks and implementation helpers
-  virtual void DoSample() MOZ_OVERRIDE;
+  virtual void DoSample() override;
   void DoSample(bool aSkipUnchangedContainers);
 
   void RewindElements();
-  static PLDHashOperator RewindNeeded(
-      TimeContainerPtrKey* aKey, void* aData);
-  static PLDHashOperator RewindAnimation(
-      AnimationElementPtrKey* aKey, void* aData);
-  static PLDHashOperator ClearRewindNeeded(
-      TimeContainerPtrKey* aKey, void* aData);
 
   void DoMilestoneSamples();
-  static PLDHashOperator GetNextMilestone(
-      TimeContainerPtrKey* aKey, void* aData);
-  static PLDHashOperator GetMilestoneElements(
-      TimeContainerPtrKey* aKey, void* aData);
 
-  static PLDHashOperator SampleTimeContainer(
-      TimeContainerPtrKey* aKey, void* aData);
-  static PLDHashOperator SampleAnimation(
-      AnimationElementPtrKey* aKey, void* aData);
   static void SampleTimedElement(mozilla::dom::SVGAnimationElement* aElement,
                                  TimeContainerHashtable* aActiveContainers);
   static void AddAnimationToCompositorTable(
@@ -176,8 +148,8 @@ protected:
       mozilla::dom::SVGAnimationElement* aAnimElem, nsSMILTargetIdentifier& aResult);
 
   // Methods for adding/removing time containers
-  virtual nsresult AddChild(nsSMILTimeContainer& aChild) MOZ_OVERRIDE;
-  virtual void     RemoveChild(nsSMILTimeContainer& aChild) MOZ_OVERRIDE;
+  virtual nsresult AddChild(nsSMILTimeContainer& aChild) override;
+  virtual void     RemoveChild(nsSMILTimeContainer& aChild) override;
 
   void FlagDocumentNeedsFlush();
 
@@ -217,6 +189,9 @@ protected:
 
   // Are we registered with our document's refresh driver?
   bool                       mRegisteredWithRefreshDriver;
+
+  // Have we updated animated values without adding them to the restyle tracker?
+  bool                       mMightHavePendingStyleUpdates;
 
   // Store raw ptr to mDocument.  It owns the controller, so controller
   // shouldn't outlive it

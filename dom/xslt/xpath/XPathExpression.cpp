@@ -49,7 +49,7 @@ private:
     uint32_t mContextPosition;
     uint32_t mContextSize;
     nsresult mLastError;
-    nsRefPtr<txResultRecycler> mRecycler;
+    RefPtr<txResultRecycler> mRecycler;
 };
 
 XPathExpression::XPathExpression(nsAutoPtr<Expr>&& aExpression,
@@ -101,7 +101,9 @@ XPathExpression::EvaluateWithContext(nsINode& aContextNode,
         return nullptr;
     }
 
-    if (!nsContentUtils::CanCallerAccess(&aContextNode)) {
+    if (!nsContentUtils::LegacyIsCallerNativeCode() &&
+        !nsContentUtils::CanCallerAccess(&aContextNode))
+    {
         aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
         return nullptr;
     }
@@ -145,9 +147,14 @@ XPathExpression::EvaluateWithContext(nsINode& aContextNode,
     }
 
     nsAutoPtr<txXPathNode> contextNode(txXPathNativeNode::createXPathNode(&aContextNode));
+    if (!contextNode) {
+      aRv.Throw(NS_ERROR_FAILURE);
+      return nullptr;
+    }
+
     EvalContextImpl eContext(*contextNode, aContextPosition, aContextSize,
                              mRecycler);
-    nsRefPtr<txAExprResult> exprResult;
+    RefPtr<txAExprResult> exprResult;
     aRv = mExpression->evaluate(&eContext, getter_AddRefs(exprResult));
     if (aRv.Failed()) {
         return nullptr;
@@ -175,7 +182,7 @@ XPathExpression::EvaluateWithContext(nsINode& aContextNode,
         }
     }
 
-    nsRefPtr<XPathResult> xpathResult = aInResult;
+    RefPtr<XPathResult> xpathResult = aInResult;
     if (!xpathResult) {
         xpathResult = new XPathResult(&aContextNode);
     }

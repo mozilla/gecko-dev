@@ -35,7 +35,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=656379
     }
   </style>
 </head>
-<body onload="runTests()">
+<body>
 <a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=656379">Mozilla Bug 656379</a>
 <p id="display"></p>
 <div id="content" style="display: none">
@@ -54,6 +54,8 @@ function runTests() {
   outside = $("outside");
   SimpleTest.executeSoon(executeTests);
 }
+
+SimpleTest.waitForFocus(runTests);
 
 function isRectContainedInRectFromRegion(rect, region) {
   return Array.some(region, function (r) {
@@ -125,7 +127,10 @@ function tests() {
   // Release.
   sendMouseEvent("mouseup", label);
   yield undefined;
-  compareSnapshots_(normalFocusedButtonCanvas, currentSnapshot, true, "Releasing the mouse over the label should have unpressed (and focused) the button.");
+  var focusOnMouse = (navigator.platform.indexOf("Mac") != 0);
+  compareSnapshots_(focusOnMouse ? normalFocusedButtonCanvas : normalButtonCanvas,
+                    currentSnapshot, true, "Releasing the mouse over the label should have unpressed" +
+                                            (focusOnMouse ? " (and focused)" : "") + " the button.");
   // Press the label and remove it.
   sendMouseEvent("mousemove", label);
   sendMouseEvent("mousedown", label);

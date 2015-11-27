@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -30,9 +32,9 @@ public:
   // Forward to base class
   NS_FORWARD_TO_MOUSEEVENT
 
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE
+  virtual JSObject* WrapObjectInternal(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override
   {
-    return SimpleGestureEventBinding::Wrap(aCx, this);
+    return SimpleGestureEventBinding::Wrap(aCx, this, aGivenProto);
   }
 
   uint32_t AllowedDirections();
@@ -75,5 +77,10 @@ protected:
 
 } // namespace dom
 } // namespace mozilla
+
+already_AddRefed<mozilla::dom::SimpleGestureEvent>
+NS_NewDOMSimpleGestureEvent(mozilla::dom::EventTarget* aOwner,
+                            nsPresContext* aPresContext,
+                            mozilla::WidgetSimpleGestureEvent* aEvent);
 
 #endif // mozilla_dom_SimpleGestureEvent_h_

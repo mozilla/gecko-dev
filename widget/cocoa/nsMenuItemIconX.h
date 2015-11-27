@@ -52,10 +52,10 @@ public:
   void Destroy();
 
 protected:
-  nsresult OnStopFrame(imgIRequest* aRequest);
+  nsresult OnFrameComplete(imgIRequest* aRequest);
 
   nsCOMPtr<nsIContent>      mContent;
-  nsRefPtr<imgRequestProxy> mIconRequest;
+  RefPtr<imgRequestProxy> mIconRequest;
   nsMenuObjectX*            mMenuObject; // [weak]
   nsIntRect                 mImageRegionRect;
   bool                      mLoadedIcon;

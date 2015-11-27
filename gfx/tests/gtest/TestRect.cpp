@@ -2,6 +2,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+#include <limits>
 
 #include "gtest/gtest.h"
 
@@ -371,11 +372,9 @@ TestUnion()
 static bool
 TestFiniteGfx()
 {
-  // Doesn't appear that __builtin_inf() and __builtin_nan() are available on
-  // all compilers, so go the old fashioned way for inf and nan.
-  float posInf = 1.0/0.0;
-  float negInf = -1.0/0.0;
-  float justNaN = 0.0/0.0;
+  float posInf = std::numeric_limits<float>::infinity();
+  float negInf = -std::numeric_limits<float>::infinity();
+  float justNaN = std::numeric_limits<float>::quiet_NaN();
 
   gfxFloat values[4] = {5.0, 10.0, 15.0, 20.0};
 
@@ -400,6 +399,25 @@ TestFiniteGfx()
   return true;
 }
 
+// We want to test nsRect values that are still in range but where
+// the implementation is at risk of overflowing
+template <class RectType>
+static bool
+TestBug1135677()
+{
+  RectType  rect1(1073741344, 1073741344, 1073756696, 1073819936);
+  RectType  rect2(1073741820, 1073741820, 14400, 77640);
+  RectType  dest;
+
+  dest = rect1.Intersect(rect2);
+
+  EXPECT_TRUE(dest.x == 1073741820 && dest.y == 1073741820 &&
+              dest.width == 14400 && dest.height == 77640) <<
+              "[1] Operation should not overflow internally.";
+
+  return true;
+}
+
 TEST(Gfx, nsRect) {
   TestConstructors<nsRect>();
   TestEqualityOperator<nsRect>();
@@ -407,6 +425,7 @@ TEST(Gfx, nsRect) {
   TestIntersects<nsRect>();
   TestIntersection<nsRect>();
   TestUnion<nsRect>();
+  TestBug1135677<nsRect>();
 }
 
 TEST(Gfx, nsIntRect) {
@@ -416,6 +435,7 @@ TEST(Gfx, nsIntRect) {
   TestIntersects<nsIntRect>();
   TestIntersection<nsIntRect>();
   TestUnion<nsIntRect>();
+  TestBug1135677<nsIntRect>();
 }
 
 TEST(Gfx, gfxRect) {
@@ -425,5 +445,6 @@ TEST(Gfx, gfxRect) {
   TestIntersects<gfxRect>();
   TestIntersection<gfxRect>();
   TestUnion<gfxRect>();
+  TestBug1135677<gfxRect>();
   TestFiniteGfx();
 }

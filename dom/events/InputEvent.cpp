@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -14,7 +15,8 @@ InputEvent::InputEvent(EventTarget* aOwner,
                        nsPresContext* aPresContext,
                        InternalEditorInputEvent* aEvent)
   : UIEvent(aOwner, aPresContext,
-            aEvent ? aEvent : new InternalEditorInputEvent(false, 0, nullptr))
+            aEvent ? aEvent :
+                     new InternalEditorInputEvent(false, eVoidEvent, nullptr))
 {
   NS_ASSERTION(mEvent->mClass == eEditorInputEventClass,
                "event type mismatch");
@@ -46,7 +48,7 @@ InputEvent::Constructor(const GlobalObject& aGlobal,
                         ErrorResult& aRv)
 {
   nsCOMPtr<EventTarget> t = do_QueryInterface(aGlobal.GetAsSupports());
-  nsRefPtr<InputEvent> e = new InputEvent(t, nullptr, nullptr);
+  RefPtr<InputEvent> e = new InputEvent(t, nullptr, nullptr);
   bool trusted = e->Init(t);
   aRv = e->InitUIEvent(aType, aParam.mBubbles, aParam.mCancelable,
                        aParam.mView, aParam.mDetail);
@@ -62,14 +64,11 @@ InputEvent::Constructor(const GlobalObject& aGlobal,
 using namespace mozilla;
 using namespace mozilla::dom;
 
-nsresult
-NS_NewDOMInputEvent(nsIDOMEvent** aInstancePtrResult,
-                    EventTarget* aOwner,
+already_AddRefed<InputEvent>
+NS_NewDOMInputEvent(EventTarget* aOwner,
                     nsPresContext* aPresContext,
                     InternalEditorInputEvent* aEvent)
 {
-  InputEvent* it = new InputEvent(aOwner, aPresContext, aEvent);
-  NS_ADDREF(it);
-  *aInstancePtrResult = static_cast<Event*>(it);
-  return NS_OK;
+  RefPtr<InputEvent> it = new InputEvent(aOwner, aPresContext, aEvent);
+  return it.forget();
 }

@@ -13,7 +13,7 @@ interface nsINavHistoryBatchCallback;
 /**
  * Observer for bookmarks changes.
  */
-[scriptable, uuid(8ab925f8-af9b-4837-afa0-ffed507212ce)]
+[scriptable, uuid(cff3efcc-e144-490d-9f23-8b6f6dd09e7f)]
 interface nsINavBookmarkObserver : nsISupports
 {
   /**
@@ -113,8 +113,7 @@ interface nsINavBookmarkObserver : nsISupports
    *        For certain properties, this is set to the new value of the
    *        property (see the list below).
    * @param aLastModified
-   *        If lastModified changed, this parameter is the new value, otherwise
-   *        it's set to 0.
+   *        The updated last-modified value.
    * @param aItemType
    *        The type of the item to be removed (see TYPE_* constants below).
    * @param aParentId
@@ -123,17 +122,30 @@ interface nsINavBookmarkObserver : nsISupports
    *        The unique ID associated with the item.
    * @param aParentGuid
    *        The unique ID associated with the item's parent.
+   * @param aOldValue
+   *        For certain properties, this is set to the new value of the
+   *        property (see the list below).
    *
    * @note List of values that may be associated with properties:
    *       aProperty     | aNewValue
    *       =====================================================================
-   *       cleartime      | Empty string (all visits to this item were removed).
+   *       cleartime     | Empty string (all visits to this item were removed).
    *       title         | The new title.
    *       favicon       | The "moz-anno" URL of the new favicon.
    *       uri           | new URL.
    *       tags          | Empty string (tags for this item changed)
    *       dateAdded     | PRTime (as string) when the item was first added.
    *       lastModified  | PRTime (as string) when the item was last modified.
+   *
+   *       aProperty     | aOldValue
+   *       =====================================================================
+   *       cleartime     | Empty string (currently unused).
+   *       title         | Empty string (currently unused).
+   *       favicon       | Empty string (currently unused).
+   *       uri           | old URL.
+   *       tags          | Empty string (currently unused).
+   *       dateAdded     | Empty string (currently unused).
+   *       lastModified  | Empty string (currently unused).
    */
   void onItemChanged(in long long aItemId,
                      in ACString aProperty,
@@ -143,7 +155,8 @@ interface nsINavBookmarkObserver : nsISupports
                      in unsigned short aItemType,
                      in long long aParentId,
                      in ACString aGuid,
-                     in ACString aParentGuid);
+                     in ACString aParentGuid,
+                     in AUTF8String aOldValue);
 
   /**
    * Notifies that the item was visited.  Can be invoked only for TYPE_BOOKMARK
@@ -223,7 +236,7 @@ interface nsINavBookmarkObserver : nsISupports
  * folders.  A URI in history can be contained in one or more such folders.
  */
 
-[scriptable, uuid(A78EA368-E28E-462E-897A-26606D4DDCE6)]
+[scriptable, uuid(24533891-afa6-4663-b72d-3143d03f1b04)]
 interface nsINavBookmarksService : nsISupports
 {
   /**
@@ -409,27 +422,51 @@ interface nsINavBookmarksService : nsISupports
 
   /**
    * Set the date added time for an item.
+   *
+   * @param aItemId
+   *        the id of the item whose date added time should be updated.
+   * @param aDateAdded
+   *        the new date added value in microseconds.  Note that it is rounded
+   *        down to milliseconds precision.
    */
   void setItemDateAdded(in long long aItemId, in PRTime aDateAdded);
+
   /**
    * Get the date added time for an item.
+   *
+   * @param aItemId
+   *        the id of the item whose date added time should be retrieved.
+   *
+   * @return the date added value in microseconds.
    */
   PRTime getItemDateAdded(in long long aItemId);
 
   /**
    * Set the last modified time for an item.
    *
-   *  @note This is the only method that will send an itemChanged notification
-   *        for the property.  lastModified will still be updated in
-   *        any other method that changes an item property, but we will send
-   *        the corresponding itemChanged notification instead.
+   * @param aItemId
+   *        the id of the item whose last modified time should be updated.
+   * @param aLastModified
+   *        the new last modified value in microseconds.  Note that it is
+   *        rounded down to milliseconds precision.
+   *
+   * @note This is the only method that will send an itemChanged notification
+   *       for the property.  lastModified will still be updated in
+   *       any other method that changes an item property, but we will send
+   *       the corresponding itemChanged notification instead.
    */
   void setItemLastModified(in long long aItemId, in PRTime aLastModified);
+
   /**
    * Get the last modified time for an item.
    *
-   *  @note When an item is added lastModified is set to the same value as
-   *        dateAdded.
+   * @param aItemId
+   *        the id of the item whose last modified time should be retrieved.
+   *
+   * @return the date added value in microseconds.
+   *
+   * @note When an item is added lastModified is set to the same value as
+   *       dateAdded.
    */
   PRTime getItemLastModified(in long long aItemId);
 
@@ -465,30 +502,6 @@ interface nsINavBookmarksService : nsISupports
    * The type is one of the TYPE_* constants defined above.
    */
   unsigned short getItemType(in long long aItemId);
-
-  /**
-   * Checks whether a folder is marked as read-only.
-   * If this is set to true, UI will not allow the user to add, remove,
-   * or reorder children in this folder. The default for all folders is false.
-   * Note: This does not restrict API calls, only UI actions.
-   *
-   * @param aItemId
-   *        the item-id of the folder.
-   */
-  boolean getFolderReadonly(in long long aItemId);
-
-  /**
-   * Sets or unsets the readonly flag from a folder.
-   * If this is set to true, UI will not allow the user to add, remove,
-   * or reorder children in this folder. The default for all folders is false.
-   * Note: This does not restrict API calls, only UI actions.
-   *
-   * @param aFolder
-   *        the item-id of the folder.
-   * @param aReadOnly
-   *        the read-only state (boolean).
-   */
-  void setFolderReadonly(in long long aFolder, in boolean aReadOnly);
 
   /**
    * Returns true if the given URI is in any bookmark folder. If you want the
@@ -534,24 +547,24 @@ interface nsINavBookmarksService : nsISupports
    *
    * Use an empty keyword to clear the keyword associated with the URI.
    * In both of these cases, succeeds but does nothing if the URL/keyword is not found.
+   *
+   * @deprecated Use PlacesUtils.keywords.insert() API instead.
    */
   void setKeywordForBookmark(in long long aItemId, in AString aKeyword);
 
   /**
-   * Retrieves the keyword for the given URI. Will be void string
-   * (null in JS) if no such keyword is found.
-   */
-  AString getKeywordForURI(in nsIURI aURI);
-
-  /**
    * Retrieves the keyword for the given bookmark. Will be void string
    * (null in JS) if no such keyword is found.
+   *
+   * @deprecated Use PlacesUtils.keywords.fetch() API instead.
    */
   AString getKeywordForBookmark(in long long aItemId);
 
   /**
    * Returns the URI associated with the given keyword. Empty if no such
    * keyword is found.
+   *
+   * @deprecated Use PlacesUtils.keywords.fetch() API instead.
    */
   nsIURI getURIForKeyword(in AString keyword);
 
@@ -567,6 +580,12 @@ interface nsINavBookmarksService : nsISupports
    * Removes a bookmark observer.
    */
   void removeObserver(in nsINavBookmarkObserver observer);
+
+  /**
+   * Gets an array of registered nsINavBookmarkObserver objects.
+   */
+  void getObservers([optional] out unsigned long count,
+                    [retval, array, size_is(count)] out nsINavBookmarkObserver observers);
 
   /**
    * Runs the passed callback inside of a database transaction.

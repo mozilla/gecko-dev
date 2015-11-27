@@ -45,8 +45,8 @@ public:
   NS_DECL_CHANGEOBSERVER
 
   // nsMenuObjectX
-  void*             NativeData()     {return (void*)mNativeMenuItem;}
-  nsMenuObjectTypeX MenuObjectType() {return eMenuItemObjectType;}
+  void*             NativeData() override {return (void*)mNativeMenuItem;}
+  nsMenuObjectTypeX MenuObjectType() override {return eMenuItemObjectType;}
 
   // nsMenuItemX
   nsresult      Create(nsMenuX* aParent, const nsString& aLabel, EMenuItemType aItemType,
@@ -68,7 +68,7 @@ protected:
   nsMenuGroupOwnerX*        mMenuGroupOwner;      // [weak]
   nsCOMPtr<nsIContent>      mCommandContent;
   // The icon object should never outlive its creating nsMenuItemX object.
-  nsRefPtr<nsMenuItemIconX> mIcon;
+  RefPtr<nsMenuItemIconX> mIcon;
   bool                      mIsChecked;
 };
 

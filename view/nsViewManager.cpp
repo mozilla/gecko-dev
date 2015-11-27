@@ -197,7 +197,8 @@ void
 nsViewManager::SetWindowDimensions(nscoord aWidth, nscoord aHeight)
 {
   if (mRootView) {
-    if (mRootView->IsEffectivelyVisible() && mPresShell && mPresShell->IsVisible()) {
+    if (mRootView->IsEffectivelyVisible() && mPresShell &&
+        mPresShell->IsVisible() && !mPresShell->IsInFullscreenChange()) {
       if (mDelayedResize != nsSize(NSCOORD_NONE, NSCOORD_NONE) &&
           mDelayedResize != nsSize(aWidth, aHeight)) {
         // We have a delayed resize; that now obsolete size may already have
@@ -226,7 +227,7 @@ nsViewManager::FlushDelayedResize(bool aDoReflow)
     if (aDoReflow) {
       DoSetWindowDimensions(mDelayedResize.width, mDelayedResize.height);
       mDelayedResize.SizeTo(NSCOORD_NONE, NSCOORD_NONE);
-    } else if (mPresShell) {
+    } else if (mPresShell && !mPresShell->GetIsViewportOverridden()) {
       nsPresContext* presContext = mPresShell->GetPresContext();
       if (presContext) {
         presContext->SetVisibleArea(nsRect(nsPoint(0, 0), mDelayedResize));
@@ -243,7 +244,7 @@ static nsRegion ConvertRegionBetweenViews(const nsRegion& aIn,
 {
   nsRegion out = aIn;
   out.MoveBy(aFromView->GetOffsetTo(aToView));
-  out = out.ConvertAppUnitsRoundOut(
+  out = out.ScaleToOtherAppUnitsRoundOut(
     aFromView->GetViewManager()->AppUnitsPerDevPixel(),
     aToView->GetViewManager()->AppUnitsPerDevPixel());
   return out;
@@ -368,6 +369,17 @@ nsViewManager::ProcessPendingUpdatesForView(nsView* aView,
   for (uint32_t i = 0; i < widgets.Length(); ++i) {
     nsView* view = nsView::GetViewFor(widgets[i]);
     if (view) {
+      if (view->mNeedsWindowPropertiesSync) {
+        view->mNeedsWindowPropertiesSync = false;
+        if (nsViewManager* vm = view->GetViewManager()) {
+          if (nsIPresShell* ps = vm->GetPresShell()) {
+            ps->SyncWindowProperties(view);
+          }
+        }
+      }
+    }
+    view = nsView::GetViewFor(widgets[i]);
+    if (view) {
       view->ResetWidgetBounds(false, true);
     }
   }
@@ -375,6 +387,7 @@ nsViewManager::ProcessPendingUpdatesForView(nsView* aView,
     return; // 'this' might have been destroyed
   }
   if (aFlushDirtyRegion) {
+    profiler_tracing("Paint", "DisplayList", TRACING_INTERVAL_START);
     nsAutoScriptBlocker scriptBlocker;
     SetPainting(true);
     for (uint32_t i = 0; i < widgets.Length(); ++i) {
@@ -385,6 +398,7 @@ nsViewManager::ProcessPendingUpdatesForView(nsView* aView,
       }
     }
     SetPainting(false);
+    profiler_tracing("Paint", "DisplayList", TRACING_INTERVAL_END);
   }
 }
 
@@ -427,8 +441,17 @@ nsViewManager::ProcessPendingUpdatesPaint(nsIWidget* aWidget)
       }
     }
     nsView* view = nsView::GetViewFor(aWidget);
+
     if (!view) {
       NS_ERROR("FlushDelayedResize destroyed the nsView?");
+      return;
+    }
+
+    nsIWidgetListener* previousListener = aWidget->GetPreviouslyAttachedWidgetListener();
+
+    if (previousListener &&
+        previousListener != view &&
+        view->IsPrimaryFramePaintSuppressed()) {
       return;
     }
 
@@ -473,8 +496,8 @@ void nsViewManager::FlushDirtyRegionToWidget(nsView* aView)
   // If we draw the frame counter we need to make sure we invalidate the area
   // for it to make it on screen
   if (gfxPrefs::DrawFrameCounter()) {
-    nsRect counterBounds = gfxPlatform::FrameCounterBounds().ToAppUnits(AppUnitsPerDevPixel());
-    r = r.Or(r, counterBounds);
+    nsRect counterBounds = ToAppUnits(gfxPlatform::FrameCounterBounds(), AppUnitsPerDevPixel());
+    r.OrWith(counterBounds);
   }
 
   nsViewManager* widgetVM = nearestViewWithWidget->GetViewManager();
@@ -553,7 +576,7 @@ nsViewManager::InvalidateWidgetArea(nsView *aWidgetView,
       NS_ASSERTION(view != aWidgetView, "will recur infinitely");
       nsWindowType type = childWidget->WindowType();
       if (view && childWidget->IsVisible() && type != eWindowType_popup) {
-        NS_ASSERTION(type == eWindowType_plugin,
+        NS_ASSERTION(childWidget->IsPlugin(),
                      "Only plugin or popup widgets can be children!");
 
         // We do not need to invalidate in plugin widgets, but we should
@@ -563,14 +586,13 @@ nsViewManager::InvalidateWidgetArea(nsView *aWidgetView,
 #ifndef XP_MACOSX
         // GetBounds should compensate for chrome on a toplevel widget
         nsIntRect bounds;
-        childWidget->GetBounds(bounds);
+        childWidget->GetBoundsUntyped(bounds);
 
         nsTArray<nsIntRect> clipRects;
         childWidget->GetWindowClipRegion(&clipRects);
         for (uint32_t i = 0; i < clipRects.Length(); ++i) {
-          nsRect rr = (clipRects[i] + bounds.TopLeft()).
-            ToAppUnits(AppUnitsPerDevPixel());
-          children.Or(children, rr - aWidgetView->ViewToWidgetOffset()); 
+          nsRect rr = ToAppUnits(clipRects[i] + bounds.TopLeft(), AppUnitsPerDevPixel());
+          children.Or(children, rr - aWidgetView->ViewToWidgetOffset());
           children.SimplifyInward(20);
         }
 #endif
@@ -638,7 +660,7 @@ nsViewManager::InvalidateViewNoSuppression(nsView *aView,
   damagedRect.MoveBy(aView->GetOffsetTo(displayRoot));
   int32_t rootAPD = displayRootVM->AppUnitsPerDevPixel();
   int32_t APD = AppUnitsPerDevPixel();
-  damagedRect = damagedRect.ConvertAppUnitsRoundOut(APD, rootAPD);
+  damagedRect = damagedRect.ScaleToOtherAppUnitsRoundOut(APD, rootAPD);
 
   // accumulate this rectangle in the view's dirty region, so we can
   // process it later.
@@ -732,11 +754,11 @@ nsViewManager::DispatchEvent(WidgetGUIEvent *aEvent,
        // Ignore mouse exit and enter (we'll get moves if the user
        // is really moving the mouse) since we get them when we
        // create and destroy widgets.
-       mouseEvent->message != NS_MOUSE_EXIT &&
-       mouseEvent->message != NS_MOUSE_ENTER) ||
+       mouseEvent->mMessage != eMouseExitFromWidget &&
+       mouseEvent->mMessage != eMouseEnterIntoWidget) ||
       aEvent->HasKeyEventMessage() ||
       aEvent->HasIMEEventMessage() ||
-      aEvent->message == NS_PLUGIN_INPUT_EVENT) {
+      aEvent->mMessage == ePluginInputEvent) {
     gLastUserEventTime = PR_IntervalToMicroseconds(PR_IntervalNow());
   }
 
@@ -755,8 +777,7 @@ nsViewManager::DispatchEvent(WidgetGUIEvent *aEvent,
       (dispatchUsingCoordinates || aEvent->HasKeyEventMessage() ||
        aEvent->IsIMERelatedEvent() ||
        aEvent->IsNonRetargetedNativeEventDelivererForPlugin() ||
-       aEvent->HasPluginActivationEventMessage() ||
-       aEvent->message == NS_PLUGIN_RESOLUTION_CHANGED)) {
+       aEvent->HasPluginActivationEventMessage())) {
     while (view && !view->GetFrame()) {
       view = view->GetParent();
     }
@@ -1066,13 +1087,14 @@ nsViewManager::ProcessPendingUpdates()
     return;
   }
 
-  mPresShell->GetPresContext()->RefreshDriver()->RevokeViewManagerFlush();
-
   // Flush things like reflows by calling WillPaint on observer presShells.
   if (mPresShell) {
+    mPresShell->GetPresContext()->RefreshDriver()->RevokeViewManagerFlush();
+
     CallWillPaintOnObservers();
+
+    ProcessPendingUpdatesForView(mRootView, true);
   }
-  ProcessPendingUpdatesForView(mRootView, true);
 }
 
 void
@@ -1137,3 +1159,4 @@ nsViewManager::InvalidateHierarchy()
     }
   }
 }
+

@@ -35,7 +35,6 @@ const SORT_LOOKUP_TABLE = {
   url:          { key: "URI",          dir: "ASCENDING"  },
   date:         { key: "DATE",         dir: "DESCENDING" },
   visitCount:   { key: "VISITCOUNT",   dir: "DESCENDING" },
-  keyword:      { key: "KEYWORD",      dir: "ASCENDING"  },
   dateAdded:    { key: "DATEADDED",    dir: "DESCENDING" },
   lastModified: { key: "LASTMODIFIED", dir: "DESCENDING" },
   description:  { key:  "ANNOTATION",
@@ -52,8 +51,8 @@ const DEFAULT_SORT_KEY = "TITLE";
 
 // Part of the test is checking that sorts stick, so each time we sort we need
 // to remember it.
-let prevSortDir = null;
-let prevSortKey = null;
+var prevSortDir = null;
+var prevSortKey = null;
 
 ///////////////////////////////////////////////////////////////////////////////
 

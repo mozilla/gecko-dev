@@ -44,6 +44,7 @@
 #include "mozilla/Services.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/Event.h"
 #include <algorithm>
 
 using namespace mozilla;
@@ -76,7 +77,7 @@ public:
   {
   }
 
-  NS_IMETHOD Run() MOZ_OVERRIDE
+  NS_IMETHOD Run() override
   {
     nsAutoString domEventToFire;
 
@@ -94,24 +95,20 @@ public:
       domEventToFire.AssignLiteral("DOMMenuItemInactive");
     }
 
-    nsCOMPtr<nsIDOMEvent> event;
-    if (NS_SUCCEEDED(EventDispatcher::CreateEvent(mMenu, mPresContext, nullptr,
-                                                  NS_LITERAL_STRING("Events"),
-                                                  getter_AddRefs(event)))) {
-      event->InitEvent(domEventToFire, true, true);
+    RefPtr<Event> event = NS_NewDOMEvent(mMenu, mPresContext, nullptr);
+    event->InitEvent(domEventToFire, true, true);
 
-      event->SetTrusted(true);
+    event->SetTrusted(true);
 
-      EventDispatcher::DispatchDOMEvent(mMenu, nullptr, event,
-                                        mPresContext, nullptr);
-    }
+    EventDispatcher::DispatchDOMEvent(mMenu, nullptr, event,
+        mPresContext, nullptr);
 
     return NS_OK;
   }
 
 private:
   nsCOMPtr<nsIContent> mMenu;
-  nsRefPtr<nsPresContext> mPresContext;
+  RefPtr<nsPresContext> mPresContext;
   bool mIsActivate;
 };
 
@@ -123,7 +120,7 @@ public:
   {
   }
 
-  NS_IMETHOD Run() MOZ_OVERRIDE
+  NS_IMETHOD Run() override
   {
     nsMenuFrame* frame = static_cast<nsMenuFrame*>(mFrame.GetFrame());
     NS_ENSURE_STATE(frame);
@@ -155,7 +152,7 @@ protected:
 nsIFrame*
 NS_NewMenuFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
-  nsMenuFrame* it = new (aPresShell) nsMenuFrame (aPresShell, aContext);
+  nsMenuFrame* it = new (aPresShell) nsMenuFrame(aContext);
   it->SetIsMenu(true);
   return it;
 }
@@ -163,7 +160,7 @@ NS_NewMenuFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 nsIFrame*
 NS_NewMenuItemFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
-  nsMenuFrame* it = new (aPresShell) nsMenuFrame (aPresShell, aContext);
+  nsMenuFrame* it = new (aPresShell) nsMenuFrame(aContext);
   it->SetIsMenu(false);
   return it;
 }
@@ -174,8 +171,8 @@ NS_QUERYFRAME_HEAD(nsMenuFrame)
   NS_QUERYFRAME_ENTRY(nsMenuFrame)
 NS_QUERYFRAME_TAIL_INHERITING(nsBoxFrame)
 
-nsMenuFrame::nsMenuFrame(nsIPresShell* aShell, nsStyleContext* aContext):
-  nsBoxFrame(aShell, aContext),
+nsMenuFrame::nsMenuFrame(nsStyleContext* aContext):
+  nsBoxFrame(aContext),
     mIsMenu(false),
     mChecked(false),
     mIgnoreAccelTextChange(false),
@@ -201,7 +198,7 @@ nsMenuFrame::GetMenuParent() const
   return nullptr;
 }
 
-class nsASyncMenuInitialization MOZ_FINAL : public nsIReflowCallback
+class nsASyncMenuInitialization final : public nsIReflowCallback
 {
 public:
   explicit nsASyncMenuInitialization(nsIFrame* aFrame)
@@ -209,7 +206,7 @@ public:
   {
   }
 
-  virtual bool ReflowFinished() MOZ_OVERRIDE
+  virtual bool ReflowFinished() override
   {
     bool shouldFlush = false;
     nsMenuFrame* menu = do_QueryFrame(mWeakFrame.GetFrame());
@@ -221,7 +218,7 @@ public:
     return shouldFlush;
   }
 
-  virtual void ReflowCallbackCanceled() MOZ_OVERRIDE
+  virtual void ReflowCallbackCanceled() override
   {
     delete this;
   }
@@ -397,7 +394,7 @@ nsMenuFrame::HandleEvent(nsPresContext* aPresContext,
 
   bool onmenu = IsOnMenu();
 
-  if (aEvent->message == NS_KEY_PRESS && !IsDisabled()) {
+  if (aEvent->mMessage == eKeyPress && !IsDisabled()) {
     WidgetKeyboardEvent* keyEvent = aEvent->AsKeyboardEvent();
     uint32_t keyCode = keyEvent->keyCode;
 #ifdef XP_MACOSX
@@ -416,7 +413,7 @@ nsMenuFrame::HandleEvent(nsPresContext* aPresContext,
     }
 #endif
   }
-  else if (aEvent->message == NS_MOUSE_BUTTON_DOWN &&
+  else if (aEvent->mMessage == eMouseDown &&
            aEvent->AsMouseEvent()->button == WidgetMouseEvent::eLeftButton &&
            !IsDisabled() && IsMenu()) {
     // The menu item was selected. Bring up the menu.
@@ -428,16 +425,17 @@ nsMenuFrame::HandleEvent(nsPresContext* aPresContext,
     }
     else {
       if (!IsOpen()) {
+        menuParent->ChangeMenuItem(this, false, false);
         OpenMenu(false);
       }
     }
   }
   else if (
 #ifndef NSCONTEXTMENUISMOUSEUP
-           (aEvent->message == NS_MOUSE_BUTTON_UP &&
+           (aEvent->mMessage == eMouseUp &&
             aEvent->AsMouseEvent()->button == WidgetMouseEvent::eRightButton) &&
 #else
-           aEvent->message == NS_CONTEXTMENU &&
+           aEvent->mMessage == eContextMenu &&
 #endif
            onmenu && !IsMenu() && !IsDisabled()) {
     // if this menu is a context menu it accepts right-clicks...fire away!
@@ -455,14 +453,14 @@ nsMenuFrame::HandleEvent(nsPresContext* aPresContext,
       Execute(aEvent);
     }
   }
-  else if (aEvent->message == NS_MOUSE_BUTTON_UP &&
+  else if (aEvent->mMessage == eMouseUp &&
            aEvent->AsMouseEvent()->button == WidgetMouseEvent::eLeftButton &&
            !IsMenu() && !IsDisabled()) {
     // Execute the execute event handler.
     *aEventStatus = nsEventStatus_eConsumeNoDefault;
     Execute(aEvent);
   }
-  else if (aEvent->message == NS_MOUSE_EXIT_SYNTH) {
+  else if (aEvent->mMessage == eMouseOut) {
     // Kill our timer if one is active.
     if (mOpenTimer) {
       mOpenTimer->Cancel();
@@ -477,12 +475,12 @@ nsMenuFrame::HandleEvent(nsPresContext* aPresContext,
           // Submenus don't get closed up immediately.
         }
         else if (this == menuParent->GetCurrentMenuItem()) {
-          menuParent->ChangeMenuItem(nullptr, false);
+          menuParent->ChangeMenuItem(nullptr, false, false);
         }
       }
     }
   }
-  else if (aEvent->message == NS_MOUSE_MOVE &&
+  else if (aEvent->mMessage == eMouseMove &&
            (onmenu || (menuParent && menuParent->IsMenuBar()))) {
     if (gEatMouseMove) {
       gEatMouseMove = false;
@@ -490,7 +488,7 @@ nsMenuFrame::HandleEvent(nsPresContext* aPresContext,
     }
 
     // Let the menu parent know we're the new item.
-    menuParent->ChangeMenuItem(this, false);
+    menuParent->ChangeMenuItem(this, false, false);
     NS_ENSURE_TRUE(weakFrame.IsAlive(), NS_OK);
     NS_ENSURE_TRUE(menuParent, NS_OK);
 
@@ -1152,7 +1150,7 @@ nsMenuFrame::BuildAcceleratorText(bool aNotify)
     token = nsCRT::strtok(newStr, ", \t", &newStr);
   }
 
-  nsMemory::Free(str);
+  free(str);
 
   accelText += accelString;
 
@@ -1433,7 +1431,7 @@ nsMenuFrame::SetActiveChild(nsIDOMElement* aChild)
 
   if (!aChild) {
     // Remove the current selection
-    popupFrame->ChangeMenuItem(nullptr, false);
+    popupFrame->ChangeMenuItem(nullptr, false, false);
     return NS_OK;
   }
 
@@ -1441,7 +1439,7 @@ nsMenuFrame::SetActiveChild(nsIDOMElement* aChild)
 
   nsMenuFrame* menu = do_QueryFrame(child->GetPrimaryFrame());
   if (menu)
-    popupFrame->ChangeMenuItem(menu, false);
+    popupFrame->ChangeMenuItem(menu, false, false);
   return NS_OK;
 }
 

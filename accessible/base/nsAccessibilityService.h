@@ -10,18 +10,24 @@
 
 #include "mozilla/a11y/DocManager.h"
 #include "mozilla/a11y/FocusManager.h"
+#include "mozilla/a11y/Role.h"
 #include "mozilla/a11y/SelectionManager.h"
+#include "mozilla/Preferences.h"
 
 #include "nsIObserver.h"
+#include "nsIEventListenerService.h"
 
 class nsImageFrame;
-class nsObjectFrame;
+class nsIArray;
+class nsIPersistentProperties;
+class nsPluginFrame;
 class nsITreeView;
 
 namespace mozilla {
 namespace a11y {
 
 class ApplicationAccessible;
+class xpcAccessibleApplication;
 
 /**
  * Return focus manager.
@@ -37,19 +43,41 @@ SelectionManager* SelectionMgr();
  * Returns the application accessible.
  */
 ApplicationAccessible* ApplicationAcc();
+xpcAccessibleApplication* XPCApplicationAcc();
+
+typedef Accessible* (New_Accessible)(nsIContent* aContent, Accessible* aContext);
+
+struct MarkupAttrInfo {
+  nsIAtom** name;
+  nsIAtom** value;
+
+  nsIAtom** DOMAttrName;
+  nsIAtom** DOMAttrValue;
+};
+
+struct MarkupMapInfo {
+  nsIAtom** tag;
+  New_Accessible* new_func;
+  a11y::role role;
+  MarkupAttrInfo attrs[4];
+};
 
 } // namespace a11y
 } // namespace mozilla
 
-class nsAccessibilityService MOZ_FINAL : public mozilla::a11y::DocManager,
-                                         public mozilla::a11y::FocusManager,
-                                         public mozilla::a11y::SelectionManager,
-                                         public nsIAccessibilityService,
-                                         public nsIObserver
+class nsAccessibilityService final : public mozilla::a11y::DocManager,
+                                     public mozilla::a11y::FocusManager,
+                                     public mozilla::a11y::SelectionManager,
+                                     public nsIAccessibilityService,
+                                     public nsIListenerChangeListener,
+                                     public nsIObserver
 {
 public:
   typedef mozilla::a11y::Accessible Accessible;
   typedef mozilla::a11y::DocAccessible DocAccessible;
+
+  // nsIListenerChangeListener
+  NS_IMETHOD ListenersChanged(nsIArray* aEventChanges) override;
 
 protected:
   virtual ~nsAccessibilityService();
@@ -61,18 +89,21 @@ public:
 
   // nsIAccessibilityService
   virtual Accessible* GetRootDocumentAccessible(nsIPresShell* aPresShell,
-                                                bool aCanCreate);
+                                                bool aCanCreate) override;
   already_AddRefed<Accessible>
-    CreatePluginAccessible(nsObjectFrame* aFrame, nsIContent* aContent,
+    CreatePluginAccessible(nsPluginFrame* aFrame, nsIContent* aContent,
                            Accessible* aContext);
 
   /**
    * Adds/remove ATK root accessible for gtk+ native window to/from children
    * of the application accessible.
    */
-  virtual Accessible* AddNativeRootAccessible(void* aAtkAccessible);
-  virtual void RemoveNativeRootAccessible(Accessible* aRootAccessible);
+  virtual Accessible* AddNativeRootAccessible(void* aAtkAccessible) override;
+  virtual void RemoveNativeRootAccessible(Accessible* aRootAccessible) override;
 
+  virtual bool HasAccessible(nsIDOMNode* aDOMNode) override;
+
+  // nsAccesibilityService
   /**
    * Notification used to update the accessible tree when deck panel is
    * switched.
@@ -139,7 +170,7 @@ public:
    */
   void RecreateAccessible(nsIPresShell* aPresShell, nsIContent* aContent);
 
-  virtual void FireAccessibleEvent(uint32_t aEvent, Accessible* aTarget);
+  virtual void FireAccessibleEvent(uint32_t aEvent, Accessible* aTarget) override;
 
   // nsAccessibiltiyService
 
@@ -159,6 +190,19 @@ public:
    */
   Accessible* GetOrCreateAccessible(nsINode* aNode, Accessible* aContext,
                                     bool* aIsSubtreeHidden = nullptr);
+
+  mozilla::a11y::role MarkupRole(const nsIContent* aContent) const
+  {
+    const mozilla::a11y::MarkupMapInfo* markupMap =
+      mMarkupMaps.Get(aContent->NodeInfo()->NameAtom());
+    return markupMap ? markupMap->role : mozilla::a11y::roles::NOTHING;
+  }
+
+  /**
+   * Set the object attribute defined by markup for the given element.
+   */
+  void MarkupAttributes(const nsIContent* aContent,
+                        nsIPersistentProperties* aAttributes) const;
 
 private:
   // nsAccessibilityService creation is controlled by friend
@@ -185,13 +229,6 @@ private:
     CreateAccessibleByType(nsIContent* aContent, DocAccessible* aDoc);
 
   /**
-   * Create accessible for HTML node by tag name.
-   */
-  already_AddRefed<Accessible>
-    CreateHTMLAccessibleByMarkup(nsIFrame* aFrame, nsIContent* aContent,
-                                 Accessible* aContext);
-
-  /**
    * Create an accessible whose type depends on the given frame.
    */
   already_AddRefed<Accessible>
@@ -215,16 +252,20 @@ private:
    * Reference for application accessible instance.
    */
   static mozilla::a11y::ApplicationAccessible* gApplicationAccessible;
+  static mozilla::a11y::xpcAccessibleApplication* gXPCApplicationAccessible;
 
   /**
    * Indicates whether accessibility service was shutdown.
    */
   static bool gIsShutdown;
 
+  nsDataHashtable<nsPtrHashKey<const nsIAtom>, const mozilla::a11y::MarkupMapInfo*> mMarkupMaps;
+
   friend nsAccessibilityService* GetAccService();
   friend mozilla::a11y::FocusManager* mozilla::a11y::FocusMgr();
   friend mozilla::a11y::SelectionManager* mozilla::a11y::SelectionMgr();
   friend mozilla::a11y::ApplicationAccessible* mozilla::a11y::ApplicationAcc();
+  friend mozilla::a11y::xpcAccessibleApplication* mozilla::a11y::XPCApplicationAcc();
 
   friend nsresult NS_GetAccessibilityService(nsIAccessibilityService** aResult);
 };
@@ -236,6 +277,20 @@ inline nsAccessibilityService*
 GetAccService()
 {
   return nsAccessibilityService::gAccessibilityService;
+}
+
+/**
+ * Return true if we're in a content process and not B2G.
+ */
+inline bool
+IPCAccessibilityActive()
+{
+#ifdef MOZ_B2G
+  return false;
+#else
+  return XRE_IsContentProcess() &&
+    mozilla::Preferences::GetBool("accessibility.ipc_architecture.enabled", true);
+#endif
 }
 
 /**
@@ -329,7 +384,8 @@ static const char kEventTypeNames[][40] = {
   "hypertext changed",                       // EVENT_HYPERTEXT_CHANGED
   "hypertext links count changed",           // EVENT_HYPERTEXT_NLINKS_CHANGED
   "object attribute changed",                // EVENT_OBJECT_ATTRIBUTE_CHANGED
-  "virtual cursor changed"                   // EVENT_VIRTUALCURSOR_CHANGED
+  "virtual cursor changed",                   // EVENT_VIRTUALCURSOR_CHANGED
+  "text value change",                       // EVENT_TEXT_VALUE_CHANGE
 };
 
 #endif /* __nsIAccessibilityService_h__ */

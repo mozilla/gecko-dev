@@ -7,6 +7,12 @@
 #ifndef __SECURITY_SANDBOX_SANDBOXTARGET_H__
 #define __SECURITY_SANDBOX_SANDBOXTARGET_H__
 
+#include <windows.h>
+
+#include "base/MissingBasicTypes.h"
+#include "sandbox/win/src/sandbox.h"
+#include "sandbox/win/src/target_services.h"
+
 #ifdef TARGET_SANDBOX_EXPORTS
 #define TARGET_SANDBOX_EXPORT __declspec(dllexport)
 #else
@@ -18,8 +24,6 @@ namespace mozilla {
 class TARGET_SANDBOX_EXPORT SandboxTarget
 {
 public:
-  typedef void (*StartSandboxPtr)();
-
   /**
    * Obtains a pointer to the singleton instance
    */
@@ -30,33 +34,57 @@ public:
   }
 
   /**
-   * Called by the application that will lower the sandbox token
+   * Used by the application to pass in the target services that provide certain
+   * functions to the sandboxed code.
+   * The target services must already be initialized.
    *
-   * @param aStartSandboxCallback A callback function which will lower privs
+   * @param aTargetServices The target services that will be used
    */
-  void SetStartSandboxCallback(StartSandboxPtr aStartSandboxCallback)
+  void SetTargetServices(sandbox::TargetServices* aTargetServices)
   {
-    mStartSandboxCallback = aStartSandboxCallback;
+    MOZ_ASSERT(aTargetServices);
+    MOZ_ASSERT(!mTargetServices,
+               "Sandbox TargetServices must only be set once.");
+
+    mTargetServices = aTargetServices;
   }
 
   /**
-   * Called by the library that wants to start the sandbox, which in turn
-   * calls into the previously set StartSandboxCallback.
+   * Called by the library that wants to "start" the sandbox, i.e. change to the
+   * more secure delayed / lockdown policy.
    */
   void StartSandbox()
   {
-    if (mStartSandboxCallback) {
-      mStartSandboxCallback();
+    if (mTargetServices) {
+      mTargetServices->LowerToken();
     }
+  }
+
+  /**
+   * Used to duplicate handles via the broker process. The permission for the
+   * handle type and target process has to have been set on the sandbox policy.
+   */
+  bool BrokerDuplicateHandle(HANDLE aSourceHandle, DWORD aTargetProcessId,
+                             HANDLE* aTargetHandle, DWORD aDesiredAccess,
+                             DWORD aOptions)
+  {
+    if (!mTargetServices) {
+      return false;
+    }
+
+    sandbox::ResultCode result =
+      mTargetServices->DuplicateHandle(aSourceHandle, aTargetProcessId,
+                                       aTargetHandle, aDesiredAccess, aOptions);
+    return (sandbox::SBOX_ALL_OK == result);
   }
 
 protected:
   SandboxTarget() :
-    mStartSandboxCallback(nullptr)
+    mTargetServices(nullptr)
   {
   }
 
-  StartSandboxPtr mStartSandboxCallback;
+  sandbox::TargetServices* mTargetServices;
 };
 
 

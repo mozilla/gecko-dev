@@ -81,6 +81,7 @@ function run_test() {
       "testing.string": "im in ur prefs",
       "testing.bool": false,
       "testing.deleteme": null,
+      "testing.somepref": "im a new pref from other device",
       "services.sync.prefs.sync.testing.somepref": true
     };
     store.update(record);
@@ -89,34 +90,35 @@ function run_test() {
     do_check_eq(prefs.get("testing.bool"), false);
     do_check_eq(prefs.get("testing.deleteme"), undefined);
     do_check_eq(prefs.get("testing.dont.change"), "Please don't change me.");
+    do_check_eq(prefs.get("testing.somepref"), "im a new pref from other device");
     do_check_eq(Svc.Prefs.get("prefs.sync.testing.somepref"), true);
 
     _("Enable persona");
     // Ensure we don't go to the network to fetch personas and end up leaking
     // stuff.
     Services.io.offline = true;
-    do_check_false(!!prefs.get("lightweightThemes.isThemeSelected"));
+    do_check_false(!!prefs.get("lightweightThemes.selectedThemeID"));
     do_check_eq(LightweightThemeManager.currentTheme, null);
 
     let persona1 = makePersona();
     let persona2 = makePersona();
     let usedThemes = JSON.stringify([persona1, persona2]);
     record.value = {
-      "lightweightThemes.isThemeSelected": true,
+      "lightweightThemes.selectedThemeID": persona1.id,
       "lightweightThemes.usedThemes": usedThemes
     };
     store.update(record);
-    do_check_true(prefs.get("lightweightThemes.isThemeSelected"));
+    do_check_eq(prefs.get("lightweightThemes.selectedThemeID"), persona1.id);
     do_check_true(Utils.deepEquals(LightweightThemeManager.currentTheme,
                   persona1));
 
     _("Disable persona");
     record.value = {
-      "lightweightThemes.isThemeSelected": false,
+      "lightweightThemes.selectedThemeID": null,
       "lightweightThemes.usedThemes": usedThemes
     };
     store.update(record);
-    do_check_false(prefs.get("lightweightThemes.isThemeSelected"));
+    do_check_false(!!prefs.get("lightweightThemes.selectedThemeID"));
     do_check_eq(LightweightThemeManager.currentTheme, null);
 
     _("Only the current app's preferences are applied.");

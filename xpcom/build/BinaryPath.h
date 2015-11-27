@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -59,10 +61,25 @@ private:
     nsresult rv;
     if (CFURLGetFileSystemRepresentation(executableURL, false, (UInt8*)aResult,
                                          MAXPATHLEN)) {
+      // Sanitize path in case the app was launched from Terminal via
+      // './firefox' for example.
+      size_t readPos = 0;
+      size_t writePos = 0;
+      while (aResult[readPos] != '\0') {
+        if (aResult[readPos] == '.' && aResult[readPos + 1] == '/') {
+          readPos += 2;
+        } else {
+          aResult[writePos] = aResult[readPos];
+          readPos++;
+          writePos++;
+        }
+      }
+      aResult[writePos] = '\0';
       rv = NS_OK;
     } else {
       rv = NS_ERROR_FAILURE;
     }
+
     CFRelease(executableURL);
     return rv;
   }
@@ -166,6 +183,6 @@ public:
   }
 };
 
-}
+} // namespace mozilla
 
 #endif /* mozilla_BinaryPath_h */

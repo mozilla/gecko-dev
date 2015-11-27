@@ -4,8 +4,8 @@
 // found in the LICENSE file.
 //
 
-#ifndef COMPILER_UTIL_H
-#define COMPILER_UTIL_H
+#ifndef COMPILER_TRANSLATOR_UTIL_H_
+#define COMPILER_TRANSLATOR_UTIL_H_
 
 #include <stack>
 
@@ -14,15 +14,17 @@
 
 #include "compiler/translator/Types.h"
 
-// atof_clamp is like atof but
+// strtof_clamp is like strtof but
 //   1. it forces C locale, i.e. forcing '.' as decimal point.
 //   2. it clamps the value to -FLT_MAX or FLT_MAX if overflow happens.
 // Return false if overflow happens.
-extern bool atof_clamp(const char *str, float *value);
+bool strtof_clamp(const std::string &str, float *value);
 
 // If overflow happens, clamp the value to INT_MIN or INT_MAX.
 // Return false if overflow happens.
-extern bool atoi_clamp(const char *str, int *value);
+bool atoi_clamp(const char *str, int *value);
+
+class TSymbolTable;
 
 namespace sh
 {
@@ -33,13 +35,13 @@ bool IsVaryingIn(TQualifier qualifier);
 bool IsVaryingOut(TQualifier qualifier);
 bool IsVarying(TQualifier qualifier);
 InterpolationType GetInterpolationType(TQualifier qualifier);
-BlockLayoutType GetBlockLayoutType(TLayoutBlockStorage blockStorage);
 TString ArrayString(const TType &type);
 
-class GetVariableTraverser
+class GetVariableTraverser : angle::NonCopyable
 {
   public:
-    GetVariableTraverser() {}
+    GetVariableTraverser(const TSymbolTable &symbolTable);
+    virtual ~GetVariableTraverser() {}
 
     template <typename VarT>
     void traverse(const TType &type, const TString &name, std::vector<VarT> *output);
@@ -49,11 +51,15 @@ class GetVariableTraverser
     virtual void visitVariable(ShaderVariable *newVar) {}
 
   private:
-    DISALLOW_COPY_AND_ASSIGN(GetVariableTraverser);
-};
+    // Helper function called by traverse() to fill specific fields
+    // for attributes/varyings/uniforms.
+    template <typename VarT>
+    void setTypeSpecificInfo(
+        const TType &type, const TString &name, VarT *variable) {}
 
-void GetInterfaceBlockFields(const TInterfaceBlock &interfaceBlock, std::vector<InterfaceBlockField> *fieldsOut);
+    const TSymbolTable &mSymbolTable;
+};
 
 }
 
-#endif // COMPILER_UTIL_H
+#endif // COMPILER_TRANSLATOR_UTIL_H_

@@ -28,10 +28,10 @@ EXTRA_JS_MODULES += [
     'AlarmService.jsm',
 ]
 
-FAIL_ON_WARNINGS = True
-
 include('/ipc/chromium/chromium-config.mozbuild')
 
 FINAL_LIBRARY = 'xul'
 
 MOCHITEST_MANIFESTS += ['test/mochitest.ini']
+
+XPCSHELL_TESTS_MANIFESTS += ['test/xpcshell.ini']

@@ -8,8 +8,8 @@ const Ci = Components.interfaces;
 function run_test() {
 
   // Load the component manifests.
-  Components.manager.autoRegister(do_get_file('../components/native/xpctest.manifest'));
-  Components.manager.autoRegister(do_get_file('../components/js/xpctest.manifest'));
+  registerAppManifest(do_get_file('../components/native/chrome.manifest'));
+  registerAppManifest(do_get_file('../components/js/xpctest.manifest'));
 
   // Test for each component.
   test_component("@mozilla.org/js/xpc/test/native/Params;1");
@@ -187,6 +187,9 @@ function test_component(contractid) {
   // Test arrays of iids.
   doIs2Test("testInterfaceIsArray", [makeA(), makeA(), makeA(), makeA(), makeA()], 5, Ci['nsIXPCTestInterfaceA'],
                                     [makeB(), makeB(), makeB()], 3, Ci['nsIXPCTestInterfaceB']);
+
+  // Test optional array size.
+  do_check_eq(o.testStringArrayOptionalSize(["some", "string", "array"]), "somestringarray");
 
   // Test incorrect (too big) array size parameter; this should throw NOT_ENOUGH_ELEMENTS.
   doTypedArrayMismatchTest("testShortArray", new Int16Array([-3, 7, 4]), 4,

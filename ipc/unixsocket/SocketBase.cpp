@@ -10,31 +10,143 @@
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
+#include "nsISupportsImpl.h" // for MOZ_COUNT_CTOR, MOZ_COUNT_DTOR
 
 namespace mozilla {
 namespace ipc {
+
+//
+// UnixSocketIOBuffer
+//
+
+UnixSocketBuffer::UnixSocketBuffer()
+  : mSize(0)
+  , mOffset(0)
+  , mAvailableSpace(0)
+  , mData(nullptr)
+{
+  MOZ_COUNT_CTOR(UnixSocketBuffer);
+}
+
+UnixSocketBuffer::~UnixSocketBuffer()
+{
+  MOZ_COUNT_DTOR(UnixSocketBuffer);
+
+  // Make sure that the caller released the buffer's memory.
+  MOZ_ASSERT(!GetBuffer());
+}
+
+const uint8_t*
+UnixSocketBuffer::Consume(size_t aLen)
+{
+  if (NS_WARN_IF(GetSize() < aLen)) {
+    return nullptr;
+  }
+  uint8_t* data = mData + mOffset;
+  mOffset += aLen;
+  return data;
+}
+
+nsresult
+UnixSocketBuffer::Read(void* aValue, size_t aLen)
+{
+  const uint8_t* data = Consume(aLen);
+  if (!data) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+  memcpy(aValue, data, aLen);
+  return NS_OK;
+}
+
+uint8_t*
+UnixSocketBuffer::Append(size_t aLen)
+{
+  if (((mAvailableSpace - mSize) < aLen)) {
+    size_t availableSpace = mAvailableSpace + std::max(mAvailableSpace, aLen);
+    uint8_t* data = new uint8_t[availableSpace];
+    memcpy(data, mData, mSize);
+    mData = data;
+    mAvailableSpace = availableSpace;
+  }
+  uint8_t* data = mData + mSize;
+  mSize += aLen;
+  return data;
+}
+
+nsresult
+UnixSocketBuffer::Write(const void* aValue, size_t aLen)
+{
+  uint8_t* data = Append(aLen);
+  if (!data) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+  memcpy(data, aValue, aLen);
+  return NS_OK;
+}
+
+void
+UnixSocketBuffer::CleanupLeadingSpace()
+{
+  if (GetLeadingSpace()) {
+    if (GetSize() <= GetLeadingSpace()) {
+      memcpy(mData, GetData(), GetSize());
+    } else {
+      memmove(mData, GetData(), GetSize());
+    }
+    mOffset = 0;
+  }
+}
+
+//
+// UnixSocketIOBuffer
+//
+
+UnixSocketIOBuffer::UnixSocketIOBuffer()
+{
+  MOZ_COUNT_CTOR_INHERITED(UnixSocketIOBuffer, UnixSocketBuffer);
+}
+
+UnixSocketIOBuffer::~UnixSocketIOBuffer()
+{
+  MOZ_COUNT_DTOR_INHERITED(UnixSocketIOBuffer, UnixSocketBuffer);
+}
 
 //
 // UnixSocketRawData
 //
 
 UnixSocketRawData::UnixSocketRawData(const void* aData, size_t aSize)
-: mSize(aSize)
-, mOffset(0)
-, mAvailableSpace(aSize)
 {
-  MOZ_ASSERT(aData || !mSize);
+  MOZ_ASSERT(aData || !aSize);
 
-  mData = new uint8_t[mAvailableSpace];
-  memcpy(mData, aData, mSize);
+  MOZ_COUNT_CTOR_INHERITED(UnixSocketRawData, UnixSocketIOBuffer);
+
+  ResetBuffer(static_cast<uint8_t*>(memcpy(new uint8_t[aSize], aData, aSize)),
+              0, aSize, aSize);
+}
+
+UnixSocketRawData::UnixSocketRawData(UniquePtr<uint8_t[]> aData, size_t aSize)
+{
+  MOZ_ASSERT(aData || !aSize);
+
+  MOZ_COUNT_CTOR_INHERITED(UnixSocketRawData, UnixSocketIOBuffer);
+
+  ResetBuffer(aData.release(), 0, aSize, aSize);
 }
 
 UnixSocketRawData::UnixSocketRawData(size_t aSize)
-: mSize(0)
-, mOffset(0)
-, mAvailableSpace(aSize)
 {
-  mData = new uint8_t[mAvailableSpace];
+  MOZ_COUNT_CTOR_INHERITED(UnixSocketRawData, UnixSocketIOBuffer);
+
+  ResetBuffer(new uint8_t[aSize], 0, 0, aSize);
+}
+
+UnixSocketRawData::~UnixSocketRawData()
+{
+  MOZ_COUNT_DTOR_INHERITED(UnixSocketRawData, UnixSocketIOBuffer);
+
+  nsAutoArrayPtr<uint8_t> data(GetBuffer());
+  ResetBuffer(nullptr, 0, 0, 0);
 }
 
 ssize_t
@@ -45,12 +157,7 @@ UnixSocketRawData::Receive(int aFd)
       return -1; /* buffer is full */
     }
     /* free up space at the end of data buffer */
-    if (GetSize() <= GetLeadingSpace()) {
-      memcpy(mData, GetData(), GetSize());
-    } else {
-      memmove(mData, GetData(), GetSize());
-    }
-    mOffset = 0;
+    CleanupLeadingSpace();
   }
 
   ssize_t res =
@@ -64,7 +171,7 @@ UnixSocketRawData::Receive(int aFd)
     return 0;
   }
 
-  mSize += res;
+  Append(res); /* mark read data as 'valid' */
 
   return res;
 }
@@ -94,45 +201,32 @@ UnixSocketRawData::Send(int aFd)
 }
 
 //
-// SocketConsumerBase
+// SocketBase
 //
 
-SocketConsumerBase::~SocketConsumerBase()
-{
-  MOZ_ASSERT(mConnectionStatus == SOCKET_DISCONNECTED);
-}
-
 SocketConnectionStatus
-SocketConsumerBase::GetConnectionStatus() const
+SocketBase::GetConnectionStatus() const
 {
-  MOZ_ASSERT(NS_IsMainThread());
-
   return mConnectionStatus;
 }
 
 int
-SocketConsumerBase::GetSuggestedConnectDelayMs() const
+SocketBase::GetSuggestedConnectDelayMs() const
 {
-  MOZ_ASSERT(NS_IsMainThread());
-
   return mConnectDelayMs;
 }
 
 void
-SocketConsumerBase::NotifySuccess()
+SocketBase::NotifySuccess()
 {
-  MOZ_ASSERT(NS_IsMainThread());
-
   mConnectionStatus = SOCKET_CONNECTED;
   mConnectTimestamp = PR_IntervalNow();
   OnConnectSuccess();
 }
 
 void
-SocketConsumerBase::NotifyError()
+SocketBase::NotifyError()
 {
-  MOZ_ASSERT(NS_IsMainThread());
-
   mConnectionStatus = SOCKET_DISCONNECTED;
   mConnectDelayMs = CalculateConnectDelayMs();
   mConnectTimestamp = 0;
@@ -140,10 +234,8 @@ SocketConsumerBase::NotifyError()
 }
 
 void
-SocketConsumerBase::NotifyDisconnect()
+SocketBase::NotifyDisconnect()
 {
-  MOZ_ASSERT(NS_IsMainThread());
-
   mConnectionStatus = SOCKET_DISCONNECTED;
   mConnectDelayMs = CalculateConnectDelayMs();
   mConnectTimestamp = 0;
@@ -151,10 +243,8 @@ SocketConsumerBase::NotifyDisconnect()
 }
 
 uint32_t
-SocketConsumerBase::CalculateConnectDelayMs() const
+SocketBase::CalculateConnectDelayMs() const
 {
-  MOZ_ASSERT(NS_IsMainThread());
-
   uint32_t connectDelayMs = mConnectDelayMs;
 
   if (mConnectTimestamp && (PR_IntervalNow()-mConnectTimestamp) > connectDelayMs) {
@@ -170,15 +260,23 @@ SocketConsumerBase::CalculateConnectDelayMs() const
   return connectDelayMs;
 }
 
-SocketConsumerBase::SocketConsumerBase()
+SocketBase::SocketBase()
 : mConnectionStatus(SOCKET_DISCONNECTED)
 , mConnectTimestamp(0)
 , mConnectDelayMs(0)
-{ }
+{
+  MOZ_COUNT_CTOR(SocketBase);
+}
+
+SocketBase::~SocketBase()
+{
+  MOZ_ASSERT(mConnectionStatus == SOCKET_DISCONNECTED);
+
+  MOZ_COUNT_DTOR(SocketBase);
+}
 
 void
-SocketConsumerBase::SetConnectionStatus(
-  SocketConnectionStatus aConnectionStatus)
+SocketBase::SetConnectionStatus(SocketConnectionStatus aConnectionStatus)
 {
   mConnectionStatus = aConnectionStatus;
 }
@@ -187,29 +285,158 @@ SocketConsumerBase::SetConnectionStatus(
 // SocketIOBase
 //
 
-SocketIOBase::~SocketIOBase()
-{ }
-
-void
-SocketIOBase::EnqueueData(UnixSocketRawData* aData)
+SocketIOBase::SocketIOBase(MessageLoop* aConsumerLoop)
+  : mConsumerLoop(aConsumerLoop)
 {
-  if (!aData->GetSize()) {
-    delete aData; // delete empty data immediately
-    return;
-  }
-  mOutgoingQ.AppendElement(aData);
+  MOZ_ASSERT(mConsumerLoop);
+
+  MOZ_COUNT_CTOR(SocketIOBase);
+}
+
+SocketIOBase::~SocketIOBase()
+{
+  MOZ_COUNT_DTOR(SocketIOBase);
+}
+
+MessageLoop*
+SocketIOBase::GetConsumerThread() const
+{
+  return mConsumerLoop;
 }
 
 bool
-SocketIOBase::HasPendingData() const
+SocketIOBase::IsConsumerThread() const
 {
-  return !mOutgoingQ.IsEmpty();
+  return GetConsumerThread() == MessageLoop::current();
 }
 
-SocketIOBase::SocketIOBase(size_t aMaxReadSize)
-  : mMaxReadSize(aMaxReadSize)
+//
+// SocketEventTask
+//
+
+SocketEventTask::SocketEventTask(SocketIOBase* aIO, SocketEvent aEvent)
+  : SocketTask<SocketIOBase>(aIO)
+  , mEvent(aEvent)
 {
-  MOZ_ASSERT(mMaxReadSize);
+  MOZ_COUNT_CTOR(SocketEventTask);
+}
+
+SocketEventTask::~SocketEventTask()
+{
+  MOZ_COUNT_DTOR(SocketEventTask);
+}
+
+void
+SocketEventTask::Run()
+{
+  SocketIOBase* io = SocketTask<SocketIOBase>::GetIO();
+
+  MOZ_ASSERT(io->IsConsumerThread());
+
+  if (NS_WARN_IF(io->IsShutdownOnConsumerThread())) {
+    // Since we've already explicitly closed and the close
+    // happened before this, this isn't really an error.
+    return;
+  }
+
+  SocketBase* socketBase = io->GetSocketBase();
+  MOZ_ASSERT(socketBase);
+
+  if (mEvent == CONNECT_SUCCESS) {
+    socketBase->NotifySuccess();
+  } else if (mEvent == CONNECT_ERROR) {
+    socketBase->NotifyError();
+  } else if (mEvent == DISCONNECT) {
+    socketBase->NotifyDisconnect();
+  }
+}
+
+//
+// SocketRequestClosingTask
+//
+
+SocketRequestClosingTask::SocketRequestClosingTask(SocketIOBase* aIO)
+  : SocketTask<SocketIOBase>(aIO)
+{
+  MOZ_COUNT_CTOR(SocketRequestClosingTask);
+}
+
+SocketRequestClosingTask::~SocketRequestClosingTask()
+{
+  MOZ_COUNT_DTOR(SocketRequestClosingTask);
+}
+
+void
+SocketRequestClosingTask::Run()
+{
+  SocketIOBase* io = SocketTask<SocketIOBase>::GetIO();
+
+  MOZ_ASSERT(io->IsConsumerThread());
+
+  if (NS_WARN_IF(io->IsShutdownOnConsumerThread())) {
+    // Since we've already explicitly closed and the close
+    // happened before this, this isn't really an error.
+    return;
+  }
+
+  SocketBase* socketBase = io->GetSocketBase();
+  MOZ_ASSERT(socketBase);
+
+  socketBase->Close();
+}
+
+//
+// SocketDeleteInstanceTask
+//
+
+SocketDeleteInstanceTask::SocketDeleteInstanceTask(SocketIOBase* aIO)
+  : mIO(aIO)
+{
+  MOZ_COUNT_CTOR(SocketDeleteInstanceTask);
+}
+
+SocketDeleteInstanceTask::~SocketDeleteInstanceTask()
+{
+  MOZ_COUNT_DTOR(SocketDeleteInstanceTask);
+}
+
+void
+SocketDeleteInstanceTask::Run()
+{
+  mIO = nullptr; // delete instance
+}
+
+//
+// SocketIOShutdownTask
+//
+
+SocketIOShutdownTask::SocketIOShutdownTask(SocketIOBase* aIO)
+  : SocketIOTask<SocketIOBase>(aIO)
+{
+  MOZ_COUNT_CTOR(SocketIOShutdownTask);
+}
+
+SocketIOShutdownTask::~SocketIOShutdownTask()
+{
+  MOZ_COUNT_DTOR(SocketIOShutdownTask);
+}
+
+void
+SocketIOShutdownTask::Run()
+{
+  SocketIOBase* io = SocketIOTask<SocketIOBase>::GetIO();
+
+  MOZ_ASSERT(!io->IsConsumerThread());
+  MOZ_ASSERT(!io->IsShutdownOnIOThread());
+
+  // At this point, there should be no new events on the I/O thread
+  // after this one with the possible exception of an accept task,
+  // which ShutdownOnIOThread will cancel for us. We are now fully
+  // shut down, so we can send a message to the consumer thread to
+  // delete |io| safely knowing that it's not reference any longer.
+  io->ShutdownOnIOThread();
+  io->GetConsumerThread()->PostTask(FROM_HERE,
+                                    new SocketDeleteInstanceTask(io));
 }
 
 }

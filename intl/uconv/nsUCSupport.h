@@ -81,8 +81,8 @@ public:
   //--------------------------------------------------------------------
   // Interface nsIUnicodeDecoder [declaration]
 
-  virtual void SetInputErrorBehavior(int32_t aBehavior);
-  virtual char16_t GetCharacterForUnMapped();
+  virtual void SetInputErrorBehavior(int32_t aBehavior) override;
+  virtual char16_t GetCharacterForUnMapped() override;
 
 protected:
   int32_t   mErrBehavior;
@@ -147,43 +147,6 @@ public:
   NS_IMETHOD GetMaxLength(const char *aSrc,
                           int32_t aSrcLength,
                           int32_t* aDestLength);
-};
-
-//----------------------------------------------------------------------
-// Class nsTableDecoderSupport [declaration]
-
-/**
- * Support class for a single-table-driven Unicode decoder.
- * 
- * @created         15/Mar/1999
- * @author  Catalin Rotaru [CATA]
- */
-class nsTableDecoderSupport : public nsBufferDecoderSupport
-{
-public:
-
-  /**
-   * Class constructor.
-   */
-  nsTableDecoderSupport(uScanClassID aScanClass, uShiftInTable * aShiftInTable,
-      uMappingTable * aMappingTable, uint32_t aMaxLengthFactor);
-
-  /**
-   * Class destructor.
-   */
-  virtual ~nsTableDecoderSupport();
-
-protected:
-
-  uScanClassID              mScanClass;
-  uShiftInTable             * mShiftInTable;
-  uMappingTable             * mMappingTable;
-
-  //--------------------------------------------------------------------
-  // Subclassing of nsBufferDecoderSupport class [declaration]
-
-  NS_IMETHOD ConvertNoBuff(const char * aSrc, int32_t * aSrcLength, 
-      char16_t * aDest, int32_t * aDestLength);
 };
 
 //----------------------------------------------------------------------

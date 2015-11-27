@@ -23,8 +23,8 @@ OverscrollHandoffChain::Add(AsyncPanZoomController* aApzc)
 
 struct CompareByScrollPriority
 {
-  bool operator()(const nsRefPtr<AsyncPanZoomController>& a,
-                  const nsRefPtr<AsyncPanZoomController>& b) const
+  bool operator()(const RefPtr<AsyncPanZoomController>& a,
+                  const RefPtr<AsyncPanZoomController>& b) const
   {
     return a->HasScrollgrab() && !b->HasScrollgrab();
   }
@@ -41,7 +41,7 @@ OverscrollHandoffChain::SortByScrollPriority()
   std::stable_sort(mChain.begin(), mChain.end(), CompareByScrollPriority());
 }
 
-const nsRefPtr<AsyncPanZoomController>&
+const RefPtr<AsyncPanZoomController>&
 OverscrollHandoffChain::GetApzcAtIndex(uint32_t aIndex) const
 {
   MOZ_ASSERT(aIndex < Length());
@@ -63,10 +63,21 @@ OverscrollHandoffChain::IndexOf(const AsyncPanZoomController* aApzc) const
 void
 OverscrollHandoffChain::ForEachApzc(APZCMethod aMethod) const
 {
-  MOZ_ASSERT(Length() > 0);
   for (uint32_t i = 0; i < Length(); ++i) {
     (mChain[i]->*aMethod)();
   }
+}
+
+bool
+OverscrollHandoffChain::AnyApzc(APZCPredicate aPredicate) const
+{
+  MOZ_ASSERT(Length() > 0);
+  for (uint32_t i = 0; i < Length(); ++i) {
+    if ((mChain[i]->*aPredicate)()) {
+      return true;
+    }
+  }
+  return false;
 }
 
 void
@@ -76,9 +87,12 @@ OverscrollHandoffChain::FlushRepaints() const
 }
 
 void
-OverscrollHandoffChain::CancelAnimations() const
+OverscrollHandoffChain::CancelAnimations(CancelAnimationFlags aFlags) const
 {
-  ForEachApzc(&AsyncPanZoomController::CancelAnimation);
+  MOZ_ASSERT(Length() > 0);
+  for (uint32_t i = 0; i < Length(); ++i) {
+    mChain[i]->CancelAnimation(aFlags);
+  }
 }
 
 void
@@ -88,27 +102,39 @@ OverscrollHandoffChain::ClearOverscroll() const
 }
 
 void
-OverscrollHandoffChain::SnapBackOverscrolledApzc() const
+OverscrollHandoffChain::SnapBackOverscrolledApzc(const AsyncPanZoomController* aStart) const
 {
-  uint32_t i = 0;
-  for (i = 0; i < Length(); ++i) {
-    AsyncPanZoomController* apzc = mChain[i];
-    if (!apzc->IsDestroyed() && apzc->SnapBackIfOverscrolled()) {
-      // At most one APZC along the hand-off chain can be overscrolled.
-      break;
-    }
-  }
-
-  // In debug builds, verify our assumption that only one APZC is overscrolled.
-#ifdef DEBUG
-  ++i;
+  uint32_t i = IndexOf(aStart);
   for (; i < Length(); ++i) {
     AsyncPanZoomController* apzc = mChain[i];
     if (!apzc->IsDestroyed()) {
-      MOZ_ASSERT(!apzc->IsOverscrolled());
+      apzc->SnapBackIfOverscrolled();
     }
   }
-#endif
+}
+void
+OverscrollHandoffChain::RequestSnapOnLock(Layer::ScrollDirection aAxis) const
+{
+  for (uint32_t i = 0; i < Length(); ++i) {
+    AsyncPanZoomController* apzc = mChain[i];
+    if (!apzc->IsDestroyed()) {
+      switch (aAxis) {
+      case Layer::HORIZONTAL:
+        if (!apzc->CanScroll(Layer::VERTICAL)) {
+          apzc->RequestSnap();
+        }
+        break;
+      case Layer::VERTICAL:
+        if (!apzc->CanScroll(Layer::HORIZONTAL)) {
+          apzc->RequestSnap();
+        }
+        break;
+      default:
+        MOZ_ASSERT(false);
+        break;
+      }
+    }
+  }
 }
 
 bool
@@ -126,6 +152,47 @@ OverscrollHandoffChain::CanBePanned(const AsyncPanZoomController* aApzc) const
   }
 
   return false;
+}
+
+bool
+OverscrollHandoffChain::CanScrollInDirection(const AsyncPanZoomController* aApzc,
+                                             Layer::ScrollDirection aDirection) const
+{
+  // Find |aApzc| in the handoff chain.
+  uint32_t i = IndexOf(aApzc);
+
+  // See whether any APZC in the handoff chain starting from |aApzc|
+  // has room to scroll in the given direction.
+  for (uint32_t j = i; j < Length(); ++j) {
+    if (mChain[j]->CanScroll(aDirection)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool
+OverscrollHandoffChain::HasApzcPannedIntoOverscroll() const
+{
+  return AnyApzc(&AsyncPanZoomController::IsPannedIntoOverscroll);
+}
+
+bool
+OverscrollHandoffChain::HasFastFlungApzc() const
+{
+  return AnyApzc(&AsyncPanZoomController::IsFlingingFast);
+}
+
+RefPtr<AsyncPanZoomController>
+OverscrollHandoffChain::FindFirstScrollable(const InputData& aInput) const
+{
+  for (size_t i = 0; i < Length(); i++) {
+    if (mChain[i]->CanScroll(aInput)) {
+      return mChain[i];
+    }
+  }
+  return nullptr;
 }
 
 } // namespace layers

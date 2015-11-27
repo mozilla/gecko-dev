@@ -9,14 +9,9 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 
-import org.json.JSONObject;
 import org.mozilla.gecko.AppConstants.Versions;
 import org.mozilla.gecko.BrowserApp;
-import org.mozilla.gecko.EventDispatcher;
 import org.mozilla.gecko.GeckoAppShell;
-import org.mozilla.gecko.GeckoApplication;
-import org.mozilla.gecko.LightweightTheme;
-import org.mozilla.gecko.NewTabletUI;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.Tab;
 import org.mozilla.gecko.Tabs;
@@ -25,18 +20,22 @@ import org.mozilla.gecko.TelemetryContract;
 import org.mozilla.gecko.animation.PropertyAnimator;
 import org.mozilla.gecko.animation.PropertyAnimator.PropertyAnimationListener;
 import org.mozilla.gecko.animation.ViewHelper;
+import org.mozilla.gecko.lwt.LightweightTheme;
+import org.mozilla.gecko.lwt.LightweightThemeDrawable;
 import org.mozilla.gecko.menu.GeckoMenu;
 import org.mozilla.gecko.menu.MenuPopup;
+import org.mozilla.gecko.tabs.TabHistoryController;
 import org.mozilla.gecko.toolbar.ToolbarDisplayLayout.OnStopListener;
 import org.mozilla.gecko.toolbar.ToolbarDisplayLayout.OnTitleChangeListener;
 import org.mozilla.gecko.toolbar.ToolbarDisplayLayout.UpdateFlags;
 import org.mozilla.gecko.util.Clipboard;
-import org.mozilla.gecko.util.GeckoEventListener;
+import org.mozilla.gecko.util.ColorUtils;
 import org.mozilla.gecko.util.HardwareUtils;
 import org.mozilla.gecko.util.MenuUtils;
-import org.mozilla.gecko.widget.ThemedImageButton;
-import org.mozilla.gecko.widget.ThemedImageView;
-import org.mozilla.gecko.widget.ThemedRelativeLayout;
+import org.mozilla.gecko.widget.themed.ThemedFrameLayout;
+import org.mozilla.gecko.widget.themed.ThemedImageButton;
+import org.mozilla.gecko.widget.themed.ThemedImageView;
+import org.mozilla.gecko.widget.themed.ThemedRelativeLayout;
 
 import android.content.Context;
 import android.content.res.Resources;
@@ -52,6 +51,7 @@ import android.view.LayoutInflater;
 import android.view.MenuInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewTreeObserver.OnGlobalLayoutListener;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -76,9 +76,10 @@ import android.widget.PopupWindow;
 */
 public abstract class BrowserToolbar extends ThemedRelativeLayout
                                      implements Tabs.OnTabsChangedListener,
-                                                GeckoMenu.ActionItemBarPresenter,
-                                                GeckoEventListener {
+                                                GeckoMenu.ActionItemBarPresenter {
     private static final String LOGTAG = "GeckoToolbar";
+
+    private static final int LIGHTWEIGHT_THEME_INVERT_ALPHA = 34; // 255 - alpha = invert_alpha
 
     public interface OnActivateListener {
         public void onActivate();
@@ -109,8 +110,6 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
         DISPLAY
     }
 
-    private final boolean isNewTablet;
-
     protected final ToolbarDisplayLayout urlDisplayLayout;
     protected final ToolbarEditLayout urlEditLayout;
     protected final View urlBarEntry;
@@ -119,12 +118,10 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
 
     private ToolbarProgressView progressBar;
     protected final TabCounter tabsCounter;
-    protected final ThemedImageButton menuButton;
+    protected final ThemedFrameLayout menuButton;
     protected final ThemedImageView menuIcon;
     private MenuPopup menuPopup;
     protected final List<View> focusOrder;
-
-    protected final ThemedImageView editCancel;
 
     private OnActivateListener activateListener;
     private OnFocusChangeListener focusChangeListener;
@@ -135,11 +132,13 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
     protected boolean hasSoftMenuButton;
 
     protected UIMode uiMode;
+    protected TabHistoryController tabHistoryController;
 
     private final Paint shadowPaint;
+    private final int shadowColor;
+    private final int shadowPrivateColor;
     private final int shadowSize;
 
-    private final LightweightTheme theme;
     private final ToolbarPrefs prefs;
 
     public abstract boolean isAnimating();
@@ -152,11 +151,16 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
     protected abstract void triggerStopEditingTransition();
     public abstract void triggerTabsPanelTransition(PropertyAnimator animator, boolean areTabsShown);
 
+    /**
+     * Returns a Drawable overlaid with the theme's bitmap.
+     */
+    protected Drawable getLWTDefaultStateSetDrawable() {
+        return getTheme().getDrawable(this);
+    }
+
     public static BrowserToolbar create(final Context context, final AttributeSet attrs) {
         final BrowserToolbar toolbar;
-        if (NewTabletUI.isEnabled(context)) {
-            toolbar = new BrowserToolbarNewTablet(context, attrs);
-        } else if (HardwareUtils.isTablet()) {
+        if (HardwareUtils.isTablet()) {
             toolbar = new BrowserToolbarTablet(context, attrs);
         } else if (Versions.preHC) {
             toolbar = new BrowserToolbarPreHC(context, attrs);
@@ -170,26 +174,13 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
         super(context, attrs);
         setWillNotDraw(false);
 
-        isNewTablet = NewTabletUI.isEnabled(context);
-        theme = ((GeckoApplication) context.getApplicationContext()).getLightweightTheme();
-
         // BrowserToolbar is attached to BrowserApp only.
         activity = (BrowserApp) context;
 
-        // Inflate the content.
-        // TODO: Remove the branch when new tablet becomes old tablet.
-        if (!isNewTablet) {
-            LayoutInflater.from(context).inflate(R.layout.browser_toolbar, this);
-        } else {
-            LayoutInflater.from(context).inflate(R.layout.new_tablet_browser_toolbar, this);
-        }
+        LayoutInflater.from(context).inflate(R.layout.browser_toolbar, this);
 
         Tabs.registerOnTabsChangedListener(this);
         isSwitchingTabs = true;
-
-        EventDispatcher.getInstance().registerGeckoThreadListener(this,
-            "Reader:Click",
-            "Reader:LongClick");
 
         urlDisplayLayout = (ToolbarDisplayLayout) findViewById(R.id.display_layout);
         urlBarEntry = findViewById(R.id.url_bar_entry);
@@ -201,11 +192,9 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
             tabsCounter.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
         }
 
-        menuButton = (ThemedImageButton) findViewById(R.id.menu);
+        menuButton = (ThemedFrameLayout) findViewById(R.id.menu);
         menuIcon = (ThemedImageView) findViewById(R.id.menu_icon);
         hasSoftMenuButton = !HardwareUtils.hasMenuButton();
-
-        editCancel = (ThemedImageView) findViewById(R.id.edit_cancel);
 
         // The focusOrder List should be filled by sub-classes.
         focusOrder = new ArrayList<View>();
@@ -214,7 +203,9 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
         shadowSize = res.getDimensionPixelSize(R.dimen.browser_toolbar_shadow_size);
 
         shadowPaint = new Paint();
-        shadowPaint.setColor(res.getColor(R.color.url_bar_shadow));
+        shadowColor = ColorUtils.getColor(context, R.color.url_bar_shadow);
+        shadowPrivateColor = ColorUtils.getColor(context, R.color.url_bar_shadow_private);
+        shadowPaint.setColor(shadowColor);
         shadowPaint.setStrokeWidth(0.0f);
 
         setUIMode(UIMode.DISPLAY);
@@ -222,34 +213,17 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
         prefs = new ToolbarPrefs();
         urlDisplayLayout.setToolbarPrefs(prefs);
         urlEditLayout.setToolbarPrefs(prefs);
-    }
-
-    @Override
-    public void onAttachedToWindow() {
-        super.onAttachedToWindow();
-
-        prefs.open();
-
-        setOnClickListener(new Button.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (activateListener != null) {
-                    activateListener.onActivate();
-                }
-            }
-        });
 
         setOnCreateContextMenuListener(new View.OnCreateContextMenuListener() {
             @Override
             public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
-                // We don't the context menu while editing
+                // Do not show the context menu while editing
                 if (isEditing()) {
                     return;
                 }
 
                 // NOTE: Use MenuUtils.safeSetVisible because some actions might
                 // be on the Page menu
-
                 MenuInflater inflater = activity.getMenuInflater();
                 inflater.inflate(R.menu.titlebar_contextmenu, menu);
 
@@ -278,6 +252,22 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
                 }
             }
         });
+
+        setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (activateListener != null) {
+                    activateListener.onActivate();
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onAttachedToWindow() {
+        super.onAttachedToWindow();
+
+        prefs.open();
 
         urlDisplayLayout.setOnStopListener(new OnStopListener() {
             @Override
@@ -322,32 +312,22 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
         tabsButton.setOnClickListener(new Button.OnClickListener() {
             @Override
             public void onClick(View v) {
+                // Clear focus so a back press with the tabs
+                // panel open does not go to the editing field.
+                urlEditLayout.clearFocus();
+
                 toggleTabs();
             }
         });
         tabsButton.setImageLevel(0);
 
-        editCancel.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // If we exit editing mode during the animation,
-                // we're put into an inconsistent state (bug 1017276).
-                if (!isAnimating()) {
-                    Telemetry.sendUIEvent(TelemetryContract.Event.CANCEL,
-                                          TelemetryContract.Method.ACTIONBAR,
-                                          getResources().getResourceEntryName(editCancel.getId()));
-                    cancelEdit();
-                }
-            }
-        });
-
         if (hasSoftMenuButton) {
             menuButton.setVisibility(View.VISIBLE);
-            menuIcon.setVisibility(View.VISIBLE);
-
             menuButton.setOnClickListener(new Button.OnClickListener() {
                 @Override
                 public void onClick(View view) {
+                    // Drop the soft keyboard.
+                    urlEditLayout.clearFocus();
                     activity.openOptionsMenu();
                 }
             });
@@ -369,8 +349,16 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
         canvas.drawRect(0, height - shadowSize, getWidth(), height, shadowPaint);
     }
 
+    public void onParentFocus() {
+        urlEditLayout.onParentFocus();
+    }
+
     public void setProgressBar(ToolbarProgressView progressBar) {
         this.progressBar = progressBar;
+    }
+
+    public void setTabHistoryController(TabHistoryController tabHistoryController) {
+        this.tabHistoryController = tabHistoryController;
     }
 
     public void refresh() {
@@ -391,17 +379,6 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
     }
 
     @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        // If the motion event has occurred below the toolbar (due to the scroll
-        // offset), let it pass through to the page.
-        if (event != null && event.getY() > getHeight() + ViewHelper.getTranslationY(this)) {
-            return false;
-        }
-
-        return super.onTouchEvent(event);
-    }
-
-    @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
 
@@ -415,6 +392,18 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
                 }
             });
         }
+    }
+
+    public void saveTabEditingState(final TabEditingState editingState) {
+        urlEditLayout.saveTabEditingState(editingState);
+    }
+
+    public void restoreTabEditingState(final TabEditingState editingState) {
+        if (!isEditing()) {
+            throw new IllegalStateException("Expected to be editing");
+        }
+
+        urlEditLayout.restoreTabEditingState(editingState);
     }
 
     @Override
@@ -522,12 +511,17 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
 
     private void updateProgressVisibility() {
         final Tab selectedTab = Tabs.getInstance().getSelectedTab();
-        updateProgressVisibility(selectedTab, selectedTab.getLoadProgress());
+        // The selected tab may be null if GeckoApp (and thus the
+        // selected tab) are not yet initialized (bug 1090287).
+        if (selectedTab != null) {
+            updateProgressVisibility(selectedTab, selectedTab.getLoadProgress());
+        }
     }
 
     private void updateProgressVisibility(Tab selectedTab, int progress) {
         if (!isEditing() && selectedTab.getState() == Tab.STATE_LOADING) {
             progressBar.setProgress(progress);
+            progressBar.setPrivateMode(selectedTab.isPrivate());
             progressBar.setVisibility(View.VISIBLE);
         } else {
             progressBar.setVisibility(View.GONE);
@@ -546,23 +540,37 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
         menuButton.setNextFocusDownId(nextId);
     }
 
+    public boolean hideVirtualKeyboard() {
+        InputMethodManager imm =
+                (InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE);
+        return imm.hideSoftInputFromWindow(tabsButton.getWindowToken(), 0);
+    }
+
+    private void showSelectedTabs() {
+        Tab tab = Tabs.getInstance().getSelectedTab();
+        if (tab != null) {
+            if (!tab.isPrivate())
+                activity.showNormalTabs();
+            else
+                activity.showPrivateTabs();
+        }
+    }
+
     private void toggleTabs() {
         if (activity.areTabsShown()) {
-            if (activity.hasTabsSideBar())
-                activity.hideTabs();
-        } else {
-            // hide the virtual keyboard
-            InputMethodManager imm =
-                    (InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE);
-            imm.hideSoftInputFromWindow(tabsButton.getWindowToken(), 0);
+            return;
+        }
 
-            Tab tab = Tabs.getInstance().getSelectedTab();
-            if (tab != null) {
-                if (!tab.isPrivate())
-                    activity.showNormalTabs();
-                else
-                    activity.showPrivateTabs();
-            }
+        if (hideVirtualKeyboard()) {
+            getViewTreeObserver().addOnGlobalLayoutListener(new OnGlobalLayoutListener() {
+                @Override
+                public void onGlobalLayout() {
+                    getViewTreeObserver().removeGlobalOnLayoutListener(this);
+                    showSelectedTabs();
+                }
+            });
+        } else {
+            showSelectedTabs();
         }
     }
 
@@ -650,6 +658,13 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
         }
     }
 
+    public void setToolBarButtonsAlpha(float alpha) {
+        ViewHelper.setAlpha(tabsCounter, alpha);
+        if (hasSoftMenuButton && !HardwareUtils.isTablet()) {
+            ViewHelper.setAlpha(menuIcon, alpha);
+        }
+    }
+
     public void onEditSuggestion(String suggestion) {
         if (!isEditing()) {
             return;
@@ -662,7 +677,7 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
         urlDisplayLayout.setTitle(title);
     }
 
-    public void setOnActivateListener(OnActivateListener listener) {
+    public void setOnActivateListener(final OnActivateListener listener) {
         activateListener = listener;
     }
 
@@ -678,6 +693,7 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
         urlEditLayout.setOnFilterListener(listener);
     }
 
+    @Override
     public void setOnFocusChangeListener(OnFocusChangeListener listener) {
         focusChangeListener = listener;
     }
@@ -706,7 +722,7 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
         setUrlEditLayoutVisibility(false, animator);
     }
 
-    private void setUrlEditLayoutVisibility(final boolean showEditLayout, PropertyAnimator animator) {
+    protected void setUrlEditLayoutVisibility(final boolean showEditLayout, PropertyAnimator animator) {
         if (showEditLayout) {
             urlEditLayout.prepareShowAnimation(animator);
         }
@@ -717,9 +733,6 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
 
             viewToHide.setVisibility(View.GONE);
             viewToShow.setVisibility(View.VISIBLE);
-
-            final int cancelVisibility = (showEditLayout ? View.VISIBLE : View.INVISIBLE);
-            setCancelVisibility(cancelVisibility);
             return;
         }
 
@@ -729,8 +742,6 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
                 if (!showEditLayout) {
                     urlEditLayout.setVisibility(View.GONE);
                     urlDisplayLayout.setVisibility(View.VISIBLE);
-
-                    setCancelVisibility(View.INVISIBLE);
                 }
             }
 
@@ -739,18 +750,9 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
                 if (showEditLayout) {
                     urlDisplayLayout.setVisibility(View.GONE);
                     urlEditLayout.setVisibility(View.VISIBLE);
-
-                    setCancelVisibility(View.VISIBLE);
                 }
             }
         });
-    }
-
-    private void setCancelVisibility(final int visibility) {
-        // TODO: Remove this check (and maybe method) when NewTablet's editing mode is implemented.
-        if (!isNewTablet) {
-            editCancel.setVisibility(visibility);
-        }
     }
 
     private void setUIMode(final UIMode uiMode) {
@@ -830,9 +832,9 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
 
         tabsButton.setPrivateMode(isPrivate);
         menuButton.setPrivateMode(isPrivate);
-        menuIcon.setPrivateMode(isPrivate);
-        editCancel.setPrivateMode(isPrivate);
         urlEditLayout.setPrivateMode(isPrivate);
+
+        shadowPaint.setColor(isPrivate ? shadowPrivateColor : shadowColor);
     }
 
     public void show() {
@@ -844,15 +846,12 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
     }
 
     public View getDoorHangerAnchor() {
-        return urlDisplayLayout.getDoorHangerAnchor();
+        return urlDisplayLayout;
     }
 
     public void onDestroy() {
         Tabs.unregisterOnTabsChangedListener(this);
-
-        EventDispatcher.getInstance().unregisterGeckoThreadListener(this,
-            "Reader:Click",
-            "Reader:LongClick");
+        urlDisplayLayout.destroy();
     }
 
     public boolean openOptionsMenu() {
@@ -895,39 +894,58 @@ public abstract class BrowserToolbar extends ThemedRelativeLayout
     }
 
     @Override
-    public void handleMessage(String event, JSONObject message) {
-        Log.d(LOGTAG, "handleMessage: " + event);
-        if (event.equals("Reader:Click")) {
-            Tab tab = Tabs.getInstance().getSelectedTab();
-            if (tab != null) {
-                tab.toggleReaderMode();
-            }
-        } else if (event.equals("Reader:LongClick")) {
-            Tab tab = Tabs.getInstance().getSelectedTab();
-            if (tab != null) {
-                tab.addToReadingList();
-            }
-        }
-    }
-
-    @Override
     public void onLightweightThemeChanged() {
-        Drawable drawable = theme.getDrawable(this);
-        if (drawable == null)
+        final Drawable drawable = getLWTDefaultStateSetDrawable();
+        if (drawable == null) {
             return;
+        }
 
-        StateListDrawable stateList = new StateListDrawable();
-        stateList.addState(PRIVATE_STATE_SET, getColorDrawable(R.color.background_private));
+        final StateListDrawable stateList = new StateListDrawable();
+        stateList.addState(PRIVATE_STATE_SET, getColorDrawable(R.color.tabs_tray_grey_pressed));
         stateList.addState(EMPTY_STATE_SET, drawable);
 
         setBackgroundDrawable(stateList);
-
-        editCancel.onLightweightThemeChanged();
     }
 
     @Override
     public void onLightweightThemeReset() {
         setBackgroundResource(R.drawable.url_bar_bg);
-        editCancel.onLightweightThemeReset();
+    }
+
+    public static LightweightThemeDrawable getLightweightThemeDrawable(final View view,
+            final LightweightTheme theme, final int colorResID) {
+        final int color = ColorUtils.getColor(view.getContext(), colorResID);
+
+        final LightweightThemeDrawable drawable = theme.getColorDrawable(view, color);
+        if (drawable != null) {
+            drawable.setAlpha(LIGHTWEIGHT_THEME_INVERT_ALPHA, LIGHTWEIGHT_THEME_INVERT_ALPHA);
+        }
+
+        return drawable;
+    }
+
+    public static class TabEditingState {
+        // The edited text from the most recent time this tab was unselected.
+        protected String lastEditingText;
+        protected int selectionStart;
+        protected int selectionEnd;
+
+        public boolean isBrowserSearchShown;
+
+        public void copyFrom(final TabEditingState s2) {
+            lastEditingText = s2.lastEditingText;
+            selectionStart = s2.selectionStart;
+            selectionEnd = s2.selectionEnd;
+
+            isBrowserSearchShown = s2.isBrowserSearchShown;
+        }
+
+        public boolean isBrowserSearchShown() {
+            return isBrowserSearchShown;
+        }
+
+        public void setIsBrowserSearchShown(final boolean isShown) {
+            isBrowserSearchShown = isShown;
+        }
     }
 }

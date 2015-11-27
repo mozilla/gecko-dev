@@ -1,4 +1,5 @@
-/* vim: set shiftwidth=2 tabstop=8 autoindent cindent expandtab: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -28,13 +29,12 @@ Touch::Touch(EventTarget* aTarget,
              float aRotationAngle,
              float aForce)
 {
-  SetIsDOMBinding();
   mTarget = aTarget;
   mIdentifier = aIdentifier;
   mPagePoint = CSSIntPoint(aPageX, aPageY);
-  mScreenPoint = nsIntPoint(aScreenX, aScreenY);
+  mScreenPoint = CSSIntPoint(aScreenX, aScreenY);
   mClientPoint = CSSIntPoint(aClientX, aClientY);
-  mRefPoint = nsIntPoint(0, 0);
+  mRefPoint = LayoutDeviceIntPoint(0, 0);
   mPointsInitialized = true;
   mRadius.x = aRadiusX;
   mRadius.y = aRadiusY;
@@ -47,15 +47,14 @@ Touch::Touch(EventTarget* aTarget,
 }
 
 Touch::Touch(int32_t aIdentifier,
-             nsIntPoint aPoint,
-             nsIntPoint aRadius,
+             LayoutDeviceIntPoint aPoint,
+             LayoutDeviceIntPoint aRadius,
              float aRotationAngle,
              float aForce)
 {
-  SetIsDOMBinding();
   mIdentifier = aIdentifier;
   mPagePoint = CSSIntPoint(0, 0);
-  mScreenPoint = nsIntPoint(0, 0);
+  mScreenPoint = CSSIntPoint(0, 0);
   mClientPoint = CSSIntPoint(0, 0);
   mRefPoint = aPoint;
   mPointsInitialized = false;
@@ -65,6 +64,23 @@ Touch::Touch(int32_t aIdentifier,
 
   mChanged = false;
   mMessage = 0;
+  nsJSContext::LikelyShortLivingObjectCreated();
+}
+
+Touch::Touch(const Touch& aOther)
+  : mTarget(aOther.mTarget)
+  , mRefPoint(aOther.mRefPoint)
+  , mChanged(aOther.mChanged)
+  , mMessage(aOther.mMessage)
+  , mIdentifier(aOther.mIdentifier)
+  , mPagePoint(aOther.mPagePoint)
+  , mClientPoint(aOther.mClientPoint)
+  , mScreenPoint(aOther.mScreenPoint)
+  , mRadius(aOther.mRadius)
+  , mRotationAngle(aOther.mRotationAngle)
+  , mForce(aOther.mForce)
+  , mPointsInitialized(aOther.mPointsInitialized)
+{
   nsJSContext::LikelyShortLivingObjectCreated();
 }
 
@@ -94,6 +110,7 @@ Touch::GetTarget() const
 {
   nsCOMPtr<nsIContent> content = do_QueryInterface(mTarget);
   if (content && content->ChromeOnlyAccess() &&
+      !nsContentUtils::LegacyIsCallerNativeCode() &&
       !nsContentUtils::CanAccessNativeAnon()) {
     return content->FindFirstNonChromeOnlyAccessContent();
   }
@@ -108,13 +125,10 @@ Touch::InitializePoints(nsPresContext* aPresContext, WidgetEvent* aEvent)
     return;
   }
   mClientPoint = Event::GetClientCoords(
-    aPresContext, aEvent, LayoutDeviceIntPoint::FromUntyped(mRefPoint),
-    mClientPoint);
+    aPresContext, aEvent, mRefPoint, mClientPoint);
   mPagePoint = Event::GetPageCoords(
-    aPresContext, aEvent, LayoutDeviceIntPoint::FromUntyped(mRefPoint),
-    mClientPoint);
-  mScreenPoint = Event::GetScreenCoords(aPresContext, aEvent,
-    LayoutDeviceIntPoint::FromUntyped(mRefPoint));
+    aPresContext, aEvent, mRefPoint, mClientPoint);
+  mScreenPoint = Event::GetScreenCoords(aPresContext, aEvent, mRefPoint);
   mPointsInitialized = true;
 }
 
@@ -135,26 +149,21 @@ Touch::Equals(Touch* aTouch)
 }
 
 JSObject*
-Touch::WrapObject(JSContext* aCx)
+Touch::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  return TouchBinding::Wrap(aCx, this);
+  return TouchBinding::Wrap(aCx, this, aGivenProto);
 }
 
-// Parent ourselves to the window of the target. This achieves the desirable
+// Parent ourselves to the global of the target. This achieves the desirable
 // effects of parenting to the target, but avoids making the touch inaccessible
 // when the target happens to be NAC and therefore reflected into the XBL scope.
-EventTarget*
+nsIGlobalObject*
 Touch::GetParentObject()
 {
   if (!mTarget) {
     return nullptr;
   }
-  nsCOMPtr<nsPIDOMWindow> outer = do_QueryInterface(mTarget->GetOwnerGlobal());
-  if (!outer) {
-    return nullptr;
-  }
-  MOZ_ASSERT(outer->IsOuterWindow());
-  return static_cast<nsGlobalWindow*>(outer->GetCurrentInnerWindow());
+  return mTarget->GetOwnerGlobal();
 }
 
 } // namespace dom

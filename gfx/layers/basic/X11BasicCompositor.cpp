@@ -26,7 +26,7 @@ X11DataTextureSourceBasic::Update(gfx::DataSourceSurface* aSurface,
       (aSurface->GetSize() != mBufferDrawTarget->GetSize()) ||
       (aSurface->GetFormat() != mBufferDrawTarget->GetFormat())) {
 
-    nsRefPtr<gfxASurface> surf;
+    RefPtr<gfxASurface> surf;
     gfxImageFormat imageFormat = SurfaceFormatToImageFormat(aSurface->GetFormat());
     Display *display = DefaultXDisplay();
     Screen *screen = DefaultScreenOfDisplay(display);
@@ -35,12 +35,12 @@ X11DataTextureSourceBasic::Update(gfx::DataSourceSurface* aSurface,
 
     if (xrenderFormat) {
       surf = gfxXlibSurface::Create(screen, xrenderFormat,
-                                    ThebesIntSize(aSurface->GetSize()));
+                                    aSurface->GetSize());
     }
 
     if (!surf) {
       NS_WARNING("Couldn't create native surface, fallback to image surface");
-      surf = new gfxImageSurface(ThebesIntSize(aSurface->GetSize()), imageFormat);
+      surf = new gfxImageSurface(aSurface->GetSize(), imageFormat);
     }
 
     mBufferDrawTarget = gfxPlatform::GetPlatform()->
@@ -54,7 +54,7 @@ X11DataTextureSourceBasic::Update(gfx::DataSourceSurface* aSurface,
 
   if (aDestRegion) {
     nsIntRegionRectIterator iter(*aDestRegion);
-    while (const nsIntRect* iterRect = iter.Next()) {
+    while (const IntRect* iterRect = iter.Next()) {
       IntRect srcRect(iterRect->x, iterRect->y, iterRect->width, iterRect->height);
       IntPoint dstPoint(iterRect->x, iterRect->y);
 
@@ -117,12 +117,19 @@ X11DataTextureSourceBasic::DeallocateDeviceData()
   mBufferDrawTarget = nullptr;
 }
 
-TemporaryRef<DataTextureSource>
+already_AddRefed<DataTextureSource>
 X11BasicCompositor::CreateDataTextureSource(TextureFlags aFlags)
 {
   RefPtr<DataTextureSource> result =
     new X11DataTextureSourceBasic();
   return result.forget();
+}
+
+void
+X11BasicCompositor::EndFrame()
+{
+  BasicCompositor::EndFrame();
+  XFlush(DefaultXDisplay());
 }
 
 } // namespace layers

@@ -37,7 +37,7 @@ eMathMLFrameType
 nsMathMLTokenFrame::GetMathMLFrameType()
 {
   // treat everything other than <mi> as ordinary...
-  if (mContent->Tag() != nsGkAtoms::mi_) {
+  if (!mContent->IsMathMLElement(nsGkAtoms::mi_)) {
     return eMathMLFrameType_Ordinary;
   }
 
@@ -75,11 +75,9 @@ nsMathMLTokenFrame::MarkTextFramesAsTokenMathML()
       }
     }
   }
-  if (mContent->Tag() == nsGkAtoms::mi_ && childCount == 1) {
+  if (mContent->IsMathMLElement(nsGkAtoms::mi_) && childCount == 1) {
     nsAutoString data;
-    if (!nsContentUtils::GetNodeTextContent(mContent, false, data)) {
-      NS_RUNTIMEABORT("OOM");
-    }
+    nsContentUtils::GetNodeTextContent(mContent, false, data);
 
     data.CompressWhitespace();
     int32_t length = data.Length();
@@ -126,6 +124,9 @@ nsMathMLTokenFrame::Reflow(nsPresContext*          aPresContext,
                            const nsHTMLReflowState& aReflowState,
                            nsReflowStatus&          aStatus)
 {
+  MarkInReflow();
+  mPresentationData.flags &= ~NS_MATHML_ERROR;
+
   // initializations needed for empty markup like <mtag></mtag>
   aDesiredSize.ClearSize();
   aDesiredSize.SetBlockStartAscent(0);
@@ -176,8 +177,10 @@ nsMathMLTokenFrame::Place(nsRenderingContext& aRenderingContext,
     mBoundingMetrics += childSize.mBoundingMetrics;
   }
 
-  nsRefPtr<nsFontMetrics> fm;
-  nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm));
+  RefPtr<nsFontMetrics> fm;
+  nsLayoutUtils::GetFontMetricsForFrame(this, getter_AddRefs(fm),
+                                        nsLayoutUtils::
+                                        FontSizeInflationFor(this));
   nscoord ascent = fm->MaxAscent();
   nscoord descent = fm->MaxDescent();
 

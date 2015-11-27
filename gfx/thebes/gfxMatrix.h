@@ -11,6 +11,12 @@
 #include "gfxRect.h"
 #include "mozilla/Attributes.h"
 
+namespace mozilla {
+namespace gfx {
+class Matrix4x4;
+} // namespace gfx
+} // namespace mozilla
+
 // XX - I don't think this class should use gfxFloat at all,
 // but should use 'double' and be called gfxDoubleMatrix;
 // we can then typedef that to gfxMatrix where we typedef
@@ -78,6 +84,11 @@ public:
     gfxMatrix operator * (const gfxMatrix& m) const {
         return gfxMatrix(*this) *= m;
     }
+
+    /**
+     * Multiplies *this with aMatrix and returns the result.
+     */
+    mozilla::gfx::Matrix4x4 operator * (const mozilla::gfx::Matrix4x4& aMatrix) const;
 
     /* Returns true if the other matrix is fuzzy-equal to this matrix.
      * Note that this isn't a cheap comparison!
@@ -293,14 +304,6 @@ public:
     bool PreservesAxisAlignedRectangles() const {
         return ((FuzzyEqual(_11, 0.0) && FuzzyEqual(_22, 0.0))
             || (FuzzyEqual(_21, 0.0) && FuzzyEqual(_12, 0.0)));
-    }
-
-    /**
-     * Returns true if the matrix has non-integer scale
-     */
-    bool HasNonIntegerScale() const {
-        return !FuzzyEqual(_11, floor(_11 + 0.5)) ||
-               !FuzzyEqual(_22, floor(_22 + 0.5));
     }
 
 private:

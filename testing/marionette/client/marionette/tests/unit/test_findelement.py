@@ -2,10 +2,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from marionette_test import MarionetteTestCase
-from marionette import HTMLElement
-from by import By
-from errors import NoSuchElementException
+from marionette import MarionetteTestCase
+from marionette_driver.marionette import HTMLElement
+from marionette_driver.by import By
+from marionette_driver.errors import NoSuchElementException, InvalidSelectorException
 
 
 class TestElements(MarionetteTestCase):
@@ -122,7 +122,7 @@ class TestElements(MarionetteTestCase):
         self.marionette.set_search_timeout(0)
         self.assertRaises(NoSuchElementException, self.marionette.find_element, By.ID, "I'm not on the page")
 
-    def test_timeout(self):
+    def test_timeout_element(self):
         test_html = self.marionette.absolute_url("test.html")
         self.marionette.navigate(test_html)
         button = self.marionette.find_element("id", "createDivButton")
@@ -130,6 +130,15 @@ class TestElements(MarionetteTestCase):
         self.assertRaises(NoSuchElementException, self.marionette.find_element, By.ID, "newDiv")
         self.assertTrue(True, self.marionette.set_search_timeout(8000))
         self.assertEqual(HTMLElement, type(self.marionette.find_element(By.ID, "newDiv")))
+
+    def test_timeout_elements(self):
+        test_html = self.marionette.absolute_url("test.html")
+        self.marionette.navigate(test_html)
+        button = self.marionette.find_element("id", "createDivButton")
+        button.click()
+        self.assertEqual(len(self.marionette.find_elements(By.ID, "newDiv")), 0)
+        self.assertTrue(True, self.marionette.set_search_timeout(8000))
+        self.assertEqual(len(self.marionette.find_elements(By.ID, "newDiv")), 1)
 
     def test_css_selector_scope_doesnt_start_at_rootnode(self):
         test_html = self.marionette.absolute_url("test.html")
@@ -145,3 +154,26 @@ class TestElements(MarionetteTestCase):
         fbody = self.marionette.find_element(By.TAG_NAME, 'body')
         abody = self.marionette.get_active_element()
         self.assertEqual(fbody, abody)
+
+    def test_throws_error_when_trying_to_use_invalid_selector_type(self):
+        test_html = self.marionette.absolute_url("test.html")
+        self.marionette.navigate(test_html)
+        self.assertRaises(InvalidSelectorException, self.marionette.find_element, "Brie Search Type", "doesn't matter")
+
+    def test_element_id_is_valid_uuid(self):
+        import re
+        test_html = self.marionette.absolute_url("test.html")
+        self.marionette.navigate(test_html)
+        el = self.marionette.find_element(By.TAG_NAME, "body")
+        uuid_regex = re.compile('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$')
+        self.assertIsNotNone(re.search(uuid_regex, el.id),
+                             'UUID for the WebElement is not valid. ID is {}'\
+                             .format(el.id))
+    def test_should_find_elements_by_link_text(self):
+        test_html = self.marionette.absolute_url("nestedElements.html")
+        self.marionette.navigate(test_html)
+        element = self.marionette.find_element(By.NAME, "div1")
+        children = element.find_elements(By.LINK_TEXT, "hello world")
+        self.assertEqual(len(children), 2)
+        self.assertEqual("link1", children[0].get_attribute("name"))
+        self.assertEqual("link2", children[1].get_attribute("name"))

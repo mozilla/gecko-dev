@@ -1,4 +1,5 @@
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/Services.jsm");
 
 var httpserver = null;
 
@@ -11,7 +12,14 @@ const responseBody = [0x1f, 0x8b, 0x08, 0x08, 0xef, 0x70, 0xe6, 0x4c, 0x00, 0x03
 function make_channel(url, callback, ctx) {
   var ios = Cc["@mozilla.org/network/io-service;1"].
             getService(Ci.nsIIOService);
-  return ios.newChannel(url, "", null);
+  return ios.newChannel2(url,
+                         "",
+                         null,
+                         null,      // aLoadingNode
+                         Services.scriptSecurityManager.getSystemPrincipal(),
+                         null,      // aTriggeringPrincipal
+                         Ci.nsILoadInfo.SEC_NORMAL,
+                         Ci.nsIContentPolicy.TYPE_OTHER);
 }
 
 var doRangeResponse = false;
@@ -63,16 +71,22 @@ function continue_test(request, data) {
   chan.asyncOpen(new ChannelListener(finish_test, null, CL_EXPECT_GZIP), null);
 }
 
+var enforcePref;
+
 function finish_test(request, data, ctx) {
   do_check_eq(request.status, 0);
   do_check_eq(data.length, responseBody.length);
   for (var i = 0; i < data.length; ++i) {
     do_check_eq(data.charCodeAt(i), responseBody[i]);
   }
+  Services.prefs.setBoolPref("network.http.enforce-framing.http1", enforcePref);
   httpserver.stop(do_test_finished);
 }
 
 function run_test() {
+  enforcePref = Services.prefs.getBoolPref("network.http.enforce-framing.http1");
+  Services.prefs.setBoolPref("network.http.enforce-framing.http1", false);
+
   httpserver = new HttpServer();
   httpserver.registerPathHandler("/cached/test.gz", cachedHandler);
   httpserver.start(-1);
@@ -82,6 +96,6 @@ function run_test() {
 
   var chan = make_channel("http://localhost:" +
                           httpserver.identity.primaryPort + "/cached/test.gz");
-  chan.asyncOpen(new ChannelListener(continue_test, null, CL_EXPECT_GZIP|CL_EXPECT_LATE_FAILURE), null);
+  chan.asyncOpen(new ChannelListener(continue_test, null, CL_EXPECT_GZIP | CL_IGNORE_CL), null);
   do_test_pending();
 }

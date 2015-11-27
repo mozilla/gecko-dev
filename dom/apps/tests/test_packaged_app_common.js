@@ -57,17 +57,35 @@ var PackagedTestHelper = (function PackagedTestHelper() {
     finish();
   }
 
-  function setAppVersion(aVersion, aCb, aDontUpdatePackage, aAllowCancel, aRole) {
+  function setAppNameSuffix(aAppNameSuffix, aCb) {
+    var xhr = new XMLHttpRequest();
+    var url = gSJS + "?setAppNameSuffix=" + aAppNameSuffix;
+    xhr.addEventListener("load", function() {
+                           is(xhr.responseText, "OK", "setAppNameSuffix OK");
+                           aCb();
+                         });
+    xhr.addEventListener("error", event => xhrError(event, url));
+    xhr.addEventListener("abort", event => xhrAbort(url));
+    xhr.open("GET", url, true);
+    xhr.send();
+  }
+
+  function setAppVersion(aVersion, aCb, aDontUpdatePackage, aAllowCancel, aRole, aFailOnce) {
     var xhr = new XMLHttpRequest();
     var dontUpdate = "";
     var allowCancel = "";
+    var failOnce = "";
     if (aDontUpdatePackage) {
       dontUpdate = "&dontUpdatePackage=1";
     }
     if (aAllowCancel) {
       allowCancel= "&allowCancel=1";
     }
-    var url = gSJS + "?setVersion=" + aVersion + dontUpdate + allowCancel;
+    if (aFailOnce) {
+      failOnce = "&failPackageDownloadOnce=1";
+    }
+    var url = gSJS + "?setVersion=" + aVersion + dontUpdate + allowCancel +
+                failOnce;
     if (aRole) {
       url += "&role=" + aRole;
     }
@@ -151,6 +169,12 @@ var PackagedTestHelper = (function PackagedTestHelper() {
       }
       is(aApp.updateManifest.name, aExpectedApp.name, "Check name mini-manifest");
     }
+    if (aExpectedApp.short_name) {
+      if (aApp.manifest) {
+        is(aApp.manifest.short_name, aExpectedApp.short_name, "Check short name");
+      }
+      is(aApp.updateManifest.short_name, aExpectedApp.short_name, "Check short name mini-manifest");
+    }
     if (aApp.manifest) {
       is(aApp.manifest.version, aVersion, "Check version");
     }
@@ -225,6 +249,7 @@ var PackagedTestHelper = (function PackagedTestHelper() {
     finish: finish,
     mozAppsError: mozAppsError,
     setAppVersion: setAppVersion,
+    setAppNameSuffix: setAppNameSuffix,
     checkAppState: checkAppState,
     checkAppDownloadError: checkAppDownloadError,
     get gSJSPath() { return gSJSPath; },

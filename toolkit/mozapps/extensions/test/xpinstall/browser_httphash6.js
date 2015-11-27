@@ -64,8 +64,8 @@ function finish_failed_download() {
 
   // Restart the install as a regular webpage install so the harness tracks it
   AddonManager.installAddonsFromWebpage("application/x-xpinstall",
-                                        gBrowser.contentWindow,
-                                        gBrowser.currentURI, [gInstall]);
+                                        gBrowser.selectedBrowser,
+                                        gBrowser.contentPrincipal, [gInstall]);
 }
 
 function install_ended(install, addon) {
@@ -75,7 +75,7 @@ function install_ended(install, addon) {
 function finish_test(count) {
   is(count, 1, "1 Add-on should have been successfully installed");
 
-  Services.perms.remove("example.com", "install");
+  Services.perms.remove(makeURI("http://example.com"), "install");
   Services.prefs.clearUserPref(PREF_INSTALL_REQUIREBUILTINCERTS);
 
   gBrowser.removeCurrentTab();

@@ -110,6 +110,9 @@
     macro(LET,          "keyword 'let'") \
     macro(EXPORT,       "keyword 'export'") \
     macro(IMPORT,       "keyword 'import'") \
+    macro(CLASS,        "keyword 'class'") \
+    macro(EXTENDS,      "keyword 'extends'") \
+    macro(SUPER,        "keyword 'super'") \
     macro(RESERVED,     "reserved keyword") \
     /* reserved keywords in strict mode */ \
     macro(STRICT_RESERVED, "reserved keyword") \
@@ -119,7 +122,7 @@
      * range-testing. \
      */ \
     /* \
-     * Binary operators tokens, TOK_OR thru TOK_MOD. These must be in the same \
+     * Binary operators tokens, TOK_OR thru TOK_POW. These must be in the same \
      * order as F(OR) and friends in FOR_EACH_PARSE_NODE_KIND in ParseNode.h. \
      */ \
     macro(OR,           "'||'")   /* logical or */ \
@@ -160,7 +163,8 @@
     macro(MUL,          "'*'") \
     macro(DIV,          "'/'") \
     macro(MOD,          "'%'") \
-    range(BINOP_LAST, MOD) \
+    macro(POW,          "'**'") \
+    range(BINOP_LAST, POW) \
     \
     /* Unary operation tokens. */ \
     macro(TYPEOF,       "keyword 'typeof'") \
@@ -184,7 +188,8 @@
     macro(MULASSIGN,    "'*='") \
     macro(DIVASSIGN,    "'/='") \
     macro(MODASSIGN,    "'%='") \
-    range(ASSIGNMENT_LAST, MODASSIGN)
+    macro(POWASSIGN,    "'**='") \
+    range(ASSIGNMENT_LAST, POWASSIGN)
 
 #define TOKEN_KIND_RANGE_EMIT_NONE(name, value)
 #define FOR_EACH_TOKEN_KIND(macro) \
@@ -196,7 +201,6 @@ namespace frontend {
 // Values of this type are used to index into arrays such as isExprEnding[],
 // so the first value must be zero.
 enum TokenKind {
-    TOK_ERROR = 0,
 #define EMIT_ENUM(name, desc) TOK_##name,
 #define EMIT_ENUM_RANGE(name, value) TOK_##name = TOK_##value,
     FOR_EACH_TOKEN_KIND_WITH_RANGE(EMIT_ENUM, EMIT_ENUM_RANGE)

@@ -1,4 +1,5 @@
-/* -*-  Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2; -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -17,16 +18,8 @@ namespace mozilla {
 namespace probes {
 
 #if defined(MOZ_LOGGING)
-static PRLogModuleInfo*
-GetProbeLog()
-{
-  static PRLogModuleInfo* sLog;
-  if (!sLog) {
-    sLog = PR_NewLogModule("SysProbe");
-  }
-  return sLog;
-}
-#define LOG(x)  PR_LOG(GetProbeLog(), PR_LOG_DEBUG, x)
+static LazyLogModule sProbeLog("SysProbe");
+#define LOG(x) MOZ_LOG(sProbeLog, mozilla::LogLevel::Debug, x)
 #else
 #define LOG(x)
 #endif
@@ -117,10 +110,12 @@ ProbeManager::~ProbeManager()
 
 ProbeManager::ProbeManager(const nsCID& aApplicationUID,
                            const nsACString& aApplicationName)
-  : mApplicationUID(aApplicationUID)
+  : mIsActive(false)
+  , mApplicationUID(aApplicationUID)
   , mApplicationName(aApplicationName)
   , mSessionHandle(0)
   , mRegistrationHandle(0)
+  , mInitialized(false)
 {
 #if defined(MOZ_LOGGING)
   char cidStr[NSID_LENGTH];
@@ -181,7 +176,7 @@ ControlCallback(WMIDPREQUESTCODE aRequestCode,
 already_AddRefed<Probe>
 ProbeManager::GetProbe(const nsCID& aEventUID, const nsACString& aEventName)
 {
-  nsRefPtr<Probe> result(new Probe(aEventUID, aEventName, this));
+  RefPtr<Probe> result(new Probe(aEventUID, aEventName, this));
   mAllProbes.AppendElement(result);
   return result.forget();
 }
@@ -193,7 +188,7 @@ ProbeManager::StartSession()
 }
 
 nsresult
-ProbeManager::StartSession(nsTArray<nsRefPtr<Probe>>& aProbes)
+ProbeManager::StartSession(nsTArray<RefPtr<Probe>>& aProbes)
 {
   const size_t probesCount = aProbes.Length();
   _TRACE_GUID_REGISTRATION* probes = new _TRACE_GUID_REGISTRATION[probesCount];
@@ -243,5 +238,5 @@ ProbeManager::StopSession()
   return NS_OK;
 }
 
-}  // namespace probes
-}  // namespace mozilla
+} // namespace probes
+} // namespace mozilla

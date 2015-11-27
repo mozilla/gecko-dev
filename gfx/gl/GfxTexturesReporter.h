@@ -14,7 +14,7 @@
 namespace mozilla {
 namespace gl {
 
-class GfxTexturesReporter MOZ_FINAL : public nsIMemoryReporter
+class GfxTexturesReporter final : public nsIMemoryReporter
 {
     ~GfxTexturesReporter() {}
 
@@ -49,7 +49,7 @@ public:
     }
 
     NS_IMETHOD CollectReports(nsIHandleReportCallback* aHandleReport,
-                              nsISupports* aData, bool aAnonymize)
+                              nsISupports* aData, bool aAnonymize) override
     {
         MOZ_COLLECT_REPORT("gfx-tiles-waste", KIND_OTHER, UNITS_BYTES,
             sTileWasteAmount,
@@ -89,7 +89,7 @@ private:
   int32_t mBytes;
 };
 
-}
-}
+} // namespace gl
+} // namespace mozilla
 
 #endif // GFXTEXTURESREPORTER_H_

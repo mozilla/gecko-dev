@@ -11,16 +11,21 @@
 #include "chrome/common/ipc_message_utils.h"
 
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/DebugOnly.h"
+#include "mozilla/dom/ipc/StructuredCloneData.h"
+#include "mozilla/Maybe.h"
+#include "mozilla/net/WebSocketFrame.h"
 #include "mozilla/TimeStamp.h"
 #ifdef XP_WIN
 #include "mozilla/TimeStamp_windows.h"
 #endif
-#include "mozilla/TypedEnum.h"
+#include "mozilla/TypeTraits.h"
 #include "mozilla/IntegerTypeTraits.h"
 
 #include <stdint.h>
 
 #include "nsID.h"
+#include "nsIWidget.h"
 #include "nsMemory.h"
 #include "nsString.h"
 #include "nsTArray.h"
@@ -61,24 +66,11 @@ struct SerializedStructuredCloneBuffer
   : data(nullptr), dataLength(0)
   { }
 
-  explicit SerializedStructuredCloneBuffer(const JSAutoStructuredCloneBuffer& aOther)
-  {
-    *this = aOther;
-  }
-
   bool
   operator==(const SerializedStructuredCloneBuffer& aOther) const
   {
     return this->data == aOther.data &&
            this->dataLength == aOther.dataLength;
-  }
-
-  SerializedStructuredCloneBuffer&
-  operator=(const JSAutoStructuredCloneBuffer& aOther)
-  {
-    data = aOther.data();
-    dataLength = aOther.nbytes();
-    return *this;
   }
 
   uint64_t* data;
@@ -88,6 +80,11 @@ struct SerializedStructuredCloneBuffer
 } // namespace mozilla
 
 namespace IPC {
+
+/**
+ * Maximum size, in bytes, of a single IPC message.
+ */
+static const uint32_t MAX_MESSAGE_SIZE = 65536;
 
 /**
  * Generic enum serializer.
@@ -127,18 +124,7 @@ struct EnumSerializer {
 template <typename E,
           E MinLegal,
           E HighBound>
-struct ContiguousEnumValidator
-{
-  static bool IsLegalValue(E e)
-  {
-    return MinLegal <= e && e < HighBound;
-  }
-};
-
-template <typename E,
-          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) MinLegal,
-          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) HighBound>
-class ContiguousTypedEnumValidator
+class ContiguousEnumValidator
 {
   // Silence overzealous -Wtype-limits bug in GCC fixed in GCC 4.8:
   // "comparison of unsigned expression >= 0 is always true"
@@ -149,25 +135,13 @@ class ContiguousTypedEnumValidator
 public:
   static bool IsLegalValue(E e)
   {
-    typedef MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) ActualEnumType;
-    return IsLessThanOrEqual(MinLegal, ActualEnumType(e)) &&
-           ActualEnumType(e) < HighBound;
+    return IsLessThanOrEqual(MinLegal, e) && e < HighBound;
   }
 };
 
 template <typename E,
           E AllBits>
 struct BitFlagsEnumValidator
-{
-  static bool IsLegalValue(E e)
-  {
-    return (e & AllBits) == e;
-  }
-};
-
-template <typename E,
-          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) AllBits>
-struct BitFlagsTypedEnumValidator
 {
   static bool IsLegalValue(E e)
   {
@@ -200,19 +174,6 @@ struct ContiguousEnumSerializer
 {};
 
 /**
- * Similar to ContiguousEnumSerializer, but for MFBT typed enums
- * as constructed by MOZ_BEGIN_ENUM_CLASS. This can go away when
- * we drop MOZ_BEGIN_ENUM_CLASS and use C++11 enum classes directly.
- */
-template <typename E,
-          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) MinLegal,
-          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) HighBound>
-struct ContiguousTypedEnumSerializer
-  : EnumSerializer<E,
-                   ContiguousTypedEnumValidator<E, MinLegal, HighBound>>
-{};
-
-/**
  * Specialization of EnumSerializer for enums representing bit flags.
  *
  * Provide one value: AllBits. An enum value x will be
@@ -237,18 +198,6 @@ template <typename E,
 struct BitFlagsEnumSerializer
   : EnumSerializer<E,
                    BitFlagsEnumValidator<E, AllBits>>
-{};
-
-/**
- * Similar to BitFlagsEnumSerializer, but for MFBT typed enums
- * as constructed by MOZ_BEGIN_ENUM_CLASS. This can go away when
- * we drop MOZ_BEGIN_ENUM_CLASS and use C++11 enum classes directly.
- */
-template <typename E,
-          MOZ_TEMPLATE_ENUM_CLASS_ENUM_TYPE(E) AllBits>
-struct BitFlagsTypedEnumSerializer
-  : EnumSerializer<E,
-                   BitFlagsTypedEnumValidator<E, AllBits>>
 {};
 
 template <>
@@ -464,12 +413,51 @@ struct ParamTraits<FallibleTArray<E> >
 {
   typedef FallibleTArray<E> paramType;
 
+  // We write arrays of integer or floating-point data using a single pickling
+  // call, rather than writing each element individually.  We deliberately do
+  // not use mozilla::IsPod here because it is perfectly reasonable to have
+  // a data structure T for which IsPod<T>::value is true, yet also have a
+  // ParamTraits<T> specialization.
+  static const bool sUseWriteBytes = (mozilla::IsIntegral<E>::value ||
+                                      mozilla::IsFloatingPoint<E>::value);
+
+  // Compute the byte length for |aNumElements| of type E.  If that length
+  // would overflow an int, return false.  Otherwise, return true and place
+  // the byte length in |aTotalLength|.
+  //
+  // Pickle's ReadBytes/WriteBytes interface takes lengths in ints, hence this
+  // dance.
+  static bool ByteLengthIsValid(size_t aNumElements, int* aTotalLength) {
+    static_assert(sizeof(int) == sizeof(int32_t), "int is an unexpected size!");
+
+    // nsTArray only handles sizes up to INT32_MAX.
+    if (aNumElements > size_t(INT32_MAX)) {
+      return false;
+    }
+
+    int64_t numBytes = static_cast<int64_t>(aNumElements) * sizeof(E);
+    if (numBytes > int64_t(INT32_MAX)) {
+      return false;
+    }
+
+    *aTotalLength = static_cast<int>(numBytes);
+    return true;
+  }
+
   static void Write(Message* aMsg, const paramType& aParam)
   {
     uint32_t length = aParam.Length();
     WriteParam(aMsg, length);
-    for (uint32_t index = 0; index < length; index++) {
-      WriteParam(aMsg, aParam[index]);
+
+    if (sUseWriteBytes) {
+      int pickledLength = 0;
+      mozilla::DebugOnly<bool> valid = ByteLengthIsValid(length, &pickledLength);
+      MOZ_ASSERT(valid);
+      aMsg->WriteBytes(aParam.Elements(), pickledLength);
+    } else {
+      for (uint32_t index = 0; index < length; index++) {
+        WriteParam(aMsg, aParam[index]);
+      }
     }
   }
 
@@ -480,11 +468,34 @@ struct ParamTraits<FallibleTArray<E> >
       return false;
     }
 
-    aResult->SetCapacity(length);
-    for (uint32_t index = 0; index < length; index++) {
-      E* element = aResult->AppendElement();
-      if (!(element && ReadParam(aMsg, aIter, element))) {
+    if (sUseWriteBytes) {
+      int pickledLength = 0;
+      if (!ByteLengthIsValid(length, &pickledLength)) {
         return false;
+      }
+
+      const char* outdata;
+      if (!aMsg->ReadBytes(aIter, &outdata, pickledLength)) {
+        return false;
+      }
+
+      E* elements = aResult->AppendElements(length, mozilla::fallible);
+      if (!elements) {
+        return false;
+      }
+
+      memcpy(elements, outdata, pickledLength);
+    } else {
+      if (!aResult->SetCapacity(length, mozilla::fallible)) {
+        return false;
+      }
+
+      for (uint32_t index = 0; index < length; index++) {
+        E* element = aResult->AppendElement(mozilla::fallible);
+        MOZ_ASSERT(element);
+        if (!ReadParam(aMsg, aIter, element)) {
+          return false;
+        }
       }
     }
 
@@ -527,6 +538,12 @@ struct ParamTraits<InfallibleTArray<E> >
   {
     LogParam(static_cast<const FallibleTArray<E>&>(aParam), aLog);
   }
+};
+
+template<typename E, size_t N>
+struct ParamTraits<nsAutoTArray<E, N>> : ParamTraits<nsTArray<E>>
+{
+  typedef nsAutoTArray<E, N> paramType;
 };
 
 template<>
@@ -682,6 +699,43 @@ struct ParamTraits<mozilla::TimeStampValue>
 #endif
 
 template <>
+struct ParamTraits<mozilla::dom::ipc::StructuredCloneData>
+{
+  typedef mozilla::dom::ipc::StructuredCloneData paramType;
+
+  static void Write(Message* aMsg, const paramType& aParam)
+  {
+    aParam.WriteIPCParams(aMsg);
+  }
+
+  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  {
+    return aResult->ReadIPCParams(aMsg, aIter);
+  }
+
+  static void Log(const paramType& aParam, std::wstring* aLog)
+  {
+    LogParam(aParam.DataLength(), aLog);
+  }
+};
+
+template <>
+struct ParamTraits<mozilla::net::WebSocketFrameData>
+{
+  typedef mozilla::net::WebSocketFrameData paramType;
+
+  static void Write(Message* aMsg, const paramType& aParam)
+  {
+    aParam.WriteIPCParams(aMsg);
+  }
+
+  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  {
+    return aResult->ReadIPCParams(aMsg, aIter);
+  }
+};
+
+template <>
 struct ParamTraits<mozilla::SerializedStructuredCloneBuffer>
 {
   typedef mozilla::SerializedStructuredCloneBuffer paramType;
@@ -719,6 +773,47 @@ struct ParamTraits<mozilla::SerializedStructuredCloneBuffer>
   static void Log(const paramType& aParam, std::wstring* aLog)
   {
     LogParam(aParam.dataLength, aLog);
+  }
+};
+
+template <>
+struct ParamTraits<nsIWidget::TouchPointerState>
+  : public BitFlagsEnumSerializer<nsIWidget::TouchPointerState,
+                                  nsIWidget::TouchPointerState::ALL_BITS>
+{
+};
+
+template<class T>
+struct ParamTraits< mozilla::Maybe<T> >
+{
+  typedef mozilla::Maybe<T> paramType;
+
+  static void Write(Message* msg, const paramType& param)
+  {
+    if (param.isSome()) {
+      WriteParam(msg, true);
+      WriteParam(msg, param.value());
+    } else {
+      WriteParam(msg, false);
+    }
+  }
+
+  static bool Read(const Message* msg, void** iter, paramType* result)
+  {
+    bool isSome;
+    if (!ReadParam(msg, iter, &isSome)) {
+      return false;
+    }
+    if (isSome) {
+      T tmp;
+      if (!ReadParam(msg, iter, &tmp)) {
+        return false;
+      }
+      *result = mozilla::Some(mozilla::Move(tmp));
+    } else {
+      *result = mozilla::Nothing();
+    }
+    return true;
   }
 };
 

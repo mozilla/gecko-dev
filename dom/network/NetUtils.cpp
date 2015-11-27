@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -62,7 +64,6 @@ DEFINE_DLFUNC(ifc_remove_default_route, int32_t, const char*)
 DEFINE_DLFUNC(dhcp_stop, int32_t, const char*)
 
 NetUtils::NetUtils()
-  : mIfcMutex("NetUtils::mIfcMutex")
 {
 }
 
@@ -86,7 +87,6 @@ int32_t NetUtils::do_ifc_configure(const char *ifname,
                                        in_addr_t dns2)
 {
   USE_DLFUNC(ifc_configure)
-  mozilla::MutexAutoLock lock(mIfcMutex);
   int32_t ret = ifc_configure(ifname, address, prefixLength, gateway, dns1, dns2);
   return ret;
 }
@@ -95,7 +95,6 @@ int32_t NetUtils::do_ifc_reset_connections(const char *ifname,
                                                const int32_t resetMask)
 {
   USE_DLFUNC(ifc_reset_connections)
-  mozilla::MutexAutoLock lock(mIfcMutex);
   return ifc_reset_connections(ifname, resetMask);
 }
 
@@ -103,7 +102,6 @@ int32_t NetUtils::do_ifc_set_default_route(const char *ifname,
                                            in_addr_t gateway)
 {
   USE_DLFUNC(ifc_set_default_route)
-  mozilla::MutexAutoLock lock(mIfcMutex);
   return ifc_set_default_route(ifname, gateway);
 }
 
@@ -113,7 +111,6 @@ int32_t NetUtils::do_ifc_add_route(const char *ifname,
                                    const char *gateway)
 {
   USE_DLFUNC(ifc_add_route)
-  mozilla::MutexAutoLock lock(mIfcMutex);
   return ifc_add_route(ifname, dst, prefixLength, gateway);
 }
 
@@ -123,21 +120,18 @@ int32_t NetUtils::do_ifc_remove_route(const char *ifname,
                                       const char *gateway)
 {
   USE_DLFUNC(ifc_remove_route)
-  mozilla::MutexAutoLock lock(mIfcMutex);
   return ifc_remove_route(ifname, dst, prefixLength, gateway);
 }
 
 int32_t NetUtils::do_ifc_remove_host_routes(const char *ifname)
 {
   USE_DLFUNC(ifc_remove_host_routes)
-  mozilla::MutexAutoLock lock(mIfcMutex);
   return ifc_remove_host_routes(ifname);
 }
 
 int32_t NetUtils::do_ifc_remove_default_route(const char *ifname)
 {
   USE_DLFUNC(ifc_remove_default_route)
-  mozilla::MutexAutoLock lock(mIfcMutex);
   return ifc_remove_default_route(ifname);
 }
 
@@ -186,9 +180,11 @@ int32_t NetUtils::do_dhcp_do_request(const char *ifname,
     char domains[PROPERTY_VALUE_MAX];
     ret = dhcp_do_request(ifname, ipaddr, gateway, prefixLength, dns,
                           server, lease, vendorinfo, domains);
-  } else if (sdkVersion == 19) {
-    // JB 4.4
+  } else if (sdkVersion >= 19) {
+    // KitKat 4.4.X
     // http://androidxref.com/4.4_r1/xref/system/core/libnetutils/dhcp_utils.c#18
+    // Lollipop 5.0
+    //http://androidxref.com/5.0.0_r2/xref/system/core/libnetutils/dhcp_utils.c#186
     DEFINE_DLFUNC(dhcp_do_request, int32_t, const char*, char*, char*,  uint32_t*, char**, char*, uint32_t*, char*, char*, char*)
     USE_DLFUNC(dhcp_do_request)
     char *dns[3] = {dns1, dns2, nullptr};

@@ -14,9 +14,15 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "BrowserUtils",
                                   "resource://gre/modules/BrowserUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Prefetcher",
+                                  "resource://gre/modules/Prefetcher.jsm");
 
 XPCOMUtils.defineLazyServiceGetter(this, "SystemPrincipal",
                                    "@mozilla.org/systemprincipal;1", "nsIPrincipal");
+
+XPCOMUtils.defineLazyServiceGetter(this, "contentSecManager",
+                                   "@mozilla.org/contentsecuritymanager;1",
+                                   "nsIContentSecurityManager");
 
 // Similar to Python. Returns dict[key] if it exists. Otherwise,
 // sets dict[key] to default_ and returns default_.
@@ -38,7 +44,7 @@ function setDefault(dict, key, default_)
 //
 // In the child, clients can watch for changes to all paths that start
 // with a given component.
-let NotificationTracker = {
+var NotificationTracker = {
   init: function() {
     let cpmm = Cc["@mozilla.org/childprocessmessagemanager;1"]
                .getService(Ci.nsISyncMessageSender);
@@ -80,14 +86,21 @@ let NotificationTracker = {
     }
   },
 
-  watch: function(component1, watcher) {
-    setDefault(this._watchers, component1, []).push(watcher);
-    this._registered.set(watcher, new Set());
+  findPaths: function(prefix) {
+    if (!this._paths) {
+      return [];
+    }
 
+    let tracked = this._paths;
+    for (let component of prefix) {
+      tracked = setDefault(tracked, component, {});
+    }
+
+    let result = [];
     let enumerate = (tracked, curPath) => {
       for (let component in tracked) {
         if (component == "_count") {
-          this.runCallback(watcher, curPath, tracked._count);
+          result.push([curPath, tracked._count]);
         } else {
           let path = curPath.slice();
           if (component === "true") {
@@ -100,7 +113,24 @@ let NotificationTracker = {
         }
       }
     }
-    enumerate(this._paths[component1] || {}, [component1]);
+    enumerate(tracked, prefix);
+
+    return result;
+  },
+
+  findSuffixes: function(prefix) {
+    let paths = this.findPaths(prefix);
+    return paths.map(([path, count]) => path[path.length - 1]);
+  },
+
+  watch: function(component1, watcher) {
+    setDefault(this._watchers, component1, []).push(watcher);
+    this._registered.set(watcher, new Set());
+
+    let paths = this.findPaths([component1]);
+    for (let [path, count] of paths) {
+      this.runCallback(watcher, path, count);
+    }
   },
 
   unwatch: function(component1, watcher) {
@@ -112,13 +142,17 @@ let NotificationTracker = {
 
     this._registered.delete(watcher);
   },
+
+  getCount(component1) {
+    return this.findPaths([component1]).length;
+  },
 };
 
 // This code registers an nsIContentPolicy in the child process. When
 // it runs, it notifies the parent that it needs to run its own
 // nsIContentPolicy list. If any policy in the parent rejects a
 // resource load, that answer is returned to the child.
-let ContentPolicyChild = {
+var ContentPolicyChild = {
   _classDescription: "Addon shim content policy",
   _classID: Components.ID("6e869130-635c-11e2-bcfd-0800200c9a66"),
   _contractID: "@mozilla.org/addon-child/policy;1",
@@ -143,16 +177,23 @@ let ContentPolicyChild = {
     }
   },
 
-  shouldLoad: function(contentType, contentLocation, requestOrigin, node, mimeTypeGuess, extra) {
+  shouldLoad: function(contentType, contentLocation, requestOrigin,
+                       node, mimeTypeGuess, extra, requestPrincipal) {
+    let addons = NotificationTracker.findSuffixes(["content-policy"]);
+    let [prefetched, cpows] = Prefetcher.prefetch("ContentPolicy.shouldLoad",
+                                                  addons, {InitNode: node});
+    cpows.node = node;
+
     let cpmm = Cc["@mozilla.org/childprocessmessagemanager;1"]
                .getService(Ci.nsISyncMessageSender);
-    let rval = cpmm.sendRpcMessage("Addons:ContentPolicy:Run", {}, {
+    let rval = cpmm.sendRpcMessage("Addons:ContentPolicy:Run", {
       contentType: contentType,
+      contentLocation: contentLocation.spec,
+      requestOrigin: requestOrigin ? requestOrigin.spec : null,
       mimeTypeGuess: mimeTypeGuess,
-      contentLocation: contentLocation,
-      requestOrigin: requestOrigin,
-      node: node
-    });
+      requestPrincipal: requestPrincipal,
+      prefetched: prefetched,
+    }, cpows);
     if (rval.length != 1) {
       return Ci.nsIContentPolicy.ACCEPT;
     }
@@ -174,11 +215,14 @@ let ContentPolicyChild = {
 
 // This is a shim channel whose only purpose is to return some string
 // data from an about: protocol handler.
-function AboutProtocolChannel(uri, contractID)
+function AboutProtocolChannel(uri, contractID, loadInfo)
 {
   this.URI = uri;
   this.originalURI = uri;
   this._contractID = contractID;
+  this._loadingPrincipal = loadInfo.loadingPrincipal;
+  this._securityFlags = loadInfo.securityFlags;
+  this._contentPolicyType = loadInfo.externalContentPolicyType;
 }
 
 AboutProtocolChannel.prototype = {
@@ -198,10 +242,13 @@ AboutProtocolChannel.prototype = {
                .getService(Ci.nsISyncMessageSender);
     let rval = cpmm.sendRpcMessage("Addons:AboutProtocol:OpenChannel", {
       uri: this.URI.spec,
-      contractID: this._contractID
+      contractID: this._contractID,
+      loadingPrincipal: this._loadingPrincipal,
+      securityFlags: this._securityFlags,
+      contentPolicyType: this._contentPolicyType
     }, {
       notificationCallbacks: this.notificationCallbacks,
-      loadGroupNotificationCallbacks: this.loadGroup.notificationCallbacks
+      loadGroupNotificationCallbacks: this.loadGroup ? this.loadGroup.notificationCallbacks : null,
     });
 
     if (rval.length != 1) {
@@ -231,7 +278,17 @@ AboutProtocolChannel.prototype = {
     Services.tm.currentThread.dispatch(runnable, Ci.nsIEventTarget.DISPATCH_NORMAL);
   },
 
+  asyncOpen2: function(listener) {
+    // throws an error if security checks fail
+    var outListener = contentSecManager.performSecurityCheck(this, listener);
+    this.asyncOpen(outListener, null);
+  },
+
   open: function() {
+    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+  },
+
+  open2: function() {
     throw Cr.NS_ERROR_NOT_IMPLEMENTED;
   },
 
@@ -258,7 +315,7 @@ AboutProtocolChannel.prototype = {
 function AboutProtocolInstance(contractID)
 {
   this._contractID = contractID;
-  this._uriFlags = null;
+  this._uriFlags = undefined;
 }
 
 AboutProtocolInstance.prototype = {
@@ -298,19 +355,21 @@ AboutProtocolInstance.prototype = {
   // available to CPOWs. Consequently, we return a shim channel that,
   // when opened, asks the parent to open the channel and read out all
   // the data.
-  newChannel: function(uri) {
-    return new AboutProtocolChannel(uri, this._contractID);
+  newChannel: function(uri, loadInfo) {
+    return new AboutProtocolChannel(uri, this._contractID, loadInfo);
   },
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIFactory, Ci.nsIAboutModule])
 };
 
-let AboutProtocolChild = {
+var AboutProtocolChild = {
   _classDescription: "Addon shim about: protocol handler",
-  _classID: Components.ID("8d56a310-0c80-11e4-9191-0800200c9a66"),
 
   init: function() {
-    this._instances = {};
+    // Maps contractIDs to instances
+    this._instances = new Map();
+    // Maps contractIDs to classIDs
+    this._classIDs = new Map();
     NotificationTracker.watch("about-protocol", this);
   },
 
@@ -319,18 +378,26 @@ let AboutProtocolChild = {
     let registrar = Components.manager.QueryInterface(Ci.nsIComponentRegistrar);
     if (register) {
       let instance = new AboutProtocolInstance(contractID);
-      this._instances[contractID] = instance;
-      registrar.registerFactory(this._classID, this._classDescription, contractID, instance);
+      let classID = Cc["@mozilla.org/uuid-generator;1"]
+                      .getService(Ci.nsIUUIDGenerator)
+                      .generateUUID();
+
+      this._instances.set(contractID, instance);
+      this._classIDs.set(contractID, classID);
+      registrar.registerFactory(classID, this._classDescription, contractID, instance);
     } else {
-      delete this._instances[contractID];
-      registerFactory.unregisterFactory(this._classID, this);
+      let instance = this._instances.get(contractID);
+      let classID = this._classIDs.get(contractID);
+      registrar.unregisterFactory(classID, instance);
+      this._instances.delete(contractID);
+      this._classIDs.delete(contractID);
     }
   },
 };
 
 // This code registers observers in the child whenever an add-on in
 // the parent asks for notifications on the given topic.
-let ObserverChild = {
+var ObserverChild = {
   init: function() {
     NotificationTracker.watch("observer", this);
   },
@@ -361,6 +428,8 @@ let ObserverChild = {
 function EventTargetChild(childGlobal)
 {
   this._childGlobal = childGlobal;
+  this.capturingHandler = (event) => this.handleEvent(true, event);
+  this.nonCapturingHandler = (event) => this.handleEvent(false, event);
   NotificationTracker.watch("event", this);
 }
 
@@ -372,7 +441,7 @@ EventTargetChild.prototype = {
   track: function(path, register) {
     let eventType = path[1];
     let useCapture = path[2];
-    let listener = (event) => this.handleEvent(useCapture, event);
+    let listener = useCapture ? this.capturingHandler : this.nonCapturingHandler;
     if (register) {
       this._childGlobal.addEventListener(eventType, listener, useCapture, true);
     } else {
@@ -381,11 +450,20 @@ EventTargetChild.prototype = {
   },
 
   handleEvent: function(capturing, event) {
+    let addons = NotificationTracker.findSuffixes(["event", event.type, capturing]);
+    let [prefetched, cpows] = Prefetcher.prefetch("EventTarget.handleEvent",
+                                                  addons,
+                                                  {Event: event,
+                                                   Window: this._childGlobal.content});
+    cpows.event = event;
+    cpows.eventTarget = event.target;
+
     this._childGlobal.sendRpcMessage("Addons:Event:Run",
                                      {type: event.type,
                                       capturing: capturing,
-                                      isTrusted: event.isTrusted},
-                                     {event: event});
+                                      isTrusted: event.isTrusted,
+                                      prefetched: prefetched},
+                                     cpows);
   }
 };
 
@@ -442,18 +520,34 @@ SandboxChild.prototype = {
                                          Ci.nsISupportsWeakReference])
 };
 
-let RemoteAddonsChild = {
+var RemoteAddonsChild = {
   _ready: false,
 
   makeReady: function() {
-    NotificationTracker.init();
-    ContentPolicyChild.init();
-    AboutProtocolChild.init();
-    ObserverChild.init();
+    let shims = [
+      Prefetcher,
+      NotificationTracker,
+      ContentPolicyChild,
+      AboutProtocolChild,
+      ObserverChild,
+    ];
+
+    for (let shim of shims) {
+      try {
+        shim.init();
+      } catch(e) {
+        Cu.reportError(e);
+      }
+    }
   },
 
   init: function(global) {
+
     if (!this._ready) {
+      if (!Services.cpmm.initialProcessData.remoteAddonsParentInitted){
+        return null;
+      }
+
       this.makeReady();
       this._ready = true;
     }
@@ -469,7 +563,15 @@ let RemoteAddonsChild = {
 
   uninit: function(perTabShims) {
     for (let shim of perTabShims) {
-      shim.uninit();
+      try {
+        shim.uninit();
+      } catch(e) {
+        Cu.reportError(e);
+      }
     }
+  },
+
+  get useSyncWebProgress() {
+    return NotificationTracker.getCount("web-progress") > 0;
   },
 };

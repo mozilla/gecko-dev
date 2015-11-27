@@ -3,45 +3,56 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "WebGL2Context.h"
 #include "WebGLTransformFeedback.h"
 
 #include "GLContext.h"
-
 #include "mozilla/dom/WebGL2RenderingContextBinding.h"
+#include "WebGL2Context.h"
 
-using namespace mozilla;
+namespace mozilla {
 
-WebGLTransformFeedback::WebGLTransformFeedback(WebGLContext* context)
-    : WebGLContextBoundObject(context)
+WebGLTransformFeedback::WebGLTransformFeedback(WebGLContext* webgl,
+                                               GLuint tf)
+    : WebGLContextBoundObject(webgl)
+    , mGLName(tf)
+    , mMode(LOCAL_GL_NONE)
+    , mIsActive(false)
+    , mIsPaused(false)
 {
-    SetIsDOMBinding();
-    MOZ_CRASH("Not Implemented.");
+    mContext->mTransformFeedbacks.insertBack(this);
 }
 
 WebGLTransformFeedback::~WebGLTransformFeedback()
-{}
+{
+    mMode = LOCAL_GL_NONE;
+    mIsActive = false;
+    mIsPaused = false;
+    DeleteOnce();
+}
 
 void
 WebGLTransformFeedback::Delete()
 {
-    MOZ_CRASH("Not Implemented.");
+    mContext->MakeContextCurrent();
+    mContext->gl->fDeleteTransformFeedbacks(1, &mGLName);
+    removeFrom(mContext->mTransformFeedbacks);
 }
 
 WebGLContext*
 WebGLTransformFeedback::GetParentObject() const
 {
-    MOZ_CRASH("Not Implemented.");
-    return nullptr;
+    return mContext;
 }
 
 JSObject*
-WebGLTransformFeedback::WrapObject(JSContext* cx)
+WebGLTransformFeedback::WrapObject(JSContext* cx, JS::Handle<JSObject*> givenProto)
 {
-    return dom::WebGLTransformFeedbackBinding::Wrap(cx, this);
+    return dom::WebGLTransformFeedbackBinding::Wrap(cx, this, givenProto);
 }
 
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_0(WebGLTransformFeedback)
 NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(WebGLTransformFeedback, AddRef)
 NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(WebGLTransformFeedback, Release)
+
+} // namespace mozilla

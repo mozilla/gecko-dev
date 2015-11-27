@@ -14,7 +14,7 @@ const { platform } = require("../system");
 const { getMostRecentBrowserWindow, getOwnerBrowserWindow,
         getHiddenWindow, getScreenPixelsPerCSSPixel } = require("../window/utils");
 
-const { create: createFrame, swapFrameLoaders } = require("../frame/utils");
+const { create: createFrame, swapFrameLoaders, getDocShell } = require("../frame/utils");
 const { window: addonWindow } = require("../addon/window");
 const { isNil } = require("../lang/type");
 const { data } = require('../self');
@@ -95,6 +95,7 @@ function close(panel) {
   // when quitting the host application while a panel is visible.  To suppress
   // these errors, check for "hidePopup" in panel before calling it.
   // It's not clear if there's an issue or it's expected behavior.
+  // See Bug 1151796.
 
   return panel.hidePopup && panel.hidePopup();
 }
@@ -128,7 +129,7 @@ function display(panel, options, anchor) {
 
     let viewportRect = document.defaultView.gBrowser.getBoundingClientRect();
 
-    ({x, y, width, height}) = calculateRegion(options, viewportRect);
+    ({x, y, width, height} = calculateRegion(options, viewportRect));
   }
   else {
     // The XUL Panel has an arrow, so the margin needs to be reset
@@ -144,7 +145,7 @@ function display(panel, options, anchor) {
     // chrome browser window, and therefore there is no need for this check.
     if (CustomizableUI) {
       let node = anchor;
-      ({anchor}) = CustomizableUI.getWidget(anchor.id).forWindow(window);
+      ({anchor} = CustomizableUI.getWidget(anchor.id).forWindow(window));
 
       // if `node` is not the `anchor` itself, it means the widget is
       // positioned in a panel, therefore we have to hide it before show
@@ -213,7 +214,7 @@ function show(panel, options, anchor) {
   // Prevent the panel from getting focus when showing up
   // if focus is set to false
   panel.setAttribute("noautofocus", !options.focus);
-  
+
   let window = anchor && getOwnerBrowserWindow(anchor);
   let { document } = window ? window : getMostRecentBrowserWindow();
   attach(panel, document);
@@ -221,6 +222,20 @@ function show(panel, options, anchor) {
   open(panel, options, anchor);
 }
 exports.show = show
+
+function onPanelClick(event) {
+  let { target, metaKey, ctrlKey, shiftKey, button } = event;
+  let accel = platform === "darwin" ? metaKey : ctrlKey;
+  let isLeftClick = button === 0;
+  let isMiddleClick = button === 1;
+
+  if ((isLeftClick && (accel || shiftKey)) || isMiddleClick) {
+    let link = target.closest('a');
+
+    if (link && link.href)
+       getMostRecentBrowserWindow().openUILink(link.href, event)
+  }
+}
 
 function setupPanelFrame(frame) {
   frame.setAttribute("flex", 1);
@@ -232,10 +247,11 @@ function setupPanelFrame(frame) {
   }
 }
 
-function make(document) {
+function make(document, options) {
   document = document || getMostRecentBrowserWindow().document;
   let panel = document.createElementNS(XUL_NS, "panel");
   panel.setAttribute("type", "arrow");
+  panel.setAttribute("sdkscriptenabled", "" + options.allowJavascript);
 
   // Note that panel is a parent of `viewFrame` who's `docShell` will be
   // configured at creation time. If `panel` and there for `viewFrame` won't
@@ -244,7 +260,7 @@ function make(document) {
   attach(panel, document);
 
   let frameOptions =  {
-    allowJavascript: true,
+    allowJavascript: options.allowJavascript,
     allowPlugins: true,
     allowAuth: true,
     allowWindowControl: false,
@@ -269,8 +285,16 @@ function make(document) {
     // See Bug 886329
     if (target !== this) return;
 
-    try { swapFrameLoaders(backgroundFrame, viewFrame); }
-    catch(error) { console.exception(error); }
+    try {
+      swapFrameLoaders(backgroundFrame, viewFrame);
+      // We need to re-set this because... swapFrameLoaders. Or something.
+      let shouldEnableScript = panel.getAttribute("sdkscriptenabled") == "true";
+      getDocShell(backgroundFrame).allowJavascript = shouldEnableScript;
+      getDocShell(viewFrame).allowJavascript = shouldEnableScript;
+    }
+    catch(error) {
+      console.exception(error);
+    }
     events.emit(type, { subject: panel });
   }
 
@@ -286,8 +310,7 @@ function make(document) {
       events.emit(type, { subject: panel });
   }
 
-  function onContentChange({subject, type}) {
-    let document = subject;
+  function onContentChange({subject: document, type}) {
     if (document === getContentDocument(panel) && document.defaultView)
       events.emit(type, { subject: panel });
   }
@@ -300,6 +323,8 @@ function make(document) {
   panel.addEventListener("popuphiding", onDisplayChange, false);
   panel.addEventListener("popupshown", onPanelStateChange, false);
   panel.addEventListener("popuphidden", onPanelStateChange, false);
+
+  panel.addEventListener("click", onPanelClick, false);
 
   // Panel content document can be either in panel `viewFrame` or in
   // a `backgroundFrame` depending on panel state. Listeners are set
@@ -315,6 +340,7 @@ function make(document) {
 
 
   panel.backgroundFrame = backgroundFrame;
+  panel.viewFrame = viewFrame;
 
   // Store event listener on the panel instance so that it won't be GC-ed
   // while panel is alive.
@@ -340,8 +366,10 @@ function detach(panel) {
 exports.detach = detach;
 
 function dispose(panel) {
-  panel.backgroundFrame.parentNode.removeChild(panel.backgroundFrame);
+  panel.backgroundFrame.remove();
+  panel.viewFrame.remove();
   panel.backgroundFrame = null;
+  panel.viewFrame = null;
   events.off("document-element-inserted", panel.onContentChange);
   panel.onContentChange = null;
   detach(panel);
@@ -395,13 +423,15 @@ function style(panel) {
 }
 exports.style = style;
 
-let getContentFrame = panel =>
+var getContentFrame = panel =>
     (isOpen(panel) || isOpening(panel)) ?
     panel.firstChild :
     panel.backgroundFrame
 exports.getContentFrame = getContentFrame;
 
-function getContentDocument(panel) getContentFrame(panel).contentDocument
+function getContentDocument(panel) {
+  return getContentFrame(panel).contentDocument;
+}
 exports.getContentDocument = getContentDocument;
 
 function setURL(panel, url) {
@@ -411,9 +441,9 @@ function setURL(panel, url) {
 exports.setURL = setURL;
 
 function allowContextMenu(panel, allow) {
-  if(allow) {
+  if (allow) {
     panel.setAttribute("context", "contentAreaContextMenu");
-  } 
+  }
   else {
     panel.removeAttribute("context");
   }

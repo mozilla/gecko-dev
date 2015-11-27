@@ -9,6 +9,8 @@ const Ci = Components.interfaces;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "Prefetcher",
+                                  "resource://gre/modules/Prefetcher.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "RemoteAddonsParent",
                                   "resource://gre/modules/RemoteAddonsParent.jsm");
 
@@ -61,29 +63,54 @@ XPCOMUtils.defineLazyModuleGetter(this, "RemoteAddonsParent",
 
 function AddonInterpositionService()
 {
+  Prefetcher.init();
   RemoteAddonsParent.init();
 
   // These maps keep track of the interpositions for all different
   // kinds of objects.
   this._interfaceInterpositions = RemoteAddonsParent.getInterfaceInterpositions();
   this._taggedInterpositions = RemoteAddonsParent.getTaggedInterpositions();
+
+  let wl = [];
+  for (let v in this._interfaceInterpositions) {
+    let interp = this._interfaceInterpositions[v];
+    wl.push(...Object.getOwnPropertyNames(interp.methods));
+    wl.push(...Object.getOwnPropertyNames(interp.getters));
+    wl.push(...Object.getOwnPropertyNames(interp.setters));
+  }
+
+  for (let v in this._taggedInterpositions) {
+    let interp = this._taggedInterpositions[v];
+    wl.push(...Object.getOwnPropertyNames(interp.methods));
+    wl.push(...Object.getOwnPropertyNames(interp.getters));
+    wl.push(...Object.getOwnPropertyNames(interp.setters));
+  }
+
+  let nameSet = new Set();
+  wl = wl.filter(function(item) {
+    if (nameSet.has(item))
+      return true;
+
+    nameSet.add(item);
+    return true;
+  });
+
+  this._whitelist = wl;
 }
 
 AddonInterpositionService.prototype = {
   classID: Components.ID("{1363d5f0-d95e-11e3-9c1a-0800200c9a66}"),
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIAddonInterposition, Ci.nsISupportsWeakReference]),
 
+  getWhitelist: function() {
+    return this._whitelist;
+  },
+
   // When the interface is not known for a method call, this code
   // determines the type of the target object.
   getObjectTag: function(target) {
     if (Cu.isCrossProcessWrapper(target)) {
-      if (target instanceof Ci.nsIDocShellTreeItem) {
-        return "ContentDocShellTreeItem";
-      }
-
-      if (target instanceof Ci.nsIDOMDocument) {
-        return "ContentDocument";
-      }
+      return Cu.getCrossProcessWrapperTag(target);
     }
 
     const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
@@ -108,16 +135,21 @@ AddonInterpositionService.prototype = {
     return "generic";
   },
 
-  interpose: function(addon, target, iid, prop) {
+  interposeProperty: function(addon, target, iid, prop) {
     let interp;
     if (iid) {
       interp = this._interfaceInterpositions[iid];
     } else {
-      interp = this._taggedInterpositions[this.getObjectTag(target)];
+      try {
+        interp = this._taggedInterpositions[this.getObjectTag(target)];
+      }
+      catch (e) {
+        Cu.reportError(new Components.Exception("Failed to interpose object", e.result, Components.stack.caller));
+      }
     }
 
     if (!interp) {
-      return null;
+      return Prefetcher.lookupInCache(addon, target, prop);
     }
 
     let desc = { configurable: false, enumerable: true };
@@ -139,7 +171,12 @@ AddonInterpositionService.prototype = {
       return desc;
     }
 
-    return null;
+    return Prefetcher.lookupInCache(addon, target, prop);
+  },
+
+  interposeCall: function(addonId, originalFunc, originalThis, args) {
+    args.splice(0, 0, addonId);
+    return originalFunc.apply(originalThis, args);
   },
 };
 

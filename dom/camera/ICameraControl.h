@@ -9,15 +9,13 @@
 #include "nsString.h"
 #include "nsAutoPtr.h"
 #include "nsISupportsImpl.h"
+#include "base/basictypes.h"
 
 struct DeviceStorageFileDescriptor;
-
-class nsIFile;
 
 namespace mozilla {
 
 class CameraControlListener;
-class RecorderProfileManager;
 
 // XXXmikeh - In some future patch this should move into the ICameraControl
 //  class as well, and the names updated to the 'k'-style;
@@ -54,6 +52,8 @@ enum {
   CAMERA_PARAM_LUMINANCE,
   CAMERA_PARAM_SCENEMODE_HDR_RETURNNORMALPICTURE,
   CAMERA_PARAM_RECORDINGHINT,
+  CAMERA_PARAM_PREFERRED_PREVIEWSIZE_FOR_VIDEO,
+  CAMERA_PARAM_METERINGMODE,
 
   // supported features
   CAMERA_PARAM_SUPPORTED_PREVIEWSIZES,
@@ -74,7 +74,8 @@ enum {
   CAMERA_PARAM_SUPPORTED_ZOOMRATIOS,
   CAMERA_PARAM_SUPPORTED_MAXDETECTEDFACES,
   CAMERA_PARAM_SUPPORTED_JPEG_THUMBNAIL_SIZES,
-  CAMERA_PARAM_SUPPORTED_ISOMODES
+  CAMERA_PARAM_SUPPORTED_ISOMODES,
+  CAMERA_PARAM_SUPPORTED_METERINGMODES
 };
 
 class ICameraControl
@@ -115,6 +116,11 @@ public:
   struct Size {
     uint32_t  width;
     uint32_t  height;
+
+    bool Equals(const Size& aSize) const
+    {
+      return width == aSize.width && height == aSize.height;
+    }
   };
 
   struct Region {
@@ -137,11 +143,13 @@ public:
     uint64_t  maxFileSizeBytes;
     uint64_t  maxVideoLengthMs;
     bool      autoEnableLowLightTorch;
+    bool      createPoster;
   };
 
   struct Configuration {
     Mode      mMode;
     Size      mPreviewSize;
+    Size      mPictureSize;
     nsString  mRecorderProfile;
   };
 
@@ -160,6 +168,77 @@ public:
     Point     rightEye;
     bool      hasMouth;
     Point     mouth;
+  };
+
+  class RecorderProfile
+  {
+  public:
+    class Video
+    {
+    public:
+      Video() { }
+      virtual ~Video() { }
+
+      const nsString& GetCodec() const    { return mCodec; }
+      const Size& GetSize() const         { return mSize; }
+      uint32_t GetBitsPerSecond() const   { return mBitsPerSecond; }
+      uint32_t GetFramesPerSecond() const { return mFramesPerSecond; }
+
+    protected:
+      nsString  mCodec;
+      Size      mSize;
+      uint32_t  mBitsPerSecond;
+      uint32_t  mFramesPerSecond;
+
+    private:
+      DISALLOW_EVIL_CONSTRUCTORS(Video);
+    };
+
+    class Audio
+    {
+    public:
+      Audio() { }
+      virtual ~Audio() { }
+
+      const nsString& GetCodec() const    { return mCodec; }
+
+      uint32_t GetChannels() const        { return mChannels; }
+      uint32_t GetBitsPerSecond() const   { return mBitsPerSecond; }
+      uint32_t GetSamplesPerSecond() const { return mSamplesPerSecond; }
+
+    protected:
+      nsString  mCodec;
+      uint32_t  mChannels;
+      uint32_t  mBitsPerSecond;
+      uint32_t  mSamplesPerSecond;
+
+    private:
+      DISALLOW_EVIL_CONSTRUCTORS(Audio);
+    };
+
+    NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RecorderProfile)
+
+    RecorderProfile()
+    { }
+
+    const nsString& GetName() const       { return mName; }
+    const nsString& GetContainer() const  { return mContainer; }
+    const nsString& GetMimeType() const   { return mMimeType; }
+    uint32_t GetPriority() const          { return mPriority; }
+
+    virtual const Video& GetVideo() const = 0;
+    virtual const Audio& GetAudio() const = 0;
+
+  protected:
+    virtual ~RecorderProfile() { }
+
+    nsString    mName;
+    nsString    mContainer;
+    nsString    mMimeType;
+    uint32_t    mPriority;
+
+  private:
+    DISALLOW_EVIL_CONSTRUCTORS(RecorderProfile);
   };
 
   static already_AddRefed<ICameraControl> Create(uint32_t aCameraId);
@@ -181,9 +260,11 @@ public:
   virtual nsresult StopPreview() = 0;
   virtual nsresult AutoFocus() = 0;
   virtual nsresult TakePicture() = 0;
-  virtual nsresult StartRecording(DeviceStorageFileDescriptor *aFileDescriptor,
+  virtual nsresult StartRecording(DeviceStorageFileDescriptor* aFileDescriptor,
                                   const StartRecordingOptions* aOptions = nullptr) = 0;
   virtual nsresult StopRecording() = 0;
+  virtual nsresult PauseRecording() = 0;
+  virtual nsresult ResumeRecording() = 0;
   virtual nsresult StartFaceDetection() = 0;
   virtual nsresult StopFaceDetection() = 0;
   virtual nsresult ResumeContinuousFocus() = 0;
@@ -220,10 +301,8 @@ public:
   virtual nsresult Get(uint32_t aKey, nsTArray<nsString>& aValues) = 0;
   virtual nsresult Get(uint32_t aKey, nsTArray<double>& aValues) = 0;
 
-  virtual already_AddRefed<RecorderProfileManager> GetRecorderProfileManager() = 0;
-  virtual uint32_t GetCameraId() = 0;
-
-  virtual void Shutdown() = 0;
+  virtual nsresult GetRecorderProfiles(nsTArray<nsString>& aProfiles) = 0;
+  virtual RecorderProfile* GetProfileInfo(const nsAString& aProfile) = 0;
 
 protected:
   virtual ~ICameraControl() { }
@@ -251,7 +330,7 @@ public:
   }
 
 protected:
-  nsRefPtr<ICameraControl> mCameraControl;
+  RefPtr<ICameraControl> mCameraControl;
 };
 
 } // namespace mozilla

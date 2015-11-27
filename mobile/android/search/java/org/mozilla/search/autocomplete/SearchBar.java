@@ -4,7 +4,14 @@
 
 package org.mozilla.search.autocomplete;
 
+import org.mozilla.gecko.R;
+import org.mozilla.gecko.Telemetry;
+import org.mozilla.gecko.TelemetryContract;
+import org.mozilla.gecko.gfx.BitmapUtils;
+import org.mozilla.search.providers.SearchEngine;
+
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
@@ -25,12 +32,6 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import org.mozilla.gecko.Telemetry;
-import org.mozilla.gecko.TelemetryContract;
-import org.mozilla.gecko.gfx.BitmapUtils;
-import org.mozilla.search.R;
-import org.mozilla.search.providers.SearchEngine;
-
 public class SearchBar extends FrameLayout {
 
     private final EditText editText;
@@ -38,7 +39,7 @@ public class SearchBar extends FrameLayout {
     private final ImageView engineIcon;
 
     private final Drawable focusedBackground;
-    private final Drawable defaultBackgound;
+    private final Drawable defaultBackground;
 
     private final InputMethodManager inputMethodManager;
 
@@ -52,6 +53,8 @@ public class SearchBar extends FrameLayout {
         public void onFocusChange(boolean hasFocus);
     }
 
+    // Deprecation warnings suppressed to allow building with API level 22
+    @SuppressWarnings("deprecation")
     public SearchBar(Context context, AttributeSet attrs) {
         super(context, attrs);
 
@@ -81,7 +84,8 @@ public class SearchBar extends FrameLayout {
         editText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if (listener != null && actionId == EditorInfo.IME_ACTION_SEARCH) {
+                if (listener != null &&
+                    (actionId == EditorInfo.IME_ACTION_UNSPECIFIED || actionId == EditorInfo.IME_ACTION_SEARCH)) {
                     // The user searched without using search engine suggestions.
                     Telemetry.sendUIEvent(TelemetryContract.Event.SEARCH, TelemetryContract.Method.ACTIONBAR, "text");
                     listener.onSubmit(v.getText().toString());
@@ -110,7 +114,7 @@ public class SearchBar extends FrameLayout {
         engineIcon = (ImageView) findViewById(R.id.engine_icon);
 
         focusedBackground = getResources().getDrawable(R.drawable.edit_text_focused);
-        defaultBackgound = getResources().getDrawable(R.drawable.edit_text_default);
+        defaultBackground = getResources().getDrawable(R.drawable.edit_text_default);
 
         inputMethodManager = (InputMethodManager) context.getSystemService(Context.INPUT_METHOD_SERVICE);
     }
@@ -127,18 +131,22 @@ public class SearchBar extends FrameLayout {
     }
 
     public void setEngine(SearchEngine engine) {
-        int color = engine.getColor();
-        if (color == Color.TRANSPARENT) {
-            // Fall back to default orange if the search engine doesn't specify a color.
-            color = getResources().getColor(R.color.highlight_orange);
-        }
-        // Update the focused background color.
-        focusedBackground.setColorFilter(new PorterDuffColorFilter(color, PorterDuff.Mode.MULTIPLY));
-
         final String iconURL = engine.getIconURL();
-        final BitmapDrawable d = new BitmapDrawable(getResources(), BitmapUtils.getBitmapFromDataURI(iconURL));
+        final Bitmap bitmap = BitmapUtils.getBitmapFromDataURI(iconURL);
+        final BitmapDrawable d = new BitmapDrawable(getResources(), bitmap);
         engineIcon.setImageDrawable(d);
         engineIcon.setContentDescription(engine.getName());
+
+        // Update the focused background color.
+        int color = BitmapUtils.getDominantColor(bitmap);
+
+        // BitmapUtils#getDominantColor ignores black and white pixels, but it will
+        // return white if no dominant color was found. We don't want to create a
+        // white underline for the search bar, so we default to black instead.
+        if (color == Color.WHITE) {
+            color = Color.BLACK;
+        }
+        focusedBackground.setColorFilter(new PorterDuffColorFilter(color, PorterDuff.Mode.MULTIPLY));
 
         editText.setHint(getResources().getString(R.string.search_bar_hint, engine.getName()));
     }
@@ -161,7 +169,7 @@ public class SearchBar extends FrameLayout {
         // We can't use a selector drawable because we apply a color filter to the focused
         // background at run time.
         // TODO: setBackgroundDrawable is deprecated in API level 16
-        editText.setBackgroundDrawable(active ? focusedBackground : defaultBackgound);
+        editText.setBackgroundDrawable(active ? focusedBackground : defaultBackground);
 
         if (active) {
             editText.requestFocus();

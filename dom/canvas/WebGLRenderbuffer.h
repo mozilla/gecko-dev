@@ -3,22 +3,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef WEBGLRENDERBUFFER_H_
-#define WEBGLRENDERBUFFER_H_
-
-#include "WebGLBindableName.h"
-#include "WebGLObjectModel.h"
-#include "WebGLFramebufferAttachable.h"
-
-#include "nsWrapperCache.h"
+#ifndef WEBGL_RENDERBUFFER_H_
+#define WEBGL_RENDERBUFFER_H_
 
 #include "mozilla/LinkedList.h"
+#include "nsWrapperCache.h"
+
+#include "WebGLFramebufferAttachable.h"
+#include "WebGLObjectModel.h"
+#include "WebGLStrongTypes.h"
 
 namespace mozilla {
+namespace webgl {
+struct FormatUsageInfo;
+}
 
-class WebGLRenderbuffer MOZ_FINAL
+class WebGLRenderbuffer final
     : public nsWrapperCache
-    , public WebGLBindableName<GLenum>
     , public WebGLRefCountedObject<WebGLRenderbuffer>
     , public LinkedListElement<WebGLRenderbuffer>
     , public WebGLRectangleObject
@@ -26,37 +27,43 @@ class WebGLRenderbuffer MOZ_FINAL
     , public WebGLFramebufferAttachable
 {
 public:
-    explicit WebGLRenderbuffer(WebGLContext* context);
+    explicit WebGLRenderbuffer(WebGLContext* webgl);
 
     void Delete();
 
-    bool HasUninitializedImageData() const { return mImageDataStatus == WebGLImageDataStatus::UninitializedImageData; }
-    void SetImageDataStatus(WebGLImageDataStatus x) {
-        // there is no way to go from having image data to not having any
-        MOZ_ASSERT(x != WebGLImageDataStatus::NoImageData ||
-                   mImageDataStatus == WebGLImageDataStatus::NoImageData);
-        mImageDataStatus = x;
+    bool HasUninitializedImageData() const {
+        MOZ_ASSERT(mImageDataStatus != WebGLImageDataStatus::NoImageData);
+        return mImageDataStatus == WebGLImageDataStatus::UninitializedImageData;
     }
 
-    GLenum InternalFormat() const { return mInternalFormat; }
-    void SetInternalFormat(GLenum aInternalFormat) { mInternalFormat = aInternalFormat; }
+    bool IsDefined() const {
+        if (!mFormat) {
+            MOZ_ASSERT(!mWidth && !mHeight);
+            return false;
+        }
+        return true;
+    }
 
-    GLenum InternalFormatForGL() const { return mInternalFormatForGL; }
-    void SetInternalFormatForGL(GLenum aInternalFormatForGL) { mInternalFormatForGL = aInternalFormatForGL; }
+    GLsizei Samples() const { return mSamples; }
+
+    GLuint PrimaryGLName() const { return mPrimaryRB; }
+
+    const webgl::FormatUsageInfo* Format() const { return mFormat; }
 
     int64_t MemoryUsage() const;
 
-    WebGLContext *GetParentObject() const {
-        return Context();
+    WebGLContext* GetParentObject() const {
+        return mContext;
     }
 
     void BindRenderbuffer() const;
-    void RenderbufferStorage(GLenum internalFormat, GLsizei width, GLsizei height) const;
+    void RenderbufferStorage(GLsizei samples, const webgl::FormatUsageInfo* format,
+                             GLsizei width, GLsizei height);
     void FramebufferRenderbuffer(GLenum attachment) const;
     // Only handles a subset of `pname`s.
-    GLint GetRenderbufferParameter(GLenum target, GLenum pname) const;
+    GLint GetRenderbufferParameter(RBTarget target, RBParam pname) const;
 
-    virtual JSObject* WrapObject(JSContext *cx) MOZ_OVERRIDE;
+    virtual JSObject* WrapObject(JSContext* cx, JS::Handle<JSObject*> givenProto) override;
 
     NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(WebGLRenderbuffer)
     NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(WebGLRenderbuffer)
@@ -68,12 +75,24 @@ protected:
 
     GLuint mPrimaryRB;
     GLuint mSecondaryRB;
-    GLenum mInternalFormat;
-    GLenum mInternalFormatForGL;
+    const webgl::FormatUsageInfo* mFormat;
     WebGLImageDataStatus mImageDataStatus;
+    GLsizei mSamples;
+    bool mIsUsingSecondary;
+#ifdef ANDROID
+    // Bug 1140459: Some drivers (including our test slaves!) don't
+    // give reasonable answers for IsRenderbuffer, maybe others.
+    // This shows up on Android 2.3 emulator.
+    //
+    // So we track the `is a Renderbuffer` state ourselves.
+    bool mIsRB;
+#endif
 
+    friend class WebGLContext;
     friend class WebGLFramebuffer;
+    friend class WebGLFBAttachPoint;
 };
+
 } // namespace mozilla
 
-#endif
+#endif // WEBGL_RENDERBUFFER_H_

@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import print_function
+from __future__ import absolute_import, print_function
 
 r'''This module contains code for managing clobbering of the tree.'''
 
@@ -51,6 +51,10 @@ class Clobberer(object):
         self.topobjdir = os.path.normpath(topobjdir)
         self.src_clobber = os.path.join(topsrcdir, 'CLOBBER')
         self.obj_clobber = os.path.join(topobjdir, 'CLOBBER')
+
+        # Try looking for mozilla/CLOBBER, for comm-central
+        if not os.path.isfile(self.src_clobber):
+            self.src_clobber = os.path.join(topsrcdir, 'mozilla', 'CLOBBER')
 
         assert os.path.isfile(self.src_clobber)
 

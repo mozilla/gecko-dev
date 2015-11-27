@@ -43,14 +43,14 @@ TrustDomain::IssuerChecker::~IssuerChecker() { }
 
 // The implementation of TrustDomain::IssuerTracker is in a subclass only to
 // hide the implementation from external users.
-class PathBuildingStep : public TrustDomain::IssuerChecker
+class PathBuildingStep final : public TrustDomain::IssuerChecker
 {
 public:
   PathBuildingStep(TrustDomain& trustDomain, const BackCert& subject,
                    Time time, KeyPurposeId requiredEKUIfPresent,
                    const CertPolicyId& requiredPolicy,
                    /*optional*/ const Input* stapledOCSPResponse,
-                   unsigned int subCACount)
+                   unsigned int subCACount, Result deferredSubjectError)
     : trustDomain(trustDomain)
     , subject(subject)
     , time(time)
@@ -58,6 +58,7 @@ public:
     , requiredPolicy(requiredPolicy)
     , stapledOCSPResponse(stapledOCSPResponse)
     , subCACount(subCACount)
+    , deferredSubjectError(deferredSubjectError)
     , result(Result::FATAL_ERROR_LIBRARY_FAILURE)
     , resultWasSet(false)
   {
@@ -65,7 +66,7 @@ public:
 
   Result Check(Input potentialIssuerDER,
                /*optional*/ const Input* additionalNameConstraints,
-               /*out*/ bool& keepGoing);
+               /*out*/ bool& keepGoing) override;
 
   Result CheckResult() const;
 
@@ -77,13 +78,19 @@ private:
   const CertPolicyId& requiredPolicy;
   /*optional*/ Input const* const stapledOCSPResponse;
   const unsigned int subCACount;
+  const Result deferredSubjectError;
+
+  // Initialized lazily.
+  uint8_t subjectSignatureDigestBuf[MAX_DIGEST_SIZE_IN_BYTES];
+  der::PublicKeyAlgorithm subjectSignaturePublicKeyAlg;
+  SignedDigest subjectSignature;
 
   Result RecordResult(Result currentResult, /*out*/ bool& keepGoing);
   Result result;
   bool resultWasSet;
 
-  PathBuildingStep(const PathBuildingStep&) /*= delete*/;
-  void operator=(const PathBuildingStep&) /*= delete*/;
+  PathBuildingStep(const PathBuildingStep&) = delete;
+  void operator=(const PathBuildingStep&) = delete;
 };
 
 Result
@@ -93,6 +100,8 @@ PathBuildingStep::RecordResult(Result newResult, /*out*/ bool& keepGoing)
     newResult = Result::ERROR_UNTRUSTED_ISSUER;
   } else if (newResult == Result::ERROR_EXPIRED_CERTIFICATE) {
     newResult = Result::ERROR_EXPIRED_ISSUER_CERTIFICATE;
+  } else if (newResult == Result::ERROR_NOT_YET_VALID_CERTIFICATE) {
+    newResult = Result::ERROR_NOT_YET_VALID_ISSUER_CERTIFICATE;
   }
 
   if (resultWasSet) {
@@ -137,8 +146,17 @@ PathBuildingStep::Check(Input potentialIssuerDER,
     return RecordResult(rv, keepGoing);
   }
 
-  // RFC5280 4.2.1.1. Authority Key Identifier
-  // RFC5280 4.2.1.2. Subject Key Identifier
+  // Simple TrustDomain::FindIssuers implementations may pass in all possible
+  // CA certificates without any filtering. Because of this, we don't consider
+  // a mismatched name to be an error. Instead, we just pretend that any
+  // certificate without a matching name was never passed to us. In particular,
+  // we treat the case where the TrustDomain only asks us to check CA
+  // certificates with mismatched names as equivalent to the case where the
+  // TrustDomain never called Check() at all.
+  if (!InputsAreEqual(potentialIssuer.GetSubject(), subject.GetIssuer())) {
+    keepGoing = true;
+    return Success;
+  }
 
   // Loop prevention, done as recommended by RFC4158 Section 5.2
   // TODO: this doesn't account for subjectAltNames!
@@ -170,6 +188,11 @@ PathBuildingStep::Check(Input potentialIssuerDER,
     }
   }
 
+  rv = CheckTLSFeatures(subject, potentialIssuer);
+  if (rv != Success) {
+    return RecordResult(rv, keepGoing);
+  }
+
   // RFC 5280, Section 4.2.1.3: "If the keyUsage extension is present, then the
   // subject public key MUST NOT be used to verify signatures on certificates
   // or CRLs unless the corresponding keyCertSign or cRLSign bit is set."
@@ -179,19 +202,48 @@ PathBuildingStep::Check(Input potentialIssuerDER,
     return RecordResult(rv, keepGoing);
   }
 
-  rv = trustDomain.VerifySignedData(subject.GetSignedData(),
-                                    potentialIssuer.GetSubjectPublicKeyInfo());
+  // Calculate the digest of the subject's signed data if we haven't already
+  // done so. We do this lazily to avoid doing it at all if we backtrack before
+  // getting to this point. We cache the result to avoid recalculating it if we
+  // backtrack after getting to this point.
+  if (subjectSignature.digest.GetLength() == 0) {
+    rv = DigestSignedData(trustDomain, subject.GetSignedData(),
+                          subjectSignatureDigestBuf,
+                          subjectSignaturePublicKeyAlg, subjectSignature);
+    if (rv != Success) {
+      return rv;
+    }
+  }
+
+  rv = VerifySignedDigest(trustDomain, subjectSignaturePublicKeyAlg,
+                          subjectSignature,
+                          potentialIssuer.GetSubjectPublicKeyInfo());
   if (rv != Success) {
     return RecordResult(rv, keepGoing);
   }
 
-  CertID certID(subject.GetIssuer(), potentialIssuer.GetSubjectPublicKeyInfo(),
-                subject.GetSerialNumber());
-  rv = trustDomain.CheckRevocation(subject.endEntityOrCA, certID, time,
-                                   stapledOCSPResponse,
-                                   subject.GetAuthorityInfoAccess());
-  if (rv != Success) {
-    return RecordResult(rv, keepGoing);
+  // We avoid doing revocation checking for expired certificates because OCSP
+  // responders are allowed to forget about expired certificates, and many OCSP
+  // responders return an error when asked for the status of an expired
+  // certificate.
+  if (deferredSubjectError != Result::ERROR_EXPIRED_CERTIFICATE) {
+    CertID certID(subject.GetIssuer(), potentialIssuer.GetSubjectPublicKeyInfo(),
+                  subject.GetSerialNumber());
+    Time notBefore(Time::uninitialized);
+    Time notAfter(Time::uninitialized);
+    // This should never fail. If we're here, we've already parsed the validity
+    // and checked that the given time is in the certificate's validity period.
+    rv = ParseValidity(subject.GetValidity(), &notBefore, &notAfter);
+    if (rv != Success) {
+      return rv;
+    }
+    Duration validityDuration(notAfter, notBefore);
+    rv = trustDomain.CheckRevocation(subject.endEntityOrCA, certID, time,
+                                     validityDuration, stapledOCSPResponse,
+                                     subject.GetAuthorityInfoAccess());
+    if (rv != Success) {
+      return RecordResult(rv, keepGoing);
+    }
   }
 
   return RecordResult(Success, keepGoing);
@@ -246,7 +298,7 @@ BuildForward(TrustDomain& trustDomain,
 
     // This must be done here, after the chain is built but before any
     // revocation checks have been done.
-    return trustDomain.IsChainValid(chain);
+    return trustDomain.IsChainValid(chain, time);
   }
 
   if (subject.endEntityOrCA == EndEntityOrCA::MustBeCA) {
@@ -268,7 +320,8 @@ BuildForward(TrustDomain& trustDomain,
 
   PathBuildingStep pathBuilder(trustDomain, subject, time,
                                requiredEKUIfPresent, requiredPolicy,
-                               stapledOCSPResponse, subCACount);
+                               stapledOCSPResponse, subCACount,
+                               deferredEndEntityError);
 
   // TODO(bug 965136): Add SKI/AKI matching optimizations
   rv = trustDomain.FindIssuer(subject.GetIssuer(), pathBuilder, time);
@@ -303,14 +356,6 @@ BuildCertChain(TrustDomain& trustDomain, Input certDER,
   // domain name the certificate is valid for.
   BackCert cert(certDER, endEntityOrCA, nullptr);
   Result rv = cert.Init();
-  if (rv != Success) {
-    return rv;
-  }
-
-  // See documentation for CheckPublicKey() in pkixtypes.h for why the public
-  // key also needs to be checked here when trustDomain.VerifySignedData()
-  // should already be doing it.
-  rv = trustDomain.CheckPublicKey(cert.GetSubjectPublicKeyInfo());
   if (rv != Success) {
     return rv;
   }

@@ -17,6 +17,7 @@
 #include "nsIDOMDocument.h"
 #include "nsIDOMXULCommandEvent.h"
 #include "nsPIDOMWindow.h"
+#include "nsQueryObject.h"
 
 using namespace mozilla;
 
@@ -27,7 +28,7 @@ void nsMenuUtilsX::DispatchCommandTo(nsIContent* aTargetContent)
   nsIDocument* doc = aTargetContent->OwnerDoc();
   if (doc) {
     ErrorResult rv;
-    nsRefPtr<dom::Event> event =
+    RefPtr<dom::Event> event =
       doc->CreateEvent(NS_LITERAL_STRING("xulcommandevent"), rv);
     nsCOMPtr<nsIDOMXULCommandEvent> command = do_QueryObject(event);
 

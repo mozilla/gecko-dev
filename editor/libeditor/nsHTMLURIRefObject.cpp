@@ -39,37 +39,12 @@
     q:      cite
  */
 
-/* Here is how to open a channel for testing
-   (from embed/qa/testembed/Tests.cpp):
-
-  nsCOMPtr<nsIChannel> theChannel;
-  nsCString uri;
-  nsCOMPtr<nsIURI> theURI;
-  rv = NS_NewURI(getter_AddRefs(theURI), theSpec);
-  if (!theURI)
-    error;
-  rv = NS_OpenURI(getter_AddRefs(theChannel), theURI, nullptr, theLoadGroup);
-  if (!theChannel)
-    error;
-  nsCOMPtr<nsILoadGroup> theLoadGroup(do_CreateInstance(NS_LOADGROUP_CONTRACTID));
-  if (!theLoadGroup)
-    error;
-		nsCOMPtr<nsIStreamListener> listener(static_cast<nsIStreamListener*>(qaBrowserImpl));
-		//nsCOMPtr<nsIWeakReference> thisListener(do_GetWeakReference(listener));
-		//qaWebBrowser->AddWebBrowserListener(thisListener, NS_GET_IID(nsIStreamListener));
-
-		// this calls nsIStreamListener::OnDataAvailable()
-		rv = theChannel->AsyncOpen(listener, nullptr);
-
-		nsCOMPtr<nsIRequest> theRequest = do_QueryInterface(theChannel);
-    // Now we can do things on nsIRequest (like what?)
- */
+#include "nsHTMLURIRefObject.h"
 
 #include "mozilla/mozalloc.h"
 #include "nsAString.h"
 #include "nsDebug.h"
 #include "nsError.h"
-#include "nsHTMLURIRefObject.h"
 #include "nsID.h"
 #include "nsIDOMAttr.h"
 #include "nsIDOMElement.h"
@@ -273,13 +248,13 @@ nsHTMLURIRefObject::SetNode(nsIDOMNode *aNode)
 
 nsresult NS_NewHTMLURIRefObject(nsIURIRefObject** aResult, nsIDOMNode* aNode)
 {
-  nsRefPtr<nsHTMLURIRefObject> refObject = new nsHTMLURIRefObject();
+  RefPtr<nsHTMLURIRefObject> refObject = new nsHTMLURIRefObject();
   nsresult rv = refObject->SetNode(aNode);
   if (NS_FAILED(rv)) {
     *aResult = 0;
     return rv;
   }
-  return refObject->QueryInterface(NS_GET_IID(nsIURIRefObject),
-                                   (void**)aResult);
+  refObject.forget(aResult);
+  return NS_OK;
 }
 

@@ -5,9 +5,11 @@ var prefsBranch = Cc["@mozilla.org/preferences-service;1"].
                   getService(Ci.nsIPrefService).
                   getBranch("browser.panorama.");
 
-function animateZoom() prefsBranch.getBoolPref("animate_zoom");
+function animateZoom() {
+  return prefsBranch.getBoolPref("animate_zoom");
+}
 
-let contentWindow = null;
+var contentWindow = null;
 
 registerCleanupFunction(function() {
   // reset to default: true

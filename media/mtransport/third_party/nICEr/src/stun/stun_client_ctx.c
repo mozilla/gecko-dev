@@ -48,9 +48,13 @@ static int nr_stun_client_send_request(nr_stun_client_ctx *ctx);
 static void nr_stun_client_timer_expired_cb(NR_SOCKET s, int b, void *cb_arg);
 static int nr_stun_client_get_password(void *arg, nr_stun_message *msg, Data **password);
 
+#define NR_STUN_TRANSPORT_ADDR_CHECK_WILDCARD 1
+#define NR_STUN_TRANSPORT_ADDR_CHECK_LOOPBACK 2
+
 int nr_stun_client_ctx_create(char *label, nr_socket *sock, nr_transport_addr *peer, UINT4 RTO, nr_stun_client_ctx **ctxp)
   {
     nr_stun_client_ctx *ctx=0;
+    char allow_loopback;
     int r,_status;
 
     if ((r=nr_stun_startup()))
@@ -69,27 +73,34 @@ int nr_stun_client_ctx_create(char *label, nr_socket *sock, nr_transport_addr *p
     nr_socket_getaddr(sock,&ctx->my_addr);
     nr_transport_addr_copy(&ctx->peer_addr,peer);
 
-    if (NR_reg_get_uint4(NR_STUN_REG_PREF_CLNT_RETRANSMIT_TIMEOUT, &ctx->rto_ms)) {
-        if (RTO != 0)
-            ctx->rto_ms = RTO;
-        else
-            ctx->rto_ms = 100;
+    if (RTO != 0) {
+      ctx->rto_ms = RTO;
+    } else if (NR_reg_get_uint4(NR_STUN_REG_PREF_CLNT_RETRANSMIT_TIMEOUT, &ctx->rto_ms)) {
+      ctx->rto_ms = 100;
     }
 
     if (NR_reg_get_double(NR_STUN_REG_PREF_CLNT_RETRANSMIT_BACKOFF, &ctx->retransmission_backoff_factor))
-        ctx->retransmission_backoff_factor = 2.0;
+      ctx->retransmission_backoff_factor = 2.0;
 
     if (NR_reg_get_uint4(NR_STUN_REG_PREF_CLNT_MAXIMUM_TRANSMITS, &ctx->maximum_transmits))
-        ctx->maximum_transmits = 7;
+      ctx->maximum_transmits = 7;
 
-    if (NR_reg_get_uint4(NR_STUN_REG_PREF_CLNT_FINAL_RETRANSMIT_BACKOFF, &ctx->final_retransmit_backoff_ms))
-        ctx->final_retransmit_backoff_ms = 16 * ctx->rto_ms;
+    if (NR_reg_get_uint4(NR_STUN_REG_PREF_CLNT_FINAL_RETRANSMIT_BACKOFF, &ctx->maximum_transmits_timeout_ms))
+      ctx->maximum_transmits_timeout_ms = 16 * ctx->rto_ms;
 
-    /* If we are doing TCP, compute the maximum timeout as if
-       we retransmitted and then set the maximum number of
-       transmits to 1 and the timeout to maximum timeout*/
+    ctx->mapped_addr_check_mask = NR_STUN_TRANSPORT_ADDR_CHECK_WILDCARD;
+    if (NR_reg_get_char(NR_STUN_REG_PREF_ALLOW_LOOPBACK_ADDRS, &allow_loopback) ||
+        !allow_loopback) {
+      ctx->mapped_addr_check_mask |= NR_STUN_TRANSPORT_ADDR_CHECK_LOOPBACK;
+    }
+
     if (ctx->my_addr.protocol == IPPROTO_TCP) {
-      ctx->timeout_ms = ctx->final_retransmit_backoff_ms;
+      /* Because TCP is reliable there is only one final timeout value.
+       * We store the timeout value for TCP in here, because timeout_ms gets
+       * reset to 0 in client_reset() which gets called from client_start() */
+      ctx->maximum_transmits_timeout_ms = ctx->rto_ms *
+                        pow(ctx->retransmission_backoff_factor,
+                            ctx->maximum_transmits);
       ctx->maximum_transmits = 1;
     }
 
@@ -101,6 +112,18 @@ int nr_stun_client_ctx_create(char *label, nr_socket *sock, nr_transport_addr *p
       nr_stun_client_ctx_destroy(&ctx);
     }
     return(_status);
+  }
+
+static void nr_stun_client_fire_finished_cb(nr_stun_client_ctx *ctx)
+  {
+    if (ctx->finished_cb) {
+      NR_async_cb finished_cb = ctx->finished_cb;
+      ctx->finished_cb = 0;  /* prevent 2nd call */
+      /* finished_cb call must be absolutely last thing in function
+       * because as a side effect this ctx may be operated on in the
+       * callback */
+      finished_cb(0,0,ctx->cb_arg);
+    }
   }
 
 int nr_stun_client_start(nr_stun_client_ctx *ctx, int mode, NR_async_cb finished_cb, void *cb_arg)
@@ -124,11 +147,7 @@ int nr_stun_client_start(nr_stun_client_ctx *ctx, int mode, NR_async_cb finished
     _status=0;
   abort:
    if (ctx->state != NR_STUN_CLIENT_STATE_RUNNING) {
-        ctx->finished_cb = 0;  /* prevent 2nd call */
-        /* finished_cb call must be absolutely last thing in function
-         * because as a side effect this ctx may be operated on in the
-         * callback */
-        finished_cb(0,0,cb_arg);
+     nr_stun_client_fire_finished_cb(ctx);
     }
 
     return(_status);
@@ -244,14 +263,7 @@ static void nr_stun_client_timer_expired_cb(NR_SOCKET s, int b, void *cb_arg)
             ctx->timer_handle=0;
         }
 
-        if (ctx->finished_cb) {
-            NR_async_cb finished_cb = ctx->finished_cb;
-            ctx->finished_cb = 0;  /* prevent 2nd call */
-            /* finished_cb call must be absolutely last thing in function
-             * because as a side effect this ctx may be operated on in the
-             * callback */
-            finished_cb(0,0,ctx->cb_arg);
-        }
+        nr_stun_client_fire_finished_cb(ctx);
     }
     return;
   }
@@ -327,7 +339,7 @@ static int nr_stun_client_send_request(nr_stun_client_ctx *ctx)
 
 #ifdef USE_ICE
         case NR_ICE_CLIENT_MODE_USE_CANDIDATE:
-            if ((r=nr_stun_build_use_candidate(&ctx->params.ice_use_candidate, &ctx->request)))
+            if ((r=nr_stun_build_use_candidate(&ctx->params.ice_binding_request, &ctx->request)))
                 ABORT(r);
             break;
         case NR_ICE_CLIENT_MODE_BINDING_REQUEST:
@@ -370,6 +382,8 @@ static int nr_stun_client_send_request(nr_stun_client_ctx *ctx)
     snprintf(string, sizeof(string)-1, "STUN-CLIENT(%s): Sending to %s ", ctx->label, ctx->peer_addr.as_string);
     r_dump(NR_LOG_STUN, LOG_DEBUG, string, (char*)ctx->request->buffer, ctx->request->length);
 
+    assert(ctx->my_addr.protocol==ctx->peer_addr.protocol);
+
     if(r=nr_socket_sendto(ctx->sock, ctx->request->buffer, ctx->request->length, 0, &ctx->peer_addr))
       ABORT(r);
 
@@ -380,25 +394,32 @@ static int nr_stun_client_send_request(nr_stun_client_ctx *ctx)
          * response */
     }
     else {
-        if (ctx->request_ct < ctx->maximum_transmits) {
-            ctx->timeout_ms *= ctx->retransmission_backoff_factor;
-            ctx->timeout_ms += ctx->rto_ms;
+        if (ctx->request_ct >= ctx->maximum_transmits) {
+          /* Reliable transport only get here once. Unreliable get here for
+           * their final timeout. */
+          ctx->timeout_ms += ctx->maximum_transmits_timeout_ms;
+        }
+        else if (ctx->timeout_ms) {
+          /* exponential backoff */
+          ctx->timeout_ms *= ctx->retransmission_backoff_factor;
         }
         else {
-            ctx->timeout_ms += ctx->final_retransmit_backoff_ms;
+          /* initial timeout unreliable transports */
+          ctx->timeout_ms = ctx->rto_ms;
         }
 
         r_log(NR_LOG_STUN,LOG_DEBUG,"STUN-CLIENT(%s): Next timer will fire in %u ms",ctx->label, ctx->timeout_ms);
 
         gettimeofday(&ctx->timer_set, 0);
 
+        assert(ctx->timeout_ms);
         NR_ASYNC_TIMER_SET(ctx->timeout_ms, nr_stun_client_timer_expired_cb, ctx, &ctx->timer_handle);
     }
 
     _status=0;
   abort:
     if (_status) {
-      ctx->state=NR_STUN_CLIENT_STATE_FAILED;
+      nr_stun_client_failed(ctx);
     }
     return(_status);
   }
@@ -411,12 +432,12 @@ static int nr_stun_client_get_password(void *arg, nr_stun_message *msg, Data **p
     return(0);
 }
 
-int nr_stun_transport_addr_check(nr_transport_addr* addr)
+int nr_stun_transport_addr_check(nr_transport_addr* addr, UINT4 check)
   {
-    if(nr_transport_addr_is_wildcard(addr))
+    if((check & NR_STUN_TRANSPORT_ADDR_CHECK_WILDCARD) && nr_transport_addr_is_wildcard(addr))
       return(R_BAD_DATA);
 
-    if (nr_transport_addr_is_loopback(addr))
+    if ((check & NR_STUN_TRANSPORT_ADDR_CHECK_LOOPBACK) && nr_transport_addr_is_loopback(addr))
       return(R_BAD_DATA);
 
     return(0);
@@ -434,6 +455,8 @@ int nr_stun_client_process_response(nr_stun_client_ctx *ctx, UCHAR *msg, int len
     UCHAR hmac_key_d[16];
     Data hmac_key;
     int compute_lt_key=0;
+    /* TODO(bcampen@mozilla.com): Bug 1023619, refactor this. */
+    int response_matched=0;
 
     ATTACH_DATA(hmac_key, hmac_key_d);
 
@@ -442,7 +465,7 @@ int nr_stun_client_process_response(nr_stun_client_ctx *ctx, UCHAR *msg, int len
     if (ctx->state != NR_STUN_CLIENT_STATE_RUNNING)
       ABORT(R_REJECTED);
 
-    r_log(NR_LOG_STUN,LOG_DEBUG,"STUN-CLIENT(%s): Received check response (my_addr=%s,peer_addr=%s)",ctx->label,ctx->my_addr.as_string,peer_addr->as_string);
+    r_log(NR_LOG_STUN,LOG_DEBUG,"STUN-CLIENT(%s): Inspecting STUN response (my_addr=%s, peer_addr=%s)",ctx->label,ctx->my_addr.as_string,peer_addr->as_string);
 
     snprintf(string, sizeof(string)-1, "STUN-CLIENT(%s): Received ", ctx->label);
     r_dump(NR_LOG_STUN, LOG_DEBUG, string, (char*)msg, len);
@@ -525,6 +548,7 @@ int nr_stun_client_process_response(nr_stun_client_ctx *ctx, UCHAR *msg, int len
       nr_stun_message_destroy(&ctx->response);
     }
 
+    /* TODO(bcampen@mozilla.com): Bug 1023619, refactor this. */
     if ((r=nr_stun_message_create2(&ctx->response, msg, len)))
         ABORT(r);
 
@@ -536,12 +560,13 @@ int nr_stun_client_process_response(nr_stun_client_ctx *ctx, UCHAR *msg, int len
     /* This will return an error if request and response don't match,
        which is how we reject responses that match other contexts. */
     if ((r=nr_stun_receive_message(ctx->request, ctx->response))) {
-        r_log(NR_LOG_STUN,LOG_DEBUG,"STUN-CLIENT(%s): error receiving response",ctx->label);
+        r_log(NR_LOG_STUN,LOG_DEBUG,"STUN-CLIENT(%s): Response is not for us",ctx->label);
         ABORT(r);
     }
 
-    r_log(NR_LOG_STUN,LOG_DEBUG,
-          "STUN-CLIENT(%s): successfully received response; processing",ctx->label);
+    r_log(NR_LOG_STUN,LOG_INFO,
+          "STUN-CLIENT(%s): Received response; processing",ctx->label);
+    response_matched=1;
 
 /* TODO: !nn! currently using password!=0 to mean that auth is required,
  * TODO: !nn! but we should probably pass that in explicitly via the
@@ -644,7 +669,8 @@ int nr_stun_client_process_response(nr_stun_client_ctx *ctx, UCHAR *msg, int len
         if (!nr_stun_message_has_attribute(ctx->response, NR_STUN_ATTR_XOR_RELAY_ADDRESS, &attr))
           ABORT(R_BAD_DATA);
 
-        if ((r=nr_stun_transport_addr_check(&attr->u.relay_address.unmasked)))
+        if ((r=nr_stun_transport_addr_check(&attr->u.relay_address.unmasked,
+                                            ctx->mapped_addr_check_mask)))
           ABORT(r);
 
         if ((r=nr_transport_addr_copy(
@@ -688,14 +714,16 @@ int nr_stun_client_process_response(nr_stun_client_ctx *ctx, UCHAR *msg, int len
 
     if (mapped_addr) {
         if (nr_stun_message_has_attribute(ctx->response, NR_STUN_ATTR_XOR_MAPPED_ADDRESS, &attr)) {
-            if ((r=nr_stun_transport_addr_check(&attr->u.xor_mapped_address.unmasked)))
+            if ((r=nr_stun_transport_addr_check(&attr->u.xor_mapped_address.unmasked,
+                                                ctx->mapped_addr_check_mask)))
                 ABORT(r);
 
             if ((r=nr_transport_addr_copy(mapped_addr, &attr->u.xor_mapped_address.unmasked)))
                 ABORT(r);
         }
         else if (nr_stun_message_has_attribute(ctx->response, NR_STUN_ATTR_MAPPED_ADDRESS, &attr)) {
-            if ((r=nr_stun_transport_addr_check(&attr->u.mapped_address)))
+            if ((r=nr_stun_transport_addr_check(&attr->u.mapped_address,
+                                                ctx->mapped_addr_check_mask)))
                 ABORT(r);
 
             if ((r=nr_transport_addr_copy(mapped_addr, &attr->u.mapped_address)))
@@ -704,6 +732,12 @@ int nr_stun_client_process_response(nr_stun_client_ctx *ctx, UCHAR *msg, int len
         else
             ABORT(R_BAD_DATA);
 
+        // STUN doesn't distinguish protocol in mapped address, therefore
+        // assign used protocol from peer_addr
+        if (mapped_addr->protocol!=peer_addr->protocol){
+          mapped_addr->protocol=peer_addr->protocol;
+          nr_transport_addr_fmt_addr_string(mapped_addr);
+        }
 
         r_log(NR_LOG_STUN,LOG_DEBUG,"STUN-CLIENT(%s): Received mapped address: %s", ctx->label, mapped_addr->as_string);
     }
@@ -712,6 +746,10 @@ int nr_stun_client_process_response(nr_stun_client_ctx *ctx, UCHAR *msg, int len
 
     _status=0;
   abort:
+    if(_status && response_matched){
+      r_log(NR_LOG_STUN,LOG_WARNING,"STUN-CLIENT(%s): Error processing response: %s, stun error code %d.", ctx->label, nr_strerror(_status), (int)ctx->error_code);
+    }
+
     if (ctx->state != NR_STUN_CLIENT_STATE_RUNNING) {
         /* Cancel the timer firing */
         if (ctx->timer_handle) {
@@ -719,15 +757,7 @@ int nr_stun_client_process_response(nr_stun_client_ctx *ctx, UCHAR *msg, int len
             ctx->timer_handle = 0;
         }
 
-        /* Fire the callback */
-        if (ctx->finished_cb) {
-            NR_async_cb finished_cb = ctx->finished_cb;
-            ctx->finished_cb = 0;  /* prevent 2nd call */
-            /* finished_cb call must be absolutely last thing in function
-             * because as a side effect this ctx may be operated on in the
-             * callback */
-            finished_cb(0,0,ctx->cb_arg);
-        }
+        nr_stun_client_fire_finished_cb(ctx);
     }
 
     return(_status);
@@ -765,6 +795,14 @@ int nr_stun_client_cancel(nr_stun_client_ctx *ctx)
 
     /* Mark cancelled so we ignore any returned messsages */
     ctx->state=NR_STUN_CLIENT_STATE_CANCELLED;
+    return(0);
+}
 
+
+int nr_stun_client_failed(nr_stun_client_ctx *ctx)
+  {
+    nr_stun_client_cancel(ctx);
+    ctx->state=NR_STUN_CLIENT_STATE_FAILED;
+    nr_stun_client_fire_finished_cb(ctx);
     return(0);
   }

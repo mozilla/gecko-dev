@@ -5,10 +5,31 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 SOURCES += [
+    'TestBadImplicitConversionCtor.cpp',
     'TestCustomHeap.cpp',
+    'TestExplicitOperatorBool.cpp',
+    'TestGlobalClass.cpp',
+    'TestHeapClass.cpp',
+    'TestInheritTypeAnnotationsFromTemplateArgs.cpp',
+    'TestMultipleAnnotations.cpp',
     'TestMustOverride.cpp',
+    'TestMustUse.cpp',
+    'TestNANTestingExpr.cpp',
+    'TestNANTestingExprC.c',
+    'TestNeedsNoVTableType.cpp',
+    'TestNoAddRefReleaseOnReturn.cpp',
+    'TestNoArithmeticExprInArgument.cpp',
+    'TestNoAutoType.cpp',
+    'TestNoDuplicateRefCntMember.cpp',
+    'TestNoExplicitMoveConstructor.cpp',
     'TestNonHeapClass.cpp',
+    'TestNonMemMovable.cpp',
+    'TestNonMemMovableStd.cpp',
+    'TestNonTemporaryClass.cpp',
+    'TestNoRefcountedInsideLambdas.cpp',
+    'TestRefCountedCopyConstructor.cpp',
     'TestStackClass.cpp',
+    'TestTrivialCtorDtor.cpp',
 ]
 
 DISABLE_STL_WRAPPING = True

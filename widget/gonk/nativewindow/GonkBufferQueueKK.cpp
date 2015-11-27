@@ -1,3 +1,4 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 /*
  * Copyright (C) 2012 The Android Open Source Project
  * Copyright (C) 2013 Mozilla Foundation
@@ -117,7 +118,7 @@ status_t GonkBufferQueue::setTransformHint(uint32_t hint) {
     return NO_ERROR;
 }
 
-TemporaryRef<TextureClient>
+already_AddRefed<TextureClient>
 GonkBufferQueue::getTextureClientFromBuffer(ANativeWindowBuffer* buffer)
 {
     Mutex::Autolock _l(mMutex);
@@ -128,7 +129,8 @@ GonkBufferQueue::getTextureClientFromBuffer(ANativeWindowBuffer* buffer)
 
     for (int i = 0; i < NUM_BUFFER_SLOTS; i++) {
         if (mSlots[i].mGraphicBuffer != NULL && mSlots[i].mGraphicBuffer->handle == buffer->handle) {
-            return mSlots[i].mTextureClient;
+             RefPtr<TextureClient> client(mSlots[i].mTextureClient);
+             return client.forget();
         }
     }
     ALOGE("getSlotFromBufferLocked: unknown buffer: %p", buffer->handle);
@@ -445,6 +447,7 @@ status_t GonkBufferQueue::dequeueBuffer(int *outBuf, sp<Fence>* outFence, bool a
                                         gfx::SurfaceFormat::UNKNOWN,
                                         gfx::BackendType::NONE,
                                         TextureFlags::DEALLOCATE_CLIENT);
+        textureClient->SetIsOpaque(true);
         usage |= GraphicBuffer::USAGE_HW_TEXTURE;
         bool result = textureClient->AllocateGralloc(IntSize(w, h), format, usage);
         sp<GraphicBuffer> graphicBuffer = textureClient->GetGraphicBuffer();
@@ -791,7 +794,7 @@ status_t GonkBufferQueue::disconnect(int api) {
     return err;
 }
 
-void GonkBufferQueue::dump(String8& result, const char* prefix) const {
+void GonkBufferQueue::dumpToString(String8& result, const char* prefix) const {
     Mutex::Autolock _l(mMutex);
 
     String8 fifo;

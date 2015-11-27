@@ -19,6 +19,8 @@
 #include "nsISupportsImpl.h"
 #include "nsNativeCharsetUtils.h"
 #include "nsNetUtil.h"
+#include "nsIFileProtocolHandler.h"
+#include "nsIURI.h"
 #include "nsUnicharUtils.h"
 #include "nsTArray.h"
 #include "nsTextFormatter.h"
@@ -43,7 +45,7 @@
 #define NS_COMMANDLINE_CID \
   { 0x23bcc750, 0xdc20, 0x460b, { 0xb2, 0xd4, 0x74, 0xd8, 0xf5, 0x8d, 0x36, 0x15 } }
 
-class nsCommandLine MOZ_FINAL : public nsICommandLineRunner
+class nsCommandLine final : public nsICommandLineRunner
 {
 public:
   NS_DECL_ISUPPORTS
@@ -275,7 +277,7 @@ nsCommandLine::ResolveFile(const nsAString& aArgument, nsIFile* *aResult)
   CFRelease(newurl);
   if (NS_FAILED(rv)) return rv;
 
-  NS_ADDREF(*aResult = newfile);
+  newfile.forget(aResult);
   return NS_OK;
 
 #elif defined(XP_UNIX)
@@ -306,7 +308,7 @@ nsCommandLine::ResolveFile(const nsAString& aArgument, nsIFile* *aResult)
   rv = lf->Normalize();
   if (NS_FAILED(rv)) return rv;
 
-  NS_ADDREF(*aResult = lf);
+  lf.forget(aResult);
   return NS_OK;
 
 #elif defined(XP_WIN32)
@@ -333,7 +335,7 @@ nsCommandLine::ResolveFile(const nsAString& aArgument, nsIFile* *aResult)
     rv = lf->InitWithPath(nsDependentString(pathBuf));
     if (NS_FAILED(rv)) return rv;
   }
-  NS_ADDREF(*aResult = lf);
+  lf.forget(aResult);
   return NS_OK;
 
 #else
@@ -489,7 +491,7 @@ LogConsoleMessage(const char16_t* fmt, ...)
   if (cs)
     cs->LogStringMessage(msg);
 
-  NS_Free(msg);
+  free(msg);
 }
 
 nsresult

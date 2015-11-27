@@ -11,9 +11,19 @@ const kWhitelist = new Set([
 ]);
 
 
-let moduleLocation = gTestPath.replace(/\/[^\/]*$/i, "/parsingTestHelpers.jsm");
-let {generateURIsFromDirTree} = Cu.import(moduleLocation, {});
-let {Reflect} = Cu.import("resource://gre/modules/reflect.jsm", {});
+var moduleLocation = gTestPath.replace(/\/[^\/]*$/i, "/parsingTestHelpers.jsm");
+var {generateURIsFromDirTree} = Cu.import(moduleLocation, {});
+
+// Normally we would use reflect.jsm to get Reflect.parse. However, if
+// we do that, then all the AST data is allocated in reflect.jsm's
+// zone. That exposes a bug in our GC. The GC collects reflect.jsm's
+// zone but not the zone in which our test code lives (since no new
+// data is being allocated in it). The cross-compartment wrappers in
+// our zone that point to the AST data never get collected, and so the
+// AST data itself is never collected. We need to GC both zones at
+// once to fix the problem.
+const init = Components.classes["@mozilla.org/jsreflect;1"].createInstance();
+init();
 
 /**
  * Check if an error should be ignored due to matching one of the whitelist
@@ -77,13 +87,13 @@ add_task(function* checkAllTheJS() {
                " browser/base/content/test/general/browser_parsable_script.js");
       return;
     }
-    // Request a 10 minutes timeout (30 seconds * 20) for debug builds.
-    requestLongerTimeout(20);
+    // Request a 15 minutes timeout (30 seconds * 30) for debug builds.
+    requestLongerTimeout(30);
   }
 
   let uris;
   // If an absolute URI is specified on the command line, use it immediately.
-  if (parseValue && parseValue.contains(":")) {
+  if (parseValue && parseValue.includes(":")) {
     uris = [NetUtil.newURI(parseValue)];
   } else {
     let appDir = Services.dirsvc.get("XCurProcD", Ci.nsIFile);
@@ -98,7 +108,7 @@ add_task(function* checkAllTheJS() {
     // Apply the filter specified on the command line, if any.
     if (parseValue) {
       uris = uris.filter(uri => {
-        if (uri.spec.contains(parseValue)) {
+        if (uri.spec.includes(parseValue)) {
           return true;
         }
         info("Not checking filtered out " + uri.spec);

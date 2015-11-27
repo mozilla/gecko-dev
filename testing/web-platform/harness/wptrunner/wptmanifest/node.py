@@ -82,9 +82,19 @@ class KeyValueNode(Node):
                 self.children.append(other)
 
 
+class ListNode(Node):
+    def append(self, other):
+        other.parent = self
+        self.children.append(other)
+
+
 class ValueNode(Node):
     def append(self, other):
         raise TypeError
+
+
+class AtomNode(ValueNode):
+    pass
 
 
 class ConditionalNode(Node):

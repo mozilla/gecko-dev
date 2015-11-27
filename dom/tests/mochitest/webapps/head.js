@@ -1,7 +1,7 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
+var { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
@@ -52,6 +52,38 @@ function confirmNextPopup() {
     popupNotifications._dismiss();
   }
   popupPanel.addEventListener("popupshown", onPopupShown, false);
+}
+
+function promiseNoPopup() {
+  var Ci = SpecialPowers.Ci;
+
+  var popupNotifications = SpecialPowers.wrap(window).top.
+                           QueryInterface(Ci.nsIInterfaceRequestor).
+                           getInterface(Ci.nsIWebNavigation).
+                           QueryInterface(Ci.nsIDocShell).
+                           chromeEventHandler.ownerDocument.defaultView.
+                           PopupNotifications;
+
+  return new Promise((resolve) => {
+    var tries = 0;
+    var interval = setInterval(function() {
+      if (tries >= 30) {
+        ok(true, "The webapps-install notification didn't appear");
+        moveOn();
+      }
+
+      if (popupNotifications.getNotification("webapps-install")) {
+        ok(false, "Found the webapps-install notification");
+        moveOn();
+      }
+      tries++;
+    }, 100);
+
+    var moveOn = () => {
+      clearInterval(interval);
+      resolve();
+    };
+  });
 }
 
 // We need to mock the Alerts service, otherwise the alert that is shown

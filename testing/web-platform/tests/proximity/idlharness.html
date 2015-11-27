@@ -5,7 +5,7 @@
 <link rel="help" href="http://www.w3.org/TR/proximity/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/resources/webidl2/lib/webidl2.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
 <script src="/resources/idlharness.js"></script>
 <style>
   pre {
@@ -15,6 +15,7 @@
 <div id="log"></div>
 
 <pre id="untested_idl">
+[PrimaryGlobal]
 interface Window {
 };
 
@@ -59,7 +60,7 @@ interface UserProximityEvent : Event {
   "use strict";
   var idl_array = new IdlArray();
   // replace 'EventHandler' and 'unrestricted double' unrecognised by idlharness.js
-  var idls = document.getElementById('idl').textContent.replace('EventHandler', 'Function?', 'g').replace('unrestricted double', 'double', 'g');
+  var idls = document.getElementById('idl').textContent.replace(/EventHandler/g, 'Function?').replace(/unrestricted double/g, 'double');
 
   idl_array.add_untested_idls(document.getElementById('untested_idl').textContent);
   idl_array.add_idls(idls);

@@ -8,7 +8,9 @@
 #include <vector>
 #include <dlfcn.h>
 #include <signal.h>
+#include "mozilla/RefCounted.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/UniquePtr.h"
 #include "Zip.h"
 #include "Elfxx.h"
 #include "Mappable.h"
@@ -62,6 +64,11 @@ MFBT_API bool
 IsSignalHandlingBroken();
 
 }
+
+/* Forward declarations for use in LibHandle */
+class BaseElf;
+class CustomElf;
+class SystemElf;
 
 /**
  * Specialize RefCounted template for LibHandle. We may get references to
@@ -199,6 +206,13 @@ public:
   virtual const void *FindExidx(int *pcount) const = 0;
 #endif
 
+  /**
+   * Shows some stats about the Mappable instance. The when argument is to be
+   * used by the caller to give an identifier of the when the stats call is
+   * made.
+   */
+  virtual void stats(const char *when) const { };
+
 protected:
   /**
    * Returns a mappable object for use by MappableMMap and related functions.
@@ -206,20 +220,22 @@ protected:
   virtual Mappable *GetMappable() const = 0;
 
   /**
-   * Returns whether the handle is a SystemElf or not. (short of a better way
-   * to do this without RTTI)
+   * Returns the instance, casted as the wanted type. Returns nullptr if
+   * that's not the actual type. (short of a better way to do this without
+   * RTTI)
    */
   friend class ElfLoader;
   friend class CustomElf;
   friend class SEGVHandler;
-  virtual bool IsSystemElf() const { return false; }
+  virtual BaseElf *AsBaseElf() { return nullptr; }
+  virtual SystemElf *AsSystemElf() { return nullptr; }
 
 private:
   MozRefCountType directRefCnt;
   char *path;
 
   /* Mappable object keeping the result of GetMappable() */
-  mutable mozilla::RefPtr<Mappable> mappable;
+  mutable RefPtr<Mappable> mappable;
 };
 
 /**
@@ -264,7 +280,7 @@ public:
    * Returns a new SystemElf for the given path. The given flags are passed
    * to dlopen().
    */
-  static mozilla::TemporaryRef<LibHandle> Load(const char *path, int flags);
+  static already_AddRefed<LibHandle> Load(const char *path, int flags);
 
   /**
    * Inherited from LibHandle
@@ -282,11 +298,11 @@ protected:
   virtual Mappable *GetMappable() const;
 
   /**
-   * Returns whether the handle is a SystemElf or not. (short of a better way
-   * to do this without RTTI)
+   * Returns the instance, casted as SystemElf. (short of a better way to do
+   * this without RTTI)
    */
   friend class ElfLoader;
-  virtual bool IsSystemElf() const { return true; }
+  virtual SystemElf *AsSystemElf() { return this; }
 
   /**
    * Remove the reference to the system linker handle. This avoids dlclose()
@@ -397,7 +413,7 @@ public:
    * requesting the given library to be loaded. The loader may look in the
    * directory containing that parent library for the library to load.
    */
-  mozilla::TemporaryRef<LibHandle> Load(const char *path, int flags,
+  already_AddRefed<LibHandle> Load(const char *path, int flags,
                                         LibHandle *parent = nullptr);
 
   /**
@@ -406,7 +422,7 @@ public:
    * LibHandle::Contains returns true. Its purpose is to allow to
    * implement dladdr().
    */
-  mozilla::TemporaryRef<LibHandle> GetHandleByPtr(void *addr);
+  already_AddRefed<LibHandle> GetHandleByPtr(void *addr);
 
   /**
    * Returns a Mappable object for the path. Paths in the form
@@ -416,18 +432,26 @@ public:
    */
   static Mappable *GetMappableFromPath(const char *path);
 
+  void ExpectShutdown(bool val) { expect_shutdown = val; }
+  bool IsShutdownExpected() { return expect_shutdown; }
+
+private:
+  bool expect_shutdown;
+
 protected:
   /**
    * Registers the given handle. This method is meant to be called by
    * LibHandle subclass creators.
    */
   void Register(LibHandle *handle);
+  void Register(CustomElf *handle);
 
   /**
    * Forget about the given handle. This method is meant to be called by
    * LibHandle subclass destructors.
    */
   void Forget(LibHandle *handle);
+  void Forget(CustomElf *handle);
 
   /* Last error. Used for dlerror() */
   friend class SystemElf;
@@ -437,7 +461,23 @@ protected:
   const char *lastError;
 
 private:
+  ElfLoader() : expect_shutdown(true) {}
   ~ElfLoader();
+
+  /* Initialization code that can't run during static initialization. */
+  void Init();
+
+  /* System loader handle for the library/program containing our code. This
+   * is used to resolve wrapped functions. */
+  RefPtr<LibHandle> self_elf;
+
+#if defined(ANDROID)
+  /* System loader handle for the libc. This is used to resolve weak symbols
+   * that some libcs contain that the Android linker won't dlsym(). Normally,
+   * we wouldn't treat non-Android differently, but glibc uses versioned
+   * symbols which this linker doesn't support. */
+  RefPtr<LibHandle> libc;
+#endif
 
   /* Bookkeeping */
   typedef std::vector<LibHandle *> LibHandleList;
@@ -445,6 +485,7 @@ private:
 
 protected:
   friend class CustomElf;
+  friend class LoadedElf;
   /**
    * Show some stats about Mappables in CustomElfs. The when argument is to
    * be used by the caller to give an identifier of the when the stats call
@@ -557,12 +598,20 @@ private:
     } r_state;
   };
 
+  /* Memory representation of ELF Auxiliary Vectors */
+  struct AuxVector {
+    Elf::Addr type;
+    Elf::Addr value;
+  };
+
   /* Helper class used to integrate libraries loaded by this linker in
    * r_debug */
   class DebuggerHelper
   {
   public:
     DebuggerHelper();
+
+    void Init(AuxVector *auvx);
 
     operator bool()
     {

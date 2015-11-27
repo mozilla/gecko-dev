@@ -10,11 +10,11 @@
  * liability, trademark and document use rules apply.
  */
 
+[Exposed=(Window,Worker)]
 interface IDBDatabase : EventTarget {
     readonly    attribute DOMString          name;
     readonly    attribute unsigned long long version;
 
-    [Throws]
     readonly    attribute DOMStringList      objectStoreNames;
 
     [Throws]
@@ -23,15 +23,9 @@ interface IDBDatabase : EventTarget {
     [Throws]
     void           deleteObjectStore (DOMString name);
 
-    // This should be:
-    // IDBTransaction transaction ((DOMString or sequence<DOMString>) storeNames, optional IDBTransactionMode mode = "readonly");
-    // but unions are not currently supported.
-
     [Throws]
-    IDBTransaction transaction (DOMString storeName, optional IDBTransactionMode mode = "readonly");
-
-    [Throws]
-    IDBTransaction transaction (sequence<DOMString> storeNames, optional IDBTransactionMode mode = "readonly");
+    IDBTransaction transaction ((DOMString or sequence<DOMString>) storeNames,
+                                optional IDBTransactionMode mode = "readonly");
 
     void           close ();
 
@@ -41,13 +35,13 @@ interface IDBDatabase : EventTarget {
 };
 
 partial interface IDBDatabase {
-    [Pref="dom.indexedDB.experimental"]
+    [Func="mozilla::dom::indexedDB::IndexedDatabaseManager::ExperimentalFeaturesEnabled"]
     readonly    attribute StorageType        storage;
 
-    [Throws]
+    [Exposed=Window, Throws]
     IDBRequest createMutableFile (DOMString name, optional DOMString type);
 
     // this is deprecated due to renaming in the spec
-    [Throws]
+    [Exposed=Window, Throws]
     IDBRequest mozCreateFileHandle (DOMString name, optional DOMString type); // now createMutableFile
 };

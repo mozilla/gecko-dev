@@ -8,12 +8,13 @@
 #include "IMETextTxn.h"
 #include "nsGkAtoms.h"
 #include "mozilla/dom/Selection.h"
+#include "nsQueryObject.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
 
-PlaceholderTxn::PlaceholderTxn() :  EditAggregateTxn(), 
-                                    mAbsorb(true), 
+PlaceholderTxn::PlaceholderTxn() :  EditAggregateTxn(),
+                                    mAbsorb(true),
                                     mForwarding(nullptr),
                                     mIMETextTxn(nullptr),
                                     mCommitted(false),
@@ -71,13 +72,11 @@ NS_IMETHODIMP PlaceholderTxn::UndoTransaction(void)
   // undo txns
   nsresult res = EditAggregateTxn::UndoTransaction();
   NS_ENSURE_SUCCESS(res, res);
-  
+
   NS_ENSURE_TRUE(mStartSel, NS_ERROR_NULL_POINTER);
 
   // now restore selection
-  nsCOMPtr<nsISelection> selection;
-  res = mEditor->GetSelection(getter_AddRefs(selection));
-  NS_ENSURE_SUCCESS(res, res);
+  RefPtr<Selection> selection = mEditor->GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
   return mStartSel->RestoreSelection(selection);
 }
@@ -88,11 +87,9 @@ NS_IMETHODIMP PlaceholderTxn::RedoTransaction(void)
   // redo txns
   nsresult res = EditAggregateTxn::RedoTransaction();
   NS_ENSURE_SUCCESS(res, res);
-  
+
   // now restore selection
-  nsCOMPtr<nsISelection> selection;
-  res = mEditor->GetSelection(getter_AddRefs(selection));
-  NS_ENSURE_SUCCESS(res, res);
+  RefPtr<Selection> selection = mEditor->GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
   return mEndSel.RestoreSelection(selection);
 }
@@ -104,8 +101,8 @@ NS_IMETHODIMP PlaceholderTxn::Merge(nsITransaction *aTransaction, bool *aDidMerg
 
   // set out param default value
   *aDidMerge=false;
-    
-  if (mForwarding) 
+
+  if (mForwarding)
   {
     NS_NOTREACHED("tried to merge into a placeholder that was in forwarding mode!");
     return NS_ERROR_FAILURE;
@@ -125,18 +122,18 @@ NS_IMETHODIMP PlaceholderTxn::Merge(nsITransaction *aTransaction, bool *aDidMerg
 
   // we are absorbing all txn's if mAbsorb is lit.
   if (mAbsorb)
-  { 
-    nsRefPtr<IMETextTxn> otherTxn = do_QueryObject(aTransaction);
+  {
+    RefPtr<IMETextTxn> otherTxn = do_QueryObject(aTransaction);
     if (otherTxn) {
       // special handling for IMETextTxn's: they need to merge with any previous
       // IMETextTxn in this placeholder, if possible.
-      if (!mIMETextTxn) 
+      if (!mIMETextTxn)
       {
         // this is the first IME txn in the placeholder
         mIMETextTxn =otherTxn;
         AppendChild(editTxn);
       }
-      else  
+      else
       {
         bool didMerge;
         mIMETextTxn->Merge(otherTxn, &didMerge);
@@ -156,7 +153,7 @@ NS_IMETHODIMP PlaceholderTxn::Merge(nsITransaction *aTransaction, bool *aDidMerg
     }
     *aDidMerge = true;
 //  RememberEndingSelection();
-//  efficiency hack: no need to remember selection here, as we haven't yet 
+//  efficiency hack: no need to remember selection here, as we haven't yet
 //  finished the initial batch and we know we will be told when the batch ends.
 //  we can remeber the selection then.
   }
@@ -164,8 +161,8 @@ NS_IMETHODIMP PlaceholderTxn::Merge(nsITransaction *aTransaction, bool *aDidMerg
   { // merge typing or IME or deletion transactions if the selection matches
     if (((mName.get() == nsGkAtoms::TypingTxnName) ||
          (mName.get() == nsGkAtoms::IMETxnName)    ||
-         (mName.get() == nsGkAtoms::DeleteTxnName)) 
-         && !mCommitted ) 
+         (mName.get() == nsGkAtoms::DeleteTxnName))
+         && !mCommitted )
     {
       nsCOMPtr<nsIAbsorbingTransaction> plcTxn = do_QueryObject(editTxn);
       if (plcTxn) {
@@ -232,19 +229,19 @@ NS_IMETHODIMP PlaceholderTxn::StartSelectionEquals(nsSelectionState *aSelState, 
 NS_IMETHODIMP PlaceholderTxn::EndPlaceHolderBatch()
 {
   mAbsorb = false;
-  
-  if (mForwarding) 
+
+  if (mForwarding)
   {
     nsCOMPtr<nsIAbsorbingTransaction> plcTxn = do_QueryReferent(mForwarding);
     if (plcTxn) plcTxn->EndPlaceHolderBatch();
   }
-  
+
   // remember our selection state.
   return RememberEndingSelection();
 }
 
 NS_IMETHODIMP PlaceholderTxn::ForwardEndBatchTo(nsIAbsorbingTransaction *aForwardingAddress)
-{   
+{
   mForwarding = do_GetWeakReference(aForwardingAddress);
   return NS_OK;
 }
@@ -255,9 +252,9 @@ NS_IMETHODIMP PlaceholderTxn::Commit()
   return NS_OK;
 }
 
-NS_IMETHODIMP PlaceholderTxn::RememberEndingSelection()
+nsresult PlaceholderTxn::RememberEndingSelection()
 {
-  nsRefPtr<Selection> selection = mEditor->GetSelection();
+  RefPtr<Selection> selection = mEditor->GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
   mEndSel.SaveSelection(selection);
   return NS_OK;

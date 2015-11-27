@@ -8,6 +8,7 @@
 
 #include "gfxTypes.h"
 #include "nsString.h"
+#include "gfxFontConstants.h"
 #include "gfxFontFeatures.h"
 #include "gfxFontUtils.h"
 #include "nsTArray.h"
@@ -19,6 +20,7 @@
 #include "nsDataHashtable.h"
 #include "harfbuzz/hb.h"
 #include "mozilla/gfx/2D.h"
+#include "mozilla/UniquePtr.h"
 
 typedef struct gr_face gr_face;
 
@@ -60,6 +62,11 @@ public:
     }
 
     gfxCharacterMap() :
+        mHash(0), mBuildOnTheFly(false), mShared(false)
+    { }
+
+    explicit gfxCharacterMap(const gfxSparseBitSet& aOther) :
+        gfxSparseBitSet(aOther),
         mHash(0), mBuildOnTheFly(false), mShared(false)
     { }
 
@@ -116,7 +123,9 @@ public:
     bool IsUserFont() const { return mIsDataUserFont || mIsLocalUserFont; }
     bool IsLocalUserFont() const { return mIsLocalUserFont; }
     bool IsFixedPitch() const { return mFixedPitch; }
-    bool IsItalic() const { return mItalic; }
+    bool IsItalic() const { return mStyle == NS_FONT_STYLE_ITALIC; }
+    bool IsOblique() const { return mStyle == NS_FONT_STYLE_OBLIQUE; }
+    bool IsUpright() const { return mStyle == NS_FONT_STYLE_NORMAL; }
     bool IsBold() const { return mWeight >= 600; } // bold == weights 600 and above
     bool IgnoreGDEF() const { return mIgnoreGDEF; }
     bool IgnoreGSUB() const { return mIgnoreGSUB; }
@@ -158,7 +167,6 @@ public:
     }
 
     virtual bool SkipDuringSystemFallback() { return false; }
-    virtual bool TestCharacterMap(uint32_t aCh);
     nsresult InitializeUVSMap();
     uint16_t GetUVSGlyph(uint32_t aCh, uint32_t aVS);
 
@@ -302,12 +310,14 @@ public:
     private:
         hb_blob_t* mBlob;
         // not implemented:
-        AutoTable(const AutoTable&) MOZ_DELETE;
-        AutoTable& operator=(const AutoTable&) MOZ_DELETE;
+        AutoTable(const AutoTable&) = delete;
+        AutoTable& operator=(const AutoTable&) = delete;
     };
 
-    already_AddRefed<gfxFont> FindOrMakeFont(const gfxFontStyle *aStyle,
-                                             bool aNeedsBold);
+    already_AddRefed<gfxFont>
+    FindOrMakeFont(const gfxFontStyle *aStyle,
+                   bool aNeedsBold,
+                   gfxCharacterMap* aUnicodeRangeMap = nullptr);
 
     // Get an existing font table cache entry in aBlob if it has been
     // registered, or return false if not.  Callers must call
@@ -352,6 +362,10 @@ public:
     gr_face* GetGrFace();
     virtual void ReleaseGrFace(gr_face* aFace);
 
+    // Does the font have graphite contextuals that involve the space glyph
+    // (and therefore we should bypass the word cache)?
+    bool HasGraphiteSpaceContextuals();
+
     // Release any SVG-glyphs document this font may have loaded.
     void DisconnectSVG();
 
@@ -378,7 +392,7 @@ public:
     nsString         mName;
     nsString         mFamilyName;
 
-    bool             mItalic      : 1;
+    uint8_t          mStyle       : 2; // italic/oblique
     bool             mFixedPitch  : 1;
     bool             mIsValid     : 1;
     bool             mIsBadUnderlineFont : 1;
@@ -396,6 +410,10 @@ public:
     bool             mHasSpaceFeaturesKerning : 1;
     bool             mHasSpaceFeaturesNonKerning : 1;
     bool             mSkipDefaultFeatureSpaceCheck : 1;
+    bool             mGraphiteSpaceContextualsInitialized : 1;
+    bool             mHasGraphiteSpaceContextuals : 1;
+    bool             mSpaceGlyphIsInvisible : 1;
+    bool             mSpaceGlyphIsInvisibleInitialized : 1;
     bool             mHasGraphiteTables : 1;
     bool             mCheckedForGraphiteTables : 1;
     bool             mHasCmapTable : 1;
@@ -410,9 +428,9 @@ public:
     uint16_t         mWeight;
     int16_t          mStretch;
 
-    nsRefPtr<gfxCharacterMap> mCharacterMap;
+    RefPtr<gfxCharacterMap> mCharacterMap;
     uint32_t         mUVSOffset;
-    nsAutoArrayPtr<uint8_t> mUVSData;
+    mozilla::UniquePtr<uint8_t[]> mUVSData;
     nsAutoPtr<gfxUserFontData> mUserFontData;
     nsAutoPtr<gfxSVGGlyphs> mSVGGlyphs;
     // list of gfxFonts that are using SVG glyphs
@@ -467,6 +485,9 @@ protected:
     GetCMAPFromFontInfo(FontInfoData *aFontInfoData,
                         uint32_t& aUVSOffset,
                         bool& aSymbolFont);
+
+    // helper for HasCharacter(), which is what client code should call
+    virtual bool TestCharacterMap(uint32_t aCh);
 
     // Font's unitsPerEm from the 'head' table, if available (will be set to
     // kInvalidUPEM for non-sfnt font formats)
@@ -624,8 +645,8 @@ struct GlobalFontMatch {
     int32_t                mRunScript;   // Unicode script for the codepoint
     const gfxFontStyle*    mStyle;       // style to match
     int32_t                mMatchRank;   // metric indicating closest match
-    nsRefPtr<gfxFontEntry> mBestMatch;   // current best match
-    nsRefPtr<gfxFontFamily> mMatchedFamily; // the family it belongs to
+    RefPtr<gfxFontEntry> mBestMatch;   // current best match
+    RefPtr<gfxFontFamily> mMatchedFamily; // the family it belongs to
     uint32_t               mCount;       // number of fonts matched
     uint32_t               mCmapsTested; // number of cmaps tested
 };
@@ -643,7 +664,8 @@ public:
         mIsSimpleFamily(false),
         mIsBadUnderlineFamily(false),
         mFamilyCharacterMapInitialized(false),
-        mSkipDefaultFeatureSpaceCheck(false)
+        mSkipDefaultFeatureSpaceCheck(false),
+        mCheckForFallbackFaces(false)
         { }
 
     const nsString& Name() { return mName; }
@@ -651,9 +673,9 @@ public:
     virtual void LocalizedName(nsAString& aLocalizedName);
     virtual bool HasOtherFamilyNames();
     
-    nsTArray<nsRefPtr<gfxFontEntry> >& GetFontList() { return mAvailableFonts; }
+    nsTArray<RefPtr<gfxFontEntry> >& GetFontList() { return mAvailableFonts; }
     
-    void AddFontEntry(nsRefPtr<gfxFontEntry> aFontEntry) {
+    void AddFontEntry(RefPtr<gfxFontEntry> aFontEntry) {
         // bug 589682 - set the IgnoreGDEF flag on entries for Italic faces
         // of Times New Roman, because of buggy table in those fonts
         if (aFontEntry->IsItalic() && !aFontEntry->IsUserFont() &&
@@ -681,6 +703,11 @@ public:
     // needed, false otherwise
     gfxFontEntry *FindFontForStyle(const gfxFontStyle& aFontStyle, 
                                    bool& aNeedsSyntheticBold);
+
+    void
+    FindAllFontsForStyle(const gfxFontStyle& aFontStyle,
+                         nsTArray<gfxFontEntry*>& aFontEntryList,
+                         bool& aNeedsSyntheticBold);
 
     // checks for a matching font within the family
     // used as part of the font fallback process
@@ -742,6 +769,7 @@ public:
     }
 
     bool IsBadUnderlineFamily() const { return mIsBadUnderlineFamily; }
+    bool CheckForFallbackFaces() const { return mCheckForFallbackFaces; }
 
     // sort available fonts to put preferred (standard) faces towards the end
     void SortAvailableFonts();
@@ -772,11 +800,6 @@ protected:
     {
     }
 
-    // fills in an array with weights of faces that match style,
-    // returns whether any matching entries found
-    virtual bool FindWeightsForStyle(gfxFontEntry* aFontsForWeights[],
-                                       bool anItalic, int16_t aStretch);
-
     bool ReadOtherFamilyNamesForFace(gfxPlatformFontList *aPlatformFontList,
                                      hb_blob_t           *aNameTable,
                                      bool                 useFullName = false);
@@ -792,7 +815,7 @@ protected:
     }
 
     nsString mName;
-    nsTArray<nsRefPtr<gfxFontEntry> >  mAvailableFonts;
+    nsTArray<RefPtr<gfxFontEntry> >  mAvailableFonts;
     gfxSparseBitSet mFamilyCharacterMap;
     bool mOtherFamilyNamesInitialized : 1;
     bool mHasOtherFamilyNames : 1;
@@ -802,6 +825,7 @@ protected:
     bool mIsBadUnderlineFamily : 1;
     bool mFamilyCharacterMapInitialized : 1;
     bool mSkipDefaultFeatureSpaceCheck : 1;
+    bool mCheckForFallbackFaces : 1;  // check other faces for character
 
     enum {
         // for "simple" families, the faces are stored in mAvailableFonts

@@ -15,7 +15,6 @@
 
 #include "nsContentList.h"
 #include "mozilla/dom/HTMLInputElement.h"
-#include "nsIAccessibleRelation.h"
 #include "nsIDOMNSEditableElement.h"
 #include "nsIDOMHTMLTextAreaElement.h"
 #include "nsIEditor.h"
@@ -90,7 +89,7 @@ HTMLCheckboxAccessible::NativeState()
 
   if (input->Checked())
     return state | states::CHECKED;
-           
+ 
   return state;
 }
 
@@ -135,7 +134,7 @@ HTMLRadioButtonAccessible::GetPositionAndSizeInternal(int32_t* aPosInSet,
   nsAutoString name;
   mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::name, name);
 
-  nsRefPtr<nsContentList> inputElms;
+  RefPtr<nsContentList> inputElms;
 
   nsCOMPtr<nsIFormControl> formControlNode(do_QueryInterface(mContent));
   dom::Element* formElm = formControlNode->GetFormElement();
@@ -251,7 +250,7 @@ HTMLButtonAccessible::NativeName(nsString& aName)
   // type="submit"/"reset"/"image" elements.
 
   ENameValueFlag nameFlag = Accessible::NativeName(aName);
-  if (!aName.IsEmpty() || mContent->Tag() != nsGkAtoms::input ||
+  if (!aName.IsEmpty() || !mContent->IsHTMLElement(nsGkAtoms::input) ||
       !mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
                              nsGkAtoms::image, eCaseMatters))
     return nameFlag;
@@ -284,10 +283,8 @@ HTMLTextFieldAccessible::
   mType = eHTMLTextFieldType;
 }
 
-NS_IMPL_ISUPPORTS_INHERITED(HTMLTextFieldAccessible,
-                            Accessible,
-                            nsIAccessibleText,
-                            nsIAccessibleEditableText)
+NS_IMPL_ISUPPORTS_INHERITED0(HTMLTextFieldAccessible,
+                             HyperTextAccessible)
 
 role
 HTMLTextFieldAccessible::NativeRole()
@@ -309,8 +306,13 @@ HTMLTextFieldAccessible::NativeAttributes()
   // Expose type for text input elements as it gives some useful context,
   // especially for mobile.
   nsAutoString type;
-  if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::type, type))
+  if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::type, type)) {
     nsAccUtils::SetAccAttr(attributes, nsGkAtoms::textInputType, type);
+    if (!mRoleMapEntry && type.EqualsLiteral("search")) {
+      nsAccUtils::SetAccAttr(attributes, nsGkAtoms::xmlroles,
+                             NS_LITERAL_STRING("searchbox"));
+    }
+  }
 
   return attributes.forget();
 }
@@ -484,7 +486,10 @@ HTMLTextFieldAccessible::IsWidget() const
 Accessible*
 HTMLTextFieldAccessible::ContainerWidget() const
 {
-  return mParent && mParent->Role() == roles::AUTOCOMPLETE ? mParent : nullptr;
+  if (!mParent || mParent->Role() != roles::AUTOCOMPLETE) {
+    return nullptr;
+  }
+  return mParent;
 }
 
 
@@ -524,7 +529,7 @@ HTMLFileInputAccessible::HandleAccEvent(AccEvent* aEvent)
        event->GetState() == states::INVALID)) {
     Accessible* button = GetChildAt(0);
     if (button && button->Role() == roles::PUSHBUTTON) {
-      nsRefPtr<AccStateChangeEvent> childEvent =
+      RefPtr<AccStateChangeEvent> childEvent =
         new AccStateChangeEvent(button, event->GetState(),
                                 event->IsStateEnabled(), event->FromUserInput());
       nsEventShell::FireEvent(childEvent);
@@ -760,12 +765,6 @@ HTMLLegendAccessible::RelationByType(RelationType aType)
   return rel;
 }
 
-role
-HTMLLegendAccessible::NativeRole()
-{
-  return roles::LABEL;
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 // HTMLFigureAccessible
 ////////////////////////////////////////////////////////////////////////////////
@@ -774,24 +773,6 @@ HTMLFigureAccessible::
   HTMLFigureAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   HyperTextAccessibleWrap(aContent, aDoc)
 {
-}
-
-already_AddRefed<nsIPersistentProperties>
-HTMLFigureAccessible::NativeAttributes()
-{
-  nsCOMPtr<nsIPersistentProperties> attributes =
-    HyperTextAccessibleWrap::NativeAttributes();
-
-  // Expose figure xml-role.
-  nsAccUtils::SetAccAttr(attributes, nsGkAtoms::xmlroles,
-                         NS_LITERAL_STRING("figure"));
-  return attributes.forget();
-}
-
-role
-HTMLFigureAccessible::NativeRole()
-{
-  return roles::FIGURE;
 }
 
 ENameValueFlag
@@ -840,12 +821,6 @@ HTMLFigcaptionAccessible::
   HTMLFigcaptionAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   HyperTextAccessibleWrap(aContent, aDoc)
 {
-}
-
-role
-HTMLFigcaptionAccessible::NativeRole()
-{
-  return roles::CAPTION;
 }
 
 Relation

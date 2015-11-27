@@ -8,9 +8,12 @@ import os
 import subprocess
 import traceback
 
-from mozlog.structured import get_default_logger
+from mozlog import get_default_logger
 from mozprocess import ProcessHandler
-import mozcrash
+try:
+    import mozcrash
+except ImportError:
+    mozcrash = None
 
 from ..application import DefaultContext
 from ..errors import RunnerNotStartedError
@@ -27,11 +30,13 @@ class BaseRunner(object):
     output_timeout = None
 
     def __init__(self, app_ctx=None, profile=None, clean_profile=True, env=None,
-                 process_class=None, process_args=None, symbols_path=None):
+                 process_class=None, process_args=None, symbols_path=None,
+                 dump_save_path=None, addons=None):
         self.app_ctx = app_ctx or DefaultContext()
 
         if isinstance(profile, basestring):
-            self.profile = self.app_ctx.profile_class(profile=profile)
+            self.profile = self.app_ctx.profile_class(profile=profile,
+                                                      addons=addons)
         else:
             self.profile = profile or self.app_ctx.profile_class(**getattr(self.app_ctx, 'profile_args', {}))
 
@@ -45,8 +50,9 @@ class BaseRunner(object):
         self.process_class = process_class or ProcessHandler
         self.process_args = process_args or {}
         self.symbols_path = symbols_path
+        self.dump_save_path = dump_save_path
 
-        self.crashed = False
+        self.crashed = 0
 
     def __del__(self):
         self.cleanup()
@@ -100,6 +106,7 @@ class BaseRunner(object):
             self.process_handler = self.process_class(cmd, env=self.env, **self.process_args)
             self.process_handler.run(self.timeout, self.output_timeout)
 
+        self.crashed = 0
         return self.process_handler.pid
 
     def wait(self, timeout=None):
@@ -180,24 +187,35 @@ class BaseRunner(object):
         if not dump_directory:
             dump_directory = os.path.join(self.profile.profile, 'minidumps')
 
-        self.crashed = False
+        if not dump_save_path:
+            dump_save_path = self.dump_save_path
+
         try:
             logger = get_default_logger()
             if logger is not None:
                 if test_name is None:
                     test_name = "runner.py"
-                self.crashed = mozcrash.log_crashes(logger,
-                                                    dump_directory,
-                                                    self.symbols_path,
-                                                    dump_save_path=dump_save_path,
-                                                    test=test_name)
+                if mozcrash:
+                    self.crashed += mozcrash.log_crashes(
+                        logger,
+                        dump_directory,
+                        self.symbols_path,
+                        dump_save_path=dump_save_path,
+                        test=test_name)
+                else:
+                    logger.warning("Can not log crashes without mozcrash")
             else:
-                self.crashed = mozcrash.check_for_crashes(
-                    dump_directory,
-                    self.symbols_path,
-                    dump_save_path=dump_save_path,
-                    test_name=test_name,
-                    quiet=quiet)
+                if mozcrash:
+                    crashed = mozcrash.check_for_crashes(
+                        dump_directory,
+                        self.symbols_path,
+                        dump_save_path=dump_save_path,
+                        test_name=test_name,
+                        quiet=quiet)
+                    if crashed:
+                        self.crashed += 1
+                else:
+                    logger.warning("Can not log crashes without mozcrash")
         except:
             traceback.print_exc()
 

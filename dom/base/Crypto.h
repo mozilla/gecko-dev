@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -6,7 +8,7 @@
 
 #include "nsIDOMCrypto.h"
 #include "mozilla/dom/SubtleCrypto.h"
-#include "nsPIDOMWindow.h"
+#include "nsIGlobalObject.h"
 
 #include "nsWrapperCache.h"
 #include "mozilla/dom/TypedArray.h"
@@ -35,29 +37,29 @@ public:
 
   void
   GetRandomValues(JSContext* aCx, const ArrayBufferView& aArray,
-		  JS::MutableHandle<JSObject*> aRetval,
-		  ErrorResult& aRv);
+                  JS::MutableHandle<JSObject*> aRetval,
+                  ErrorResult& aRv);
 
   SubtleCrypto*
   Subtle();
 
   // WebIDL
 
-  nsPIDOMWindow*
+  nsIGlobalObject*
   GetParentObject() const
   {
-    return mWindow;
+    return mParent;
   }
 
   virtual JSObject*
-  WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   static uint8_t*
   GetRandomValues(uint32_t aLength);
 
 private:
-  nsCOMPtr<nsPIDOMWindow> mWindow;
-  nsRefPtr<SubtleCrypto> mSubtle;
+  nsCOMPtr<nsIGlobalObject> mParent;
+  RefPtr<SubtleCrypto> mSubtle;
 };
 
 } // namespace dom

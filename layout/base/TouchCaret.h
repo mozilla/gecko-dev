@@ -15,18 +15,25 @@
 #include "mozilla/TouchEvents.h"
 #include "Units.h"
 
+class nsCanvasFrame;
 class nsIFrame;
 class nsIPresShell;
 
 namespace mozilla {
 
 /**
+ * NOTE: TouchCaret was obsoleted by AccessibleCaret, and is no longer used on
+ * B2G. This file is going to be removed in bug 1221459. Please see the wiki
+ * page for more information. https://wiki.mozilla.org/Copy_n_Paste
+ *
  * The TouchCaret places a touch caret according to caret position when the
  * caret is shown.
  * TouchCaret is also responsible for touch caret visibility. Touch caret
  * won't be shown when timer expires or while key event causes selection change.
  */
-class TouchCaret MOZ_FINAL : public nsISelectionListener
+class TouchCaret final : public nsISelectionListener,
+                         public nsIScrollObserver,
+                         public nsSupportsWeakReference
 {
 public:
   explicit TouchCaret(nsIPresShell* aPresShell);
@@ -34,10 +41,15 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSISELECTIONLISTENER
 
-  void Terminate()
-  {
-    mPresShell = nullptr;
-  }
+  void Init();
+  void Terminate();
+
+  // nsIScrollObserver
+  virtual void ScrollPositionChanged() override;
+
+  // AsyncPanZoom started/stopped callbacks from nsIScrollObserver
+  virtual void AsyncPanZoomStarted() override;
+  virtual void AsyncPanZoomStopped() override;
 
   /**
    * Handle mouse and touch event only.
@@ -59,9 +71,14 @@ public:
     return mVisible;
   }
 
+  /**
+   * Open or close the Android TextSelection ActionBar based on visibility.
+   */
+  static void UpdateAndroidActionBarVisibility(bool aVisibility, uint32_t& aViewID);
+
 private:
   // Hide default constructor.
-  TouchCaret() MOZ_DELETE;
+  TouchCaret() = delete;
 
   ~TouchCaret();
 
@@ -77,9 +94,19 @@ private:
   void SetVisibility(bool aVisible);
 
   /**
+   * Helper function to get caret's focus frame and caret's bounding rect.
+   */
+  nsIFrame* GetCaretFocusFrame(nsRect* aOutRect = nullptr);
+
+  /**
    * Find the nsCanvasFrame which holds the touch caret.
    */
-  nsIFrame* GetCanvasFrame();
+  nsCanvasFrame* GetCanvasFrame();
+
+  /**
+   * Find the root frame to update the touch caret's position.
+   */
+  nsIFrame* GetRootFrame();
 
   /**
    * Retrieve the bounding rectangle of the touch caret.
@@ -106,10 +133,22 @@ private:
   nscoord GetCaretYCenterPosition();
 
   /**
+   * Retrieve the rect of the touch caret.
+   * The returned rect is relative to the canvas frame.
+   */
+  nsRect GetTouchCaretRect();
+
+  /**
+   * Clamp the position of the touch caret to the scroll frame boundary.
+   * The returned rect is relative to the canvas frame.
+   */
+  nsRect ClampRectToScrollFrame(const nsRect& aRect);
+
+  /**
    * Set the position of the touch caret.
    * Touch caret is an absolute positioned div.
    */
-  void SetTouchFramePos(const nsPoint& aOrigin);
+  void SetTouchFramePos(const nsRect& aRect);
 
   void LaunchExpirationTimer();
   void CancelExpirationTimer();
@@ -205,6 +244,11 @@ private:
   void SetState(TouchCaretState aState);
 
   /**
+   * Dispatch touch caret tap event to chrome.
+   */
+  void DispatchTapEvent();
+
+  /**
    * Current state we're dealing with.
    */
   TouchCaretState mState;
@@ -240,20 +284,44 @@ private:
     return sTouchCaretExpirationTime;
   }
 
+  void LaunchScrollEndDetector();
+  void CancelScrollEndDetector();
+  static void FireScrollEnd(nsITimer* aTimer, void* aSelectionCarets);
+
+  // This timer is used for detecting scroll end. We don't have
+  // scroll end event now, so we will fire this event with a
+  // const time when we scroll. So when timer triggers, we treat it
+  // as scroll end event.
+  nsCOMPtr<nsITimer> mScrollEndDetectorTimer;
+
   nsWeakPtr mPresShell;
+  WeakPtr<nsDocShell> mDocShell;
+
+  // True if AsyncPanZoom is started
+  bool mInAsyncPanZoomGesture;
 
   // Touch caret visibility
   bool mVisible;
+  // Use for detecting single tap on touch caret.
+  bool mIsValidTap;
   // Touch caret timer
   nsCOMPtr<nsITimer> mTouchCaretExpirationTimer;
 
   // Preference
   static int32_t sTouchCaretInflateSize;
   static int32_t sTouchCaretExpirationTime;
+  static bool sCaretManagesAndroidActionbar;
+  static bool sTouchcaretExtendedvisibility;
 
   // The auto scroll timer's interval in miliseconds.
   friend class SelectionCarets;
   static const int32_t sAutoScrollTimerDelay = 30;
+  // Time for trigger scroll end event, in miliseconds.
+  static const int32_t sScrollEndTimerDelay = 300;
+
+  // Unique ID of current Mobile ActionBar view.
+  static uint32_t sActionBarViewCount;
+  uint32_t mActionBarViewID;
 };
 } //namespace mozilla
 #endif //mozilla_TouchCaret_h__

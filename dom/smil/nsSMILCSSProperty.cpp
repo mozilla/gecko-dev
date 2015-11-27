@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -6,11 +7,13 @@
 /* representation of a SMIL-animatable CSS property on an element */
 
 #include "nsSMILCSSProperty.h"
+
+#include "mozilla/dom/Element.h"
+#include "mozilla/Move.h"
 #include "nsSMILCSSValueType.h"
 #include "nsSMILValue.h"
 #include "nsComputedDOMStyle.h"
 #include "nsCSSProps.h"
-#include "mozilla/dom/Element.h"
 #include "nsIDOMElement.h"
 #include "nsIDocument.h"
 
@@ -22,10 +25,10 @@ GetCSSComputedValue(Element* aElem,
                     nsCSSProperty aPropID,
                     nsAString& aResult)
 {
-  NS_ABORT_IF_FALSE(!nsCSSProps::IsShorthand(aPropID),
-                    "Can't look up computed value of shorthand property");
-  NS_ABORT_IF_FALSE(nsSMILCSSProperty::IsPropertyAnimatable(aPropID),
-                    "Shouldn't get here for non-animatable properties");
+  MOZ_ASSERT(!nsCSSProps::IsShorthand(aPropID),
+             "Can't look up computed value of shorthand property");
+  MOZ_ASSERT(nsSMILCSSProperty::IsPropertyAnimatable(aPropID),
+             "Shouldn't get here for non-animatable properties");
 
   nsIDocument* doc = aElem->GetCurrentDoc();
   if (!doc) {
@@ -41,7 +44,7 @@ GetCSSComputedValue(Element* aElem,
     return false;
   }
 
-  nsRefPtr<nsComputedDOMStyle> computedStyle =
+  RefPtr<nsComputedDOMStyle> computedStyle =
     NS_NewComputedDOMStyle(aElem, EmptyString(), shell);
 
   computedStyle->GetPropertyValue(aPropID, aResult);
@@ -53,9 +56,9 @@ nsSMILCSSProperty::nsSMILCSSProperty(nsCSSProperty aPropID,
                                      Element* aElement)
   : mPropID(aPropID), mElement(aElement)
 {
-  NS_ABORT_IF_FALSE(IsPropertyAnimatable(mPropID),
-                    "Creating a nsSMILCSSProperty for a property "
-                    "that's not supported for animation");
+  MOZ_ASSERT(IsPropertyAnimatable(mPropID),
+             "Creating a nsSMILCSSProperty for a property "
+             "that's not supported for animation");
 }
 
 nsSMILValue
@@ -80,7 +83,7 @@ nsSMILCSSProperty::GetBaseValue() const
     // In either case, just return a dummy value (initialized with the right
     // type, so as not to indicate failure).
     nsSMILValue tmpVal(&nsSMILCSSValueType::sSingleton);
-    baseValue.Swap(tmpVal);
+    Swap(baseValue, tmpVal);
     return baseValue;
   }
 

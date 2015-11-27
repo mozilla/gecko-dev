@@ -16,9 +16,7 @@ class nsIAtom;
 class nsIContent;
 class nsIFrame;
 class nsIPresShell;
-class nsRenderingContext;
 class nsStyleContext;
-class nsSVGIntegerPair;
 class nsSVGLength2;
 
 struct nsRect;
@@ -26,8 +24,8 @@ struct nsRect;
 namespace mozilla {
 namespace dom {
 class SVGFilterElement;
-}
-}
+} // namespace dom
+} // namespace mozilla
 
 typedef nsSVGContainerFrame nsSVGFilterFrameBase;
 
@@ -50,16 +48,16 @@ public:
   // nsIFrame methods:
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE {}
+                                const nsDisplayListSet& aLists) override {}
 
   virtual nsresult AttributeChanged(int32_t         aNameSpaceID,
                                     nsIAtom*        aAttribute,
-                                    int32_t         aModType) MOZ_OVERRIDE;
+                                    int32_t         aModType) override;
 
 #ifdef DEBUG
   virtual void Init(nsIContent*       aContent,
                     nsContainerFrame* aParent,
-                    nsIFrame*         aPrevInFlow) MOZ_OVERRIDE;
+                    nsIFrame*         aPrevInFlow) override;
 #endif
 
   /**
@@ -67,7 +65,7 @@ public:
    *
    * @see nsGkAtoms::svgFilterFrame
    */
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
 
 private:
   // Parse our xlink:href and set up our nsSVGPaintingProperty if we

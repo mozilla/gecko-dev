@@ -1,0 +1,31 @@
+$inherits:
+  from: 'tasks/builds/b2g_flame_kk_ota_base.yml'
+  variables:
+    build_name: 'flame-kk-ota'
+    build_type: 'debug'
+task:
+  metadata:
+    name: '[TC] B2G Flame KK OTA (userdebug)'
+  scopes:
+    - 'docker-worker:cache:build-flame-kk-ota-debug'
+    - 'docker-worker:cache:build-flame-kk-ota-debug-objdir-gecko-{{project}}'
+
+  payload:
+    cache:
+      build-flame-kk-ota-debug: /home/worker/workspace
+      build-flame-kk-ota-debug-objdir-gecko-{{project}}: /home/worker/objdir-gecko
+    env:
+      VARIANT: userdebug
+      B2G_DEBUG: 0
+      MOZHARNESS_CONFIG: b2g/taskcluster-phone-fota.py
+  extra:
+    treeherderEnv:
+      - staging
+    treeherder:
+      symbol: B
+      groupSymbol: Flame-KK-OTA
+      groupName:  Flame KitKat Device Image
+      machine:
+        platform: b2g-device-image
+      collection:
+        debug: true

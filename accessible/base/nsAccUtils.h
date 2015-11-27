@@ -50,6 +50,10 @@ public:
                          nsIAtom *aAttrName,
                          const nsAString& aAttrValue);
 
+  static void SetAccAttr(nsIPersistentProperties *aAttributes,
+                         nsIAtom* aAttrName,
+                         nsIAtom* aAttrValue);
+
   /**
    * Set group attributes ('level', 'setsize', 'posinset').
    */
@@ -129,6 +133,8 @@ public:
    * Return a text container accessible for the given node.
    */
   static HyperTextAccessible* GetTextContainer(nsINode* aNode);
+
+  static Accessible* TableFor(Accessible* aRow);
 
   /**
    * Return true if the DOM node of given accessible has aria-selected="true"

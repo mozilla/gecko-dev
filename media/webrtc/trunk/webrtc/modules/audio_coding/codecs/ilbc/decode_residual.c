@@ -16,6 +16,8 @@
 
 ******************************************************************/
 
+#include <string.h>
+
 #include "defines.h"
 #include "state_construct.h"
 #include "cb_construct.h"
@@ -31,7 +33,7 @@
  *---------------------------------------------------------------*/
 
 void WebRtcIlbcfix_DecodeResidual(
-    iLBC_Dec_Inst_t *iLBCdec_inst,
+    IlbcDecoder *iLBCdec_inst,
     /* (i/o) the decoder state structure */
     iLBC_bits *iLBC_encbits, /* (i/o) Encoded bits, which are used
                                 for the decoding  */
@@ -130,7 +132,7 @@ void WebRtcIlbcfix_DecodeResidual(
                                 );
 
       /* update memory */
-      WEBRTC_SPL_MEMMOVE_W16(mem, mem+SUBL, CB_MEML-SUBL);
+      memmove(mem, mem + SUBL, (CB_MEML - SUBL) * sizeof(*mem));
       WEBRTC_SPL_MEMCPY_W16(mem+CB_MEML-SUBL,
                             &decresidual[(iLBC_encbits->startIdx+1+subframe)*SUBL], SUBL);
 
@@ -169,7 +171,7 @@ void WebRtcIlbcfix_DecodeResidual(
                                 );
 
       /* update memory */
-      WEBRTC_SPL_MEMMOVE_W16(mem, mem+SUBL, CB_MEML-SUBL);
+      memmove(mem, mem + SUBL, (CB_MEML - SUBL) * sizeof(*mem));
       WEBRTC_SPL_MEMCPY_W16(mem+CB_MEML-SUBL,
                             &reverseDecresidual[subframe*SUBL], SUBL);
 

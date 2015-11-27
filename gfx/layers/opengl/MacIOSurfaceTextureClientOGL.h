@@ -16,38 +16,47 @@ namespace layers {
 class MacIOSurfaceTextureClientOGL : public TextureClient
 {
 public:
-  explicit MacIOSurfaceTextureClientOGL(TextureFlags aFlags);
+  explicit MacIOSurfaceTextureClientOGL(ISurfaceAllocator* aAllcator,
+                                        TextureFlags aFlags);
 
   virtual ~MacIOSurfaceTextureClientOGL();
 
-  void InitWith(MacIOSurface* aSurface);
+  // Creates a TextureClient and init width.
+  static already_AddRefed<MacIOSurfaceTextureClientOGL>
+  Create(ISurfaceAllocator* aAllocator,
+         TextureFlags aFlags,
+         MacIOSurface* aSurface);
 
-  virtual bool Lock(OpenMode aMode) MOZ_OVERRIDE;
+  virtual bool Lock(OpenMode aMode) override;
 
-  virtual void Unlock() MOZ_OVERRIDE;
+  virtual void Unlock() override;
 
-  virtual bool IsLocked() const MOZ_OVERRIDE;
+  virtual bool IsLocked() const override;
 
-  virtual bool IsAllocated() const MOZ_OVERRIDE { return !!mSurface; }
+  virtual bool IsAllocated() const override { return !!mSurface; }
 
-  virtual bool ToSurfaceDescriptor(SurfaceDescriptor& aOutDescriptor) MOZ_OVERRIDE;
+  virtual bool ToSurfaceDescriptor(SurfaceDescriptor& aOutDescriptor) override;
 
-  virtual gfx::IntSize GetSize() const;
+  virtual gfx::IntSize GetSize() const override;
 
-  virtual bool HasInternalBuffer() const MOZ_OVERRIDE { return false; }
+  virtual bool HasInternalBuffer() const override { return false; }
+
+  virtual already_AddRefed<gfx::DataSourceSurface> GetAsSurface() override;
 
   // This TextureClient should not be used in a context where we use CreateSimilar
   // (ex. component alpha) because the underlying texture data is always created by
   // an external producer.
-  virtual TemporaryRef<TextureClient>
-  CreateSimilar(TextureFlags, TextureAllocationFlags) const MOZ_OVERRIDE { return nullptr; }
+  virtual already_AddRefed<TextureClient>
+  CreateSimilar(TextureFlags, TextureAllocationFlags) const override { return nullptr; }
 
 protected:
+  virtual void FinalizeOnIPDLThread() override;
+
   RefPtr<MacIOSurface> mSurface;
   bool mIsLocked;
 };
 
-}
-}
+} // namespace layers
+} // namespace mozilla
 
 #endif // MOZILLA_GFX_MACIOSURFACETEXTURECLIENTOGL_H

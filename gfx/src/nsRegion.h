@@ -9,19 +9,22 @@
 #include <stddef.h>                     // for size_t
 #include <stdint.h>                     // for uint32_t, uint64_t
 #include <sys/types.h>                  // for int32_t
-#include "gfxCore.h"                    // for NS_GFX
 #include "mozilla/ToString.h"           // for mozilla::ToString
 #include "nsCoord.h"                    // for nscoord
 #include "nsError.h"                    // for nsresult
 #include "nsPoint.h"                    // for nsIntPoint, nsPoint
-#include "nsRect.h"                     // for nsIntRect, nsRect
+#include "nsRect.h"                     // for mozilla::gfx::IntRect, nsRect
 #include "nsMargin.h"                   // for nsIntMargin
+#include "nsRegionFwd.h"                // for nsIntRegion
 #include "nsStringGlue.h"               // for nsCString
 #include "xpcom-config.h"               // for CPP_THROW_NEW
-#include "mozilla/TypedEnum.h"          // for the VisitEdges typed enum
+#include "mozilla/Move.h"               // for mozilla::Move
 
-class nsIntRegion;
-class gfx3DMatrix;
+namespace mozilla {
+namespace gfx {
+class Matrix4x4;
+} // namespace gfx
+} // namespace mozilla
 
 #include "pixman.h"
 
@@ -39,12 +42,12 @@ class gfx3DMatrix;
  * projects including Qt, Gtk, Wine. It should perform reasonably well.
  */
 
-MOZ_BEGIN_ENUM_CLASS(VisitSide)
+enum class VisitSide {
 	TOP,
 	BOTTOM,
 	LEFT,
 	RIGHT
-MOZ_END_ENUM_CLASS(VisitSide)
+};
 
 class nsRegionRectIterator;
 
@@ -61,6 +64,13 @@ public:
                                                                           aRect.width,
                                                                           aRect.height); }
   nsRegion (const nsRegion& aRegion) { pixman_region32_init(&mImpl); pixman_region32_copy(&mImpl,aRegion.Impl()); }
+  nsRegion (nsRegion&& aRegion) { mImpl = aRegion.mImpl; pixman_region32_init(&aRegion.mImpl); }
+  nsRegion& operator = (nsRegion&& aRegion) {
+      pixman_region32_fini(&mImpl);
+      mImpl = aRegion.mImpl;
+      pixman_region32_init(&aRegion.mImpl);
+      return *this;
+  }
  ~nsRegion () { pixman_region32_fini(&mImpl); }
   nsRegion& operator = (const nsRect& aRect) { Copy (aRect); return *this; }
   nsRegion& operator = (const nsRegion& aRegion) { Copy (aRegion); return *this; }
@@ -121,13 +131,13 @@ public:
     return Copy(TmpRect);
   }
 
-  void OrWith(const nsRegion& aOther)
+  nsRegion& OrWith(const nsRegion& aOther)
   {
-    Or(*this, aOther);
+    return Or(*this, aOther);
   }
-  void OrWith(const nsRect& aOther)
+  nsRegion& OrWith(const nsRect& aOther)
   {
-    Or(*this, aOther);
+    return Or(*this, aOther);
   }
   nsRegion& Or(const nsRegion& aRgn1, const nsRegion& aRgn2)
   {
@@ -149,13 +159,13 @@ public:
     return Or (*this, aRect2);
   }
 
-  void XorWith(const nsRegion& aOther)
+  nsRegion& XorWith(const nsRegion& aOther)
   {
-    Xor(*this, aOther);
+    return Xor(*this, aOther);
   }
-  void XorWith(const nsRect& aOther)
+  nsRegion& XorWith(const nsRect& aOther)
   {
-    Xor(*this, aOther);
+    return Xor(*this, aOther);
   }
   nsRegion& Xor(const nsRegion& aRgn1,   const nsRegion& aRgn2)
   {
@@ -182,13 +192,13 @@ public:
 
   nsRegion ToAppUnits (nscoord aAppUnitsPerPixel) const;
 
-  void SubOut(const nsRegion& aOther)
+  nsRegion& SubOut(const nsRegion& aOther)
   {
-    Sub(*this, aOther);
+    return Sub(*this, aOther);
   }
-  void SubOut(const nsRect& aOther)
+  nsRegion& SubOut(const nsRect& aOther)
   {
-    Sub(*this, aOther);
+    return Sub(*this, aOther);
   }
   nsRegion& Sub(const nsRegion& aRgn1, const nsRegion& aRgn2)
   {
@@ -278,14 +288,21 @@ public:
   }
   const nsRect GetBounds () const { return BoxToRect(mImpl.extents); }
   uint64_t Area () const;
-  // Converts this region from aFromAPP, an appunits per pixel ratio, to
-  // aToAPP. This applies nsRect::ConvertAppUnitsRoundOut/In to each rect of
-  // the region.
-  nsRegion ConvertAppUnitsRoundOut (int32_t aFromAPP, int32_t aToAPP) const;
-  nsRegion ConvertAppUnitsRoundIn (int32_t aFromAPP, int32_t aToAPP) const;
+
+  /**
+   * Return this region scaled to a different appunits per pixel (APP) ratio.
+   * This applies nsRect::ScaleToOtherAppUnitsRoundOut/In to each rect of the region.
+   * @param aFromAPP the APP to scale from
+   * @param aToAPP the APP to scale to
+   * @note this can turn an empty region into a non-empty region
+   */
+  MOZ_WARN_UNUSED_RESULT nsRegion
+    ScaleToOtherAppUnitsRoundOut (int32_t aFromAPP, int32_t aToAPP) const;
+  MOZ_WARN_UNUSED_RESULT nsRegion
+    ScaleToOtherAppUnitsRoundIn (int32_t aFromAPP, int32_t aToAPP) const;
   nsRegion& ScaleRoundOut(float aXScale, float aYScale);
   nsRegion& ScaleInverseRoundOut(float aXScale, float aYScale);
-  nsRegion& Transform (const gfx3DMatrix &aTransform);
+  nsRegion& Transform (const mozilla::gfx::Matrix4x4 &aTransform);
   nsIntRegion ScaleToOutsidePixels (float aXScale, float aYScale, nscoord aAppUnitsPerPixel) const;
   nsIntRegion ScaleToInsidePixels (float aXScale, float aYScale, nscoord aAppUnitsPerPixel) const;
   nsIntRegion ScaleToNearestPixels (float aXScale, float aYScale, nscoord aAppUnitsPerPixel) const;
@@ -380,7 +397,7 @@ private:
     return box;
   }
 
-  static inline pixman_box32_t RectToBox(const nsIntRect &aRect)
+  static inline pixman_box32_t RectToBox(const mozilla::gfx::IntRect &aRect)
   {
     pixman_box32_t box = { aRect.x, aRect.y, aRect.XMost(), aRect.YMost() };
     return box;
@@ -402,7 +419,7 @@ private:
 };
 
 
-class NS_GFX nsRegionRectIterator
+class nsRegionRectIterator
 {
   const nsRegion*  mRegion;
   int i;
@@ -449,152 +466,166 @@ public:
   }
 };
 
+namespace mozilla {
+namespace gfx {
+
 /**
- * nsIntRegions use int32_t coordinates and nsIntRects.
+ * BaseIntRegions use int32_t coordinates.
  */
-class NS_GFX nsIntRegion
+template <typename Derived, typename Rect, typename Point, typename Margin>
+class BaseIntRegion
 {
-  friend class nsIntRegionRectIterator;
-  friend class nsRegion;
+  friend class ::nsRegion;
+
+  // Give access to all specializations of IntRegionTyped, not just ones that
+  // derive from this specialization of BaseIntRegion.
+  template <typename units>
+  friend class IntRegionTyped;
 
 public:
-  nsIntRegion () {}
-  MOZ_IMPLICIT nsIntRegion (const nsIntRect& aRect) : mImpl (ToRect(aRect)) {}
-  nsIntRegion (const nsIntRegion& aRegion) : mImpl (aRegion.mImpl) {}
-  nsIntRegion& operator = (const nsIntRect& aRect) { mImpl = ToRect (aRect); return *this; }
-  nsIntRegion& operator = (const nsIntRegion& aRegion) { mImpl = aRegion.mImpl; return *this; }
+  typedef Rect RectType;
+  typedef Point PointType;
+  typedef Margin MarginType;
 
-  bool operator==(const nsIntRegion& aRgn) const
+  BaseIntRegion () {}
+  MOZ_IMPLICIT BaseIntRegion (const Rect& aRect) : mImpl (ToRect(aRect)) {}
+  BaseIntRegion (const BaseIntRegion& aRegion) : mImpl (aRegion.mImpl) {}
+  BaseIntRegion (BaseIntRegion&& aRegion) : mImpl (mozilla::Move(aRegion.mImpl)) {}
+  Derived& operator = (const Rect& aRect) { mImpl = ToRect (aRect); return This(); }
+  Derived& operator = (const Derived& aRegion) { mImpl = aRegion.mImpl; return This(); }
+  Derived& operator = (Derived&& aRegion) { mImpl = mozilla::Move(aRegion.mImpl); return This(); }
+
+  bool operator==(const Derived& aRgn) const
   {
     return IsEqual(aRgn);
   }
-  bool operator!=(const nsIntRegion& aRgn) const
+  bool operator!=(const Derived& aRgn) const
   {
     return !(*this == aRgn);
   }
 
-  friend std::ostream& operator<<(std::ostream& stream, const nsIntRegion& m) {
+  friend std::ostream& operator<<(std::ostream& stream, const Derived& m) {
     return stream << m.mImpl;
   }
 
-  void Swap(nsIntRegion* aOther)
+  void Swap(Derived* aOther)
   {
     mImpl.Swap(&aOther->mImpl);
   }
 
-  void AndWith(const nsIntRegion& aOther)
+  void AndWith(const Derived& aOther)
   {
-    And(*this, aOther);
+    And(This(), aOther);
   }
-  void AndWith(const nsIntRect& aOther)
+  void AndWith(const Rect& aOther)
   {
-    And(*this, aOther);
+    And(This(), aOther);
   }
-  nsIntRegion& And  (const nsIntRegion& aRgn1,   const nsIntRegion& aRgn2)
+  Derived& And  (const Derived& aRgn1,   const Derived& aRgn2)
   {
     mImpl.And (aRgn1.mImpl, aRgn2.mImpl);
-    return *this;
+    return This();
   }
-  nsIntRegion& And  (const nsIntRegion& aRegion, const nsIntRect& aRect)
+  Derived& And  (const Derived& aRegion, const Rect& aRect)
   {
     mImpl.And (aRegion.mImpl, ToRect (aRect));
-    return *this;
+    return This();
   }
-  nsIntRegion& And  (const nsIntRect& aRect, const nsIntRegion& aRegion)
+  Derived& And  (const Rect& aRect, const Derived& aRegion)
   {
     return  And  (aRegion, aRect);
   }
-  nsIntRegion& And  (const nsIntRect& aRect1, const nsIntRect& aRect2)
+  Derived& And  (const Rect& aRect1, const Rect& aRect2)
   {
-    nsIntRect TmpRect;
+    Rect TmpRect;
 
     TmpRect.IntersectRect (aRect1, aRect2);
     mImpl = ToRect (TmpRect);
-    return *this;
+    return This();
   }
 
-  void OrWith(const nsIntRegion& aOther)
+  Derived& OrWith(const Derived& aOther)
   {
-    Or(*this, aOther);
+    return Or(This(), aOther);
   }
-  void OrWith(const nsIntRect& aOther)
+  Derived& OrWith(const Rect& aOther)
   {
-    Or(*this, aOther);
+    return Or(This(), aOther);
   }
-  nsIntRegion& Or   (const nsIntRegion& aRgn1,   const nsIntRegion& aRgn2)
+  Derived& Or   (const Derived& aRgn1,   const Derived& aRgn2)
   {
     mImpl.Or (aRgn1.mImpl, aRgn2.mImpl);
-    return *this;
+    return This();
   }
-  nsIntRegion& Or   (const nsIntRegion& aRegion, const nsIntRect& aRect)
+  Derived& Or   (const Derived& aRegion, const Rect& aRect)
   {
     mImpl.Or (aRegion.mImpl, ToRect (aRect));
-    return *this;
+    return This();
   }
-  nsIntRegion& Or   (const nsIntRect& aRect, const nsIntRegion& aRegion)
+  Derived& Or   (const Rect& aRect, const Derived& aRegion)
   {
     return  Or   (aRegion, aRect);
   }
-  nsIntRegion& Or   (const nsIntRect& aRect1, const nsIntRect& aRect2)
+  Derived& Or   (const Rect& aRect1, const Rect& aRect2)
   {
     mImpl = ToRect (aRect1);
-    return Or (*this, aRect2);
+    return Or (This(), aRect2);
   }
 
-  void XorWith(const nsIntRegion& aOther)
+  Derived& XorWith(const Derived& aOther)
   {
-    Xor(*this, aOther);
+    return Xor(This(), aOther);
   }
-  void XorWith(const nsIntRect& aOther)
+  Derived& XorWith(const Rect& aOther)
   {
-    Xor(*this, aOther);
+    return Xor(This(), aOther);
   }
-  nsIntRegion& Xor  (const nsIntRegion& aRgn1,   const nsIntRegion& aRgn2)
+  Derived& Xor  (const Derived& aRgn1,   const Derived& aRgn2)
   {
     mImpl.Xor (aRgn1.mImpl, aRgn2.mImpl);
-    return *this;
+    return This();
   }
-  nsIntRegion& Xor  (const nsIntRegion& aRegion, const nsIntRect& aRect)
+  Derived& Xor  (const Derived& aRegion, const Rect& aRect)
   {
     mImpl.Xor (aRegion.mImpl, ToRect (aRect));
-    return *this;
+    return This();
   }
-  nsIntRegion& Xor  (const nsIntRect& aRect, const nsIntRegion& aRegion)
+  Derived& Xor  (const Rect& aRect, const Derived& aRegion)
   {
     return  Xor  (aRegion, aRect);
   }
-  nsIntRegion& Xor  (const nsIntRect& aRect1, const nsIntRect& aRect2)
+  Derived& Xor  (const Rect& aRect1, const Rect& aRect2)
   {
     mImpl = ToRect (aRect1);
-    return Xor (*this, aRect2);
+    return Xor (This(), aRect2);
   }
 
-  void SubOut(const nsIntRegion& aOther)
+  Derived& SubOut(const Derived& aOther)
   {
-    Sub(*this, aOther);
+    return Sub(This(), aOther);
   }
-  void SubOut(const nsIntRect& aOther)
+  Derived& SubOut(const Rect& aOther)
   {
-    Sub(*this, aOther);
+    return Sub(This(), aOther);
   }
-  nsIntRegion& Sub  (const nsIntRegion& aRgn1,   const nsIntRegion& aRgn2)
+  Derived& Sub  (const Derived& aRgn1,   const Derived& aRgn2)
   {
     mImpl.Sub (aRgn1.mImpl, aRgn2.mImpl);
-    return *this;
+    return This();
   }
-  nsIntRegion& Sub  (const nsIntRegion& aRegion, const nsIntRect& aRect)
+  Derived& Sub  (const Derived& aRegion, const Rect& aRect)
   {
     mImpl.Sub (aRegion.mImpl, ToRect (aRect));
-    return *this;
+    return This();
   }
-  nsIntRegion& Sub  (const nsIntRect& aRect, const nsIntRegion& aRegion)
+  Derived& Sub  (const Rect& aRect, const Derived& aRegion)
   {
-    return Sub (nsIntRegion (aRect), aRegion);
+    return Sub (Derived (aRect), aRegion);
   }
-  nsIntRegion& Sub  (const nsIntRect& aRect1, const nsIntRect& aRect2)
+  Derived& Sub  (const Rect& aRect1, const Rect& aRect2)
   {
     mImpl = ToRect (aRect1);
-    return Sub (*this, aRect2);
+    return Sub (This(), aRect2);
   }
 
   /**
@@ -606,52 +637,52 @@ public:
   {
     return mImpl.Contains(aX, aY);
   }
-  bool Contains (const nsIntRect& aRect) const
+  bool Contains (const Rect& aRect) const
   {
     return mImpl.Contains (ToRect (aRect));
   }
-  bool Contains (const nsIntRegion& aRgn) const
+  bool Contains (const Derived& aRgn) const
   {
     return mImpl.Contains (aRgn.mImpl);
   }
-  bool Intersects (const nsIntRect& aRect) const
+  bool Intersects (const Rect& aRect) const
   {
     return mImpl.Intersects (ToRect (aRect));
   }
 
   void MoveBy (int32_t aXOffset, int32_t aYOffset)
   {
-    MoveBy (nsIntPoint (aXOffset, aYOffset));
+    MoveBy (Point (aXOffset, aYOffset));
   }
-  void MoveBy (nsIntPoint aPt)
+  void MoveBy (Point aPt)
   {
     mImpl.MoveBy (aPt.x, aPt.y);
   }
-  nsIntRegion MovedBy(int32_t aXOffset, int32_t aYOffset) const
+  Derived MovedBy(int32_t aXOffset, int32_t aYOffset) const
   {
-    return MovedBy(nsIntPoint(aXOffset, aYOffset));
+    return MovedBy(Point(aXOffset, aYOffset));
   }
-  nsIntRegion MovedBy(const nsIntPoint& aPt) const
+  Derived MovedBy(const Point& aPt) const
   {
-    nsIntRegion copy(*this);
+    Derived copy(This());
     copy.MoveBy(aPt);
     return copy;
   }
 
-  nsIntRegion Intersect(const nsIntRegion& aOther) const
+  Derived Intersect(const Derived& aOther) const
   {
-    nsIntRegion intersection;
-    intersection.And(*this, aOther);
+    Derived intersection;
+    intersection.And(This(), aOther);
     return intersection;
   }
 
-  void Inflate(const nsIntMargin& aMargin)
+  void Inflate(const Margin& aMargin)
   {
     mImpl.Inflate(nsMargin(aMargin.top, aMargin.right, aMargin.bottom, aMargin.left));
   }
-  nsIntRegion Inflated(const nsIntMargin& aMargin) const
+  Derived Inflated(const Margin& aMargin) const
   {
-    nsIntRegion copy(*this);
+    Derived copy(This());
     copy.Inflate(aMargin);
     return copy;
   }
@@ -663,29 +694,45 @@ public:
 
   bool IsEmpty () const { return mImpl.IsEmpty (); }
   bool IsComplex () const { return mImpl.IsComplex (); }
-  bool IsEqual (const nsIntRegion& aRegion) const
+  bool IsEqual (const Derived& aRegion) const
   {
     return mImpl.IsEqual (aRegion.mImpl);
   }
   uint32_t GetNumRects () const { return mImpl.GetNumRects (); }
-  nsIntRect GetBounds () const { return FromRect (mImpl.GetBounds ()); }
+  Rect GetBounds () const { return FromRect (mImpl.GetBounds ()); }
   uint64_t Area () const { return mImpl.Area(); }
-  nsRegion ToAppUnits (nscoord aAppUnitsPerPixel) const;
-  nsIntRect GetLargestRectangle (const nsIntRect& aContainingRect = nsIntRect()) const
+  nsRegion ToAppUnits (nscoord aAppUnitsPerPixel) const
+  {
+    nsRegion result;
+    RectIterator rgnIter(*this);
+    const Rect* currentRect;
+    while ((currentRect = rgnIter.Next())) {
+      nsRect appRect = ::ToAppUnits(*currentRect, aAppUnitsPerPixel);
+      result.Or(result, appRect);
+    }
+    return result;
+  }
+  Rect GetLargestRectangle (const Rect& aContainingRect = Rect()) const
   {
     return FromRect (mImpl.GetLargestRectangle( ToRect(aContainingRect) ));
   }
 
-  nsIntRegion& ScaleRoundOut (float aXScale, float aYScale)
+  Derived& ScaleRoundOut (float aXScale, float aYScale)
   {
     mImpl.ScaleRoundOut(aXScale, aYScale);
-    return *this;
+    return This();
   }
 
-  nsIntRegion& Transform (const gfx3DMatrix &aTransform)
+  Derived& ScaleInverseRoundOut (float aXScale, float aYScale)
+  {
+    mImpl.ScaleInverseRoundOut(aXScale, aYScale);
+    return This();
+  }
+
+  Derived& Transform (const mozilla::gfx::Matrix4x4 &aTransform)
   {
     mImpl.Transform(aTransform);
-    return *this;
+    return This();
   }
 
   /**
@@ -720,48 +767,111 @@ public:
 
   nsCString ToString() const { return mImpl.ToString(); }
 
+  class RectIterator
+  {
+    nsRegionRectIterator mImpl;
+    Rect mTmp;
+
+  public:
+    explicit RectIterator (const BaseIntRegion& aRegion) : mImpl (aRegion.mImpl) {}
+
+    const Rect* Next ()
+    {
+      const nsRect* r = mImpl.Next();
+      if (!r)
+        return nullptr;
+      mTmp = FromRect (*r);
+      return &mTmp;
+    }
+
+    const Rect* Prev ()
+    {
+      const nsRect* r = mImpl.Prev();
+      if (!r)
+        return nullptr;
+      mTmp = FromRect (*r);
+      return &mTmp;
+    }
+
+    void Reset ()
+    {
+      mImpl.Reset ();
+    }
+  };
+
+protected:
+  // Expose enough to derived classes from them to define conversions
+  // between different types of BaseIntRegions.
+  explicit BaseIntRegion(const nsRegion& aImpl) : mImpl(aImpl) {}
+  const nsRegion& Impl() const { return mImpl; }
 private:
   nsRegion mImpl;
 
-  static nsRect ToRect(const nsIntRect& aRect)
+  static nsRect ToRect(const Rect& aRect)
   {
     return nsRect (aRect.x, aRect.y, aRect.width, aRect.height);
   }
-  static nsIntRect FromRect(const nsRect& aRect)
+  static Rect FromRect(const nsRect& aRect)
   {
-    return nsIntRect (aRect.x, aRect.y, aRect.width, aRect.height);
+    return Rect (aRect.x, aRect.y, aRect.width, aRect.height);
+  }
+
+  Derived& This()
+  {
+    return *static_cast<Derived*>(this);
+  }
+  const Derived& This() const
+  {
+    return *static_cast<const Derived*>(this);
   }
 };
 
-class NS_GFX nsIntRegionRectIterator
+template <class units>
+class IntRegionTyped :
+    public BaseIntRegion<IntRegionTyped<units>, IntRectTyped<units>, IntPointTyped<units>, IntMarginTyped<units>>
 {
-  nsRegionRectIterator mImpl;
-  nsIntRect mTmp;
+  typedef BaseIntRegion<IntRegionTyped<units>, IntRectTyped<units>, IntPointTyped<units>, IntMarginTyped<units>> Super;
+
+  // Make other specializations of IntRegionTyped friends.
+  template <typename OtherUnits>
+  friend class IntRegionTyped;
 
 public:
-  explicit nsIntRegionRectIterator (const nsIntRegion& aRegion) : mImpl (aRegion.mImpl) {}
+  // Forward constructors.
+  IntRegionTyped() {}
+  MOZ_IMPLICIT IntRegionTyped(const IntRectTyped<units>& aRect) : Super(aRect) {}
+  IntRegionTyped(const IntRegionTyped& aRegion) : Super(aRegion) {}
+  IntRegionTyped(IntRegionTyped&& aRegion) : Super(mozilla::Move(aRegion)) {}
 
-  const nsIntRect* Next ()
+  // Assignment operators need to be forwarded as well, otherwise the compiler
+  // will declare deleted ones.
+  IntRegionTyped& operator=(const IntRegionTyped& aRegion)
   {
-    const nsRect* r = mImpl.Next();
-    if (!r)
-      return nullptr;
-    mTmp = nsIntRegion::FromRect (*r);
-    return &mTmp;
+    return Super::operator=(aRegion);
+  }
+  IntRegionTyped& operator=(IntRegionTyped&& aRegion)
+  {
+    return Super::operator=(mozilla::Move(aRegion));
   }
 
-  const nsIntRect* Prev ()
+  static IntRegionTyped FromUnknownRegion(const IntRegion& aRegion)
   {
-    const nsRect* r = mImpl.Prev();
-    if (!r)
-      return nullptr;
-    mTmp = nsIntRegion::FromRect (*r);
-    return &mTmp;
+    return IntRegionTyped(aRegion.Impl());
   }
-
-  void Reset ()
+  IntRegion ToUnknownRegion() const
   {
-    mImpl.Reset ();
+    // Need |this->| because Impl() is defined in a dependent base class.
+    return IntRegion(this->Impl());
   }
+private:
+  // This is deliberately private, so calling code uses FromUnknownRegion().
+  explicit IntRegionTyped(const nsRegion& aRegion) : Super(aRegion) {}
 };
+
+} // namespace gfx
+} // namespace mozilla
+
+typedef mozilla::gfx::IntRegion nsIntRegion;
+typedef nsIntRegion::RectIterator nsIntRegionRectIterator;
+
 #endif

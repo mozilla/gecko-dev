@@ -12,6 +12,7 @@
 #include "nsAutoPtr.h"
 #include "nsString.h"
 #include "nsError.h"
+#include "nsTArray.h"
 
 // http version codes
 #define NS_HTTP_VERSION_UNKNOWN  0
@@ -26,10 +27,10 @@ class Mutex;
 
 namespace net {
     enum {
-        SPDY_VERSION_2_REMOVED = 2,
-        SPDY_VERSION_3 = 3,
+        // SPDY_VERSION_2 = 2, REMOVED
+        // SPDY_VERSION_3 = 3, REMOVED
         SPDY_VERSION_31 = 4,
-        HTTP_VERSION_2 = 5,
+        HTTP_VERSION_2 = 5
 
         // leave room for official versions. telem goes to 48
         // 24 was a internal spdy/3.1
@@ -38,13 +39,11 @@ namespace net {
         // 27 was http/2-draft09, h2-10, and h2-11
         // 28 was http/2-draft12
         // 29 was http/2-draft13
-        HTTP2_VERSION_DRAFT14 = 30
+        // 30 was h2-14 and h2-15
+        // 31 was h2-16
     };
 
 typedef uint8_t nsHttpVersion;
-
-#define NS_HTTP2_DRAFT_VERSION HTTP2_VERSION_DRAFT14
-#define NS_HTTP2_DRAFT_TOKEN "h2-14"
 
 //-----------------------------------------------------------------------------
 // http connection capabilities
@@ -81,9 +80,8 @@ typedef uint8_t nsHttpVersion;
 // group is currently blocking on some resources
 #define NS_HTTP_LOAD_UNBLOCKED       (1<<8)
 
-// These flags allow a transaction to use TLS false start with
-// weaker security profiles based on past history
-#define NS_HTTP_ALLOW_RSA_FALSESTART (1<<9)
+// This flag indicates the transaction should accept associated pushes
+#define NS_HTTP_ONPUSH_LISTENER      (1<<9)
 
 //-----------------------------------------------------------------------------
 // some default values
@@ -169,6 +167,9 @@ struct nsHttp
     // Return whether the HTTP status code represents a permanent redirect
     static bool IsPermanentRedirect(uint32_t httpStatus);
 
+    // Returns the APLN token which represents the used protocol version.
+    static const char* GetProtocolVersion(uint32_t pv);
+
     // Declare all atoms
     //
     // The atom names and values are stored in nsHttpAtomList.h and are brought
@@ -203,7 +204,57 @@ void EnsureBuffer(nsAutoArrayPtr<char> &buf, uint32_t newSize,
 void EnsureBuffer(nsAutoArrayPtr<uint8_t> &buf, uint32_t newSize,
                   uint32_t preserve, uint32_t &objSize);
 
-} // namespace mozilla::net
+// h2=":443"; ma=60; single
+// results in 3 mValues = {{h2, :443}, {ma, 60}, {single}}
+
+class ParsedHeaderPair
+{
+public:
+    ParsedHeaderPair(const char *name, int32_t nameLen,
+                     const char *val, int32_t valLen)
+    {
+        if (nameLen > 0) {
+            mName.Rebind(name, name + nameLen);
+        }
+        if (valLen > 0) {
+            mValue.Rebind(val, val + valLen);
+        }
+    }
+
+    ParsedHeaderPair(ParsedHeaderPair const &copy)
+        : mName(copy.mName)
+        , mValue(copy.mValue)
+    {
+    }
+
+    nsDependentCSubstring mName;
+    nsDependentCSubstring mValue;
+};
+
+class ParsedHeaderValueList
+{
+public:
+    ParsedHeaderValueList(char *t, uint32_t len);
+    nsTArray<ParsedHeaderPair> mValues;
+
+private:
+    void ParsePair(char *t, uint32_t len);
+    void Tokenize(char *input, uint32_t inputLen, char **token,
+                  uint32_t *tokenLen, bool *foundEquals, char **next);
+};
+
+class ParsedHeaderValueListList
+{
+public:
+    explicit ParsedHeaderValueListList(const nsCString &txt);
+    nsTArray<ParsedHeaderValueList> mValues;
+
+private:
+    nsCString mFull;
+};
+
+
+} // namespace net
 } // namespace mozilla
 
 #endif // nsHttp_h__

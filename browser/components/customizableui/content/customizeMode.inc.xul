@@ -9,8 +9,8 @@
     </label>
     <hbox id="customization-empty" hidden="true">
       <label>&customizeMode.menuAndToolbars.empty;</label>
-      <label onclick="BrowserOpenAddonsMgr('addons://discovery/');"
-             onkeypress="BrowserOpenAddonsMgr('addons://discovery/');"
+      <label onclick="BrowserOpenAddonsMgr('addons://discover/');"
+             onkeypress="BrowserOpenAddonsMgr('addons://discover/');"
              id="customization-more-tools"
              class="text-link">
         &customizeMode.menuAndToolbars.emptyLink;
@@ -33,6 +33,8 @@
         <panel type="arrow" id="customization-lwtheme-menu"
                onpopupshowing="gCustomizeMode.onLWThemesMenuShowing(event);"
                onpopuphidden="gCustomizeMode.onLWThemesMenuHidden(event);"
+               position="topcenter bottomleft"
+               flip="none"
                role="menu">
           <label id="customization-lwtheme-menu-header" value="&customizeMode.lwthemes.myThemes;"/>
           <label id="customization-lwtheme-menu-recommended" value="&customizeMode.lwthemes.recommended;"/>
@@ -50,6 +52,7 @@
           </hbox>
         </panel>
       </button>
+
       <spacer id="customization-footer-spacer"/>
       <button id="customization-undo-reset-button"
               class="customizationmode-button"

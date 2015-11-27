@@ -25,6 +25,36 @@ its prototype:
     disentangling itself from the debuggee, regardless of what sort of
     events or handlers or "points" we add to the interface.
 
+`allowUnobservedAsmJS`
+:   A boolean value indicating whether asm.js code running inside this
+    `Debugger` instance's debuggee globals is invisible to Debugger API
+    handlers and breakpoints. Setting this to `false` inhibits the
+    ahead-of-time asm.js compiler and forces asm.js code to run as normal
+    JavaScript. This is an accessor property with a getter and setter. It is
+    initially `false` in a freshly created `Debugger` instance.
+
+    Setting this flag to `true` is intended for uses of subsystems of the
+    Debugger API (e.g, [`Debugger.Source`][source]) for purposes other than
+    step debugging a target JavaScript program.
+
+`collectCoverageInfo`
+:   A boolean value indicating whether code coverage should be enabled inside
+    each debuggee of this `Debugger` instance. Changing this flag value will
+    recompile all JIT code to add or remove code coverage
+    instrumentation. Changing this flag when any frame of the debuggee is
+    currently active on the stack will produce an exception.
+
+    Setting this to `true` enables code coverage instrumentation, which can be
+    accessed via the [`Debugger.Script`][script] `getOffsetsCoverage`
+    function. In some cases, the code coverage might expose information which
+    pre-date the modification of this flag. Code coverage reports are monotone,
+    thus one can take a snapshot when the Debugger is enabled, and output the
+    difference.
+
+    Setting this to `false` prevents this `Debugger` instance from requiring any
+    code coverage instrumentation, but it does not guarantee that the
+    instrumentation is not present.
+
 `uncaughtExceptionHook`
 :   Either `null` or a function that SpiderMonkey calls when a call to a
     debug event handler, breakpoint handler, watchpoint handler, or similar
@@ -81,11 +111,30 @@ compartment.
 
 <code>onNewScript(<i>script</i>, <i>global</i>)</code>
 :   New code, represented by the [`Debugger.Script`][script] instance
-    <i>script</i>, has been loaded in the scope of the debuggee global
-    object <i>global</i>. <i>global</i> is a [`Debugger.Object`][object]
-    instance whose referent is the global object.
+    <i>script</i>, has been loaded in the scope of the debuggees.
 
     This method's return value is ignored.
+
+<code>onNewPromise(<i>promise</i>)</code>
+:   A new Promise object, referenced by the [`Debugger.Object`][object] instance
+    *promise*, has been allocated in the scope of the debuggees.
+
+    This handler method should return a [resumption value][rv] specifying how
+    the debuggee's execution should proceed. However, note that a <code>{
+    return: <i>value</i> }</code> resumption value is treated like `undefined`
+    ("continue normally"); <i>value</i> is ignored.
+
+<code>onPromiseSettled(<i>promise</i>)</code>
+:   A Promise object, referenced by the [`Debugger.Object`][object] instance
+    *promise* that was allocated within a debuggee scope, has settled (either
+    fulfilled or rejected). The Promise's state and fulfillment or rejection
+    value can be obtained via the
+    [PromiseDebugging webidl interface][promise-debugging].
+
+    This handler method should return a [resumption value][rv] specifying how
+    the debuggee's execution should proceed. However, note that a <code>{
+    return: <i>value</i> }</code> resumption value is treated like `undefined`
+    ("continue normally"); <i>value</i> is ignored.
 
 <code>onDebuggerStatement(<i>frame</i>)</code>
 :   Debuggee code has executed a <i>debugger</i> statement in <i>frame</i>.
@@ -142,6 +191,9 @@ compartment.
     other possibility is for the `finally` block to exit due to a `return`,
     `continue`, or `break` statement, or a new exception. In those cases the
     old exception does not continue to propagate; it is discarded.)
+
+    This handler is not called when unwinding a frame due to an over-recursion
+    or out-of-memory exception.
 
 <code>sourceHandler(<i>ASuffusionOfYellow</i>)</code>
 :   This method is never called. If it is ever called, a contradiction has
@@ -201,6 +253,45 @@ compartment.
     within the JavaScript system (the "JSRuntime", in SpiderMonkey terms),
     thereby escaping the capability-based limits. For this reason,
     `onNewGlobalObject` is only available to privileged code.
+
+<code>onIonCompilation(<i>graph</i>)</code>
+:   A new IonMonkey compilation result is attached to a script instance of
+    the Debuggee, the <i>graph</i> contains the internal intermediate
+    representations of the compiler.
+
+    The value <i>graph</i> is an object composed of the following properties:
+
+    `json`
+    :   String containing a JSON of the intermediate representation used by
+        the compiler. This JSON string content is composed of 2 intermediate
+        representation of the graph, a `mir` (Middle-level IR), and a
+        `lir` (Low-level IR).
+
+        Both have a property `blocks`, which is an array of basic
+        blocks in [SSA form][ssa-form] which are used to construct the
+        control flow graph. All elements of these arrays are objects which
+        have a `number`, and an `instructions` properties.
+
+        The MIR blocks have additional properties such as the
+        `predecessors` and `successors` of each block, which can
+        be used to reconstruct the control flow graph, with the
+        `number` properties of the blocks.
+
+        The `instructions` properties are array of objects which have
+        an `id` and an `opcode`. The `id` corresponds to the
+        [SSA form][ssa-form] identifier (number) of each instruction, and the
+        `opcode` is a string which represents the instruction.
+
+        This JSON string contains even more detailed internal information
+        which remains undocummented, as it is potentially subject to
+        frequent modifications.
+
+    `scripts`
+    :   Array of [`Debugger.Script`][script] instances. For a block at
+        `mir.blocks[i]` or `lir.blocks[i]` in the JSON, `scripts[i]` is the
+        [`Debugger.Script`][script] containing that block's code.
+
+    This method's return value is ignored.
 
 
 
@@ -280,6 +371,9 @@ other kinds of objects.
     This method interprets <i>global</i> using the same rules that
     [`addDebuggee`][add] does.
 
+    Removing a global as a debuggee from this `Debugger` clears all breakpoints
+    that belong to that `Debugger` in that global.
+
 `removeAllDebuggees()`
 :   Remove all the global objects from this `Debugger` instance's set
     of debuggees.  Return `undefined`.
@@ -343,7 +437,7 @@ other kinds of objects.
     `url`
     :   The script's `url` property must be equal to this value.
 
-    `source` <i>(not yet implemented)</i>
+    `source`
     :   The script's `source` property must be equal to this value.
 
     `line`
@@ -374,6 +468,32 @@ other kinds of objects.
     eval code that has finished running, or unreachable functions. Whether
     such scripts appear can be affected by the garbage collector's
     behavior, so this function's behavior is not entirely deterministic.
+
+<code>findObjects([<i>query</i>])</code>
+:   Return an array of [`Debugger.Object`][object] instances referring to each
+    live object allocated in the scope of the debuggee globals that matches
+    *query*. Each instance appears only once in the array. *Query* is an object
+    whose properties restrict which objects are returned; an object must meet
+    all the criteria given by *query* to be returned. If *query* is omitted, we
+    return the [`Debugger.Object`][object] instances for all objects allocated
+    in the scope of debuggee globals.
+
+    The *query* object may have the following properties:
+
+    `class`
+    :   If present, only return objects whose internal `[[Class]]`'s name
+        matches the given string. Note that in some cases, the prototype object
+        for a given constructor has the same `[[Class]]` as the instances that
+        refer to it, but cannot itself be used as a valid instance of the
+        class. Code gathering objects by class name may need to examine them
+        further before trying to use them.
+
+    All properties of *query* are optional. Passing an empty object returns all
+    objects in debuggee globals.
+
+    Unlike `findScripts`, this function is deterministic and will never return
+    [`Debugger.Object`s][object] referring to previously unreachable objects
+    that had not been collected yet.
 
 <code>clearBreakpoint(<i>handler</i>)</code>
 :   Remove all breakpoints set in this `Debugger` instance that use

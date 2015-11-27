@@ -5,9 +5,6 @@
 
 load(libdir + "asserts.js");
 
-// FIXME: Import from std::iteration.
-const std_iterator = '@@iterator';
-
 if (typeof assertIteratorResult === 'undefined') {
     var assertIteratorResult = function assertIteratorResult(result, value, done) {
         assertEq(typeof result, "object");

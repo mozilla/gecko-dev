@@ -1,16 +1,13 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
+var {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/osfile.jsm");
-Cu.import("resource://services-sync/healthreport.jsm", this);
-Cu.import("resource://testing-common/services/healthreport/utils.jsm", this);
-Cu.import("resource://gre/modules/services/healthreport/providers.jsm");
 Cu.import("resource://testing-common/AddonManagerTesting.jsm");
 
 const PREF_EXPERIMENTS_ENABLED  = "experiments.enabled";
@@ -19,7 +16,6 @@ const PREF_LOGGING_DUMP         = "experiments.logging.dump";
 const PREF_MANIFEST_URI         = "experiments.manifest.uri";
 const PREF_FETCHINTERVAL        = "experiments.manifest.fetchIntervalSeconds";
 const PREF_TELEMETRY_ENABLED    = "toolkit.telemetry.enabled";
-const PREF_HEALTHREPORT_ENABLED = "datareporting.healthreport.service.enabled";
 
 function getExperimentPath(base) {
   let p = do_get_cwd();
@@ -101,19 +97,7 @@ const FAKE_EXPERIMENTS_2 = [
   },
 ];
 
-let gAppInfo = null;
-
-function getReporter(name, uri, inspected) {
-  return Task.spawn(function init() {
-    let reporter = getHealthReporter(name, uri, inspected);
-    yield reporter.init();
-
-    yield reporter._providerManager.registerProviderFromType(
-      HealthReportProvider);
-
-    throw new Task.Result(reporter);
-  });
-}
+var gAppInfo = null;
 
 function removeCacheFile() {
   let path = OS.Path.join(OS.Constants.Path.profileDir, "experiments.json");
@@ -141,7 +125,7 @@ function dateToSeconds(date) {
   return date.getTime() / 1000;
 }
 
-let gGlobalScope = this;
+var gGlobalScope = this;
 function loadAddonManager() {
   let ns = {};
   Cu.import("resource://gre/modules/Services.jsm", ns);
@@ -151,6 +135,15 @@ function loadAddonManager() {
   ns.Services.scriptloader.loadSubScript(uri.spec, gGlobalScope);
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "1.9.2");
   startupManager();
+}
+
+// Starts the addon manager without creating app info. We can't directly use
+// |loadAddonManager| defined above in test_conditions.js as it would make the test fail.
+function startAddonManagerOnly() {
+  let addonManager = Cc["@mozilla.org/addons/integration;1"]
+                       .getService(Ci.nsIObserver)
+                       .QueryInterface(Ci.nsITimerCallback);
+  addonManager.observe(null, "addons-startup", null);
 }
 
 function getExperimentAddons(previous=false) {

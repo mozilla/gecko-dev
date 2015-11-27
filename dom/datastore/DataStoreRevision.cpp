@@ -1,5 +1,5 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -9,8 +9,9 @@
 #include "DataStoreCallbacks.h"
 #include "DataStoreService.h"
 #include "mozilla/dom/DataStoreBinding.h"
-#include "mozilla/dom/indexedDB/IDBObjectStore.h"
 #include "mozilla/dom/ToJSValue.h"
+#include "mozilla/dom/indexedDB/IDBObjectStore.h"
+#include "mozilla/dom/indexedDB/IDBRequest.h"
 #include "nsIDOMEvent.h"
 
 namespace mozilla {
@@ -32,7 +33,7 @@ DataStoreRevision::AddRevision(JSContext* aCx,
   MOZ_ASSERT(aStore);
   MOZ_ASSERT(aCallback);
 
-  nsRefPtr<DataStoreService> service = DataStoreService::Get();
+  RefPtr<DataStoreService> service = DataStoreService::Get();
   if (!service) {
     return NS_ERROR_FAILURE;
   }
@@ -64,7 +65,7 @@ DataStoreRevision::AddRevision(JSContext* aCx,
   ErrorResult error;
   mRequest = aStore->Put(aCx, value, JS::UndefinedHandleValue, error);
   if (NS_WARN_IF(error.Failed())) {
-    return error.ErrorCode();
+    return error.StealNSResult();
   }
 
   rv = mRequest->EventTarget::AddEventListener(NS_LITERAL_STRING("success"),
@@ -97,5 +98,5 @@ DataStoreRevision::HandleEvent(nsIDOMEvent* aEvent)
   return NS_OK;
 }
 
-} // dom namespace
-} // mozilla namespace
+} // namespace dom
+} // namespace mozilla

@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -7,13 +7,17 @@
 #import <AppKit/AppKit.h>
 #include "imgIRequest.h"
 #include "imgIContainer.h"
+#include "nsIStringBundle.h"
 #include "nsNetUtil.h"
 #include "imgLoader.h"
 #import "nsCocoaUtils.h"
+#include "nsContentUtils.h"
 #include "nsObjCExceptions.h"
 #include "nsString.h"
 #include "nsCOMPtr.h"
 #include "nsIObserver.h"
+#include "nsIContentPolicy.h"
+#include "nsAlertsUtils.h"
 #include "imgRequestProxy.h"
 
 using namespace mozilla;
@@ -25,9 +29,20 @@ static NSString * const NSUserNotificationDefaultSoundName = @"DefaultSoundName"
 enum {
   NSUserNotificationActivationTypeNone = 0,
   NSUserNotificationActivationTypeContentsClicked = 1,
-  NSUserNotificationActivationTypeActionButtonClicked = 2
+  NSUserNotificationActivationTypeActionButtonClicked = 2,
 };
-typedef NSInteger NSUserNotificationActivationType;
+#endif
+
+#if !defined(MAC_OS_X_VERSION_10_9) || (MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_9)
+enum {
+  NSUserNotificationActivationTypeReplied = 3,
+};
+#endif
+
+#if !defined(MAC_OS_X_VERSION_10_10) || (MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_10)
+enum {
+  NSUserNotificationActivationTypeAdditionalActionClicked = 4
+};
 #endif
 
 @protocol FakeNSUserNotification <NSObject>
@@ -89,7 +104,14 @@ typedef NSInteger NSUserNotificationActivationType;
 - (void)userNotificationCenter:(id<FakeNSUserNotificationCenter>)center
        didActivateNotification:(id<FakeNSUserNotification>)notification
 {
-  mOSXNC->OnClick([[notification userInfo] valueForKey:@"name"]);
+  unsigned long long additionalActionIndex = ULLONG_MAX;
+  if ([notification respondsToSelector:@selector(_alternateActionIndex)]) {
+    NSNumber *alternateActionIndex = [(NSObject*)notification valueForKey:@"_alternateActionIndex"];
+    additionalActionIndex = [alternateActionIndex unsignedLongLongValue];
+  }
+  mOSXNC->OnActivate([[notification userInfo] valueForKey:@"name"],
+                     notification.activationType,
+                     additionalActionIndex);
 }
 
 - (BOOL)userNotificationCenter:(id<FakeNSUserNotificationCenter>)center
@@ -109,9 +131,22 @@ typedef NSInteger NSUserNotificationActivationType;
   }
 }
 
+// This is an undocumented method that we need to be notified if a user clicks the close button.
+- (void)userNotificationCenter:(id<FakeNSUserNotificationCenter>)center
+  didDismissAlert:(id<FakeNSUserNotification>)notification
+{
+  NSString *name = [[notification userInfo] valueForKey:@"name"];
+  mOSXNC->CloseAlertCocoaString(name);
+}
+
 @end
 
 namespace mozilla {
+
+enum {
+  OSXNotificationActionDisable = 0,
+  OSXNotificationActionSettings = 1,
+};
 
 class OSXNotificationInfo {
 private:
@@ -125,7 +160,7 @@ public:
   NSString *mName;
   nsCOMPtr<nsIObserver> mObserver;
   nsString mCookie;
-  nsRefPtr<imgRequestProxy> mIconRequest;
+  RefPtr<imgRequestProxy> mIconRequest;
   id<FakeNSUserNotification> mPendingNotifiction;
   nsCOMPtr<nsITimer> mIconTimeoutTimer;
 };
@@ -203,19 +238,76 @@ OSXNotificationCenter::ShowAlertNotification(const nsAString & aImageUrl, const 
                                              const nsAString & aBidi,
                                              const nsAString & aLang,
                                              const nsAString & aData,
-                                             nsIPrincipal * aPrincipal)
+                                             nsIPrincipal * aPrincipal,
+                                             bool aInPrivateBrowsing)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
 
   Class unClass = NSClassFromString(@"NSUserNotification");
   id<FakeNSUserNotification> notification = [[unClass alloc] init];
-  notification.title = [NSString stringWithCharacters:(const unichar *)aAlertTitle.BeginReading()
-                                               length:aAlertTitle.Length()];
-  notification.informativeText = [NSString stringWithCharacters:(const unichar *)aAlertText.BeginReading()
-                                                         length:aAlertText.Length()];
+  notification.title = nsCocoaUtils::ToNSString(aAlertTitle);
+
+  nsAutoString hostPort;
+  nsAlertsUtils::GetSourceHostPort(aPrincipal, hostPort);
+  nsCOMPtr<nsIStringBundle> bundle;
+  nsCOMPtr<nsIStringBundleService> sbs = do_GetService(NS_STRINGBUNDLE_CONTRACTID);
+  sbs->CreateBundle("chrome://alerts/locale/alert.properties", getter_AddRefs(bundle));
+
+  if (!hostPort.IsEmpty() && bundle) {
+    const char16_t* formatStrings[] = { hostPort.get() };
+    nsXPIDLString notificationSource;
+    bundle->FormatStringFromName(MOZ_UTF16("source.label"),
+                                 formatStrings,
+                                 ArrayLength(formatStrings),
+                                 getter_Copies(notificationSource));
+    notification.subtitle = nsCocoaUtils::ToNSString(notificationSource);
+  }
+
+  notification.informativeText = nsCocoaUtils::ToNSString(aAlertText);
   notification.soundName = NSUserNotificationDefaultSoundName;
   notification.hasActionButton = NO;
-  NSString *alertName = [NSString stringWithCharacters:(const unichar *)aAlertName.BeginReading() length:aAlertName.Length()];
+
+  // If this is not an application/extension alert, show additional actions dealing with permissions.
+  if (nsAlertsUtils::IsActionablePrincipal(aPrincipal)) {
+    if (bundle) {
+      nsXPIDLString closeButtonTitle, actionButtonTitle, disableButtonTitle, settingsButtonTitle;
+      bundle->GetStringFromName(MOZ_UTF16("closeButton.title"),
+                                getter_Copies(closeButtonTitle));
+      bundle->GetStringFromName(MOZ_UTF16("actionButton.label"),
+                                getter_Copies(actionButtonTitle));
+      if (!hostPort.IsEmpty()) {
+        const char16_t* formatStrings[] = { hostPort.get() };
+        bundle->FormatStringFromName(MOZ_UTF16("webActions.disableForOrigin.label"),
+                                     formatStrings,
+                                     ArrayLength(formatStrings),
+                                     getter_Copies(disableButtonTitle));
+      }
+      bundle->GetStringFromName(MOZ_UTF16("webActions.settings.label"),
+                                getter_Copies(settingsButtonTitle));
+
+      notification.otherButtonTitle = nsCocoaUtils::ToNSString(closeButtonTitle);
+
+      // OS X 10.8 only shows action buttons if the "Alerts" style is set in
+      // Notification Center preferences, and doesn't support the alternate
+      // action menu.
+      if ([notification respondsToSelector:@selector(set_showsButtons:)] &&
+          [notification respondsToSelector:@selector(set_alwaysShowAlternateActionMenu:)] &&
+          [notification respondsToSelector:@selector(set_alternateActionButtonTitles:)]) {
+
+        notification.hasActionButton = YES;
+        notification.actionButtonTitle = nsCocoaUtils::ToNSString(actionButtonTitle);
+
+        [(NSObject*)notification setValue:@(YES) forKey:@"_showsButtons"];
+        [(NSObject*)notification setValue:@(YES) forKey:@"_alwaysShowAlternateActionMenu"];
+        [(NSObject*)notification setValue:@[
+                                            nsCocoaUtils::ToNSString(disableButtonTitle),
+                                            nsCocoaUtils::ToNSString(settingsButtonTitle)
+                                            ]
+                                 forKey:@"_alternateActionButtonTitles"];
+      }
+    }
+  }
+  NSString *alertName = nsCocoaUtils::ToNSString(aAlertName);
   if (!alertName) {
     return NS_ERROR_FAILURE;
   }
@@ -237,14 +329,19 @@ OSXNotificationCenter::ShowAlertNotification(const nsAString & aImageUrl, const 
   } else {
     mPendingAlerts.AppendElement(osxni);
     osxni->mPendingNotifiction = notification;
-    nsRefPtr<imgLoader> il = imgLoader::GetInstance();
+    RefPtr<imgLoader> il = imgLoader::GetInstance();
     if (il) {
       nsCOMPtr<nsIURI> imageUri;
       NS_NewURI(getter_AddRefs(imageUri), aImageUrl);
       if (imageUri) {
-        nsresult rv = il->LoadImage(imageUri, nullptr, nullptr, aPrincipal, nullptr,
-                                    this, nullptr, nsIRequest::LOAD_NORMAL, nullptr,
-                                    nullptr, EmptyString(),
+        nsresult rv = il->LoadImage(imageUri, nullptr, nullptr,
+                                    mozilla::net::RP_Default,
+                                    aPrincipal, nullptr,
+                                    this, nullptr,
+                                    aInPrivateBrowsing ? nsIRequest::LOAD_ANONYMOUS :
+                                                         nsIRequest::LOAD_NORMAL,
+                                    nullptr, nsIContentPolicy::TYPE_INTERNAL_IMAGE,
+                                    EmptyString(),
                                     getter_AddRefs(osxni->mIconRequest));
         if (NS_SUCCEEDED(rv)) {
           // Set a timer for six seconds. If we don't have an icon by the time this
@@ -270,7 +367,7 @@ OSXNotificationCenter::CloseAlert(const nsAString& aAlertName,
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
 
-  NSString *alertName = [NSString stringWithCharacters:(const unichar *)aAlertName.BeginReading() length:aAlertName.Length()];
+  NSString *alertName = nsCocoaUtils::ToNSString(aAlertName);
   CloseAlertCocoaString(alertName);
   return NS_OK;
 
@@ -311,7 +408,9 @@ OSXNotificationCenter::CloseAlertCocoaString(NSString *aAlertName)
 }
 
 void
-OSXNotificationCenter::OnClick(NSString *aAlertName)
+OSXNotificationCenter::OnActivate(NSString *aAlertName,
+                                  NSUserNotificationActivationType aActivationType,
+                                  unsigned long long aAdditionalActionIndex)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
@@ -323,7 +422,25 @@ OSXNotificationCenter::OnClick(NSString *aAlertName)
     OSXNotificationInfo *osxni = mActiveAlerts[i];
     if ([aAlertName isEqualToString:osxni->mName]) {
       if (osxni->mObserver) {
-        osxni->mObserver->Observe(nullptr, "alertclickcallback", osxni->mCookie.get());
+        switch ((int)aActivationType) {
+          case NSUserNotificationActivationTypeAdditionalActionClicked:
+          case NSUserNotificationActivationTypeActionButtonClicked:
+            switch (aAdditionalActionIndex) {
+              case OSXNotificationActionDisable:
+                osxni->mObserver->Observe(nullptr, "alertdisablecallback", osxni->mCookie.get());
+                break;
+              case OSXNotificationActionSettings:
+                osxni->mObserver->Observe(nullptr, "alertsettingscallback", osxni->mCookie.get());
+                break;
+              default:
+                NS_WARNING("Unknown NSUserNotification additional action clicked");
+                break;
+            }
+            break;
+          default:
+            osxni->mObserver->Observe(nullptr, "alertclickcallback", osxni->mCookie.get());
+            break;
+        }
       }
       return;
     }
@@ -388,7 +505,7 @@ OSXNotificationCenter::Notify(imgIRequest *aRequest, int32_t aType, const nsIntR
     NSImage *cocoaImage = nil;
     uint32_t imgStatus = imgIRequest::STATUS_ERROR;
     nsresult rv = aRequest->GetImageStatus(&imgStatus);
-    if (NS_SUCCEEDED(rv) && imgStatus != imgIRequest::STATUS_ERROR) {
+    if (NS_SUCCEEDED(rv) && !(imgStatus & imgIRequest::STATUS_ERROR)) {
       nsCOMPtr<imgIContainer> image;
       rv = aRequest->GetImage(getter_AddRefs(image));
       if (NS_SUCCEEDED(rv)) {

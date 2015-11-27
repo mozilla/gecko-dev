@@ -5,6 +5,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 BROWSER_CHROME_MANIFESTS += ['test/browser.ini']
+XPCSHELL_TESTS_MANIFESTS += ['test/xpcshell.ini']
 
 EXTRA_COMPONENTS += [
     'BrowserPageThumbs.manifest',
@@ -15,6 +16,7 @@ EXTRA_JS_MODULES += [
     'BackgroundPageThumbs.jsm',
     'PageThumbs.jsm',
     'PageThumbsWorker.js',
+    'PageThumbUtils.jsm',
 ]
 
 JAR_MANIFESTS += ['jar.mn']

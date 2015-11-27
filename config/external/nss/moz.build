@@ -10,7 +10,7 @@ if CONFIG['MOZ_NATIVE_NSS']:
     Library('nss')
     OS_LIBS += CONFIG['NSS_LIBS']
 elif CONFIG['MOZ_FOLD_LIBS']:
-    SharedLibrary('nss')
+    GeckoSharedLibrary('nss', linkage=None)
     # TODO: The library name can be changed when bug 845217 is fixed.
     SHARED_LIBRARY_NAME = 'nss3'
 
@@ -45,3 +45,6 @@ else:
         '/security/nss/lib/util/nssutil3',
         'sqlite',
     ]
+
+# XXX: We should fix these warnings.
+ALLOW_COMPILER_WARNINGS = True

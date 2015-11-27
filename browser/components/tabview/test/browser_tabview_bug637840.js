@@ -1,7 +1,9 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-let cw;
+var cw;
+
+Components.utils.import("resource://gre/modules/Promise.jsm", this);
 
 function test() {
   requestLongerTimeout(2);

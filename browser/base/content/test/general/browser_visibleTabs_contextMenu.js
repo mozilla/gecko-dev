@@ -2,7 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-function test() {
+add_task(function* test() {
+  // Ensure TabView has been initialized already. Otherwise it could
+  // activate at an unexpected time and show/hide tabs.
+  yield new Promise(resolve => TabView._initFrame(resolve));
+
   // There should be one tab when we start the test
   let [origTab] = gBrowser.visibleTabs;
   is(gBrowser.visibleTabs.length, 1, "there is one visible tab");
@@ -36,7 +40,7 @@ function test() {
   is(document.getElementById("context_closeTabsToTheEnd").disabled, true, "Close Tabs To The End is disabled");
 
   // Show all tabs
-  let allTabs = [tab for each (tab in gBrowser.tabs)];
+  let allTabs = Array.from(gBrowser.tabs);
   gBrowser.showOnlyTheseTabs(allTabs);
 
   // Check the context menu now
@@ -51,4 +55,5 @@ function test() {
 
   gBrowser.removeTab(testTab);
   gBrowser.removeTab(pinned);
-}
+});
+

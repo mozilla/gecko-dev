@@ -23,11 +23,9 @@
 #include <cutils/log.h>
 #include <fcntl.h>
 
+#include "mozilla/Assertions.h"
 #include "mozilla/FileUtils.h"
-#include "mozilla/NullPtr.h"
 #include "mozilla/FileUtils.h"
-
-#include "BootAnimation.h"
 
 using namespace android;
 
@@ -69,7 +67,7 @@ frameBufferWatcher(void *)
     return nullptr;
 }
 
-} // anonymous namespace
+} // namespace
 
 
 namespace mozilla {
@@ -105,7 +103,7 @@ GonkDisplayICS::GonkDisplayICS()
             len = read(fd.get(), &buf, 1);
         } while (len < 0 && errno == EINTR);
         if (len < 0) {
-            LOGE("BootAnimation: wait_for_fb_sleep failed errno: %d", errno);
+            LOGE("wait_for_fb_sleep failed errno: %d", errno);
         }
     }
 
@@ -130,21 +128,12 @@ GonkDisplayICS::GonkDisplayICS()
 
     const framebuffer_device_t *fbdev = mFBSurface->getDevice();
     surfaceformat = fbdev->format;
-
-    StartBootAnimation();
 }
 
 GonkDisplayICS::~GonkDisplayICS()
 {
     if (mHwc)
         hwc_close(mHwc);
-}
-
-ANativeWindow*
-GonkDisplayICS::GetNativeWindow()
-{
-    StopBootAnimation();
-    return static_cast<ANativeWindow *>(mFBSurface.get());
 }
 
 void
@@ -174,12 +163,6 @@ GonkDisplayICS::GetHWCDevice()
     return mHwc;
 }
 
-void*
-GonkDisplayICS::GetFBSurface()
-{
-    return mFBSurface.get();
-}
-
 bool
 GonkDisplayICS::SwapBuffers(EGLDisplay dpy, EGLSurface sur)
 {
@@ -187,8 +170,12 @@ GonkDisplayICS::SwapBuffers(EGLDisplay dpy, EGLSurface sur)
     // Only HWC v1.0 needs this call. ICS gonk always needs the call.
     mFBSurface->compositionComplete();
 
-    if (!mHwc)
-        return eglSwapBuffers(dpy, sur);
+    if (!mHwc) {
+        if (sur != EGL_NO_SURFACE) {
+            return eglSwapBuffers(dpy, sur);
+        }
+        return true;
+    }
 
     mHwc->prepare(mHwc, nullptr);
     return !mHwc->set(mHwc, dpy, sur, 0);
@@ -211,14 +198,26 @@ GonkDisplayICS::QueueBuffer(ANativeWindowBuffer *buf)
 }
 
 void
-GonkDisplayICS::UpdateFBSurface(EGLDisplay dpy, EGLSurface sur)
+GonkDisplayICS::UpdateDispSurface(EGLDisplay dpy, EGLSurface sur)
 {
-    eglSwapBuffers(dpy, sur);
 }
 
 void
-GonkDisplayICS::SetFBReleaseFd(int fd)
+GonkDisplayICS::SetDispReleaseFd(int fd)
 {
+}
+
+GonkDisplay::NativeData
+GonkDisplayICS::GetNativeData(GonkDisplay::DisplayType aDisplayType,
+                              android::IGraphicBufferProducer* aSink)
+{
+    MOZ_ASSERT(aDisplayType == DISPLAY_PRIMARY, "ICS gonk supports primary display only.");
+
+    NativeData data;
+    data.mNativeWindow = static_cast<ANativeWindow *>(mFBSurface.get());
+    data.mXdpi = xdpi;
+
+    return data;
 }
 
 __attribute__ ((visibility ("default")))

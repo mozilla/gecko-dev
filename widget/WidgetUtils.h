@@ -8,8 +8,13 @@
 #ifndef mozilla_WidgetUtils_h
 #define mozilla_WidgetUtils_h
 
-#include "nsRect.h"
+#include "mozilla/EventForwards.h"
 #include "mozilla/gfx/Matrix.h"
+#include "nsCOMPtr.h"
+#include "nsIDOMWindow.h"
+#include "nsIWidget.h"
+#include "nsPIDOMWindow.h"
+#include "nsRect.h"
 
 namespace mozilla {
 
@@ -26,6 +31,64 @@ enum ScreenRotation {
 gfx::Matrix ComputeTransformForRotation(const nsIntRect& aBounds,
                                         ScreenRotation aRotation);
 
+gfx::Matrix ComputeTransformForUnRotation(const nsIntRect& aBounds,
+                                          ScreenRotation aRotation);
+
+nsIntRect RotateRect(nsIntRect aRect,
+                     const nsIntRect& aBounds,
+                     ScreenRotation aRotation);
+
+namespace widget {
+
+class WidgetUtils
+{
+public:
+  /**
+   * Shutdown() is called when "xpcom-will-shutdown" is notified.  This is
+   * useful when you need to observe the notification in XP level code under
+   * widget.
+   */
+  static void Shutdown();
+
+  /**
+   * Starting at the docshell item for the passed in DOM window this looks up
+   * the docshell tree until it finds a docshell item that has a widget.
+   */
+  static already_AddRefed<nsIWidget> DOMWindowToWidget(nsIDOMWindow *aDOMWindow);
+
+  /**
+   * Compute our keyCode value (NS_VK_*) from an ASCII character.
+   */
+  static uint32_t ComputeKeyCodeFromChar(uint32_t aCharCode);
+
+  /**
+   * Get unshifted charCode and shifted charCode for aKeyCode if the keyboad
+   * layout is a Latin keyboard layout.
+   *
+   * @param aKeyCode            Our keyCode (NS_VK_*).
+   * @param aIsCapsLock         TRUE if CapsLock is Locked.  Otherwise, FALSE.
+   *                            This is used only when aKeyCode is NS_VK_[0-9].
+   * @param aUnshiftedCharCode  CharCode for aKeyCode without Shift key.
+   *                            This may be zero if aKeyCode key doesn't input
+   *                            a Latin character.
+   *                            Note that must not be nullptr.
+   * @param aShiftedCharCode    CharCode for aKeyCOde with Shift key.
+   *                            This is always 0 when aKeyCode isn't
+   *                            NS_VK_[A-Z].
+   *                            Note that must not be nullptr.
+   */
+  static void GetLatinCharCodeForKeyCode(uint32_t aKeyCode,
+                                         bool aIsCapsLock,
+                                         uint32_t* aUnshiftedCharCode,
+                                         uint32_t* aShiftedCharCode);
+
+  /**
+  * Does device have touch support
+  */
+  static uint32_t IsTouchDeviceSupportPresent();
+};
+
+} // namespace widget
 } // namespace mozilla
 
 #endif // mozilla_WidgetUtils_h

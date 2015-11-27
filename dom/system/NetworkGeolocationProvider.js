@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+"use strict";
+
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
@@ -14,7 +16,7 @@ const SETTINGS_DEBUG_ENABLED = "geolocation.debugging.enabled";
 const SETTINGS_CHANGED_TOPIC = "mozsettings-changed";
 const SETTINGS_WIFI_ENABLED = "wifi.enabled";
 
-let gLoggingEnabled = false;
+var gLoggingEnabled = false;
 
 /*
    The gLocationRequestTimeout controls how long we wait on receiving an update
@@ -27,10 +29,10 @@ let gLoggingEnabled = false;
    data and xhr it to the location server.
 */
 
-let gLocationRequestTimeout = 5000;
+var gLocationRequestTimeout = 5000;
 
-let gWifiScanningEnabled = true;
-let gCellScanningEnabled = false;
+var gWifiScanningEnabled = true;
+var gCellScanningEnabled = false;
 
 function LOG(aMsg) {
   if (gLoggingEnabled) {
@@ -125,8 +127,8 @@ function CachedRequest(loc, cellInfo, wifiList) {
   };
  }
 
-let gCachedRequest = null;
-let gDebugCacheReasoning = ""; // for logging the caching logic
+var gCachedRequest = null;
+var gDebugCacheReasoning = ""; // for logging the caching logic
 
 // This function serves two purposes:
 // 1) do we have a cached request
@@ -264,11 +266,13 @@ WifiGeoPositionProvider.prototype = {
     }
 
     try {
-      let setting = JSON.parse(aData);
-      if (setting.key == SETTINGS_DEBUG_ENABLED) {
-        gLoggingEnabled = setting.value;
-      } else if (setting.key == SETTINGS_WIFI_ENABLED) {
-        gWifiScanningEnabled = setting.value;
+      if ("wrappedJSObject" in aSubject) {
+        aSubject = aSubject.wrappedJSObject;
+      }
+      if (aSubject.key == SETTINGS_DEBUG_ENABLED) {
+        gLoggingEnabled = aSubject.value;
+      } else if (aSubject.key == SETTINGS_WIFI_ENABLED) {
+        gWifiScanningEnabled = aSubject.value;
       }
     } catch (e) {
     }
@@ -316,13 +320,12 @@ WifiGeoPositionProvider.prototype = {
       }
     };
 
-    try {
-      Services.obs.addObserver(this, SETTINGS_CHANGED_TOPIC, false);
-      let settings = Cc["@mozilla.org/settingsService;1"].getService(Ci.nsISettingsService);
+    Services.obs.addObserver(this, SETTINGS_CHANGED_TOPIC, false);
+    let settingsService = Cc["@mozilla.org/settingsService;1"];
+    if (settingsService) {
+      let settings = settingsService.getService(Ci.nsISettingsService);
       settings.createLock().get(SETTINGS_WIFI_ENABLED, settingsCallback);
       settings.createLock().get(SETTINGS_DEBUG_ENABLED, settingsCallback);
-    } catch(ex) {
-      // This platform doesn't have the settings interface, and that is just peachy
     }
 
     if (gWifiScanningEnabled && Cc["@mozilla.org/wifi/monitor;1"]) {
@@ -413,8 +416,8 @@ WifiGeoPositionProvider.prototype = {
                     .getService(Ci.nsIMobileConnectionService);
 
       let result = [];
-      for (let i = 0; i < service.length; i++) {
-        LOG("Looking for SIM in slot:" + i + " of " + service.length);
+      for (let i = 0; i < service.numItems; i++) {
+        LOG("Looking for SIM in slot:" + i + " of " + service.numItems);
         let connection = service.getItemByServiceId(i);
         let voice = connection && connection.voice;
         let cell = voice && voice.cell;
@@ -422,12 +425,26 @@ WifiGeoPositionProvider.prototype = {
         let network = voice && voice.network;
 
         if (network && cell && type) {
-          if (type === "gsm" || type === "gprs" || type === "edge") {
-            type = "gsm";
-          } else {
-            type = "wcdma";
-          }
-          result.push({ radio: type,
+          let radioTechFamily;
+          switch (type) {
+            case "gsm":
+            case "gprs":
+            case "edge":
+              radioTechFamily = "gsm";
+              break;
+            case "umts":
+            case "hsdpa":
+            case "hsupa":
+            case "hspa":
+            case "hspa+":
+              radioTechFamily = "wcdma";
+              break;
+            case "lte":
+              radioTechFamily = "lte";
+              break;
+            // CDMA cases to be handled in bug 1010282
+          };
+          result.push({ radioType: radioTechFamily,
                       mobileCountryCode: voice.network.mcc,
                       mobileNetworkCode: voice.network.mnc,
                       locationAreaCode: cell.gsmLocationAreaCode,
@@ -445,8 +462,8 @@ WifiGeoPositionProvider.prototype = {
   },
 
   sendLocationRequest: function (wifiData) {
-    let data = {};
-    if (wifiData) {
+    let data = { cellTowers: undefined, wifiAccessPoints: undefined };
+    if (wifiData && wifiData.length >= 2) {
       data.wifiAccessPoints = wifiData;
     }
 
@@ -488,12 +505,18 @@ WifiGeoPositionProvider.prototype = {
     xhr.responseType = "json";
     xhr.mozBackgroundRequest = true;
     xhr.channel.loadFlags = Ci.nsIChannel.LOAD_ANONYMOUS;
+    xhr.timeout = Services.prefs.getIntPref("geo.wifi.xhr.timeout");
+    xhr.ontimeout = (function() {
+      LOG("Location request XHR timed out.")
+      this.notifyListener("notifyError",
+                          [POSITION_UNAVAILABLE]);
+    }).bind(this);
     xhr.onerror = (function() {
       this.notifyListener("notifyError",
                           [POSITION_UNAVAILABLE]);
     }).bind(this);
     xhr.onload = (function() {
-      LOG("gls returned status: " + xhr.status + " --> " +  JSON.stringify(xhr.response));
+      LOG("server returned status: " + xhr.status + " --> " +  JSON.stringify(xhr.response));
       if ((xhr.channel instanceof Ci.nsIHttpChannel && xhr.status != 200) ||
           !xhr.response || !xhr.response.location) {
         this.notifyListener("notifyError",

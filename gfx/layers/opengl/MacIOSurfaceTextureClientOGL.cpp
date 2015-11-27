@@ -9,20 +9,36 @@
 namespace mozilla {
 namespace layers {
 
-MacIOSurfaceTextureClientOGL::MacIOSurfaceTextureClientOGL(TextureFlags aFlags)
-  : TextureClient(aFlags)
+MacIOSurfaceTextureClientOGL::MacIOSurfaceTextureClientOGL(ISurfaceAllocator* aAllcator,
+                                                           TextureFlags aFlags)
+  : TextureClient(aAllcator, aFlags)
   , mIsLocked(false)
 {}
 
 MacIOSurfaceTextureClientOGL::~MacIOSurfaceTextureClientOGL()
-{}
+{
+}
 
 void
-MacIOSurfaceTextureClientOGL::InitWith(MacIOSurface* aSurface)
+MacIOSurfaceTextureClientOGL::FinalizeOnIPDLThread()
 {
-  MOZ_ASSERT(IsValid());
-  MOZ_ASSERT(!IsAllocated());
-  mSurface = aSurface;
+  if (mActor && mSurface) {
+    KeepUntilFullDeallocation(MakeUnique<TKeepAlive<MacIOSurface>>(mSurface));
+  }
+}
+
+// static
+already_AddRefed<MacIOSurfaceTextureClientOGL>
+MacIOSurfaceTextureClientOGL::Create(ISurfaceAllocator* aAllocator,
+                                     TextureFlags aFlags,
+                                     MacIOSurface* aSurface)
+{
+  RefPtr<MacIOSurfaceTextureClientOGL> texture =
+      new MacIOSurfaceTextureClientOGL(aAllocator, aFlags);
+  MOZ_ASSERT(texture->IsValid());
+  MOZ_ASSERT(!texture->IsAllocated());
+  texture->mSurface = aSurface;
+  return texture.forget();
 }
 
 bool
@@ -55,7 +71,7 @@ MacIOSurfaceTextureClientOGL::ToSurfaceDescriptor(SurfaceDescriptor& aOutDescrip
   }
   aOutDescriptor = SurfaceDescriptorMacIOSurface(mSurface->GetIOSurfaceID(),
                                                  mSurface->GetContentsScaleFactor(),
-                                                 mSurface->HasAlpha());
+                                                 !mSurface->HasAlpha());
   return true;
 }
 
@@ -65,5 +81,12 @@ MacIOSurfaceTextureClientOGL::GetSize() const
   return gfx::IntSize(mSurface->GetDevicePixelWidth(), mSurface->GetDevicePixelHeight());
 }
 
+already_AddRefed<gfx::DataSourceSurface>
+MacIOSurfaceTextureClientOGL::GetAsSurface()
+{
+  RefPtr<gfx::SourceSurface> surf = mSurface->GetAsSurface();
+  return surf->GetDataSurface();
 }
-}
+
+} // namespace layers
+} // namespace mozilla

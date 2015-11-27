@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -8,8 +9,12 @@
 #include "ApplicationAccessible.h"
 #include "ARIAMap.h"
 #include "DocAccessible-inl.h"
+#include "DocAccessibleChild.h"
+#include "DocAccessibleParent.h"
 #include "nsAccessibilityService.h"
+#include "Platform.h"
 #include "RootAccessibleWrap.h"
+#include "xpcAccessibleDocument.h"
 
 #ifdef A11Y_LOG
 #include "Logging.h"
@@ -27,17 +32,21 @@
 #include "nsServiceManagerUtils.h"
 #include "nsIWebProgress.h"
 #include "nsCoreUtils.h"
+#include "nsXULAppAPI.h"
+#include "mozilla/dom/TabChild.h"
 
 using namespace mozilla;
 using namespace mozilla::a11y;
 using namespace mozilla::dom;
+
+StaticAutoPtr<nsTArray<DocAccessibleParent*>> DocManager::sRemoteDocuments;
 
 ////////////////////////////////////////////////////////////////////////////////
 // DocManager
 ////////////////////////////////////////////////////////////////////////////////
 
 DocManager::DocManager()
-  : mDocAccessibleCache(2)
+  : mDocAccessibleCache(2), mXPCDocumentCache(0)
 {
 }
 
@@ -63,24 +72,64 @@ DocManager::GetDocAccessible(nsIDocument* aDocument)
 Accessible*
 DocManager::FindAccessibleInCache(nsINode* aNode) const
 {
-  nsSearchAccessibleInCacheArg arg;
-  arg.mNode = aNode;
+  for (auto iter = mDocAccessibleCache.ConstIter(); !iter.Done(); iter.Next()) {
+    DocAccessible* docAccessible = iter.UserData();
+    NS_ASSERTION(docAccessible,
+                 "No doc accessible for the object in doc accessible cache!");
 
-  mDocAccessibleCache.EnumerateRead(SearchAccessibleInDocCache,
-                                    static_cast<void*>(&arg));
+    if (docAccessible) {
+      Accessible* accessible = docAccessible->GetAccessible(aNode);
+      if (accessible) {
+        return accessible;
+      }
+    }
+  }
+  return nullptr;
+}
 
-  return arg.mAccessible;
+void
+DocManager::NotifyOfDocumentShutdown(DocAccessible* aDocument,
+                                     nsIDocument* aDOMDocument)
+{
+  xpcAccessibleDocument* xpcDoc = mXPCDocumentCache.GetWeak(aDocument);
+  if (xpcDoc) {
+    xpcDoc->Shutdown();
+    mXPCDocumentCache.Remove(aDocument);
+  }
+
+  mDocAccessibleCache.Remove(aDOMDocument);
+  RemoveListeners(aDOMDocument);
+}
+
+xpcAccessibleDocument*
+DocManager::GetXPCDocument(DocAccessible* aDocument)
+{
+  if (!aDocument)
+    return nullptr;
+
+  xpcAccessibleDocument* xpcDoc = mXPCDocumentCache.GetWeak(aDocument);
+  if (!xpcDoc) {
+    xpcDoc = new xpcAccessibleDocument(aDocument);
+    mXPCDocumentCache.Put(aDocument, xpcDoc);
+  }
+  return xpcDoc;
 }
 
 #ifdef DEBUG
 bool
 DocManager::IsProcessingRefreshDriverNotification() const
 {
-  bool isDocRefreshing = false;
-  mDocAccessibleCache.EnumerateRead(SearchIfDocIsRefreshing,
-                                    static_cast<void*>(&isDocRefreshing));
+  for (auto iter = mDocAccessibleCache.ConstIter(); !iter.Done(); iter.Next()) {
+    DocAccessible* docAccessible = iter.UserData();
+    NS_ASSERTION(docAccessible,
+                 "No doc accessible for the object in doc accessible cache!");
 
-  return isDocRefreshing;
+    if (docAccessible && docAccessible->mNotificationController &&
+        docAccessible->mNotificationController->IsUpdating()) {
+      return true;
+    }
+  }
+  return false;
 }
 #endif
 
@@ -141,11 +190,11 @@ DocManager::OnStateChange(nsIWebProgress* aWebProgress,
   aWebProgress->GetDOMWindow(getter_AddRefs(DOMWindow));
   NS_ENSURE_STATE(DOMWindow);
 
-  nsCOMPtr<nsIDOMDocument> DOMDocument;
-  DOMWindow->GetDocument(getter_AddRefs(DOMDocument));
-  NS_ENSURE_STATE(DOMDocument);
+  nsCOMPtr<nsPIDOMWindow> piWindow = do_QueryInterface(DOMWindow);
+  MOZ_ASSERT(piWindow);
 
-  nsCOMPtr<nsIDocument> document(do_QueryInterface(DOMDocument));
+  nsCOMPtr<nsIDocument> document = piWindow->GetDoc();
+  NS_ENSURE_STATE(document);
 
   // Document was loaded.
   if (aStateFlags & STATE_STOP) {
@@ -391,7 +440,7 @@ DocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
   // We only create root accessibles for the true root, otherwise create a
   // doc accessible.
   nsIContent *rootElm = nsCoreUtils::GetRoleContent(aDocument);
-  nsRefPtr<DocAccessible> docAcc = isRootDoc ?
+  RefPtr<DocAccessible> docAcc = isRootDoc ?
     new RootAccessibleWrap(aDocument, rootElm, presShell) :
     new DocAccessibleWrap(aDocument, rootElm, presShell);
 
@@ -418,6 +467,22 @@ DocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
     docAcc->FireDelayedEvent(nsIAccessibleEvent::EVENT_REORDER,
                              ApplicationAcc());
 
+    if (IPCAccessibilityActive()) {
+      nsIDocShell* docShell = aDocument->GetDocShell();
+      if (docShell) {
+        nsCOMPtr<nsITabChild> tabChild = do_GetInterface(docShell);
+
+        // XXX We may need to handle the case that we don't have a tab child
+        // differently.  It may be that this will cause us to fail to notify
+        // the parent process about important accessible documents.
+        if (tabChild) {
+          DocAccessibleChild* ipcDoc = new DocAccessibleChild(docAcc);
+          docAcc->SetIPCDoc(ipcDoc);
+          static_cast<TabChild*>(tabChild.get())->
+            SendPDocAccessibleConstructor(ipcDoc, nullptr, 0);
+        }
+      }
+    }
   } else {
     parentDocAcc->BindChildDocument(docAcc);
   }
@@ -436,62 +501,34 @@ DocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
 ////////////////////////////////////////////////////////////////////////////////
 // DocManager static
 
-PLDHashOperator
-DocManager::GetFirstEntryInDocCache(const nsIDocument* aKey,
-                                    DocAccessible* aDocAccessible,
-                                    void* aUserArg)
-{
-  NS_ASSERTION(aDocAccessible,
-               "No doc accessible for the object in doc accessible cache!");
-  *reinterpret_cast<DocAccessible**>(aUserArg) = aDocAccessible;
-
-  return PL_DHASH_STOP;
-}
-
 void
 DocManager::ClearDocCache()
 {
-  DocAccessible* docAcc = nullptr;
-  while (mDocAccessibleCache.EnumerateRead(GetFirstEntryInDocCache, static_cast<void*>(&docAcc))) {
-    if (docAcc)
+  // This unusual do-one-element-per-iterator approach is required because each
+  // DocAccessible is removed elsewhere upon its Shutdown() method being
+  // called, which invalidates the existing iterator.
+  while (mDocAccessibleCache.Count() > 0) {
+    auto iter = mDocAccessibleCache.Iter();
+    MOZ_ASSERT(!iter.Done());
+    DocAccessible* docAcc = iter.UserData();
+    NS_ASSERTION(docAcc,
+                 "No doc accessible for the object in doc accessible cache!");
+    if (docAcc) {
       docAcc->Shutdown();
+    }
   }
 }
 
-PLDHashOperator
-DocManager::SearchAccessibleInDocCache(const nsIDocument* aKey,
-                                       DocAccessible* aDocAccessible,
-                                       void* aUserArg)
+void
+DocManager::RemoteDocAdded(DocAccessibleParent* aDoc)
 {
-  NS_ASSERTION(aDocAccessible,
-               "No doc accessible for the object in doc accessible cache!");
-
-  if (aDocAccessible) {
-    nsSearchAccessibleInCacheArg* arg =
-      static_cast<nsSearchAccessibleInCacheArg*>(aUserArg);
-    arg->mAccessible = aDocAccessible->GetAccessible(arg->mNode);
-    if (arg->mAccessible)
-      return PL_DHASH_STOP;
+  if (!sRemoteDocuments) {
+    sRemoteDocuments = new nsTArray<DocAccessibleParent*>;
+    ClearOnShutdown(&sRemoteDocuments);
   }
 
-  return PL_DHASH_NEXT;
+  MOZ_ASSERT(!sRemoteDocuments->Contains(aDoc),
+      "How did we already have the doc!");
+  sRemoteDocuments->AppendElement(aDoc);
+  ProxyCreated(aDoc, Interfaces::DOCUMENT | Interfaces::HYPERTEXT);
 }
-
-#ifdef DEBUG
-PLDHashOperator
-DocManager::SearchIfDocIsRefreshing(const nsIDocument* aKey,
-                                    DocAccessible* aDocAccessible,
-                                    void* aUserArg)
-{
-  NS_ASSERTION(aDocAccessible,
-               "No doc accessible for the object in doc accessible cache!");
-
-  if (aDocAccessible && aDocAccessible->mNotificationController &&
-      aDocAccessible->mNotificationController->IsUpdating()) {
-    *(static_cast<bool*>(aUserArg)) = true;
-    return PL_DHASH_STOP;
-  }
-
-  return PL_DHASH_NEXT;
-}
-#endif

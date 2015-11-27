@@ -90,7 +90,7 @@ const Tabs = Class({
     return tab;
   }
 });
-let gTabs = exports.tabs = Tabs(mainWindow);
+var gTabs = exports.tabs = Tabs(mainWindow);
 
 function tabsUnloader(event, window) {
   window = window || (event && event.target);
@@ -135,10 +135,10 @@ function onTabOpen(event) {
 
   tabNS(tab).opened = true;
 
-  tab.on('ready', function() emit(gTabs, 'ready', tab));
+  tab.on('ready', () => emit(gTabs, 'ready', tab));
   tab.once('close', onTabClose);
 
-  tab.on('pageshow', function(_tab, persisted)
+  tab.on('pageshow', (_tab, persisted) =>
     emit(gTabs, 'pageshow', tab, persisted));
 
   emit(tab, 'open', tab);
@@ -158,7 +158,7 @@ function onTabSelect(event) {
   emit(tab, 'activate', tab);
   emit(gTabs, 'activate', tab);
 
-  for (let of in gTabs) {
+  for (let t of gTabs) {
     if (t === tab) continue;
     emit(t, 'deactivate', t);
     emit(gTabs, 'deactivate', t);

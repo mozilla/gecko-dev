@@ -171,12 +171,8 @@ this.WebappOSUtils = {
   },
 
   getInstallPath: function(aApp) {
-#ifdef MOZ_B2G
-    // All b2g builds
-    return aApp.basePath + "/" + aApp.id;
-
-#elifdef MOZ_FENNEC
-   // All fennec
+#if defined(MOZ_B2G) || defined(MOZ_B2GDROID) || defined(MOZ_FENNEC)
+    // All b2g & fennec builds.
     return aApp.basePath + "/" + aApp.id;
 
 #elifdef MOZ_PHOENIX
@@ -224,7 +220,7 @@ this.WebappOSUtils = {
 #endif
 
 #endif
-    // Anything unsupported, like Metro
+    // Anything unsupported
     throw new Error("Unsupported apps platform");
   },
 
@@ -402,6 +398,10 @@ this.WebappOSUtils = {
    * Checks if the given app is locally installed.
    */
   isLaunchable: function(aApp) {
+#ifdef MOZ_WIDGET_ANDROID
+    return true;
+#else
+
     let uniqueName = this.getUniqueName(aApp);
 
 #ifdef XP_WIN
@@ -461,6 +461,7 @@ this.WebappOSUtils = {
     }
 
     return true;
+#endif
 #endif
   },
 

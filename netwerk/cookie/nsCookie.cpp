@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include "nsAutoPtr.h"
 
+static const int64_t kCookieStaleThreshold = 60 * PR_USEC_PER_SEC; // 1 minute in microseconds
+
 /******************************************************************************
  * nsCookie:
  * string helper impl
@@ -81,7 +83,7 @@ nsCookie::Create(const nsACString &aName,
 {
   // Ensure mValue contains a valid UTF-8 sequence. Otherwise XPConnect will
   // truncate the string after the first invalid octet.
-  nsRefPtr<nsUTF8ConverterService> converter = new nsUTF8ConverterService();
+  RefPtr<nsUTF8ConverterService> converter = new nsUTF8ConverterService();
   nsAutoCString aUTF8Value;
   converter->ConvertStringToUTF8(aValue, "UTF-8", false, true, 1, aUTF8Value);
 
@@ -118,6 +120,14 @@ nsCookie::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
     // There is no need to measure the sizes of the individual string
     // members, since the strings are stored in-line with the nsCookie.
     return aMallocSizeOf(this);
+}
+
+bool
+nsCookie::IsStale() const
+{
+  int64_t currentTimeInUsec = PR_Now();
+
+  return currentTimeInUsec - LastAccessed() > kCookieStaleThreshold;
 }
 
 /******************************************************************************

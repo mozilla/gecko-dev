@@ -29,8 +29,7 @@ class VideoSendStreamInput {
   // These methods do not lock internally and must be called sequentially.
   // If your application switches input sources synchronization must be done
   // externally to make sure that any old frames are not delivered concurrently.
-  virtual void PutFrame(const I420VideoFrame& video_frame) = 0;
-  virtual void SwapFrame(I420VideoFrame* video_frame) = 0;
+  virtual void IncomingCapturedFrame(const I420VideoFrame& video_frame) = 0;
 
  protected:
   virtual ~VideoSendStreamInput() {}
@@ -38,18 +37,36 @@ class VideoSendStreamInput {
 
 class VideoSendStream {
  public:
+  struct StreamStats {
+    FrameCounts frame_counts;
+    int width = 0;
+    int height = 0;
+    // TODO(holmer): Move bitrate_bps out to the webrtc::Call layer.
+    int total_bitrate_bps = 0;
+    int retransmit_bitrate_bps = 0;
+    int avg_delay_ms = 0;
+    int max_delay_ms = 0;
+    StreamDataCounters rtp_stats;
+    RtcpPacketTypeCounter rtcp_packet_type_counts;
+    RtcpStatistics rtcp_stats;
+  };
+
   struct Stats {
     Stats()
         : input_frame_rate(0),
           encode_frame_rate(0),
-          avg_delay_ms(0),
-          max_delay_ms(0) {}
-
+          avg_encode_time_ms(0),
+          encode_usage_percent(0),
+          target_media_bitrate_bps(0),
+          media_bitrate_bps(0),
+          suspended(false) {}
     int input_frame_rate;
     int encode_frame_rate;
-    int avg_delay_ms;
-    int max_delay_ms;
-    std::string c_name;
+    int avg_encode_time_ms;
+    int encode_usage_percent;
+    int target_media_bitrate_bps;
+    int media_bitrate_bps;
+    bool suspended;
     std::map<uint32_t, StreamStats> substreams;
   };
 
@@ -59,16 +76,27 @@ class VideoSendStream {
           post_encode_callback(NULL),
           local_renderer(NULL),
           render_delay_ms(0),
-          encoder(NULL),
-          internal_source(false),
           target_delay_ms(0),
-          pacing(false),
           suspend_below_min_bitrate(false) {}
-    VideoCodec codec;
+    std::string ToString() const;
+
+    struct EncoderSettings {
+      EncoderSettings() : payload_type(-1), encoder(NULL) {}
+
+      std::string ToString() const;
+
+      std::string payload_name;
+      int payload_type;
+
+      // Uninitialized VideoEncoder instance to be used for encoding. Will be
+      // initialized from inside the VideoSendStream.
+      VideoEncoder* encoder;
+    } encoder_settings;
 
     static const size_t kDefaultMaxPacketSize = 1500 - 40;  // TCP over IPv4.
     struct Rtp {
       Rtp() : max_packet_size(kDefaultMaxPacketSize) {}
+      std::string ToString() const;
 
       std::vector<uint32_t> ssrcs;
 
@@ -87,7 +115,8 @@ class VideoSendStream {
       // Settings for RTP retransmission payload format, see RFC 4588 for
       // details.
       struct Rtx {
-        Rtx() : payload_type(0) {}
+        Rtx() : payload_type(-1) {}
+        std::string ToString() const;
         // SSRCs to use for the RTX streams.
         std::vector<uint32_t> ssrcs;
 
@@ -113,29 +142,16 @@ class VideoSendStream {
 
     // Expected delay needed by the renderer, i.e. the frame will be delivered
     // this many milliseconds, if possible, earlier than expected render time.
-    // Only valid if |renderer| is set.
+    // Only valid if |local_renderer| is set.
     int render_delay_ms;
-
-    // TODO(mflodman) Move VideoEncoder to common_types.h and redefine.
-    // External encoding. 'encoder' is the external encoder instance and
-    // 'internal_source' is set to true if the encoder also captures the video
-    // frames.
-    VideoEncoder* encoder;
-    bool internal_source;
 
     // Target delay in milliseconds. A positive value indicates this stream is
     // used for streaming instead of a real-time call.
     int target_delay_ms;
 
-    // True if network a send-side packet buffer should be used to pace out
-    // packets onto the network.
-    bool pacing;
-
     // True if the stream should be suspended when the available bitrate fall
     // below the minimum configured bitrate. If this variable is false, the
     // stream may send at a rate higher than the estimated available bitrate.
-    // Enabling suspend_below_min_bitrate will also enable pacing and padding,
-    // otherwise, the video will be unable to recover from suspension.
     bool suspend_below_min_bitrate;
   };
 
@@ -143,13 +159,15 @@ class VideoSendStream {
   // VideoSendStream is valid.
   virtual VideoSendStreamInput* Input() = 0;
 
-  virtual void StartSending() = 0;
-  virtual void StopSending() = 0;
+  virtual void Start() = 0;
+  virtual void Stop() = 0;
 
-  virtual bool SetCodec(const VideoCodec& codec) = 0;
-  virtual VideoCodec GetCodec() = 0;
+  // Set which streams to send. Must have at least as many SSRCs as configured
+  // in the config. Encoder settings are passed on to the encoder instance along
+  // with the VideoStream settings.
+  virtual bool ReconfigureVideoEncoder(const VideoEncoderConfig& config) = 0;
 
-  virtual Stats GetStats() const = 0;
+  virtual Stats GetStats() = 0;
 
  protected:
   virtual ~VideoSendStream() {}

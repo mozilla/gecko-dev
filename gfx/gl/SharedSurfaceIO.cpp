@@ -6,8 +6,9 @@
 #include "SharedSurfaceIO.h"
 
 #include "GLContextCGL.h"
-#include "mozilla/gfx/MacIOSurface.h"
 #include "mozilla/DebugOnly.h"
+#include "mozilla/gfx/MacIOSurface.h"
+#include "mozilla/layers/LayersSurfaces.h"  // for SurfaceDescriptor, etc
 #include "ScopedGLHelpers.h"
 
 namespace mozilla {
@@ -36,6 +37,59 @@ SharedSurface_IOSurface::Fence()
 }
 
 bool
+SharedSurface_IOSurface::CopyTexImage2D(GLenum target, GLint level, GLenum internalformat,
+                                        GLint x, GLint y, GLsizei width, GLsizei height,
+                                        GLint border)
+{
+    /* Bug 896693 - OpenGL framebuffers that are backed by IOSurface on OSX expose a bug
+     * in glCopyTexImage2D --- internalformats GL_ALPHA, GL_LUMINANCE, GL_LUMINANCE_ALPHA
+     * return the wrong results. To work around, copy framebuffer to a temporary texture
+     * using GL_RGBA (which works), attach as read framebuffer and glCopyTexImage2D
+     * instead.
+     */
+
+    // https://www.opengl.org/sdk/docs/man3/xhtml/glCopyTexImage2D.xml says that width or
+    // height set to 0 results in a NULL texture. Lets not do any work and punt to
+    // original glCopyTexImage2D, since the FBO below will fail when trying to attach a
+    // texture of 0 width or height.
+    if (width == 0 || height == 0)
+        return false;
+
+    switch (internalformat) {
+    case LOCAL_GL_ALPHA:
+    case LOCAL_GL_LUMINANCE:
+    case LOCAL_GL_LUMINANCE_ALPHA:
+        break;
+
+    default:
+        return false;
+    }
+
+    MOZ_ASSERT(mGL->IsCurrent());
+
+    ScopedTexture destTex(mGL);
+    {
+        ScopedBindTexture bindTex(mGL, destTex.Texture());
+        mGL->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MIN_FILTER,
+                            LOCAL_GL_NEAREST);
+        mGL->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MAG_FILTER,
+                            LOCAL_GL_NEAREST);
+        mGL->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_WRAP_S,
+                            LOCAL_GL_CLAMP_TO_EDGE);
+        mGL->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_WRAP_T,
+                            LOCAL_GL_CLAMP_TO_EDGE);
+        mGL->raw_fCopyTexImage2D(LOCAL_GL_TEXTURE_2D, 0, LOCAL_GL_RGBA, x, y, width,
+                                 height, 0);
+    }
+
+    ScopedFramebufferForTexture tmpFB(mGL, destTex.Texture(), LOCAL_GL_TEXTURE_2D);
+    ScopedBindFramebuffer bindFB(mGL, tmpFB.FB());
+    mGL->raw_fCopyTexImage2D(target, level, internalformat, x, y, width, height, border);
+
+    return true;
+}
+
+bool
 SharedSurface_IOSurface::ReadPixels(GLint x, GLint y, GLsizei width, GLsizei height,
                                     GLenum format, GLenum type, GLvoid* pixels)
 {
@@ -46,23 +100,22 @@ SharedSurface_IOSurface::ReadPixels(GLint x, GLint y, GLsizei width, GLsizei hei
     // from that.
     MOZ_ASSERT(mGL->IsCurrent());
 
-
     ScopedTexture destTex(mGL);
     {
         ScopedFramebufferForTexture srcFB(mGL, ProdTexture(), ProdTextureTarget());
 
         ScopedBindFramebuffer bindFB(mGL, srcFB.FB());
         ScopedBindTexture bindTex(mGL, destTex.Texture());
-        mGL->fCopyTexImage2D(LOCAL_GL_TEXTURE_2D, 0,
-                             mHasAlpha ? LOCAL_GL_RGBA : LOCAL_GL_RGB,
-                             x, y,
-                             width, height, 0);
+        mGL->raw_fCopyTexImage2D(LOCAL_GL_TEXTURE_2D, 0,
+                                 mHasAlpha ? LOCAL_GL_RGBA : LOCAL_GL_RGB,
+                                 x, y,
+                                 width, height, 0);
     }
 
     ScopedFramebufferForTexture destFB(mGL, destTex.Texture());
 
     ScopedBindFramebuffer bindFB(mGL, destFB.FB());
-    mGL->fReadPixels(0, 0, width, height, format, type, pixels);
+    mGL->raw_fReadPixels(0, 0, width, height, format, type, pixels);
     return true;
 }
 
@@ -100,33 +153,14 @@ SharedSurface_IOSurface::SharedSurface_IOSurface(const RefPtr<MacIOSurface>& ioS
                   AttachmentType::GLTexture,
                   gl,
                   size,
-                  hasAlpha)
+                  hasAlpha,
+                  true)
   , mIOSurf(ioSurf)
-  , mCurConsGL(nullptr)
-  , mConsTex(0)
 {
     gl->MakeCurrent();
     mProdTex = 0;
     gl->fGenTextures(1, &mProdTex);
     BackTextureWithIOSurf(gl, mProdTex, mIOSurf);
-}
-
-GLuint
-SharedSurface_IOSurface::ConsTexture(GLContext* consGL)
-{
-    if (!mCurConsGL) {
-        mCurConsGL = consGL;
-    }
-    MOZ_ASSERT(consGL == mCurConsGL);
-
-    if (!mConsTex) {
-        consGL->MakeCurrent();
-        mConsTex = 0;
-        consGL->fGenTextures(1, &mConsTex);
-        BackTextureWithIOSurf(consGL, mConsTex, mIOSurf);
-    }
-
-    return mConsTex;
 }
 
 SharedSurface_IOSurface::~SharedSurface_IOSurface()
@@ -135,22 +169,57 @@ SharedSurface_IOSurface::~SharedSurface_IOSurface()
         DebugOnly<bool> success = mGL->MakeCurrent();
         MOZ_ASSERT(success);
         mGL->fDeleteTextures(1, &mProdTex);
-        mGL->fDeleteTextures(1, &mConsTex); // This will work if we're shared.
     }
+}
+
+bool
+SharedSurface_IOSurface::ToSurfaceDescriptor(layers::SurfaceDescriptor* const out_descriptor)
+{
+    bool isOpaque = !mHasAlpha;
+    *out_descriptor = layers::SurfaceDescriptorMacIOSurface(mIOSurf->GetIOSurfaceID(),
+                                                            mIOSurf->GetContentsScaleFactor(),
+                                                            isOpaque);
+    return true;
+}
+
+bool
+SharedSurface_IOSurface::ReadbackBySharedHandle(gfx::DataSourceSurface* out_surface)
+{
+    MOZ_ASSERT(out_surface);
+    mIOSurf->Lock();
+    size_t bytesPerRow = mIOSurf->GetBytesPerRow();
+    size_t ioWidth = mIOSurf->GetDevicePixelWidth();
+    size_t ioHeight = mIOSurf->GetDevicePixelHeight();
+
+    const unsigned char* ioData = (unsigned char*)mIOSurf->GetBaseAddress();
+    gfx::DataSourceSurface::ScopedMap map(out_surface, gfx::DataSourceSurface::WRITE);
+    if (!map.IsMapped()) {
+        mIOSurf->Unlock();
+        return false;
+    }
+
+    for (size_t i = 0; i < ioHeight; i++) {
+        memcpy(map.GetData() + i * map.GetStride(),
+               ioData + i * bytesPerRow, ioWidth * 4);
+    }
+
+    mIOSurf->Unlock();
+    return true;
 }
 
 ////////////////////////////////////////////////////////////////////////
 // SurfaceFactory_IOSurface
 
 /*static*/ UniquePtr<SurfaceFactory_IOSurface>
-SurfaceFactory_IOSurface::Create(GLContext* gl,
-                                 const SurfaceCaps& caps)
+SurfaceFactory_IOSurface::Create(GLContext* gl, const SurfaceCaps& caps,
+                                 const RefPtr<layers::ISurfaceAllocator>& allocator,
+                                 const layers::TextureFlags& flags)
 {
     gfx::IntSize maxDims(MacIOSurface::GetMaxWidth(),
                          MacIOSurface::GetMaxHeight());
 
     typedef SurfaceFactory_IOSurface ptrT;
-    UniquePtr<ptrT> ret( new ptrT(gl, caps, maxDims) );
+    UniquePtr<ptrT> ret( new ptrT(gl, caps, allocator, flags, maxDims) );
     return Move(ret);
 }
 
@@ -176,5 +245,5 @@ SurfaceFactory_IOSurface::CreateShared(const gfx::IntSize& size)
     return SharedSurface_IOSurface::Create(ioSurf, mGL, hasAlpha);
 }
 
-}
-}
+} // namespace gl
+} // namespace mozilla

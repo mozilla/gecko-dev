@@ -5,6 +5,8 @@
  */
 
 [Pref="dom.icc.enabled",
+ CheckAnyPermissions="mobileconnection",
+ AvailableIn="CertifiedApps",
  Constructor(DOMString type, optional IccChangeEventInit eventInitDict)]
 interface IccChangeEvent : Event
 {

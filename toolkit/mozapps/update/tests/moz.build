@@ -4,39 +4,40 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-XPCSHELL_TESTS_MANIFESTS += ['unit_aus_update/xpcshell.ini']
+HAS_MISC_RULE = True
 
-if CONFIG['MOZ_WIDGET_TOOLKIT'] != 'android':
-    MOCHITEST_CHROME_MANIFESTS += ['chrome/chrome.ini']
-    XPCSHELL_TESTS_MANIFESTS += ['unit_base_updater/xpcshell.ini']
+MOCHITEST_CHROME_MANIFESTS += ['chrome/chrome.ini']
 
-    if CONFIG['MOZ_MAINTENANCE_SERVICE'] and not CONFIG['HAVE_64BIT_BUILD']:
-        XPCSHELL_TESTS_MANIFESTS += ['unit_service_updater/xpcshell.ini']
+XPCSHELL_TESTS_MANIFESTS += [
+    'unit_aus_update/xpcshell.ini',
+    'unit_base_updater/xpcshell.ini'
+]
 
-    SimplePrograms([
-        'TestAUSHelper',
-        'TestAUSReadStrings',
-    ])
+if CONFIG['MOZ_MAINTENANCE_SERVICE']:
+    XPCSHELL_TESTS_MANIFESTS += ['unit_service_updater/xpcshell.ini']
 
-    LOCAL_INCLUDES += [
-        '/toolkit/mozapps/update',
-        '/toolkit/mozapps/update/common',
+SimplePrograms([
+    'TestAUSHelper',
+    'TestAUSReadStrings',
+])
+
+LOCAL_INCLUDES += [
+    '/toolkit/mozapps/update',
+    '/toolkit/mozapps/update/common',
+]
+
+if CONFIG['OS_ARCH'] == 'WINNT':
+    USE_LIBS += [
+        'updatecommon-standalone',
     ]
 
-    if CONFIG['OS_ARCH'] == 'WINNT':
-        USE_LIBS += [
-            'updatecommon-standalone',
-        ]
-    else:
-        USE_LIBS += [
-            'updatecommon',
-        ]
-
-    if CONFIG['OS_ARCH'] == 'WINNT':
-        OS_LIBS += [
-            'wintrust',
-            'shlwapi',
-        ]
+    OS_LIBS += [
+        'shlwapi',
+      ]
+else:
+    USE_LIBS += [
+        'updatecommon',
+    ]
 
 for var in ('MOZ_APP_NAME', 'MOZ_APP_BASENAME', 'MOZ_APP_DISPLAYNAME',
             'MOZ_APP_VENDOR', 'BIN_SUFFIX', 'MOZ_DEBUG'):
@@ -44,7 +45,7 @@ for var in ('MOZ_APP_NAME', 'MOZ_APP_BASENAME', 'MOZ_APP_DISPLAYNAME',
 
 DEFINES['NS_NO_XPCOM'] = True
 
-if CONFIG['MOZ_MAINTENANCE_SERVICE'] and not CONFIG['HAVE_64BIT_BUILD']:
+if CONFIG['MOZ_MAINTENANCE_SERVICE']:
     DEFINES['MOZ_MAINTENANCE_SERVICE'] = CONFIG['MOZ_MAINTENANCE_SERVICE']
 
 # For debugging purposes only

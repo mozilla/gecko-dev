@@ -34,18 +34,6 @@ ifndef EXTERNALLY_MANAGED_MAKE_FILE
 # scenarios.
 _current_makefile = $(CURDIR)/$(firstword $(MAKEFILE_LIST))
 
-CHECK_MOZBUILD_VARIABLES = $(foreach var,$(_MOZBUILD_EXTERNAL_VARIABLES), \
-  $(if $(subst $($(var)_FROZEN),,'$($(var))'), \
-	  $(error Variable $(var) is defined in $(_current_makefile). It should only be defined in moz.build files),\
-  )) $(foreach var,$(_DEPRECATED_VARIABLES), \
-	$(if $(subst $($(var)_FROZEN),,'$($(var))'), \
-    $(error Variable $(var) is defined in $(_current_makefile). This variable has been deprecated. It does nothing. It must be removed in order to build),\
-    ))
-
-# Check variables set after autoconf.mk (included at the top of Makefiles) is
-# included and before config.mk is included.
-_eval_for_side_effects := $(CHECK_MOZBUILD_VARIABLES)
-
 # Import the automatically generated backend file. If this file doesn't exist,
 # the backend hasn't been properly configured. We want this to be a fatal
 # error, hence not using "-include".
@@ -54,8 +42,6 @@ GLOBAL_DEPS += backend.mk
 include backend.mk
 endif
 
-# Freeze the values specified by moz.build to catch them if they fail.
-$(foreach var,$(_MOZBUILD_EXTERNAL_VARIABLES) $(_DEPRECATED_VARIABLES),$(eval $(var)_FROZEN := '$($(var))'))
 endif
 
 space = $(NULL) $(NULL)
@@ -94,13 +80,10 @@ check-variable = $(if $(filter-out 0 1,$(words $($(x))z)),$(error Spaces are not
 $(foreach x,$(CHECK_VARS),$(check-variable))
 
 ifndef INCLUDED_FUNCTIONS_MK
-include $(topsrcdir)/config/makefiles/functions.mk
+include $(MOZILLA_DIR)/config/makefiles/functions.mk
 endif
 
 RM = rm -f
-
-# LIBXUL_DIST is not defined under js/src, thus we make it mean DIST there.
-LIBXUL_DIST ?= $(DIST)
 
 # FINAL_TARGET specifies the location into which we copy end-user-shipped
 # build products (typelibs, components, chrome). It may already be specified by
@@ -115,22 +98,30 @@ FINAL_TARGET ?= $(if $(XPI_NAME),$(DIST)/xpi-stage/$(XPI_NAME),$(DIST)/bin)$(DIS
 FINAL_TARGET_FROZEN := '$(FINAL_TARGET)'
 
 ifdef XPI_NAME
-DEFINES += -DXPI_NAME=$(XPI_NAME)
+ACDEFINES += -DXPI_NAME=$(XPI_NAME)
 endif
 
 # The VERSION_NUMBER is suffixed onto the end of the DLLs we ship.
 VERSION_NUMBER		= 50
 
 ifeq ($(HOST_OS_ARCH),WINNT)
-win_srcdir	:= $(subst $(topsrcdir),$(WIN_TOP_SRC),$(srcdir))
-BUILD_TOOLS	= $(WIN_TOP_SRC)/build/unix
+  ifeq ($(MOZILLA_DIR),$(topsrcdir))
+    win_srcdir := $(subst $(topsrcdir),$(WIN_TOP_SRC),$(srcdir))
+  else
+    # This means we're in comm-central's topsrcdir, so we need to adjust
+    # WIN_TOP_SRC (which points to mozilla's topsrcdir) for the substitution
+    # to win_srcdir.
+		cc_WIN_TOP_SRC := $(WIN_TOP_SRC:%/mozilla=%)
+    win_srcdir := $(subst $(topsrcdir),$(cc_WIN_TOP_SRC),$(srcdir))
+  endif
+  BUILD_TOOLS = $(WIN_TOP_SRC)/build/unix
 else
-win_srcdir	:= $(srcdir)
-BUILD_TOOLS	= $(topsrcdir)/build/unix
+  win_srcdir := $(srcdir)
+  BUILD_TOOLS = $(MOZILLA_DIR)/build/unix
 endif
 
 CONFIG_TOOLS	= $(MOZ_BUILD_ROOT)/config
-AUTOCONF_TOOLS	= $(topsrcdir)/build/autoconf
+AUTOCONF_TOOLS	= $(MOZILLA_DIR)/build/autoconf
 
 #
 # Strip off the excessively long version numbers on these platforms,
@@ -168,13 +159,7 @@ _DEBUG_ASFLAGS :=
 _DEBUG_CFLAGS :=
 _DEBUG_LDFLAGS :=
 
-ifdef MOZ_DEBUG
-  _DEBUG_CFLAGS += $(MOZ_DEBUG_ENABLE_DEFS)
-  XULPPFLAGS += $(MOZ_DEBUG_ENABLE_DEFS)
-else
-  _DEBUG_CFLAGS += $(MOZ_DEBUG_DISABLE_DEFS)
-  XULPPFLAGS += $(MOZ_DEBUG_DISABLE_DEFS)
-endif
+_DEBUG_CFLAGS += $(MOZ_DEBUG_DEFINES)
 
 ifneq (,$(MOZ_DEBUG)$(MOZ_DEBUG_SYMBOLS))
   ifeq ($(AS),yasm)
@@ -192,7 +177,14 @@ ifneq (,$(MOZ_DEBUG)$(MOZ_DEBUG_SYMBOLS))
   _DEBUG_LDFLAGS += $(MOZ_DEBUG_LDFLAGS)
 endif
 
+ifeq ($(YASM),$(AS))
+# yasm doesn't like the GNU as flags we may already have in ASFLAGS, so reset.
+ASFLAGS := $(_DEBUG_ASFLAGS)
+# yasm doesn't like -c
+AS_DASH_C_FLAG=
+else
 ASFLAGS += $(_DEBUG_ASFLAGS)
+endif
 OS_CFLAGS += $(_DEBUG_CFLAGS)
 OS_CXXFLAGS += $(_DEBUG_CFLAGS)
 OS_LDFLAGS += $(_DEBUG_LDFLAGS)
@@ -220,52 +212,26 @@ endif
 endif
 
 #
-# Handle trace-malloc and DMD in optimized builds.
+# Handle DMD in optimized builds.
 # No opt to give sane callstacks.
 #
-ifneq (,$(NS_TRACE_MALLOC)$(MOZ_DMD))
+ifdef MOZ_DMD
 MOZ_OPTIMIZE_FLAGS=-Zi -Od -UDEBUG -DNDEBUG
 ifdef HAVE_64BIT_BUILD
 OS_LDFLAGS = -DEBUG -OPT:REF,ICF
 else
 OS_LDFLAGS = -DEBUG -OPT:REF
 endif
-endif # NS_TRACE_MALLOC || MOZ_DMD
+endif # MOZ_DMD
 
 endif # MOZ_DEBUG
 
-# We don't build a static CRT when building a custom CRT,
-# it appears to be broken. So don't link to jemalloc if
-# the Makefile wants static CRT linking.
-ifeq ($(MOZ_MEMORY)_$(USE_STATIC_LIBS),1_1)
-# Disable default CRT libs and add the right lib path for the linker
-MOZ_GLUE_LDFLAGS=
-endif
-
 endif # WINNT && !GNU_CC
-
-ifdef MOZ_GLUE_PROGRAM_LDFLAGS
-DEFINES += -DMOZ_GLUE_IN_PROGRAM
-else
-MOZ_GLUE_PROGRAM_LDFLAGS=$(MOZ_GLUE_LDFLAGS)
-endif
 
 #
 # Build using PIC by default
 #
 _ENABLE_PIC=1
-
-# PGO on MSVC is opt-in
-ifdef _MSC_VER
-ifndef MSVC_ENABLE_PGO
-NO_PROFILE_GUIDED_OPTIMIZE = 1
-endif
-endif
-
-# No sense in profiling tools
-ifdef INTERNAL_TOOLS
-NO_PROFILE_GUIDED_OPTIMIZE = 1
-endif
 
 # Don't build SIMPLE_PROGRAMS with PGO, since they don't need it anyway,
 # and we don't have the same build logic to re-link them in the second pass.
@@ -299,10 +265,6 @@ endif
 endif # MOZ_PROFILE_USE
 endif # NO_PROFILE_GUIDED_OPTIMIZE
 
-ifdef _MSC_VER
-OS_LDFLAGS += $(DELAYLOAD_LDFLAGS)
-endif # _MSC_VER
-
 MAKE_JARS_FLAGS = \
 	-t $(topsrcdir) \
 	-f $(MOZ_CHROME_FILE_FORMAT) \
@@ -325,11 +287,6 @@ MY_RULES	:= $(DEPTH)/config/myrules.mk
 #
 CCC = $(CXX)
 
-# Java macros
-JAVA_GEN_DIR  = _javagen
-JAVA_DIST_DIR = $(DEPTH)/$(JAVA_GEN_DIR)
-JAVA_IFACES_PKG_NAME = org/mozilla/interfaces
-
 INCLUDES = \
   -I$(srcdir) \
   -I. \
@@ -341,7 +298,6 @@ ifndef IS_GYP_DIR
 # NSPR_CFLAGS and NSS_CFLAGS must appear ahead of the other flags to avoid Linux
 # builds wrongly picking up system NSPR/NSS header files.
 OS_INCLUDES := \
-  $(if $(LIBXUL_SDK),-I$(LIBXUL_SDK)/include) \
   $(NSPR_CFLAGS) $(NSS_CFLAGS) \
   $(MOZ_JPEG_CFLAGS) \
   $(MOZ_PNG_CFLAGS) \
@@ -350,21 +306,14 @@ OS_INCLUDES := \
   $(NULL)
 endif
 
-include $(topsrcdir)/config/static-checking-config.mk
+include $(MOZILLA_DIR)/config/static-checking-config.mk
 
 CFLAGS		= $(OS_CPPFLAGS) $(OS_CFLAGS)
 CXXFLAGS	= $(OS_CPPFLAGS) $(OS_CXXFLAGS)
 LDFLAGS		= $(OS_LDFLAGS) $(MOZBUILD_LDFLAGS) $(MOZ_FIX_LINK_PATHS)
 
-# Allow each module to override the *default* optimization settings
-# by setting MODULE_OPTIMIZE_FLAGS if the developer has not given
-# arguments to --enable-optimize
 ifdef MOZ_OPTIMIZE
 ifeq (1,$(MOZ_OPTIMIZE))
-ifdef MODULE_OPTIMIZE_FLAGS
-CFLAGS		+= $(MODULE_OPTIMIZE_FLAGS)
-CXXFLAGS	+= $(MODULE_OPTIMIZE_FLAGS)
-else
 ifneq (,$(if $(MOZ_PROFILE_GENERATE)$(MOZ_PROFILE_USE),$(MOZ_PGO_OPTIMIZE_FLAGS)))
 CFLAGS		+= $(MOZ_PGO_OPTIMIZE_FLAGS)
 CXXFLAGS	+= $(MOZ_PGO_OPTIMIZE_FLAGS)
@@ -372,12 +321,12 @@ else
 CFLAGS		+= $(MOZ_OPTIMIZE_FLAGS)
 CXXFLAGS	+= $(MOZ_OPTIMIZE_FLAGS)
 endif # neq (,$(MOZ_PROFILE_GENERATE)$(MOZ_PROFILE_USE))
-endif # MODULE_OPTIMIZE_FLAGS
 else
 CFLAGS		+= $(MOZ_OPTIMIZE_FLAGS)
 CXXFLAGS	+= $(MOZ_OPTIMIZE_FLAGS)
 endif # MOZ_OPTIMIZE == 1
 LDFLAGS		+= $(MOZ_OPTIMIZE_LDFLAGS)
+RUSTFLAGS	+= $(MOZ_OPTIMIZE_RUSTFLAGS)
 endif # MOZ_OPTIMIZE
 
 ifdef CROSS_COMPILE
@@ -385,11 +334,7 @@ HOST_CFLAGS	+= $(HOST_OPTIMIZE_FLAGS)
 else
 ifdef MOZ_OPTIMIZE
 ifeq (1,$(MOZ_OPTIMIZE))
-ifdef MODULE_OPTIMIZE_FLAGS
-HOST_CFLAGS	+= $(MODULE_OPTIMIZE_FLAGS)
-else
 HOST_CFLAGS	+= $(MOZ_OPTIMIZE_FLAGS)
-endif # MODULE_OPTIMIZE_FLAGS
 else
 HOST_CFLAGS	+= $(MOZ_OPTIMIZE_FLAGS)
 endif # MOZ_OPTIMIZE == 1
@@ -399,51 +344,55 @@ endif # CROSS_COMPILE
 CFLAGS += $(MOZ_FRAMEPTR_FLAGS)
 CXXFLAGS += $(MOZ_FRAMEPTR_FLAGS)
 
-# Check for FAIL_ON_WARNINGS & FAIL_ON_WARNINGS_DEBUG (Shorthand for Makefiles
-# to request that we use the 'warnings as errors' compile flags)
+# Check for ALLOW_COMPILER_WARNINGS (shorthand for Makefiles to request that we
+# *don't* use the warnings-as-errors compile flags)
 
-# NOTE: First, we clear FAIL_ON_WARNINGS[_DEBUG] if we're doing a Windows PGO
-# build, since WARNINGS_AS_ERRORS has been suspected of causing isuses in that
-# situation. (See bug 437002.)
+# Don't use warnings-as-errors in Windows PGO builds because it is suspected of
+# causing problems in that situation. (See bug 437002.)
 ifeq (WINNT_1,$(OS_ARCH)_$(MOZ_PROFILE_GENERATE)$(MOZ_PROFILE_USE))
-FAIL_ON_WARNINGS_DEBUG=
-FAIL_ON_WARNINGS=
+ALLOW_COMPILER_WARNINGS=1
 endif # WINNT && (MOS_PROFILE_GENERATE ^ MOZ_PROFILE_USE)
 
-# Now, check for debug version of flag; it turns on normal flag in debug builds.
-ifdef FAIL_ON_WARNINGS_DEBUG
-ifdef MOZ_DEBUG
-FAIL_ON_WARNINGS = 1
-endif # MOZ_DEBUG
-endif # FAIL_ON_WARNINGS_DEBUG
+# Don't use warnings-as-errors in clang-cl because it warns about many more
+# things than MSVC does.
+ifdef CLANG_CL
+ALLOW_COMPILER_WARNINGS=1
+endif # CLANG_CL
 
-# Check for normal version of flag, and add WARNINGS_AS_ERRORS if it's set to 1.
-ifdef FAIL_ON_WARNINGS
+# Use warnings-as-errors if ALLOW_COMPILER_WARNINGS is not set to 1 (which
+# includes the case where it's undefined).
+ifneq (1,$(ALLOW_COMPILER_WARNINGS))
 CXXFLAGS += $(WARNINGS_AS_ERRORS)
 CFLAGS   += $(WARNINGS_AS_ERRORS)
-endif # FAIL_ON_WARNINGS
+endif # ALLOW_COMPILER_WARNINGS
 
 ifeq ($(OS_ARCH)_$(GNU_CC),WINNT_)
 #// Currently, unless USE_STATIC_LIBS is defined, the multithreaded
 #// DLL version of the RTL is used...
 #//
 #//------------------------------------------------------------------------
+ifdef MOZ_ASAN
+# ASAN-instrumented code tries to link against the dynamic CRT, which can't be
+# used in the same link as the static CRT.
+USE_STATIC_LIBS=
+endif # MOZ_ASAN
+
 ifdef USE_STATIC_LIBS
 RTL_FLAGS=-MT          # Statically linked multithreaded RTL
-ifneq (,$(MOZ_DEBUG)$(NS_TRACE_MALLOC))
+ifdef MOZ_DEBUG
 ifndef MOZ_NO_DEBUG_RTL
 RTL_FLAGS=-MTd         # Statically linked multithreaded MSVC4.0 debug RTL
 endif
-endif # MOZ_DEBUG || NS_TRACE_MALLOC
+endif # MOZ_DEBUG
 
 else # !USE_STATIC_LIBS
 
 RTL_FLAGS=-MD          # Dynamically linked, multithreaded RTL
-ifneq (,$(MOZ_DEBUG)$(NS_TRACE_MALLOC))
+ifdef MOZ_DEBUG
 ifndef MOZ_NO_DEBUG_RTL
 RTL_FLAGS=-MDd         # Dynamically linked, multithreaded MSVC4.0 debug RTL
 endif
-endif # MOZ_DEBUG || NS_TRACE_MALLOC
+endif # MOZ_DEBUG
 endif # USE_STATIC_LIBS
 endif # WINNT && !GNU_CC
 
@@ -460,15 +409,18 @@ OS_COMPILE_CMMFLAGS += -fobjc-abi-version=2 -fobjc-legacy-dispatch
 endif
 endif
 
-COMPILE_CFLAGS	= $(VISIBILITY_FLAGS) $(DEFINES) $(INCLUDES) $(OS_INCLUDES) $(DSO_CFLAGS) $(DSO_PIC_CFLAGS) $(RTL_FLAGS) $(OS_CPPFLAGS) $(OS_COMPILE_CFLAGS) $(CFLAGS) $(MOZBUILD_CFLAGS) $(EXTRA_COMPILE_FLAGS)
-COMPILE_CXXFLAGS = $(if $(DISABLE_STL_WRAPPING),,$(STL_FLAGS)) $(VISIBILITY_FLAGS) $(DEFINES) $(INCLUDES) $(OS_INCLUDES) $(DSO_CFLAGS) $(DSO_PIC_CFLAGS) $(RTL_FLAGS) $(OS_CPPFLAGS) $(OS_COMPILE_CXXFLAGS) $(CXXFLAGS) $(MOZBUILD_CXXFLAGS) $(EXTRA_COMPILE_FLAGS)
-COMPILE_CMFLAGS = $(OS_COMPILE_CMFLAGS) $(MOZBUILD_CMFLAGS) $(EXTRA_COMPILE_FLAGS)
-COMPILE_CMMFLAGS = $(OS_COMPILE_CMMFLAGS) $(MOZBUILD_CMMFLAGS) $(EXTRA_COMPILE_FLAGS)
-ASFLAGS += $(EXTRA_ASSEMBLER_FLAGS)
+COMPILE_CFLAGS	= $(VISIBILITY_FLAGS) $(DEFINES) $(INCLUDES) $(OS_INCLUDES) $(DSO_CFLAGS) $(DSO_PIC_CFLAGS) $(RTL_FLAGS) $(OS_COMPILE_CFLAGS) $(CFLAGS) $(MOZBUILD_CFLAGS)
+COMPILE_CXXFLAGS = $(if $(DISABLE_STL_WRAPPING),,$(STL_FLAGS)) $(VISIBILITY_FLAGS) $(DEFINES) $(INCLUDES) $(OS_INCLUDES) $(DSO_CFLAGS) $(DSO_PIC_CFLAGS) $(RTL_FLAGS) $(OS_COMPILE_CXXFLAGS) $(CXXFLAGS) $(MOZBUILD_CXXFLAGS)
+COMPILE_CMFLAGS = $(OS_COMPILE_CMFLAGS) $(MOZBUILD_CMFLAGS)
+COMPILE_CMMFLAGS = $(OS_COMPILE_CMMFLAGS) $(MOZBUILD_CMMFLAGS)
+ASFLAGS += $(MOZBUILD_ASFLAGS)
 
 ifndef CROSS_COMPILE
 HOST_CFLAGS += $(RTL_FLAGS)
 endif
+
+HOST_CFLAGS += $(HOST_DEFINES) $(MOZBUILD_HOST_CFLAGS)
+HOST_CXXFLAGS += $(HOST_DEFINES) $(MOZBUILD_HOST_CXXFLAGS)
 
 #
 # Name of the binary code directories
@@ -476,13 +428,8 @@ endif
 # Override defaults
 
 # Default location of include files
-ifndef LIBXUL_SDK
 IDL_PARSER_DIR = $(topsrcdir)/xpcom/idl-parser
 IDL_PARSER_CACHE_DIR = $(DEPTH)/xpcom/idl-parser
-else
-IDL_PARSER_DIR = $(LIBXUL_SDK)/sdk/bin
-IDL_PARSER_CACHE_DIR = $(LIBXUL_SDK)/sdk/bin
-endif
 
 SDK_LIB_DIR = $(DIST)/sdk/lib
 SDK_BIN_DIR = $(DIST)/sdk/bin
@@ -520,16 +467,6 @@ WIN32_EXE_LDFLAGS	+= -STACK:2097152
 endif
 endif
 
-# If we're building a component on MSVC, we don't want to generate an
-# import lib, because that import lib will collide with the name of a
-# static version of the same library.
-ifeq ($(GNU_LD)$(OS_ARCH),WINNT)
-ifdef IS_COMPONENT
-LDFLAGS += -IMPLIB:fake.lib
-DELETE_AFTER_LINK = fake.lib fake.exp
-endif
-endif
-
 #
 # Include any personal overrides the user might think are needed.
 #
@@ -547,7 +484,7 @@ endif
 PWD := $(CURDIR)
 endif
 
-NSINSTALL_PY := $(PYTHON) $(abspath $(topsrcdir)/config/nsinstall.py)
+NSINSTALL_PY := $(PYTHON) $(abspath $(MOZILLA_DIR)/config/nsinstall.py)
 # For Pymake, wherever we use nsinstall.py we're also going to try to make it
 # a native command where possible. Since native commands can't be used outside
 # of single-line commands, we continue to provide INSTALL for general use.
@@ -593,7 +530,7 @@ sysinstall_cmd = install_cmd
 # overridden by the command line. (Besides, AB_CD is prettier).
 AB_CD = $(MOZ_UI_LOCALE)
 # Many locales directories want this definition.
-DEFINES += -DAB_CD=$(AB_CD)
+ACDEFINES += -DAB_CD=$(AB_CD)
 
 ifndef L10NBASEDIR
   L10NBASEDIR = $(error L10NBASEDIR not defined by configure)
@@ -633,8 +570,15 @@ MERGE_FILE = $(LOCALE_SRCDIR)/$(1)
 endif
 MERGE_FILES = $(foreach f,$(1),$(call MERGE_FILE,$(f)))
 
+# These marcros are similar to MERGE_FILE, but no merging, and en-US first.
+# They're used for searchplugins, for example.
+EN_US_OR_L10N_FILE = $(firstword \
+  $(wildcard $(srcdir)/en-US/$(1)) \
+  $(LOCALE_SRCDIR)/$(1) )
+EN_US_OR_L10N_FILES = $(foreach f,$(1),$(call EN_US_OR_L10N_FILE,$(f)))
+
 ifneq (WINNT,$(OS_ARCH))
-RUN_TEST_PROGRAM = $(LIBXUL_DIST)/bin/run-mozilla.sh
+RUN_TEST_PROGRAM = $(DIST)/bin/run-mozilla.sh
 endif # ! WINNT
 
 #
@@ -648,13 +592,13 @@ ifdef MOZ_DEBUG
 JAVAC_FLAGS += -g
 endif
 
-CREATE_PRECOMPLETE_CMD = $(PYTHON) $(abspath $(topsrcdir)/config/createprecomplete.py)
+CREATE_PRECOMPLETE_CMD = $(PYTHON) $(abspath $(MOZILLA_DIR)/config/createprecomplete.py)
 
 # MDDEPDIR is the subdirectory where dependency files are stored
 MDDEPDIR := .deps
 
-EXPAND_LIBS_EXEC = $(PYTHON) $(topsrcdir)/config/expandlibs_exec.py
-EXPAND_LIBS_GEN = $(PYTHON) $(topsrcdir)/config/expandlibs_gen.py
+EXPAND_LIBS_EXEC = $(PYTHON) $(MOZILLA_DIR)/config/expandlibs_exec.py
+EXPAND_LIBS_GEN = $(PYTHON) $(MOZILLA_DIR)/config/expandlibs_gen.py
 EXPAND_AR = $(EXPAND_LIBS_EXEC) --extract -- $(AR)
 EXPAND_CC = $(EXPAND_LIBS_EXEC) --uselist -- $(CC)
 EXPAND_CCC = $(EXPAND_LIBS_EXEC) --uselist -- $(CCC)
@@ -665,20 +609,56 @@ EXPAND_MKSHLIB_ARGS += --symbol-order $(SYMBOL_ORDER)
 endif
 EXPAND_MKSHLIB = $(EXPAND_LIBS_EXEC) $(EXPAND_MKSHLIB_ARGS) -- $(MKSHLIB)
 
+# $(call CHECK_SYMBOLS,lib,PREFIX,dep_name,test)
+# Checks that the given `lib` doesn't contain dependency on symbols with a
+# version starting with `PREFIX`_ and matching the `test`. `dep_name` is only
+# used for the error message.
+# `test` is an awk expression using the information in the variable `v` which
+# contains a list of version items ([major, minor, ...]).
+define CHECK_SYMBOLS
+@$(TOOLCHAIN_PREFIX)readelf -sW $(1) | \
+awk '$$8 ~ /@$(2)_/ { \
+	split($$8,a,"@"); \
+	split(a[2],b,"_"); \
+	split(b[2],v,"."); \
+	if ($(4)) { \
+		if (!found) { \
+			print "TEST-UNEXPECTED-FAIL | check_stdcxx | We do not want these $(3) symbol versions to be used:" \
+		} \
+		print " ",$$8; \
+		found=1 \
+	} \
+} \
+END { \
+	if (found) { \
+		exit(1) \
+	} \
+}'
+endef
+
 ifneq (,$(MOZ_LIBSTDCXX_TARGET_VERSION)$(MOZ_LIBSTDCXX_HOST_VERSION))
-ifneq ($(OS_ARCH),Darwin)
-CHECK_STDCXX = @$(TOOLCHAIN_PREFIX)objdump -p $(1) | grep -v -e 'GLIBCXX_3\.4\.\(9\|[1-9][0-9]\)' > /dev/null || ( echo 'TEST-UNEXPECTED-FAIL | check_stdcxx | We do not want these libstdc++ symbols to be used:' && $(TOOLCHAIN_PREFIX)objdump -T $(1) | grep -e 'GLIBCXX_3\.4\.\(9\|[1-9][0-9]\)' && false)
-endif
+CHECK_STDCXX = $(call CHECK_SYMBOLS,$(1),GLIBCXX,libstdc++,v[1] > 3 || (v[1] == 3 && v[2] == 4 && v[3] > 10))
+CHECK_GLIBC = $(call CHECK_SYMBOLS,$(1),GLIBC,libc,v[1] > 2 || (v[1] == 2 && v[2] > 7))
 endif
 
 ifeq (,$(filter $(OS_TARGET),WINNT Darwin))
 CHECK_TEXTREL = @$(TOOLCHAIN_PREFIX)readelf -d $(1) | grep TEXTREL > /dev/null && echo 'TEST-UNEXPECTED-FAIL | check_textrel | We do not want text relocations in libraries and programs' || true
 endif
 
+ifeq ($(MOZ_WIDGET_TOOLKIT),android)
+# While this is very unlikely (libc being added by the compiler at the end
+# of the linker command line), if libmozglue.so ends up after libc.so, all
+# hell breaks loose, so better safe than sorry, and check it's actually the
+# case.
+CHECK_MOZGLUE_ORDER = @$(TOOLCHAIN_PREFIX)readelf -d $(1) | grep NEEDED | awk '{ libs[$$NF] = ++n } END { if (libs["[libmozglue.so]"] && libs["[libc.so]"] < libs["[libmozglue.so]"]) { print "libmozglue.so must be linked before libc.so"; exit 1 } }'
+endif
+
 define CHECK_BINARY
+$(call CHECK_GLIBC,$(1))
 $(call CHECK_STDCXX,$(1))
 $(call CHECK_TEXTREL,$(1))
 $(call LOCAL_CHECKS,$(1))
+$(call CHECK_MOZGLUE_ORDER,$(1))
 endef
 
 # autoconf.mk sets OBJ_SUFFIX to an error to avoid use before including
@@ -699,33 +679,10 @@ endif
 endif
 endif
 
-# EXPAND_LIBNAME - $(call EXPAND_LIBNAME,foo)
-# expands to $(LIB_PREFIX)foo.$(LIB_SUFFIX) or -lfoo, depending on linker
-# arguments syntax. Should only be used for system libraries
-
-# EXPAND_LIBNAME_PATH - $(call EXPAND_LIBNAME_PATH,foo,dir)
-# expands to dir/$(LIB_PREFIX)foo.$(LIB_SUFFIX)
-
-# EXPAND_MOZLIBNAME - $(call EXPAND_MOZLIBNAME,foo)
-# expands to $(DIST)/lib/$(LIB_PREFIX)foo.$(LIB_SUFFIX)
-
-ifdef GNU_CC
-EXPAND_LIBNAME = $(addprefix -l,$(1))
-else
-EXPAND_LIBNAME = $(foreach lib,$(1),$(LIB_PREFIX)$(lib).$(LIB_SUFFIX))
-endif
-EXPAND_LIBNAME_PATH = $(foreach lib,$(1),$(2)/$(LIB_PREFIX)$(lib).$(LIB_SUFFIX))
-EXPAND_MOZLIBNAME = $(foreach lib,$(1),$(DIST)/lib/$(LIB_PREFIX)$(lib).$(LIB_SUFFIX))
-
-PLY_INCLUDE = -I$(topsrcdir)/other-licenses/ply
+PLY_INCLUDE = -I$(MOZILLA_DIR)/other-licenses/ply
 
 export CL_INCLUDES_PREFIX
 # Make sure that the build system can handle non-ASCII characters
 # in environment variables to prevent it from breking silently on
 # non-English systems.
 export NONASCII
-
-DEFINES += -DNO_NSPR_10_SUPPORT
-
-# Freeze the values specified by moz.build to catch them if they fail.
-$(foreach var,$(_MOZBUILD_EXTERNAL_VARIABLES) $(_DEPRECATED_VARIABLES),$(eval $(var)_FROZEN := '$($(var))'))

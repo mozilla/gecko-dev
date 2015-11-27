@@ -7,7 +7,9 @@ package org.mozilla.gecko.home;
 
 import java.lang.ref.WeakReference;
 
+import org.mozilla.gecko.AboutPages;
 import org.mozilla.gecko.R;
+import org.mozilla.gecko.ReaderModeUtils;
 import org.mozilla.gecko.Tab;
 import org.mozilla.gecko.Tabs;
 import org.mozilla.gecko.db.BrowserContract.Combined;
@@ -127,12 +129,14 @@ public class TwoLinePageRow extends LinearLayout
         if (pageUrl == null) {
             return;
         }
-        final String tabUrl;
         if (tab == null) {
             return;
         }
-        tabUrl = tab.getURL();
-        if (!pageUrl.equals(tabUrl)) {
+
+        // Return early if the page URL doesn't match the current tab URL,
+        // or the old tab URL.
+        final String tabUrl = tab.getURL();
+        if (!pageUrl.equals(tabUrl) && !pageUrl.equals(data)) {
             return;
         }
 
@@ -248,7 +252,12 @@ public class TwoLinePageRow extends LinearLayout
         // Blank the Favicon, so we don't show the wrong Favicon if we scroll and miss DB.
         mFavicon.clearImage();
         Favicons.cancelFaviconLoad(mLoadFaviconJobId);
-        mLoadFaviconJobId = Favicons.getSizedFaviconForPageFromLocal(getContext(), url, mFaviconListener);
+
+        // Displayed RecentTabsPanel URLs may refer to pages opened in reader mode, so we
+        // remove the about:reader prefix to ensure the Favicon loads properly.
+        final String pageURL = AboutPages.isAboutReader(url) ?
+            ReaderModeUtils.getUrlFromAboutReader(url) : url;
+        mLoadFaviconJobId = Favicons.getSizedFaviconForPageFromLocal(getContext(), pageURL, mFaviconListener);
 
         updateDisplayedUrl(url);
     }

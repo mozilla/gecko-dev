@@ -4,24 +4,24 @@
 
 package org.mozilla.gecko.overlays.ui;
 
+import static org.mozilla.gecko.overlays.ui.SendTabList.State.LOADING;
+import static org.mozilla.gecko.overlays.ui.SendTabList.State.SHOW_DEVICES;
+
+import java.util.Arrays;
+
+import org.mozilla.gecko.AppConstants.Versions;
+import org.mozilla.gecko.Assert;
+import org.mozilla.gecko.R;
+import org.mozilla.gecko.Telemetry;
+import org.mozilla.gecko.TelemetryContract;
+import org.mozilla.gecko.db.RemoteClient;
+
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.util.AttributeSet;
-import android.util.Log;
-import android.view.MotionEvent;
 import android.widget.ListAdapter;
 import android.widget.ListView;
-import org.mozilla.gecko.Assert;
-import org.mozilla.gecko.R;
-import org.mozilla.gecko.overlays.service.sharemethods.ParcelableClientRecord;
-
-import java.util.Arrays;
-
-import static org.mozilla.gecko.overlays.ui.SendTabList.State.LIST;
-import static org.mozilla.gecko.overlays.ui.SendTabList.State.LOADING;
-import static org.mozilla.gecko.overlays.ui.SendTabList.State.NONE;
-import static org.mozilla.gecko.overlays.ui.SendTabList.State.SHOW_DEVICES;
 
 /**
  * The SendTab button has a few different states depending on the available devices (and whether
@@ -44,18 +44,19 @@ import static org.mozilla.gecko.overlays.ui.SendTabList.State.SHOW_DEVICES;
  * devices.
  */
 public class SendTabList extends ListView {
-    private static final String LOGTAG = "SendTabList";
+    @SuppressWarnings("unused")
+    private static final String LOGTAG = "GeckoSendTabList";
 
     // The maximum number of target devices to show in the main list. Further devices are available
     // from a secondary menu.
-    public static final int MAXIMUM_INLINE_ELEMENTS = 2;
+    public static final int MAXIMUM_INLINE_ELEMENTS = R.integer.number_of_inline_share_devices;
 
     private SendTabDeviceListArrayAdapter clientListAdapter;
 
     // Listener to fire when a share target is selected (either directly or via the prompt)
     private SendTabTargetSelectedListener listener;
 
-    private State currentState = LOADING;
+    private final State currentState = LOADING;
 
     /**
      * Enum defining the states this view may occupy.
@@ -107,39 +108,23 @@ public class SendTabList extends ListView {
         }
     }
 
-    public void setSyncClients(ParcelableClientRecord[] clients) {
-        if (clients == null) {
-            clients = new ParcelableClientRecord[0];
-        }
+    public void setSyncClients(final RemoteClient[] c) {
+        final RemoteClient[] clients = c == null ? new RemoteClient[0] : c;
 
-        int size = clients.length;
-        if (size == 0) {
-            // Just show a button to set up sync (or whatever).
-            switchState(NONE);
-            return;
-        }
-
-        clientListAdapter.setClientRecordList(Arrays.asList(clients));
-
-        if (size <= MAXIMUM_INLINE_ELEMENTS) {
-            // Show the list of devices inline.
-            switchState(LIST);
-            return;
-        }
-
-        // Just show a button to launch the list of devices to choose one from.
-        switchState(SHOW_DEVICES);
+        clientListAdapter.setRemoteClientsList(Arrays.asList(clients));
     }
 
     /**
      * Get an AlertDialog listing all devices, allowing the user to select the one they want.
      * Used when more than MAXIMUM_INLINE_ELEMENTS devices are found (to avoid displaying them all
-     * inline and looking crazy.
+     * inline and looking crazy).
      */
     public AlertDialog getDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        final Context context = getContext();
 
-        final ParcelableClientRecord[] records = clientListAdapter.toArray();
+        final AlertDialog.Builder builder = new AlertDialog.Builder(context);
+
+        final RemoteClient[] records = clientListAdapter.toArray();
         final String[] dialogElements = new String[records.length];
 
         for (int i = 0; i < records.length; i++) {
@@ -148,23 +133,18 @@ public class SendTabList extends ListView {
 
         builder.setTitle(R.string.overlay_share_select_device)
                .setItems(dialogElements, new DialogInterface.OnClickListener() {
+                   @Override
                    public void onClick(DialogInterface dialog, int index) {
                        listener.onSendTabTargetSelected(records[index].guid);
+                   }
+                })
+               .setOnCancelListener(new DialogInterface.OnCancelListener() {
+                   @Override
+                   public void onCancel(DialogInterface dialogInterface) {
+                       Telemetry.sendUIEvent(TelemetryContract.Event.CANCEL, TelemetryContract.Method.SHARE_OVERLAY, "device_selection_cancel");
                    }
                });
 
         return builder.create();
-    }
-
-    /**
-     * Prevent scrolling of this ListView.
-     */
-    @Override
-    public boolean dispatchTouchEvent(MotionEvent ev) {
-        if (ev.getAction() == MotionEvent.ACTION_MOVE) {
-            return true;
-        }
-
-        return super.dispatchTouchEvent(ev);
     }
 }

@@ -19,7 +19,7 @@ BEGIN_TEST(testLookup_bug522590)
 
     // Calling mkobj() multiple times must create multiple functions in ES5.
     EVAL("mkobj().f !== mkobj().f", &x);
-    CHECK_SAME(x, JSVAL_TRUE);
+    CHECK(x.isTrue());
 
     // Now make x.f a method.
     EVAL("mkobj()", &x);
@@ -27,11 +27,11 @@ BEGIN_TEST(testLookup_bug522590)
 
     // This lookup must not return an internal function object.
     JS::RootedValue r(cx);
-    CHECK(JS_LookupProperty(cx, xobj, "f", &r));
+    CHECK(JS_GetProperty(cx, xobj, "f", &r));
     CHECK(r.isObject());
-    JSObject *funobj = &r.toObject();
+    JSObject* funobj = &r.toObject();
     CHECK(funobj->is<JSFunction>());
-    CHECK(!js::IsInternalFunctionObject(funobj));
+    CHECK(!js::IsInternalFunctionObject(*funobj));
 
     return true;
 }
@@ -39,60 +39,56 @@ END_TEST(testLookup_bug522590)
 
 static const JSClass DocumentAllClass = {
     "DocumentAll",
-    JSCLASS_EMULATES_UNDEFINED,
-    JS_PropertyStub,
-    JS_DeletePropertyStub,
-    JS_PropertyStub,
-    JS_StrictPropertyStub,
-    JS_EnumerateStub,
-    JS_ResolveStub,
-    JS_ConvertStub
+    JSCLASS_EMULATES_UNDEFINED
 };
 
 bool
-document_resolve(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
-                 JS::MutableHandleObject objp)
+document_resolve(JSContext* cx, JS::HandleObject obj, JS::HandleId id, bool* resolvedp)
 {
     // If id is "all", resolve document.all=true.
     JS::RootedValue v(cx);
     if (!JS_IdToValue(cx, id, &v))
         return false;
+
     if (v.isString()) {
-        JSString *str = v.toString();
-        JSFlatString *flatStr = JS_FlattenString(cx, str);
+        JSString* str = v.toString();
+        JSFlatString* flatStr = JS_FlattenString(cx, str);
         if (!flatStr)
             return false;
         if (JS_FlatStringEqualsAscii(flatStr, "all")) {
-            JS::Rooted<JSObject*> docAll(cx,
-                                         JS_NewObject(cx, &DocumentAllClass, JS::NullPtr(), JS::NullPtr()));
+            JS::Rooted<JSObject*> docAll(cx, JS_NewObject(cx, &DocumentAllClass));
             if (!docAll)
                 return false;
-            JS::Rooted<JS::Value> allValue(cx, ObjectValue(*docAll));
-            bool ok = JS_DefinePropertyById(cx, obj, id, allValue, 0);
-            objp.set(ok ? obj.get() : nullptr);
-            return ok;
+
+            JS::Rooted<JS::Value> allValue(cx, JS::ObjectValue(*docAll));
+            if (!JS_DefinePropertyById(cx, obj, id, allValue, JSPROP_RESOLVING))
+                return false;
+
+            *resolvedp = true;
+            return true;
         }
     }
-    objp.set(nullptr);
+
+    *resolvedp = false;
     return true;
 }
 
 static const JSClass document_class = {
-    "document", JSCLASS_NEW_RESOLVE,
-    JS_PropertyStub, JS_DeletePropertyStub, JS_PropertyStub, JS_StrictPropertyStub,
-    JS_EnumerateStub, (JSResolveOp) document_resolve, JS_ConvertStub
+    "document", 0,
+    nullptr, nullptr, nullptr, nullptr,
+    nullptr, document_resolve, nullptr
 };
 
 BEGIN_TEST(testLookup_bug570195)
 {
-    JS::RootedObject obj(cx, JS_NewObject(cx, &document_class, JS::NullPtr(), JS::NullPtr()));
+    JS::RootedObject obj(cx, JS_NewObject(cx, &document_class));
     CHECK(obj);
     CHECK(JS_DefineProperty(cx, global, "document", obj, 0));
     JS::RootedValue v(cx);
     EVAL("document.all ? true : false", &v);
-    CHECK_SAME(v, JSVAL_FALSE);
+    CHECK(v.isFalse());
     EVAL("document.hasOwnProperty('all')", &v);
-    CHECK_SAME(v, JSVAL_TRUE);
+    CHECK(v.isTrue());
     return true;
 }
 END_TEST(testLookup_bug570195)

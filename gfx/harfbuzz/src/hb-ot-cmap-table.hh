@@ -51,9 +51,10 @@ struct CmapSubtableFormat0
     return true;
   }
 
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
-    return TRACE_RETURN (c->check_struct (this));
+    return_trace (c->check_struct (this));
   }
 
   protected:
@@ -125,11 +126,11 @@ struct CmapSubtableFormat4
     return true;
   }
 
-  inline bool sanitize (hb_sanitize_context_t *c)
+  inline bool sanitize (hb_sanitize_context_t *c) const
   {
     TRACE_SANITIZE (this);
     if (unlikely (!c->check_struct (this)))
-      return TRACE_RETURN (false);
+      return_trace (false);
 
     if (unlikely (!c->check_range (this, length)))
     {
@@ -140,10 +141,10 @@ struct CmapSubtableFormat4
 					    (uintptr_t) (c->end -
 							 (char *) this));
       if (!c->try_set (&length, new_length))
-	return TRACE_RETURN (false);
+	return_trace (false);
     }
 
-    return TRACE_RETURN (16 + 4 * (unsigned int) segCountX2 <= length);
+    return_trace (16 + 4 * (unsigned int) segCountX2 <= length);
   }
 
   protected:
@@ -183,9 +184,10 @@ struct CmapSubtableLongGroup
     return 0;
   }
 
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
-    return TRACE_RETURN (c->check_struct (this));
+    return_trace (c->check_struct (this));
   }
 
   private:
@@ -210,9 +212,10 @@ struct CmapSubtableTrimmed
     return true;
   }
 
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
-    return TRACE_RETURN (c->check_struct (this) && glyphIdArray.sanitize (c));
+    return_trace (c->check_struct (this) && glyphIdArray.sanitize (c));
   }
 
   protected:
@@ -242,9 +245,10 @@ struct CmapSubtableLongSegmented
     return true;
   }
 
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
-    return TRACE_RETURN (c->check_struct (this) && groups.sanitize (c));
+    return_trace (c->check_struct (this) && groups.sanitize (c));
   }
 
   protected:
@@ -288,9 +292,10 @@ struct UnicodeValueRange
     return 0;
   }
 
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
-    return TRACE_RETURN (c->check_struct (this));
+    return_trace (c->check_struct (this));
   }
 
   UINT24	startUnicodeValue;	/* First value in this range. */
@@ -309,9 +314,10 @@ struct UVSMapping
     return unicodeValue.cmp (codepoint);
   }
 
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
-    return TRACE_RETURN (c->check_struct (this));
+    return_trace (c->check_struct (this));
   }
 
   UINT24	unicodeValue;	/* Base Unicode value of the UVS */
@@ -348,11 +354,12 @@ struct VariationSelectorRecord
     return varSelector.cmp (variation_selector);
   }
 
-  inline bool sanitize (hb_sanitize_context_t *c, void *base) {
+  inline bool sanitize (hb_sanitize_context_t *c, const void *base) const
+  {
     TRACE_SANITIZE (this);
-    return TRACE_RETURN (c->check_struct (this) &&
-			 defaultUVS.sanitize (c, base) &&
-			 nonDefaultUVS.sanitize (c, base));
+    return_trace (c->check_struct (this) &&
+		  defaultUVS.sanitize (c, base) &&
+		  nonDefaultUVS.sanitize (c, base));
   }
 
   UINT24	varSelector;	/* Variation selector. */
@@ -373,10 +380,11 @@ struct CmapSubtableFormat14
     return record[record.bsearch(variation_selector)].get_glyph (codepoint, glyph, this);
   }
 
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
-    return TRACE_RETURN (c->check_struct (this) &&
-			 record.sanitize (c, this));
+    return_trace (c->check_struct (this) &&
+		  record.sanitize (c, this));
   }
 
   protected:
@@ -418,18 +426,19 @@ struct CmapSubtable
     }
   }
 
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
-    if (!u.format.sanitize (c)) return TRACE_RETURN (false);
+    if (!u.format.sanitize (c)) return_trace (false);
     switch (u.format) {
-    case  0: return TRACE_RETURN (u.format0 .sanitize (c));
-    case  4: return TRACE_RETURN (u.format4 .sanitize (c));
-    case  6: return TRACE_RETURN (u.format6 .sanitize (c));
-    case 10: return TRACE_RETURN (u.format10.sanitize (c));
-    case 12: return TRACE_RETURN (u.format12.sanitize (c));
-    case 13: return TRACE_RETURN (u.format13.sanitize (c));
-    case 14: return TRACE_RETURN (u.format14.sanitize (c));
-    default:return TRACE_RETURN (true);
+    case  0: return_trace (u.format0 .sanitize (c));
+    case  4: return_trace (u.format4 .sanitize (c));
+    case  6: return_trace (u.format6 .sanitize (c));
+    case 10: return_trace (u.format10.sanitize (c));
+    case 12: return_trace (u.format12.sanitize (c));
+    case 13: return_trace (u.format13.sanitize (c));
+    case 14: return_trace (u.format14.sanitize (c));
+    default:return_trace (true);
     }
   }
 
@@ -461,10 +470,11 @@ struct EncodingRecord
     return 0;
   }
 
-  inline bool sanitize (hb_sanitize_context_t *c, void *base) {
+  inline bool sanitize (hb_sanitize_context_t *c, const void *base) const
+  {
     TRACE_SANITIZE (this);
-    return TRACE_RETURN (c->check_struct (this) &&
-			 subtable.sanitize (c, base));
+    return_trace (c->check_struct (this) &&
+		  subtable.sanitize (c, base));
   }
 
   USHORT	platformID;	/* Platform ID. */
@@ -496,11 +506,12 @@ struct cmap
     return &(this+encodingRecord[result].subtable);
   }
 
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
-    return TRACE_RETURN (c->check_struct (this) &&
-			 likely (version == 0) &&
-			 encodingRecord.sanitize (c, this));
+    return_trace (c->check_struct (this) &&
+		  likely (version == 0) &&
+		  encodingRecord.sanitize (c, this));
   }
 
   USHORT		version;	/* Table version number (0). */

@@ -16,15 +16,18 @@
   navigator.mozTCPSocket, and mozTCPSocket.open works when
   the tcp-socket permission has been granted.
 **/
-SpecialPowers.setBoolPref("dom.mozTCPSocket.enabled", true);
-SpecialPowers.addPermission("tcp-socket", true, document);
+SimpleTest.waitForExplicitFinish();
+SpecialPowers.pushPrefEnv({"set": [['dom.mozTCPSocket.enabled', true]]}, function() {
+  SpecialPowers.pushPermissions([{type: "tcp-socket", allow: true, context: document}], runTest);
+});
 
-ok('mozTCPSocket' in navigator, "navigator.mozTCPSocket should be accessible if dom.mozTCPSocket.enabled is true");
+function runTest() {
+  ok('TCPSocket' in this, "TCPSocket should be accessible if dom.mozTCPSocket.enabled is true");
 
-ok(navigator.mozTCPSocket.open('localhost', 80), "navigator.mozTCPSocket.open should work for content that has the tcp-socket permission");
-
-SpecialPowers.setBoolPref("dom.mozTCPSocket.enabled", false);
-
+  ok(new TCPSocket('localhost', 80), "TCPSocket constructor should work for content that has the tcp-socket permission");
+  ok(navigator.mozTCPSocket.open('localhost', 80), "navigator.mozTCPSocket.open should work for content that has the tcp-socket permission");
+  SimpleTest.finish();
+}
 </script>
 </pre>
 </body>

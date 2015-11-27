@@ -1,7 +1,7 @@
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
 
 function info(s) {
   dump("TEST-INFO | test_bug656331.js | " + s + "\n");
@@ -25,7 +25,7 @@ function run_test() {
   cs.registerListener(kConsoleListener);
 
   let manifest = do_get_file('bug656331.manifest');
-  Components.manager.autoRegister(manifest);
+  registerAppManifest(manifest);
 
   do_check_false("{f18fb09b-28b4-4435-bc5b-8027f18df743}" in Components.classesByID);
 

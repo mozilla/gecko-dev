@@ -50,7 +50,8 @@ gfxGraphiteShaper::GrGetAdvance(const void* appFontHandle, uint16_t glyphid)
 {
     const CallbackData *cb =
         static_cast<const CallbackData*>(appFontHandle);
-    return FixedToFloat(cb->mFont->GetGlyphWidth(cb->mContext, glyphid));
+    return FixedToFloat(cb->mFont->GetGlyphWidth(*cb->mContext->GetDrawTarget(),
+                                                 glyphid));
 }
 
 static inline uint32_t
@@ -71,7 +72,7 @@ struct GrFontFeatures {
     gr_feature_val *mFeatures;
 };
 
-static PLDHashOperator
+static void
 AddFeature(const uint32_t& aTag, uint32_t& aValue, void *aUserArg)
 {
     GrFontFeatures *f = static_cast<GrFontFeatures*>(aUserArg);
@@ -80,7 +81,6 @@ AddFeature(const uint32_t& aTag, uint32_t& aValue, void *aUserArg)
     if (fref) {
         gr_fref_set_feature_value(fref, aValue, f->mFeatures);
     }
-    return PL_DHASH_NEXT;
 }
 
 bool
@@ -89,6 +89,7 @@ gfxGraphiteShaper::ShapeText(gfxContext      *aContext,
                              uint32_t         aOffset,
                              uint32_t         aLength,
                              int32_t          aScript,
+                             bool             aVertical,
                              gfxShapedText   *aShapedText)
 {
     // some font back-ends require this in order to get proper hinted metrics
@@ -143,34 +144,30 @@ gfxGraphiteShaper::ShapeText(gfxContext      *aContext,
         grLang = MakeGraphiteLangTag(style->languageOverride);
     } else if (entry->mLanguageOverride) {
         grLang = MakeGraphiteLangTag(entry->mLanguageOverride);
-    } else {
+    } else if (style->explicitLanguage) {
         nsAutoCString langString;
         style->language->ToUTF8String(langString);
         grLang = GetGraphiteTagForLang(langString);
     }
     gr_feature_val *grFeatures = gr_face_featureval_for_lang(mGrFace, grLang);
 
-    // if style contains font-specific features
-    nsDataHashtable<nsUint32HashKey,uint32_t> mergedFeatures;
-
-    if (MergeFontFeatures(style,
-                          mFont->GetFontEntry()->mFeatureSettings,
-                          aShapedText->DisableLigatures(),
-                          mFont->GetFontEntry()->FamilyName(),
-                          mFallbackToSmallCaps,
-                          mergedFeatures))
-    {
-        // enumerate result and insert into Graphite feature list
-        GrFontFeatures f = {mGrFace, grFeatures};
-        mergedFeatures.Enumerate(AddFeature, &f);
-    }
+    // insert any merged features into Graphite feature list
+    GrFontFeatures f = {mGrFace, grFeatures};
+    MergeFontFeatures(style,
+                      mFont->GetFontEntry()->mFeatureSettings,
+                      aShapedText->DisableLigatures(),
+                      mFont->GetFontEntry()->FamilyName(),
+                      mFallbackToSmallCaps,
+                      AddFeature,
+                      &f);
 
     size_t numChars = gr_count_unicode_characters(gr_utf16,
                                                   aText, aText + aLength,
                                                   nullptr);
+    gr_bidirtl grBidi = gr_bidirtl(aShapedText->IsRightToLeft()
+                                   ? (gr_rtl | gr_nobidi) : gr_nobidi);
     gr_segment *seg = gr_make_seg(mGrFont, mGrFace, 0, grFeatures,
-                                  gr_utf16, aText, numChars,
-                                  aShapedText->IsRightToLeft());
+                                  gr_utf16, aText, numChars, grBidi);
 
     gr_featureval_destroy(grFeatures);
 
@@ -216,10 +213,10 @@ gfxGraphiteShaper::SetGlyphsFromSegment(gfxContext      *aContext,
     AutoFallibleTArray<float,SMALL_GLYPH_RUN> xLocs;
     AutoFallibleTArray<float,SMALL_GLYPH_RUN> yLocs;
 
-    if (!clusters.SetLength(aLength) ||
-        !gids.SetLength(glyphCount) ||
-        !xLocs.SetLength(glyphCount) ||
-        !yLocs.SetLength(glyphCount))
+    if (!clusters.SetLength(aLength, fallible) ||
+        !gids.SetLength(glyphCount, fallible) ||
+        !xLocs.SetLength(glyphCount, fallible) ||
+        !yLocs.SetLength(glyphCount, fallible))
     {
         return NS_ERROR_OUT_OF_MEMORY;
     }

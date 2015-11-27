@@ -13,7 +13,6 @@ using namespace mozilla;
 nsDOMCSSValueList::nsDOMCSSValueList(bool aCommaDelimited, bool aReadonly)
   : CSSValue(), mCommaDelimited(aCommaDelimited), mReadonly(aReadonly)
 {
-  SetIsDOMBinding();
 }
 
 nsDOMCSSValueList::~nsDOMCSSValueList()
@@ -34,9 +33,9 @@ NS_INTERFACE_MAP_END
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(nsDOMCSSValueList, mCSSValues)
 
 JSObject*
-nsDOMCSSValueList::WrapObject(JSContext *cx)
+nsDOMCSSValueList::WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto)
 {
-  return dom::CSSValueListBinding::Wrap(cx, this);
+  return dom::CSSValueListBinding::Wrap(cx, this, aGivenProto);
 }
 
 void

@@ -13,17 +13,28 @@
 #include "nsIXSLTProcessorPrivate.h"
 #include "txExpandedNameMap.h"
 #include "txNamespaceMap.h"
-#include "nsIJSNativeInitializer.h"
 #include "nsCycleCollectionParticipant.h"
+#include "nsWrapperCache.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/ErrorResult.h"
+#include "mozilla/net/ReferrerPolicy.h"
 
+class nsINode;
 class nsIDOMNode;
-class nsIPrincipal;
 class nsIURI;
-class nsIXMLContentSink;
 class txStylesheet;
 class txResultRecycler;
 class txIGlobalParameter;
+
+namespace mozilla {
+namespace dom {
+
+class Document;
+class DocumentFragment;
+class GlobalObject;
+
+} // namespace dom
+} // namespace mozilla
 
 /* bacd8ad0-552f-11d3-a9f7-000064657374 */
 #define TRANSFORMIIX_XSLT_PROCESSOR_CID   \
@@ -37,11 +48,11 @@ class txIGlobalParameter;
 /**
  * txMozillaXSLTProcessor is a front-end to the XSLT Processor.
  */
-class txMozillaXSLTProcessor MOZ_FINAL : public nsIXSLTProcessor,
-                                         public nsIXSLTProcessorPrivate,
-                                         public nsIDocumentTransformer,
-                                         public nsStubMutationObserver,
-                                         public nsIJSNativeInitializer
+class txMozillaXSLTProcessor final : public nsIXSLTProcessor,
+                                     public nsIXSLTProcessorPrivate,
+                                     public nsIDocumentTransformer,
+                                     public nsStubMutationObserver,
+                                     public nsWrapperCache
 {
 public:
     /**
@@ -51,8 +62,8 @@ public:
 
     // nsISupports interface
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-    NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(txMozillaXSLTProcessor,
-                                             nsIXSLTProcessor)
+    NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(txMozillaXSLTProcessor,
+                                                           nsIXSLTProcessor)
 
     // nsIXSLTProcessor interface
     NS_DECL_NSIXSLTPROCESSOR
@@ -61,18 +72,17 @@ public:
     NS_DECL_NSIXSLTPROCESSORPRIVATE
 
     // nsIDocumentTransformer interface
-    NS_IMETHOD Init(nsIPrincipal* aPrincipal) MOZ_OVERRIDE;
-    NS_IMETHOD SetTransformObserver(nsITransformObserver* aObserver) MOZ_OVERRIDE;
-    NS_IMETHOD LoadStyleSheet(nsIURI* aUri, nsILoadGroup* aLoadGroup) MOZ_OVERRIDE;
-    NS_IMETHOD SetSourceContentModel(nsIDOMNode* aSource) MOZ_OVERRIDE;
-    NS_IMETHOD CancelLoads() MOZ_OVERRIDE {return NS_OK;}
+    NS_IMETHOD SetTransformObserver(nsITransformObserver* aObserver) override;
+    NS_IMETHOD LoadStyleSheet(nsIURI* aUri, nsIDocument* aLoaderDocument) override;
+    NS_IMETHOD SetSourceContentModel(nsIDOMNode* aSource) override;
+    NS_IMETHOD CancelLoads() override {return NS_OK;}
     NS_IMETHOD AddXSLTParamNamespace(const nsString& aPrefix,
-                                     const nsString& aNamespace) MOZ_OVERRIDE;
+                                     const nsString& aNamespace) override;
     NS_IMETHOD AddXSLTParam(const nsString& aName,
                             const nsString& aNamespace,
                             const nsString& aSelect,
                             const nsString& aValue,
-                            nsIDOMNode* aContext) MOZ_OVERRIDE;
+                            nsIDOMNode* aContext) override;
 
     // nsIMutationObserver interface
     NS_DECL_NSIMUTATIONOBSERVER_CHARACTERDATACHANGED
@@ -81,6 +91,49 @@ public:
     NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED
     NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
     NS_DECL_NSIMUTATIONOBSERVER_NODEWILLBEDESTROYED
+
+    // nsWrapperCache
+    virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+
+    // WebIDL
+    nsISupports*
+    GetParentObject() const
+    {
+        return mOwner;
+    }
+
+    static already_AddRefed<txMozillaXSLTProcessor>
+    Constructor(const mozilla::dom::GlobalObject& aGlobal,
+                mozilla::ErrorResult& aRv);
+
+    void ImportStylesheet(nsINode& stylesheet,
+                          mozilla::ErrorResult& aRv);
+    already_AddRefed<mozilla::dom::DocumentFragment>
+    TransformToFragment(nsINode& source, nsIDocument& docVal, mozilla::ErrorResult& aRv);
+    already_AddRefed<nsIDocument>
+    TransformToDocument(nsINode& source, mozilla::ErrorResult& aRv);
+
+    void SetParameter(JSContext* aCx,
+                      const nsAString& aNamespaceURI,
+                      const nsAString& aLocalName,
+                      JS::Handle<JS::Value> aValue,
+                      mozilla::ErrorResult& aRv);
+    nsIVariant* GetParameter(const nsAString& aNamespaceURI,
+                             const nsAString& aLocalName,
+                             mozilla::ErrorResult& aRv);
+    void RemoveParameter(const nsAString& aNamespaceURI,
+                         const nsAString& aLocalName,
+                         mozilla::ErrorResult& aRv)
+    {
+        aRv = RemoveParameter(aNamespaceURI, aLocalName);
+    }
+
+    uint32_t Flags()
+    {
+        uint32_t flags;
+        GetFlags(&flags);
+        return flags;
+    }
 
     nsresult setStylesheet(txStylesheet* aStylesheet);
     void reportError(nsresult aResult, const char16_t *aErrorText,
@@ -99,14 +152,11 @@ public:
         return (mFlags & DISABLE_ALL_LOADS) != 0;
     }
 
-    // nsIJSNativeInitializer
-    NS_IMETHODIMP Initialize(nsISupports* aOwner, JSContext *cx, JSObject *obj,
-                             const JS::CallArgs& aArgs);
-
     static nsresult Startup();
     static void Shutdown();
 
 private:
+    explicit txMozillaXSLTProcessor(nsISupports* aOwner);
     /**
      * Default destructor for txMozillaXSLTProcessor
      */
@@ -116,7 +166,9 @@ private:
     void notifyError();
     nsresult ensureStylesheet();
 
-    nsRefPtr<txStylesheet> mStylesheet;
+    nsCOMPtr<nsISupports> mOwner;
+
+    RefPtr<txStylesheet> mStylesheet;
     nsIDocument* mStylesheetDocument; // weak
     nsCOMPtr<nsIContent> mEmbeddedStylesheetRoot;
 
@@ -124,22 +176,20 @@ private:
     nsresult mTransformResult;
     nsresult mCompileResult;
     nsString mErrorText, mSourceText;
-    nsCOMPtr<nsIPrincipal> mPrincipal;
     nsCOMPtr<nsITransformObserver> mObserver;
     txOwningExpandedNameMap<txIGlobalParameter> mVariables;
     txNamespaceMap mParamNamespaceMap;
-    nsRefPtr<txResultRecycler> mRecycler;
+    RefPtr<txResultRecycler> mRecycler;
 
     uint32_t mFlags;
 };
 
 extern nsresult TX_LoadSheet(nsIURI* aUri, txMozillaXSLTProcessor* aProcessor,
-                             nsILoadGroup* aLoadGroup,
-                             nsIPrincipal* aCallerPrincipal);
+                             nsIDocument* aLoaderDocument,
+                             mozilla::net::ReferrerPolicy aReferrerPolicy);
 
 extern nsresult TX_CompileStylesheet(nsINode* aNode,
                                      txMozillaXSLTProcessor* aProcessor,
-                                     nsIPrincipal* aCallerPrincipal,
                                      txStylesheet** aStylesheet);
 
 #endif

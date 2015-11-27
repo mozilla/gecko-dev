@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef nsIconChannel_h___
-#define nsIconChannel_h___
+#ifndef mozilla_image_encoders_icon_win_nsIconChannel_h
+#define mozilla_image_encoders_icon_win_nsIconChannel_h
 
 #include "mozilla/Attributes.h"
 
@@ -25,7 +25,7 @@
 
 class nsIFile;
 
-class nsIconChannel MOZ_FINAL : public nsIChannel, public nsIStreamListener
+class nsIconChannel final : public nsIChannel, public nsIStreamListener
 {
   ~nsIconChannel();
 
@@ -43,22 +43,24 @@ public:
 protected:
   nsCOMPtr<nsIURI> mUrl;
   nsCOMPtr<nsIURI> mOriginalURI;
-  int64_t          mContentLength;
   nsCOMPtr<nsILoadGroup> mLoadGroup;
   nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
-  nsCOMPtr<nsISupports>  mOwner; 
+  nsCOMPtr<nsISupports>  mOwner;
   nsCOMPtr<nsILoadInfo>  mLoadInfo;
 
   nsCOMPtr<nsIInputStreamPump> mPump;
   nsCOMPtr<nsIStreamListener>  mListener;
 
-  nsresult ExtractIconInfoFromUrl(nsIFile ** aLocalFile, uint32_t * aDesiredImageSize, nsCString &aContentType, nsCString &aFileExtension);
-  nsresult GetHIconFromFile(HICON *hIcon);
+  nsresult ExtractIconInfoFromUrl(nsIFile** aLocalFile,
+                                  uint32_t* aDesiredImageSize,
+                                  nsCString& aContentType,
+                                  nsCString& aFileExtension);
+  nsresult GetHIconFromFile(HICON* hIcon);
   nsresult MakeInputStream(nsIInputStream** _retval, bool nonBlocking);
 
   // Functions specific to Vista and above
 protected:
-  nsresult GetStockHIcon(nsIMozIconURI *aIconURI, HICON *hIcon);
+  nsresult GetStockHIcon(nsIMozIconURI* aIconURI, HICON* hIcon);
 };
 
-#endif /* nsIconChannel_h___ */
+#endif // mozilla_image_encoders_icon_win_nsIconChannel_h

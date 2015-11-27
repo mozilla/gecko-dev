@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
 * License, v. 2.0. If a copy of the MPL was not distributed with this file,
 * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -46,7 +48,7 @@ MobileConnectionIPCService::GetItemByServiceId(uint32_t aServiceId,
   NS_ENSURE_TRUE(aServiceId < mItems.Length(), NS_ERROR_INVALID_ARG);
 
   if (!mItems[aServiceId]) {
-    nsRefPtr<MobileConnectionChild> child = new MobileConnectionChild(aServiceId);
+    RefPtr<MobileConnectionChild> child = new MobileConnectionChild(aServiceId);
 
     // |SendPMobileConnectionConstructor| adds another reference to the child
     // actor and removes in |DeallocPMobileConnectionChild|.
@@ -57,7 +59,7 @@ MobileConnectionIPCService::GetItemByServiceId(uint32_t aServiceId,
     mItems[aServiceId] = child;
   }
 
-  nsRefPtr<nsIMobileConnection> item(mItems[aServiceId]);
+  RefPtr<nsIMobileConnection> item(mItems[aServiceId]);
   item.forget(aItem);
 
   return NS_OK;

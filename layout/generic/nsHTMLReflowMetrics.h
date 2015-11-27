@@ -8,9 +8,9 @@
 #ifndef nsHTMLReflowMetrics_h___
 #define nsHTMLReflowMetrics_h___
 
-#include "nsRect.h"
+#include "mozilla/WritingModes.h"
 #include "nsBoundingMetrics.h"
-#include "WritingModes.h"
+#include "nsRect.h"
 
 //----------------------------------------------------------------------
 
@@ -272,6 +272,11 @@ public:
   nscoord& Width() { return mWritingMode.IsVertical() ? mBSize : mISize; }
   nscoord& Height() { return mWritingMode.IsVertical() ? mISize : mBSize; }
 
+  nsSize PhysicalSize()
+  {
+    return Size(mWritingMode).GetPhysicalSize(mWritingMode);
+  }
+
   void SetBlockStartAscent(nscoord aAscent)
   {
     mBlockStartAscent = aAscent;
@@ -287,9 +292,9 @@ public:
   // of the base and the text of the superscript.
   nsBoundingMetrics mBoundingMetrics;  // [OUT]
 
-  // Carried out bottom margin values. This is the collapsed
-  // (generational) bottom margin value.
-  nsCollapsingMargin mCarriedOutBottomMargin;
+  // Carried out block-end margin values. This is the collapsed
+  // (generational) block-end margin value.
+  nsCollapsingMargin mCarriedOutBEndMargin;
 
   // For frames that have content that overflow their content area
   // (HasOverflowAreas() is true) these rectangles represent the total

@@ -12,7 +12,7 @@
 #include "nsDebug.h"                    // for NS_ASSERTION
 #include "nsISupportsImpl.h"            // for MOZ_COUNT_CTOR
 #include "nsISupportsUtils.h"           // for NS_ADDREF, NS_RELEASE
-struct nsIntRect;
+#include "mozilla/gfx/Rect.h"
 
 namespace mozilla {
 namespace layers {
@@ -20,8 +20,7 @@ namespace layers {
 class BasicContainerLayer : public ContainerLayer, public BasicImplData {
 public:
   explicit BasicContainerLayer(BasicLayerManager* aManager) :
-    ContainerLayer(aManager,
-                   static_cast<BasicImplData*>(MOZ_THIS_IN_INITIALIZER_LIST()))
+    ContainerLayer(aManager, static_cast<BasicImplData*>(this))
   {
     MOZ_COUNT_CTOR(BasicContainerLayer);
     mSupportsComponentAlphaChildren = true;
@@ -30,13 +29,13 @@ protected:
   virtual ~BasicContainerLayer();
 
 public:
-  virtual void SetVisibleRegion(const nsIntRegion& aRegion)
+  virtual void SetVisibleRegion(const nsIntRegion& aRegion) override
   {
     NS_ASSERTION(BasicManager()->InConstruction(),
                  "Can only set properties in construction phase");
     ContainerLayer::SetVisibleRegion(aRegion);
   }
-  virtual bool InsertAfter(Layer* aChild, Layer* aAfter)
+  virtual bool InsertAfter(Layer* aChild, Layer* aAfter) override
   {
     if (!BasicManager()->InConstruction()) {
       NS_ERROR("Can only set properties in construction phase");
@@ -45,7 +44,7 @@ public:
     return ContainerLayer::InsertAfter(aChild, aAfter);
   }
 
-  virtual bool RemoveChild(Layer* aChild)
+  virtual bool RemoveChild(Layer* aChild) override
   { 
     if (!BasicManager()->InConstruction()) {
       NS_ERROR("Can only set properties in construction phase");
@@ -54,7 +53,7 @@ public:
     return ContainerLayer::RemoveChild(aChild);
   }
 
-  virtual bool RepositionChild(Layer* aChild, Layer* aAfter)
+  virtual bool RepositionChild(Layer* aChild, Layer* aAfter) override
   {
     if (!BasicManager()->InConstruction()) {
       NS_ERROR("Can only set properties in construction phase");
@@ -63,7 +62,7 @@ public:
     return ContainerLayer::RepositionChild(aChild, aAfter);
   }
 
-  virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface);
+  virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface) override;
 
   /**
    * Returns true when:
@@ -78,21 +77,21 @@ public:
    * This method can be conservative; it's OK to return false under any
    * circumstances.
    */
-  bool ChildrenPartitionVisibleRegion(const nsIntRect& aInRect);
+  bool ChildrenPartitionVisibleRegion(const gfx::IntRect& aInRect);
 
   void ForceIntermediateSurface() { mUseIntermediateSurface = true; }
 
   void SetSupportsComponentAlphaChildren(bool aSupports) { mSupportsComponentAlphaChildren = aSupports; }
 
-  virtual void Validate(LayerManager::DrawThebesLayerCallback aCallback,
+  virtual void Validate(LayerManager::DrawPaintedLayerCallback aCallback,
                         void* aCallbackData,
-                        ReadbackProcessor* aReadback) MOZ_OVERRIDE;
+                        ReadbackProcessor* aReadback) override;
 
   /**
    * We don't really have a hard restriction for max layer size, but we pick
    * 4096 to avoid excessive memory usage.
    */
-  virtual int32_t GetMaxLayerSize() MOZ_OVERRIDE { return 4096; }
+  virtual int32_t GetMaxLayerSize() override { return 4096; }
 
 protected:
   BasicLayerManager* BasicManager()
@@ -100,7 +99,8 @@ protected:
     return static_cast<BasicLayerManager*>(mManager);
   }
 };
-}
-}
+
+} // namespace layers
+} // namespace mozilla
 
 #endif

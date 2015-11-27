@@ -17,7 +17,7 @@ const ERR_FENNEC_MSG = 'This method is not yet supported by Fennec, consider usi
 
 // NOTE: On Fennec there is only one window.
 
-let BrowserWindows = Class({
+var BrowserWindows = Class({
   implements: [ List ],
   extends: EventTarget,
   initialize: function() {
@@ -51,7 +51,7 @@ function getRegisteredWindow(chromeWindow) {
 /**
  * Gets a `BrowserWindow` for the provided window options obj
  * @params {Object} options
- *    Options that are passed to the the `BrowserWindowTrait`
+ *    Options that are passed to the the `BrowserWindow`
  * @returns {BrowserWindow}
  */
 function getBrowserWindow(options) {

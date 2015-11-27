@@ -156,9 +156,8 @@ int VideoEngineSampleRecordCode(void* window1, void* window2) {
 
   audio_channel = voe_base->CreateChannel();
 
-  webrtc::scoped_ptr<webrtc::test::VoiceChannelTransport>
-      voice_channel_transport(
-          new webrtc::test::VoiceChannelTransport(voe_network, audio_channel));
+  rtc::scoped_ptr<webrtc::test::VoiceChannelTransport> voice_channel_transport(
+      new webrtc::test::VoiceChannelTransport(voe_network, audio_channel));
 
   voice_channel_transport->SetSendDestination(ipAddress, audio_tx_port);
   voice_channel_transport->SetLocalReceiver(audio_rx_port);
@@ -216,7 +215,7 @@ int VideoEngineSampleRecordCode(void* window1, void* window2) {
     printf("Error in scanf()\n");
     return -1;
   }
-  getchar();
+  getc(stdin);
   captureIdx = captureIdx - 1;  // Compensate for idx start at 1.
 #endif
   error = ptrViECapture->GetCaptureDevice(captureIdx, deviceName,
@@ -441,14 +440,14 @@ int VideoEngineSampleRecordCode(void* window1, void* window2) {
     clock_time = webrtc::TickTime::MillisecondTimestamp();
     timing << clock_time << std::endl;
   }
-  char c = getchar();
+  char c = getc(stdin);
   fflush(stdin);
   while (c != 's') {
     if (c == '\n' && enable_labeling == 1) {
       clock_time = webrtc::TickTime::MillisecondTimestamp();
       timing << clock_time << std::endl;
     }
-    c = getchar();
+    c = getc(stdin);
   }
   if (enable_labeling == 1) {
     clock_time = webrtc::TickTime::MillisecondTimestamp();

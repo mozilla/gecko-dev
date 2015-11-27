@@ -21,9 +21,11 @@ XPIDL_SOURCES += [
 XPIDL_MODULE = 'necko_http'
 
 EXPORTS += [
+    'nsCORSListenerProxy.h',
     'nsHttp.h',
     'nsHttpAtomList.h',
     'nsHttpHeaderArray.h',
+    'nsHttpRequestHead.h',
     'nsHttpResponseHead.h',
 ]
 
@@ -32,16 +34,24 @@ EXPORTS.mozilla.net += [
     'HttpChannelChild.h',
     'HttpChannelParent.h',
     'HttpInfo.h',
+    'NullHttpChannel.h',
+    'PackagedAppService.h',
+    'PackagedAppVerifier.h',
     'PHttpChannelParams.h',
     'PSpdyPush.h',
+    'TimingStruct.h',
 ]
 
 # ASpdySession.cpp and nsHttpAuthCache cannot be built in unified mode because
 # they use plarena.h.
-# The rest of these files cannot be built in unified mode because they want to
-# force NSPR logging.
 SOURCES += [
+    'AlternateServices.cpp',
     'ASpdySession.cpp',
+    'nsHttpAuthCache.cpp',
+    'nsHttpChannelAuthProvider.cpp', # redefines GetAuthType
+]
+
+UNIFIED_SOURCES += [
     'ConnectionDiagnostics.cpp',
     'Http2Compression.cpp',
     'Http2Push.cpp',
@@ -52,13 +62,13 @@ SOURCES += [
     'HttpChannelParent.cpp',
     'HttpChannelParentListener.cpp',
     'HttpInfo.cpp',
+    'InterceptedChannel.cpp',
+    'nsCORSListenerProxy.cpp',
     'nsHttp.cpp',
     'nsHttpActivityDistributor.cpp',
-    'nsHttpAuthCache.cpp',
     'nsHttpAuthManager.cpp',
     'nsHttpBasicAuth.cpp',
     'nsHttpChannel.cpp',
-    'nsHttpChannelAuthProvider.cpp',
     'nsHttpChunkedDecoder.cpp',
     'nsHttpConnection.cpp',
     'nsHttpConnectionInfo.cpp',
@@ -70,12 +80,12 @@ SOURCES += [
     'nsHttpRequestHead.cpp',
     'nsHttpResponseHead.cpp',
     'nsHttpTransaction.cpp',
+    'NullHttpChannel.cpp',
     'NullHttpTransaction.cpp',
-    'SpdyPush3.cpp',
+    'PackagedAppService.cpp',
+    'PackagedAppVerifier.cpp',
     'SpdyPush31.cpp',
-    'SpdySession3.cpp',
     'SpdySession31.cpp',
-    'SpdyStream3.cpp',
     'SpdyStream31.cpp',
     'SpdyZlibReporter.cpp',
     'TunnelUtils.cpp',
@@ -95,15 +105,16 @@ EXTRA_JS_MODULES += [
     'UserAgentUpdates.jsm',
 ]
 
-FAIL_ON_WARNINGS = True
-
-MSVC_ENABLE_PGO = True
-
 include('/ipc/chromium/chromium-config.mozbuild')
 
 FINAL_LIBRARY = 'xul'
 
 LOCAL_INCLUDES += [
-    '../../base/src',
-    '/content/base/src',
+    '/dom/base',
+    '/netwerk/base',
+]
+
+EXTRA_COMPONENTS += [
+    'PackagedAppUtils.js',
+    'PackagedAppUtils.manifest',
 ]

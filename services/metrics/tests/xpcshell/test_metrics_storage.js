@@ -3,7 +3,7 @@
 
 "use strict";
 
-const {utils: Cu} = Components;
+var {utils: Cu} = Components;
 
 Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/Metrics.jsm");
@@ -343,7 +343,7 @@ add_task(function test_enqueue_operation_throw_exception() {
   backend.enqueueOperation(function bad() {
     throw new Error("I failed.");
   }).then(do_throw, function onError(error) {
-    do_check_true(error.message.contains("I failed."));
+    do_check_true(error.message.includes("I failed."));
     deferred.resolve();
   });
 

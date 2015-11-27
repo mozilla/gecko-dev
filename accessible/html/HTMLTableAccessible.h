@@ -7,13 +7,9 @@
 #define mozilla_a11y_HTMLTableAccessible_h__
 
 #include "HyperTextAccessibleWrap.h"
-#include "nsIAccessibleTable.h"
 #include "TableAccessible.h"
 #include "TableCellAccessible.h"
-#include "xpcAccessibleTable.h"
-#include "xpcAccessibleTableCell.h"
 
-class nsITableLayout;
 class nsITableCellLayout;
 
 namespace mozilla {
@@ -23,9 +19,7 @@ namespace a11y {
  * HTML table cell accessible (html:td).
  */
 class HTMLTableCellAccessible : public HyperTextAccessibleWrap,
-                                public nsIAccessibleTableCell,
-                                public TableCellAccessible,
-                                public xpcAccessibleTableCell
+                                public TableCellAccessible
 {
 public:
   HTMLTableCellAccessible(nsIContent* aContent, DocAccessible* aDoc);
@@ -33,34 +27,26 @@ public:
   // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
 
-  // nsIAccessibleTableCell
-  NS_FORWARD_NSIACCESSIBLETABLECELL(xpcAccessibleTableCell::)
-
   // Accessible
-  virtual TableCellAccessible* AsTableCell() { return this; }
-  virtual void Shutdown();
-  virtual a11y::role NativeRole() MOZ_OVERRIDE;
-  virtual uint64_t NativeState() MOZ_OVERRIDE;
-  virtual uint64_t NativeInteractiveState() const MOZ_OVERRIDE;
-  virtual already_AddRefed<nsIPersistentProperties> NativeAttributes() MOZ_OVERRIDE;
+  virtual TableCellAccessible* AsTableCell() override { return this; }
+  virtual a11y::role NativeRole() override;
+  virtual uint64_t NativeState() override;
+  virtual uint64_t NativeInteractiveState() const override;
+  virtual already_AddRefed<nsIPersistentProperties> NativeAttributes() override;
+  virtual mozilla::a11y::GroupPos GroupPosition() override;
 
   // TableCellAccessible
-  virtual TableAccessible* Table() const MOZ_OVERRIDE;
-  virtual uint32_t ColIdx() const MOZ_OVERRIDE;
-  virtual uint32_t RowIdx() const MOZ_OVERRIDE;
-  virtual uint32_t ColExtent() const MOZ_OVERRIDE;
-  virtual uint32_t RowExtent() const MOZ_OVERRIDE;
-  virtual void ColHeaderCells(nsTArray<Accessible*>* aCells) MOZ_OVERRIDE;
-  virtual void RowHeaderCells(nsTArray<Accessible*>* aCells) MOZ_OVERRIDE;
-  virtual bool Selected() MOZ_OVERRIDE;
+  virtual TableAccessible* Table() const override;
+  virtual uint32_t ColIdx() const override;
+  virtual uint32_t RowIdx() const override;
+  virtual uint32_t ColExtent() const override;
+  virtual uint32_t RowExtent() const override;
+  virtual void ColHeaderCells(nsTArray<Accessible*>* aCells) override;
+  virtual void RowHeaderCells(nsTArray<Accessible*>* aCells) override;
+  virtual bool Selected() override;
 
 protected:
   virtual ~HTMLTableCellAccessible() {}
-
-  /**
-   * Return host table accessible.
-   */
-  already_AddRefed<nsIAccessibleTable> GetTableAccessible();
 
   /**
    * Return nsITableCellLayout of the table cell frame.
@@ -83,7 +69,7 @@ public:
   HTMLTableHeaderCellAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   // Accessible
-  virtual a11y::role NativeRole() MOZ_OVERRIDE;
+  virtual a11y::role NativeRole() override;
 };
 
 
@@ -103,7 +89,8 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   // Accessible
-  virtual a11y::role NativeRole() MOZ_OVERRIDE;
+  virtual a11y::role NativeRole() override;
+  virtual mozilla::a11y::GroupPos GroupPosition() override;
 
 protected:
   virtual ~HTMLTableRowAccessible() { }
@@ -120,13 +107,11 @@ protected:
 // #define SHOW_LAYOUT_HEURISTIC
 
 class HTMLTableAccessible : public AccessibleWrap,
-                            public xpcAccessibleTable,
-                            public nsIAccessibleTable,
                             public TableAccessible
 {
 public:
   HTMLTableAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-    AccessibleWrap(aContent, aDoc), xpcAccessibleTable(this)
+    AccessibleWrap(aContent, aDoc)
   {
     mType = eHTMLTableType;
     mGenericTypes |= eTable;
@@ -134,54 +119,50 @@ public:
 
   NS_DECL_ISUPPORTS_INHERITED
 
-  // nsIAccessible Table
-  NS_FORWARD_NSIACCESSIBLETABLE(xpcAccessibleTable::)
-
   // TableAccessible
-  virtual Accessible* Caption() const;
-  virtual void Summary(nsString& aSummary);
-  virtual uint32_t ColCount();
-  virtual uint32_t RowCount();
-  virtual Accessible* CellAt(uint32_t aRowIndex, uint32_t aColumnIndex);
-  virtual int32_t CellIndexAt(uint32_t aRowIdx, uint32_t aColIdx);
-  virtual int32_t ColIndexAt(uint32_t aCellIdx);
-  virtual int32_t RowIndexAt(uint32_t aCellIdx);
+  virtual Accessible* Caption() const override;
+  virtual void Summary(nsString& aSummary) override;
+  virtual uint32_t ColCount() override;
+  virtual uint32_t RowCount() override;
+  virtual Accessible* CellAt(uint32_t aRowIndex, uint32_t aColumnIndex) override;
+  virtual int32_t CellIndexAt(uint32_t aRowIdx, uint32_t aColIdx) override;
+  virtual int32_t ColIndexAt(uint32_t aCellIdx) override;
+  virtual int32_t RowIndexAt(uint32_t aCellIdx) override;
   virtual void RowAndColIndicesAt(uint32_t aCellIdx, int32_t* aRowIdx,
-                                  int32_t* aColIdx);
-  virtual uint32_t ColExtentAt(uint32_t aRowIdx, uint32_t aColIdx);
-  virtual uint32_t RowExtentAt(uint32_t aRowIdx, uint32_t aColIdx);
-  virtual bool IsColSelected(uint32_t aColIdx);
-  virtual bool IsRowSelected(uint32_t aRowIdx);
-  virtual bool IsCellSelected(uint32_t aRowIdx, uint32_t aColIdx);
-  virtual uint32_t SelectedCellCount();
-  virtual uint32_t SelectedColCount();
-  virtual uint32_t SelectedRowCount();
-  virtual void SelectedCells(nsTArray<Accessible*>* aCells);
-  virtual void SelectedCellIndices(nsTArray<uint32_t>* aCells);
-  virtual void SelectedColIndices(nsTArray<uint32_t>* aCols);
-  virtual void SelectedRowIndices(nsTArray<uint32_t>* aRows);
-  virtual void SelectCol(uint32_t aColIdx);
-  virtual void SelectRow(uint32_t aRowIdx);
-  virtual void UnselectCol(uint32_t aColIdx);
-  virtual void UnselectRow(uint32_t aRowIdx);
-  virtual bool IsProbablyLayoutTable();
-  virtual Accessible* AsAccessible() { return this; }
+                                  int32_t* aColIdx) override;
+  virtual uint32_t ColExtentAt(uint32_t aRowIdx, uint32_t aColIdx) override;
+  virtual uint32_t RowExtentAt(uint32_t aRowIdx, uint32_t aColIdx) override;
+  virtual bool IsColSelected(uint32_t aColIdx) override;
+  virtual bool IsRowSelected(uint32_t aRowIdx) override;
+  virtual bool IsCellSelected(uint32_t aRowIdx, uint32_t aColIdx) override;
+  virtual uint32_t SelectedCellCount() override;
+  virtual uint32_t SelectedColCount() override;
+  virtual uint32_t SelectedRowCount() override;
+  virtual void SelectedCells(nsTArray<Accessible*>* aCells) override;
+  virtual void SelectedCellIndices(nsTArray<uint32_t>* aCells) override;
+  virtual void SelectedColIndices(nsTArray<uint32_t>* aCols) override;
+  virtual void SelectedRowIndices(nsTArray<uint32_t>* aRows) override;
+  virtual void SelectCol(uint32_t aColIdx) override;
+  virtual void SelectRow(uint32_t aRowIdx) override;
+  virtual void UnselectCol(uint32_t aColIdx) override;
+  virtual void UnselectRow(uint32_t aRowIdx) override;
+  virtual bool IsProbablyLayoutTable() override;
+  virtual Accessible* AsAccessible() override { return this; }
 
   // Accessible
-  virtual void Shutdown();
-  virtual TableAccessible* AsTable() { return this; }
-  virtual void Description(nsString& aDescription);
-  virtual a11y::role NativeRole() MOZ_OVERRIDE;
-  virtual uint64_t NativeState() MOZ_OVERRIDE;
-  virtual already_AddRefed<nsIPersistentProperties> NativeAttributes() MOZ_OVERRIDE;
-  virtual Relation RelationByType(RelationType aRelationType) MOZ_OVERRIDE;
+  virtual TableAccessible* AsTable() override { return this; }
+  virtual void Description(nsString& aDescription) override;
+  virtual a11y::role NativeRole() override;
+  virtual uint64_t NativeState() override;
+  virtual already_AddRefed<nsIPersistentProperties> NativeAttributes() override;
+  virtual Relation RelationByType(RelationType aRelationType) override;
 
 protected:
   virtual ~HTMLTableAccessible() {}
 
   // Accessible
-  virtual ENameValueFlag NativeName(nsString& aName) MOZ_OVERRIDE;
-  virtual void CacheChildren();
+  virtual ENameValueFlag NativeName(nsString& aName) override;
+  virtual void CacheChildren() override;
 
   // HTMLTableAccessible
 
@@ -229,13 +210,13 @@ class HTMLCaptionAccessible : public HyperTextAccessibleWrap
 public:
   HTMLCaptionAccessible(nsIContent* aContent, DocAccessible* aDoc) :
     HyperTextAccessibleWrap(aContent, aDoc) { }
-  virtual ~HTMLCaptionAccessible() { }
-
-  // nsIAccessible
 
   // Accessible
-  virtual a11y::role NativeRole() MOZ_OVERRIDE;
-  virtual Relation RelationByType(RelationType aRelationType) MOZ_OVERRIDE;
+  virtual a11y::role NativeRole() override;
+  virtual Relation RelationByType(RelationType aRelationType) override;
+
+protected:
+  virtual ~HTMLCaptionAccessible() { }
 };
 
 } // namespace a11y

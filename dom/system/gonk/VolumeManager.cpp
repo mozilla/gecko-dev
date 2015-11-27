@@ -44,6 +44,23 @@ VolumeManager::~VolumeManager()
 }
 
 //static
+void
+VolumeManager::Dump(const char* aLabel)
+{
+  if (!sVolumeManager) {
+    LOG("%s: sVolumeManager == null", aLabel);
+    return;
+  }
+
+  VolumeArray::size_type  numVolumes = NumVolumes();
+  VolumeArray::index_type volIndex;
+  for (volIndex = 0; volIndex < numVolumes; volIndex++) {
+    RefPtr<Volume> vol = GetVolume(volIndex);
+    vol->Dump(aLabel);
+  }
+}
+
+//static
 size_t
 VolumeManager::NumVolumes()
 {
@@ -54,11 +71,12 @@ VolumeManager::NumVolumes()
 }
 
 //static
-TemporaryRef<Volume>
+already_AddRefed<Volume>
 VolumeManager::GetVolume(size_t aIndex)
 {
   MOZ_ASSERT(aIndex < NumVolumes());
-  return sVolumeManager->mVolumeArray[aIndex];
+  RefPtr<Volume> vol = sVolumeManager->mVolumeArray[aIndex];
+  return vol.forget();
 }
 
 //static
@@ -107,7 +125,7 @@ void VolumeManager::UnregisterStateObserver(StateObserver* aObserver)
 }
 
 //static
-TemporaryRef<Volume>
+already_AddRefed<Volume>
 VolumeManager::FindVolumeByName(const nsCSubstring& aName)
 {
   if (!sVolumeManager) {
@@ -118,24 +136,170 @@ VolumeManager::FindVolumeByName(const nsCSubstring& aName)
   for (volIndex = 0; volIndex < numVolumes; volIndex++) {
     RefPtr<Volume> vol = GetVolume(volIndex);
     if (vol->Name().Equals(aName)) {
-      return vol;
+      return vol.forget();
     }
   }
   return nullptr;
 }
 
 //static
-TemporaryRef<Volume>
+already_AddRefed<Volume>
 VolumeManager::FindAddVolumeByName(const nsCSubstring& aName)
 {
   RefPtr<Volume> vol = FindVolumeByName(aName);
   if (vol) {
-    return vol;
+    return vol.forget();
   }
   // No volume found, create and add a new one.
   vol = new Volume(aName);
   sVolumeManager->mVolumeArray.AppendElement(vol);
-  return vol;
+  return vol.forget();
+}
+
+//static
+bool
+VolumeManager::RemoveVolumeByName(const nsCSubstring& aName)
+{
+  if (!sVolumeManager) {
+    return false;
+  }
+  VolumeArray::size_type  numVolumes = NumVolumes();
+  VolumeArray::index_type volIndex;
+  for (volIndex = 0; volIndex < numVolumes; volIndex++) {
+    RefPtr<Volume> vol = GetVolume(volIndex);
+    if (vol->Name().Equals(aName)) {
+      sVolumeManager->mVolumeArray.RemoveElementAt(volIndex);
+      return true;
+    }
+  }
+  // No volume found. Return false to indicate this.
+  return false;
+}
+
+
+//static
+void VolumeManager::InitConfig()
+{
+  MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
+
+  // This function uses /system/etc/volume.cfg to add additional volumes
+  // to the Volume Manager.
+  //
+  // This is useful on devices like the Nexus 4, which have no physical sd card
+  // or dedicated partition.
+  //
+  // The format of the volume.cfg file is as follows:
+  // create volume-name mount-point
+  // configure volume-name preference preference-value
+  // Blank lines and lines starting with the hash character "#" will be ignored.
+
+  ScopedCloseFile fp;
+  int n = 0;
+  char line[255];
+  const char *filename = "/system/etc/volume.cfg";
+  if (!(fp = fopen(filename, "r"))) {
+    LOG("Unable to open volume configuration file '%s' - ignoring", filename);
+    return;
+  }
+  while(fgets(line, sizeof(line), fp)) {
+    n++;
+
+    if (line[0] == '#')
+      continue;
+
+    nsCString commandline(line);
+    nsCWhitespaceTokenizer tokenizer(commandline);
+    if (!tokenizer.hasMoreTokens()) {
+      // Blank line - ignore
+      continue;
+    }
+
+    nsCString command(tokenizer.nextToken());
+    if (command.EqualsLiteral("create")) {
+      if (!tokenizer.hasMoreTokens()) {
+        ERR("No vol_name in %s line %d",  filename, n);
+        continue;
+      }
+      nsCString volName(tokenizer.nextToken());
+      if (!tokenizer.hasMoreTokens()) {
+        ERR("No mount point for volume '%s'. %s line %d",
+             volName.get(), filename, n);
+        continue;
+      }
+      nsCString mountPoint(tokenizer.nextToken());
+      RefPtr<Volume> vol = FindAddVolumeByName(volName);
+      vol->SetFakeVolume(mountPoint);
+      continue;
+    }
+    if (command.EqualsLiteral("configure")) {
+      if (!tokenizer.hasMoreTokens()) {
+        ERR("No vol_name in %s line %d", filename, n);
+        continue;
+      }
+      nsCString volName(tokenizer.nextToken());
+      if (!tokenizer.hasMoreTokens()) {
+        ERR("No configuration name specified for volume '%s'. %s line %d",
+             volName.get(), filename, n);
+        continue;
+      }
+      nsCString configName(tokenizer.nextToken());
+      if (!tokenizer.hasMoreTokens()) {
+        ERR("No value for configuration name '%s'. %s line %d",
+            configName.get(), filename, n);
+        continue;
+      }
+      nsCString configValue(tokenizer.nextToken());
+      RefPtr<Volume> vol = FindVolumeByName(volName);
+      if (vol) {
+        vol->SetConfig(configName, configValue);
+      } else {
+        ERR("Invalid volume name '%s'.", volName.get());
+      }
+      continue;
+    }
+    if (command.EqualsLiteral("ignore")) {
+      // This command is useful to remove volumes which are being tracked by
+      // vold, but for which we have no interest.
+      if (!tokenizer.hasMoreTokens()) {
+        ERR("No vol_name in %s line %d", filename, n);
+        continue;
+      }
+      nsCString volName(tokenizer.nextToken());
+      RemoveVolumeByName(volName);
+      continue;
+    }
+    ERR("Unrecognized command: '%s'", command.get());
+  }
+}
+
+void
+VolumeManager::DefaultConfig()
+{
+
+  VolumeManager::VolumeArray::size_type numVolumes = VolumeManager::NumVolumes();
+  if (numVolumes == 0) {
+    return;
+  }
+  if (numVolumes == 1) {
+    // This is to cover early shipping phones like the Buri,
+    // which had no internal storage, and only external sdcard.
+    //
+    // Phones line the nexus-4 which only have an internal
+    // storage area will need to have a volume.cfg file with
+    // removable set to false.
+    RefPtr<Volume> vol = VolumeManager::GetVolume(0);
+    vol->SetIsRemovable(true);
+    vol->SetIsHotSwappable(true);
+    return;
+  }
+  VolumeManager::VolumeArray::index_type volIndex;
+  for (volIndex = 0; volIndex < numVolumes; volIndex++) {
+    RefPtr<Volume> vol = VolumeManager::GetVolume(volIndex);
+    if (!vol->Name().EqualsLiteral("sdcard")) {
+      vol->SetIsRemovable(true);
+      vol->SetIsHotSwappable(true);
+    }
+  }
 }
 
 class VolumeListCallback : public VolumeResponseCallback
@@ -143,7 +307,7 @@ class VolumeListCallback : public VolumeResponseCallback
   virtual void ResponseReceived(const VolumeCommand* aCommand)
   {
     switch (ResponseCode()) {
-      case ResponseCode::VolumeListResult: {
+      case ::ResponseCode::VolumeListResult: {
         // Each line will look something like:
         //
         //  sdcard /mnt/sdcard 1
@@ -157,9 +321,13 @@ class VolumeListCallback : public VolumeResponseCallback
         break;
       }
 
-      case ResponseCode::CommandOkay: {
-        // We've received the list of volumes. Tell anybody who
-        // is listening that we're open for business.
+      case ::ResponseCode::CommandOkay: {
+        // We've received the list of volumes. Now read the Volume.cfg
+        // file to perform customizations, and then tell everybody
+        // that we're ready for business.
+        VolumeManager::DefaultConfig();
+        VolumeManager::InitConfig();
+        VolumeManager::Dump("READY");
         VolumeManager::SetState(VolumeManager::VOLUMES_READY);
         break;
       }
@@ -253,7 +421,7 @@ VolumeManager::WriteCommandData()
     Restart();
     return;
   }
-  DBG("Wrote %ld bytes (of %d)", bytesWritten, cmd->BytesRemaining());
+  DBG("Wrote %d bytes (of %d)", bytesWritten, cmd->BytesRemaining());
   cmd->ConsumeBytes(bytesWritten);
   if (cmd->BytesRemaining() == 0) {
     return;
@@ -285,7 +453,7 @@ VolumeManager::OnLineRead(int aFd, nsDependentCSubstring& aMessage)
   nsDependentCString  responseLine(endPtr, aMessage.Length() - (endPtr - aMessage.Data()));
   DBG("Rcvd: %d '%s'", responseCode, responseLine.Data());
 
-  if (responseCode >= ResponseCode::UnsolicitedInformational) {
+  if (responseCode >= ::ResponseCode::UnsolicitedInformational) {
     // These are unsolicited broadcasts. We intercept these and process
     // them ourselves
     HandleBroadcast(responseCode, responseLine);
@@ -294,7 +462,7 @@ VolumeManager::OnLineRead(int aFd, nsDependentCSubstring& aMessage)
     if (mCommands.size() > 0) {
       VolumeCommand* cmd = mCommands.front();
       cmd->HandleResponse(responseCode, responseLine);
-      if (responseCode >= ResponseCode::CommandOkay) {
+      if (responseCode >= ::ResponseCode::CommandOkay) {
         // That's a terminating response. We can remove the command.
         mCommands.pop();
         mCommandPending = false;

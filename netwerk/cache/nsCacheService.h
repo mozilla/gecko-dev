@@ -62,8 +62,8 @@ private:
  *  nsCacheService
  ******************************************************************************/
 
-class nsCacheService : public nsICacheServiceInternal,
-                       public nsIMemoryReporter
+class nsCacheService final : public nsICacheServiceInternal,
+                             public nsIMemoryReporter
 {
     virtual ~nsCacheService();
 
@@ -182,7 +182,7 @@ public:
     /**
      * Methods called by nsCacheProfilePrefObserver
      */
-    static void      OnProfileShutdown(bool cleanse);
+    static void      OnProfileShutdown();
     static void      OnProfileChanged();
 
     static void      SetDiskCacheEnabled(bool    enabled);
@@ -254,6 +254,7 @@ private:
      * Internal Methods
      */
 
+    static void      Lock();
     static void      Lock(::mozilla::Telemetry::ID mainThreadLockerID);
     static void      Unlock();
     void             LockAcquired();
@@ -311,23 +312,10 @@ private:
     void             FireClearNetworkCacheStoredAnywhereNotification();
 
     static
-    PLDHashOperator  GetActiveEntries(PLDHashTable *    table,
-                                      PLDHashEntryHdr * hdr,
-                                      uint32_t          number,
-                                      void *            arg);
-    static
-    PLDHashOperator  RemoveActiveEntry(PLDHashTable *    table,
-                                       PLDHashEntryHdr * hdr,
-                                       uint32_t          number,
-                                       void *            arg);
-
-    static
     PLDHashOperator  ShutdownCustomCacheDeviceEnum(const nsAString& aProfileDir,
-                                                   nsRefPtr<nsOfflineCacheDevice>& aDevice,
+                                                   RefPtr<nsOfflineCacheDevice>& aDevice,
                                                    void* aUserArg);
-#if defined(PR_LOGGING)
     void LogCacheStatistics();
-#endif
 
     nsresult         SetDiskSmartSize_Locked();
 
@@ -393,6 +381,9 @@ private:
 // execution scope.
 class nsCacheServiceAutoLock {
 public:
+    nsCacheServiceAutoLock() {
+        nsCacheService::Lock();
+    }
     explicit nsCacheServiceAutoLock(mozilla::Telemetry::ID mainThreadLockerID) {
         nsCacheService::Lock(mainThreadLockerID);
     }

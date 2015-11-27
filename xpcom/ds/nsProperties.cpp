@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -64,28 +65,6 @@ nsProperties::Has(const char* prop, bool* result)
   return NS_OK;
 }
 
-struct GetKeysEnumData
-{
-  char** keys;
-  uint32_t next;
-  nsresult res;
-};
-
-PLDHashOperator
-GetKeysEnumerate(const char* aKey, nsISupports* aData, void* aArg)
-{
-  GetKeysEnumData* gkedp = (GetKeysEnumData*)aArg;
-  gkedp->keys[gkedp->next] = strdup(aKey);
-
-  if (!gkedp->keys[gkedp->next]) {
-    gkedp->res = NS_ERROR_OUT_OF_MEMORY;
-    return PL_DHASH_STOP;
-  }
-
-  gkedp->next++;
-  return PL_DHASH_NEXT;
-}
-
 NS_IMETHODIMP
 nsProperties::GetKeys(uint32_t* aCount, char*** aKeys)
 {
@@ -93,28 +72,27 @@ nsProperties::GetKeys(uint32_t* aCount, char*** aKeys)
     return NS_ERROR_INVALID_ARG;
   }
 
-  uint32_t n = Count();
-  char** k = (char**)nsMemory::Alloc(n * sizeof(char*));
+  uint32_t count = Count();
+  char** keys = (char**)moz_xmalloc(count * sizeof(char*));
+  uint32_t j = 0;
 
-  GetKeysEnumData gked;
-  gked.keys = k;
-  gked.next = 0;
-  gked.res = NS_OK;
+  for (auto iter = this->Iter(); !iter.Done(); iter.Next()) {
+    const char* key = iter.Key();
+    keys[j] = strdup(key);
 
-  EnumerateRead(GetKeysEnumerate, &gked);
-
-  nsresult rv = gked.res;
-  if (NS_FAILED(rv)) {
-    // Free 'em all
-    for (uint32_t i = 0; i < gked.next; i++) {
-      nsMemory::Free(k[i]);
+    if (!keys[j]) {
+      // Free 'em all
+      for (uint32_t i = 0; i < j; i++) {
+        free(keys[i]);
+      }
+      free(keys);
+      return NS_ERROR_OUT_OF_MEMORY;
     }
-    nsMemory::Free(k);
-    return rv;
+    j++;
   }
 
-  *aCount = n;
-  *aKeys = k;
+  *aCount = count;
+  *aKeys = keys;
   return NS_OK;
 }
 

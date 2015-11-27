@@ -70,7 +70,7 @@
       <constructor>
         this.mInputField = null;
         this.mSelectedInternal = null;
-        this.menuBoxObject = this.boxObject.QueryInterface(Components.interfaces.nsIMenuBoxObject);
+        this.menuBoxObject = this.boxObject;
         this.setInitialSelection();
       </constructor>
 
@@ -602,6 +602,13 @@
         <xul:label class="menulist-label menulist-description" xbl:inherits="value=description" crop="right" flex="10000"/>
       </xul:hbox>
       <xul:dropmarker class="menulist-dropmarker" type="menu" xbl:inherits="disabled,open"/>
+      <children includes="menupopup"/>
+    </content>
+  </binding>
+
+  <binding id="menulist-popuponly" display="xul:menu"
+           extends="chrome://global/content/bindings/menulist.xml#menulist">
+    <content sizetopopup="pref">
       <children includes="menupopup"/>
     </content>
   </binding>

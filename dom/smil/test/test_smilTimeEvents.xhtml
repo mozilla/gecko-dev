@@ -32,7 +32,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=572270
 /** Test SMIL TimeEvents dispatching **/
 
 /* Global Variables */
-const gTimeoutDur = 5000; // Time until we give up waiting for events in ms
+const gTimeoutDur = 60000; // Time until we give up waiting for events in ms
 var gSvg    = document.getElementById("svg");
 var gAnim   = document.getElementById('anim');
 var gCircle = document.getElementById('circle');
@@ -52,6 +52,7 @@ var gTestStages =
     ];
 
 SimpleTest.waitForExplicitFinish();
+SimpleTest.requestFlakyTimeout("untriaged");
 
 function continueTest()
 {
@@ -286,6 +287,13 @@ gAnim.addEventListener("beginEvent", handleOnBegin, false);
 gAnim.addEventListener("repeatEvent", handleOnRepeat, false);
 gAnim.addEventListener("endEvent", handleOnEnd, false);
 gCircle.addEventListener("beginEvent", parentHandler, false);
+
+var expectedEvents =
+  ["begin", "beginEvent", "repeat", "repeatEvent", "end", "endEvent", "SVGZoom", "zoom"];
+
+for (var i = 0; i < expectedEvents.length; ++i) {
+  is((new Event(expectedEvents[i])).type, expectedEvents[i], "Unexpected event type!");
+}
 ]]>
 </script>
 </pre>

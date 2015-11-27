@@ -3,27 +3,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef WEBGLSHADER_H_
-#define WEBGLSHADER_H_
+#ifndef WEBGL_SHADER_H_
+#define WEBGL_SHADER_H_
 
-#include "WebGLObjectModel.h"
-#include "WebGLUniformInfo.h"
+#include <string>
+#include <vector>
 
-#include "nsWrapperCache.h"
-
-#include "angle/ShaderLang.h"
-
+#include "GLDefs.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/MemoryReporting.h"
+#include "nsString.h"
+#include "nsWrapperCache.h"
+
+#include "WebGLObjectModel.h"
 
 namespace mozilla {
 
-struct WebGLMappedIdentifier {
-    nsCString original, mapped; // ASCII strings
-    WebGLMappedIdentifier(const nsACString& o, const nsACString& m) : original(o), mapped(m) {}
-};
+namespace webgl {
+class ShaderValidator;
+} // namespace webgl
 
-class WebGLShader MOZ_FINAL
+class WebGLShader final
     : public nsWrapperCache
     , public WebGLRefCountedObject<WebGLShader>
     , public LinkedListElement<WebGLShader>
@@ -33,69 +33,73 @@ class WebGLShader MOZ_FINAL
     friend class WebGLProgram;
 
 public:
-    WebGLShader(WebGLContext *context, GLenum stype);
+    WebGLShader(WebGLContext* webgl, GLenum type);
 
-    size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
+protected:
+    ~WebGLShader();
 
-    GLuint GLName() { return mGLName; }
-    sh::GLenum ShaderType() { return mType; }
+public:
+    // GL funcs
+    void CompileShader();
+    JS::Value GetShaderParameter(GLenum pname) const;
+    void GetShaderInfoLog(nsAString* out) const;
+    void GetShaderSource(nsAString* out) const;
+    void GetShaderTranslatedSource(nsAString* out) const;
+    void ShaderSource(const nsAString& source);
 
-    void SetSource(const nsAString& src) {
-        // XXX do some quick gzip here maybe -- getting this will be very rare
-        mSource.Assign(src);
+    // Util funcs
+    bool CanLinkTo(const WebGLShader* prev, nsCString* const out_log) const;
+    size_t CalcNumSamplerUniforms() const;
+    size_t NumAttributes() const;
+    void BindAttribLocation(GLuint prog, const nsCString& userName, GLuint index) const;
+    bool FindAttribUserNameByMappedName(const nsACString& mappedName,
+                                        nsDependentCString* const out_userName) const;
+    bool FindVaryingByMappedName(const nsACString& mappedName,
+                                 nsCString* const out_userName,
+                                 bool* const out_isArray) const;
+    bool FindUniformByMappedName(const nsACString& mappedName,
+                                 nsCString* const out_userName,
+                                 bool* const out_isArray) const;
+    bool FindUniformBlockByMappedName(const nsACString& mappedName,
+                                      nsCString* const out_userName,
+                                      bool* const out_isArray) const;
+
+    bool IsCompiled() const {
+        return mTranslationSuccessful && mCompilationSuccessful;
     }
 
-    const nsString& Source() const { return mSource; }
+    void ApplyTransformFeedbackVaryings(GLuint prog,
+                                        const std::vector<nsCString>& varyings,
+                                        GLenum bufferMode,
+                                        std::vector<std::string>* out_mappedVaryings) const;
 
-    void SetNeedsTranslation() { mNeedsTranslation = true; }
-    bool NeedsTranslation() const { return mNeedsTranslation; }
-
-    void SetCompileStatus (bool status) {
-        mCompileStatus = status;
-    }
-
+    // Other funcs
+    size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
     void Delete();
 
-    bool CompileStatus() const {
-        return mCompileStatus;
-    }
+    WebGLContext* GetParentObject() const { return mContext; }
 
-    void SetTranslationSuccess();
-
-    void SetTranslationFailure(const nsCString& msg) {
-        mTranslationLog.Assign(msg); 
-    }
-
-    const nsCString& TranslationLog() const { return mTranslationLog; }
-
-    const nsString& TranslatedSource() const { return mTranslatedSource; }
-
-    WebGLContext *GetParentObject() const {
-        return Context();
-    }
-
-    virtual JSObject* WrapObject(JSContext *cx) MOZ_OVERRIDE;
+    virtual JSObject* WrapObject(JSContext* js, JS::Handle<JSObject*> givenProto) override;
 
     NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(WebGLShader)
     NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(WebGLShader)
 
+public:
+    const GLuint mGLName;
+    const GLenum mType;
 protected:
-    ~WebGLShader() {
-        DeleteOnce();
-    }
-
-    GLuint mGLName;
-    sh::GLenum mType;
     nsString mSource;
-    nsString mTranslatedSource;
-    nsCString mTranslationLog; // The translation log should contain only ASCII characters
-    bool mNeedsTranslation;
-    nsTArray<WebGLMappedIdentifier> mAttributes;
-    nsTArray<WebGLMappedIdentifier> mUniforms;
-    nsTArray<WebGLUniformInfo> mUniformInfos;
-    int mAttribMaxNameLength;
-    bool mCompileStatus;
+    nsCString mCleanSource;
+
+    UniquePtr<webgl::ShaderValidator> mValidator;
+    nsCString mValidationLog;
+    bool mTranslationSuccessful;
+    nsCString mTranslatedSource;
+
+    bool mCompilationSuccessful;
+    nsCString mCompilationLog;
 };
+
 } // namespace mozilla
 
-#endif
+#endif // WEBGL_SHADER_H_

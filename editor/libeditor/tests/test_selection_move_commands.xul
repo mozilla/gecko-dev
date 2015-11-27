@@ -62,7 +62,10 @@ function execTests() {
   }
 
   function testScrollCommand(cmd, expectTop) {
-    is(root.getBoundingClientRect().top, -expectTop, cmd);
+    // http://dev.w3.org/csswg/cssom-view/#dom-element-getboundingclientrect
+    // doesn't explicitly rule out -0 here, but for now assume that only
+    // positive zeroes are permitted.
+    is(root.getBoundingClientRect().top, -expectTop + 0, cmd);
   }
 
   function testMoveCommand(cmd, expectNode, expectOffset) {
@@ -171,9 +174,9 @@ function execTests() {
     testSelectCommand("cmd_selectCharNext", node(0), 1);
 
     doCommand("cmd_moveTop");
-    testMoveCommand("cmd_endLine", body, 1);
+    testMoveCommand("cmd_endLine", node(0), 1);
     testMoveCommand("cmd_beginLine", node(0), 0);
-    testSelectCommand("cmd_selectEndLine", body, 1);
+    testSelectCommand("cmd_selectEndLine", node(0), 1);
     doCommand("cmd_moveBottom");
     testSelectCommand("cmd_selectBeginLine", node(22), 0);
 

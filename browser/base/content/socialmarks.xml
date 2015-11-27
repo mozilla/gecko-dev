@@ -8,7 +8,7 @@
 
   <binding id="toolbarbutton-marks" display="xul:button"
            extends="chrome://global/content/bindings/toolbarbutton.xml#toolbarbutton">
-    <content disabled="true">
+    <content>
       <xul:panel anonid="panel" hidden="true" type="arrow" class="social-panel"/>
       <xul:image class="toolbarbutton-icon" xbl:inherits="validate,src=image,label"/>
       <xul:label class="toolbarbutton-text" crop="right" flex="1"
@@ -54,6 +54,8 @@
           iframe.setAttribute("type", "content");
           iframe.setAttribute("class", "social-panel-frame");
           iframe.setAttribute("flex", "1");
+          iframe.setAttribute("message", "true");
+          iframe.setAttribute("messagemanagergroup", "social");
           iframe.setAttribute("tooltip", "aHTMLTooltip");
           iframe.setAttribute("context", "contentAreaContextMenu");
           iframe.setAttribute("origin", provider.origin);
@@ -113,16 +115,11 @@
         if (this._frame.docShell)
           this._frame.docShell.createAboutBlankContentViewer(null);
 
-        // do we have a savable page loaded?
-        let aURI = gBrowser.currentURI;
-        let disabled = !aURI || !(aURI.schemeIs('http') || aURI.schemeIs('https'));
-        // when overflowed in toolbar, we must have the attribute set
-        if (disabled) {
-          this.setAttribute("disabled", "true");
+        // disabled attr is set by Social:PageShareOrMark command
+        if (this.hasAttribute("disabled")) {
           this.isMarked = false;
         } else {
-          this.removeAttribute("disabled");
-          Social.isURIMarked(provider.origin, aURI, (isMarked) => {
+          Social.isURIMarked(provider.origin, gBrowser.currentURI, (isMarked) => {
             this.isMarked = isMarked;
           });
         }
@@ -134,9 +131,17 @@
         // that we can hide
         if (panel.hidePopup) {
           panel.hidePopup();
-          panel.hidden = true;
         }
         this.pageData = null;
+        ]]></body>
+      </method>
+
+      <method name="receiveMessage">
+        <parameter name="message"/>
+        <body><![CDATA[
+        if (message.name != "Social:ErrorPageNotify" || message.target != this.content)
+          return;
+        this.openPanel();
         ]]></body>
       </method>
 
@@ -153,10 +158,24 @@
           panel.appendChild(this.content);
 
         let URLTemplate = provider.markURL;
-        pageData = pageData || OpenGraphBuilder.getData(gBrowser);
+        let _dataFn;
+        if (!pageData) {
+          messageManager.addMessageListener("PageMetadata:PageDataResult", _dataFn = (msg) => {
+            messageManager.removeMessageListener("PageMetadata:PageDataResult", _dataFn);
+            this.loadPanel(msg.json, target);
+          });
+          gBrowser.selectedBrowser.messageManager.sendAsyncMessage("PageMetadata:GetPageData");
+          return;
+        }
         // if this is a share of a selected item, get any microdata
         if (!pageData.microdata && target) {
-          pageData.microdata = OpenGraphBuilder.getMicrodata(gBrowser, target);
+          messageManager.addMessageListener("PageMetadata:MicrodataResult", _dataFn = (msg) => {
+            messageManager.removeMessageListener("PageMetadata:MicrodataResult", _dataFn);
+            pageData.microdata = msg.data;
+            this.loadPanel(pageData, target);
+          });
+          gBrowser.selectedBrowser.messageManager.sendAsyncMessage("PageMetadata:GetMicrodata", null, { target });
+          return;
         }
         this.pageData = pageData;
 
@@ -195,11 +214,12 @@
               });
             }
           }.bind(this);
-          contentWindow.addEventListener("socialMarkUpdate", markUpdate);
-          contentWindow.addEventListener("unload", function unload() {
+          let unload = () => {
             contentWindow.removeEventListener("unload", unload);
             contentWindow.removeEventListener("socialMarkUpdate", markUpdate);
-          });
+          }
+          contentWindow.addEventListener("socialMarkUpdate", markUpdate);
+          contentWindow.addEventListener("unload", unload);
         }
         this.content.addEventListener("DOMContentLoaded", DOMContentLoaded, true);
         this._loading = true;

@@ -1,0 +1,28 @@
+namespace mozilla {
+namespace _ipdltest {
+
+prio(normal upto urgent) sync protocol PTestUrgentHangs
+{
+parent:
+    prio(high) sync Test1_2();
+
+    prio(high) sync TestInner();
+    prio(urgent) sync TestInnerUrgent();
+
+child:
+    prio(high) sync Test1_1();
+    prio(high) sync Test1_3();
+
+    prio(high) sync Test2();
+
+    prio(high) sync Test3();
+
+    async Test4();
+    prio(high) sync Test4_1();
+
+    async Test5();
+    prio(high) sync Test5_1();
+};
+
+} // namespace _ipdltest
+} // namespace mozilla

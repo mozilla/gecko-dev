@@ -12,24 +12,32 @@ if CONFIG['MOZ_NFC']:
         'nsINfcContentHelper.idl',
     ]
     EXPORTS.mozilla.dom += [
+        'MozIsoDepTech.h',
         'MozNDEFRecord.h',
+        'MozNfcATech.h',
+        'TagUtils.h',
     ]
-    SOURCES += [
+    UNIFIED_SOURCES += [
+        'MozIsoDepTech.cpp',
         'MozNDEFRecord.cpp',
+        'MozNfcATech.cpp',
+        'TagUtils.cpp',
     ]
     EXTRA_COMPONENTS += [
         'NfcContentHelper.js',
+        'NfcContentHelper.manifest',
         'nsNfc.js',
         'nsNfc.manifest',
     ]
 
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk' and CONFIG['MOZ_NFC']:
-    SOURCES += [
+    UNIFIED_SOURCES += [
         'gonk/NfcMessageHandler.cpp',
         'gonk/NfcService.cpp',
     ]
     XPIDL_SOURCES += [
         'gonk/nsINfcService.idl',
+        'gonk/nsINfcSystemMessage.idl',
     ]
     EXTRA_COMPONENTS += [
         'gonk/Nfc.js',
@@ -40,8 +48,13 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk' and CONFIG['MOZ_NFC']:
     EXTRA_JS_MODULES += [
         'gonk/nfc_consts.js',
     ]
+    XPCSHELL_TESTS_MANIFESTS += [
+        'tests/unit/xpcshell.ini'
+    ]
 
-FAIL_ON_WARNINGS = True
 include('/ipc/chromium/chromium-config.mozbuild')
 
 FINAL_LIBRARY = 'xul'
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wshadow']

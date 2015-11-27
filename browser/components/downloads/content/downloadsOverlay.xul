@@ -21,6 +21,10 @@
              oncommand="goDoCommand('downloadsCmd_pauseResume')"/>
     <command id="downloadsCmd_cancel"
              oncommand="goDoCommand('downloadsCmd_cancel')"/>
+    <command id="downloadsCmd_unblock"
+             oncommand="goDoCommand('downloadsCmd_unblock')"/>
+    <command id="downloadsCmd_confirmBlock"
+             oncommand="goDoCommand('downloadsCmd_confirmBlock')"/>
     <command id="downloadsCmd_open"
              oncommand="goDoCommand('downloadsCmd_open')"/>
     <command id="downloadsCmd_show"
@@ -35,7 +39,7 @@
              oncommand="goDoCommand('downloadsCmd_clearList')"/>
   </commandset>
 
-  <popupset>
+  <popupset id="mainPopupSet">
     <!-- The panel has level="top" to ensure that it is never hidden by the
          taskbar on Windows.  See bug 672365.  For accessibility to screen
          readers, we use a label on the panel instead of the anchor because the
@@ -65,6 +69,10 @@
                   class="downloadCancelMenuItem"
                   label="&cmd.cancel.label;"
                   accesskey="&cmd.cancel.accesskey;"/>
+        <menuitem command="downloadsCmd_unblock"
+                  class="downloadUnblockMenuItem"
+                  label="&cmd.unblock.label;"
+                  accesskey="&cmd.unblock.accesskey;"/>
         <menuitem command="cmd_delete"
                   class="downloadRemoveFromHistoryMenuItem"
                   label="&cmd.removeFromHistory.label;"

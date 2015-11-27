@@ -66,12 +66,12 @@ private:
   * The resulting vertex coordinates should be drawn using GL_TRIANGLES,
   * and rects.numRects * 3 * 6
   */
-void DecomposeIntoNoRepeatTriangles(const nsIntRect& aTexCoordRect,
-                                    const nsIntSize& aTexSize,
+void DecomposeIntoNoRepeatTriangles(const gfx::IntRect& aTexCoordRect,
+                                    const gfx::IntSize& aTexSize,
                                     RectTriangles& aRects,
                                     bool aFlipY = false);
 
-}
-}
+} // namespace gl
+} // namespace mozilla
 
 #endif // DecomposeIntoNoRepeatTriangles_h_

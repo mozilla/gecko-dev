@@ -4,7 +4,7 @@
 const PRELOAD_PREF = "browser.newtab.preload";
 
 gDirectorySource = "data:application/json," + JSON.stringify({
-  "en-US": [{
+  "directory": [{
     url: "http://example.com/organic",
     type: "organic"
   }, {
@@ -35,21 +35,38 @@ function runTests() {
   expected.type = "sponsored";
   expected.action = "view";
   expected.pinned = false;
-  yield addNewTabPageTab();
-  yield null; // wait for reportSitesAction
+  addNewTabPageTab();
 
+  // Wait for addNewTabPageTab and reportSitesAction
+  yield null;
+  yield null;
+
+  whenPagesUpdated();
   // Click the pin button on the link in the 1th tile spot
   let siteNode = getCell(1).node.querySelector(".newtab-site");
   let pinButton = siteNode.querySelector(".newtab-control-pin");
   expected.action = "pin";
+  // tiles become "history" when pinned
+  expected.type = "history";
   expected.pinned = true;
-  yield EventUtils.synthesizeMouseAtCenter(pinButton, {}, getContentWindow());
+  EventUtils.synthesizeMouseAtCenter(pinButton, {}, getContentWindow());
+
+  // Wait for whenPagesUpdated and reportSitesAction
+  yield null;
+  yield null;
 
   // Unpin that link
   expected.action = "unpin";
   expected.pinned = false;
-  yield EventUtils.synthesizeMouseAtCenter(pinButton, {}, getContentWindow());
-  yield whenPagesUpdated();
+  whenPagesUpdated();
+  // need to reget siteNode for it could have been re-rendered after pin
+  siteNode = getCell(1).node.querySelector(".newtab-site");
+  pinButton = siteNode.querySelector(".newtab-control-pin");
+  EventUtils.synthesizeMouseAtCenter(pinButton, {}, getContentWindow());
+
+  // Wait for whenPagesUpdated and reportSitesAction
+  yield null;
+  yield null;
 
   // Block the site in the 0th tile spot
   let blockedSite = getCell(0).node.querySelector(".newtab-site");
@@ -57,11 +74,18 @@ function runTests() {
   expected.type = "organic";
   expected.action = "block";
   expected.pinned = false;
-  yield EventUtils.synthesizeMouseAtCenter(blockButton, {}, getContentWindow());
-  yield whenPagesUpdated();
+  whenPagesUpdated();
+  EventUtils.synthesizeMouseAtCenter(blockButton, {}, getContentWindow());
+
+  // Wait for whenPagesUpdated and reportSitesAction
+  yield null;
+  yield null;
 
   // Click the 1th link now in the 0th tile spot
-  expected.type = "sponsored";
+  expected.type = "history";
   expected.action = "click";
-  yield EventUtils.synthesizeMouseAtCenter(siteNode, {}, getContentWindow());
+  EventUtils.synthesizeMouseAtCenter(siteNode, {}, getContentWindow());
+
+  // Wait for reportSitesAction
+  yield null;
 }

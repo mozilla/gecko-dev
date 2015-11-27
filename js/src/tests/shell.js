@@ -3,13 +3,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// Explicitly set the default version.
-// See https://bugzilla.mozilla.org/show_bug.cgi?id=522760#c11
-if (typeof version != 'undefined')
-{
-  version(0);
-}
-
 var STATUS = "STATUS: ";
 var VERBOSE = false;
 var SECT_PREFIX = 'Section ';
@@ -535,8 +528,6 @@ function BigO(data)
     }
     return deriv;
   }
-
-  return 0;
 }
 
 function compareSource(expect, actual, summary)
@@ -856,6 +847,23 @@ function assertThrows(f) {
     if (!ok)
         throw new Error("Assertion failed: " + f + " did not throw as expected");
 }
+
+
+function assertThrowsInstanceOf(f, ctor, msg) {
+  var fullmsg;
+  try {
+    f();
+  } catch (exc) {
+    if (exc instanceof ctor)
+      return;
+    fullmsg = "Assertion failed: expected exception " + ctor.name + ", got " + exc;
+  }
+  if (fullmsg === undefined)
+    fullmsg = "Assertion failed: expected exception " + ctor.name + ", no exception thrown";
+  if (msg !== undefined)
+    fullmsg += " - " + msg;
+  throw new Error(fullmsg);
+};
 
 /*
  * Some tests need to know if we are in Rhino as opposed to SpiderMonkey

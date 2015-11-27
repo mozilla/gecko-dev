@@ -1,4 +1,5 @@
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/Services.jsm");
 
 var httpserver = null;
 
@@ -9,7 +10,14 @@ XPCOMUtils.defineLazyGetter(this, "uri", function() {
 function make_channel(url) {
   var ios = Cc["@mozilla.org/network/io-service;1"].
             getService(Ci.nsIIOService);
-  return ios.newChannel(url, "", null);
+  return ios.newChannel2(url,
+                         "",
+                         null,
+                         null,      // aLoadingNode
+                         Services.scriptSecurityManager.getSystemPrincipal(),
+                         null,      // aTriggeringPrincipal
+                         Ci.nsILoadInfo.SEC_NORMAL,
+                         Ci.nsIContentPolicy.TYPE_OTHER);
 }
 
 var multipartBody = "--boundary\r\n\r\nSome text\r\n--boundary\r\n\r\n<?xml version='1.0'?><root/>\r\n--boundary--";
@@ -17,7 +25,14 @@ var multipartBody = "--boundary\r\n\r\nSome text\r\n--boundary\r\n\r\n<?xml vers
 function make_channel(url) {
   var ios = Cc["@mozilla.org/network/io-service;1"].
             getService(Ci.nsIIOService);
-  return ios.newChannel(url, "", null);
+  return ios.newChannel2(url,
+                         "",
+                         null,
+                         null,      // aLoadingNode
+                         Services.scriptSecurityManager.getSystemPrincipal(),
+                         null,      // aTriggeringPrincipal
+                         Ci.nsILoadInfo.SEC_NORMAL,
+                         Ci.nsIContentPolicy.TYPE_OTHER);
 }
 
 function contentHandler(metadata, response)
@@ -46,6 +61,7 @@ function responseHandler(request, buffer)
 
 var multipartListener = {
   _buffer: "",
+  _index: 0,
 
   QueryInterface: function(iid) {
     if (iid.equals(Components.interfaces.nsIStreamListener) ||
@@ -69,6 +85,9 @@ var multipartListener = {
   },
 
   onStopRequest: function(request, context, status) {
+    this._index++;
+    // Second part should be last part
+    do_check_eq(request.QueryInterface(Ci.nsIMultiPartChannel).isLastPart, this._index == 2);
     try {
       responseHandler(request, this._buffer);
     } catch (ex) {

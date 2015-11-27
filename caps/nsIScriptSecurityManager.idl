@@ -14,12 +14,19 @@ interface nsILoadContext;
 
 %{ C++
 #include "jspubtd.h"
+
+namespace mozilla {
+namespace dom {
+class DomainPolicyClone;
+}
+}
 %}
 
 [ptr] native JSContextPtr(JSContext);
 [ptr] native JSObjectPtr(JSObject);
+[ptr] native DomainPolicyClonePtr(mozilla::dom::DomainPolicyClone);
 
-[scriptable, uuid(3b021962-975e-43b5-8a93-9fc2d20346e9)]
+[scriptable, uuid(b7ae2310-576e-11e5-a837-0800200c9a66)]
 interface nsIScriptSecurityManager : nsISupports
 {
     /**
@@ -143,10 +150,12 @@ interface nsIScriptSecurityManager : nsISupports
      * @param appId is the app id of the principal. It can't be UNKNOWN_APP_ID.
      * @param inMozBrowser is true if the principal has to be considered as
      * inside a mozbrowser frame.
+     *
+     * @deprecated use createCodebasePrincipal instead.
      */
-    nsIPrincipal getAppCodebasePrincipal(in nsIURI uri,
-                                         in unsigned long appId,
-                                         in boolean inMozBrowser);
+    [deprecated] nsIPrincipal getAppCodebasePrincipal(in nsIURI uri,
+                                                      in unsigned long appId,
+                                                      in boolean inMozBrowser);
 
     /**
      * Returns a principal that has the appId and inMozBrowser of the load
@@ -168,22 +177,54 @@ interface nsIScriptSecurityManager : nsISupports
      * Returns a principal with that has the same origin as uri and is not part
      * of an appliction.
      * The returned principal will have appId = NO_APP_ID.
+     *
+     * @deprecated use createCodebasePrincipal instead.
      */
-    nsIPrincipal getNoAppCodebasePrincipal(in nsIURI uri);
+    [deprecated] nsIPrincipal getNoAppCodebasePrincipal(in nsIURI uri);
 
     /**
-     * Legacy name for getNoAppCodebasePrincipal.
+     * Legacy method for getting a principal with no origin attributes.
      *
-     * @deprecated use getNoAppCodebasePrincipal instead.
+     * @deprecated use createCodebasePrincipal instead.
      */
     [deprecated] nsIPrincipal getCodebasePrincipal(in nsIURI uri);
 
     /**
-     * Returns OK if aJSContext and target have the same "origin"
-     * (scheme, host, and port).
+     * Returns a principal whose origin is composed of |uri| and |originAttributes|.
+     * See nsIPrincipal.idl for a description of origin attributes, and
+     * ChromeUtils.webidl for a list of origin attributes and their defaults.
      */
-    [noscript] void checkSameOrigin(in JSContextPtr aJSContext,
-                                    in nsIURI aTargetURI);
+    [implicit_jscontext]
+    nsIPrincipal createCodebasePrincipal(in nsIURI uri, in jsval originAttributes);
+
+    /**
+     * Returns a principal whose origin is the one we pass in.
+     * See nsIPrincipal.idl for a description of origin attributes, and
+     * ChromeUtils.webidl for a list of origin attributes and their defaults.
+     */
+    nsIPrincipal createCodebasePrincipalFromOrigin(in ACString origin);
+
+    /**
+     * Returns a unique nonce principal with |originAttributes|.
+     * See nsIPrincipal.idl for a description of origin attributes, and
+     * ChromeUtils.webidl for a list of origin attributes and their defaults.
+     */
+    [implicit_jscontext]
+    nsIPrincipal createNullPrincipal(in jsval originAttributes);
+
+    /**
+     * Creates an expanded principal whose capabilities are the union of the
+     * given principals. An expanded principal has an asymmetric privilege
+     * relationship with its sub-principals (that is to say, it subsumes the
+     * sub-principals, but the sub-principals do not subsume it), even if
+     * there's only one. This presents a legitimate use-case for making an
+     * expanded principal around a single sub-principal, which we do frequently.
+     *
+     * Expanded principals cannot have origin attributes themselves, but rather
+     * have them through their sub-principals - so we don't accept them here.
+     */
+    nsIPrincipal createExpandedPrincipal([array, size_is(aLength)] in nsIPrincipal aPrincipalArray,
+                                         [optional] in unsigned long aLength);
 
     /**
      * Returns OK if aSourceURI and target have the same "origin"
@@ -225,6 +266,8 @@ interface nsIScriptSecurityManager : nsISupports
     const unsigned long UNKNOWN_APP_ID = 4294967295; // UINT32_MAX
     const unsigned long SAFEBROWSING_APP_ID = 4294967294; // UINT32_MAX - 1
 
+    const unsigned long DEFAULT_USER_CONTEXT_ID = 0;
+
     /**
      * Returns the jar prefix for the app.
      * appId can be NO_APP_ID or a valid app id. appId should not be
@@ -246,6 +289,22 @@ interface nsIScriptSecurityManager : nsISupports
      */
     nsIDomainPolicy activateDomainPolicy();
     readonly attribute boolean domainPolicyActive;
+
+    /**
+     * Only the parent process can directly access domain policies, child
+     * processes only have a read-only mirror to the one in the parent.
+     * For child processes the mirror is updated via messages
+     * and ContentChild will hold the DomainPolicy by calling
+     * ActivateDomainPolicyInternal directly. New consumer to this
+     * function should not be addded.
+     */
+    [noscript] nsIDomainPolicy activateDomainPolicyInternal();
+
+    /**
+     * This function is for internal use only. Every time a child process is spawned, we
+     * must clone any active domain policies in the parent to the new child.
+     */
+    [noscript, notxpcom] void cloneDomainPolicy(in DomainPolicyClonePtr aClone);
 
     /**
      * Query mechanism for the above policy.

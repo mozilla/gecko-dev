@@ -145,7 +145,7 @@ private:
  * MUCH PREFERRED to bare calls to Mutex.Lock and Unlock.
  */
 template<typename T>
-class MOZ_STACK_CLASS BaseAutoLock
+class MOZ_RAII BaseAutoLock
 {
 public:
   /**
@@ -174,7 +174,6 @@ private:
   BaseAutoLock(BaseAutoLock&);
   BaseAutoLock& operator=(BaseAutoLock&);
   static void* operator new(size_t) CPP_THROW_NEW;
-  static void operator delete(void*);
 
   T* mLock;
   MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
@@ -191,7 +190,7 @@ typedef BaseAutoLock<OffTheBooksMutex> OffTheBooksMutexAutoLock;
  * MUCH PREFERRED to bare calls to Mutex.Unlock and Lock.
  */
 template<typename T>
-class MOZ_STACK_CLASS BaseAutoUnlock
+class MOZ_RAII BaseAutoUnlock
 {
 public:
   explicit BaseAutoUnlock(T& aLock MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
@@ -212,7 +211,6 @@ private:
   BaseAutoUnlock(BaseAutoUnlock&);
   BaseAutoUnlock& operator=(BaseAutoUnlock&);
   static void* operator new(size_t) CPP_THROW_NEW;
-  static void operator delete(void*);
 
   T* mLock;
   MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER

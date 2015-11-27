@@ -23,9 +23,9 @@ namespace mozilla {
 class WebShellWindowTimerCallback;
 } // namespace mozilla
 
-class nsWebShellWindow MOZ_FINAL : public nsXULWindow,
-                                   public nsIWebProgressListener,
-                                   public nsIWidgetListener
+class nsWebShellWindow final : public nsXULWindow,
+                               public nsIWebProgressListener,
+                               public nsIWidgetListener
 {
 public:
   explicit nsWebShellWindow(uint32_t aChromeFlags);
@@ -47,20 +47,21 @@ public:
   NS_DECL_NSIWEBPROGRESSLISTENER
 
   // nsIBaseWindow
-  NS_IMETHOD Destroy();
+  NS_IMETHOD Destroy() override;
 
   // nsIWidgetListener
-  virtual nsIXULWindow* GetXULWindow() { return this; }
-  virtual nsIPresShell* GetPresShell();
-  virtual bool WindowMoved(nsIWidget* aWidget, int32_t x, int32_t y);
-  virtual bool WindowResized(nsIWidget* aWidget, int32_t aWidth, int32_t aHeight);
-  virtual bool RequestWindowClose(nsIWidget* aWidget);
-  virtual void SizeModeChanged(nsSizeMode sizeMode);
-  virtual void OSToolbarButtonPressed();
+  virtual nsIXULWindow* GetXULWindow() override { return this; }
+  virtual nsIPresShell* GetPresShell() override;
+  virtual bool WindowMoved(nsIWidget* aWidget, int32_t x, int32_t y) override;
+  virtual bool WindowResized(nsIWidget* aWidget, int32_t aWidth, int32_t aHeight) override;
+  virtual bool RequestWindowClose(nsIWidget* aWidget) override;
+  virtual void SizeModeChanged(nsSizeMode sizeMode) override;
+  virtual void FullscreenChanged(bool aInFullscreen) override;
+  virtual void OSToolbarButtonPressed() override;
   virtual bool ZLevelChanged(bool aImmediate, nsWindowZ *aPlacement,
-                             nsIWidget* aRequestBelow, nsIWidget** aActualBelow);
-  virtual void WindowActivated();
-  virtual void WindowDeactivated();
+                             nsIWidget* aRequestBelow, nsIWidget** aActualBelow) override;
+  virtual void WindowActivated() override;
+  virtual void WindowDeactivated() override;
 
 protected:
   friend class mozilla::WebShellWindowTimerCallback;

@@ -32,14 +32,16 @@ This is likely the same like id.heading in crashes.dtd. -->
 <!ENTITY aboutSupport.experimentActive "Active">
 <!ENTITY aboutSupport.experimentEndDate "End Date">
 <!ENTITY aboutSupport.experimentHomepage "Homepage">
-
+<!ENTITY aboutSupport.experimentBranch "Branch">
 
 <!ENTITY aboutSupport.appBasicsTitle "Application Basics">
 <!ENTITY aboutSupport.appBasicsName "Name">
 <!ENTITY aboutSupport.appBasicsVersion "Version">
+<!ENTITY aboutSupport.appBasicsBuildID "Build ID">
 
-<!-- LOCALIZATION NOTE (aboutSupport.appBasicsUpdateHistory, aboutSupport.appBasicsShowUpdateHistory):
+<!-- LOCALIZATION NOTE (aboutSupport.appBasicsUpdateChannel, aboutSupport.appBasicsUpdateHistory, aboutSupport.appBasicsShowUpdateHistory):
 "Update" is a noun here, not a verb. -->
+<!ENTITY aboutSupport.appBasicsUpdateChannel "Update Channel">
 <!ENTITY aboutSupport.appBasicsUpdateHistory "Update History">
 <!ENTITY aboutSupport.appBasicsShowUpdateHistory "Show Update History">
 
@@ -54,7 +56,12 @@ Windows/Mac use the term "Folder" instead of "Directory" -->
 <!ENTITY aboutSupport.appBasicsUserAgent "User Agent">
 <!ENTITY aboutSupport.appBasicsMemoryUse "Memory Use">
 
+<!-- LOCALIZATION NOTE the term "Service Workers" should not be translated. -->
+<!ENTITY aboutSupport.appBasicsServiceWorkers "Registered Service Workers">
+
 <!ENTITY aboutSupport.appBasicsMultiProcessSupport "Multiprocess Windows">
+
+<!ENTITY aboutSupport.appBasicsSafeMode "Safe Mode">
 
 <!ENTITY aboutSupport.showDir.label "Open Directory">
 <!-- LOCALIZATION NOTE (aboutSupport.showMac.label): This is the Mac-specific
@@ -93,3 +100,8 @@ variant of aboutSupport.showDir.label. -->
 
 <!ENTITY aboutSupport.copyTextToClipboard.label "Copy text to clipboard">
 <!ENTITY aboutSupport.copyRawDataToClipboard.label "Copy raw data to clipboard">
+
+<!ENTITY aboutSupport.sandboxTitle "Sandbox">
+
+<!ENTITY aboutSupport.safeModeTitle "Try Safe Mode">
+<!ENTITY aboutSupport.restartInSafeMode.label "Restart with Add-ons Disabled…">

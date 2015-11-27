@@ -31,7 +31,7 @@ public:
 
   NS_DECL_EDITTXN
 
-  NS_IMETHOD RedoTransaction() MOZ_OVERRIDE;
+  NS_IMETHOD RedoTransaction() override;
 
   enum EChangeType { eSet, eRemove };
 
@@ -106,7 +106,7 @@ private:
   bool mRedoAttributeWasSet;
 };
 
-}
-}
+} // namespace dom
+} // namespace mozilla
 
 #endif

@@ -18,12 +18,14 @@ var iframe;
 
 function runTest() {
   var principal = SpecialPowers.wrap(document).nodePrincipal;
-  SpecialPowers.addPermission("browser", true, { url: SpecialPowers.wrap(principal.URI).spec,
-                                                 appId: principal.appId,
-                                                 isInBrowserElement: true });
+  SpecialPowers.addPermission("browser", true, {url: SpecialPowers.wrap(principal.URI).spec,
+                                                originAttributes: {
+                                                  appId: principal.appId,
+                                                  inBrowser: true
+                                                }});
 
   iframe = document.createElement('iframe');
-  SpecialPowers.wrap(iframe).mozbrowser = true;
+  iframe.setAttribute('mozbrowser', 'true');
 
   // Our test involves three <iframe mozbrowser>'s, parent, child1, and child2.
   // child1 and child2 are contained inside parent.  child1 is visibile, and
@@ -75,10 +77,11 @@ function finish() {
   iframe.removeEventListener('mozbrowsershowmodalprompt', checkMessage);
 
   var principal = SpecialPowers.wrap(document).nodePrincipal;
-  SpecialPowers.removePermission("browser", { url: SpecialPowers.wrap(principal.URI).spec,
-                                              appId: principal.appId,
-                                              isInBrowserElement: true });
-
+  SpecialPowers.removePermission("browser", {url: SpecialPowers.wrap(principal.URI).spec,
+                                             originAttributes: {
+                                               appId: principal.appId,
+                                               inBrowser: true
+                                             }});
   SimpleTest.finish();
 }
 

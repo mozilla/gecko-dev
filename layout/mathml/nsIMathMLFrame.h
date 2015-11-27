@@ -286,6 +286,10 @@ struct nsPresentationData {
 // This bit is set if the frame is "space-like", as defined by the spec.
 #define NS_MATHML_SPACE_LIKE                          0x00000040U
 
+// This bit is set if a token frame should be rendered with the dtls font
+// feature setting.
+#define NS_MATHML_DTLS                                0x00000080U
+
 // This bit is set when the frame cannot be formatted due to an
 // error (e.g., invalid markup such as a <msup> without an overscript).
 // When set, a visual feedback will be provided to the user.
@@ -313,6 +317,9 @@ struct nsPresentationData {
 
 #define NS_MATHML_IS_SPACE_LIKE(_flags) \
   (NS_MATHML_SPACE_LIKE == ((_flags) & NS_MATHML_SPACE_LIKE))
+
+#define NS_MATHML_IS_DTLS_SET(_flags) \
+  (NS_MATHML_DTLS == ((_flags) & NS_MATHML_DTLS))
 
 #define NS_MATHML_HAS_ERROR(_flags) \
   (NS_MATHML_ERROR == ((_flags) & NS_MATHML_ERROR))
@@ -346,6 +353,12 @@ struct nsPresentationData {
 // an accentunder frame
 #define NS_MATHML_EMBELLISH_ACCENTUNDER             0x00000010
 
+// This bit is set on the core if it is a fence operator.
+#define NS_MATHML_EMBELLISH_FENCE                   0x00000020
+
+// This bit is set on the core if it is a separator operator.
+#define NS_MATHML_EMBELLISH_SEPARATOR               0x00000040
+
 // Macros that retrieve those bits
 
 #define NS_MATHML_IS_EMBELLISH_OPERATOR(_flags) \
@@ -362,5 +375,11 @@ struct nsPresentationData {
 
 #define NS_MATHML_EMBELLISH_IS_ACCENTUNDER(_flags) \
   (NS_MATHML_EMBELLISH_ACCENTUNDER == ((_flags) & NS_MATHML_EMBELLISH_ACCENTUNDER))
+
+#define NS_MATHML_EMBELLISH_IS_FENCE(_flags) \
+  (NS_MATHML_EMBELLISH_FENCE == ((_flags) & NS_MATHML_EMBELLISH_FENCE))
+
+#define NS_MATHML_EMBELLISH_IS_SEPARATOR(_flags) \
+  (NS_MATHML_EMBELLISH_SEPARATOR == ((_flags) & NS_MATHML_EMBELLISH_SEPARATOR))
 
 #endif /* nsIMathMLFrame_h___ */

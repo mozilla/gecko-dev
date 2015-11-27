@@ -23,6 +23,7 @@
 }
 
 #version {
+  font-weight: bold;
   margin-top: 10px;
   -moz-margin-start: 0;
   -moz-user-select: text;
@@ -30,9 +31,14 @@
   cursor: text;
 }
 
+#version:-moz-locale-dir(rtl) {
+  direction: ltr;
+  text-align: right;
+  margin-right: 0;
+}
+
 #distribution,
 #distributionId {
-  font-weight: bold;
   display: none;
   margin-top: 0;
   margin-bottom: 0;

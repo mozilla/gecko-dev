@@ -14,6 +14,7 @@
 #include "nsIAsyncInputStream.h"
 #include "nsIAsyncOutputStream.h"
 #include "nsAboutProtocolUtils.h"
+#include "nsContentUtils.h"
 #include "nsInputStreamPump.h"
 #include "CacheFileUtils.h"
 #include <algorithm>
@@ -88,7 +89,9 @@ NS_IMPL_ISUPPORTS(nsAboutCacheEntry,
 // nsAboutCacheEntry::nsIAboutModule
 
 NS_IMETHODIMP
-nsAboutCacheEntry::NewChannel(nsIURI *uri, nsIChannel **result)
+nsAboutCacheEntry::NewChannel(nsIURI* uri,
+                              nsILoadInfo* aLoadInfo,
+                              nsIChannel** result)
 {
     NS_ENSURE_ARG_POINTER(uri);
     nsresult rv;
@@ -96,10 +99,12 @@ nsAboutCacheEntry::NewChannel(nsIURI *uri, nsIChannel **result)
     nsCOMPtr<nsIInputStream> stream;
     rv = GetContentStream(uri, getter_AddRefs(stream));
     if (NS_FAILED(rv)) return rv;
-
-    return NS_NewInputStreamChannel(result, uri, stream,
-                                    NS_LITERAL_CSTRING("text/html"),
-                                    NS_LITERAL_CSTRING("utf-8"));
+    return NS_NewInputStreamChannelInternal(result,
+                                            uri,
+                                            stream,
+                                            NS_LITERAL_CSTRING("text/html"),
+                                            NS_LITERAL_CSTRING("utf-8"),
+                                            aLoadInfo);
 }
 
 NS_IMETHODIMP
@@ -368,7 +373,7 @@ nsAboutCacheEntry::WriteCacheEntryDescription(nsICacheEntry *entry)
     } else {
         buffer.Append(escapedStr);
     }
-    nsMemory::Free(escapedStr);
+    free(escapedStr);
     buffer.AppendLiteral("</td>\n"
                          "  </tr>\n");
 
@@ -462,7 +467,7 @@ nsAboutCacheEntry::WriteCacheEntryDescription(nsICacheEntry *entry)
         return NS_OK;
     }
 
-    nsRefPtr<nsInputStreamPump> pump;
+    RefPtr<nsInputStreamPump> pump;
     rv = nsInputStreamPump::Create(getter_AddRefs(pump), stream);
     if (NS_FAILED(rv)) {
         return NS_OK; // just ignore
@@ -501,7 +506,7 @@ nsAboutCacheEntry::OnMetaDataElement(char const * key, char const * value)
                            "    <td>");
     char* escapedValue = nsEscapeHTML(value);
     mBuffer->Append(escapedValue);
-    nsMemory::Free(escapedValue);
+    free(escapedValue);
     mBuffer->AppendLiteral("</td>\n"
                            "  </tr>\n");
 

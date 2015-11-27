@@ -28,20 +28,28 @@ OptimizationInfo::initNormalOptimizationInfo()
     eliminateRedundantChecks_ = true;
     inlineInterpreted_ = true;
     inlineNative_ = true;
+    eagerSimdUnbox_ = true;
     gvn_ = true;
     licm_ = true;
     rangeAnalysis_ = true;
     loopUnrolling_ = true;
+    reordering_ = true;
     autoTruncate_ = true;
-    registerAllocator_ = RegisterAllocator_LSRA;
+    sincos_ = true;
+    sink_ = true;
+    registerAllocator_ = RegisterAllocator_Backtracking;
 
-    inlineMaxTotalBytecodeLength_ = 1000;
-    inliningMaxCallerBytecodeLength_ = 10000;
+    inlineMaxBytecodePerCallSiteMainThread_ = 500;
+    inlineMaxBytecodePerCallSiteOffThread_ = 1000;
+    inlineMaxCalleeInlinedBytecodeLength_ = 3350;
+    inlineMaxTotalBytecodeLength_ = 80000;
+    inliningMaxCallerBytecodeLength_ = 1500;
     maxInlineDepth_ = 3;
     scalarReplacement_ = true;
     smallFunctionMaxInlineDepth_ = 10;
-    compilerWarmUpThreshold_ = 1000;
+    compilerWarmUpThreshold_ = CompilerWarmupThreshold;
     inliningWarmUpThresholdFactor_ = 0.125;
+    inliningRecompileThresholdFactor_ = 4;
 }
 
 void
@@ -53,25 +61,29 @@ OptimizationInfo::initAsmjsOptimizationInfo()
     // Take normal option values for not specified values.
     initNormalOptimizationInfo();
 
+    ama_ = true;
     level_ = Optimization_AsmJS;
+    eagerSimdUnbox_ = false;           // AsmJS has no boxing / unboxing.
     edgeCaseAnalysis_ = false;
     eliminateRedundantChecks_ = false;
     autoTruncate_ = false;
+    sincos_ = false;
+    sink_ = false;
     registerAllocator_ = RegisterAllocator_Backtracking;
     scalarReplacement_ = false;        // AsmJS has no objects.
 }
 
 uint32_t
-OptimizationInfo::compilerWarmUpThreshold(JSScript *script, jsbytecode *pc) const
+OptimizationInfo::compilerWarmUpThreshold(JSScript* script, jsbytecode* pc) const
 {
-    JS_ASSERT(pc == nullptr || pc == script->code() || JSOp(*pc) == JSOP_LOOPENTRY);
+    MOZ_ASSERT(pc == nullptr || pc == script->code() || JSOp(*pc) == JSOP_LOOPENTRY);
 
     if (pc == script->code())
         pc = nullptr;
 
     uint32_t warmUpThreshold = compilerWarmUpThreshold_;
-    if (js_JitOptions.forceDefaultIonWarmUpThreshold)
-        warmUpThreshold = js_JitOptions.forcedDefaultIonWarmUpThreshold;
+    if (js_JitOptions.forcedDefaultIonWarmUpThreshold.isSome())
+        warmUpThreshold = js_JitOptions.forcedDefaultIonWarmUpThreshold.ref();
 
     // If the script is too large to compile on the main thread, we can still
     // compile it off thread. In these cases, increase the warm-up counter
@@ -92,7 +104,7 @@ OptimizationInfo::compilerWarmUpThreshold(JSScript *script, jsbytecode *pc) cons
     // To accomplish this, we use a slightly higher threshold for inner loops.
     // Note that the loop depth is always > 0 so we will prefer non-OSR over OSR.
     uint32_t loopDepth = LoopEntryDepthHint(pc);
-    JS_ASSERT(loopDepth > 0);
+    MOZ_ASSERT(loopDepth > 0);
     return warmUpThreshold + loopDepth * 100;
 }
 
@@ -105,7 +117,7 @@ OptimizationInfos::OptimizationInfos()
     OptimizationLevel level = firstLevel();
     while (!isLastLevel(level)) {
         OptimizationLevel next = nextLevel(level);
-        JS_ASSERT(level < next);
+        MOZ_ASSERT(level < next);
         level = next;
     }
 #endif
@@ -114,7 +126,7 @@ OptimizationInfos::OptimizationInfos()
 OptimizationLevel
 OptimizationInfos::nextLevel(OptimizationLevel level) const
 {
-    JS_ASSERT(!isLastLevel(level));
+    MOZ_ASSERT(!isLastLevel(level));
     switch (level) {
       case Optimization_DontCompile:
         return Optimization_Normal;
@@ -136,13 +148,13 @@ OptimizationInfos::isLastLevel(OptimizationLevel level) const
 }
 
 OptimizationLevel
-OptimizationInfos::levelForScript(JSScript *script, jsbytecode *pc) const
+OptimizationInfos::levelForScript(JSScript* script, jsbytecode* pc) const
 {
     OptimizationLevel prev = Optimization_DontCompile;
 
     while (!isLastLevel(prev)) {
         OptimizationLevel level = nextLevel(prev);
-        const OptimizationInfo *info = get(level);
+        const OptimizationInfo* info = get(level);
         if (script->getWarmUpCount() < info->compilerWarmUpThreshold(script, pc))
             return prev;
 

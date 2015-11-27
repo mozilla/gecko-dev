@@ -7,7 +7,6 @@ package org.mozilla.gecko.menu;
 import java.io.IOException;
 
 import org.mozilla.gecko.AppConstants.Versions;
-import org.mozilla.gecko.NewTabletUI;
 import org.mozilla.gecko.R;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
@@ -61,9 +60,7 @@ public class GeckoMenuInflater extends MenuInflater {
 
             parseMenu(parser, attrs, menu);
 
-        } catch (XmlPullParserException e) {
-            throw new InflateException("Error inflating menu XML", e);
-        } catch (IOException e) {
+        } catch (XmlPullParserException | IOException e) {
             throw new InflateException("Error inflating menu XML", e);
         } finally {
             if (parser != null)
@@ -132,14 +129,7 @@ public class GeckoMenuInflater extends MenuInflater {
         item.visible = a.getBoolean(R.styleable.MenuItem_android_visible, true);
         item.enabled = a.getBoolean(R.styleable.MenuItem_android_enabled, true);
         item.hasSubMenu = false;
-
-        // TODO: (bug 1058909) Remove this branch when we remove old tablet. We do this to
-        // avoid using a new menu resource for new tablet (which only has a new reload button).
-        if (item.id == R.id.reload && NewTabletUI.isEnabled(mContext)) {
-            item.iconRes = R.drawable.new_tablet_ic_menu_reload;
-        } else {
-            item.iconRes = a.getResourceId(R.styleable.MenuItem_android_icon, 0);
-        }
+        item.iconRes = a.getResourceId(R.styleable.MenuItem_android_icon, 0);
 
         if (Versions.feature11Plus) {
             item.showAsAction = a.getInt(R.styleable.MenuItem_android_showAsAction, 0);
@@ -149,6 +139,16 @@ public class GeckoMenuInflater extends MenuInflater {
     }
 
     public void setValues(ParsedItem item, MenuItem menuItem) {
+        // We are blocking any presenter updates during inflation.
+        GeckoMenuItem geckoItem = null;
+        if (menuItem instanceof GeckoMenuItem) {
+            geckoItem = (GeckoMenuItem) menuItem;
+        }
+
+        if (geckoItem != null) {
+            geckoItem.stopDispatchingChanges();
+        }
+
         menuItem.setChecked(item.checked)
                 .setVisible(item.visible)
                 .setEnabled(item.enabled)
@@ -157,6 +157,12 @@ public class GeckoMenuInflater extends MenuInflater {
 
         if (Versions.feature11Plus) {
             menuItem.setShowAsAction(item.showAsAction);
+        }
+
+        if (geckoItem != null) {
+            // We don't need to allow presenter updates during inflation,
+            // so we use the weak form of re-enabling changes.
+            geckoItem.resumeDispatchingChanges();
         }
     }
 }

@@ -10,8 +10,8 @@
 #include "nsIOutputStream.h"
 #include "nsIInputStream.h"
 #include "nsIZipReader.h"
-#include "nsAutoPtr.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/UniquePtr.h"
 
 // High word is S_IFREG, low word is DOS file attribute
 #define ZIP_ATTRS_FILE 0x80000000
@@ -23,7 +23,7 @@
 // Combine file type attributes with unix style permissions
 #define ZIP_ATTRS(p, a) ((p & 0xfff) << 16) | a
 
-class nsZipHeader MOZ_FINAL : public nsIZipEntry
+class nsZipHeader final : public nsIZipEntry
 {
     ~nsZipHeader()
     {
@@ -77,8 +77,8 @@ public:
     bool mWriteOnClose;
     nsCString mName;
     nsCString mComment;
-    nsAutoArrayPtr<uint8_t> mExtraField;
-    nsAutoArrayPtr<uint8_t> mLocalExtraField;
+    mozilla::UniquePtr<uint8_t[]> mExtraField;
+    mozilla::UniquePtr<uint8_t[]> mLocalExtraField;
 
     void Init(const nsACString & aPath, PRTime aDate, uint32_t aAttr,
               uint32_t aOffset);

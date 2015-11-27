@@ -11,14 +11,21 @@ BEGIN_TEST(testBug795104)
     JS::CompileOptions opts(cx);
     JS::CompartmentOptionsRef(cx->compartment()).setDiscardSource(true);
     const size_t strLen = 60002;
-    char *s = static_cast<char *>(JS_malloc(cx, strLen));
+    char* s = static_cast<char*>(JS_malloc(cx, strLen));
     CHECK(s);
     s[0] = '"';
     memset(s + 1, 'x', strLen - 2);
     s[strLen - 1] = '"';
-    CHECK(JS::Evaluate(cx, global, opts, s, strLen));
+    // We don't want an rval for our Evaluate call
+    opts.setNoScriptRval(true);
+    JS::RootedValue unused(cx);
+    CHECK(JS::Evaluate(cx, opts, s, strLen, &unused));
     JS::RootedFunction fun(cx);
-    CHECK(JS::CompileFunction(cx, global, opts, "f", 0, nullptr, s, strLen, &fun));
+    JS::AutoObjectVector emptyScopeChain(cx);
+    // But when compiling a function we don't want to use no-rval
+    // mode, since it's not supported for functions.
+    opts.setNoScriptRval(false);
+    CHECK(JS::CompileFunction(cx, emptyScopeChain, opts, "f", 0, nullptr, s, strLen, &fun));
     CHECK(fun);
     JS_free(cx, s);
 

@@ -416,7 +416,7 @@ function test_double_cancellation()
   let pendingStatement = execAsync(stmt, {cancel: true});
   // And cancel again - expect an exception
   expectError(Cr.NS_ERROR_UNEXPECTED,
-              function() pendingStatement.cancel());
+              () => pendingStatement.cancel());
 
   stmt.finalize();
   run_next_test();
@@ -628,10 +628,10 @@ function test_bind_out_of_bounds_sync_immediate()
 
   // Check variant binding.
   expectError(Cr.NS_ERROR_INVALID_ARG,
-              function() bp.bindByIndex(1, INTEGER));
+              () => bp.bindByIndex(1, INTEGER));
   // Check blob binding.
   expectError(Cr.NS_ERROR_INVALID_ARG,
-              function() bp.bindBlobByIndex(1, BLOB, BLOB.length));
+              () => bp.bindBlobByIndex(1, BLOB, BLOB.length));
 
   stmt.finalize();
   run_next_test();
@@ -675,10 +675,10 @@ function test_bind_no_such_name_sync_immediate()
 
   // Check variant binding.
   expectError(Cr.NS_ERROR_INVALID_ARG,
-              function() bp.bindByName("doesnotexist", INTEGER));
+              () => bp.bindByName("doesnotexist", INTEGER));
   // Check blob binding.
   expectError(Cr.NS_ERROR_INVALID_ARG,
-              function() bp.bindBlobByName("doesnotexist", BLOB, BLOB.length));
+              () => bp.bindBlobByName("doesnotexist", BLOB, BLOB.length));
 
   stmt.finalize();
   run_next_test();
@@ -715,12 +715,7 @@ function test_bind_bogus_type_by_index()
 
   let array = stmt.newBindingParamsArray();
   let bp = array.newBindingParams();
-  // We get an error after calling executeAsync, not when we bind.
-  bp.bindByIndex(0, run_test);
-  array.addParams(bp);
-  stmt.bindParameters(array);
-
-  execAsync(stmt, {error: Ci.mozIStorageError.MISMATCH});
+  Assert.throws(() => bp.bindByIndex(0, run_test), /NS_ERROR_UNEXPECTED/);
 
   stmt.finalize();
   run_next_test();
@@ -736,12 +731,7 @@ function test_bind_bogus_type_by_name()
 
   let array = stmt.newBindingParamsArray();
   let bp = array.newBindingParams();
-  // We get an error after calling executeAsync, not when we bind.
-  bp.bindByName("blob", run_test);
-  array.addParams(bp);
-  stmt.bindParameters(array);
-
-  execAsync(stmt, {error: Ci.mozIStorageError.MISMATCH});
+  Assert.throws(() => bp.bindByName("blob", run_test), /NS_ERROR_UNEXPECTED/);
 
   stmt.finalize();
   run_next_test();
@@ -761,7 +751,7 @@ function test_bind_params_already_locked()
 
   // We should get an error after we call addParams and try to bind again.
   expectError(Cr.NS_ERROR_UNEXPECTED,
-              function() bp.bindByName("int", INTEGER));
+              () => bp.bindByName("int", INTEGER));
 
   stmt.finalize();
   run_next_test();
@@ -784,7 +774,7 @@ function test_bind_params_array_already_locked()
 
   // We should get an error after we have bound the array to the statement.
   expectError(Cr.NS_ERROR_UNEXPECTED,
-              function() array.addParams(bp2));
+              () => array.addParams(bp2));
 
   stmt.finalize();
   run_next_test();
@@ -806,7 +796,7 @@ function test_no_binding_params_from_locked_array()
   // We should not be able to get a new BindingParams object after we have bound
   // to the statement.
   expectError(Cr.NS_ERROR_UNEXPECTED,
-              function() array.newBindingParams());
+              () => array.newBindingParams());
 
   stmt.finalize();
   run_next_test();
@@ -826,7 +816,7 @@ function test_not_right_owning_array()
 
   // We should not be able to add bp to array2 since it was created from array1.
   expectError(Cr.NS_ERROR_UNEXPECTED,
-              function() array2.addParams(bp));
+              () => array2.addParams(bp));
 
   stmt.finalize();
   run_next_test();
@@ -851,7 +841,7 @@ function test_not_right_owning_statement()
 
   // We should not be able to bind array1 since it was created from stmt1.
   expectError(Cr.NS_ERROR_UNEXPECTED,
-              function() stmt2.bindParameters(array1));
+              () => stmt2.bindParameters(array1));
 
   stmt1.finalize();
   stmt2.finalize();
@@ -870,7 +860,7 @@ function test_bind_empty_array()
   // We should not be able to bind this array to the statement because it is
   // empty.
   expectError(Cr.NS_ERROR_UNEXPECTED,
-              function() stmt.bindParameters(paramsArray));
+              () => stmt.bindParameters(paramsArray));
 
   stmt.finalize();
   run_next_test();
@@ -905,7 +895,7 @@ const TEST_PASS_ASYNC = 1;
  * dispatching, some tests are sync/async specific.  These functions are marked
  * with 'syncOnly' or 'asyncOnly' attributes and run_next_test knows what to do.
  */
-let testPass = TEST_PASS_SYNC;
+var testPass = TEST_PASS_SYNC;
 
 /**
  * Create a statement of the type under test per testPass.
@@ -957,10 +947,10 @@ var tests =
   test_not_right_owning_statement,
   test_multiple_results,
 ];
-let index = 0;
+var index = 0;
 
 const STARTING_UNIQUE_ID = 2;
-let nextUniqueId = STARTING_UNIQUE_ID;
+var nextUniqueId = STARTING_UNIQUE_ID;
 
 function run_next_test()
 {

@@ -50,6 +50,8 @@ interface HTMLMediaElement : HTMLElement {
   [Throws]
   void fastSeek(double time);
   readonly attribute unrestricted double duration;
+  [ChromeOnly]
+  readonly attribute boolean isEncrypted;
   // TODO: Bug 847376 - readonly attribute any startDate;
   readonly attribute boolean paused;
   [SetterThrows]
@@ -91,7 +93,7 @@ interface HTMLMediaElement : HTMLElement {
   [Pref="media.track.enabled"]
   readonly attribute VideoTrackList videoTracks;
   [Pref="media.webvtt.enabled"]
-  readonly attribute TextTrackList textTracks;
+  readonly attribute TextTrackList? textTracks;
   [Pref="media.webvtt.enabled"]
   TextTrack addTextTrack(TextTrackKind kind,
                          optional DOMString label = "",
@@ -100,7 +102,12 @@ interface HTMLMediaElement : HTMLElement {
 
 // Mozilla extensions:
 partial interface HTMLMediaElement {
+  [ChromeOnly]
+  readonly attribute MediaSource? mozMediaSourceObject;
+  attribute MediaStream? srcObject;
+  // TODO: remove prefixed version soon (1183495).
   attribute MediaStream? mozSrcObject;
+
   attribute boolean mozPreservesPitch;
   readonly attribute boolean mozAutoplayEnabled;
 
@@ -110,9 +117,9 @@ partial interface HTMLMediaElement {
   [Func="IsChromeOrXBL"] attribute boolean mozIsCasting;
 
   // Mozilla extension: stream capture
-  [Throws]
+  [Throws, UnsafeInPrerendering]
   MediaStream mozCaptureStream();
-  [Throws]
+  [Throws, UnsafeInPrerendering]
   MediaStream mozCaptureStreamUntilEnded();
   readonly attribute boolean mozAudioCaptured;
 
@@ -129,35 +136,39 @@ partial interface HTMLMediaElement {
 
   // Mozilla extension: an audio channel type for media elements.
   // Read AudioChannel.webidl for more information about this attribute.
-  [SetterThrows]
+  [SetterThrows, Pref="media.useAudioChannelAPI"]
   attribute AudioChannel mozAudioChannelType;
 
   // In addition the media element has this new events:
   // * onmozinterruptbegin - called when the media element is interrupted
   //   because of the audiochannel manager.
   // * onmozinterruptend - called when the interruption is concluded
-};
+  [Pref="media.useAudioChannelAPI"]
+  attribute EventHandler onmozinterruptbegin;
 
-enum MediaWaitingFor {
-  "none",
-  "data",
-  "key"
+  [Pref="media.useAudioChannelAPI"]
+  attribute EventHandler onmozinterruptend;
 };
 
 #ifdef MOZ_EME
 // Encrypted Media Extensions
 partial interface HTMLMediaElement {
-  [Pref="media.eme.enabled"]
+  [Pref="media.eme.apiVisible"]
   readonly attribute MediaKeys? mediaKeys;
 
   // void, not any: https://www.w3.org/Bugs/Public/show_bug.cgi?id=26457
-  [Pref="media.eme.enabled", Throws, NewObject]
+  [Pref="media.eme.apiVisible", NewObject]
   Promise<void> setMediaKeys(MediaKeys? mediaKeys);
 
-  [Pref="media.eme.enabled"]
+  [Pref="media.eme.apiVisible"]
   attribute EventHandler onencrypted;
-
-  [Pref="media.eme.enabled"]
-  readonly attribute MediaWaitingFor waitingFor;
 };
 #endif
+
+// This is just for testing
+partial interface HTMLMediaElement {
+  [Pref="media.useAudioChannelService.testing"]
+  readonly attribute double computedVolume;
+  [Pref="media.useAudioChannelService.testing"]
+  readonly attribute boolean computedMuted;
+};

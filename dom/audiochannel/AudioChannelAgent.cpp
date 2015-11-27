@@ -1,9 +1,10 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "AudioChannelAgent.h"
-#include "AudioChannelCommon.h"
 #include "AudioChannelService.h"
 #include "nsIDOMWindow.h"
 #include "nsPIDOMWindow.h"
@@ -11,7 +12,18 @@
 
 using namespace mozilla::dom;
 
-NS_IMPL_CYCLE_COLLECTION(AudioChannelAgent, mWindow, mCallback)
+NS_IMPL_CYCLE_COLLECTION_CLASS(AudioChannelAgent)
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(AudioChannelAgent)
+  tmp->Shutdown();
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mWindow)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mCallback)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(AudioChannelAgent)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mWindow)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCallback)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(AudioChannelAgent)
   NS_INTERFACE_MAP_ENTRY(nsIAudioChannelAgent)
@@ -23,28 +35,31 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(AudioChannelAgent)
 
 AudioChannelAgent::AudioChannelAgent()
   : mAudioChannelType(AUDIO_AGENT_CHANNEL_ERROR)
+  , mInnerWindowID(0)
   , mIsRegToService(false)
-  , mVisible(true)
-  , mWithVideo(false)
+  , mNotifyPlayback(false)
 {
 }
 
 AudioChannelAgent::~AudioChannelAgent()
 {
+  Shutdown();
+}
+
+void
+AudioChannelAgent::Shutdown()
+{
   if (mIsRegToService) {
-    StopPlaying();
+    NotifyStoppedPlaying();
   }
 }
 
-/* readonly attribute long audioChannelType; */
 NS_IMETHODIMP AudioChannelAgent::GetAudioChannelType(int32_t *aAudioChannelType)
 {
   *aAudioChannelType = mAudioChannelType;
   return NS_OK;
 }
 
-/* boolean init (in nsIDOMWindow window, in long channelType,
- *               in nsIAudioChannelAgentCallback callback); */
 NS_IMETHODIMP
 AudioChannelAgent::Init(nsIDOMWindow* aWindow, int32_t aChannelType,
                         nsIAudioChannelAgentCallback *aCallback)
@@ -53,8 +68,6 @@ AudioChannelAgent::Init(nsIDOMWindow* aWindow, int32_t aChannelType,
                       /* useWeakRef = */ false);
 }
 
-/* boolean initWithWeakCallback (in nsIDOMWindow window, in long channelType,
- *                               in nsIAudioChannelAgentCallback callback); */
 NS_IMETHODIMP
 AudioChannelAgent::InitWithWeakCallback(nsIDOMWindow* aWindow,
                                         int32_t aChannelType,
@@ -64,21 +77,10 @@ AudioChannelAgent::InitWithWeakCallback(nsIDOMWindow* aWindow,
                       /* useWeakRef = */ true);
 }
 
-/* void initWithVideo(in nsIDOMWindow window, in long channelType,
- *                    in nsIAudioChannelAgentCallback callback, in boolean weak); */
-NS_IMETHODIMP
-AudioChannelAgent::InitWithVideo(nsIDOMWindow* aWindow, int32_t aChannelType,
-                                 nsIAudioChannelAgentCallback *aCallback,
-                                 bool aUseWeakRef)
-{
-  return InitInternal(aWindow, aChannelType, aCallback, aUseWeakRef,
-                      /* withVideo = */ true);
-}
-
 nsresult
 AudioChannelAgent::InitInternal(nsIDOMWindow* aWindow, int32_t aChannelType,
                                 nsIAudioChannelAgentCallback *aCallback,
-                                bool aUseWeakRef, bool aWithVideo)
+                                bool aUseWeakRef)
 {
   // We syncd the enum of channel type between nsIAudioChannelAgent.idl and
   // AudioChannelBinding.h the same.
@@ -88,16 +90,38 @@ AudioChannelAgent::InitInternal(nsIDOMWindow* aWindow, int32_t aChannelType,
              int(AUDIO_AGENT_CHANNEL_ALARM) == int(AudioChannel::Alarm) &&
              int(AUDIO_AGENT_CHANNEL_TELEPHONY) == int(AudioChannel::Telephony) &&
              int(AUDIO_AGENT_CHANNEL_RINGER) == int(AudioChannel::Ringer) &&
+             int(AUDIO_AGENT_CHANNEL_SYSTEM) == int(AudioChannel::System) &&
              int(AUDIO_AGENT_CHANNEL_PUBLICNOTIFICATION) == int(AudioChannel::Publicnotification),
              "Enum of channel on nsIAudioChannelAgent.idl should be the same with AudioChannelBinding.h");
 
   if (mAudioChannelType != AUDIO_AGENT_CHANNEL_ERROR ||
-      aChannelType > AUDIO_AGENT_CHANNEL_PUBLICNOTIFICATION ||
+      aChannelType > AUDIO_AGENT_CHANNEL_SYSTEM ||
       aChannelType < AUDIO_AGENT_CHANNEL_NORMAL) {
     return NS_ERROR_FAILURE;
   }
 
-  mWindow = aWindow;
+  if (NS_WARN_IF(!aWindow)) {
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsPIDOMWindow> pInnerWindow = do_QueryInterface(aWindow);
+  MOZ_ASSERT(pInnerWindow->IsInnerWindow());
+  mInnerWindowID = pInnerWindow->WindowID();
+
+  nsCOMPtr<nsPIDOMWindow> topWindow = pInnerWindow->GetScriptableTop();
+  if (NS_WARN_IF(!topWindow)) {
+    return NS_OK;
+  }
+
+  mWindow = do_QueryInterface(topWindow);
+  if (mWindow) {
+    mWindow = mWindow->GetOuterWindow();
+  }
+
+  if (NS_WARN_IF(!mWindow)) {
+    return NS_ERROR_FAILURE;
+  }
+
   mAudioChannelType = aChannelType;
 
   if (aUseWeakRef) {
@@ -106,63 +130,65 @@ AudioChannelAgent::InitInternal(nsIDOMWindow* aWindow, int32_t aChannelType,
     mCallback = aCallback;
   }
 
-  mWithVideo = aWithVideo;
+  MOZ_LOG(AudioChannelService::GetAudioChannelLog(), LogLevel::Debug,
+         ("AudioChannelAgent, InitInternal, this = %p, type = %d, "
+          "owner = %p, hasCallback = %d\n", this, mAudioChannelType,
+          mWindow.get(), (!!mCallback || !!mWeakCallback)));
 
   return NS_OK;
 }
 
-/* boolean startPlaying (); */
-NS_IMETHODIMP AudioChannelAgent::StartPlaying(int32_t *_retval)
+NS_IMETHODIMP AudioChannelAgent::NotifyStartedPlaying(uint32_t aNotifyPlayback,
+                                                      float *aVolume,
+                                                      bool* aMuted)
 {
-  AudioChannelService *service = AudioChannelService::GetOrCreateAudioChannelService();
+  MOZ_ASSERT(aVolume);
+  MOZ_ASSERT(aMuted);
+
+  // Window-less AudioChannelAgents are muted by default.
+  if (!mWindow) {
+    *aVolume = 0;
+    *aMuted = true;
+    return NS_OK;
+  }
+
+  RefPtr<AudioChannelService> service = AudioChannelService::GetOrCreate();
   if (mAudioChannelType == AUDIO_AGENT_CHANNEL_ERROR ||
       service == nullptr || mIsRegToService) {
     return NS_ERROR_FAILURE;
   }
 
-  service->RegisterAudioChannelAgent(this,
-    static_cast<AudioChannel>(mAudioChannelType), mWithVideo);
-  *_retval = service->GetState(this, !mVisible);
+  service->RegisterAudioChannelAgent(this, aNotifyPlayback,
+    static_cast<AudioChannel>(mAudioChannelType));
+
+  service->GetState(mWindow, mAudioChannelType, aVolume, aMuted);
+
+  MOZ_LOG(AudioChannelService::GetAudioChannelLog(), LogLevel::Debug,
+         ("AudioChannelAgent, NotifyStartedPlaying, this = %p, mute = %d, "
+          "volume = %f\n", this, *aMuted, *aVolume));
+
+  mNotifyPlayback = aNotifyPlayback;
   mIsRegToService = true;
   return NS_OK;
 }
 
-/* void stopPlaying (); */
-NS_IMETHODIMP AudioChannelAgent::StopPlaying(void)
+NS_IMETHODIMP AudioChannelAgent::NotifyStoppedPlaying()
 {
   if (mAudioChannelType == AUDIO_AGENT_CHANNEL_ERROR ||
       !mIsRegToService) {
     return NS_ERROR_FAILURE;
   }
 
-  AudioChannelService *service = AudioChannelService::GetOrCreateAudioChannelService();
-  service->UnregisterAudioChannelAgent(this);
+  MOZ_LOG(AudioChannelService::GetAudioChannelLog(), LogLevel::Debug,
+         ("AudioChannelAgent, NotifyStoppedPlaying, this = %p\n", this));
+
+  RefPtr<AudioChannelService> service = AudioChannelService::GetOrCreate();
+  if (service) {
+    service->UnregisterAudioChannelAgent(this, mNotifyPlayback);
+  }
+
   mIsRegToService = false;
   return NS_OK;
-}
-
-/* void setVisibilityState (in boolean visible); */
-NS_IMETHODIMP AudioChannelAgent::SetVisibilityState(bool visible)
-{
-  bool oldVisibility = mVisible;
-
-  nsCOMPtr<nsIAudioChannelAgentCallback> callback = GetCallback();
-
-  mVisible = visible;
-  if (mIsRegToService && oldVisibility != mVisible && callback) {
-    AudioChannelService *service = AudioChannelService::GetOrCreateAudioChannelService();
-    callback->CanPlayChanged(service->GetState(this, !mVisible));
-  }
-  return NS_OK;
-}
-
-void AudioChannelAgent::NotifyAudioChannelStateChanged()
-{
-  nsCOMPtr<nsIAudioChannelAgentCallback> callback = GetCallback();
-  if (callback) {
-    AudioChannelService *service = AudioChannelService::GetOrCreateAudioChannelService();
-    callback->CanPlayChanged(service->GetState(this, !mVisible));
-  }
 }
 
 already_AddRefed<nsIAudioChannelAgentCallback>
@@ -183,20 +209,38 @@ AudioChannelAgent::WindowVolumeChanged()
     return;
   }
 
-  callback->WindowVolumeChanged();
-}
+  float volume = 1.0;
+  bool muted = false;
 
-NS_IMETHODIMP
-AudioChannelAgent::GetWindowVolume(float* aVolume)
-{
-  NS_ENSURE_ARG_POINTER(aVolume);
-
-  nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(mWindow);
-  if (!win) {
-    *aVolume = 1.0f;
-    return NS_OK;
+  RefPtr<AudioChannelService> service = AudioChannelService::GetOrCreate();
+  if (service) {
+    service->GetState(mWindow, mAudioChannelType, &volume, &muted);
   }
 
-  *aVolume = win->GetAudioGlobalVolume();
-  return NS_OK;
+  MOZ_LOG(AudioChannelService::GetAudioChannelLog(), LogLevel::Debug,
+         ("AudioChannelAgent, WindowVolumeChanged, this = %p, mute = %d, "
+          "volume = %f\n", this, muted, volume));
+
+  callback->WindowVolumeChanged(volume, muted);
+}
+
+uint64_t
+AudioChannelAgent::WindowID() const
+{
+  return mWindow ? mWindow->WindowID() : 0;
+}
+
+void
+AudioChannelAgent::WindowAudioCaptureChanged(uint64_t aInnerWindowID)
+{
+  if (aInnerWindowID != mInnerWindowID) {
+    return;
+  }
+
+  nsCOMPtr<nsIAudioChannelAgentCallback> callback = GetCallback();
+  if (!callback) {
+    return;
+  }
+
+  callback->WindowAudioCaptureChanged();
 }

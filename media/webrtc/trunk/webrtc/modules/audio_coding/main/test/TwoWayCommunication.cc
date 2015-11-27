@@ -18,9 +18,8 @@
 #include <Windows.h>
 #endif
 
-#include "gtest/gtest.h"
+#include "testing/gtest/include/gtest/gtest.h"
 #include "webrtc/engine_configurations.h"
-#include "webrtc/common.h"
 #include "webrtc/common_types.h"
 #include "webrtc/modules/audio_coding/main/test/PCMFile.h"
 #include "webrtc/modules/audio_coding/main/test/utility.h"
@@ -31,12 +30,12 @@ namespace webrtc {
 
 #define MAX_FILE_NAME_LENGTH_BYTE 500
 
-TwoWayCommunication::TwoWayCommunication(int testMode, const Config& config)
-    : _acmA(config.Get<AudioCodingModuleFactory>().Create(1)),
-      _acmB(config.Get<AudioCodingModuleFactory>().Create(2)),
-      _acmRefA(config.Get<AudioCodingModuleFactory>().Create(3)),
-      _acmRefB(config.Get<AudioCodingModuleFactory>().Create(4)),
-      _testMode(testMode) { }
+TwoWayCommunication::TwoWayCommunication(int testMode)
+    : _acmA(AudioCodingModule::Create(1)),
+      _acmB(AudioCodingModule::Create(2)),
+      _acmRefA(AudioCodingModule::Create(3)),
+      _acmRefB(AudioCodingModule::Create(4)),
+      _testMode(testMode) {}
 
 TwoWayCommunication::~TwoWayCommunication() {
   delete _channel_A2B;
@@ -61,7 +60,7 @@ TwoWayCommunication::~TwoWayCommunication() {
 
 void TwoWayCommunication::ChooseCodec(uint8_t* codecID_A,
                                       uint8_t* codecID_B) {
-  scoped_ptr<AudioCodingModule> tmpACM(AudioCodingModule::Create(0));
+  rtc::scoped_ptr<AudioCodingModule> tmpACM(AudioCodingModule::Create(0));
   uint8_t noCodec = tmpACM->NumberOfCodecs();
   CodecInst codecInst;
   printf("List of Supported Codecs\n");
@@ -282,33 +281,16 @@ void TwoWayCommunication::Perform() {
   // In the middle of a session with data flowing between two sides, called A
   // and B, APIs will be called, like ResetEncoder(), and the code should
   // continue to run, and be able to recover.
-  bool expect_error_add = false;
-  bool expect_error_process = false;
   while (!_inFileA.EndOfFile() && !_inFileB.EndOfFile()) {
     msecPassed += 10;
     EXPECT_GT(_inFileA.Read10MsData(audioFrame), 0);
-    EXPECT_EQ(0, _acmA->Add10MsData(audioFrame));
-    EXPECT_EQ(0, _acmRefA->Add10MsData(audioFrame));
+    EXPECT_GE(_acmA->Add10MsData(audioFrame), 0);
+    EXPECT_GE(_acmRefA->Add10MsData(audioFrame), 0);
 
     EXPECT_GT(_inFileB.Read10MsData(audioFrame), 0);
 
-    // Expect call to pass except for the time when no send codec is registered.
-    if (!expect_error_add) {
-      EXPECT_EQ(0, _acmB->Add10MsData(audioFrame));
-    } else {
-      EXPECT_EQ(-1, _acmB->Add10MsData(audioFrame));
-    }
-    // Expect to pass except for the time when there either is no send codec
-    // registered, or no receive codec.
-    if (!expect_error_process) {
-      EXPECT_GT(_acmB->Process(), -1);
-    } else {
-      EXPECT_EQ(_acmB->Process(), -1);
-    }
-    EXPECT_EQ(0, _acmRefB->Add10MsData(audioFrame));
-    EXPECT_GT(_acmA->Process(), -1);
-    EXPECT_GT(_acmRefA->Process(), -1);
-    EXPECT_GT(_acmRefB->Process(), -1);
+    EXPECT_GE(_acmB->Add10MsData(audioFrame), 0);
+    EXPECT_GE(_acmRefB->Add10MsData(audioFrame), 0);
     EXPECT_EQ(0, _acmA->PlayoutData10Ms(outFreqHzA, &audioFrame));
     _outFileA.Write10MsData(audioFrame);
     EXPECT_EQ(0, _acmRefA->PlayoutData10Ms(outFreqHzA, &audioFrame));
@@ -327,16 +309,11 @@ void TwoWayCommunication::Perform() {
     // side B.
     if (((secPassed % 5) == 4) && (msecPassed == 0)) {
       EXPECT_EQ(0, _acmA->ResetEncoder());
-      EXPECT_EQ(0, _acmB->InitializeSender());
-      expect_error_add = true;
-      expect_error_process = true;
     }
     // Re-register send codec on side B.
     if (((secPassed % 5) == 4) && (msecPassed >= 990)) {
       EXPECT_EQ(0, _acmB->RegisterSendCodec(codecInst_B));
       EXPECT_EQ(0, _acmB->SendCodec(&dummy));
-      expect_error_add = false;
-      expect_error_process = false;
     }
     // Reset decoder on side B, and initialize receiver on side A.
     if (((secPassed % 7) == 6) && (msecPassed == 0)) {

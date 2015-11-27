@@ -16,10 +16,11 @@
 #include "nsSound.h"
 #include "nsIURL.h"
 #include "nsNetUtil.h"
+#include "nsIChannel.h"
 #include "nsContentUtils.h"
 #include "nsCRT.h"
 
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "prtime.h"
 #include "prprf.h"
 #include "prmem.h"
@@ -27,9 +28,9 @@
 #include "nsNativeCharsetUtils.h"
 #include "nsThreadUtils.h"
 
-#ifdef PR_LOGGING
+using mozilla::LogLevel;
+
 PRLogModuleInfo* gWin32SoundLog = nullptr;
-#endif
 
 class nsSoundPlayer: public nsRunnable {
 public:
@@ -108,11 +109,9 @@ NS_IMPL_ISUPPORTS(nsSound, nsISound, nsIStreamLoaderObserver)
 
 nsSound::nsSound()
 {
-#ifdef PR_LOGGING
     if (!gWin32SoundLog) {
       gWin32SoundLog = PR_NewLogModule("nsSound");
     }
-#endif
 
     mLastSound = nullptr;
 }
@@ -125,10 +124,9 @@ nsSound::~nsSound()
 
 void nsSound::ShutdownOldPlayerThread()
 {
-  if (mPlayerThread) {
-    mPlayerThread->Shutdown();
-    mPlayerThread = nullptr;
-  }
+  nsCOMPtr<nsIThread> playerThread(mPlayerThread.forget());
+  if (playerThread)
+    playerThread->Shutdown();
 }
 
 void nsSound::PurgeLastSound() 
@@ -171,7 +169,7 @@ NS_IMETHODIMP nsSound::OnStreamComplete(nsIStreamLoader *aLoader,
         if (uri) {
           nsAutoCString uriSpec;
           uri->GetSpec(uriSpec);
-          PR_LOG(gWin32SoundLog, PR_LOG_ALWAYS,
+          MOZ_LOG(gWin32SoundLog, LogLevel::Info,
                  ("Failed to load %s\n", uriSpec.get()));
         }
       }
@@ -205,7 +203,7 @@ NS_IMETHODIMP nsSound::Play(nsIURL *aURL)
 #ifdef DEBUG_SOUND
   char *url;
   aURL->GetSpec(&url);
-  PR_LOG(gWin32SoundLog, PR_LOG_ALWAYS,
+  MOZ_LOG(gWin32SoundLog, LogLevel::Info,
          ("%s\n", url));
 #endif
 
@@ -214,7 +212,7 @@ NS_IMETHODIMP nsSound::Play(nsIURL *aURL)
                           aURL,
                           this, // aObserver
                           nsContentUtils::GetSystemPrincipal(),
-                          nsILoadInfo::SEC_NORMAL,
+                          nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_IS_NULL,
                           nsIContentPolicy::TYPE_OTHER);
   return rv;
 }

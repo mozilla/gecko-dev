@@ -6,6 +6,7 @@ def test(mod, path, entity = None):
   import re
   # ignore anything but Firefox
   if mod not in ("netwerk", "dom", "toolkit", "security/manager",
+                 "devtools/client", "devtools/shared",
                  "browser", "webapprt",
                  "extensions/reporter", "extensions/spellcheck",
                  "other-licenses/branding/firefox",
@@ -20,8 +21,7 @@ def test(mod, path, entity = None):
     if mod == "extensions/spellcheck":
       return "ignore"
     # browser
-    if (re.match(r"searchplugins\/.+\.xml", path) or
-        path == "searchplugins/metrolist.txt"):
+    if (re.match(r"searchplugins\/.+\.xml", path)):
       return "ignore"
     return "error"
   if mod == "extensions/spellcheck":

@@ -7,8 +7,8 @@
 #define mozilla_a11y_HyperTextAccessible_h__
 
 #include "AccessibleWrap.h"
+#include "nsIAccessibleText.h"
 #include "nsIAccessibleTypes.h"
-#include "xpcAccessibleHyperText.h"
 #include "nsDirection.h"
 #include "WordMovementType.h"
 #include "nsIFrame.h"
@@ -37,7 +37,7 @@ struct DOMPoint {
   int32_t idx;
 };
 
-// This character marks where in the text returned via nsIAccessibleText(),
+// This character marks where in the text returned via Text interface,
 // that embedded object characters exist
 const char16_t kEmbeddedObjectChar = 0xfffc;
 const char16_t kImaginaryEmbeddedObjectChar = ' ';
@@ -46,8 +46,7 @@ const char16_t kForcedNewLineChar = '\n';
 /**
   * Special Accessible that knows how contain both text and embedded objects
   */
-class HyperTextAccessible : public AccessibleWrap,
-                            public xpcAccessibleHyperText
+class HyperTextAccessible : public AccessibleWrap
 {
 public:
   HyperTextAccessible(nsIContent* aContent, DocAccessible* aDoc);
@@ -55,13 +54,15 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   // Accessible
-  virtual int32_t GetLevelInternal();
-  virtual already_AddRefed<nsIPersistentProperties> NativeAttributes() MOZ_OVERRIDE;
-  virtual mozilla::a11y::role NativeRole() MOZ_OVERRIDE;
-  virtual uint64_t NativeState() MOZ_OVERRIDE;
+  virtual nsIAtom* LandmarkRole() const override;
+  virtual int32_t GetLevelInternal() override;
+  virtual already_AddRefed<nsIPersistentProperties> NativeAttributes() override;
+  virtual mozilla::a11y::role NativeRole() override;
+  virtual uint64_t NativeState() override;
 
-  virtual void InvalidateChildren();
-  virtual bool RemoveChild(Accessible* aAccessible);
+  virtual void InvalidateChildren() override;
+  virtual bool RemoveChild(Accessible* aAccessible) override;
+  virtual Relation RelationByType(RelationType aType) override;
 
   // HyperTextAccessible (static helper method)
 
@@ -139,7 +140,10 @@ public:
                            bool aIsEndOffset) const;
 
   /**
-   * Convert start and end hypertext offsets into DOM range.
+   * Convert start and end hypertext offsets into DOM range.  Note that if
+   * aStartOffset and/or aEndOffset is in generated content such as ::before or
+   * ::after, the result range excludes the generated content.  See also
+   * ClosestNotGeneratedDOMPoint() for more information.
    *
    * @param  aStartOffset  [in] the given start hypertext offset
    * @param  aEndOffset    [in] the given end hypertext offset
@@ -331,7 +335,7 @@ public:
    * @param [out] the widget containing the caret
    * @return      the caret rect
    */
-  nsIntRect GetCaretRect(nsIWidget** aWidget);
+  mozilla::LayoutDeviceIntRect GetCaretRect(nsIWidget** aWidget);
 
   /**
    * Return selected regions count within the accessible.
@@ -429,8 +433,8 @@ protected:
   virtual ~HyperTextAccessible() { }
 
   // Accessible
-  virtual ENameValueFlag NativeName(nsString& aName) MOZ_OVERRIDE;
-  virtual void CacheChildren() MOZ_OVERRIDE;
+  virtual ENameValueFlag NativeName(nsString& aName) override;
+  virtual void CacheChildren() override;
 
   // HyperTextAccessible
 
@@ -518,6 +522,23 @@ protected:
 
   nsresult SetSelectionRange(int32_t aStartPos, int32_t aEndPos);
 
+  /**
+   * Convert the given DOM point to a DOM point in non-generated contents.
+   *
+   * If aDOMPoint is in ::before, the result is immediately after it.
+   * If aDOMPoint is in ::after, the result is immediately before it.
+   *
+   * @param aDOMPoint       [in] A DOM node and an index of its child. This may
+   *                             be in a generated content such as ::before or
+   *                             ::after.
+   * @param aElementContent [in] An nsIContent representing an element of
+   *                             aDOMPoint.node.
+   * @return                An DOM point which must not be in generated
+   *                        contents.
+   */
+  DOMPoint ClosestNotGeneratedDOMPoint(const DOMPoint& aDOMPoint,
+                                       nsIContent* aElementContent);
+
   // Helpers
   nsresult GetDOMPointByFrameOffset(nsIFrame* aFrame, int32_t aOffset,
                                     Accessible* aAccessible,
@@ -539,6 +560,12 @@ protected:
   void GetSpellTextAttr(nsINode* aNode, int32_t aNodeOffset,
                         uint32_t* aStartOffset, uint32_t* aEndOffset,
                         nsIPersistentProperties* aAttributes);
+
+  /**
+   * Set xml-roles attributes for MathML elements.
+   * @param aAttributes
+   */
+  void SetMathMLXMLRoles(nsIPersistentProperties* aAttributes);
 
 private:
   /**

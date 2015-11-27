@@ -18,7 +18,7 @@ function log(msg) {
 }
 
 #ifdef MOZ_WIDGET_GONK
-let librecovery = (function() {
+var librecovery = (function() {
   let library;
   try {
     library = ctypes.open("librecovery.so");
@@ -26,9 +26,11 @@ let librecovery = (function() {
     log("Unable to open librecovery.so");
     throw Cr.NS_ERROR_FAILURE;
   }
+  // Bug 1163956, modify updatePath from ctyps.char.ptr to ctype.char.array(4096)
+  // align with librecovery.h. 4096 comes from PATH_MAX
   let FotaUpdateStatus = new ctypes.StructType("FotaUpdateStatus", [
                                                 { result: ctypes.int },
-                                                { updatePath: ctypes.char.ptr }
+                                                { updatePath: ctypes.char.array(4096) }
                                               ]);
 
   return {
@@ -49,7 +51,7 @@ let librecovery = (function() {
   };
 })();
 
-const gFactoryResetFile = "/persist/__post_reset_cmd__";
+const gFactoryResetFile = "__post_reset_cmd__";
 
 #endif
 
@@ -81,26 +83,39 @@ RecoveryService.prototype = {
     }
 
     log("factoryReset " + reason);
+    let commands = [];
     if (reason == "wipe") {
       let volumeService = Cc["@mozilla.org/telephony/volume-service;1"]
                           .getService(Ci.nsIVolumeService);
       let volNames = volumeService.getVolumeNames();
       log("Found " + volNames.length + " volumes");
-      let text = "";
+
       for (let i = 0; i < volNames.length; i++) {
         let name = volNames.queryElementAt(i, Ci.nsISupportsString);
         let volume = volumeService.getVolumeByName(name.data);
         log("Got volume: " + name.data + " at " + volume.mountPoint);
-        text += "wipe " + volume.mountPoint + "\n";
+        commands.push("wipe " + volume.mountPoint);
       }
+    } else if (reason == "root") {
+      commands.push("root");
+    }
 
+    if (commands.length > 0) {
       Cu.import("resource://gre/modules/osfile.jsm");
+      let dir = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
+      dir.initWithPath("/persist");
+      var postResetFile = dir.exists() ?
+                          OS.Path.join("/persist", gFactoryResetFile):
+                          OS.Path.join("/cache", gFactoryResetFile);
       let encoder = new TextEncoder();
+      let text = commands.join("\n");
       let array = encoder.encode(text);
-      let promise = OS.File.writeAtomic(gFactoryResetFile, array,
-                                        { tmpPath: gFactoryResetFile + ".tmp" });
+      let promise = OS.File.writeAtomic(postResetFile, array,
+                                        { tmpPath: postResetFile + ".tmp" });
 
-      promise.then(doReset);
+      promise.then(doReset, function onError(error) {
+        log("Error: " + error);
+      });
     } else {
       doReset();
     }

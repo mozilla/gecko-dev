@@ -131,9 +131,6 @@ this.DOMApplicationRegistry = {
     APPS_IPC_MSG_NAMES.forEach((aMsgName) => {
       this.cpmm.removeMessageListener(aMsgName, this);
     });
-
-    this.cpmm.sendAsyncMessage("Webapps:UnregisterForMessages",
-                               APPS_IPC_MSG_NAMES)
   },
 
   receiveMessage: function receiveMessage(aMessage) {
@@ -352,6 +349,15 @@ this.DOMApplicationRegistry = {
     aCallback(res);
   },
 
+  getAdditionalLanguages: function(aManifestURL) {
+    for (let id in this.webapps) {
+      if (this.webapps[id].manifestURL == aManifestURL) {
+        return this.webapps[id].additionalLanguages || {};
+      }
+    }
+    return {};
+  },
+
   /**
    * nsIAppsService API
    */
@@ -408,6 +414,10 @@ this.DOMApplicationRegistry = {
 
   getAppInfo: function getAppInfo(aAppId) {
     return AppsUtils.getAppInfo(this.webapps, aAppId);
+  },
+
+  updateDataStoreEntriesFromLocalId: function(aLocalId) {
+    debug("updateDataStoreEntriesFromLocalId() not yet supported on child!");
   }
 }
 

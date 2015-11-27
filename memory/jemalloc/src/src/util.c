@@ -81,10 +81,10 @@ buferror(int err, char *buf, size_t buflen)
 {
 
 #ifdef _WIN32
-	FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), 0,
+	FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, 0,
 	    (LPSTR)buf, buflen, NULL);
 	return (0);
-#elif defined(_GNU_SOURCE)
+#elif defined(__GLIBC__) && defined(_GNU_SOURCE)
 	char *b = strerror_r(err, buf, buflen);
 	if (b != buf) {
 		strncpy(buf, b, buflen);
@@ -266,7 +266,7 @@ d2s(intmax_t x, char sign, char *s, size_t *slen_p)
 		sign = '-';
 	switch (sign) {
 	case '-':
-		if (neg == false)
+		if (!neg)
 			break;
 		/* Fall through. */
 	case ' ':
@@ -329,7 +329,7 @@ malloc_vsnprintf(char *str, size_t size, const char *format, va_list ap)
 	/* Left padding. */						\
 	size_t pad_len = (width == -1) ? 0 : ((slen < (size_t)width) ?	\
 	    (size_t)width - slen : 0);					\
-	if (left_justify == false && pad_len != 0) {			\
+	if (!left_justify && pad_len != 0) {				\
 		size_t j;						\
 		for (j = 0; j < pad_len; j++)				\
 			APPEND_C(' ');					\
@@ -381,7 +381,7 @@ malloc_vsnprintf(char *str, size_t size, const char *format, va_list ap)
 	case 'p': /* Synthetic; used for %p. */				\
 		val = va_arg(ap, uintptr_t);				\
 		break;							\
-	default: 							\
+	default:							\
 		not_reached();						\
 		val = 0;						\
 	}								\
@@ -406,19 +406,19 @@ malloc_vsnprintf(char *str, size_t size, const char *format, va_list ap)
 			while (true) {
 				switch (*f) {
 				case '#':
-					assert(alt_form == false);
+					assert(!alt_form);
 					alt_form = true;
 					break;
 				case '-':
-					assert(left_justify == false);
+					assert(!left_justify);
 					left_justify = true;
 					break;
 				case ' ':
-					assert(plus_space == false);
+					assert(!plus_space);
 					plus_space = true;
 					break;
 				case '+':
-					assert(plus_plus == false);
+					assert(!plus_plus);
 					plus_plus = true;
 					break;
 				default: goto label_width;
@@ -586,7 +586,7 @@ malloc_vsnprintf(char *str, size_t size, const char *format, va_list ap)
 	return (ret);
 }
 
-JEMALLOC_ATTR(format(printf, 3, 4))
+JEMALLOC_FORMAT_PRINTF(3, 4)
 int
 malloc_snprintf(char *str, size_t size, const char *format, ...)
 {
@@ -625,7 +625,7 @@ malloc_vcprintf(void (*write_cb)(void *, const char *), void *cbopaque,
  * Print to a callback function in such a way as to (hopefully) avoid memory
  * allocation.
  */
-JEMALLOC_ATTR(format(printf, 3, 4))
+JEMALLOC_FORMAT_PRINTF(3, 4)
 void
 malloc_cprintf(void (*write_cb)(void *, const char *), void *cbopaque,
     const char *format, ...)
@@ -638,7 +638,7 @@ malloc_cprintf(void (*write_cb)(void *, const char *), void *cbopaque,
 }
 
 /* Print to stderr in such a way as to avoid memory allocation. */
-JEMALLOC_ATTR(format(printf, 1, 2))
+JEMALLOC_FORMAT_PRINTF(1, 2)
 void
 malloc_printf(const char *format, ...)
 {

@@ -41,8 +41,10 @@ var ZoomManager = {
   },
 
   getZoomForBrowser: function ZoomManager_getZoomForBrowser(aBrowser) {
-    return (this.useFullZoom || aBrowser.isSyntheticDocument)
-           ? aBrowser.fullZoom : aBrowser.textZoom;
+    let zoom = (this.useFullZoom || aBrowser.isSyntheticDocument)
+               ? aBrowser.fullZoom : aBrowser.textZoom;
+    // Round to remove any floating-point error.
+    return Number(zoom.toFixed(2));
   },
 
   set zoom(aVal) {
@@ -66,7 +68,7 @@ var ZoomManager = {
   get zoomValues() {
     var zoomValues = this._prefBranch.getCharPref("toolkit.zoomManager.zoomValues")
                                      .split(",").map(parseFloat);
-    zoomValues.sort(function (a, b) a - b);
+    zoomValues.sort((a, b) => a - b);
 
     while (zoomValues[0] < this.MIN)
       zoomValues.shift();

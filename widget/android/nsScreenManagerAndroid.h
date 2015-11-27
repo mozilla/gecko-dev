@@ -12,23 +12,23 @@
 #include "nsIScreenManager.h"
 #include "WidgetUtils.h"
 
-class nsScreenAndroid MOZ_FINAL : public nsBaseScreen
+class nsScreenAndroid final : public nsBaseScreen
 {
 public:
     nsScreenAndroid(void *nativeScreen);
     ~nsScreenAndroid();
 
-    NS_IMETHOD GetId(uint32_t* aId);
-    NS_IMETHOD GetRect(int32_t* aLeft, int32_t* aTop, int32_t* aWidth, int32_t* aHeight);
-    NS_IMETHOD GetAvailRect(int32_t* aLeft, int32_t* aTop, int32_t* aWidth, int32_t* aHeight);
-    NS_IMETHOD GetPixelDepth(int32_t* aPixelDepth);
-    NS_IMETHOD GetColorDepth(int32_t* aColorDepth);
+    NS_IMETHOD GetId(uint32_t* aId) override;
+    NS_IMETHOD GetRect(int32_t* aLeft, int32_t* aTop, int32_t* aWidth, int32_t* aHeight) override;
+    NS_IMETHOD GetAvailRect(int32_t* aLeft, int32_t* aTop, int32_t* aWidth, int32_t* aHeight) override;
+    NS_IMETHOD GetPixelDepth(int32_t* aPixelDepth) override;
+    NS_IMETHOD GetColorDepth(int32_t* aColorDepth) override;
 
 protected:
-    virtual void ApplyMinimumBrightness(uint32_t aBrightness) MOZ_OVERRIDE;
+    virtual void ApplyMinimumBrightness(uint32_t aBrightness) override;
 };
 
-class nsScreenManagerAndroid MOZ_FINAL : public nsIScreenManager
+class nsScreenManagerAndroid final : public nsIScreenManager
 {
 private:
     ~nsScreenManagerAndroid();

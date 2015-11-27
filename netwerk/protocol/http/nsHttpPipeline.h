@@ -16,9 +16,9 @@ class nsIOutputStream;
 
 namespace mozilla { namespace net {
 
-class nsHttpPipeline MOZ_FINAL : public nsAHttpConnection
-                               , public nsAHttpTransaction
-                               , public nsAHttpSegmentReader
+class nsHttpPipeline final : public nsAHttpConnection
+                           , public nsAHttpTransaction
+                           , public nsAHttpSegmentReader
 {
 public:
     NS_DECL_THREADSAFE_ISUPPORTS
@@ -28,7 +28,7 @@ public:
 
     nsHttpPipeline();
 
-  bool ResponseTimeoutEnabled() const MOZ_OVERRIDE MOZ_FINAL {
+  bool ResponseTimeoutEnabled() const override final {
     return true;
   }
 
@@ -57,9 +57,9 @@ private:
     }
 
     // overload of nsAHttpTransaction::QueryPipeline()
-    nsHttpPipeline *QueryPipeline();
+    nsHttpPipeline *QueryPipeline() override;
 
-    nsRefPtr<nsAHttpConnection>   mConnection;
+    RefPtr<nsAHttpConnection>   mConnection;
     nsTArray<nsAHttpTransaction*> mRequestQ;  // array of transactions
     nsTArray<nsAHttpTransaction*> mResponseQ; // array of transactions
     nsresult                      mStatus;
@@ -94,11 +94,12 @@ private:
     uint32_t  mHttp1xTransactionCount;
 
     // For support of OnTransportStatus()
-    uint64_t  mReceivingFromProgress;
-    uint64_t  mSendingToProgress;
-    bool      mSuppressSendEvents;
+    int64_t  mReceivingFromProgress;
+    int64_t  mSendingToProgress;
+    bool     mSuppressSendEvents;
 };
 
-}} // namespace mozilla::net
+} // namespace net
+} // namespace mozilla
 
 #endif // nsHttpPipeline_h__

@@ -20,8 +20,8 @@ class AccessibleWrap;
 /**
  * IRawElementProviderSimple implementation (maintains IAccessibleEx approach).
  */
-class uiaRawElmProvider MOZ_FINAL : public IAccessibleEx,
-                                    public IRawElementProviderSimple
+class uiaRawElmProvider final : public IAccessibleEx,
+                                public IRawElementProviderSimple
 {
 public:
   uiaRawElmProvider(AccessibleWrap* aAcc) : mAcc(aAcc) { }
@@ -61,12 +61,12 @@ public:
     /* [retval][out] */ __RPC__deref_out_opt IRawElementProviderSimple** aRawElmProvider);
 
 private:
-  uiaRawElmProvider() MOZ_DELETE;
-  uiaRawElmProvider& operator =(const uiaRawElmProvider&) MOZ_DELETE;
-  uiaRawElmProvider(const uiaRawElmProvider&) MOZ_DELETE;
+  uiaRawElmProvider() = delete;
+  uiaRawElmProvider& operator =(const uiaRawElmProvider&) = delete;
+  uiaRawElmProvider(const uiaRawElmProvider&) = delete;
 
 protected:
-  nsRefPtr<AccessibleWrap> mAcc;
+  RefPtr<AccessibleWrap> mAcc;
 };
 
 } // a11y namespace

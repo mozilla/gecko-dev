@@ -3,7 +3,7 @@
 
 "use strict";
 
-let Cu = Components.utils;
+var Cu = Components.utils;
 
 Cu.import("resource://gre/modules/PromiseWorker.jsm", this);
 Cu.import("resource://gre/modules/Timer.jsm", this);
@@ -11,9 +11,9 @@ Cu.import("resource://gre/modules/Timer.jsm", this);
 // Worker must be loaded from a chrome:// uri, not a file://
 // uri, so we first need to load it.
 
-let WORKER_SOURCE_URI = "chrome://promiseworker/content/worker.js";
+var WORKER_SOURCE_URI = "chrome://promiseworker/content/worker.js";
 do_load_manifest("data/chrome.manifest");
-let worker = new BasePromiseWorker(WORKER_SOURCE_URI);
+var worker = new BasePromiseWorker(WORKER_SOURCE_URI);
 worker.log = function(...args) {
   do_print("Controller: " + args.join(" "));
 };
@@ -57,6 +57,50 @@ add_task(function* test_rejected_promise_args() {
     do_throw("I shound have thrown an error by now");
   } catch (ex if ex == error) {
     do_print("I threw the right error");
+  }
+});
+
+// Test that we can transfer to the worker using argument `transfer`
+add_task(function* test_transfer_args() {
+  let array = new Uint8Array(4);
+  for (let i = 0; i < 4; ++i) {
+    array[i] = i;
+  }
+  Assert.equal(array.buffer.byteLength, 4, "The buffer is not neutered yet");
+
+  let result = (yield worker.post("bounce", [array.buffer], [], [array.buffer]))[0];
+
+  // Check that the buffer has been sent
+  Assert.equal(array.buffer.byteLength, 0, "The buffer has been neutered");
+
+  // Check that the result is correct
+  Assert.equal(result.byteLength, 4, "The result has the right size");
+  let array2 = new Uint8Array(result);
+  for (let i = 0; i < 4; ++i) {
+    Assert.equal(array2[i], i);
+  }
+});
+
+// Test that we can transfer to the worker using an instance of `Meta`
+add_task(function* test_transfer_with_meta() {
+  let array = new Uint8Array(4);
+  for (let i = 0; i < 4; ++i) {
+    array[i] = i;
+  }
+  Assert.equal(array.buffer.byteLength, 4, "The buffer is not neutered yet");
+
+  let message = new BasePromiseWorker.Meta(array, {transfers: [array.buffer]});
+  let result = (yield worker.post("bounce", [message]))[0];
+
+  // Check that the buffer has been sent
+  Assert.equal(array.buffer.byteLength, 0, "The buffer has been neutered");
+
+  // Check that the result is correct
+  Assert.equal(result.toString(), "[object Uint8Array]", "The result appears to be a Typed Array");
+  Assert.equal(result.byteLength, 4, "The result has the right size");
+
+  for (let i = 0; i < 4; ++i) {
+    Assert.equal(result[i], i);
   }
 });
 

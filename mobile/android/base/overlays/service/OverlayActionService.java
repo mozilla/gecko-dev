@@ -8,18 +8,14 @@ package org.mozilla.gecko.overlays.service;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Bundle;
 import android.os.IBinder;
-import android.os.Parcelable;
 import android.util.Log;
-import android.view.View;
+
 import org.mozilla.gecko.Assert;
-import org.mozilla.gecko.overlays.OverlayConstants;
 import org.mozilla.gecko.overlays.service.sharemethods.AddBookmark;
 import org.mozilla.gecko.overlays.service.sharemethods.AddToReadingList;
 import org.mozilla.gecko.overlays.service.sharemethods.SendTab;
 import org.mozilla.gecko.overlays.service.sharemethods.ShareMethod;
-import org.mozilla.gecko.overlays.ui.OverlayToastHelper;
 import org.mozilla.gecko.util.ThreadUtils;
 
 import java.util.EnumMap;
@@ -27,7 +23,6 @@ import java.util.Map;
 
 import static org.mozilla.gecko.overlays.OverlayConstants.ACTION_PREPARE_SHARE;
 import static org.mozilla.gecko.overlays.OverlayConstants.ACTION_SHARE;
-import static org.mozilla.gecko.overlays.OverlayConstants.EXTRA_SHARE_METHOD;
 
 /**
  * A service to receive requests from overlays to perform actions.
@@ -119,27 +114,15 @@ public class OverlayActionService extends Service {
                 // Dispatch the share to the targeted ShareMethod.
                 switch (result) {
                     case SUCCESS:
-                        // \o/
-                        OverlayToastHelper.showSuccessToast(getApplicationContext(), shareMethod.getSuccessMesssage());
+                        Log.d(LOGTAG, "Share was successful");
                         break;
                     case TRANSIENT_FAILURE:
-                        // An OnClickListener to do this share again.
-                        View.OnClickListener retryListener = new View.OnClickListener() {
-                            @Override
-                            public void onClick(View view) {
-                                handleShare(intent);
-                            }
-                        };
-
-                        // Show a failure toast with a retry button.
-                        OverlayToastHelper.showFailureToast(getApplicationContext(), shareMethod.getFailureMessage(), retryListener);
-                        break;
+                        // Fall-through
                     case PERMANENT_FAILURE:
-                        // Show a failure toast without a retry button.
-                        OverlayToastHelper.showFailureToast(getApplicationContext(), shareMethod.getFailureMessage());
+                        Log.e(LOGTAG, "Share failed: " + result);
                         break;
                     default:
-                        Assert.isTrue(false, "Unknown share method result code: " + result);
+                        Assert.fail("Unknown share method result code: " + result);
                         break;
                 }
             }

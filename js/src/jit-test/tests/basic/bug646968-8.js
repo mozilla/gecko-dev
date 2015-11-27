@@ -1,8 +1,8 @@
-var g = newGlobal();
-var dbg = new g.Debugger(this);
+load(libdir + "evalInFrame.js");
 
 var x = 5;
-let (x = eval("x++")) {
+{
+    let x = eval("this.x++");
     assertEq(evalInFrame(0, "x"), 5);
 }
 assertEq(x, 6);

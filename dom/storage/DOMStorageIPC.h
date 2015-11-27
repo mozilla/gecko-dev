@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -22,8 +23,8 @@ class DOMLocalStorageManager;
 // is responsible to send all requests to the parent process
 // and expects asynchronous answers. Those are then transparently
 // forwarded back to consumers on the child process.
-class DOMStorageDBChild MOZ_FINAL : public DOMStorageDBBridge
-                                  , public PStorageChild
+class DOMStorageDBChild final : public DOMStorageDBBridge
+                              , public PStorageChild
 {
   virtual ~DOMStorageDBChild();
 
@@ -74,7 +75,7 @@ private:
                     const nsString& aValue);
   bool RecvLoadDone(const nsCString& aScope,
                     const nsresult& aRv);
-  bool RecvScopesHavingData(const InfallibleTArray<nsCString>& aScopes);
+  bool RecvScopesHavingData(nsTArray<nsCString>&& aScopes);
   bool RecvLoadUsage(const nsCString& aScope,
                      const int64_t& aUsage);
   bool RecvError(const nsresult& aRv);
@@ -85,7 +86,7 @@ private:
   NS_DECL_OWNINGTHREAD
 
   // Held to get caches to forward answers to.
-  nsRefPtr<DOMLocalStorageManager> mManager;
+  RefPtr<DOMLocalStorageManager> mManager;
 
   // Scopes having data hash, for optimization purposes only
   nsAutoPtr<nsTHashtable<nsCStringHashKey> > mScopesHavingData;
@@ -106,8 +107,8 @@ private:
 // DOMStorageCache consumer.
 // Also responsible for forwardning all chrome operation notifications
 // such as cookie cleaning etc to the child process.
-class DOMStorageDBParent MOZ_FINAL : public PStorageParent
-                                   , public DOMStorageObserverSink
+class DOMStorageDBParent final : public PStorageParent
+                               , public DOMStorageObserverSink
 {
   virtual ~DOMStorageDBParent();
 
@@ -116,7 +117,7 @@ public:
 
   virtual mozilla::ipc::IProtocol*
   CloneProtocol(Channel* aChannel,
-                mozilla::ipc::ProtocolCloneContext* aCtx) MOZ_OVERRIDE;
+                mozilla::ipc::ProtocolCloneContext* aCtx) override;
 
   NS_IMETHOD_(MozExternalRefCountType) AddRef(void);
   NS_IMETHOD_(MozExternalRefCountType) Release(void);
@@ -148,7 +149,7 @@ public:
     virtual void LoadWait();
 
   private:
-    nsRefPtr<DOMStorageDBParent> mParent;
+    RefPtr<DOMStorageDBParent> mParent;
     nsCString mScope;
     bool mLoaded;
     uint32_t mLoadedCount;
@@ -167,38 +168,38 @@ public:
     virtual void LoadUsage(const int64_t usage);
 
   private:
-    nsRefPtr<DOMStorageDBParent> mParent;
+    RefPtr<DOMStorageDBParent> mParent;
     nsCString mScope;
   };
 
 private:
   // IPC
-  virtual void ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
-  bool RecvAsyncPreload(const nsCString& aScope, const bool& aPriority);
+  virtual void ActorDestroy(ActorDestroyReason aWhy) override;
+  bool RecvAsyncPreload(const nsCString& aScope, const bool& aPriority) override;
   bool RecvPreload(const nsCString& aScope, const uint32_t& aAlreadyLoadedCount,
                    InfallibleTArray<nsString>* aKeys, InfallibleTArray<nsString>* aValues,
-                   nsresult* aRv);
-  bool RecvAsyncGetUsage(const nsCString& aScope);
-  bool RecvAsyncAddItem(const nsCString& aScope, const nsString& aKey, const nsString& aValue);
-  bool RecvAsyncUpdateItem(const nsCString& aScope, const nsString& aKey, const nsString& aValue);
-  bool RecvAsyncRemoveItem(const nsCString& aScope, const nsString& aKey);
-  bool RecvAsyncClear(const nsCString& aScope);
-  bool RecvAsyncFlush();
+                   nsresult* aRv) override;
+  bool RecvAsyncGetUsage(const nsCString& aScope) override;
+  bool RecvAsyncAddItem(const nsCString& aScope, const nsString& aKey, const nsString& aValue) override;
+  bool RecvAsyncUpdateItem(const nsCString& aScope, const nsString& aKey, const nsString& aValue) override;
+  bool RecvAsyncRemoveItem(const nsCString& aScope, const nsString& aKey) override;
+  bool RecvAsyncClear(const nsCString& aScope) override;
+  bool RecvAsyncFlush() override;
 
   // DOMStorageObserverSink
-  virtual nsresult Observe(const char* aTopic, const nsACString& aScopePrefix);
+  virtual nsresult Observe(const char* aTopic, const nsACString& aScopePrefix) override;
 
 private:
   CacheParentBridge* NewCache(const nsACString& aScope);
 
   ThreadSafeAutoRefCnt mRefCnt;
   NS_DECL_OWNINGTHREAD
-	
-	// True when IPC channel is open and Send*() methods are OK to use.
+
+  // True when IPC channel is open and Send*() methods are OK to use.
   bool mIPCOpen;
 };
 
-} // ::dom
-} // ::mozilla
+} // namespace dom
+} // namespace mozilla
 
 #endif

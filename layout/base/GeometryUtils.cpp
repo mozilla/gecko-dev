@@ -164,7 +164,7 @@ GetBoxRectForFrame(nsIFrame** aFrame, CSSBoxType aType)
 class AccumulateQuadCallback : public nsLayoutUtils::BoxCallback {
 public:
   AccumulateQuadCallback(nsISupports* aParentObject,
-                         nsTArray<nsRefPtr<DOMQuad> >& aResult,
+                         nsTArray<RefPtr<DOMQuad> >& aResult,
                          nsIFrame* aRelativeToFrame,
                          const nsPoint& aRelativeToBoxTopLeft,
                          CSSBoxType aBoxType)
@@ -176,7 +176,7 @@ public:
   {
   }
 
-  virtual void AddBox(nsIFrame* aFrame) MOZ_OVERRIDE
+  virtual void AddBox(nsIFrame* aFrame) override
   {
     nsIFrame* f = aFrame;
     nsRect box = GetBoxRectForFrame(&f, mBoxType);
@@ -202,7 +202,7 @@ public:
   }
 
   nsISupports* mParentObject;
-  nsTArray<nsRefPtr<DOMQuad> >& mResult;
+  nsTArray<RefPtr<DOMQuad> >& mResult;
   nsIFrame* mRelativeToFrame;
   nsPoint mRelativeToBoxTopLeft;
   CSSBoxType mBoxType;
@@ -241,7 +241,7 @@ CheckFramesInSameTopLevelBrowsingContext(nsIFrame* aFrame1, nsIFrame* aFrame2)
 
 void GetBoxQuads(nsINode* aNode,
                  const dom::BoxQuadOptions& aOptions,
-                 nsTArray<nsRefPtr<DOMQuad> >& aResult,
+                 nsTArray<RefPtr<DOMQuad> >& aResult,
                  ErrorResult& aRv)
 {
   nsIFrame* frame = GetFrameForNode(aNode);
@@ -341,7 +341,7 @@ ConvertQuadFromNode(nsINode* aTo, dom::DOMQuad& aQuad,
   if (aRv.Failed()) {
     return nullptr;
   }
-  nsRefPtr<DOMQuad> result = new DOMQuad(aTo->GetParentObject().mObject, points);
+  RefPtr<DOMQuad> result = new DOMQuad(aTo->GetParentObject().mObject, points);
   return result.forget();
 }
 
@@ -361,7 +361,7 @@ ConvertRectFromNode(nsINode* aTo, dom::DOMRectReadOnly& aRect,
   if (aRv.Failed()) {
     return nullptr;
   }
-  nsRefPtr<DOMQuad> result = new DOMQuad(aTo->GetParentObject().mObject, points);
+  RefPtr<DOMQuad> result = new DOMQuad(aTo->GetParentObject().mObject, points);
   return result.forget();
 }
 
@@ -380,8 +380,8 @@ ConvertPointFromNode(nsINode* aTo, const dom::DOMPointInit& aPoint,
   if (aRv.Failed()) {
     return nullptr;
   }
-  nsRefPtr<DOMPoint> result = new DOMPoint(aTo->GetParentObject().mObject, point.x, point.y);
+  RefPtr<DOMPoint> result = new DOMPoint(aTo->GetParentObject().mObject, point.x, point.y);
   return result.forget();
 }
 
-}
+} // namespace mozilla

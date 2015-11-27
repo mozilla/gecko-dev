@@ -15,8 +15,8 @@ Cu.import("resource://gre/modules/DOMRequestHelper.jsm");
 
 // Ensure NetworkStatsService and NetworkStatsDB are loaded in the parent process
 // to receive messages from the child processes.
-let appInfo = Cc["@mozilla.org/xre/app-info;1"];
-let isParentProcess = !appInfo || appInfo.getService(Ci.nsIXULRuntime)
+var appInfo = Cc["@mozilla.org/xre/app-info;1"];
+var isParentProcess = !appInfo || appInfo.getService(Ci.nsIXULRuntime)
                         .processType == Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT;
 if (isParentProcess) {
   Cu.import("resource://gre/modules/NetworkStatsService.jsm");
@@ -72,6 +72,7 @@ function NetworkStats(aWindow, aStats) {
     debug("NetworkStats Constructor");
   }
   this.appManifestURL = aStats.appManifestURL || null;
+  this.browsingTrafficOnly = aStats.browsingTrafficOnly || false;
   this.serviceType = aStats.serviceType || null;
   this.network = new aWindow.MozNetworkStatsInterface(aStats.network);
   this.start = aStats.start ? new aWindow.Date(aStats.start.getTime()) : null;
@@ -138,13 +139,22 @@ NetworkStatsManager.prototype = {
     }
 
     let appManifestURL = null;
+    let browsingTrafficOnly = false;
     let serviceType = null;
     if (aOptions) {
+      // appManifestURL is used to query network statistics by app;
+      // serviceType is used to query network statistics by system service.
+      // It is illegal to specify both of them at the same time.
       if (aOptions.appManifestURL && aOptions.serviceType) {
+        throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
+      }
+      // browsingTrafficOnly is meaningful only when querying by app.
+      if (!aOptions.appManifestURL && aOptions.browsingTrafficOnly) {
         throw Components.results.NS_ERROR_NOT_IMPLEMENTED;
       }
       appManifestURL = aOptions.appManifestURL;
       serviceType = aOptions.serviceType;
+      browsingTrafficOnly = aOptions.browsingTrafficOnly || false;
     }
 
     // TODO Bug 929410 Date object cannot correctly pass through cpmm/ppmm IPC
@@ -158,6 +168,7 @@ NetworkStatsManager.prototype = {
                             start: aStart,
                             end: aEnd,
                             appManifestURL: appManifestURL,
+                            browsingTrafficOnly: browsingTrafficOnly,
                             serviceType: serviceType,
                             id: this.getRequestId(request) });
     return request;

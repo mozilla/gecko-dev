@@ -36,7 +36,8 @@ function ActivityProxy() {
 }
 
 ActivityProxy.prototype = {
-  startActivity: function actProxy_startActivity(aActivity, aOptions, aWindow) {
+  startActivity: function actProxy_startActivity(aActivity, aOptions, aWindow,
+                                                 aChildID) {
     debug("startActivity");
 
     this.window = aWindow;
@@ -56,7 +57,31 @@ ActivityProxy.prototype = {
     // Only let certified apps enumerate providers for this filter.
     if (aOptions.getFilterResults === true &&
         principal.appStatus != Ci.nsIPrincipal.APP_STATUS_CERTIFIED) {
-      Services.DOMRequest.fireError(this.activity, "SecurityError");
+      Services.DOMRequest.fireErrorAsync(this.activity, "SecurityError");
+      Services.obs.notifyObservers(null, "Activity:Error", null);
+      return;
+    }
+
+    // Only let certified app to initiate this activitiy.
+    if (aOptions.name === 'internal-system-engineering-mode' &&
+        principal.appStatus != Ci.nsIPrincipal.APP_STATUS_CERTIFIED) {
+      Services.DOMRequest.fireErrorAsync(this.activity, "SecurityError");
+      Services.obs.notifyObservers(null, "Activity:Error", null);
+      return;
+    }
+
+    // Check the activities that are restricted to be used in dev mode.
+    let devMode = false;
+    let isDevModeActivity = false;
+    try {
+      devMode = Services.prefs.getBoolPref("dom.apps.developer_mode");
+      isDevModeActivity =
+        Services.prefs.getCharPref("dom.activities.developer_mode_only")
+                      .split(",").indexOf(aOptions.name) !== -1;
+
+    } catch(e) {}
+    if (isDevModeActivity && !devMode) {
+      Services.DOMRequest.fireErrorAsync(this.activity, "SecurityError");
       Services.obs.notifyObservers(null, "Activity:Error", null);
       return;
     }
@@ -73,7 +98,8 @@ ActivityProxy.prototype = {
         },
         getFilterResults: aOptions.getFilterResults,
         manifestURL: manifestURL,
-        pageURL: aWindow.document.location.href });
+        pageURL: aWindow.document.location.href,
+        childID: aChildID });
   },
 
   receiveMessage: function actProxy_receiveMessage(aMessage) {

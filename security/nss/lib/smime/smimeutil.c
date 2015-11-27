@@ -437,10 +437,12 @@ smime_choose_cipher(CERTCertificate *scert, CERTCertificate **rcerts)
 	     */
 	    key = CERT_ExtractPublicKey(rcerts[rcount]);
 	    pklen_bits = 0;
+	    key_type = nullKey;
 	    if (key != NULL) {
 		pklen_bits = SECKEY_PublicKeyStrengthInBits (key);
 		key_type = SECKEY_GetPublicKeyType(key);
 		SECKEY_DestroyPublicKey (key);
+		key = NULL;
 	    }
 
 	    if (key_type == ecKey) {
@@ -752,12 +754,13 @@ loser:
     return cert;
 }
 
-extern const char __nss_smime_rcsid[];
-extern const char __nss_smime_sccsid[];
+extern const char __nss_smime_version[];
 
 PRBool
 NSSSMIME_VersionCheck(const char *importedVersion)
 {
+#define NSS_VERSION_VARIABLE __nss_smime_version
+#include "verref.h"
     /*
      * This is the secret handshake algorithm.
      *
@@ -767,10 +770,6 @@ NSSSMIME_VersionCheck(const char *importedVersion)
      * not compatible with future major, minor, or
      * patch releases.
      */
-    volatile char c; /* force a reference that won't get optimized away */
-
-    c = __nss_smime_rcsid[0] + __nss_smime_sccsid[0]; 
-
     return NSS_VersionCheck(importedVersion);
 }
 

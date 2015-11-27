@@ -25,7 +25,7 @@ class DeviceRunner(BaseRunner):
             'MOZ_CRASHREPORTER_NO_REPORT': '1',
             'MOZ_CRASHREPORTER_SHUTDOWN': '1',
             'MOZ_HIDE_RESULTS_TABLE': '1',
-            'NSPR_LOG_MODULES': 'signaling:5,mtransport:5,datachannel:5',
+            'NSPR_LOG_MODULES': 'signaling:5,mtransport:5,datachannel:5,jsep:5,MediaPipelineFactory:5',
             'R_LOG_LEVEL': '6',
             'R_LOG_DESTINATION': 'stderr',
             'R_LOG_VERBOSE': '1',
@@ -33,9 +33,13 @@ class DeviceRunner(BaseRunner):
 
     def __init__(self, device_class, device_args=None, **kwargs):
         process_log = tempfile.NamedTemporaryFile(suffix='pidlog')
-        self._env = dict(self.env)
-        self._env['MOZ_PROCESS_LOG'] = process_log.name
-        self._env.update(kwargs.pop('env', {}) or {})
+        # the env will be passed to the device, it is not a *real* env
+        self._device_env = dict(DeviceRunner.env)
+        self._device_env['MOZ_PROCESS_LOG'] = process_log.name
+        # be sure we do not pass env to the parent class ctor
+        env = kwargs.pop('env', None)
+        if env:
+            self._device_env.update(env)
 
         process_args = {'stream': sys.stdout,
                         'processOutputLine': self.on_output,
@@ -44,7 +48,6 @@ class DeviceRunner(BaseRunner):
         process_args.update(kwargs.get('process_args') or {})
 
         kwargs['process_args'] = process_args
-        kwargs['env'] = {}
         BaseRunner.__init__(self, **kwargs)
 
         device_args = device_args or {}
@@ -56,7 +59,7 @@ class DeviceRunner(BaseRunner):
         if self.app_ctx.dm._deviceSerial:
             cmd.extend(['-s', self.app_ctx.dm._deviceSerial])
         cmd.append('shell')
-        for k, v in self._env.iteritems():
+        for k, v in self._device_env.iteritems():
             cmd.append('%s=%s' % (k, v))
         cmd.append(self.app_ctx.remote_binary)
         return cmd
@@ -75,13 +78,7 @@ class DeviceRunner(BaseRunner):
         if not self.device.wait_for_net():
             raise Exception("Network did not come up when starting device")
 
-        # In this case we need to pass in env as part of the command.
-        # Make this empty so BaseRunner doesn't pass anything into the
-        # process class.
-        self._env = self.env
-        self.env = None
         BaseRunner.start(self, *args, **kwargs)
-        self.env = self._env
 
         timeout = 10 # seconds
         starttime = datetime.datetime.now()
@@ -96,21 +93,31 @@ class DeviceRunner(BaseRunner):
             raise Exception("Failed to get a network connection")
 
     def stop(self, sig=None):
-        remote_pid = self.is_running()
-        if remote_pid:
-            self.app_ctx.stop_application()
-            self.app_ctx.dm.killProcess(
-                self.app_ctx.remote_process, sig=sig)
-            timeout = 10  # seconds
+        def _wait_for_shutdown(pid, timeout=10):
             start_time = datetime.datetime.now()
             end_time = datetime.timedelta(seconds=timeout)
             while datetime.datetime.now() - start_time < end_time:
-                if not self.is_running() == remote_pid:
-                    break
+                if self.is_running() != pid:
+                    return True
                 time.sleep(1)
-            else:
-                print("timed out waiting for '%s' process to exit" %
-                      self.app_ctx.remote_process)
+            return False
+
+        remote_pid = self.is_running()
+        if remote_pid:
+            self.app_ctx.dm.killProcess(
+                self.app_ctx.remote_process, sig=sig)
+            if not _wait_for_shutdown(remote_pid) and sig is not None:
+                print("timed out waiting for '%s' process to exit, trying "
+                      "without signal {}".format(
+                          self.app_ctx.remote_process, sig))
+
+            # need to call adb stop otherwise the system will attempt to
+            # restart the process
+            remote_pid = self.is_running() or remote_pid
+            self.app_ctx.stop_application()
+            if not _wait_for_shutdown(remote_pid):
+                print("timed out waiting for '%s' process to exit".format(
+                    self.app_ctx.remote_process))
 
     def is_running(self):
         return self.app_ctx.dm.processExist(self.app_ctx.remote_process)

@@ -9,13 +9,16 @@ assertEq(desc.writable, true);
 
 assertEq(typeof Set, 'function');
 assertEq(Object.keys(Set).length, 0);
-assertEq(Set.length, 1);
+assertEq(Set.length, 0);
 assertEq(Set.name, "Set");
 
 assertEq(Object.getPrototypeOf(Set.prototype), Object.prototype);
-assertEq(Object.prototype.toString.call(Set.prototype), "[object Set]");
-assertEq(Object.prototype.toString.call(new Set), "[object Set]");
-assertEq(Object.prototype.toString.call(Set()), "[object Set]");
+assertEq("toStringTag" in Symbol, false,
+         "if this fails, congratulations!  implement " +
+         "Set.prototype[Symbol.toStringTag] = 'Set' in SpiderMonkey and make " +
+         "the next test check for '[object Set]' again");
+assertEq(Object.prototype.toString.call(Set.prototype), "[object Object]");
+assertEq(Object.prototype.toString.call(new Set()), "[object Set]");
 assertEq(Object.keys(Set.prototype).join(), "");
 assertEq(Set.prototype.constructor, Set);
 
@@ -45,4 +48,4 @@ checkMethod("clear", 0);
 
 // Set.prototype.keys, .values, and .iterator are the same function object
 assertEq(Set.prototype.keys, Set.prototype.values);
-assertEq(Set.prototype[std_iterator], Set.prototype.values);
+assertEq(Set.prototype[Symbol.iterator], Set.prototype.values);

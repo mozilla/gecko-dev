@@ -1,4 +1,4 @@
-const Cm = Components.manager;
+var Cm = Components.manager;
 
 // Shared logging for all HTTP server functions.
 Cu.import("resource://gre/modules/Log.jsm");
@@ -309,7 +309,8 @@ ServerCollection.prototype = {
 
     // This will count records where we have an existing ServerWBO
     // registered with us as successful and all other records as failed.
-    for each (let record in input) {
+    for (let key in input) {
+      let record = input[key];
       let wbo = this.wbo(record.id);
       if (!wbo && this.acceptNew) {
         this._log.debug("Creating WBO " + JSON.stringify(record.id) +
@@ -354,7 +355,7 @@ ServerCollection.prototype = {
 
       // Parse queryString
       let options = {};
-      for each (let chunk in request.queryString.split("&")) {
+      for (let chunk of request.queryString.split("&")) {
         if (!chunk) {
           continue;
         }
@@ -505,7 +506,7 @@ function track_collections_helper() {
  * find out what it needs without monkeypatching. Use this object as your
  * prototype, and override as appropriate.
  */
-let SyncServerCallback = {
+var SyncServerCallback = {
   onCollectionDeleted: function onCollectionDeleted(user, collection) {},
   onItemDeleted: function onItemDeleted(user, collection, wboID) {},
 
@@ -514,8 +515,11 @@ let SyncServerCallback = {
    *
    * Allows the test to inspect the request. Hooks should be careful not to
    * modify or change state of the request or they may impact future processing.
+   * The response is also passed so the callback can set headers etc - but care
+   * must be taken to not screw with the response body or headers that may
+   * conflict with normal operation of this server.
    */
-  onRequest: function onRequest(request) {},
+  onRequest: function onRequest(request, response) {},
 };
 
 /**
@@ -542,13 +546,13 @@ SyncServer.prototype = {
    * Start the SyncServer's underlying HTTP server.
    *
    * @param port
-   *        The numeric port on which to start. A falsy value implies the
-   *        default, a randomly chosen port.
+   *        The numeric port on which to start. -1 implies the default, a
+   *        randomly chosen port.
    * @param cb
    *        A callback function (of no arguments) which is invoked after
    *        startup.
    */
-  start: function start(port, cb) {
+  start: function start(port = -1, cb) {
     if (this.started) {
       this._log.warn("Warning: server already started on " + this.port);
       return;
@@ -701,7 +705,8 @@ SyncServer.prototype = {
       throw new Error("Unknown user.");
     }
     let userCollections = this.users[username].collections;
-    for each (let [name, coll] in Iterator(userCollections)) {
+    for (let name in userCollections) {
+      let coll = userCollections[name];
       this._log.trace("Bulk deleting " + name + " for " + username + "...");
       coll.delete({});
     }
@@ -765,7 +770,10 @@ SyncServer.prototype = {
    */
   respond: function respond(req, resp, code, status, body, headers) {
     resp.setStatusLine(req.httpVersion, code, status);
-    for each (let [header, value] in Iterator(headers || this.defaultHeaders)) {
+    if (!headers)
+      headers = this.defaultHeaders;
+    for (let header in headers) {
+      let value = headers[header];
       resp.setHeader(header, value);
     }
     resp.setHeader("X-Weave-Timestamp", "" + this.timestamp(), false);
@@ -796,7 +804,7 @@ SyncServer.prototype = {
     this._log.debug("SyncServer: Handling request: " + req.method + " " + req.path);
 
     if (this.callback.onRequest) {
-      this.callback.onRequest(req);
+      this.callback.onRequest(req, resp);
     }
 
     let parts = this.pathRE.exec(req.path);

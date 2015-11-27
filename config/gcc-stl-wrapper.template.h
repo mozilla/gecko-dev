@@ -10,17 +10,12 @@
 
 // For some reason, Apple's GCC refuses to honor -fno-exceptions when
 // compiling ObjC.
-#if __EXCEPTIONS && !(__OBJC__ && __GNUC__ && XP_IOS)
+#if defined(__EXCEPTIONS) && __EXCEPTIONS && !(__OBJC__ && __GNUC__ && XP_IOS)
 #  error "STL code can only be used with -fno-exceptions"
 #endif
 
 // Silence "warning: #include_next is a GCC extension"
 #pragma GCC system_header
-
-#ifdef _WIN32
-// Suppress windef.h min and max macros - they make std::min/max not compile.
-#define NOMINMAX 1
-#endif
 
 // mozalloc.h wants <new>; break the cycle by always explicitly
 // including <new> here.  NB: this is a tad sneaky.  Sez the gcc docs:

@@ -19,7 +19,6 @@
 #include "ScopedGLHelpers.h"
 
 #include "gfxPlatform.h"
-#include "gfx2DGlue.h"
 #include "gfxPrefs.h"
 
 #define DEBUG_GRALLOC
@@ -35,18 +34,12 @@ namespace gl {
 using namespace mozilla::layers;
 using namespace android;
 
-SurfaceFactory_Gralloc::SurfaceFactory_Gralloc(GLContext* prodGL,
-                                               const SurfaceCaps& caps,
-                                               layers::ISurfaceAllocator* allocator)
-    : SurfaceFactory(prodGL, SharedSurfaceType::Gralloc, caps)
+SurfaceFactory_Gralloc::SurfaceFactory_Gralloc(GLContext* prodGL, const SurfaceCaps& caps,
+                                               const RefPtr<layers::ISurfaceAllocator>& allocator,
+                                               const layers::TextureFlags& flags)
+    : SurfaceFactory(SharedSurfaceType::Gralloc, prodGL, caps, allocator, flags)
 {
-    if (caps.surfaceAllocator) {
-        allocator = caps.surfaceAllocator;
-    }
-
-    MOZ_ASSERT(allocator);
-
-    mAllocator = allocator;
+    MOZ_ASSERT(mAllocator);
 }
 
 /*static*/ UniquePtr<SharedSurface_Gralloc>
@@ -54,6 +47,7 @@ SharedSurface_Gralloc::Create(GLContext* prodGL,
                               const GLFormats& formats,
                               const gfx::IntSize& size,
                               bool hasAlpha,
+                              layers::TextureFlags flags,
                               ISurfaceAllocator* allocator)
 {
     GLLibraryEGL* egl = &sEGLLibrary;
@@ -69,18 +63,14 @@ SharedSurface_Gralloc::Create(GLContext* prodGL,
     gfxContentType type = hasAlpha ? gfxContentType::COLOR_ALPHA
                                    : gfxContentType::COLOR;
 
-    gfxImageFormat format
-      = gfxPlatform::GetPlatform()->OptimalFormatForContent(type);
-
-    RefPtr<GrallocTextureClientOGL> grallocTC =
-      new GrallocTextureClientOGL(
-          allocator,
-          gfx::ImageFormatToSurfaceFormat(format),
-          gfx::BackendType::NONE, // we don't need to use it with a DrawTarget
-          layers::TextureFlags::DEFAULT);
+    typedef GrallocTextureClientOGL ptrT;
+    RefPtr<ptrT> grallocTC = new ptrT(allocator,
+                                      gfxPlatform::GetPlatform()->Optimal2DFormatForContent(type),
+                                      gfx::BackendType::NONE, // we don't need to use it with a DrawTarget
+                                      flags);
 
     if (!grallocTC->AllocateForGLRendering(size)) {
-      return Move(ret);
+        return Move(ret);
     }
 
     sp<GraphicBuffer> buffer = grallocTC->GetGraphicBuffer();
@@ -135,7 +125,8 @@ SharedSurface_Gralloc::SharedSurface_Gralloc(GLContext* prodGL,
                     AttachmentType::GLTexture,
                     prodGL,
                     size,
-                    hasAlpha)
+                    hasAlpha,
+                    true)
     , mEGL(egl)
     , mSync(0)
     , mAllocator(allocator)
@@ -197,9 +188,7 @@ SharedSurface_Gralloc::Fence()
             int fenceFd = mEGL->fDupNativeFenceFDANDROID(mEGL->Display(), sync);
             if (fenceFd != -1) {
                 mEGL->fDestroySync(mEGL->Display(), sync);
-                android::sp<android::Fence> fence(new android::Fence(fenceFd));
-                FenceHandle handle = FenceHandle(fence);
-                mTextureClient->SetAcquireFenceHandle(handle);
+                mTextureClient->SetAcquireFenceHandle(FenceHandle(new FenceHandle::FdObj(fenceFd)));
             } else {
                 mSync = sync;
             }
@@ -287,5 +276,65 @@ SharedSurface_Gralloc::WaitForBufferOwnership()
     mTextureClient->WaitForBufferOwnership();
 }
 
+bool
+SharedSurface_Gralloc::ToSurfaceDescriptor(layers::SurfaceDescriptor* const out_descriptor)
+{
+    mTextureClient->MarkShared();
+    return mTextureClient->ToSurfaceDescriptor(*out_descriptor);
 }
+
+bool
+SharedSurface_Gralloc::ReadbackBySharedHandle(gfx::DataSourceSurface* out_surface)
+{
+    MOZ_ASSERT(out_surface);
+    sp<GraphicBuffer> buffer = mTextureClient->GetGraphicBuffer();
+
+    const uint8_t* grallocData = nullptr;
+    auto result = buffer->lock(
+        GRALLOC_USAGE_SW_READ_OFTEN | GRALLOC_USAGE_SW_WRITE_NEVER,
+        const_cast<void**>(reinterpret_cast<const void**>(&grallocData))
+    );
+
+    if (result == BAD_VALUE) {
+        return false;
+    }
+
+    gfx::DataSourceSurface::ScopedMap map(out_surface, gfx::DataSourceSurface::WRITE);
+    if (!map.IsMapped()) {
+        buffer->unlock();
+        return false;
+    }
+
+    uint32_t stride = buffer->getStride() * android::bytesPerPixel(buffer->getPixelFormat());
+    uint32_t height = buffer->getHeight();
+    uint32_t width = buffer->getWidth();
+    for (uint32_t i = 0; i < height; i++) {
+        memcpy(map.GetData() + i * map.GetStride(),
+               grallocData + i * stride, width * 4);
+    }
+
+    buffer->unlock();
+
+    android::PixelFormat srcFormat = buffer->getPixelFormat();
+    MOZ_ASSERT(srcFormat == PIXEL_FORMAT_RGBA_8888 ||
+               srcFormat == PIXEL_FORMAT_BGRA_8888 ||
+               srcFormat == PIXEL_FORMAT_RGBX_8888);
+    bool isSrcRGB = srcFormat == PIXEL_FORMAT_RGBA_8888 ||
+                    srcFormat == PIXEL_FORMAT_RGBX_8888;
+
+    gfx::SurfaceFormat destFormat = out_surface->GetFormat();
+    MOZ_ASSERT(destFormat == gfx::SurfaceFormat::R8G8B8X8 ||
+               destFormat == gfx::SurfaceFormat::R8G8B8A8 ||
+               destFormat == gfx::SurfaceFormat::B8G8R8X8 ||
+               destFormat == gfx::SurfaceFormat::B8G8R8A8);
+    bool isDestRGB = destFormat == gfx::SurfaceFormat::R8G8B8X8 ||
+                     destFormat == gfx::SurfaceFormat::R8G8B8A8;
+
+    if (isSrcRGB != isDestRGB) {
+        SwapRAndBComponents(out_surface);
+    }
+    return true;
 }
+
+} // namespace gl
+} // namespace mozilla

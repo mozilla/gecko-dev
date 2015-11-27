@@ -41,7 +41,7 @@ public:
   nsresult Init();
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(DeleteTextTxn, EditTxn)
-  NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr);
+  NS_IMETHOD QueryInterface(REFNSIID aIID, void** aInstancePtr) override;
 
   NS_DECL_EDITTXN
 
@@ -55,7 +55,7 @@ protected:
   nsEditor& mEditor;
 
   /** the CharacterData node to operate upon */
-  nsRefPtr<nsGenericDOMDataNode> mCharData;
+  RefPtr<nsGenericDOMDataNode> mCharData;
 
   /** the offset into mCharData where the deletion is to take place */
   uint32_t mOffset;
@@ -70,7 +70,7 @@ protected:
   nsRangeUpdater* mRangeUpdater;
 };
 
-}
-}
+} // namespace dom
+} // namespace mozilla
 
 #endif

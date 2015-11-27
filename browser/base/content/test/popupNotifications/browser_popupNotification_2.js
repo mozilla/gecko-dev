@@ -12,7 +12,7 @@ function test() {
   goNext();
 }
 
-let tests = [
+var tests = [
   // Test optional params
   { id: "Test#1",
     run: function () {
@@ -226,7 +226,6 @@ let tests = [
       window.locationbar.visible = false;
       this.notifyObj = new BasicNotification(this.id);
       this.notification = showNotification(this.notifyObj);
-      window.locationbar.visible = true;
     },
     onShown: function (popup) {
       checkPopup(popup, this.notifyObj);
@@ -237,6 +236,7 @@ let tests = [
       ok(this.notifyObj.dismissalCallbackTriggered, "dismissal callback triggered");
       this.notification.remove();
       ok(this.notifyObj.removedCallbackTriggered, "removed callback triggered");
+      window.locationbar.visible = true;
     }
   }
 ];

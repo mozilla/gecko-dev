@@ -2,9 +2,10 @@
 == pref-width-1a.html pref-width-1-ref.html
 == pref-width-1b.html pref-width-1-ref.html
 == pref-width-1c.html pref-width-1-ref.html
-== min-width-1a.html min-width-1-ref.html
+== min-width-1a.html pref-width-1-ref.html
 == min-width-1b.html min-width-1-ref.html
 == min-width-1c.html min-width-1-ref.html
+== min-width-2.html min-width-2-ref.html
 == column-balancing-overflow-000.html column-balancing-overflow-000.ref.html
 == column-balancing-overflow-001.html column-balancing-overflow-000.ref.html
 == column-balancing-overflow-002.html column-balancing-overflow-002.ref.html
@@ -21,13 +22,15 @@ HTTP(..) == columnfill-balance.html columnfill-balance-ref.html
 HTTP(..) == columnfill-auto.html columnfill-auto-ref.html
 HTTP(..) == columnfill-auto-2.html columnfill-auto-2-ref.html
 HTTP(..) == columnfill-auto-3.html columnfill-auto-2-ref.html
-skip-if(B2G) == columnrule-basic.html columnrule-basic-ref.html # bug 773482
-skip-if(B2G) == columnrule-complex.html columnrule-complex-ref.html # bug 773482
+skip-if(B2G||Mulet) == columnrule-basic.html columnrule-basic-ref.html # bug 773482 # Initial mulet triage: parity with B2G/B2G Desktop
+skip-if(B2G||Mulet) == columnrule-complex.html columnrule-complex-ref.html # bug 773482 # Initial mulet triage: parity with B2G/B2G Desktop
 != columnrule-linestyles.html columnrule-linestyles-notref.html
 == columnrule-padding.html columnrule-padding-ref.html
-skip-if(B2G) == columnfill-overflow.html columnfill-overflow-ref.html # bug 773482
+skip-if(B2G||Mulet) == columnfill-overflow.html columnfill-overflow-ref.html # bug 773482 # Initial mulet triage: parity with B2G/B2G Desktop
 == margin-collapsing-bug616722-1.html margin-collapsing-bug616722-1-ref.html
 == margin-collapsing-bug616722-2.html margin-collapsing-bug616722-2-ref.html
 == column-balancing-nested-000.html column-balancing-nested-000-ref.html
 == column-balancing-nested-001.html column-balancing-nested-001-ref.html
 == columnrule-overflow.html columnrule-overflow-ref.html
+== columns-table-caption-000.html columns-table-caption-000-ref.html
+== positioning-transforms-bug1112501.html positioning-transforms-bug1112501-ref.html

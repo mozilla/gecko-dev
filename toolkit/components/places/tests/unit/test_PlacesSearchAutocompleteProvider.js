@@ -5,6 +5,11 @@
 Cu.import("resource://gre/modules/PlacesSearchAutocompleteProvider.jsm");
 
 function run_test() {
+  // Tell the search service we are running in the US.  This also has the
+  // desired side-effect of preventing our geoip lookup.
+  Services.prefs.setBoolPref("browser.search.isUS", true);
+  Services.prefs.setCharPref("browser.search.countryCode", "US");
+  Services.prefs.setBoolPref("browser.search.geoSpecificDefaults", false);
   run_next_test();
 }
 
@@ -34,12 +39,21 @@ add_task(function* hide_search_engine_nomatch() {
 add_task(function* add_search_engine_match() {
   let promiseTopic = promiseSearchTopic("engine-added");
   do_check_eq(null, yield PlacesSearchAutocompleteProvider.findMatchByToken("bacon"));
-  Services.search.addEngineWithDetails("bacon", "", "bacon", "Search Bacon",
+  Services.search.addEngineWithDetails("bacon", "", "pork", "Search Bacon",
                                        "GET", "http://www.bacon.moz/?search={searchTerms}");
   yield promiseSearchTopic;
   let match = yield PlacesSearchAutocompleteProvider.findMatchByToken("bacon");
   do_check_eq(match.url, "http://www.bacon.moz");
   do_check_eq(match.engineName, "bacon");
+  do_check_eq(match.iconUrl, null);
+});
+
+add_task(function* test_aliased_search_engine_match() {
+  do_check_eq(null, yield PlacesSearchAutocompleteProvider.findMatchByAlias("sober"));
+
+  let match = yield PlacesSearchAutocompleteProvider.findMatchByAlias("pork");
+  do_check_eq(match.engineName, "bacon");
+  do_check_eq(match.alias, "pork");
   do_check_eq(match.iconUrl, null);
 });
 
@@ -76,7 +90,7 @@ function promiseDefaultSearchEngine() {
 function promiseSearchTopic(expectedVerb) {
   let deferred = Promise.defer();
   Services.obs.addObserver( function observe(subject, topic, verb) {
-    do_log_info("browser-search-engine-modified: " + verb);
+    do_print("browser-search-engine-modified: " + verb);
     if (verb == expectedVerb) {
       Services.obs.removeObserver(observe, "browser-search-engine-modified");
       deferred.resolve();

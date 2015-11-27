@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* vim:set ts=4 sw=4 sts=4 ci et: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -16,8 +16,9 @@
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsDirectoryServiceUtils.h"
 #include "nsPrintfCString.h"
-#include "nsStackWalk.h"
+#include "mozilla/StackWalk.h"
 #include "plstr.h"
+#include "prio.h"
 
 #ifdef XP_WIN
 #define NS_T(str) L ## str
@@ -79,7 +80,7 @@ private:
 };
 
 static void
-RecordStackWalker(void* aPC, void* aSP, void* aClosure)
+RecordStackWalker(uint32_t aFrameNumber, void* aPC, void* aSP, void* aClosure)
 {
   std::vector<uintptr_t>* stack =
     static_cast<std::vector<uintptr_t>*>(aClosure);
@@ -92,7 +93,7 @@ RecordStackWalker(void* aPC, void* aSP, void* aClosure)
  * An implementation of IOInterposeObserver to be registered with IOInterposer.
  * This observer logs all writes as late writes.
  */
-class LateWriteObserver MOZ_FINAL : public IOInterposeObserver
+class LateWriteObserver final : public IOInterposeObserver
 {
 public:
   explicit LateWriteObserver(const char* aProfileDirectory)
@@ -120,7 +121,7 @@ LateWriteObserver::Observe(IOInterposeObserver::Observation& aOb)
   }
 
   // If we have shutdown mode SCM_NOTHING or we can't record then abort
-  if (gShutdownChecks == SCM_NOTHING || !Telemetry::CanRecord()) {
+  if (gShutdownChecks == SCM_NOTHING || !Telemetry::CanRecordExtended()) {
     return;
   }
 
@@ -128,7 +129,7 @@ LateWriteObserver::Observe(IOInterposeObserver::Observation& aOb)
   // concurrently from many writes, so we use multiple temporary files.
   std::vector<uintptr_t> rawStack;
 
-  NS_StackWalk(RecordStackWalker, /* skipFrames */ 0, /* maxFrames */ 0,
+  MozStackWalk(RecordStackWalker, /* skipFrames */ 0, /* maxFrames */ 0,
                reinterpret_cast<void*>(&rawStack), 0, nullptr);
   Telemetry::ProcessedStack stack = Telemetry::GetStackAndModules(rawStack);
 

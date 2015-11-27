@@ -53,6 +53,26 @@
 #include <errno.h>
 #include <stdarg.h>
 
+#ifdef _MSC_VER
+#include <windows.h> /* ensure DEFINE_ENUM_FLAG_OPERATORS is defined */
+#endif
+
+/* Compile-time custom allocator support. */
+
+#if defined(hb_malloc_impl) \
+ && defined(hb_calloc_impl) \
+ && defined(hb_realloc_impl) \
+ && defined(hb_free_impl)
+extern "C" void* hb_malloc_impl(size_t size);
+extern "C" void* hb_calloc_impl(size_t nmemb, size_t size);
+extern "C" void* hb_realloc_impl(void *ptr, size_t size);
+extern "C" void  hb_free_impl(void *ptr);
+#define malloc hb_malloc_impl
+#define calloc hb_calloc_impl
+#define realloc hb_realloc_impl
+#define free hb_free_impl
+#endif
+
 
 /* Compiler attributes */
 
@@ -94,26 +114,42 @@
 # endif
 #endif
 
-#if (defined(__WIN32__) && !defined(__WINE__)) || defined(_MSC_VER)
-#define snprintf _snprintf
-#endif
-
-#ifdef _MSC_VER
-#undef inline
-#define inline __inline
-#endif
-
-#ifdef __STRICT_ANSI__
-#undef inline
-#define inline __inline__
-#endif
-
 #if __GNUC__ >= 3
 #define HB_FUNC __PRETTY_FUNCTION__
 #elif defined(_MSC_VER)
 #define HB_FUNC __FUNCSIG__
 #else
 #define HB_FUNC __func__
+#endif
+
+/*
+ * Borrowed from https://bugzilla.mozilla.org/show_bug.cgi?id=1215411
+ * HB_FALLTHROUGH is an annotation to suppress compiler warnings about switch
+ * cases that fall through without a break or return statement. HB_FALLTHROUGH
+ * is only needed on cases that have code:
+ *
+ * switch (foo) {
+ *   case 1: // These cases have no code. No fallthrough annotations are needed.
+ *   case 2:
+ *   case 3:
+ *     foo = 4; // This case has code, so a fallthrough annotation is needed:
+ *     HB_FALLTHROUGH;
+ *   default:
+ *     return foo;
+ * }
+ */
+#if defined(__clang__) && __cplusplus >= 201103L
+   /* clang's fallthrough annotations are only available starting in C++11. */
+#  define HB_FALLTHROUGH [[clang::fallthrough]]
+#elif defined(_MSC_VER)
+   /*
+    * MSVC's __fallthrough annotations are checked by /analyze (Code Analysis):
+    * https://msdn.microsoft.com/en-us/library/ms235402%28VS.80%29.aspx
+    */
+#  include <sal.h>
+#  define HB_FALLTHROUGH __fallthrough
+#else
+#  define HB_FALLTHROUGH /* FALLTHROUGH */
 #endif
 
 #if defined(_WIN32) || defined(__CYGWIN__)
@@ -126,10 +162,54 @@
 #  ifndef _WIN32_WINNT
 #    define _WIN32_WINNT 0x0600
 #  endif
-#  define WIN32_LEAN_AND_MEAN
-#  define STRICT
+#  ifndef WIN32_LEAN_AND_MEAN
+#    define WIN32_LEAN_AND_MEAN 1
+#  endif
+#  ifndef STRICT
+#    define STRICT 1
+#  endif
+
+#  if defined(_WIN32_WCE)
+     /* Some things not defined on Windows CE. */
+#    define strdup _strdup
+#    define getenv(Name) NULL
+#    if _WIN32_WCE < 0x800
+#      define setlocale(Category, Locale) "C"
+static int errno = 0; /* Use something better? */
+#    endif
+#  elif defined(WINAPI_FAMILY) && (WINAPI_FAMILY==WINAPI_FAMILY_PC_APP || WINAPI_FAMILY==WINAPI_FAMILY_PHONE_APP)
+#    define getenv(Name) NULL
+#  endif
+#  if defined(_MSC_VER) && _MSC_VER < 1900
+#    define snprintf _snprintf
+#  endif
 #endif
 
+#if HAVE_ATEXIT
+/* atexit() is only safe to be called from shared libraries on certain
+ * platforms.  Whitelist.
+ * https://bugs.freedesktop.org/show_bug.cgi?id=82246 */
+#  if defined(__linux) && defined(__GLIBC_PREREQ)
+#    if __GLIBC_PREREQ(2,3)
+/* From atexit() manpage, it's safe with glibc 2.2.3 on Linux. */
+#      define HB_USE_ATEXIT 1
+#    endif
+#  elif defined(_MSC_VER) || defined(__MINGW32__)
+/* For MSVC:
+ * http://msdn.microsoft.com/en-ca/library/tze57ck3.aspx
+ * http://msdn.microsoft.com/en-ca/library/zk17ww08.aspx
+ * mingw32 headers say atexit is safe to use in shared libraries.
+ */
+#    define HB_USE_ATEXIT 1
+#  elif defined(__ANDROID__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6))
+/* This was fixed in Android NKD r8 or r8b:
+ * https://code.google.com/p/android/issues/detail?id=6455
+ * which introduced GCC 4.6:
+ * https://developer.android.com/tools/sdk/ndk/index.html
+ */
+#    define HB_USE_ATEXIT 1
+#  endif
+#endif
 
 /* Basics */
 
@@ -163,8 +243,9 @@ static inline unsigned int ARRAY_LENGTH (const Type (&)[n]) { return n; }
 #define _ASSERT_STATIC0(_line, _cond)	_ASSERT_STATIC1 (_line, (_cond))
 #define ASSERT_STATIC(_cond)		_ASSERT_STATIC0 (__LINE__, (_cond))
 
-#define ASSERT_STATIC_EXPR(_cond)((void) sizeof (char[(_cond) ? 1 : -1]))
-#define ASSERT_STATIC_EXPR_ZERO(_cond) (0 * sizeof (char[(_cond) ? 1 : -1]))
+template <unsigned int cond> class hb_assert_constant_t {};
+
+#define ASSERT_STATIC_EXPR_ZERO(_cond) (0 * (unsigned int) sizeof (hb_assert_constant_t<_cond>))
 
 #define _PASTE1(a,b) a##b
 #define PASTE(a,b) _PASTE1(a,b)
@@ -217,8 +298,8 @@ ASSERT_STATIC (sizeof (hb_var_int_t) == 4);
 
 /* Void! */
 struct _hb_void_t {};
-typedef const _hb_void_t &hb_void_t;
-#define HB_VOID (* (const _hb_void_t *) NULL)
+typedef const _hb_void_t *hb_void_t;
+#define HB_VOID ((const _hb_void_t *) NULL)
 
 /* Return the number of 1 bits in mask. */
 static inline HB_CONST_FUNC unsigned int
@@ -500,47 +581,6 @@ struct hb_lockable_set_t
 };
 
 
-
-
-/* Big-endian handling */
-
-static inline uint16_t hb_be_uint16 (const uint16_t v)
-{
-  const uint8_t *V = (const uint8_t *) &v;
-  return (V[0] << 8) | V[1];
-}
-
-static inline uint16_t hb_uint16_swap (const uint16_t v)
-{
-  return (v >> 8) | (v << 8);
-}
-
-static inline uint32_t hb_uint32_swap (const uint32_t v)
-{
-  return (hb_uint16_swap (v) << 16) | hb_uint16_swap (v >> 16);
-}
-
-/* Note, of the following macros, uint16_get is the one called many many times.
- * If there is any optimizations to be done, it's in that macro.  However, I
- * already confirmed that on my T400 ThinkPad at least, using bswap_16(), which
- * results in a single ror instruction, does NOT speed this up.  In fact, it
- * resulted in a minor slowdown.  At any rate, note that v may not be correctly
- * aligned, so I think the current implementation is optimal.
- */
-
-#define hb_be_uint16_put(v,V)	HB_STMT_START { v[0] = (V>>8); v[1] = (V); } HB_STMT_END
-#define hb_be_uint16_get(v)	(uint16_t) ((v[0] << 8) + v[1])
-#define hb_be_uint16_eq(a,b)	(a[0] == b[0] && a[1] == b[1])
-
-#define hb_be_uint32_put(v,V)	HB_STMT_START { v[0] = (V>>24); v[1] = (V>>16); v[2] = (V>>8); v[3] = (V); } HB_STMT_END
-#define hb_be_uint32_get(v)	(uint32_t) ((v[0] << 24) + (v[1] << 16) + (v[2] << 8) + v[3])
-#define hb_be_uint32_eq(a,b)	(a[0] == b[0] && a[1] == b[1] && a[2] == b[2] && a[3] == b[3])
-
-#define hb_be_uint24_put(v,V)	HB_STMT_START { v[0] = (V>>16); v[1] = (V>>8); v[2] = (V); } HB_STMT_END
-#define hb_be_uint24_get(v)	(uint32_t) ((v[0] << 16) + (v[1] << 8) + v[2])
-#define hb_be_uint24_eq(a,b)	(a[0] == b[0] && a[1] == b[1] && a[2] == b[2])
-
-
 /* ASCII tag/character handling */
 
 static inline bool ISALPHA (unsigned char c)
@@ -585,6 +625,39 @@ _hb_debug (unsigned int level,
 #define DEBUG_LEVEL_ENABLED(WHAT, LEVEL) (_hb_debug ((LEVEL), HB_DEBUG_##WHAT))
 #define DEBUG_ENABLED(WHAT) (DEBUG_LEVEL_ENABLED (WHAT, 0))
 
+static inline void
+_hb_print_func (const char *func)
+{
+  if (func)
+  {
+    unsigned int func_len = strlen (func);
+    /* Skip "static" */
+    if (0 == strncmp (func, "static ", 7))
+      func += 7;
+    /* Skip "typename" */
+    if (0 == strncmp (func, "typename ", 9))
+      func += 9;
+    /* Skip return type */
+    const char *space = strchr (func, ' ');
+    if (space)
+      func = space + 1;
+    /* Skip parameter list */
+    const char *paren = strchr (func, '(');
+    if (paren)
+      func_len = paren - func;
+    fprintf (stderr, "%.*s", func_len, func);
+  }
+}
+
+template <int max_level> static inline void
+_hb_debug_msg_va (const char *what,
+		  const void *obj,
+		  const char *func,
+		  bool indented,
+		  unsigned int level,
+		  int level_dir,
+		  const char *message,
+		  va_list ap) HB_PRINTF_FUNC(7, 0);
 template <int max_level> static inline void
 _hb_debug_msg_va (const char *what,
 		  const void *obj,
@@ -621,27 +694,13 @@ _hb_debug_msg_va (const char *what,
   } else
     fprintf (stderr, "   " VRBAR LBAR);
 
-  if (func)
-  {
-    unsigned int func_len = strlen (func);
-#ifndef HB_DEBUG_VERBOSE
-    /* Skip "typename" */
-    if (0 == strncmp (func, "typename ", 9))
-      func += 9;
-    /* Skip return type */
-    const char *space = strchr (func, ' ');
-    if (space)
-      func = space + 1;
-    /* Skip parameter list */
-    const char *paren = strchr (func, '(');
-    if (paren)
-      func_len = paren - func;
-#endif
-    fprintf (stderr, "%.*s: ", func_len, func);
-  }
+  _hb_print_func (func);
 
   if (message)
+  {
+    fprintf (stderr, ": ");
     vfprintf (stderr, message, ap);
+  }
 
   fprintf (stderr, "\n");
 }
@@ -708,7 +767,9 @@ _hb_debug_msg<0> (const char *what HB_UNUSED,
  */
 
 template <typename T>
-struct hb_printer_t {};
+struct hb_printer_t {
+  const char *print (const T&) { return "something"; }
+};
 
 template <>
 struct hb_printer_t<bool> {
@@ -729,7 +790,7 @@ template <typename T>
 static inline void _hb_warn_no_return (bool returned)
 {
   if (unlikely (!returned)) {
-    fprintf (stderr, "OUCH, returned with no call to TRACE_RETURN.  This is a bug, please report.\n");
+    fprintf (stderr, "OUCH, returned with no call to return_trace().  This is a bug, please report.\n");
   }
 }
 template <>
@@ -764,7 +825,7 @@ struct hb_auto_trace_t {
   inline ret_t ret (ret_t v, unsigned int line = 0)
   {
     if (unlikely (returned)) {
-      fprintf (stderr, "OUCH, double calls to TRACE_RETURN.  This is a bug, please report.\n");
+      fprintf (stderr, "OUCH, double calls to return_trace().  This is a bug, please report.\n");
       return v;
     }
 
@@ -795,7 +856,7 @@ struct hb_auto_trace_t<0, ret_t> {
   inline ret_t ret (ret_t v, unsigned int line HB_UNUSED = 0) { return v; }
 };
 
-#define TRACE_RETURN(RET) trace.ret (RET, __LINE__)
+#define return_trace(RET) return trace.ret (RET, __LINE__)
 
 /* Misc */
 
@@ -811,11 +872,13 @@ hb_in_range (T u, T lo, T hi)
   /* The sizeof() is here to force template instantiation.
    * I'm sure there are better ways to do this but can't think of
    * one right now.  Declaring a variable won't work as HB_UNUSED
-   * is unsable on some platforms and unused types are less likely
+   * is unusable on some platforms and unused types are less likely
    * to generate a warning than unused variables. */
   ASSERT_STATIC (sizeof (hb_assert_unsigned_t<T>) >= 0);
 
-  return (u - lo) <= (hi - lo);
+  /* The casts below are important as if T is smaller than int,
+   * the subtract results will become a signed int! */
+  return (T)(u - lo) <= (T)(hi - lo);
 }
 
 template <typename T> static inline bool
@@ -831,51 +894,73 @@ hb_in_ranges (T u, T lo1, T hi1, T lo2, T hi2, T lo3, T hi3)
 }
 
 
+/* Enable bitwise ops on enums marked as flags_t */
+/* To my surprise, looks like the function resolver is happy to silently cast
+ * one enum to another...  So this doesn't provide the type-checking that I
+ * originally had in mind... :(.
+ *
+ * On MSVC use DEFINE_ENUM_FLAG_OPERATORS.  See:
+ * https://github.com/behdad/harfbuzz/pull/163
+ */
+#ifdef _MSC_VER
+# pragma warning(disable:4200)
+# pragma warning(disable:4800)
+# define HB_MARK_AS_FLAG_T(flags_t)	DEFINE_ENUM_FLAG_OPERATORS (##flags_t##);
+#else
+# define HB_MARK_AS_FLAG_T(flags_t)	template <> class hb_mark_as_flags_t<flags_t> {};
+template <class T> class hb_mark_as_flags_t;
+template <class T> static inline T operator | (T l, T r)
+{ hb_mark_as_flags_t<T> unused HB_UNUSED; return T ((unsigned int) l | (unsigned int) r); }
+template <class T> static inline T operator & (T l, T r)
+{ hb_mark_as_flags_t<T> unused HB_UNUSED; return T ((unsigned int) l & (unsigned int) r); }
+template <class T> static inline T operator ~ (T r)
+{ hb_mark_as_flags_t<T> unused HB_UNUSED; return T (~(unsigned int) r); }
+template <class T> static inline T& operator |= (T &l, T r)
+{ hb_mark_as_flags_t<T> unused HB_UNUSED; l = l | r; return l; }
+template <class T> static inline T& operator &= (T& l, T r)
+{ hb_mark_as_flags_t<T> unused HB_UNUSED; l = l & r; return l; }
+#endif
+
+
 /* Useful for set-operations on small enums.
  * For example, for testing "x ∈ {x1, x2, x3}" use:
- * (FLAG(x) & (FLAG(x1) | FLAG(x2) | FLAG(x3)))
+ * (FLAG_SAFE(x) & (FLAG(x1) | FLAG(x2) | FLAG(x3)))
  */
-#define FLAG(x) (1<<(x))
+#define FLAG(x) (ASSERT_STATIC_EXPR_ZERO ((x) < 32) + (1U << (x)))
+#define FLAG_SAFE(x) (1U << (x))
+#define FLAG_UNSAFE(x) ((x) < 32 ? FLAG_SAFE(x) : 0)
 #define FLAG_RANGE(x,y) (ASSERT_STATIC_EXPR_ZERO ((x) < (y)) + FLAG(y+1) - FLAG(x))
 
 
-template <typename T, typename T2> inline void
-hb_bubble_sort (T *array, unsigned int len, int(*compar)(const T *, const T *), T2 *array2)
+template <typename T, typename T2> static inline void
+hb_stable_sort (T *array, unsigned int len, int(*compar)(const T *, const T *), T2 *array2)
 {
-  if (unlikely (!len))
-    return;
-
-  unsigned int k = len - 1;
-  do {
-    unsigned int new_k = 0;
-
-    for (unsigned int j = 0; j < k; j++)
-      if (compar (&array[j], &array[j+1]) > 0)
-      {
-        {
-	  T t;
-	  t = array[j];
-	  array[j] = array[j + 1];
-	  array[j + 1] = t;
-	}
-        if (array2)
-        {
-	  T2 t;
-	  t = array2[j];
-	  array2[j] = array2[j + 1];
-	  array2[j + 1] = t;
-	}
-
-	new_k = j;
-      }
-    k = new_k;
-  } while (k);
+  for (unsigned int i = 1; i < len; i++)
+  {
+    unsigned int j = i;
+    while (j && compar (&array[j - 1], &array[i]) > 0)
+      j--;
+    if (i == j)
+      continue;
+    /* Move item i to occupy place for item j, shift what's in between. */
+    {
+      T t = array[i];
+      memmove (&array[j + 1], &array[j], (i - j) * sizeof (T));
+      array[j] = t;
+    }
+    if (array2)
+    {
+      T2 t = array2[i];
+      memmove (&array2[j + 1], &array2[j], (i - j) * sizeof (T2));
+      array2[j] = t;
+    }
+  }
 }
 
-template <typename T> inline void
-hb_bubble_sort (T *array, unsigned int len, int(*compar)(const T *, const T *))
+template <typename T> static inline void
+hb_stable_sort (T *array, unsigned int len, int(*compar)(const T *, const T *))
 {
-  hb_bubble_sort (array, len, compar, (int *) NULL);
+  hb_stable_sort (array, len, compar, (int *) NULL);
 }
 
 static inline hb_bool_t
@@ -901,12 +986,12 @@ hb_codepoint_parse (const char *s, unsigned int len, int base, hb_codepoint_t *o
 
 struct hb_options_t
 {
-  int initialized : 1;
-  int uniscribe_bug_compatible : 1;
+  unsigned int initialized : 1;
+  unsigned int uniscribe_bug_compatible : 1;
 };
 
 union hb_options_union_t {
-  int i;
+  unsigned int i;
   hb_options_t opts;
 };
 ASSERT_STATIC (sizeof (int) == sizeof (hb_options_union_t));

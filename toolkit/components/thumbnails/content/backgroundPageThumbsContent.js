@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-(function () { // bug 673569 workaround :(
+var { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
-const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
+Cu.importGlobalProperties(['Blob']);
 
-Cu.import("resource://gre/modules/PageThumbs.jsm");
+Cu.import("resource://gre/modules/PageThumbUtils.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
@@ -47,7 +47,7 @@ const backgroundPageThumbsContent = {
     // in the parent (eg, auth) aren't prevented, but alert() etc are.
     // disableDialogs only works on the current inner window, so it has
     // to be called every page load, but before scripts run.
-    if (subj == content.document) {
+    if (content && subj == content.document) {
       content.
         QueryInterface(Ci.nsIInterfaceRequestor).
         getInterface(Ci.nsIDOMWindowUtils).
@@ -99,7 +99,7 @@ const backgroundPageThumbsContent = {
   onStateChange: function (webProgress, req, flags, status) {
     if (webProgress.isTopLevel &&
         (flags & Ci.nsIWebProgressListener.STATE_STOP) &&
-        this._currentCapture) {
+        this._currentCapture && Components.isSuccessCode(status)) {
       if (req.name == "about:blank") {
         if (this._state == STATE_CAPTURING) {
           // about:blank has loaded, ending the current capture.
@@ -127,13 +127,13 @@ const backgroundPageThumbsContent = {
     capture.finalURL = this._webNav.currentURI.spec;
     capture.pageLoadTime = new Date() - capture.pageLoadStartDate;
 
-    let canvas = PageThumbs.createCanvas(content);
     let canvasDrawDate = new Date();
-    PageThumbs._captureToCanvas(content, canvas);
+
+    let finalCanvas = PageThumbUtils.createSnapshotThumbnail(content);
     capture.canvasDrawTime = new Date() - canvasDrawDate;
 
-    canvas.toBlob(blob => {
-      capture.imageBlob = blob;
+    finalCanvas.toBlob(blob => {
+      capture.imageBlob = new Blob([blob]);
       // Load about:blank to finish the capture and wait for onStateChange.
       this._loadAboutBlank();
     });
@@ -182,5 +182,3 @@ const backgroundPageThumbsContent = {
 };
 
 backgroundPageThumbsContent.init();
-
-})();

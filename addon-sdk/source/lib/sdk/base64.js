@@ -29,14 +29,15 @@ function isUTF8(charset) {
 
 exports.decode = function (data, charset) {
   if (isUTF8(charset))
-		return decodeURIComponent(escape(atob(data)))
+    return decodeURIComponent(escape(atob(data)))
 
-	return atob(data);
+  return atob(data);
 }
 
 exports.encode = function (data, charset) {
   if (isUTF8(charset))
     return btoa(unescape(encodeURIComponent(data)))
 
-	return btoa(data);
+  data = String.fromCharCode(...Array.from(data, c => (c.charCodeAt(0) & 0xff)));
+  return btoa(data);
 }

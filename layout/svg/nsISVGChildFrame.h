@@ -9,14 +9,12 @@
 #include "gfxRect.h"
 #include "nsQueryFrame.h"
 
+class gfxContext;
 class gfxMatrix;
 class nsIFrame;
-class nsRenderingContext;
 class SVGBBox;
 
-struct nsPoint;
 struct nsRect;
-struct nsIntRect;
 
 namespace mozilla {
 class SVGAnimatedLengthList;
@@ -27,8 +25,8 @@ class SVGUserUnitList;
 
 namespace gfx {
 class Matrix;
-}
-}
+} // namespace gfx
+} // namespace mozilla
 
 /**
  * This class is not particularly well named. It is inherited by some, but
@@ -75,7 +73,7 @@ public:
    * @param aDirtyRect The area being redrawn, in frame offset pixel
    *   coordinates.
    */
-  virtual nsresult PaintSVG(nsRenderingContext* aContext,
+  virtual nsresult PaintSVG(gfxContext& aContext,
                             const gfxMatrix& aTransform,
                             const nsIntRect* aDirtyRect = nullptr) = 0;
 

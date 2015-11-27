@@ -13,7 +13,7 @@ dtdTests = ["attrgetownerelement01", "documentimportnode03",
             "getNamedItemNS03", "getNamedItemNS04", "hasAttribute02",
             "hasAttributeNS04", "importNode07", "importNode09",
             "importNode10", "importNode11", "importNode12", "importNode13",
-            "internalSubset01", "localName02", "namednodemapgetnameditemns01",
+            "localName02", "namednodemapgetnameditemns01",
             "namednodemapremovenameditemns02",
             "namednodemapremovenameditemns05", "namednodemapsetnameditemns05",
             "namednodemapsetnameditemns09", "namednodemapsetnameditemns10",
@@ -27,7 +27,7 @@ bug371552 = ["elementhasattributens02"];
 wrongDocError = ["elementsetattributenodens05", "namednodemapsetnameditemns03",
                  "setAttributeNodeNS05", "setNamedItemNS02"];
 attrExodus = ["elementsetattributenodens06", "importNode01",
-              "hc_namednodemapinvalidtype1"];
+              "hc_namednodemapinvalidtype1", "nodehasattributes02"];
 bogusPrefix = ["nodesetprefix05", "nodesetprefix09", "prefix06", "prefix07"];
 prefixReplacement = ["setAttributeNodeNS04"];
 

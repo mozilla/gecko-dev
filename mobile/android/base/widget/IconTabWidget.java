@@ -38,7 +38,7 @@ public class IconTabWidget extends TabWidget {
         }
     }
 
-    public void addTab(int imageResId, int stringResId) {
+    public View addTab(final int imageResId, final int stringResId) {
         View button = LayoutInflater.from(getContext()).inflate(mButtonLayoutId, this, false);
         if (mIsIcon) {
             ((ImageButton) button).setImageResource(imageResId);
@@ -50,6 +50,7 @@ public class IconTabWidget extends TabWidget {
         addView(button);
         button.setOnClickListener(new TabClickListener(getTabCount() - 1));
         button.setOnFocusChangeListener(this);
+        return button;
     }
 
     public void setTabSelectionListener(OnTabChangedListener listener) {
@@ -83,7 +84,7 @@ public class IconTabWidget extends TabWidget {
         if (!mIsIcon) {
             return null;
         }
-        // We can have multiple views in the tray for each child. This finds the
+        // We can have multiple views in the tabs panel for each child. This finds the
         // first view corresponding to the given tab. This varies by Android
         // version. The first view should always be our ImageButton, but let's
         // be safe.
@@ -98,7 +99,7 @@ public class IconTabWidget extends TabWidget {
         if (!mIsIcon) {
             return;
         }
-        // We can have multiple views in the tray for each child. This finds the
+        // We can have multiple views in the tabs panel for each child. This finds the
         // first view corresponding to the given tab. This varies by Android
         // version. The first view should always be our ImageButton, but let's
         // be safe.

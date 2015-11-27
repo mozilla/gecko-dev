@@ -92,10 +92,16 @@
       // aria-checked
       testStates("aria_checked_checkbox", STATE_CHECKED);
       testStates("aria_mixed_checkbox", STATE_MIXED);
+      testStates("aria_checked_switch", STATE_CHECKED);
+      testStates("aria_mixed_switch", 0, 0, STATE_MIXED); // unsupported
 
       // test disabled group and all its descendants to see if they are
       // disabled, too. See bug 429285.
       testAriaDisabledTree("group");
+
+      // aria-modal
+      testStates("aria_modal", 0, EXT_STATE_MODAL);
+      testStates("aria_modal_false", 0, 0, 0, EXT_STATE_MODAL);
 
       // aria-multiline
       testStates("aria_multiline_textbox", 0, EXT_STATE_MULTI_LINE);
@@ -343,8 +349,13 @@
   </a>
   <a target="_blank"
      href="https://bugzilla.mozilla.org/show_bug.cgi?id=989958"
-     title="Pressed state is not exposed on a button element with aria-pressed attribute"
+     title="Pressed state is not exposed on a button element with aria-pressed attribute">
     Mozilla Bug 989958
+  </a>
+  <a target="_blank"
+     href="https://bugzilla.mozilla.org/show_bug.cgi?id=1136563"
+     title="Support ARIA 1.1 switch role">
+    Mozilla Bug 1136563
   </a>
 
   <p id="display"></p>
@@ -379,6 +390,17 @@
   <div id="aria_mixed_checkbox" role="checkbox" aria-checked="mixed">
     I might agree
   </div>
+
+  <div id="aria_checked_switch" role="switch" aria-checked="true">
+    I am switched on
+  </div>
+
+  <div id="aria_mixed_switch" role="switch" aria-checked="mixed">
+    I am unsupported
+  </div>
+
+  <div id="aria_modal" aria-modal="true">modal stuff</div>
+  <div id="aria_modal_false" aria-modal="false">non modal stuff</div>div>
   <div id="aria_multiline_textbox" role="textbox" aria-multiline="true"></div>
   <div id="aria_multiselectable_listbox" role="listbox" aria-multiselectable="true"></div>
   <div id="aria_pressed_button" role="button" aria-pressed="true">Button</div>
@@ -478,7 +500,8 @@
   <!-- Test that aria-disabled state gets propagated to all descendants -->
   <div id="group" role="group" aria-disabled="true">
     <button>hi</button>
-    <div tabindex="0" role="listbox" aria-activedescendant="item1">
+    <div tabindex="0" role="listbox" aria-activedescendant="item1"
+         aria-owns="item5">
       <div role="option" id="item1">Item 1</div>
       <div role="option" id="item2">Item 2</div>
       <div role="option" id="item3">Item 3</div>
@@ -486,6 +509,7 @@
     </div>
     <div role="slider" tabindex="0">A slider</div>
   </div>
+  <div role="option" id="item5">Item 5</div>
 
   <!-- Test active state -->
   <div id="as_listbox" tabindex="0" role="listbox"

@@ -14,8 +14,6 @@ nsLeafFrame::~nsLeafFrame()
 {
 }
 
-NS_IMPL_FRAMEARENA_HELPERS(nsLeafFrame)
-
 /* virtual */ nscoord
 nsLeafFrame::GetMinISize(nsRenderingContext *aRenderingContext)
 {
@@ -57,6 +55,7 @@ nsLeafFrame::Reflow(nsPresContext* aPresContext,
                     const nsHTMLReflowState& aReflowState,
                     nsReflowStatus& aStatus)
 {
+  MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("nsLeafFrame");
   NS_FRAME_TRACE(NS_FRAME_TRACE_CALLS,
                  ("enter nsLeafFrame::Reflow: aMaxSize=%d,%d",

@@ -16,7 +16,7 @@
  *
  * @return XMLHttpRequest object
  */
-function PROT_NewXMLHttpRequest() {
+this.PROT_NewXMLHttpRequest = function PROT_NewXMLHttpRequest() {
   var Cc = Components.classes;
   var Ci = Components.interfaces;
   var request = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
@@ -37,7 +37,7 @@ function PROT_NewXMLHttpRequest() {
  * appId.
  * @constructor
  */
-function PROT_XMLFetcher() {
+this.PROT_XMLFetcher = function PROT_XMLFetcher() {
   this.debugZone = "xmlfetcher";
   this._request = PROT_NewXMLHttpRequest();
   // implements nsILoadContext
@@ -65,6 +65,9 @@ PROT_XMLFetcher.prototype = {
     this._request = PROT_NewXMLHttpRequest();
     this._callback = callback;
     var asynchronous = true;
+    this._request.loadInfo.originAttributes = { appId: this.appId,
+                                                inBrowser: this.isInBrowserElement
+                                              }
     this._request.open("GET", page, asynchronous);
     this._request.channel.notificationCallbacks = this;
 

@@ -179,7 +179,7 @@ private:
   nsTArray<nsISupports*> mArray;
 
   // don't implement these, defaults will muck with refcounts!
-  nsCOMArray_base& operator=(const nsCOMArray_base& aOther) MOZ_DELETE;
+  nsCOMArray_base& operator=(const nsCOMArray_base& aOther) = delete;
 };
 
 inline void
@@ -216,10 +216,9 @@ ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& aCallback,
 // * modified/removed. Be careful not to NS_RELEASE(foo)!
 // T* foo = array[i];
 //
-// This array will accept null as an argument for any object, and will
-// store null in the array, just like nsVoidArray. But that also means
-// that methods like ObjectAt() may return null when referring to an
-// existing, but null entry in the array.
+// This array will accept null as an argument for any object, and will store
+// null in the array. But that also means that methods like ObjectAt() may
+// return null when referring to an existing, but null entry in the array.
 template<class T>
 class nsCOMArray : public nsCOMArray_base
 {
@@ -450,7 +449,7 @@ public:
 private:
 
   // don't implement these!
-  nsCOMArray<T>& operator=(const nsCOMArray<T>& aOther) MOZ_DELETE;
+  nsCOMArray<T>& operator=(const nsCOMArray<T>& aOther) = delete;
 };
 
 template<typename T>

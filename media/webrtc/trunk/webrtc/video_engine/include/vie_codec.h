@@ -147,13 +147,21 @@ class WEBRTC_DLLEXPORT ViECodec {
   virtual int GetReceiveSideDelay(const int video_channel,
                                   int* delay_ms) const = 0;
 
+  // Current target bitrate for this channel.
+  virtual uint32_t GetLastObservedBitrateBps(int video_channel) const = 0;
   // Gets the bitrate targeted by the video codec rate control in kbit/s.
   virtual int GetCodecTargetBitrate(const int video_channel,
                                     unsigned int* bitrate) const = 0;
 
   // Gets the number of packets discarded by the jitter buffer because they
   // arrived too late.
-  virtual unsigned int GetDiscardedPackets(const int video_channel) const = 0;
+  // TODO(asapersson): Remove default implementation.
+  virtual int GetNumDiscardedPackets(int video_channel) const { return -1; }
+
+  // TODO(asapersson): Remove once the api has been removed from
+  // fakewebrtcvideoengine.h.
+  virtual unsigned int GetDiscardedPackets(
+      const int video_channel) const { return 0; }
 
   // Enables key frame request callback in ViEDecoderObserver.
   virtual int SetKeyFrameRequestCallbackStatus(const int video_channel,

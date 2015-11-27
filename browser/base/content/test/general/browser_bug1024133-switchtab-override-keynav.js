@@ -18,27 +18,15 @@ add_task(function* test_switchtab_override_keynav() {
       gBrowser.removeTab(tab);
       gBrowser.removeTab(secondTab);
     } catch(ex) { /* tabs may have already been closed in case of failure */ }
-    return promiseClearHistory();
+    return PlacesTestUtils.clearHistory();
   });
-
-  info("Wait for autocomplete")
-  let searchDeferred = Promise.defer();
-  let onSearchComplete = gURLBar.onSearchComplete;
-  registerCleanupFunction(() => {
-    gURLBar.onSearchComplete = onSearchComplete;
-  });
-  gURLBar.onSearchComplete = function () {
-    ok(gURLBar.popupOpen, "The autocomplete popup is correctly open");
-    onSearchComplete.apply(gURLBar);
-    searchDeferred.resolve();
-  }
 
   gURLBar.focus();
   gURLBar.value = "dummy_pag";
   EventUtils.synthesizeKey("e" , {});
-  yield searchDeferred.promise;
+  yield promiseSearchComplete();
 
-  info("Select first autocomplete popup entry");
+  info("Select second autocomplete popup entry");
   EventUtils.synthesizeKey("VK_DOWN" , {});
   ok(/moz-action:switchtab/.test(gURLBar.value), "switch to tab entry found");
 

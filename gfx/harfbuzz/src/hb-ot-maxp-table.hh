@@ -43,14 +43,17 @@ struct maxp
 {
   static const hb_tag_t tableTag	= HB_OT_TAG_maxp;
 
-  inline unsigned int get_num_glyphs (void) const {
+  inline unsigned int get_num_glyphs (void) const
+  {
     return numGlyphs;
   }
 
-  inline bool sanitize (hb_sanitize_context_t *c) {
+  inline bool sanitize (hb_sanitize_context_t *c) const
+  {
     TRACE_SANITIZE (this);
-    return TRACE_RETURN (c->check_struct (this) &&
-			 likely (version.major == 1 || (version.major == 0 && version.minor == 0x5000u)));
+    return_trace (c->check_struct (this) &&
+		  likely (version.major == 1 ||
+			  (version.major == 0 && version.minor == 0x5000u)));
   }
 
   /* We only implement version 0.5 as none of the extra fields in version 1.0 are useful. */

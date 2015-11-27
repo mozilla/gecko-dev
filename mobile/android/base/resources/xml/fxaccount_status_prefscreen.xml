@@ -1,15 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
-    android:key="status_screen" >
+                  xmlns:gecko="http://schemas.android.com/apk/res-auto"
+                  android:key="status_screen">
 
     <PreferenceCategory
         android:key="signed_in_as_category"
         android:title="@string/fxaccount_status_signed_in_as" >
         <Preference
             android:editable="false"
-            android:key="email"
+            android:key="profile"
+            android:icon="@drawable/sync_avatar_default"
             android:persistent="false"
-            android:title="@string/fxaccount_email_hint" />
+            android:title="" />
+        <Preference
+            android:editable="false"
+            android:key="manage_account"
+            android:persistent="false"
+            android:title="@string/fxaccount_status_manage_account" />
         <Preference
             android:editable="false"
             android:key="auth_server"
@@ -50,10 +57,18 @@
         <Preference
             android:editable="false"
             android:icon="@drawable/fxaccount_sync_error"
-            android:key="needs_account_enabled"
+            android:key="needs_finish_migrating"
             android:layout="@layout/fxaccount_status_error_preference"
             android:persistent="false"
-            android:title="@string/fxaccount_status_needs_account_enabled" />
+            android:title="@string/fxaccount_status_needs_finish_migrating" />
+
+        <Preference
+            android:editable="false"
+            android:key="sync_now"
+            android:defaultValue=""
+            android:persistent="false"
+            android:title="@string/fxaccount_status_sync_now"
+            android:summary="" />
 
         <CheckBoxPreference
             android:key="bookmarks"
@@ -83,7 +98,12 @@
             android:key="sync_server"
             android:persistent="false"
             android:title="@string/fxaccount_status_sync_server" />
-
+        <org.mozilla.gecko.fxa.activities.CustomColorPreference
+            android:editable="false"
+            android:key="remove_account"
+            android:persistent="false"
+            gecko:titleColor="@color/rejection_red"
+            android:title="@string/fxaccount_remove_account" />
         <Preference
             android:editable="false"
             android:key="more"
@@ -114,9 +134,13 @@
         <Preference android:key="debug_refresh" />
         <Preference android:key="debug_dump" />
         <Preference android:key="debug_force_sync" />
+        <Preference android:key="debug_invalidate_certificate" />
         <Preference android:key="debug_forget_certificate" />
         <Preference android:key="debug_require_password" />
         <Preference android:key="debug_require_upgrade" />
-    </PreferenceCategory>
+        <Preference android:key="debug_migrated_from_sync11" />
+        <Preference android:key="debug_make_account_stage" />
+        <Preference android:key="debug_make_account_default" />
+	</PreferenceCategory>
 
 </PreferenceScreen>

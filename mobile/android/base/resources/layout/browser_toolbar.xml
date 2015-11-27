@@ -6,12 +6,7 @@
 <merge xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- Note: any layout parameters setting the right edge of
-         this View should be matched in the url_bar_translating_edge.
-
-         Note 2: On devices where the editing mode cancel button is
-         wider than the tabs counter and nearby buttons, the url bar will
-         shrink, in which case the LayoutParams of this View are
-         changed dynamically. -->
+         this View should be matched in the url_bar_translating_edge. -->
     <ImageView android:id="@+id/url_bar_entry"
                style="@style/UrlBar.Button"
                android:layout_marginLeft="8dp"
@@ -26,7 +21,7 @@
                android:scaleType="fitXY"/>
 
     <!-- A View that clips with url_bar_entry and translates
-         around it to animate shrinking or growing the url bar,
+         around it to animate growing the url bar,
          which occurs in the display/editing mode transitions. -->
     <ImageView android:id="@+id/url_bar_translating_edge"
                style="@style/UrlBar.Button"
@@ -41,20 +36,25 @@
                android:src="@drawable/url_bar_translating_edge"
                android:scaleType="fitXY"/>
 
-    <org.mozilla.gecko.toolbar.ShapedButton android:id="@+id/menu"
-                                            style="@style/UrlBar.ImageButton"
-                                            android:layout_alignParentRight="true"
-                                            android:contentDescription="@string/menu"
-                                            android:background="@drawable/shaped_button"
-                                            android:visibility="gone"/>
+    <org.mozilla.gecko.toolbar.ShapedButtonFrameLayout
+            android:id="@+id/menu"
+            style="@style/UrlBar.ImageButton"
+            android:layout_alignParentRight="true"
+            android:contentDescription="@string/menu"
+            android:background="@drawable/shaped_button"
+            android:visibility="gone">
 
-    <org.mozilla.gecko.widget.ThemedImageView android:id="@+id/menu_icon"
-                                              style="@style/UrlBar.ImageButton"
-                                              android:layout_alignLeft="@id/menu"
-                                              android:layout_alignRight="@id/menu"
-                                              android:gravity="center_vertical"
-                                              android:src="@drawable/menu_level"
-                                              android:visibility="gone"/>
+        <org.mozilla.gecko.widget.themed.ThemedImageView
+                android:id="@+id/menu_icon"
+                style="@style/UrlBar.ImageButton"
+                android:layout_height="@dimen/browser_toolbar_menu_icon_height"
+                android:layout_width="wrap_content"
+                android:scaleType="centerInside"
+                android:layout_gravity="center"
+                android:src="@drawable/menu"
+                android:tint="@color/tabs_tray_icon_grey"/>
+
+    </org.mozilla.gecko.toolbar.ShapedButtonFrameLayout>
 
     <org.mozilla.gecko.toolbar.PhoneTabsButton android:id="@+id/tabs"
                                                style="@style/UrlBar.ImageButton"
@@ -70,16 +70,20 @@
          The margins will be 40dp on left, 8dp on right, instead of ideal 30dp
          and 12dp. -->
     <org.mozilla.gecko.toolbar.TabCounter android:id="@+id/tabs_counter"
-                        style="@style/UrlBar.ImageButton.TabCount"
+                        style="@style/UrlBar.ImageButton"
                         android:layout_width="24dip"
                         android:layout_height="24dip"
                         android:layout_centerVertical="true"
                         android:layout_marginRight="8dip"
-                        android:layout_alignRight="@id/tabs"/>
+                        android:layout_alignRight="@id/tabs"
+                        android:background="@drawable/tabs_count"
+                        android:gravity="center_horizontal"
+                        android:clipChildren="false"
+                        android:clipToPadding="false"/>
 
     <!-- Note that the edit components are invisible so that the views
          depending on their location can properly layout. -->
-    <org.mozilla.gecko.widget.ThemedImageView
+    <org.mozilla.gecko.widget.themed.ThemedImageView
             android:id="@+id/edit_cancel"
             style="@style/UrlBar.ImageButton"
             android:layout_alignParentRight="true"

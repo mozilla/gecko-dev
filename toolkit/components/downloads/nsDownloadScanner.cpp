@@ -12,6 +12,7 @@
 #include "nsXULAppAPI.h"
 #include "nsIPrefService.h"
 #include "nsNetUtil.h"
+#include "prtime.h"
 #include "nsDeque.h"
 #include "nsIFileURL.h"
 #include "nsIPrefBranch.h"
@@ -190,7 +191,7 @@ bool
 nsDownloadScanner::IsAESAvailable()
 {
   // Try to instantiate IAE to see if it's available.    
-  nsRefPtr<IAttachmentExecute> ae;
+  RefPtr<IAttachmentExecute> ae;
   HRESULT hr;
   hr = CoCreateInstance(CLSID_AttachmentServices, nullptr, CLSCTX_INPROC,
                         IID_IAttachmentExecute, getter_AddRefs(ae));
@@ -236,7 +237,7 @@ nsDownloadScanner::CheckPolicy(nsIURI *aSource, nsIURI *aTarget)
   if (isDataScheme)
     return AVPOLICY_DOWNLOAD;
 
-  nsRefPtr<IAttachmentExecute> ae;
+  RefPtr<IAttachmentExecute> ae;
   HRESULT hr;
   hr = CoCreateInstance(CLSID_AttachmentServices, nullptr, CLSCTX_INPROC,
                         IID_IAttachmentExecute, getter_AddRefs(ae));
@@ -444,7 +445,7 @@ nsDownloadScanner::Scan::DoScanAES()
   // event of a win32 exception
 #pragma warning(disable: 4509)
   HRESULT hr;
-  nsRefPtr<IAttachmentExecute> ae;
+  RefPtr<IAttachmentExecute> ae;
   MOZ_SEH_TRY {
     hr = CoCreateInstance(CLSID_AttachmentServices, nullptr, CLSCTX_ALL,
                           IID_IAttachmentExecute, getter_AddRefs(ae));
@@ -555,7 +556,7 @@ bool
 nsDownloadScanner::Scan::CheckAndSetState(AVScanState newState, AVScanState expectedState) {
   bool gotExpectedState = false;
   EnterCriticalSection(&mStateSync);
-  if(gotExpectedState = (mStatus == expectedState))
+  if((gotExpectedState = (mStatus == expectedState)))
     mStatus = newState;
   LeaveCriticalSection(&mStateSync);
   return gotExpectedState;
@@ -663,10 +664,10 @@ nsDownloadScannerWatchdog::WatchdogThread(void *p) {
   DWORD queueItemsLeft = 0;
   // Loop until quit event or error
   while (0 != queueItemsLeft ||
-         (WAIT_OBJECT_0 + 1) !=
+         ((WAIT_OBJECT_0 + 1) !=
            (waitStatus =
               WaitForMultipleObjects(2, waitHandles, FALSE, INFINITE)) &&
-         waitStatus != WAIT_FAILED) {
+         waitStatus != WAIT_FAILED)) {
     Scan *scan = nullptr;
     PRTime startTime, expectedEndTime, now;
     DWORD waitTime;

@@ -35,10 +35,10 @@ public:
 
   // nsISupports
   NS_DECL_ISUPPORTS
-  
+
   // nsISelectionListener
   NS_DECL_NSISELECTIONLISTENER
-  
+
   // nsIDocumentStateListener
   NS_DECL_NSIDOCUMENTSTATELISTENER
 
@@ -46,22 +46,22 @@ public:
   NS_DECL_NSITIMERCALLBACK
 
   /** nsITransactionListener interfaces
-    */  
-  NS_IMETHOD WillDo(nsITransactionManager *aManager, nsITransaction *aTransaction, bool *aInterrupt);
-  NS_IMETHOD DidDo(nsITransactionManager *aManager, nsITransaction *aTransaction, nsresult aDoResult);
-  NS_IMETHOD WillUndo(nsITransactionManager *aManager, nsITransaction *aTransaction, bool *aInterrupt);
-  NS_IMETHOD DidUndo(nsITransactionManager *aManager, nsITransaction *aTransaction, nsresult aUndoResult);
-  NS_IMETHOD WillRedo(nsITransactionManager *aManager, nsITransaction *aTransaction, bool *aInterrupt);
-  NS_IMETHOD DidRedo(nsITransactionManager *aManager, nsITransaction *aTransaction, nsresult aRedoResult);
-  NS_IMETHOD WillBeginBatch(nsITransactionManager *aManager, bool *aInterrupt);
-  NS_IMETHOD DidBeginBatch(nsITransactionManager *aManager, nsresult aResult);
-  NS_IMETHOD WillEndBatch(nsITransactionManager *aManager, bool *aInterrupt);
-  NS_IMETHOD DidEndBatch(nsITransactionManager *aManager, nsresult aResult);
+    */
+  NS_IMETHOD WillDo(nsITransactionManager *aManager, nsITransaction *aTransaction, bool *aInterrupt) override;
+  NS_IMETHOD DidDo(nsITransactionManager *aManager, nsITransaction *aTransaction, nsresult aDoResult) override;
+  NS_IMETHOD WillUndo(nsITransactionManager *aManager, nsITransaction *aTransaction, bool *aInterrupt) override;
+  NS_IMETHOD DidUndo(nsITransactionManager *aManager, nsITransaction *aTransaction, nsresult aUndoResult) override;
+  NS_IMETHOD WillRedo(nsITransactionManager *aManager, nsITransaction *aTransaction, bool *aInterrupt) override;
+  NS_IMETHOD DidRedo(nsITransactionManager *aManager, nsITransaction *aTransaction, nsresult aRedoResult) override;
+  NS_IMETHOD WillBeginBatch(nsITransactionManager *aManager, bool *aInterrupt) override;
+  NS_IMETHOD DidBeginBatch(nsITransactionManager *aManager, nsresult aResult) override;
+  NS_IMETHOD WillEndBatch(nsITransactionManager *aManager, bool *aInterrupt) override;
+  NS_IMETHOD DidEndBatch(nsITransactionManager *aManager, nsresult aResult) override;
   NS_IMETHOD WillMerge(nsITransactionManager *aManager, nsITransaction *aTopTransaction,
-                       nsITransaction *aTransactionToMerge, bool *aInterrupt);
+                       nsITransaction *aTransactionToMerge, bool *aInterrupt) override;
   NS_IMETHOD DidMerge(nsITransactionManager *aManager, nsITransaction *aTopTransaction,
                       nsITransaction *aTransactionToMerge,
-                      bool aDidMerge, nsresult aMergeResult);
+                      bool aDidMerge, nsresult aMergeResult) override;
 
 
   nsresult   Init(nsIDOMWindow* aDOMWindow);
@@ -75,24 +75,24 @@ protected:
     eStateOff             = false,
     eStateOn              = true
   };
-  
+
   bool          SelectionIsCollapsed();
-  nsresult      UpdateDirtyState(bool aNowDirty);  
+  nsresult      UpdateDirtyState(bool aNowDirty);
   nsresult      UpdateOneCommand(const char* aCommand);
   nsresult      UpdateCommandGroup(const nsAString& aCommandGroup);
 
   already_AddRefed<nsPICommandUpdater> GetCommandUpdater();
-  
+
   nsresult      PrimeUpdateTimer();
   void          TimerCallback();
   nsCOMPtr<nsITimer>  mUpdateTimer;
 
   nsWeakPtr     mDOMWindow;
   nsWeakPtr     mDocShell;
-  int8_t        mDirtyState;  
-  int8_t        mSelectionCollapsed;  
+  int8_t        mDirtyState;
+  int8_t        mSelectionCollapsed;
   bool          mFirstDoOfFirstUndo;
-    
+
 
 };
 

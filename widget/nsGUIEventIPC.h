@@ -7,6 +7,7 @@
 #define nsGUIEventIPC_h__
 
 #include "ipc/IPCMessageUtils.h"
+#include "mozilla/ContentCache.h"
 #include "mozilla/GfxMessageUtils.h"
 #include "mozilla/dom/Touch.h"
 #include "mozilla/MiscEvents.h"
@@ -16,6 +17,25 @@
 
 namespace IPC
 {
+
+template<>
+struct ParamTraits<mozilla::EventMessage>
+{
+  typedef mozilla::EventMessage paramType;
+
+  static void Write(Message* aMsg, const paramType& aParam)
+  {
+    WriteParam(aMsg, static_cast<const mozilla::EventMessageType&>(aParam));
+  }
+
+  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  {
+    mozilla::EventMessageType eventMessage = 0;
+    bool ret = ReadParam(aMsg, aIter, &eventMessage);
+    *aResult = static_cast<paramType>(eventMessage);
+    return ret;
+  }
+};
 
 template<>
 struct ParamTraits<mozilla::BaseEventFlags>
@@ -47,7 +67,7 @@ struct ParamTraits<mozilla::WidgetEvent>
   {
     WriteParam(aMsg,
       static_cast<mozilla::EventClassIDType>(aParam.mClass));
-    WriteParam(aMsg, aParam.message);
+    WriteParam(aMsg, aParam.mMessage);
     WriteParam(aMsg, aParam.refPoint);
     WriteParam(aMsg, aParam.time);
     WriteParam(aMsg, aParam.timeStamp);
@@ -58,7 +78,7 @@ struct ParamTraits<mozilla::WidgetEvent>
   {
     mozilla::EventClassIDType eventClassID = 0;
     bool ret = ReadParam(aMsg, aIter, &eventClassID) &&
-               ReadParam(aMsg, aIter, &aResult->message) &&
+               ReadParam(aMsg, aIter, &aResult->mMessage) &&
                ReadParam(aMsg, aIter, &aResult->refPoint) &&
                ReadParam(aMsg, aIter, &aResult->time) &&
                ReadParam(aMsg, aIter, &aResult->timeStamp) &&
@@ -116,6 +136,7 @@ struct ParamTraits<mozilla::WidgetMouseEventBase>
     WriteParam(aMsg, aParam.button);
     WriteParam(aMsg, aParam.buttons);
     WriteParam(aMsg, aParam.pressure);
+    WriteParam(aMsg, aParam.hitCluster);
     WriteParam(aMsg, aParam.inputSource);
   }
 
@@ -126,6 +147,7 @@ struct ParamTraits<mozilla::WidgetMouseEventBase>
            ReadParam(aMsg, aIter, &aResult->button) &&
            ReadParam(aMsg, aIter, &aResult->buttons) &&
            ReadParam(aMsg, aIter, &aResult->pressure) &&
+           ReadParam(aMsg, aIter, &aResult->hitCluster) &&
            ReadParam(aMsg, aIter, &aResult->inputSource);
   }
 };
@@ -150,6 +172,8 @@ struct ParamTraits<mozilla::WidgetWheelEvent>
     WriteParam(aMsg, static_cast<int32_t>(aParam.scrollType));
     WriteParam(aMsg, aParam.overflowDeltaX);
     WriteParam(aMsg, aParam.overflowDeltaY);
+    WriteParam(aMsg, aParam.mViewPortIsOverscrolled);
+    WriteParam(aMsg, aParam.mCanTriggerSwipe);
   }
 
   static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
@@ -169,7 +193,9 @@ struct ParamTraits<mozilla::WidgetWheelEvent>
       ReadParam(aMsg, aIter, &aResult->lineOrPageDeltaY) &&
       ReadParam(aMsg, aIter, &scrollType) &&
       ReadParam(aMsg, aIter, &aResult->overflowDeltaX) &&
-      ReadParam(aMsg, aIter, &aResult->overflowDeltaY);
+      ReadParam(aMsg, aIter, &aResult->overflowDeltaY) &&
+      ReadParam(aMsg, aIter, &aResult->mViewPortIsOverscrolled) &&
+      ReadParam(aMsg, aIter, &aResult->mCanTriggerSwipe);
     aResult->scrollType =
       static_cast<mozilla::WidgetWheelEvent::ScrollType>(scrollType);
     return rv;
@@ -207,6 +233,29 @@ struct ParamTraits<mozilla::WidgetMouseEvent>
     aResult->context =
       static_cast<mozilla::WidgetMouseEvent::contextType>(context);
     aResult->exit = static_cast<mozilla::WidgetMouseEvent::exitType>(exit);
+    return rv;
+  }
+};
+
+
+template<>
+struct ParamTraits<mozilla::WidgetDragEvent>
+{
+  typedef mozilla::WidgetDragEvent paramType;
+
+  static void Write(Message* aMsg, const paramType& aParam)
+  {
+    WriteParam(aMsg, static_cast<mozilla::WidgetMouseEvent>(aParam));
+    WriteParam(aMsg, aParam.userCancelled);
+    WriteParam(aMsg, aParam.mDefaultPreventedOnContent);
+  }
+
+  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  {
+    bool rv =
+      ReadParam(aMsg, aIter, static_cast<mozilla::WidgetMouseEvent*>(aResult)) &&
+      ReadParam(aMsg, aIter, &aResult->userCancelled) &&
+      ReadParam(aMsg, aIter, &aResult->mDefaultPreventedOnContent);
     return rv;
   }
 };
@@ -274,7 +323,7 @@ struct ParamTraits<mozilla::WidgetTouchEvent>
     for (uint32_t i = 0; i < numTouches; ++i) {
         int32_t identifier;
         mozilla::LayoutDeviceIntPoint refPoint;
-        nsIntPoint radius;
+        mozilla::LayoutDeviceIntPoint radius;
         float rotationAngle;
         float force;
         if (!ReadParam(aMsg, aIter, &identifier) ||
@@ -286,8 +335,7 @@ struct ParamTraits<mozilla::WidgetTouchEvent>
         }
         aResult->touches.AppendElement(
           new mozilla::dom::Touch(
-            identifier, mozilla::LayoutDeviceIntPoint::ToUntyped(refPoint),
-            radius, rotationAngle, force));
+            identifier, refPoint, radius, rotationAngle, force));
     }
     return true;
   }
@@ -331,6 +379,13 @@ struct ParamTraits<mozilla::WidgetKeyboardEvent>
     WriteParam(aMsg, aParam.mIsRepeat);
     WriteParam(aMsg, aParam.location);
     WriteParam(aMsg, aParam.mUniqueId);
+#ifdef XP_MACOSX
+    WriteParam(aMsg, aParam.mNativeKeyCode);
+    WriteParam(aMsg, aParam.mNativeModifierFlags);
+    WriteParam(aMsg, aParam.mNativeCharacters);
+    WriteParam(aMsg, aParam.mNativeCharactersIgnoringModifiers);
+    WriteParam(aMsg, aParam.mPluginTextEventString);
+#endif
     // An OS-specific native event might be attached in |mNativeKeyEvent|,  but
     // that cannot be copied across process boundaries.
   }
@@ -350,7 +405,15 @@ struct ParamTraits<mozilla::WidgetKeyboardEvent>
         ReadParam(aMsg, aIter, &aResult->isChar) &&
         ReadParam(aMsg, aIter, &aResult->mIsRepeat) &&
         ReadParam(aMsg, aIter, &aResult->location) &&
-        ReadParam(aMsg, aIter, &aResult->mUniqueId))
+        ReadParam(aMsg, aIter, &aResult->mUniqueId)
+#ifdef XP_MACOSX
+        && ReadParam(aMsg, aIter, &aResult->mNativeKeyCode)
+        && ReadParam(aMsg, aIter, &aResult->mNativeModifierFlags)
+        && ReadParam(aMsg, aIter, &aResult->mNativeCharacters)
+        && ReadParam(aMsg, aIter, &aResult->mNativeCharactersIgnoringModifiers)
+        && ReadParam(aMsg, aIter, &aResult->mPluginTextEventString)
+#endif
+        )
     {
       aResult->mKeyNameIndex = static_cast<mozilla::KeyNameIndex>(keyNameIndex);
       aResult->mCodeNameIndex =
@@ -359,6 +422,37 @@ struct ParamTraits<mozilla::WidgetKeyboardEvent>
       return true;
     }
     return false;
+  }
+};
+
+template<>
+struct ParamTraits<mozilla::InternalBeforeAfterKeyboardEvent>
+{
+  typedef mozilla::InternalBeforeAfterKeyboardEvent paramType;
+
+  static void Write(Message* aMsg, const paramType& aParam)
+  {
+    WriteParam(aMsg, static_cast<mozilla::WidgetKeyboardEvent>(aParam));
+    WriteParam(aMsg, aParam.mEmbeddedCancelled.IsNull());
+    WriteParam(aMsg, aParam.mEmbeddedCancelled.Value());
+  }
+
+  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  {
+    bool isNull;
+    bool value;
+    bool rv =
+      ReadParam(aMsg, aIter,
+                static_cast<mozilla::WidgetKeyboardEvent*>(aResult)) &&
+      ReadParam(aMsg, aIter, &isNull) &&
+      ReadParam(aMsg, aIter, &value);
+
+    aResult->mEmbeddedCancelled = Nullable<bool>();
+    if (rv && !isNull) {
+      aResult->mEmbeddedCancelled.SetValue(value);
+    }
+
+    return rv;
   }
 };
 
@@ -442,16 +536,14 @@ struct ParamTraits<mozilla::TextRangeArray>
 };
 
 template<>
-struct ParamTraits<mozilla::WidgetTextEvent>
+struct ParamTraits<mozilla::WidgetCompositionEvent>
 {
-  typedef mozilla::WidgetTextEvent paramType;
+  typedef mozilla::WidgetCompositionEvent paramType;
 
   static void Write(Message* aMsg, const paramType& aParam)
   {
     WriteParam(aMsg, static_cast<mozilla::WidgetGUIEvent>(aParam));
-    WriteParam(aMsg, aParam.mSeqno);
-    WriteParam(aMsg, aParam.theText);
-    WriteParam(aMsg, aParam.isChar);
+    WriteParam(aMsg, aParam.mData);
     bool hasRanges = !!aParam.mRanges;
     WriteParam(aMsg, hasRanges);
     if (hasRanges) {
@@ -464,9 +556,7 @@ struct ParamTraits<mozilla::WidgetTextEvent>
     bool hasRanges;
     if (!ReadParam(aMsg, aIter,
                    static_cast<mozilla::WidgetGUIEvent*>(aResult)) ||
-        !ReadParam(aMsg, aIter, &aResult->mSeqno) ||
-        !ReadParam(aMsg, aIter, &aResult->theText) ||
-        !ReadParam(aMsg, aIter, &aResult->isChar) ||
+        !ReadParam(aMsg, aIter, &aResult->mData) ||
         !ReadParam(aMsg, aIter, &hasRanges)) {
       return false;
     }
@@ -475,9 +565,6 @@ struct ParamTraits<mozilla::WidgetTextEvent>
       aResult->mRanges = nullptr;
     } else {
       aResult->mRanges = new mozilla::TextRangeArray();
-      if (!aResult->mRanges) {
-        return false;
-      }
       if (!ReadParam(aMsg, aIter, aResult->mRanges.get())) {
         return false;
       }
@@ -487,23 +574,22 @@ struct ParamTraits<mozilla::WidgetTextEvent>
 };
 
 template<>
-struct ParamTraits<mozilla::WidgetCompositionEvent>
+struct ParamTraits<mozilla::FontRange>
 {
-  typedef mozilla::WidgetCompositionEvent paramType;
+  typedef mozilla::FontRange paramType;
 
   static void Write(Message* aMsg, const paramType& aParam)
   {
-    WriteParam(aMsg, static_cast<mozilla::WidgetGUIEvent>(aParam));
-    WriteParam(aMsg, aParam.mSeqno);
-    WriteParam(aMsg, aParam.data);
+    WriteParam(aMsg, aParam.mStartOffset);
+    WriteParam(aMsg, aParam.mFontName);
+    WriteParam(aMsg, aParam.mFontSize);
   }
 
   static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
   {
-    return ReadParam(aMsg, aIter,
-                     static_cast<mozilla::WidgetGUIEvent*>(aResult)) &&
-           ReadParam(aMsg, aIter, &aResult->mSeqno) &&
-           ReadParam(aMsg, aIter, &aResult->data);
+    return ReadParam(aMsg, aIter, &aResult->mStartOffset) &&
+           ReadParam(aMsg, aIter, &aResult->mFontName) &&
+           ReadParam(aMsg, aIter, &aResult->mFontSize);
   }
 };
 
@@ -517,31 +603,36 @@ struct ParamTraits<mozilla::WidgetQueryContentEvent>
     WriteParam(aMsg, static_cast<mozilla::WidgetGUIEvent>(aParam));
     WriteParam(aMsg, aParam.mSucceeded);
     WriteParam(aMsg, aParam.mUseNativeLineBreak);
+    WriteParam(aMsg, aParam.mWithFontRanges);
     WriteParam(aMsg, aParam.mInput.mOffset);
     WriteParam(aMsg, aParam.mInput.mLength);
     WriteParam(aMsg, aParam.mReply.mOffset);
+    WriteParam(aMsg, aParam.mReply.mTentativeCaretOffset);
     WriteParam(aMsg, aParam.mReply.mString);
     WriteParam(aMsg, aParam.mReply.mRect);
     WriteParam(aMsg, aParam.mReply.mReversed);
     WriteParam(aMsg, aParam.mReply.mHasSelection);
     WriteParam(aMsg, aParam.mReply.mWidgetIsHit);
+    WriteParam(aMsg, aParam.mReply.mFontRanges);
   }
 
   static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
   {
-    aResult->mWasAsync = true;
     return ReadParam(aMsg, aIter,
                      static_cast<mozilla::WidgetGUIEvent*>(aResult)) &&
            ReadParam(aMsg, aIter, &aResult->mSucceeded) &&
            ReadParam(aMsg, aIter, &aResult->mUseNativeLineBreak) &&
+           ReadParam(aMsg, aIter, &aResult->mWithFontRanges) &&
            ReadParam(aMsg, aIter, &aResult->mInput.mOffset) &&
            ReadParam(aMsg, aIter, &aResult->mInput.mLength) &&
            ReadParam(aMsg, aIter, &aResult->mReply.mOffset) &&
+           ReadParam(aMsg, aIter, &aResult->mReply.mTentativeCaretOffset) &&
            ReadParam(aMsg, aIter, &aResult->mReply.mString) &&
            ReadParam(aMsg, aIter, &aResult->mReply.mRect) &&
            ReadParam(aMsg, aIter, &aResult->mReply.mReversed) &&
            ReadParam(aMsg, aIter, &aResult->mReply.mHasSelection) &&
-           ReadParam(aMsg, aIter, &aResult->mReply.mWidgetIsHit);
+           ReadParam(aMsg, aIter, &aResult->mReply.mWidgetIsHit) &&
+           ReadParam(aMsg, aIter, &aResult->mReply.mFontRanges);
   }
 };
 
@@ -553,7 +644,6 @@ struct ParamTraits<mozilla::WidgetSelectionEvent>
   static void Write(Message* aMsg, const paramType& aParam)
   {
     WriteParam(aMsg, static_cast<mozilla::WidgetGUIEvent>(aParam));
-    WriteParam(aMsg, aParam.mSeqno);
     WriteParam(aMsg, aParam.mOffset);
     WriteParam(aMsg, aParam.mLength);
     WriteParam(aMsg, aParam.mReversed);
@@ -566,7 +656,6 @@ struct ParamTraits<mozilla::WidgetSelectionEvent>
   {
     return ReadParam(aMsg, aIter,
                      static_cast<mozilla::WidgetGUIEvent*>(aResult)) &&
-           ReadParam(aMsg, aIter, &aResult->mSeqno) &&
            ReadParam(aMsg, aIter, &aResult->mOffset) &&
            ReadParam(aMsg, aIter, &aResult->mLength) &&
            ReadParam(aMsg, aIter, &aResult->mReversed) &&
@@ -593,6 +682,128 @@ struct ParamTraits<nsIMEUpdatePreference>
 };
 
 template<>
+struct ParamTraits<mozilla::widget::IMENotification::Point>
+{
+  typedef mozilla::widget::IMENotification::Point paramType;
+
+  static void Write(Message* aMsg, const paramType& aParam)
+  {
+    WriteParam(aMsg, aParam.mX);
+    WriteParam(aMsg, aParam.mY);
+  }
+
+  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  {
+    return ReadParam(aMsg, aIter, &aResult->mX) &&
+           ReadParam(aMsg, aIter, &aResult->mY);
+  }
+};
+
+template<>
+struct ParamTraits<mozilla::widget::IMENotification::Rect>
+{
+  typedef mozilla::widget::IMENotification::Rect paramType;
+
+  static void Write(Message* aMsg, const paramType& aParam)
+  {
+    WriteParam(aMsg, aParam.mX);
+    WriteParam(aMsg, aParam.mY);
+    WriteParam(aMsg, aParam.mWidth);
+    WriteParam(aMsg, aParam.mHeight);
+  }
+
+  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  {
+    return ReadParam(aMsg, aIter, &aResult->mX) &&
+           ReadParam(aMsg, aIter, &aResult->mY) &&
+           ReadParam(aMsg, aIter, &aResult->mWidth) &&
+           ReadParam(aMsg, aIter, &aResult->mHeight);
+  }
+};
+
+template<>
+struct ParamTraits<mozilla::widget::IMENotification::SelectionChangeDataBase>
+{
+  typedef mozilla::widget::IMENotification::SelectionChangeDataBase paramType;
+
+  static void Write(Message* aMsg, const paramType& aParam)
+  {
+    MOZ_RELEASE_ASSERT(aParam.mString);
+    WriteParam(aMsg, aParam.mOffset);
+    WriteParam(aMsg, *aParam.mString);
+    WriteParam(aMsg, aParam.mWritingMode);
+    WriteParam(aMsg, aParam.mReversed);
+    WriteParam(aMsg, aParam.mCausedByComposition);
+    WriteParam(aMsg, aParam.mCausedBySelectionEvent);
+    WriteParam(aMsg, aParam.mOccurredDuringComposition);
+  }
+
+  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  {
+    aResult->mString = new nsString();
+    return ReadParam(aMsg, aIter, &aResult->mOffset) &&
+           ReadParam(aMsg, aIter, aResult->mString) &&
+           ReadParam(aMsg, aIter, &aResult->mWritingMode) &&
+           ReadParam(aMsg, aIter, &aResult->mReversed) &&
+           ReadParam(aMsg, aIter, &aResult->mCausedByComposition) &&
+           ReadParam(aMsg, aIter, &aResult->mCausedBySelectionEvent) &&
+           ReadParam(aMsg, aIter, &aResult->mOccurredDuringComposition);
+  }
+};
+
+template<>
+struct ParamTraits<mozilla::widget::IMENotification::TextChangeDataBase>
+{
+  typedef mozilla::widget::IMENotification::TextChangeDataBase paramType;
+
+  static void Write(Message* aMsg, const paramType& aParam)
+  {
+    WriteParam(aMsg, aParam.mStartOffset);
+    WriteParam(aMsg, aParam.mRemovedEndOffset);
+    WriteParam(aMsg, aParam.mAddedEndOffset);
+    WriteParam(aMsg, aParam.mCausedByComposition);
+    WriteParam(aMsg, aParam.mOccurredDuringComposition);
+  }
+
+  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  {
+    return ReadParam(aMsg, aIter, &aResult->mStartOffset) &&
+           ReadParam(aMsg, aIter, &aResult->mRemovedEndOffset) &&
+           ReadParam(aMsg, aIter, &aResult->mAddedEndOffset) &&
+           ReadParam(aMsg, aIter, &aResult->mCausedByComposition) &&
+           ReadParam(aMsg, aIter, &aResult->mOccurredDuringComposition);
+  }
+};
+
+template<>
+struct ParamTraits<mozilla::widget::IMENotification::MouseButtonEventData>
+{
+  typedef mozilla::widget::IMENotification::MouseButtonEventData paramType;
+
+  static void Write(Message* aMsg, const paramType& aParam)
+  {
+    WriteParam(aMsg, aParam.mEventMessage);
+    WriteParam(aMsg, aParam.mOffset);
+    WriteParam(aMsg, aParam.mCursorPos);
+    WriteParam(aMsg, aParam.mCharRect);
+    WriteParam(aMsg, aParam.mButton);
+    WriteParam(aMsg, aParam.mButtons);
+    WriteParam(aMsg, aParam.mModifiers);
+  }
+
+  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  {
+    return ReadParam(aMsg, aIter, &aResult->mEventMessage) &&
+           ReadParam(aMsg, aIter, &aResult->mOffset) &&
+           ReadParam(aMsg, aIter, &aResult->mCursorPos) &&
+           ReadParam(aMsg, aIter, &aResult->mCharRect) &&
+           ReadParam(aMsg, aIter, &aResult->mButton) &&
+           ReadParam(aMsg, aIter, &aResult->mButtons) &&
+           ReadParam(aMsg, aIter, &aResult->mModifiers);
+  }
+};
+
+template<>
 struct ParamTraits<mozilla::widget::IMENotification>
 {
   typedef mozilla::widget::IMENotification paramType;
@@ -603,26 +814,13 @@ struct ParamTraits<mozilla::widget::IMENotification>
       static_cast<mozilla::widget::IMEMessageType>(aParam.mMessage));
     switch (aParam.mMessage) {
       case mozilla::widget::NOTIFY_IME_OF_SELECTION_CHANGE:
-        WriteParam(aMsg, aParam.mSelectionChangeData.mCausedByComposition);
+        WriteParam(aMsg, aParam.mSelectionChangeData);
         return;
       case mozilla::widget::NOTIFY_IME_OF_TEXT_CHANGE:
-        WriteParam(aMsg, aParam.mTextChangeData.mStartOffset);
-        WriteParam(aMsg, aParam.mTextChangeData.mOldEndOffset);
-        WriteParam(aMsg, aParam.mTextChangeData.mNewEndOffset);
-        WriteParam(aMsg, aParam.mTextChangeData.mCausedByComposition);
+        WriteParam(aMsg, aParam.mTextChangeData);
         return;
       case mozilla::widget::NOTIFY_IME_OF_MOUSE_BUTTON_EVENT:
-        WriteParam(aMsg, aParam.mMouseButtonEventData.mEventMessage);
-        WriteParam(aMsg, aParam.mMouseButtonEventData.mOffset);
-        WriteParam(aMsg, aParam.mMouseButtonEventData.mCursorPos.mX);
-        WriteParam(aMsg, aParam.mMouseButtonEventData.mCursorPos.mY);
-        WriteParam(aMsg, aParam.mMouseButtonEventData.mCharRect.mX);
-        WriteParam(aMsg, aParam.mMouseButtonEventData.mCharRect.mY);
-        WriteParam(aMsg, aParam.mMouseButtonEventData.mCharRect.mWidth);
-        WriteParam(aMsg, aParam.mMouseButtonEventData.mCharRect.mHeight);
-        WriteParam(aMsg, aParam.mMouseButtonEventData.mButton);
-        WriteParam(aMsg, aParam.mMouseButtonEventData.mButtons);
-        WriteParam(aMsg, aParam.mMouseButtonEventData.mModifiers);
+        WriteParam(aMsg, aParam.mMouseButtonEventData);
         return;
       default:
         return;
@@ -638,40 +836,11 @@ struct ParamTraits<mozilla::widget::IMENotification>
     aResult->mMessage = static_cast<mozilla::widget::IMEMessage>(IMEMessage);
     switch (aResult->mMessage) {
       case mozilla::widget::NOTIFY_IME_OF_SELECTION_CHANGE:
-        return ReadParam(aMsg, aIter,
-                         &aResult->mSelectionChangeData.mCausedByComposition);
+        return ReadParam(aMsg, aIter, &aResult->mSelectionChangeData);
       case mozilla::widget::NOTIFY_IME_OF_TEXT_CHANGE:
-        return ReadParam(aMsg, aIter,
-                         &aResult->mTextChangeData.mStartOffset) &&
-               ReadParam(aMsg, aIter,
-                         &aResult->mTextChangeData.mOldEndOffset) &&
-               ReadParam(aMsg, aIter,
-                         &aResult->mTextChangeData.mNewEndOffset) &&
-               ReadParam(aMsg, aIter,
-                         &aResult->mTextChangeData.mCausedByComposition);
+        return ReadParam(aMsg, aIter, &aResult->mTextChangeData);
       case mozilla::widget::NOTIFY_IME_OF_MOUSE_BUTTON_EVENT:
-        return ReadParam(aMsg, aIter,
-                         &aResult->mMouseButtonEventData.mEventMessage) &&
-               ReadParam(aMsg, aIter,
-                         &aResult->mMouseButtonEventData.mOffset) &&
-               ReadParam(aMsg, aIter,
-                         &aResult->mMouseButtonEventData.mCursorPos.mX) &&
-               ReadParam(aMsg, aIter,
-                         &aResult->mMouseButtonEventData.mCursorPos.mY) &&
-               ReadParam(aMsg, aIter,
-                         &aResult->mMouseButtonEventData.mCharRect.mX) &&
-               ReadParam(aMsg, aIter,
-                         &aResult->mMouseButtonEventData.mCharRect.mY) &&
-               ReadParam(aMsg, aIter,
-                         &aResult->mMouseButtonEventData.mCharRect.mWidth) &&
-               ReadParam(aMsg, aIter,
-                         &aResult->mMouseButtonEventData.mCharRect.mHeight) &&
-               ReadParam(aMsg, aIter,
-                         &aResult->mMouseButtonEventData.mButton) &&
-               ReadParam(aMsg, aIter,
-                         &aResult->mMouseButtonEventData.mButtons) &&
-               ReadParam(aMsg, aIter,
-                         &aResult->mMouseButtonEventData.mModifiers);
+        return ReadParam(aMsg, aIter, &aResult->mMouseButtonEventData);
       default:
         return true;
     }
@@ -694,6 +863,62 @@ struct ParamTraits<mozilla::WidgetPluginEvent>
     return ReadParam(aMsg, aIter,
                      static_cast<mozilla::WidgetGUIEvent*>(aResult)) &&
            ReadParam(aMsg, aIter, &aResult->retargetToFocusedDocument);
+  }
+};
+
+template<>
+struct ParamTraits<mozilla::WritingMode>
+{
+  typedef mozilla::WritingMode paramType;
+
+  static void Write(Message* aMsg, const paramType& aParam)
+  {
+    WriteParam(aMsg, aParam.mWritingMode);
+  }
+
+  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  {
+    return ReadParam(aMsg, aIter, &aResult->mWritingMode);
+  }
+};
+
+template<>
+struct ParamTraits<mozilla::ContentCache>
+{
+  typedef mozilla::ContentCache paramType;
+
+  static void Write(Message* aMsg, const paramType& aParam)
+  {
+    WriteParam(aMsg, aParam.mText);
+    WriteParam(aMsg, aParam.mSelection.mAnchor);
+    WriteParam(aMsg, aParam.mSelection.mFocus);
+    WriteParam(aMsg, aParam.mSelection.mWritingMode);
+    WriteParam(aMsg, aParam.mSelection.mAnchorCharRect);
+    WriteParam(aMsg, aParam.mSelection.mFocusCharRect);
+    WriteParam(aMsg, aParam.mSelection.mRect);
+    WriteParam(aMsg, aParam.mFirstCharRect);
+    WriteParam(aMsg, aParam.mCaret.mOffset);
+    WriteParam(aMsg, aParam.mCaret.mRect);
+    WriteParam(aMsg, aParam.mTextRectArray.mStart);
+    WriteParam(aMsg, aParam.mTextRectArray.mRects);
+    WriteParam(aMsg, aParam.mEditorRect);
+  }
+
+  static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
+  {
+    return ReadParam(aMsg, aIter, &aResult->mText) &&
+           ReadParam(aMsg, aIter, &aResult->mSelection.mAnchor) &&
+           ReadParam(aMsg, aIter, &aResult->mSelection.mFocus) &&
+           ReadParam(aMsg, aIter, &aResult->mSelection.mWritingMode) &&
+           ReadParam(aMsg, aIter, &aResult->mSelection.mAnchorCharRect) &&
+           ReadParam(aMsg, aIter, &aResult->mSelection.mFocusCharRect) &&
+           ReadParam(aMsg, aIter, &aResult->mSelection.mRect) &&
+           ReadParam(aMsg, aIter, &aResult->mFirstCharRect) &&
+           ReadParam(aMsg, aIter, &aResult->mCaret.mOffset) &&
+           ReadParam(aMsg, aIter, &aResult->mCaret.mRect) &&
+           ReadParam(aMsg, aIter, &aResult->mTextRectArray.mStart) &&
+           ReadParam(aMsg, aIter, &aResult->mTextRectArray.mRects) &&
+           ReadParam(aMsg, aIter, &aResult->mEditorRect);
   }
 };
 

@@ -15,7 +15,6 @@
 #include "webrtc/modules/audio_device/linux/audio_device_pulse_linux.h"
 
 #include "webrtc/system_wrappers/interface/event_wrapper.h"
-#include "webrtc/system_wrappers/interface/thread_wrapper.h"
 #include "webrtc/system_wrappers/interface/trace.h"
 
 webrtc_adm_linux_pulse::PulseAudioSymbolTable PaSymbolTable;
@@ -40,10 +39,6 @@ AudioDeviceLinuxPulse::AudioDeviceLinuxPulse(const int32_t id) :
     _timeEventPlay(*EventWrapper::Create()),
     _recStartEvent(*EventWrapper::Create()),
     _playStartEvent(*EventWrapper::Create()),
-    _ptrThreadPlay(NULL),
-    _ptrThreadRec(NULL),
-    _recThreadID(0),
-    _playThreadID(0),
     _id(id),
     _mixerManager(id),
     _inputDeviceIndex(0),
@@ -215,48 +210,31 @@ int32_t AudioDeviceLinuxPulse::Init()
     // RECORDING
     const char* threadName = "webrtc_audio_module_rec_thread";
     _ptrThreadRec = ThreadWrapper::CreateThread(RecThreadFunc, this,
-                                                kRealtimePriority, threadName);
-    if (_ptrThreadRec == NULL)
-    {
-        WEBRTC_TRACE(kTraceCritical, kTraceAudioDevice, _id,
-                     "  failed to create the rec audio thread");
-        return -1;
-    }
-
-    unsigned int threadID(0);
-    if (!_ptrThreadRec->Start(threadID))
+                                                threadName);
+    if (!_ptrThreadRec->Start())
     {
         WEBRTC_TRACE(kTraceCritical, kTraceAudioDevice, _id,
                      "  failed to start the rec audio thread");
 
-        delete _ptrThreadRec;
-        _ptrThreadRec = NULL;
+        _ptrThreadRec.reset();
         return -1;
     }
-    _recThreadID = threadID;
+
+    _ptrThreadRec->SetPriority(kRealtimePriority);
 
     // PLAYOUT
     threadName = "webrtc_audio_module_play_thread";
     _ptrThreadPlay = ThreadWrapper::CreateThread(PlayThreadFunc, this,
-                                                 kRealtimePriority, threadName);
-    if (_ptrThreadPlay == NULL)
-    {
-        WEBRTC_TRACE(kTraceCritical, kTraceAudioDevice, _id,
-                     "  failed to create the play audio thread");
-        return -1;
-    }
-
-    threadID = 0;
-    if (!_ptrThreadPlay->Start(threadID))
+                                                 threadName);
+    if (!_ptrThreadPlay->Start())
     {
         WEBRTC_TRACE(kTraceCritical, kTraceAudioDevice, _id,
                      "  failed to start the play audio thread");
 
-        delete _ptrThreadPlay;
-        _ptrThreadPlay = NULL;
+        _ptrThreadPlay.reset();
         return -1;
     }
-    _playThreadID = threadID;
+    _ptrThreadPlay->SetPriority(kRealtimePriority);
 
     _initialized = true;
 
@@ -278,20 +256,12 @@ int32_t AudioDeviceLinuxPulse::Terminate()
     // RECORDING
     if (_ptrThreadRec)
     {
-        ThreadWrapper* tmpThread = _ptrThreadRec;
-        _ptrThreadRec = NULL;
+        ThreadWrapper* tmpThread = _ptrThreadRec.release();
         UnLock();
 
-        tmpThread->SetNotAlive();
         _timeEventRec.Set();
-        if (tmpThread->Stop())
-        {
-            delete tmpThread;
-        } else
-        {
-            WEBRTC_TRACE(kTraceWarning, kTraceAudioDevice, _id,
-                         "  failed to close down the rec audio thread");
-        }
+        tmpThread->Stop();
+        delete tmpThread;
         // Lock again since we need to protect _ptrThreadPlay.
         Lock();
     }
@@ -299,20 +269,12 @@ int32_t AudioDeviceLinuxPulse::Terminate()
     // PLAYOUT
     if (_ptrThreadPlay)
     {
-        ThreadWrapper* tmpThread = _ptrThreadPlay;
-        _ptrThreadPlay = NULL;
+        ThreadWrapper* tmpThread = _ptrThreadPlay.release();
         _critSect.Leave();
 
-        tmpThread->SetNotAlive();
         _timeEventPlay.Set();
-        if (tmpThread->Stop())
-        {
-            delete tmpThread;
-        } else
-        {
-            WEBRTC_TRACE(kTraceWarning, kTraceAudioDevice, _id,
-                         "  failed to close down the play audio thread");
-        }
+        tmpThread->Stop();
+        delete tmpThread;
     } else {
       UnLock();
     }
@@ -343,34 +305,6 @@ int32_t AudioDeviceLinuxPulse::Terminate()
 bool AudioDeviceLinuxPulse::Initialized() const
 {
     return (_initialized);
-}
-
-int32_t AudioDeviceLinuxPulse::SpeakerIsAvailable(bool& available)
-{
-
-    bool wasInitialized = _mixerManager.SpeakerIsInitialized();
-
-    // Make an attempt to open up the
-    // output mixer corresponding to the currently selected output device.
-    //
-    if (!wasInitialized && InitSpeaker() == -1)
-    {
-        available = false;
-        return 0;
-    }
-
-    // Given that InitSpeaker was successful, we know that a valid speaker exists
-    //
-    available = true;
-
-    // Close the initialized output mixer
-    //
-    if (!wasInitialized)
-    {
-        _mixerManager.CloseSpeaker();
-    }
-
-    return 0;
 }
 
 int32_t AudioDeviceLinuxPulse::InitSpeaker()
@@ -414,34 +348,6 @@ int32_t AudioDeviceLinuxPulse::InitSpeaker()
     // clear _deviceIndex
     _deviceIndex = -1;
     _paDeviceIndex = -1;
-
-    return 0;
-}
-
-int32_t AudioDeviceLinuxPulse::MicrophoneIsAvailable(bool& available)
-{
-
-    bool wasInitialized = _mixerManager.MicrophoneIsInitialized();
-
-    // Make an attempt to open up the
-    // input mixer corresponding to the currently selected output device.
-    //
-    if (!wasInitialized && InitMicrophone() == -1)
-    {
-        available = false;
-        return 0;
-    }
-
-    // Given that InitMicrophone was successful, we know that a valid microphone
-    // exists
-    available = true;
-
-    // Close the initialized input mixer
-    //
-    if (!wasInitialized)
-    {
-        _mixerManager.CloseMicrophone();
-    }
 
     return 0;
 }
@@ -2473,6 +2379,18 @@ void AudioDeviceLinuxPulse::PaStreamReadCallbackHandler()
         return;
     }
 
+    // PulseAudio record streams can have holes (for reasons not entirely clear
+    // to the PA developers themselves). Since version 4 of PA, these are passed
+    // over to the application (us), signaled by a non-zero sample data size
+    // (the size of the hole) and a NULL sample data.
+    // We handle stream holes as recommended by PulseAudio, i.e. by skipping
+    // it, which is done with a stream drop.
+    if (_tempSampleDataSize && !_tempSampleData) {
+        LATE(pa_stream_drop)(_recStream);
+        _tempSampleDataSize = 0; // reset
+        return;
+    }
+
     // Since we consume the data asynchronously on a different thread, we have
     // to temporarily disable the read callback or else Pulse will call it
     // continuously until we consume the data. We re-enable it below
@@ -2698,7 +2616,6 @@ bool AudioDeviceLinuxPulse::PlayThreadProcess()
     switch (_timeEventPlay.Wait(1000))
     {
         case kEventSignaled:
-            _timeEventPlay.Reset();
             break;
         case kEventError:
             WEBRTC_TRACE(kTraceWarning, kTraceAudioDevice, _id,
@@ -2940,7 +2857,6 @@ bool AudioDeviceLinuxPulse::RecThreadProcess()
     switch (_timeEventRec.Wait(1000))
     {
         case kEventSignaled:
-            _timeEventRec.Reset();
             break;
         case kEventError:
             WEBRTC_TRACE(kTraceWarning, kTraceAudioDevice, _id,

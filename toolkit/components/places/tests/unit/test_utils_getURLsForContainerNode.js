@@ -165,16 +165,16 @@ function check_uri_nodes(aQuery, aOptions, aExpectedURINodes) {
   root.containerOpen = true;
   var node = root.getChild(0);
   do_check_eq(PU.hasChildURIs(node), aExpectedURINodes > 0);
-  do_check_eq(PU.hasChildURIs(node, true), aExpectedURINodes > 1);
   do_check_eq(PU.getURLsForContainerNode(node).length, aExpectedURINodes);
   root.containerOpen = false;
 }
 
-function run_test() {
-  tests.forEach(function(aTest) {
-                  remove_all_bookmarks();
-                  aTest();
-                });
+add_task(function* () {
+  for (let test of tests) {
+    yield PlacesUtils.bookmarks.eraseEverything();
+    test();
+  }
+
   // Cleanup.
-  remove_all_bookmarks();
-}
+  yield PlacesUtils.bookmarks.eraseEverything();
+});

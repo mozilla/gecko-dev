@@ -501,6 +501,20 @@ class TransportTestPeer : public sigslot::has_slots<> {
     ASSERT_TRUE(NS_SUCCEEDED(res));
   }
 
+  void SetAlpn(std::string str, bool withDefault, std::string extra = "") {
+    std::set<std::string> alpn;
+    alpn.insert(str); // the one we want to select
+    if (!extra.empty()) {
+      alpn.insert(extra);
+    }
+    nsresult res = dtls_->SetAlpn(alpn, withDefault ? str : "");
+    ASSERT_EQ(NS_OK, res);
+  }
+
+  const std::string& GetAlpn() const {
+    return dtls_->GetNegotiatedAlpn();
+  }
+
   void SetDtlsPeer(TransportTestPeer *peer, int digests, unsigned int damage) {
     unsigned int mask = 1;
 
@@ -597,9 +611,11 @@ class TransportTestPeer : public sigslot::has_slots<> {
              (int)streams_.size());
 
     // Create the media stream
-    mozilla::RefPtr<NrIceMediaStream> stream =
+    RefPtr<NrIceMediaStream> stream =
         ice_ctx_->CreateStream(static_cast<char *>(name), 1);
+
     ASSERT_TRUE(stream != nullptr);
+    ice_ctx_->SetStream(streams_.size(), stream);
     streams_.push_back(stream);
 
     // Listen for candidates
@@ -607,7 +623,8 @@ class TransportTestPeer : public sigslot::has_slots<> {
         connect(this, &TransportTestPeer::GotCandidate);
 
     // Create the transport layer
-    ice_ = new TransportLayerIce(name, ice_ctx_, stream, 1);
+    ice_ = new TransportLayerIce(name);
+    ice_->SetParameters(ice_ctx_, stream, 1);
 
     // Assemble the stack
     nsAutoPtr<std::queue<mozilla::TransportLayer *> > layers(
@@ -616,7 +633,7 @@ class TransportTestPeer : public sigslot::has_slots<> {
     layers->push(dtls_);
 
     test_utils->sts_target()->Dispatch(
-      WrapRunnableRet(flow_, &TransportFlow::PushLayers, layers, &res),
+      WrapRunnableRet(&res, flow_, &TransportFlow::PushLayers, layers),
       NS_DISPATCH_SYNC);
 
     ASSERT_EQ((nsresult)NS_OK, res);
@@ -627,7 +644,7 @@ class TransportTestPeer : public sigslot::has_slots<> {
 
     // Start gathering
     test_utils->sts_target()->Dispatch(
-        WrapRunnableRet(ice_ctx_, &NrIceCtx::StartGathering, &res),
+        WrapRunnableRet(&res, ice_ctx_, &NrIceCtx::StartGathering),
         NS_DISPATCH_SYNC);
     ASSERT_TRUE(NS_SUCCEEDED(res));
   }
@@ -667,23 +684,23 @@ class TransportTestPeer : public sigslot::has_slots<> {
 
     // First send attributes
     test_utils->sts_target()->Dispatch(
-      WrapRunnableRet(peer_->ice_ctx_,
+      WrapRunnableRet(&res, peer_->ice_ctx_,
                       &NrIceCtx::ParseGlobalAttributes,
-                      ice_ctx_->GetGlobalAttributes(), &res),
+                      ice_ctx_->GetGlobalAttributes()),
       NS_DISPATCH_SYNC);
     ASSERT_TRUE(NS_SUCCEEDED(res));
 
     for (size_t i=0; i<streams_.size(); ++i) {
       test_utils->sts_target()->Dispatch(
-        WrapRunnableRet(peer_->streams_[i], &NrIceMediaStream::ParseAttributes,
-                        candidates_[streams_[i]->name()], &res), NS_DISPATCH_SYNC);
+        WrapRunnableRet(&res, peer_->streams_[i], &NrIceMediaStream::ParseAttributes,
+                        candidates_[streams_[i]->name()]), NS_DISPATCH_SYNC);
 
       ASSERT_TRUE(NS_SUCCEEDED(res));
     }
 
     // Start checks on the other peer.
     test_utils->sts_target()->Dispatch(
-      WrapRunnableRet(peer_->ice_ctx_, &NrIceCtx::StartChecks, &res),
+      WrapRunnableRet(&res, peer_->ice_ctx_, &NrIceCtx::StartChecks),
       NS_DISPATCH_SYNC);
     ASSERT_TRUE(NS_SUCCEEDED(res));
   }
@@ -691,7 +708,7 @@ class TransportTestPeer : public sigslot::has_slots<> {
   TransportResult SendPacket(const unsigned char* data, size_t len) {
     TransportResult ret;
     test_utils->sts_target()->Dispatch(
-      WrapRunnableRet(flow_, &TransportFlow::SendPacket, data, len, &ret),
+      WrapRunnableRet(&ret, flow_, &TransportFlow::SendPacket, data, len),
       NS_DISPATCH_SYNC);
 
     return ret;
@@ -738,7 +755,7 @@ class TransportTestPeer : public sigslot::has_slots<> {
     TransportLayer::State tstate;
 
     RUN_ON_THREAD(test_utils->sts_target(),
-                  WrapRunnableRet(flow_, &TransportFlow::state, &tstate));
+                  WrapRunnableRet(&tstate, flow_, &TransportFlow::state));
 
     return tstate;
   }
@@ -757,8 +774,8 @@ class TransportTestPeer : public sigslot::has_slots<> {
     nsresult rv;
     uint16_t cipher;
     RUN_ON_THREAD(test_utils->sts_target(),
-                  WrapRunnableRet(dtls_, &TransportLayerDtls::GetCipherSuite,
-                                  &cipher, &rv));
+                  WrapRunnableRet(&rv, dtls_, &TransportLayerDtls::GetCipherSuite,
+                                  &cipher));
 
     if (NS_FAILED(rv)) {
       return TLS_NULL_WITH_NULL_NULL; // i.e., not good
@@ -770,8 +787,8 @@ class TransportTestPeer : public sigslot::has_slots<> {
     nsresult rv;
     uint16_t cipher;
     RUN_ON_THREAD(test_utils->sts_target(),
-                  WrapRunnableRet(dtls_, &TransportLayerDtls::GetSrtpCipher,
-                                  &cipher, &rv));
+                  WrapRunnableRet(&rv, dtls_, &TransportLayerDtls::GetSrtpCipher,
+                                  &cipher));
     if (NS_FAILED(rv)) {
       return 0; // the SRTP equivalent of TLS_NULL_WITH_NULL_NULL
     }
@@ -782,15 +799,15 @@ class TransportTestPeer : public sigslot::has_slots<> {
   std::string name_;
   nsCOMPtr<nsIEventTarget> target_;
   size_t received_;
-    mozilla::RefPtr<TransportFlow> flow_;
+    RefPtr<TransportFlow> flow_;
   TransportLayerLoopback *loopback_;
   TransportLayerLogging *logging_;
   TransportLayerLossy *lossy_;
   TransportLayerDtls *dtls_;
   TransportLayerIce *ice_;
-  mozilla::RefPtr<DtlsIdentity> identity_;
-  mozilla::RefPtr<NrIceCtx> ice_ctx_;
-  std::vector<mozilla::RefPtr<NrIceMediaStream> > streams_;
+  RefPtr<DtlsIdentity> identity_;
+  RefPtr<NrIceCtx> ice_ctx_;
+  std::vector<RefPtr<NrIceMediaStream> > streams_;
   std::map<std::string, std::vector<std::string> > candidates_;
   TransportTestPeer *peer_;
   bool gathering_complete_;
@@ -851,14 +868,23 @@ class TransportTest : public ::testing::Test {
     p2_->SetDtlsAllowAll();
   }
 
-  void ConnectSocket() {
-    test_utils->sts_target()->Dispatch(
-      WrapRunnable(p1_, &TransportTestPeer::ConnectSocket, p2_),
-      NS_DISPATCH_SYNC);
-    test_utils->sts_target()->Dispatch(
-      WrapRunnable(p2_, &TransportTestPeer::ConnectSocket, p1_),
-      NS_DISPATCH_SYNC);
+  void SetAlpn(std::string first, std::string second,
+               bool withDefaults = true) {
+    if (!first.empty()) {
+      p1_->SetAlpn(first, withDefaults, "bogus");
+    }
+    if (!second.empty()) {
+      p2_->SetAlpn(second, withDefaults);
+    }
+  }
 
+  void CheckAlpn(std::string first, std::string second) {
+    ASSERT_EQ(first, p1_->GetAlpn());
+    ASSERT_EQ(second, p2_->GetAlpn());
+  }
+
+  void ConnectSocket() {
+    ConnectSocketInternal();
     ASSERT_TRUE_WAIT(p1_->connected(), 10000);
     ASSERT_TRUE_WAIT(p2_->connected(), 10000);
 
@@ -867,14 +893,16 @@ class TransportTest : public ::testing::Test {
   }
 
   void ConnectSocketExpectFail() {
-    test_utils->sts_target()->Dispatch(
-      WrapRunnable(p1_, &TransportTestPeer::ConnectSocket, p2_),
-      NS_DISPATCH_SYNC);
-    test_utils->sts_target()->Dispatch(
-      WrapRunnable(p2_, &TransportTestPeer::ConnectSocket, p1_),
-      NS_DISPATCH_SYNC);
+    ConnectSocketInternal();
     ASSERT_TRUE_WAIT(p1_->failed(), 10000);
     ASSERT_TRUE_WAIT(p2_->failed(), 10000);
+  }
+
+  void ConnectSocketExpectState(TransportLayer::State s1,
+                                TransportLayer::State s2) {
+    ConnectSocketInternal();
+    ASSERT_EQ_WAIT(s1, p1_->state(), 10000);
+    ASSERT_EQ_WAIT(s2, p2_->state(), 10000);
   }
 
   void InitIce() {
@@ -905,6 +933,15 @@ class TransportTest : public ::testing::Test {
   }
 
  protected:
+  void ConnectSocketInternal() {
+    test_utils->sts_target()->Dispatch(
+      WrapRunnable(p1_, &TransportTestPeer::ConnectSocket, p2_),
+      NS_DISPATCH_SYNC);
+    test_utils->sts_target()->Dispatch(
+      WrapRunnable(p2_, &TransportTestPeer::ConnectSocket, p1_),
+      NS_DISPATCH_SYNC);
+  }
+
   PRFileDesc *fds_[2];
   TransportTestPeer *p1_;
   TransportTestPeer *p2_;
@@ -921,8 +958,7 @@ TEST_F(TransportTest, TestConnect) {
   ConnectSocket();
 
   // check that we got the right suite
-  // bug 1052610
-  //ASSERT_EQ(TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, p1_->cipherSuite());
+  ASSERT_EQ(TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, p1_->cipherSuite());
 
   // no SRTP on this one
   ASSERT_EQ(0, p1_->srtpCipher());
@@ -933,8 +969,7 @@ TEST_F(TransportTest, TestConnectSrtp) {
   SetDtlsPeer();
   ConnectSocket();
 
-  // bug 1052610
-  //ASSERT_EQ(TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, p1_->cipherSuite());
+  ASSERT_EQ(TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, p1_->cipherSuite());
 
   // SRTP is on
   ASSERT_EQ(SRTP_AES128_CM_HMAC_SHA1_80, p1_->srtpCipher());
@@ -952,6 +987,62 @@ TEST_F(TransportTest, TestConnectAllowAll) {
   ConnectSocket();
 }
 
+TEST_F(TransportTest, TestConnectAlpn) {
+  SetDtlsPeer();
+  SetAlpn("a", "a");
+  ConnectSocket();
+  CheckAlpn("a", "a");
+}
+
+TEST_F(TransportTest, TestConnectAlpnMismatch) {
+  SetDtlsPeer();
+  SetAlpn("something", "different");
+  ConnectSocketExpectFail();
+}
+
+TEST_F(TransportTest, TestConnectAlpnServerDefault) {
+  SetDtlsPeer();
+  SetAlpn("def", "");
+  // server allows default, client doesn't support
+  ConnectSocket();
+  CheckAlpn("def", "");
+}
+
+TEST_F(TransportTest, TestConnectAlpnClientDefault) {
+  SetDtlsPeer();
+  SetAlpn("", "clientdef");
+  // client allows default, but server will ignore the extension
+  ConnectSocket();
+  CheckAlpn("", "clientdef");
+}
+
+TEST_F(TransportTest, TestConnectClientNoAlpn) {
+  SetDtlsPeer();
+  // Here the server has ALPN, but no default is allowed.
+  // Reminder: p1 == server, p2 == client
+  SetAlpn("server-nodefault", "", false);
+  // The server doesn't see the extension, so negotiates without it.
+  // But then the server is forced to close when it discovers that ALPN wasn't
+  // negotiated; the client sees a close.
+  ConnectSocketExpectState(TransportLayer::TS_ERROR,
+                           TransportLayer::TS_CLOSED);
+}
+
+TEST_F(TransportTest, TestConnectServerNoAlpn) {
+  SetDtlsPeer();
+  SetAlpn("", "client-nodefault", false);
+  // The client aborts; the server doesn't realize this is a problem and just
+  // sees the close.
+  ConnectSocketExpectState(TransportLayer::TS_CLOSED,
+                           TransportLayer::TS_ERROR);
+}
+
+TEST_F(TransportTest, TestConnectNoDigest) {
+  SetDtlsPeer(0, 0);
+
+  ConnectSocketExpectFail();
+}
+
 TEST_F(TransportTest, TestConnectBadDigest) {
   SetDtlsPeer(1, 1);
 
@@ -967,13 +1058,13 @@ TEST_F(TransportTest, TestConnectTwoDigests) {
 TEST_F(TransportTest, TestConnectTwoDigestsFirstBad) {
   SetDtlsPeer(2, 1);
 
-  ConnectSocketExpectFail();
+  ConnectSocket();
 }
 
 TEST_F(TransportTest, TestConnectTwoDigestsSecondBad) {
   SetDtlsPeer(2, 2);
 
-  ConnectSocketExpectFail();
+  ConnectSocket();
 }
 
 TEST_F(TransportTest, TestConnectTwoDigestsBothBad) {
@@ -1084,24 +1175,23 @@ static void ConfigureOneCipher(TransportTestPeer* peer, uint16_t suite) {
 
 TEST_F(TransportTest, TestCipherMismatch) {
   SetDtlsPeer();
-  ConfigureOneCipher(p1_, TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256);
-  ConfigureOneCipher(p2_, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA);
+  ConfigureOneCipher(p1_, TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256);
+  ConfigureOneCipher(p2_, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA);
   ConnectSocketExpectFail();
 }
 
-// TODO(mt@mozilla.com) restore; bug 1052610
-TEST_F(TransportTest, DISABLED_TestCipherMandatoryOnlyGcm) {
+TEST_F(TransportTest, TestCipherMandatoryOnlyGcm) {
   SetDtlsPeer();
-  ConfigureOneCipher(p1_, TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256);
+  ConfigureOneCipher(p1_, TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256);
   ConnectSocket();
-  ASSERT_EQ(TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, p1_->cipherSuite());
+  ASSERT_EQ(TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, p1_->cipherSuite());
 }
 
 TEST_F(TransportTest, TestCipherMandatoryOnlyCbc) {
   SetDtlsPeer();
-  ConfigureOneCipher(p1_, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA);
+  ConfigureOneCipher(p1_, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA);
   ConnectSocket();
-  ASSERT_EQ(TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA, p1_->cipherSuite());
+  ASSERT_EQ(TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, p1_->cipherSuite());
 }
 
 TEST_F(TransportTest, TestSrtpMismatch) {
@@ -1131,7 +1221,7 @@ TEST_F(TransportTest, TestDheOnlyFails) {
 }
 
 TEST(PushTests, LayerFail) {
-  mozilla::RefPtr<TransportFlow> flow = new TransportFlow();
+  RefPtr<TransportFlow> flow = new TransportFlow();
   nsresult rv;
   bool destroyed1, destroyed2;
 
@@ -1151,7 +1241,7 @@ TEST(PushTests, LayerFail) {
 }
 
 TEST(PushTests, LayersFail) {
-  mozilla::RefPtr<TransportFlow> flow = new TransportFlow();
+  RefPtr<TransportFlow> flow = new TransportFlow();
   nsresult rv;
   bool destroyed1, destroyed2, destroyed3;
 

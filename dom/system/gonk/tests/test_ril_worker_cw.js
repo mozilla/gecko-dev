@@ -1,5 +1,5 @@
 /* Any copyright is dedicated to the Public Domain.
-   http://creativecommons.org/publicdomain/zero/1.0/ */
+ * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 subscriptLoader.loadSubScript("resource://gre/modules/ril_consts.js", this);
 
@@ -13,9 +13,7 @@ add_test(function test_setCallWaiting_success() {
   let context = worker.ContextPool._contexts[0];
 
   context.RIL.setCallWaiting = function fakeSetCallWaiting(options) {
-    context.RIL[REQUEST_SET_CALL_WAITING](0, {
-      rilRequestError: ERROR_SUCCESS
-    });
+    context.RIL[REQUEST_SET_CALL_WAITING](0, {});
   };
 
   context.RIL.setCallWaiting({
@@ -24,8 +22,7 @@ add_test(function test_setCallWaiting_success() {
 
   let postedMessage = workerHelper.postedMessage;
 
-  do_check_eq(postedMessage.errorMsg, undefined);
-  do_check_true(postedMessage.success);
+  equal(postedMessage.errorMsg, undefined);
 
   run_next_test();
 });
@@ -37,7 +34,7 @@ add_test(function test_setCallWaiting_generic_failure() {
 
   context.RIL.setCallWaiting = function fakeSetCallWaiting(options) {
     context.RIL[REQUEST_SET_CALL_WAITING](0, {
-      rilRequestError: ERROR_GENERIC_FAILURE
+      errorMsg: GECKO_ERROR_GENERIC_FAILURE
     });
   };
 
@@ -47,8 +44,7 @@ add_test(function test_setCallWaiting_generic_failure() {
 
   let postedMessage = workerHelper.postedMessage;
 
-  do_check_eq(postedMessage.errorMsg, "GenericFailure");
-  do_check_false(postedMessage.success);
+  equal(postedMessage.errorMsg, GECKO_ERROR_GENERIC_FAILURE);
 
   run_next_test();
 });
@@ -66,21 +62,17 @@ add_test(function test_queryCallWaiting_success_enabled_true() {
     context.Buf.int32Array = [
       1,  // serviceClass
       1,  // enabled
-      1   // length
+      2   // length
     ];
-    context.RIL[REQUEST_QUERY_CALL_WAITING](1, {
-      rilRequestError: ERROR_SUCCESS
-    });
+    context.RIL[REQUEST_QUERY_CALL_WAITING](1, {});
   };
 
   context.RIL.queryCallWaiting({});
 
   let postedMessage = workerHelper.postedMessage;
 
-  do_check_eq(postedMessage.errorMsg, undefined);
-  do_check_true(postedMessage.success);
-  do_check_eq(postedMessage.length, 1);
-  do_check_true(postedMessage.enabled);
+  equal(postedMessage.errorMsg, undefined);
+  equal(postedMessage.serviceClass, 1);
   run_next_test();
 });
 
@@ -97,20 +89,16 @@ add_test(function test_queryCallWaiting_success_enabled_false() {
     context.Buf.int32Array = [
       1,  // serviceClass
       0,  // enabled
-      1   // length
+      2   // length
     ];
-    context.RIL[REQUEST_QUERY_CALL_WAITING](1, {
-      rilRequestError: ERROR_SUCCESS
-    });
+    context.RIL[REQUEST_QUERY_CALL_WAITING](1, {});
   };
 
   context.RIL.queryCallWaiting({});
 
   let postedMessage = workerHelper.postedMessage;
 
-  do_check_eq(postedMessage.errorMsg, undefined);
-  do_check_true(postedMessage.success);
-  do_check_eq(postedMessage.length, 1);
-  do_check_false(postedMessage.enabled);
+  equal(postedMessage.errorMsg, undefined);
+  equal(postedMessage.serviceClass, ICC_SERVICE_CLASS_NONE);
   run_next_test();
 });

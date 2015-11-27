@@ -120,44 +120,34 @@ public:
   }
 };
 
+
+template<>
+class nsAutoRefTraits<DEVMODEW*>
+{
+public:
+  typedef DEVMODEW* RawRef;
+  static RawRef Void()
+  {
+    return nullptr;
+  }
+
+  static void Release(RawRef aDevMode)
+  {
+    if (aDevMode != Void()) {
+      ::HeapFree(::GetProcessHeap(), 0, aDevMode);
+    }
+  }
+};
+
 typedef nsAutoRef<HKEY> nsAutoRegKey;
 typedef nsAutoRef<SC_HANDLE> nsAutoServiceHandle;
 typedef nsAutoRef<HANDLE> nsAutoHandle;
 typedef nsAutoRef<HMODULE> nsModuleHandle;
+typedef nsAutoRef<DEVMODEW*> nsAutoDevMode;
 
 namespace {
 
-bool
-IsRunningInWindowsMetro()
-{
-  static bool alreadyChecked = false;
-  static bool isMetro = false;
-  if (alreadyChecked) {
-    return isMetro;
-  }
-
-  HMODULE user32DLL = LoadLibraryW(L"user32.dll");
-  if (!user32DLL) {
-    return false;
-  }
-
-  typedef BOOL (WINAPI* IsImmersiveProcessFunc)(HANDLE aProcess);
-  IsImmersiveProcessFunc IsImmersiveProcessPtr =
-    (IsImmersiveProcessFunc)GetProcAddress(user32DLL,
-                                           "IsImmersiveProcess");
-  FreeLibrary(user32DLL);
-  if (!IsImmersiveProcessPtr) {
-    // isMetro is already set to false.
-    alreadyChecked = true;
-    return false;
-  }
-
-  isMetro = IsImmersiveProcessPtr(GetCurrentProcess());
-  alreadyChecked = true;
-  return isMetro;
-}
-
-HMODULE
+HMODULE inline
 LoadLibrarySystem32(LPCWSTR aModule)
 {
   WCHAR systemPath[MAX_PATH + 1] = { L'\0' };

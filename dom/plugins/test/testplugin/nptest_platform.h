@@ -49,23 +49,6 @@ bool    pluginSupportsWindowMode();
 bool    pluginSupportsWindowlessMode();
 
 /**
- * Returns true if the plugin supports async bitmap drawing.
- */
-bool    pluginSupportsAsyncBitmapDrawing();
-
-/**
- * Returns true if the plugin supports DXGI bitmap drawing.
- */
-inline bool    pluginSupportsAsyncDXGIDrawing()
-{
-#ifdef XP_WIN
-  return true;
-#else
-  return false;
-#endif
-}
-
-/**
  * Initialize the plugin instance. Returning an error here will cause the
  * plugin instantiation to fail.
  */
@@ -92,10 +75,6 @@ void    pluginWidgetInit(InstanceData* instanceData, void* oldWindow);
  * responsible for listening for their own events.)
  */
 int16_t pluginHandleEvent(InstanceData* instanceData, void* event);
-
-#ifdef XP_WIN
-void    pluginDrawAsyncDxgiColor(InstanceData* instanceData);
-#endif
 
 enum RectEdge {
   EDGE_LEFT = 0,
@@ -165,5 +144,12 @@ bool pluginCrashInNestedLoop(InstanceData* instanceData);
  * must not be used after this call or weird things will happen.
  */
 bool pluginDestroySharedGfxStuff(InstanceData* instanceData);
+
+/**
+ * Checks to see if the native widget is marked as visible. Works
+ * in e10s and non-e10s. Useful in testing e10s related compositor
+ * plugin window functionality. Supported on Windows.
+ */
+bool pluginNativeWidgetIsVisible(InstanceData* instanceData);
 
 #endif // nptest_platform_h_

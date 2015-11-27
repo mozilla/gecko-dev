@@ -13,7 +13,6 @@
 
 class nsISupports;
 class nsIEventTarget;
-class nsIThread;
 
 namespace mozilla {
 namespace net {
@@ -33,11 +32,9 @@ class ChannelEvent
 // instance) to be dispatched and called before mListener->OnStartRequest has
 // completed.
 
-class AutoEventEnqueuerBase;
-
-class ChannelEventQueue MOZ_FINAL
+class ChannelEventQueue final
 {
-  NS_INLINE_DECL_REFCOUNTING(ChannelEventQueue)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ChannelEventQueue)
 
  public:
   explicit ChannelEventQueue(nsISupports *owner)
@@ -54,6 +51,7 @@ class ChannelEventQueue MOZ_FINAL
   // Puts IPDL-generated channel event into queue, to be run later
   // automatically when EndForcedQueueing and/or Resume is called.
   inline void Enqueue(ChannelEvent* callback);
+  inline nsresult PrependEvents(nsTArray<nsAutoPtr<ChannelEvent> >& aEvents);
 
   // After StartForcedQueueing is called, ShouldEnqueue() will return true and
   // no events will be run/flushed until EndForcedQueueing is called.
@@ -94,8 +92,8 @@ class ChannelEventQueue MOZ_FINAL
   // Keep ptr to avoid refcount cycle: only grab ref during flushing.
   nsISupports *mOwner;
 
-  // Target thread for delivery of events.
-  nsCOMPtr<nsIThread> mTargetThread;
+  // EventTarget for delivery of events to the correct thread.
+  nsCOMPtr<nsIEventTarget> mTargetThread;
 
   friend class AutoEventEnqueuer;
 };
@@ -105,8 +103,8 @@ ChannelEventQueue::ShouldEnqueue()
 {
   bool answer =  mForced || mSuspended || mFlushing;
 
-  NS_ABORT_IF_FALSE(answer == true || mEventQueue.IsEmpty(),
-                    "Should always enqueue if ChannelEventQueue not empty");
+  MOZ_ASSERT(answer == true || mEventQueue.IsEmpty(),
+             "Should always enqueue if ChannelEventQueue not empty");
 
   return answer;
 }
@@ -128,6 +126,19 @@ ChannelEventQueue::EndForcedQueueing()
 {
   mForced = false;
   MaybeFlushQueue();
+}
+
+inline nsresult
+ChannelEventQueue::PrependEvents(nsTArray<nsAutoPtr<ChannelEvent> >& aEvents)
+{
+  if (!mEventQueue.InsertElementsAt(0, aEvents.Length())) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  for (uint32_t i = 0; i < aEvents.Length(); i++) {
+    mEventQueue.ReplaceElementAt(i, aEvents[i].forget());
+  }
+  return NS_OK;
 }
 
 inline void
@@ -162,7 +173,7 @@ ChannelEventQueue::MaybeFlushQueue()
 // Ensures that ShouldEnqueue() will be true during its lifetime (letting
 // caller know incoming IPDL msgs should be queued). Flushes the queue when it
 // goes out of scope.
-class AutoEventEnqueuer
+class MOZ_STACK_CLASS AutoEventEnqueuer
 {
  public:
   explicit AutoEventEnqueuer(ChannelEventQueue *queue) : mEventQueue(queue) {
@@ -172,10 +183,10 @@ class AutoEventEnqueuer
     mEventQueue->EndForcedQueueing();
   }
  private:
-  ChannelEventQueue* mEventQueue;
+  RefPtr<ChannelEventQueue> mEventQueue;
 };
 
-}
-}
+} // namespace net
+} // namespace mozilla
 
 #endif

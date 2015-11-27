@@ -70,7 +70,7 @@ const LOGGER_ID = "addons.repository";
 
 // Create a new logger for use by the Addons Repository
 // (Requires AddonManager.jsm)
-let logger = Log.repository.getLogger(LOGGER_ID);
+var logger = Log.repository.getLogger(LOGGER_ID);
 
 // A map between XML keys to AddonSearchResult keys for string values
 // that require no extra parsing from XML
@@ -99,7 +99,7 @@ const INTEGER_KEY_MAP = {
 };
 
 // Wrap the XHR factory so that tests can override with a mock
-let XHRequest = Components.Constructor("@mozilla.org/xmlextras/xmlhttprequest;1",
+var XHRequest = Components.Constructor("@mozilla.org/xmlextras/xmlhttprequest;1",
                                        "nsIXMLHttpRequest");
 
 function convertHTMLToPlainText(html) {
@@ -844,6 +844,11 @@ this.AddonRepository = {
         if (idIndex == -1)
           continue;
 
+        // Ignore add-on if the add-on manager doesn't know about its type:
+        if (!(result.addon.type in AddonManager.addonTypes)) {
+          continue;
+        }
+
         results.push(result);
         // Ignore this add-on from now on
         ids.splice(idIndex, 1);
@@ -851,7 +856,8 @@ this.AddonRepository = {
 
       // Include any compatibility overrides for addons not hosted by the
       // remote repository.
-      for each (let addonCompat in aCompatData) {
+      for (let id in aCompatData) {
+        let addonCompat = aCompatData[id];
         if (addonCompat.hosted)
           continue;
 
@@ -958,7 +964,7 @@ this.AddonRepository = {
     this._searching = false;
     this._request = null;
     // The callback may want to trigger a new search so clear references early
-    let addons = [result.addon for each(result in aResults)];
+    let addons = aResults.map(result => result.addon);
     let callback = this._callback;
     this._callback = null;
     callback.searchSucceeded(addons, addons.length, aTotalResults);
@@ -984,7 +990,7 @@ this.AddonRepository = {
   // Returns null if not unique tag name.
   _getUniqueDirectDescendant: function AddonRepo_getUniqueDirectDescendant(aElement, aTagName) {
     let elementsList = Array.filter(aElement.children,
-                                    function arrayFiltering(aChild) aChild.tagName == aTagName);
+                                    aChild => aChild.tagName == aTagName);
     return (elementsList.length == 1) ? elementsList[0] : null;
   },
 
@@ -1089,10 +1095,8 @@ this.AddonRepository = {
               addon.type = "search";
               break;
             case 5:
-              addon.type = "langpack";
-              break;
             case 6:
-              addon.type = "langpack-addon";
+              addon.type = "locale";
               break;
             case 7:
               addon.type = "plugin";
@@ -1300,7 +1304,11 @@ this.AddonRepository = {
 
       // Ignore add-on missing a required attribute
       let requiredAttributes = ["id", "name", "version", "type", "creator"];
-      if (requiredAttributes.some(function parseAddons_attributeFilter(aAttribute) !result.addon[aAttribute]))
+      if (requiredAttributes.some(aAttribute => !result.addon[aAttribute]))
+        continue;
+
+      // Ignore add-on with a type AddonManager doesn't understand:
+      if (!(result.addon.type in AddonManager.addonTypes))
         continue;
 
       // Add only if the add-on is compatible with the platform
@@ -1421,7 +1429,7 @@ this.AddonRepository = {
 
     let rangeNodes = aElement.querySelectorAll("version_ranges > version_range");
     compat.compatRanges = Array.map(rangeNodes, parseRangeNode.bind(this))
-                               .filter(function compatRangesFilter(aItem) !!aItem);
+                               .filter(aItem => !!aItem);
     if (compat.compatRanges.length == 0)
       return;
 
@@ -1494,7 +1502,7 @@ this.AddonRepository = {
     let localAddonIds = {ids: null, sourceURIs: null};
 
     AddonManager.getAllAddons(function getLocalAddonIds_getAllAddons(aAddons) {
-      localAddonIds.ids = [a.id for each (a in aAddons)];
+      localAddonIds.ids = aAddons.map(a => a.id);
       if (localAddonIds.sourceURIs)
         aCallback(localAddonIds);
     });

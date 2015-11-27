@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
 * License, v. 2.0. If a copy of the MPL was not distributed with this file,
 * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -36,23 +38,23 @@ protected:
   }
 
   virtual void
-  ActorDestroy(ActorDestroyReason why);
+  ActorDestroy(ActorDestroyReason aWhy) override;
 
   virtual bool
   RecvPMobileConnectionRequestConstructor(PMobileConnectionRequestParent* aActor,
-                                          const MobileConnectionRequest& aRequest) MOZ_OVERRIDE;
+                                          const MobileConnectionRequest& aRequest) override;
 
   virtual PMobileConnectionRequestParent*
-  AllocPMobileConnectionRequestParent(const MobileConnectionRequest& request) MOZ_OVERRIDE;
+  AllocPMobileConnectionRequestParent(const MobileConnectionRequest& request) override;
 
   virtual bool
-  DeallocPMobileConnectionRequestParent(PMobileConnectionRequestParent* aActor) MOZ_OVERRIDE;
+  DeallocPMobileConnectionRequestParent(PMobileConnectionRequestParent* aActor) override;
 
   virtual bool
   RecvInit(nsMobileConnectionInfo* aVoice, nsMobileConnectionInfo* aData,
            nsString* aLastKnownNetwork, nsString* aLastKnownHomeNetwork,
-           nsString* aIccId, nsString* aNetworkSelectionMode,
-           nsString* aRadioState, nsTArray<nsString>* aSupportedNetworkTypes) MOZ_OVERRIDE;
+           int32_t* aNetworkSelectionMode, int32_t* aRadioState,
+           nsTArray<int32_t>* aSupportedNetworkTypes) override;
 
 private:
   nsCOMPtr<nsIMobileConnection> mMobileConnection;
@@ -112,12 +114,6 @@ public:
   DoRequest(const GetVoicePrivacyModeRequest& aRequest);
 
   bool
-  DoRequest(const SendMmiRequest& aRequest);
-
-  bool
-  DoRequest(const CancelMmiRequest& aRequest);
-
-  bool
   DoRequest(const SetCallForwardingRequest& aRequest);
 
   bool
@@ -158,7 +154,7 @@ protected:
   }
 
   virtual void
-  ActorDestroy(ActorDestroyReason why);
+  ActorDestroy(ActorDestroyReason aWhy) override;
 
   nsresult
   SendReply(const MobileConnectionReply& aReply);

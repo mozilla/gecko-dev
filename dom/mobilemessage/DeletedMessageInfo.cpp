@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -68,10 +69,9 @@ DeletedMessageInfo::GetDeletedMessageIds(nsIVariant** aDeletedMessageIds)
     return NS_OK;
   }
 
-  nsresult rv;
-  mDeletedMessageIds = do_CreateInstance(NS_VARIANT_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
+  mDeletedMessageIds = new nsVariant();
 
+  nsresult rv;
   rv = mDeletedMessageIds->SetAsArray(nsIDataType::VTYPE_INT32,
                                       nullptr,
                                       length,
@@ -102,10 +102,9 @@ DeletedMessageInfo::GetDeletedThreadIds(nsIVariant** aDeletedThreadIds)
     return NS_OK;
   }
 
-  nsresult rv;
-  mDeletedThreadIds = do_CreateInstance(NS_VARIANT_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
+  mDeletedThreadIds = new nsVariant();
 
+  nsresult rv;
   rv = mDeletedThreadIds->SetAsArray(nsIDataType::VTYPE_UINT64,
                                      nullptr,
                                      length,

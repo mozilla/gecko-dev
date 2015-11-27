@@ -4,15 +4,37 @@
 
 "use strict";
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
-const Cr = Components.results;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
+var Cr = Components.results;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
-let gLastHash = "";
+var gLastHash = "";
+
+var gCategoryInits = new Map();
+function init_category_if_required(category) {
+  let categoryInfo = gCategoryInits.get(category);
+  if (!categoryInfo) {
+    throw "Unknown in-content prefs category! Can't init " + category;
+  }
+  if (categoryInfo.inited) {
+    return;
+  }
+  categoryInfo.init();
+}
+
+function register_module(categoryName, categoryObject) {
+  gCategoryInits.set(categoryName, {
+    inited: false,
+    init: function() {
+      categoryObject.init();
+      this.inited = true;
+    }
+  });
+}
 
 addEventListener("DOMContentLoaded", function onLoad() {
   removeEventListener("DOMContentLoaded", onLoad);
@@ -23,19 +45,14 @@ function init_all() {
   document.documentElement.instantApply = true;
 
   gSubDialog.init();
-  gMainPane.init();
-  gPrivacyPane.init();
-  gAdvancedPane.init();
-  gApplicationsPane.init();
-  gContentPane.init();
-  gSyncPane.init();
-  gSecurityPane.init();
-
-  var initFinished = new CustomEvent("Initialized", {
-  'bubbles': true,
-  'cancelable': true
-  });
-  document.dispatchEvent(initFinished);
+  register_module("paneGeneral", gMainPane);
+  register_module("paneSearch", gSearchPane);
+  register_module("panePrivacy", gPrivacyPane);
+  register_module("paneAdvanced", gAdvancedPane);
+  register_module("paneApplications", gApplicationsPane);
+  register_module("paneContent", gContentPane);
+  register_module("paneSync", gSyncPane);
+  register_module("paneSecurity", gSecurityPane);
 
   let categories = document.getElementById("categories");
   categories.addEventListener("select", event => gotoPref(event.target.value));
@@ -52,17 +69,41 @@ function init_all() {
   window.addEventListener("hashchange", onHashChange);
   gotoPref();
 
-  let helpCmd = document.getElementById("help-button");
-  helpCmd.addEventListener("command", helpButtonCommand);
+  init_dynamic_padding();
+
+  var initFinished = new CustomEvent("Initialized", {
+    'bubbles': true,
+    'cancelable': true
+  });
+  document.dispatchEvent(initFinished);
+
+  let helpCmds = document.querySelectorAll(".help-button");
+  for (let helpCmd of helpCmds)
+    helpCmd.addEventListener("command", helpButtonCommand);
 
   // Wait until initialization of all preferences are complete before
   // notifying observers that the UI is now ready.
   Services.obs.notifyObservers(window, "advanced-pane-loaded", null);
 }
 
-window.addEventListener("unload", function onUnload() {
-  gSubDialog.uninit();
-});
+// Make the space above the categories list shrink on low window heights
+function init_dynamic_padding() {
+  let categories = document.getElementById("categories");
+  let catPadding = Number.parseInt(getComputedStyle(categories)
+                                     .getPropertyValue('padding-top'));
+  let fullHeight = categories.lastElementChild.getBoundingClientRect().bottom;
+  let mediaRule = `
+  @media (max-height: ${fullHeight}px) {
+    #categories {
+      padding-top: calc(100vh - ${fullHeight - catPadding}px);
+    }
+  }
+  `;
+  let mediaStyle = document.createElementNS('http://www.w3.org/1999/xhtml', 'html:style');
+  mediaStyle.setAttribute('type', 'text/css');
+  mediaStyle.appendChild(document.createCDATASection(mediaRule));
+  document.documentElement.appendChild(mediaStyle);
+}
 
 function onHashChange() {
   gotoPref();
@@ -85,6 +126,13 @@ function gotoPref(aCategory) {
     item = categories.querySelector(".category[value=" + category + "]");
   }
 
+  try {
+    init_category_if_required(category);
+  } catch (ex) {
+    Cu.reportError("Error initializing preference category " + category + ": " + ex);
+    throw ex;
+  }
+
   let newHash = internalPrefCategoryNameToFriendlyName(category);
   if (gLastHash || category != kDefaultCategoryInternalName) {
     document.location.hash = newHash;
@@ -95,6 +143,8 @@ function gotoPref(aCategory) {
   categories.selectedItem = item;
   window.history.replaceState(category, document.title);
   search(category, "data-category");
+  let mainContent = document.querySelector(".main-content");
+  mainContent.scrollTop = 0;
 }
 
 function search(aQuery, aAttribute) {

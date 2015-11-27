@@ -1,4 +1,6 @@
-function test() {
+"use strict";
+
+add_task(function* () {
   /** Test for Bug 350525 **/
 
   function test(aLambda) {
@@ -9,8 +11,6 @@ function test() {
     return false;
   }
 
-  waitForExplicitFinish();
-
   ////////////////////////////
   // setWindowValue, et al. //
   ////////////////////////////
@@ -18,19 +18,19 @@ function test() {
   let value = "Unique value: " + Math.random();
 
   // test adding
-  ok(test(function() ss.setWindowValue(window, key, value)), "set a window value");
+  ok(test(() => ss.setWindowValue(window, key, value)), "set a window value");
 
   // test retrieving
   is(ss.getWindowValue(window, key), value, "stored window value matches original");
 
   // test deleting
-  ok(test(function() ss.deleteWindowValue(window, key)), "delete the window value");
+  ok(test(() => ss.deleteWindowValue(window, key)), "delete the window value");
 
   // value should not exist post-delete
   is(ss.getWindowValue(window, key), "", "window value was deleted");
 
   // test deleting a non-existent value
-  ok(test(function() ss.deleteWindowValue(window, key)), "delete non-existent window value");
+  ok(test(() => ss.deleteWindowValue(window, key)), "delete non-existent window value");
 
   /////////////////////////
   // setTabValue, et al. //
@@ -41,22 +41,22 @@ function test() {
   tab.linkedBrowser.stop();
 
   // test adding
-  ok(test(function() ss.setTabValue(tab, key, value)), "store a tab value");
+  ok(test(() => ss.setTabValue(tab, key, value)), "store a tab value");
 
   // test retrieving
   is(ss.getTabValue(tab, key), value, "stored tab value match original");
 
   // test deleting
-  ok(test(function() ss.deleteTabValue(tab, key)), "delete the tab value");
+  ok(test(() => ss.deleteTabValue(tab, key)), "delete the tab value");
 
   // value should not exist post-delete
   is(ss.getTabValue(tab, key), "", "tab value was deleted");
 
   // test deleting a non-existent value
-  ok(test(function() ss.deleteTabValue(tab, key)), "delete non-existent tab value");
+  ok(test(() => ss.deleteTabValue(tab, key)), "delete non-existent tab value");
 
   // clean up
-  gBrowser.removeTab(tab);
+  yield promiseRemoveTab(tab);
 
   /////////////////////////////////////
   // getClosedTabCount, undoCloseTab //
@@ -71,29 +71,26 @@ function test() {
   // create a new tab
   let testURL = "about:";
   tab = gBrowser.addTab(testURL);
-  whenBrowserLoaded(tab.linkedBrowser, function() {
-    // make sure that the next closed tab will increase getClosedTabCount
-    gPrefService.setIntPref("browser.sessionstore.max_tabs_undo", max_tabs_undo + 1);
+  yield promiseBrowserLoaded(tab.linkedBrowser);
 
-    // remove tab
-    gBrowser.removeTab(tab);
+  // make sure that the next closed tab will increase getClosedTabCount
+  gPrefService.setIntPref("browser.sessionstore.max_tabs_undo", max_tabs_undo + 1);
+  registerCleanupFunction(() => gPrefService.clearUserPref("browser.sessionstore.max_tabs_undo"));
 
-    // getClosedTabCount
-    var newcount = ss.getClosedTabCount(window);
-    ok(newcount > count, "after closing a tab, getClosedTabCount has been incremented");
+  // remove tab
+  yield promiseRemoveTab(tab);
 
-    // undoCloseTab
-    tab = test(function() ss.undoCloseTab(window, 0));
-    ok(tab, "undoCloseTab doesn't throw")
+  // getClosedTabCount
+  let newcount = ss.getClosedTabCount(window);
+  ok(newcount > count, "after closing a tab, getClosedTabCount has been incremented");
 
-    whenTabRestored(tab, function() {
-      is(tab.linkedBrowser.currentURI.spec, testURL, "correct tab was reopened");
+  // undoCloseTab
+  tab = test(() => ss.undoCloseTab(window, 0));
+  ok(tab, "undoCloseTab doesn't throw")
 
-      // clean up
-      if (gPrefService.prefHasUserValue("browser.sessionstore.max_tabs_undo"))
-        gPrefService.clearUserPref("browser.sessionstore.max_tabs_undo");
-      gBrowser.removeTab(tab);
-      finish();
-    });
-  });
-}
+  yield promiseTabRestored(tab);
+  is(tab.linkedBrowser.currentURI.spec, testURL, "correct tab was reopened");
+
+  // clean up
+  gBrowser.removeTab(tab);
+});

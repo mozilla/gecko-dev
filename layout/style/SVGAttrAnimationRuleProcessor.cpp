@@ -37,7 +37,7 @@ void
 SVGAttrAnimationRuleProcessor::ElementRulesMatching(Element* aElement,
                                                     nsRuleWalker* aRuleWalker)
 {
-  if (aElement->IsSVG()) {
+  if (aElement->IsSVGElement()) {
     static_cast<nsSVGElement*>(aElement)->
       WalkAnimatedContentStyleRules(aRuleWalker);
   }
@@ -62,7 +62,9 @@ SVGAttrAnimationRuleProcessor::HasDocumentStateDependentStyle(StateRuleProcessor
 }
 
 /* virtual */ nsRestyleHint
-SVGAttrAnimationRuleProcessor::HasAttributeDependentStyle(AttributeRuleProcessorData* aData)
+SVGAttrAnimationRuleProcessor::HasAttributeDependentStyle(
+    AttributeRuleProcessorData* aData,
+    RestyleHintData& aRestyleHintDataResult)
 {
   return nsRestyleHint(0);
 }

@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import
+
 import errno
 import random
 import os
@@ -13,6 +15,7 @@ from .common import CommonBackend
 from ..frontend.data import (
     Defines,
 )
+from mozbuild.base import ExecutionSummary
 
 # TODO Have ./mach eclipse generate the workspace and index it:
 # /Users/bgirard/mozilla/eclipse/eclipse/eclipse/eclipse -application org.eclipse.cdt.managedbuilder.core.headlessbuild -data $PWD/workspace -importAll $PWD/eclipse
@@ -27,8 +30,9 @@ class CppEclipseBackend(CommonBackend):
         CommonBackend._init(self)
 
         self._paths_to_defines = {}
-        self._workspace_dir = self.get_workspace_path()
-        self._project_dir = os.path.join(self._workspace_dir, 'gecko')
+        self._project_name = 'Gecko'
+        self._workspace_dir = self._get_workspace_path()
+        self._project_dir = os.path.join(self._workspace_dir, self._project_name)
         self._overwriting_workspace = os.path.isdir(self._workspace_dir)
 
         self._macbundle = self.environment.substs['MOZ_MACBUNDLE_NAME']
@@ -38,33 +42,37 @@ class CppEclipseBackend(CommonBackend):
         # Note: We need the C Pre Processor (CPP) flags, not the CXX flags
         self._cppflags = self.environment.substs.get('CPPFLAGS', '')
 
-        def detailed(summary):
-            return ('Generated Cpp Eclipse workspace in "%s".\n' + \
-                   'If missing, import the project using File > Import > General > Existing Project into workspace\n' + \
-                   '\n' + \
-                   'Run with: eclipse -data %s\n') \
-                   % (self._workspace_dir, self._workspace_dir)
+    def summary(self):
+        return ExecutionSummary(
+            'CppEclipse backend executed in {execution_time:.2f}s\n'
+            'Generated Cpp Eclipse workspace in "{workspace:s}".\n'
+            'If missing, import the project using File > Import > General > Existing Project into workspace\n'
+            '\n'
+            'Run with: eclipse -data {workspace:s}\n',
+            execution_time=self._execution_time,
+            workspace=self._workspace_dir)
 
-        self.summary.backend_detailed_summary = types.MethodType(detailed,
-            self.summary)
+    def _get_workspace_path(self):
+        return CppEclipseBackend.get_workspace_path(self.environment.topsrcdir, self.environment.topobjdir)
 
-    def get_workspace_path(self):
+    @staticmethod
+    def get_workspace_path(topsrcdir, topobjdir):
         # Eclipse doesn't support having the workspace inside the srcdir.
         # Since most people have their objdir inside their srcdir it's easier
         # and more consistent to just put the workspace along side the srcdir
-        srcdir_parent = os.path.dirname(self.environment.topsrcdir)
-        workspace_dirname = "eclipse_" + os.path.basename(self.environment.topobjdir)
+        srcdir_parent = os.path.dirname(topsrcdir)
+        workspace_dirname = "eclipse_" + os.path.basename(topobjdir)
         return os.path.join(srcdir_parent, workspace_dirname)
 
     def consume_object(self, obj):
-        obj.ack()
-
         reldir = getattr(obj, 'relativedir', None)
 
         # Note that unlike VS, Eclipse' indexer seem to crawl the headers and
         # isn't picky about the local includes.
         if isinstance(obj, Defines):
             self._paths_to_defines.setdefault(reldir, {}).update(obj.defines)
+
+        return True
 
     def consume_finished(self):
         settings_dir = os.path.join(self._project_dir, '.settings')
@@ -195,7 +203,7 @@ class CppEclipseBackend(CommonBackend):
     def _write_project(self, fh):
         project = PROJECT_TEMPLATE;
 
-        project = project.replace('@PROJECT_NAME@', 'Gecko')
+        project = project.replace('@PROJECT_NAME@', self._project_name)
         project = project.replace('@PROJECT_TOPSRCDIR@', self.environment.topsrcdir)
         fh.write(project)
 

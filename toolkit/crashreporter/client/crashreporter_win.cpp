@@ -7,11 +7,10 @@
 #undef WIN32_LEAN_AND_MEAN
 #endif
 
-#define NOMINMAX
-
 #include "crashreporter.h"
 
 #include <windows.h>
+#include <versionhelpers.h>
 #include <commctrl.h>
 #include <richedit.h>
 #include <shellapi.h>
@@ -23,7 +22,6 @@
 #include "resource.h"
 #include "client/windows/sender/crash_report_sender.h"
 #include "common/windows/string_utils-inl.h"
-#include "mozilla/NullPtr.h"
 
 #define CRASH_REPORTER_VALUE L"Enabled"
 #define SUBMIT_REPORT_VALUE  L"SubmitCrashReport"
@@ -32,6 +30,9 @@
 #define EMAIL_ME_VALUE       L"EmailMe"
 #define EMAIL_VALUE          L"Email"
 #define MAX_EMAIL_LENGTH     1024
+
+#define SENDURL_ORIGINAL L"https://crash-reports.mozilla.com/submit"
+#define SENDURL_XPSP2 L"https://crash-reports-xpsp2.mozilla.com/submit"
 
 #define WM_UPLOADCOMPLETE WM_APP
 
@@ -1293,6 +1294,24 @@ void UIShowDefaultUI()
              MB_OK | MB_ICONSTOP);
 }
 
+static bool CanUseMainCrashReportServer()
+{
+  // Any NT from 6.0 and above is fine.
+  if (IsWindowsVersionOrGreater(6, 0, 0)) {
+    return true;
+  }
+
+  // On NT 5 servers, we need Server 2003 SP2.
+  if (IsWindowsServer()) {
+    return IsWindowsVersionOrGreater(5, 2, 2);
+  }
+
+  // Otherwise we have an NT 5 client.
+  // We need exactly XP SP3 (version 5.1 SP3 but not version 5.2).
+  return (IsWindowsVersionOrGreater(5, 1, 3) &&
+         !IsWindowsVersionOrGreater(5, 2, 0));
+}
+
 bool UIShowCrashUI(const StringTable& files,
                    const StringTable& queryParameters,
                    const string& sendURL,
@@ -1300,6 +1319,14 @@ bool UIShowCrashUI(const StringTable& files,
 {
   gSendData.hDlg = nullptr;
   gSendData.sendURL = UTF8ToWide(sendURL);
+
+  // Older Windows don't support the crash report server's crypto.
+  // This is a hack to use an alternate server.
+  if (!CanUseMainCrashReportServer() &&
+      gSendData.sendURL.find(SENDURL_ORIGINAL) == 0) {
+    gSendData.sendURL.replace(0, ARRAYSIZE(SENDURL_ORIGINAL) - 1,
+                              SENDURL_XPSP2);
+  }
 
   for (StringTable::const_iterator i = files.begin();
        i != files.end();
@@ -1440,19 +1467,13 @@ ifstream* UIOpenRead(const string& filename)
 {
   // adapted from breakpad's src/common/windows/http_upload.cc
 
-  // The "open" method on pre-MSVC8 ifstream implementations doesn't accept a
-  // wchar_t* filename, so use _wfopen directly in that case.  For VC8 and
-  // later, _wfopen has been deprecated in favor of _wfopen_s, which does
-  // not exist in earlier versions, so let the ifstream open the file itself.
-#if _MSC_VER >= 1400  // MSVC 2005/8
+#if defined(_MSC_VER)
   ifstream* file = new ifstream();
   file->open(UTF8ToWide(filename).c_str(), ios::in);
-#elif defined(_MSC_VER)
-  ifstream* file = new ifstream(_wfopen(UTF8ToWide(filename).c_str(), L"r"));
 #else   // GCC
   ifstream* file = new ifstream(WideToMBCP(UTF8ToWide(filename), CP_ACP).c_str(),
                                 ios::in);
-#endif  // _MSC_VER >= 1400
+#endif  // _MSC_VER
 
   return file;
 }
@@ -1470,18 +1491,13 @@ ofstream* UIOpenWrite(const string& filename,
     mode = mode | ios::binary;
   }
 
-  // For VC8 and later, _wfopen has been deprecated in favor of _wfopen_s,
-  // which does not exist in earlier versions, so let the ifstream open the
-  // file itself.
-#if _MSC_VER >= 1400  // MSVC 2005/8
+#if defined(_MSC_VER)
   ofstream* file = new ofstream();
   file->open(UTF8ToWide(filename).c_str(), mode);
-#elif defined(_MSC_VER)
-#error "Compiling with your version of MSVC is no longer supported."
 #else   // GCC
   ofstream* file = new ofstream(WideToMBCP(UTF8ToWide(filename), CP_ACP).c_str(),
                                 mode);
-#endif  // _MSC_VER >= 1400
+#endif  // _MSC_VER
 
   return file;
 }

@@ -4,8 +4,8 @@
    SimpleTest, getBoundsForDOMElm, Point, Utils */
 /* exported loadJSON, eventMap */
 
-const Ci = Components.interfaces;
-const Cu = Components.utils;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
 
 Cu.import('resource://gre/modules/accessibility/Utils.jsm');
 Cu.import('resource://gre/modules/Geometry.jsm');
@@ -102,22 +102,29 @@ var eventMap = {
 
 var originalDwellThreshold = GestureSettings.dwellThreshold;
 var originalSwipeMaxDuration = GestureSettings.swipeMaxDuration;
+var originalConsecutiveGestureDelay =
+  GestureSettings.maxConsecutiveGestureDelay;
 
 /**
  * Attach a listener for the mozAccessFuGesture event that tests its
  * type.
  * @param  {Array} aExpectedGestures A stack of expected event types.
+ * @param  {String} aTitle Title of this sequence, if any.
  * Note: the listener is removed once the stack reaches 0.
  */
-function testMozAccessFuGesture(aExpectedGestures) {
+function testMozAccessFuGesture(aExpectedGestures, aTitle) {
   var types = aExpectedGestures;
   function handleGesture(aEvent) {
     if (aEvent.detail.type !== types[0].type) {
+      info('Got ' + aEvent.detail.type + ' waiting for ' + types[0].type);
       // The is not the event of interest.
       return;
     }
     is(!!aEvent.detail.edge, !!types[0].edge);
-    ok(true, 'Received correct mozAccessFuGesture: ' + types.shift() + '.');
+    is(aEvent.detail.touches.length, types[0].fingers || 1,
+      'failed to count fingers: ' + types[0].type);
+    ok(true, 'Received correct mozAccessFuGesture: ' +
+      JSON.stringify(types.shift()) + '. (' + aTitle + ')');
     if (types.length === 0) {
       win.removeEventListener('mozAccessFuGesture', handleGesture);
       if (AccessFuTest.sequenceCleanup) {
@@ -164,7 +171,7 @@ function resetTimers() {
  */
 AccessFuTest.addSequence = function AccessFuTest_addSequence(aSequence) {
   AccessFuTest.addFunc(function testSequence() {
-    testMozAccessFuGesture(aSequence.expectedGestures);
+    testMozAccessFuGesture(aSequence.expectedGestures, aSequence.title);
     var events = aSequence.events;
     function fireEvent(aEvent) {
       var event = {
@@ -173,6 +180,9 @@ AccessFuTest.addSequence = function AccessFuTest_addSequence(aSequence) {
       };
       var timeStamp = Date.now();
       resetTimers();
+      GestureSettings.maxConsecutiveGestureDelay =
+        aEvent.removeConsecutiveGestureDelay ?
+        0 : originalConsecutiveGestureDelay;
       GestureTracker.handle(event, timeStamp);
       setTimers(timeStamp, aEvent.removeDwellThreshold,
         aEvent.removeSwipeMaxDuration);

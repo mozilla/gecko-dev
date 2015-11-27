@@ -2,7 +2,7 @@
 <meta charset="utf-8">
 <title>HTML Test: the HTMLFormControlsCollection interface</title>
 <link rel="author" title="Intel" href="http://www.intel.com/">
-<link rel="help" href="http://www.whatwg.org/specs/web-apps/current-work/multipage/common-dom-interfaces.html#htmlformcontrolscollection">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/multipage/common-dom-interfaces.html#htmlformcontrolscollection">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
@@ -18,8 +18,12 @@
         <input type="checkbox" name="cb">
       </td>
     </tr>
-    <button id="btn"></button>
-    <button name="btn"></button>
+    <tr>
+      <td>
+        <button id="btn"></button>
+        <button name="btn"></button>
+      </td>
+    </tr>
   </table>
 </form>
 
@@ -50,8 +54,8 @@ test(function () {
 
 //getter - name
 test(function () {
-  assert_equals(coll1("r1"), rdo, "HTMLFormControlsCollection(name) should return the 'input' element in radio status.");
-}, "HTMLFormControlsCollection(name) must return the named item");
+  assert_throws(TypeError(), function() { coll1("r1") });
+}, "HTMLFormControlsCollection is not callable");
 
 test(function () {
   assert_equals(coll1["r1"], rdo, "HTMLFormControlsCollection[name] should return the 'input' element in radio status.");

@@ -20,6 +20,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "Promise",
                                   "resource://gre/modules/Promise.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Services",
+                                  "resource://gre/modules/Services.jsm");
 
 const BackgroundFileSaverOutputStream = Components.Constructor(
       "@mozilla.org/network/background-file-saver;1?mode=outputstream",
@@ -105,7 +107,10 @@ function toHex(str) {
  */
 function promiseVerifyContents(aFile, aExpectedContents) {
   let deferred = Promise.defer();
-  NetUtil.asyncFetch(aFile, function(aInputStream, aStatus) {
+  NetUtil.asyncFetch({
+    uri: NetUtil.newURI(aFile),
+    loadUsingSystemPrincipal: true
+  }, function(aInputStream, aStatus) {
     do_check_true(Components.isSuccessCode(aStatus));
     let contents = NetUtil.readInputStreamToString(aInputStream,
                                                    aInputStream.available());
@@ -118,6 +123,7 @@ function promiseVerifyContents(aFile, aExpectedContents) {
     }
     deferred.resolve();
   });
+
   return deferred.promise;
 }
 
@@ -236,7 +242,7 @@ function promisePumpToSaver(aSourceString, aSaverStreamListener,
   return deferred.promise;
 }
 
-let gStillRunning = true;
+var gStillRunning = true;
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Tests

@@ -2,24 +2,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import optparse
 import os
 import sys
 
-from mozprofile import MozProfileCLI, Profile
-from .runners import (
-    FirefoxRunner,
-    MetroRunner,
-    ThunderbirdRunner,
-)
+from mozprofile import MozProfileCLI
 
+from .application import get_app_context
+from .runners import runners
 from .utils import findInPath
-
-RUNNER_MAP = {
-    'firefox': FirefoxRunner,
-    'metro': MetroRunner,
-    'thunderbird': ThunderbirdRunner,
-}
 
 # Map of debugging programs to information about them
 # from http://mxr.mozilla.org/mozilla-central/source/build/automationutils.py#59
@@ -63,30 +53,21 @@ class CLI(MozProfileCLI):
     module = "mozrunner"
 
     def __init__(self, args=sys.argv[1:]):
-        self.metadata = getattr(sys.modules[self.module],
-                                'package_metadata',
-                                {})
-        version = self.metadata.get('Version')
-        parser_args = {'description': self.metadata.get('Summary')}
-        if version:
-            parser_args['version'] = "%prog " + version
-        self.parser = optparse.OptionParser(**parser_args)
-        self.add_options(self.parser)
-        (self.options, self.args) = self.parser.parse_args(args)
-
-        if getattr(self.options, 'info', None):
-            self.print_metadata()
-            sys.exit(0)
+        MozProfileCLI.__init__(self, args=args)
 
         # choose appropriate runner and profile classes
+        app = self.options.app
         try:
-            self.runner_class = RUNNER_MAP[self.options.app]
+            self.runner_class = runners[app]
+            self.profile_class = get_app_context(app).profile_class
         except KeyError:
             self.parser.error('Application "%s" unknown (should be one of "%s")' %
-                              (self.options.app, ', '.join(RUNNER_MAP.keys())))
+                              (app, ', '.join(runners.keys())))
 
     def add_options(self, parser):
         """add options to the parser"""
+        parser.description = ("Reliable start/stop/configuration of Mozilla"
+                              " Applications (Firefox, Thunderbird, etc.)")
 
         # add profile options
         MozProfileCLI.add_options(self, parser)
@@ -108,30 +89,6 @@ class CLI(MozProfileCLI):
         parser.add_option('--interactive', dest='interactive',
                           action='store_true',
                           help="run the program interactively")
-        if self.metadata:
-            parser.add_option("--info", dest="info", default=False,
-                              action="store_true",
-                              help="Print module information")
-
-    ### methods for introspecting data
-
-    def get_metadata_from_egg(self):
-        import pkg_resources
-        ret = {}
-        dist = pkg_resources.get_distribution(self.module)
-        if dist.has_metadata("PKG-INFO"):
-            for line in dist.get_metadata_lines("PKG-INFO"):
-                key, value = line.split(':', 1)
-                ret[key] = value
-        if dist.has_metadata("requires.txt"):
-            ret["Dependencies"] = "\n" + dist.get_metadata("requires.txt")
-        return ret
-
-    def print_metadata(self, data=("Name", "Version", "Summary", "Home-page",
-                                   "Author", "Author-email", "License", "Platform", "Dependencies")):
-        for key in data:
-            if key in self.metadata:
-                print key + ": " + self.metadata[key]
 
     ### methods for running
 
@@ -145,7 +102,7 @@ class CLI(MozProfileCLI):
                     binary=self.options.binary)
 
     def create_runner(self):
-        profile = Profile(**self.profile_args())
+        profile = self.profile_class(**self.profile_args())
         return self.runner_class(profile=profile, **self.runner_args())
 
     def run(self):

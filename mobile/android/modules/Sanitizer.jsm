@@ -3,46 +3,30 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-let Cc = Components.classes;
-let Ci = Components.interfaces;
-let Cu = Components.utils;
+/*globals LoadContextInfo, FormHistory, Accounts */
+
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/LoadContextInfo.jsm");
 Cu.import("resource://gre/modules/FormHistory.jsm");
 Cu.import("resource://gre/modules/Messaging.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
+Cu.import("resource://gre/modules/Downloads.jsm");
+Cu.import("resource://gre/modules/osfile.jsm");
+Cu.import("resource://gre/modules/Accounts.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "DownloadIntegration",
+                                  "resource://gre/modules/DownloadIntegration.jsm");
 
 function dump(a) {
   Services.console.logStringMessage(a);
 }
 
 this.EXPORTED_SYMBOLS = ["Sanitizer"];
-
-let downloads = {
-  dlmgr: Cc["@mozilla.org/download-manager;1"].getService(Ci.nsIDownloadManager),
-
-  iterate: function (aCallback) {
-    let dlmgr = downloads.dlmgr;
-    let dbConn = dlmgr.DBConnection;
-    let stmt = dbConn.createStatement("SELECT id FROM moz_downloads WHERE " +
-        "state = ? OR state = ? OR state = ? OR state = ? OR state = ? OR state = ?");
-    stmt.bindByIndex(0, Ci.nsIDownloadManager.DOWNLOAD_FINISHED);
-    stmt.bindByIndex(1, Ci.nsIDownloadManager.DOWNLOAD_FAILED);
-    stmt.bindByIndex(2, Ci.nsIDownloadManager.DOWNLOAD_CANCELED);
-    stmt.bindByIndex(3, Ci.nsIDownloadManager.DOWNLOAD_BLOCKED_PARENTAL);
-    stmt.bindByIndex(4, Ci.nsIDownloadManager.DOWNLOAD_BLOCKED_POLICY);
-    stmt.bindByIndex(5, Ci.nsIDownloadManager.DOWNLOAD_DIRTY);
-    while (stmt.executeStep()) {
-      aCallback(dlmgr.getDownload(stmt.row.id));
-    }
-    stmt.finalize();
-  },
-
-  get canClear() {
-    return this.dlmgr.canCleanUp;
-  }
-};
 
 function Sanitizer() {}
 Sanitizer.prototype = {
@@ -181,6 +165,19 @@ Sanitizer.prototype = {
       }
     },
 
+    searchHistory: {
+      clear: function ()
+      {
+        return Messaging.sendRequestForResult({ type: "Sanitize:ClearHistory", clearSearchHistory: true })
+          .catch(e => Cu.reportError("Java-side search history clearing failed: " + e))
+      },
+
+      get canClear()
+      {
+        return true;
+      }
+    },
+
     formdata: {
       clear: function ()
       {
@@ -203,26 +200,44 @@ Sanitizer.prototype = {
     },
 
     downloadFiles: {
-      clear: function ()
-      {
-        return new Promise(function(resolve, reject) {
-          downloads.iterate(function (dl) {
-            // Delete the downloaded files themselves
-            let f = dl.targetFile;
-            if (f.exists()) {
-              f.remove(false);
-            }
+      clear: Task.async(function* () {
+        let list = yield Downloads.getList(Downloads.ALL);
+        let downloads = yield list.getAll();
+        var finalizePromises = [];
 
-            // Also delete downloads from history
-            dl.remove();
-          });
-          resolve();
-        });
-      },
+        // Logic copied from DownloadList.removeFinished. Ideally, we would
+        // just use that method directly, but we want to be able to remove the
+        // downloaded files as well.
+        for (let download of downloads) {
+          // Remove downloads that have been canceled, even if the cancellation
+          // operation hasn't completed yet so we don't check "stopped" here.
+          // Failed downloads with partial data are also removed.
+          if (download.stopped && (!download.hasPartialData || download.error)) {
+            // Remove the download first, so that the views don't get the change
+            // notifications that may occur during finalization.
+            yield list.remove(download);
+            // Ensure that the download is stopped and no partial data is kept.
+            // This works even if the download state has changed meanwhile.  We
+            // don't need to wait for the procedure to be complete before
+            // processing the other downloads in the list.
+            finalizePromises.push(download.finalize(true).then(() => null, Cu.reportError));
+
+            // Delete the downloaded files themselves.
+            OS.File.remove(download.target.path).then(() => null, ex => {
+              if (!(ex instanceof OS.File.Error && ex.becauseNoSuchFile)) {
+                Cu.reportError(ex);
+              }
+            });
+          }
+        }
+
+        yield Promise.all(finalizePromises);
+        yield DownloadIntegration.forceSave();
+      }),
 
       get canClear()
       {
-        return downloads.canClear;
+        return true;
       }
     },
 
@@ -261,7 +276,25 @@ Sanitizer.prototype = {
       {
         return true;
       }
+    },
+
+    syncedTabs: {
+      clear: function ()
+      {
+        return Messaging.sendRequestForResult({ type: "Sanitize:ClearSyncedTabs" })
+          .catch(e => Cu.reportError("Java-side synced tabs clearing failed: " + e));
+      },
+
+      canClear: function(aCallback)
+      {
+        Accounts.anySyncAccountsExist().then(aCallback)
+          .catch(function(err) {
+            Cu.reportError("Java-side synced tabs clearing failed: " + err)
+            aCallback(false);
+          });
+      }
     }
+
   }
 };
 

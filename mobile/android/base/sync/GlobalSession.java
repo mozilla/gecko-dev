@@ -10,6 +10,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -58,6 +59,7 @@ import org.mozilla.gecko.sync.stage.UploadMetaGlobalStage;
 
 import android.content.Context;
 import ch.boye.httpclientandroidlib.HttpResponse;
+import ch.boye.httpclientandroidlib.client.methods.HttpUriRequest;
 
 public class GlobalSession implements HttpResponseObserver {
   private static final String LOG_TAG = "GlobalSession";
@@ -174,13 +176,15 @@ public class GlobalSession implements HttpResponseObserver {
   }
 
   protected void prepareStages() {
-    HashMap<Stage, GlobalSyncStage> stages = new HashMap<Stage, GlobalSyncStage>();
+    Map<Stage, GlobalSyncStage> stages = new EnumMap<Stage, GlobalSyncStage>(Stage.class);
 
     stages.put(Stage.checkPreconditions,      new CheckPreconditionsStage());
     stages.put(Stage.ensureClusterURL,        new EnsureClusterURLStage(nodeAssignmentCallback));
     stages.put(Stage.fetchInfoCollections,    new FetchInfoCollectionsStage());
     stages.put(Stage.fetchMetaGlobal,         new FetchMetaGlobalStage());
     stages.put(Stage.ensureKeysStage,         new EnsureCrypto5KeysStage());
+    stages.put(Stage.attemptMigrationStage,   new MigrationSentinelSyncStage());
+
     stages.put(Stage.syncClientsEngine,       new SyncClientsEngineStage());
 
     stages.put(Stage.syncTabs,                new FennecTabsServerSyncStage());
@@ -1013,7 +1017,7 @@ public class GlobalSession implements HttpResponseObserver {
         if (version == null) {
           continue; // Don't want this stage to be included in meta/global.
         }
-        engineSettings = new EngineSettings(Utils.generateGuid(), version.intValue());
+        engineSettings = new EngineSettings(Utils.generateGuid(), version);
       } catch (NoSuchStageException e) {
         // No trouble; Android Sync might not recognize this engine yet.
         // By default, version 0.  Other clients will see the 0 version and reset/wipe accordingly.
@@ -1121,8 +1125,8 @@ public class GlobalSession implements HttpResponseObserver {
    * requests.
    */
   protected void installAsHttpResponseObserver() {
-    Logger.debug(LOG_TAG, "Installing " + this + " as BaseResource HttpResponseObserver.");
-    BaseResource.setHttpResponseObserver(this);
+    Logger.debug(LOG_TAG, "Adding " + this + " as a BaseResource HttpResponseObserver.");
+    BaseResource.addHttpResponseObserver(this);
     largestBackoffObserved.set(-1);
   }
 
@@ -1130,15 +1134,23 @@ public class GlobalSession implements HttpResponseObserver {
    * Stop observing HttpResponses for backoff requests.
    */
   protected void uninstallAsHttpResponseObserver() {
-    Logger.debug(LOG_TAG, "Uninstalling " + this + " as BaseResource HttpResponseObserver.");
-    BaseResource.setHttpResponseObserver(null);
+    Logger.debug(LOG_TAG, "Removing " + this + " as a BaseResource HttpResponseObserver.");
+    BaseResource.removeHttpResponseObserver(this);
   }
 
   /**
    * Observe all HTTP response for backoff requests on all status codes, not just errors.
    */
   @Override
-  public void observeHttpResponse(HttpResponse response) {
+  public void observeHttpResponse(HttpUriRequest request, HttpResponse response) {
+    // Ignore non-Sync storage requests.
+    final URI clusterURL = config.getClusterURL();
+    if (clusterURL != null && !clusterURL.getHost().equals(request.getURI().getHost())) {
+      // It's possible to see requests without a clusterURL (in particular,
+      // during testing); allow some extra backoffs in this case.
+      return;
+    }
+
     long responseBackoff = (new SyncResponse(response)).totalBackoffInMilliseconds(); // TODO: don't allocate object?
     if (responseBackoff <= 0) {
       return;

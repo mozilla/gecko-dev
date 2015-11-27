@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -7,8 +8,8 @@
 #define mozilla_ContentEventHandler_h_
 
 #include "mozilla/EventForwards.h"
+#include "mozilla/dom/Selection.h"
 #include "nsCOMPtr.h"
-#include "nsISelection.h"
 #include "nsRange.h"
 
 class nsPresContext;
@@ -34,25 +35,30 @@ enum LineBreakType
 class MOZ_STACK_CLASS ContentEventHandler
 {
 public:
+  typedef dom::Selection Selection;
+
   explicit ContentEventHandler(nsPresContext* aPresContext);
 
-  // NS_QUERY_SELECTED_TEXT event handler
+  // Handle aEvent in the current process.
+  nsresult HandleQueryContentEvent(WidgetQueryContentEvent* aEvent);
+
+  // eQuerySelectedText event handler
   nsresult OnQuerySelectedText(WidgetQueryContentEvent* aEvent);
-  // NS_QUERY_TEXT_CONTENT event handler
+  // eQueryTextContent event handler
   nsresult OnQueryTextContent(WidgetQueryContentEvent* aEvent);
-  // NS_QUERY_CARET_RECT event handler
+  // eQueryCaretRect event handler
   nsresult OnQueryCaretRect(WidgetQueryContentEvent* aEvent);
-  // NS_QUERY_TEXT_RECT event handler
+  // eQueryTextRect event handler
   nsresult OnQueryTextRect(WidgetQueryContentEvent* aEvent);
-  // NS_QUERY_EDITOR_RECT event handler
+  // eQueryEditorRect event handler
   nsresult OnQueryEditorRect(WidgetQueryContentEvent* aEvent);
-  // NS_QUERY_CONTENT_STATE event handler
+  // eQueryContentState event handler
   nsresult OnQueryContentState(WidgetQueryContentEvent* aEvent);
-  // NS_QUERY_SELECTION_AS_TRANSFERABLE event handler
+  // eQuerySelectionAsTransferable event handler
   nsresult OnQuerySelectionAsTransferable(WidgetQueryContentEvent* aEvent);
-  // NS_QUERY_CHARACTER_AT_POINT event handler
+  // eQueryCharacterAtPoint event handler
   nsresult OnQueryCharacterAtPoint(WidgetQueryContentEvent* aEvent);
-  // NS_QUERY_DOM_WIDGET_HITTEST event handler
+  // eQueryDOMWidgetHittest event handler
   nsresult OnQueryDOMWidgetHittest(WidgetQueryContentEvent* aEvent);
 
   // NS_SELECTION_* event
@@ -61,8 +67,8 @@ public:
 protected:
   nsPresContext* mPresContext;
   nsCOMPtr<nsIPresShell> mPresShell;
-  nsCOMPtr<nsISelection> mSelection;
-  nsRefPtr<nsRange> mFirstSelectedRange;
+  RefPtr<Selection> mSelection;
+  RefPtr<nsRange> mFirstSelectedRange;
   nsCOMPtr<nsIContent> mRootContent;
 
   nsresult Init(WidgetQueryContentEvent* aEvent);
@@ -94,6 +100,12 @@ public:
   // Get the native text length of a content node excluding any children
   static uint32_t GetNativeTextLength(nsIContent* aContent,
                                       uint32_t aMaxLength = UINT32_MAX);
+  // Get the text length of a given range of a content node in
+  // the given line break type.
+  static uint32_t GetTextLengthInRange(nsIContent* aContent,
+                                       uint32_t aXPStartOffset,
+                                       uint32_t aXPEndOffset,
+                                       LineBreakType aLineBreakType);
 protected:
   static uint32_t GetTextLength(nsIContent* aContent,
                                 LineBreakType aLineBreakType,
@@ -117,18 +129,33 @@ protected:
                                       LineBreakType aLineBreakType,
                                       bool aExpandToClusterBoundaries,
                                       uint32_t* aNewOffset = nullptr);
-  // Find the first textframe for the range, and get the start offset in
-  // the frame.
-  nsresult GetStartFrameAndOffset(nsRange* aRange,
-                                  nsIFrame** aFrame,
-                                  int32_t* aOffsetInFrame);
-  // Convert the frame relative offset to the root view relative offset.
-  nsresult ConvertToRootViewRelativeOffset(nsIFrame* aFrame,
-                                           nsRect& aRect);
+  // If the aRange isn't in text node but next to a text node, this method
+  // modifies it in the text node.  Otherwise, not modified.
+  nsresult AdjustCollapsedRangeMaybeIntoTextNode(nsRange* aCollapsedRange);
+  // Find the first frame for the range and get the start offset in it.
+  nsresult GetStartFrameAndOffset(const nsRange* aRange,
+                                  nsIFrame*& aFrame,
+                                  int32_t& aOffsetInFrame);
+  // Convert the frame relative offset to the root frame of the root presContext
+  // relative offset.
+  nsresult ConvertToRootRelativeOffset(nsIFrame* aFrame,
+                                       nsRect& aRect);
   // Expand aXPOffset to the nearest offset in cluster boundary. aForward is
   // true, it is expanded to forward.
   nsresult ExpandToClusterBoundary(nsIContent* aContent, bool aForward,
                                    uint32_t* aXPOffset);
+
+  typedef nsTArray<mozilla::FontRange> FontRangeArray;
+  static void AppendFontRanges(FontRangeArray& aFontRanges,
+                               nsIContent* aContent,
+                               int32_t aBaseOffset,
+                               int32_t aXPStartOffset,
+                               int32_t aXPEndOffset,
+                               LineBreakType aLineBreakType);
+  static nsresult GenerateFlatFontRanges(nsRange* aRange,
+                                         FontRangeArray& aFontRanges,
+                                         uint32_t& aLength,
+                                         LineBreakType aLineBreakType);
 };
 
 } // namespace mozilla

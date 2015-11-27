@@ -4,9 +4,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <inttypes.h>
 #include <stdlib.h>
 #include "TestCommon.h"
 #include "nsNetUtil.h"
+#include "nsComponentManagerUtils.h"
 #include "nsIIncrementalDownload.h"
 #include "nsIRequestObserver.h"
 #include "nsIProgressEventSink.h"
@@ -18,8 +20,8 @@
 
 //-----------------------------------------------------------------------------
 
-class FetchObserver MOZ_FINAL : public nsIRequestObserver
-                              , public nsIProgressEventSink
+class FetchObserver final : public nsIRequestObserver
+                          , public nsIProgressEventSink
 {
   ~FetchObserver() {}
 public:
@@ -40,10 +42,10 @@ FetchObserver::OnStartRequest(nsIRequest *request, nsISupports *context)
 
 NS_IMETHODIMP
 FetchObserver::OnProgress(nsIRequest *request, nsISupports *context,
-                          uint64_t progress, uint64_t progressMax)
+                          int64_t progress, int64_t progressMax)
 {
-  printf("FetchObserver::OnProgress [%lu/%lu]\n",
-         (unsigned long)progress, (unsigned long)progressMax);
+  printf("FetchObserver::OnProgress [%" PRId64 "/%" PRId64 "]\n",
+         progress, progressMax);
   return NS_OK;
 }
 

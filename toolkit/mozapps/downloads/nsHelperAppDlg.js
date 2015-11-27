@@ -6,7 +6,11 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 
-Components.utils.import("resource://gre/modules/Services.jsm");
+const {utils: Cu, interfaces: Ci, classes: Cc, results: Cr} = Components;
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "EnableDelayHelper",
+                                  "resource://gre/modules/SharedPromptUtils.jsm");
 
 ///////////////////////////////////////////////////////////////////////////////
 //// Helper Functions
@@ -96,7 +100,7 @@ nsUnknownContentTypeDialogProgressListener.prototype = {
 const PREF_BD_USEDOWNLOADDIR = "browser.download.useDownloadDir";
 const nsITimer = Components.interfaces.nsITimer;
 
-let downloadModule = {};
+var downloadModule = {};
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/DownloadLastDir.jsm", downloadModule);
 Components.utils.import("resource://gre/modules/DownloadPaths.jsm");
@@ -141,6 +145,14 @@ nsUnknownContentTypeDialog.prototype = {
     this.mLauncher = aLauncher;
     this.mContext  = aContext;
     this.mReason   = aReason;
+
+    // Cache some information in case this context goes away:
+    try {
+      let parent = aContext.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow);
+      this._mDownloadDir = new downloadModule.DownloadLastDir(parent);
+    } catch (ex) {
+      Cu.reportError("Missing window information when showing nsIHelperAppLauncherDialog: " + ex);
+    }
 
     const nsITimer = Components.interfaces.nsITimer;
     this._showTimer = Components.classes["@mozilla.org/timer;1"]
@@ -195,22 +207,6 @@ nsUnknownContentTypeDialog.prototype = {
                    bundle.GetStringFromName("badPermissions"));
   },
 
-  // promptForSaveToFile:  Display file picker dialog and return selected file.
-  //                       This is called by the External Helper App Service
-  //                       after the ucth dialog calls |saveToDisk| with a null
-  //                       target filename (no target, therefore user must pick).
-  //
-  //                       Alternatively, if the user has selected to have all
-  //                       files download to a specific location, return that
-  //                       location and don't ask via the dialog.
-  //
-  // Note - this function is called without a dialog, so it cannot access any part
-  // of the dialog XUL as other functions on this object do.
-
-  promptForSaveToFile: function(aLauncher, aContext, aDefaultFile, aSuggestedFileExtension, aForcePrompt) {
-    throw new Components.Exception("Async version must be used", Components.results.NS_ERROR_NOT_AVAILABLE);
-  },
-
   promptForSaveToFileAsync: function(aLauncher, aContext, aDefaultFile, aSuggestedFileExtension, aForcePrompt) {
     var result = null;
 
@@ -221,6 +217,36 @@ nsUnknownContentTypeDialog.prototype = {
     let bundle =
       Services.strings
               .createBundle("chrome://mozapps/locale/downloads/unknownContentType.properties");
+
+    let parent;
+    let gDownloadLastDir;
+    try {
+      parent = aContext.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow);
+    } catch (ex) {}
+
+    if (parent) {
+      gDownloadLastDir = new downloadModule.DownloadLastDir(parent);
+    } else {
+      // Use the cached download info, but pick an arbitrary parent window
+      // because the original one is definitely gone (and nsIFilePicker doesn't like
+      // a null parent):
+      gDownloadLastDir = this._mDownloadDir;
+      let windowsEnum = Services.wm.getEnumerator("");
+      while (windowsEnum.hasMoreElements()) {
+        let someWin = windowsEnum.getNext();
+        // We need to make sure we don't end up with this dialog, because otherwise
+        // that's going to go away when the user clicks "Save", and that breaks the
+        // windows file picker that's supposed to show up if we let the user choose
+        // where to save files...
+        if (someWin != this.mDialog) {
+          parent = someWin;
+        }
+      }
+      if (!parent) {
+        Cu.reportError("No candidate parent windows were found for the save filepicker." +
+                       "This should never happen.");
+      }
+    }
 
     Task.spawn(function() {
       if (!aForcePrompt) {
@@ -257,11 +283,8 @@ nsUnknownContentTypeDialog.prototype = {
       var nsIFilePicker = Components.interfaces.nsIFilePicker;
       var picker = Components.classes["@mozilla.org/filepicker;1"].createInstance(nsIFilePicker);
       var windowTitle = bundle.GetStringFromName("saveDialogTitle");
-      var parent = aContext.QueryInterface(Components.interfaces.nsIInterfaceRequestor).getInterface(Components.interfaces.nsIDOMWindow);
       picker.init(parent, windowTitle, nsIFilePicker.modeSave);
       picker.defaultString = aDefaultFile;
-
-      let gDownloadLastDir = new downloadModule.DownloadLastDir(parent);
 
       if (aSuggestedFileExtension) {
         // aSuggestedFileExtension includes the period, so strip it
@@ -519,25 +542,21 @@ nsUnknownContentTypeDialog.prototype = {
 
     this.mDialog.setTimeout("dialog.postShowCallback()", 0);
 
-    let acceptDelay = Services.prefs.getIntPref("security.dialog_enable_delay");
-    this.mDialog.document.documentElement.getButton("accept").disabled = true;
-    this._showTimer = Components.classes["@mozilla.org/timer;1"]
-                                .createInstance(nsITimer);
-    this._showTimer.initWithCallback(this, acceptDelay, nsITimer.TYPE_ONE_SHOT);
+    this.delayHelper = new EnableDelayHelper({
+      disableDialog: () => {
+        this.mDialog.document.documentElement.getButton("accept").disabled = true;
+      },
+      enableDialog: () => {
+        this.mDialog.document.documentElement.getButton("accept").disabled = false;
+      },
+      focusTarget: this.mDialog
+    });
   },
 
   notify: function (aTimer) {
     if (aTimer == this._showTimer) {
       if (!this.mDialog) {
         this.reallyShow();
-      } else {
-        // The user may have already canceled the dialog.
-        try {
-          if (!this._blurred) {
-            this.mDialog.document.documentElement.getButton("accept").disabled = false;
-          }
-        } catch (ex) {}
-        this._delayExpired = true;
       }
       // The timer won't release us, so we have to release it.
       this._showTimer = null;
@@ -618,21 +637,6 @@ nsUnknownContentTypeDialog.prototype = {
     }
     else {
       type.value = typeString;
-    }
-  },
-
-  _blurred: false,
-  _delayExpired: false,
-  onBlur: function(aEvent) {
-    this._blurred = true;
-    this.mDialog.document.documentElement.getButton("accept").disabled = true;
-  },
-
-  onFocus: function(aEvent) {
-    this._blurred = false;
-    if (this._delayExpired) {
-      var script = "document.documentElement.getButton('accept').disabled = false";
-      this.mDialog.setTimeout(script, 250);
     }
   },
 
@@ -725,9 +729,9 @@ nsUnknownContentTypeDialog.prototype = {
       otherHandler.hidden = false;
     }
 
-    var useDefault = this.dialogElement("useSystemDefault");
     var openHandler = this.dialogElement("openHandler");
     openHandler.selectedIndex = 0;
+    var defaultOpenHandler = this.dialogElement("defaultHandler");
 
     if (this.mLauncher.MIMEInfo.preferredAction == this.nsIMIMEInfo.useSystemDefault) {
       // Open (using system default).
@@ -735,7 +739,8 @@ nsUnknownContentTypeDialog.prototype = {
     } else if (this.mLauncher.MIMEInfo.preferredAction == this.nsIMIMEInfo.useHelperApp) {
       // Open with given helper app.
       modeGroup.selectedItem = this.dialogElement("open");
-      openHandler.selectedIndex = 1;
+      openHandler.selectedItem = (otherHandler && !otherHandler.hidden) ?
+                                 otherHandler : defaultOpenHandler;
     } else {
       // Save to disk.
       modeGroup.selectedItem = this.dialogElement("save");
@@ -743,11 +748,10 @@ nsUnknownContentTypeDialog.prototype = {
 
     // If we don't have a "default app" then disable that choice.
     if (!openWithDefaultOK) {
-      var useDefault = this.dialogElement("defaultHandler");
-      var isSelected = useDefault.selected;
+      var isSelected = defaultOpenHandler.selected;
 
       // Disable that choice.
-      useDefault.hidden = true;
+      defaultOpenHandler.hidden = true;
       // If that's the default, then switch to "save to disk."
       if (isSelected) {
         openHandler.selectedIndex = 1;
@@ -998,6 +1002,34 @@ nsUnknownContentTypeDialog.prototype = {
     return file.leafName;
   },
 
+  finishChooseApp: function() {
+    if (this.chosenApp) {
+      // Show the "handler" menulist since we have a (user-specified)
+      // application now.
+      this.dialogElement("modeDeck").setAttribute("selectedIndex", "0");
+
+      // Update dialog.
+      var otherHandler = this.dialogElement("otherHandler");
+      otherHandler.removeAttribute("hidden");
+      otherHandler.setAttribute("path", this.getPath(this.chosenApp.executable));
+#ifdef XP_WIN
+      otherHandler.label = this.getFileDisplayName(this.chosenApp.executable);
+#else
+      otherHandler.label = this.chosenApp.name;
+#endif
+      this.dialogElement("openHandler").selectedIndex = 1;
+      this.dialogElement("openHandler").setAttribute("lastSelectedItemID", "otherHandler");
+
+      this.dialogElement("mode").selectedItem = this.dialogElement("open");
+    }
+    else {
+      var openHandler = this.dialogElement("openHandler");
+      var lastSelectedID = openHandler.getAttribute("lastSelectedItemID");
+      if (!lastSelectedID)
+        lastSelectedID = "defaultHandler";
+      openHandler.selectedItem = this.dialogElement(lastSelectedID);
+    }
+  },
   // chooseApp:  Open file picker and prompt user for application.
   chooseApp: function() {
 #ifdef XP_WIN
@@ -1041,7 +1073,23 @@ nsUnknownContentTypeDialog.prototype = {
         params.handlerApp.executable.isFile()) {
       // Remember the file they chose to run.
       this.chosenApp = params.handlerApp;
-
+    }
+#else
+#if MOZ_WIDGET_GTK == 3
+    var nsIApplicationChooser = Components.interfaces.nsIApplicationChooser;
+    var appChooser = Components.classes["@mozilla.org/applicationchooser;1"]
+                               .createInstance(nsIApplicationChooser);
+    appChooser.init(this.mDialog, this.dialogElement("strings").getString("chooseAppFilePickerTitle"));
+    var contentTypeDialogObj = this;
+    let appChooserCallback = function appChooserCallback_done(aResult) {
+      if (aResult) {
+         contentTypeDialogObj.chosenApp = aResult.QueryInterface(Components.interfaces.nsILocalHandlerApp);
+      }
+      contentTypeDialogObj.finishChooseApp();
+    };
+    appChooser.open(this.mLauncher.MIMEInfo.MIMEType, appChooserCallback);
+    // The finishChooseApp is called from appChooserCallback
+    return;
 #else
     var nsIFilePicker = Components.interfaces.nsIFilePicker;
     var fp = Components.classes["@mozilla.org/filepicker;1"]
@@ -1059,29 +1107,11 @@ nsUnknownContentTypeDialog.prototype = {
                    createInstance(Components.interfaces.nsILocalHandlerApp);
       localHandlerApp.executable = fp.file;
       this.chosenApp = localHandlerApp;
-#endif
-
-      // Show the "handler" menulist since we have a (user-specified)
-      // application now.
-      this.dialogElement("modeDeck").setAttribute("selectedIndex", "0");
-
-      // Update dialog.
-      var otherHandler = this.dialogElement("otherHandler");
-      otherHandler.removeAttribute("hidden");
-      otherHandler.setAttribute("path", this.getPath(this.chosenApp.executable));
-      otherHandler.label = this.getFileDisplayName(this.chosenApp.executable);
-      this.dialogElement("openHandler").selectedIndex = 1;
-      this.dialogElement("openHandler").setAttribute("lastSelectedItemID", "otherHandler");
-
-      this.dialogElement("mode").selectedItem = this.dialogElement("open");
     }
-    else {
-      var openHandler = this.dialogElement("openHandler");
-      var lastSelectedID = openHandler.getAttribute("lastSelectedItemID");
-      if (!lastSelectedID)
-        lastSelectedID = "defaultHandler";
-      openHandler.selectedItem = this.dialogElement(lastSelectedID);
-    }
+#endif // MOZ_WIDGET_GTK3
+
+#endif // XP_WIN
+    this.finishChooseApp();
   },
 
   // Turn this on to get debugging messages.

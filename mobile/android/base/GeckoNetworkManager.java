@@ -5,7 +5,7 @@
 
 package org.mozilla.gecko;
 
-import org.mozilla.gecko.mozglue.JNITarget;
+import org.mozilla.gecko.annotation.JNITarget;
 import org.mozilla.gecko.util.NativeEventListener;
 import org.mozilla.gecko.util.NativeJSObject;
 import org.mozilla.gecko.util.EventCallback;
@@ -17,8 +17,10 @@ import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.DhcpInfo;
 import android.net.NetworkInfo;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.telephony.TelephonyManager;
+import android.text.format.Formatter;
 import android.util.Log;
 
 /*
@@ -37,11 +39,12 @@ import android.util.Log;
 public class GeckoNetworkManager extends BroadcastReceiver implements NativeEventListener {
     private static final String LOGTAG = "GeckoNetworkManager";
 
-    static private final GeckoNetworkManager sInstance = new GeckoNetworkManager();
+    private static GeckoNetworkManager sInstance;
 
     public static void destroy() {
         if (sInstance != null) {
             sInstance.onDestroy();
+            sInstance = null;
         }
     }
 
@@ -67,14 +70,18 @@ public class GeckoNetworkManager extends BroadcastReceiver implements NativeEven
     }
 
     private GeckoNetworkManager() {
-        EventDispatcher.getInstance().registerGeckoThreadListener(this, "Wifi:Enable");
+        EventDispatcher.getInstance().registerGeckoThreadListener(this,
+                "Wifi:Enable",
+                "Wifi:GetIPAddress");
     }
 
     private void onDestroy() {
-        EventDispatcher.getInstance().unregisterGeckoThreadListener(this, "Wifi:Enable");
+        EventDispatcher.getInstance().unregisterGeckoThreadListener(this,
+                "Wifi:Enable",
+                "Wifi:GetIPAddress");
     }
 
-    private ConnectionType mConnectionType = ConnectionType.NONE;
+    private volatile ConnectionType mConnectionType = ConnectionType.NONE;
     private final IntentFilter mNetworkFilter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
 
     // Whether the manager should be listening to Network Information changes.
@@ -87,8 +94,13 @@ public class GeckoNetworkManager extends BroadcastReceiver implements NativeEven
     // The application context used for registering receivers, so
     // we can unregister them again later.
     private volatile Context mApplicationContext;
+    private boolean mIsListening;
 
     public static GeckoNetworkManager getInstance() {
+        if (sInstance == null) {
+            sInstance = new GeckoNetworkManager();
+        }
+
         return sInstance;
     }
 
@@ -113,14 +125,23 @@ public class GeckoNetworkManager extends BroadcastReceiver implements NativeEven
     }
 
     private void startListening() {
+        if (mIsListening) {
+            Log.w(LOGTAG, "Already started!");
+            return;
+        }
+
         final Context appContext = mApplicationContext;
         if (appContext == null) {
             Log.w(LOGTAG, "Not registering receiver: no context!");
             return;
         }
 
-        Log.v(LOGTAG, "Registering receiver.");
-        appContext.registerReceiver(this, mNetworkFilter);
+        // registerReceiver will return null if registering fails.
+        if (appContext.registerReceiver(this, mNetworkFilter) == null) {
+            Log.e(LOGTAG, "Registering receiver failed");
+        } else {
+            mIsListening = true;
+        }
     }
 
     public void stop() {
@@ -134,18 +155,48 @@ public class GeckoNetworkManager extends BroadcastReceiver implements NativeEven
     @Override
     public void handleMessage(final String event, final NativeJSObject message,
                               final EventCallback callback) {
-        if (event.equals("Wifi:Enable")) {
-            final WifiManager mgr = (WifiManager) mApplicationContext.getSystemService(Context.WIFI_SERVICE);
+        switch (event) {
+            case "Wifi:Enable": {
+                final WifiManager mgr = (WifiManager) mApplicationContext.getSystemService(Context.WIFI_SERVICE);
 
-            if (!mgr.isWifiEnabled()) {
-                mgr.setWifiEnabled(true);
-            } else {
-                // If Wifi is enabled, maybe you need to select a network
-                Intent intent = new Intent(android.provider.Settings.ACTION_WIFI_SETTINGS);
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                mApplicationContext.startActivity(intent);
+                if (!mgr.isWifiEnabled()) {
+                    mgr.setWifiEnabled(true);
+                } else {
+                    // If Wifi is enabled, maybe you need to select a network
+                    Intent intent = new Intent(android.provider.Settings.ACTION_WIFI_SETTINGS);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    mApplicationContext.startActivity(intent);
+                }
+                break;
+            }
+            case "Wifi:GetIPAddress": {
+                getWifiIPAddress(callback);
+                break;
             }
         }
+    }
+
+    // This function only works for IPv4
+    private void getWifiIPAddress(final EventCallback callback) {
+        final WifiManager mgr = (WifiManager) mApplicationContext.getSystemService(Context.WIFI_SERVICE);
+
+        if (mgr == null) {
+            callback.sendError("Cannot get WifiManager");
+            return;
+        }
+
+        final WifiInfo info = mgr.getConnectionInfo();
+        if (info == null) {
+            callback.sendError("Cannot get connection info");
+            return;
+        }
+
+        int ip = info.getIpAddress();
+        if (ip == 0) {
+            callback.sendError("Cannot get IPv4 address");
+            return;
+        }
+        callback.sendSuccess(Formatter.formatIpAddress(ip));
     }
 
     private void stopListening() {
@@ -153,7 +204,13 @@ public class GeckoNetworkManager extends BroadcastReceiver implements NativeEven
             return;
         }
 
+        if (!mIsListening) {
+            Log.w(LOGTAG, "Already stopped!");
+            return;
+        }
+
         mApplicationContext.unregisterReceiver(this);
+        mIsListening = false;
     }
 
     private int wifiDhcpGatewayAddress() {
@@ -183,23 +240,29 @@ public class GeckoNetworkManager extends BroadcastReceiver implements NativeEven
     }
 
     private void updateConnectionType() {
-        ConnectionType previousConnectionType = mConnectionType;
-        mConnectionType = getConnectionType();
+        final ConnectionType previousConnectionType = mConnectionType;
+        final ConnectionType newConnectionType = getConnectionType();
+        if (newConnectionType == previousConnectionType) {
+            return;
+        }
 
-        if (mConnectionType == previousConnectionType || !mShouldNotify) {
+        mConnectionType = newConnectionType;
+
+        if (!mShouldNotify) {
             return;
         }
 
         GeckoAppShell.sendEventToGecko(GeckoEvent.createNetworkEvent(
-                                       mConnectionType.value,
-                                       mConnectionType == ConnectionType.WIFI,
+                                       newConnectionType.value,
+                                       newConnectionType == ConnectionType.WIFI,
                                        wifiDhcpGatewayAddress()));
     }
 
     public double[] getCurrentInformation() {
-        return new double[] { mConnectionType.value,
-                              (mConnectionType == ConnectionType.WIFI) ? 1.0 : 0.0,
-                              wifiDhcpGatewayAddress()};
+        final ConnectionType connectionType = mConnectionType;
+        return new double[] { connectionType.value,
+                              connectionType == ConnectionType.WIFI ? 1.0 : 0.0,
+                              wifiDhcpGatewayAddress() };
     }
 
     public void enableNotifications() {
@@ -275,9 +338,12 @@ public class GeckoNetworkManager extends BroadcastReceiver implements NativeEven
         if (networkOperator == null || networkOperator.length() <= 3) {
             return -1;
         }
+
         if (type == InfoType.MNC) {
             return Integer.parseInt(networkOperator.substring(3));
-        } else if (type == InfoType.MCC) {
+        }
+
+        if (type == InfoType.MCC) {
             return Integer.parseInt(networkOperator.substring(0, 3));
         }
 

@@ -4,9 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-FAIL_ON_WARNINGS = True
-
-Program('xpcshell')
+GeckoProgram('xpcshell', linkage='dependent')
 
 SOURCES += [
     'xpcshell.cpp',
@@ -17,8 +15,6 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
         'xpcshellMacUtils.mm',
     ]
 
-if CONFIG['MOZ_SHARK']:
-    DEFINES['MOZ_SHARK'] = True
 if CONFIG['MOZ_CALLGRIND']:
     DEFINES['MOZ_CALLGRIND'] = True
 
@@ -36,9 +32,9 @@ if CONFIG['_MSC_VER']:
 if CONFIG['OS_ARCH'] == 'WINNT':
     RCINCLUDE = 'xpcshell.rc'
 
-USE_LIBS += [
-    'mozalloc',
-    'nspr',
-    'xpcomglue_s',
-    'xul',
-]
+CFLAGS += CONFIG['TK_CFLAGS']
+CXXFLAGS += CONFIG['TK_CFLAGS']
+OS_LIBS += CONFIG['TK_LIBS']
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wshadow']

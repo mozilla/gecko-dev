@@ -26,10 +26,8 @@ NS_IMPL_ISUPPORTS_INHERITED0(HTMLListAccessible, HyperTextAccessible)
 role
 HTMLListAccessible::NativeRole()
 {
-  if (mContent->Tag() == nsGkAtoms::dl)
-    return roles::DEFINITION_LIST;
-
-  return roles::LIST;
+  a11y::role r = GetAccService()->MarkupRole(mContent);
+  return r != roles::NOTHING ? r : roles::LIST;
 }
 
 uint64_t
@@ -69,10 +67,8 @@ HTMLLIAccessible::Shutdown()
 role
 HTMLLIAccessible::NativeRole()
 {
-  if (mContent->Tag() == nsGkAtoms::dt)
-    return roles::TERM;
-
-  return roles::LISTITEM;
+  a11y::role r = GetAccService()->MarkupRole(mContent);
+  return r != roles::NOTHING ? r : roles::LISTITEM;
 }
 
 uint64_t
@@ -106,19 +102,28 @@ HTMLLIAccessible::UpdateBullet(bool aHasBullet)
     return;
   }
 
+  RefPtr<AccReorderEvent> reorderEvent = new AccReorderEvent(this);
+  AutoTreeMutation mut(this);
+
   DocAccessible* document = Document();
   if (aHasBullet) {
     mBullet = new HTMLListBulletAccessible(mContent, mDoc);
     document->BindToDocument(mBullet, nullptr);
     InsertChildAt(0, mBullet);
+
+    RefPtr<AccShowEvent> event = new AccShowEvent(mBullet, mBullet->GetContent());
+    mDoc->FireDelayedEvent(event);
+    reorderEvent->AddSubMutationEvent(event);
   } else {
+    RefPtr<AccHideEvent> event = new AccHideEvent(mBullet, mBullet->GetContent());
+    mDoc->FireDelayedEvent(event);
+    reorderEvent->AddSubMutationEvent(event);
+
     RemoveChild(mBullet);
-    document->UnbindFromDocument(mBullet);
     mBullet = nullptr;
   }
 
-  // XXXtodo: fire show/hide and reorder events. That's hard to make it
-  // right now because coalescence happens by DOM node.
+  mDoc->FireDelayedEvent(reorderEvent);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

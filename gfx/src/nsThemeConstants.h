@@ -255,8 +255,7 @@
 #define NS_THEME_WIN_MEDIA_TOOLBOX                         222
 #define NS_THEME_WIN_BROWSER_TAB_BAR_TOOLBOX               223
 
-// Unified toolbar and titlebar elements on the Mac
-#define NS_THEME_MOZ_MAC_UNIFIED_TOOLBAR                   224
+// Titlebar elements on the Mac
 #define NS_THEME_MOZ_MAC_FULLSCREEN_BUTTON                 226
 
 // Mac help button
@@ -284,3 +283,7 @@
 
 #define NS_THEME_MAC_VIBRANCY_LIGHT                        243
 #define NS_THEME_MAC_VIBRANCY_DARK                         244
+#define NS_THEME_MAC_DISCLOSURE_BUTTON_OPEN                245
+#define NS_THEME_MAC_DISCLOSURE_BUTTON_CLOSED              246
+
+#define NS_THEME_GTK_INFO_BAR                              247

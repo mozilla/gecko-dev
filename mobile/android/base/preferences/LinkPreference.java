@@ -23,6 +23,10 @@ class LinkPreference extends Preference {
         mUrl = attrs.getAttributeValue(null, "url");
     }
 
+    public void setUrl(String url) {
+        mUrl = url;
+    }
+
     @Override
     protected void onClick() {
         Tabs.getInstance().loadUrlInTab(mUrl);

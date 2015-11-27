@@ -5,10 +5,15 @@
 
 #include "CameraPreferences.h"
 #include "CameraCommon.h"
+#include "DOMCameraManager.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Monitor.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/Preferences.h"
+#ifdef MOZ_WIDGET_GONK
+#include "mozilla/Services.h"
+#include "nsIObserverService.h"
+#endif
 
 using namespace mozilla;
 
@@ -26,7 +31,14 @@ uint32_t CameraPreferences::sPrefCameraControlLowMemoryThresholdMB = 0;
 
 bool CameraPreferences::sPrefCameraParametersIsLowMemory = false;
 
-#ifdef CAMERAPREFERENCES_HAVE_SEPARATE_UINT32_AND_NSRESULT
+bool CameraPreferences::sPrefCameraParametersPermission = false;
+
+#ifdef MOZ_WIDGET_GONK
+StaticRefPtr<CameraPreferences> CameraPreferences::sObserver;
+
+NS_IMPL_ISUPPORTS(CameraPreferences, nsIObserver);
+#endif
+
 /* static */
 nsresult
 CameraPreferences::UpdatePref(const char* aPref, nsresult& aVal)
@@ -35,10 +47,13 @@ CameraPreferences::UpdatePref(const char* aPref, nsresult& aVal)
   nsresult rv = Preferences::GetUint(aPref, &val);
   if (NS_SUCCEEDED(rv)) {
     aVal = static_cast<nsresult>(val);
+  } else if(rv == NS_ERROR_UNEXPECTED) {
+    // Preference does not exist
+    rv = NS_OK;
+    aVal = NS_OK;
   }
   return rv;
 }
-#endif
 
 /* static */
 nsresult
@@ -48,6 +63,10 @@ CameraPreferences::UpdatePref(const char* aPref, uint32_t& aVal)
   nsresult rv = Preferences::GetUint(aPref, &val);
   if (NS_SUCCEEDED(rv)) {
     aVal = val;
+  } else if(rv == NS_ERROR_UNEXPECTED) {
+    // Preference does not exist
+    rv = NS_OK;
+    aVal = 0;
   }
   return rv;
 }
@@ -60,6 +79,10 @@ CameraPreferences::UpdatePref(const char* aPref, nsACString& aVal)
   nsresult rv = Preferences::GetCString(aPref, &val);
   if (NS_SUCCEEDED(rv)) {
     aVal = val;
+  } else if(rv == NS_ERROR_UNEXPECTED) {
+    // Preference does not exist
+    rv = NS_OK;
+    aVal.Truncate();
   }
   return rv;
 }
@@ -72,6 +95,10 @@ CameraPreferences::UpdatePref(const char* aPref, bool& aVal)
   nsresult rv = Preferences::GetBool(aPref, &val);
   if (NS_SUCCEEDED(rv)) {
     aVal = val;
+  } else if(rv == NS_ERROR_UNEXPECTED) {
+    // Preference does not exist
+    rv = NS_OK;
+    aVal = false;
   }
   return rv;
 }
@@ -87,6 +114,11 @@ CameraPreferences::Pref CameraPreferences::sPrefs[] = {
     "camera.control.test.hardware",
     kPrefValueIsCString,
     { &sPrefHardwareTest }
+  },
+  {
+    "camera.control.test.permission",
+    kPrefValueIsBoolean,
+    { &sPrefCameraParametersPermission }
   },
 #ifdef MOZ_B2G
   {
@@ -145,7 +177,6 @@ CameraPreferences::PreferenceChanged(const char* aPref, void* aClosure)
   nsresult rv;
   switch (p.mValueType) {
     case kPrefValueIsNsResult:
-    #ifdef CAMERAPREFERENCES_HAVE_SEPARATE_UINT32_AND_NSRESULT
       {
         nsresult& v = *p.mValue.mAsNsResult;
         rv = UpdatePref(aPref, v);
@@ -154,7 +185,6 @@ CameraPreferences::PreferenceChanged(const char* aPref, void* aClosure)
         }
       }
       break;
-    #endif
 
     case kPrefValueIsUint32:
       {
@@ -205,6 +235,19 @@ CameraPreferences::Initialize()
 
   nsresult rv;
 
+#ifdef MOZ_WIDGET_GONK
+  nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
+  if (obs) {
+    sObserver = new CameraPreferences();
+    rv = obs->AddObserver(sObserver, "init-camera-hw", false);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      sObserver = nullptr;
+    }
+  } else {
+    DOM_CAMERA_LOGE("Could not get observer service\n");
+  }
+#endif
+
   sPrefMonitor = new Monitor("CameraPreferences.sPrefMonitor");
 
   sPrefTestEnabled = new nsCString();
@@ -239,8 +282,41 @@ CameraPreferences::Shutdown()
   sPrefGonkParameters = nullptr;
   sPrefMonitor = nullptr;
 
+#ifdef MOZ_WIDGET_GONK
+  nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
+  if (obs) {
+    nsresult rv = obs->RemoveObserver(sObserver , "init-camera-hw");
+    if (NS_FAILED(rv)) {
+      DOM_CAMERA_LOGE("Failed to remove CameraPreferences observer (0x%x)\n", rv);
+    }
+    sObserver = nullptr;
+  } else {
+    DOM_CAMERA_LOGE("Could not get observer service\n");
+  }
+#endif
+
   DOM_CAMERA_LOGI("Camera preferences shut down\n");
 }
+
+#ifdef MOZ_WIDGET_GONK
+nsresult
+CameraPreferences::PreinitCameraHardware()
+{
+  nsDOMCameraManager::PreinitCameraHardware();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+CameraPreferences::Observe(nsISupports* aSubject, const char* aTopic, const char16_t* aData)
+{
+  if (strcmp(aTopic, "init-camera-hw") == 0) {
+    return PreinitCameraHardware();
+  }
+
+  DOM_CAMERA_LOGE("Got unhandled topic '%s'\n", aTopic);
+  return NS_OK;
+}
+#endif
 
 /* static */
 bool
@@ -274,7 +350,6 @@ CameraPreferences::GetPref(const char* aPref, nsACString& aVal)
   return true;
 }
 
-#ifdef CAMERAPREFERENCES_HAVE_SEPARATE_UINT32_AND_NSRESULT
 /* static */
 bool
 CameraPreferences::GetPref(const char* aPref, nsresult& aVal)
@@ -302,7 +377,6 @@ CameraPreferences::GetPref(const char* aPref, nsresult& aVal)
   aVal = v;
   return true;
 }
-#endif
 
 /* static */
 bool

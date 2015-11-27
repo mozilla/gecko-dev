@@ -10,6 +10,7 @@
 #include "FrameMetrics.h"               // for FrameMetrics, etc
 #include "Units.h"                      // for CSSPoint, CSSRect, etc
 #include "mozilla/Assertions.h"         // for MOZ_ASSERT_HELPER2
+#include "mozilla/EventForwards.h"      // for Modifiers
 #include "nsISupportsImpl.h"
 
 class Task;
@@ -25,8 +26,17 @@ public:
   /**
    * Requests a paint of the given FrameMetrics |aFrameMetrics| from Gecko.
    * Implementations per-platform are responsible for actually handling this.
+   * This method will always be called on the Gecko main thread.
    */
   virtual void RequestContentRepaint(const FrameMetrics& aFrameMetrics) = 0;
+
+  /**
+   * Requests handling of a scroll snapping at the end of a fling gesture for
+   * the scrollable frame with the given scroll id. aDestination specifies the
+   * expected landing position of the fling if no snapping were to be performed.
+   */
+  virtual void RequestFlingSnap(const FrameMetrics::ViewID& aScrollId,
+                                const mozilla::CSSPoint& aDestination) = 0;
 
   /**
    * Acknowledges the recipt of a scroll offset update for the scrollable
@@ -43,7 +53,7 @@ public:
    * to.
    */
   virtual void HandleDoubleTap(const CSSPoint& aPoint,
-                               int32_t aModifiers,
+                               Modifiers aModifiers,
                                const ScrollableLayerGuid& aGuid) = 0;
 
   /**
@@ -52,7 +62,7 @@ public:
    * button down, then mouse button up at |aPoint|.
    */
   virtual void HandleSingleTap(const CSSPoint& aPoint,
-                               int32_t aModifiers,
+                               Modifiers aModifiers,
                                const ScrollableLayerGuid& aGuid) = 0;
 
   /**
@@ -60,45 +70,16 @@ public:
    * current scroll offset.
    */
   virtual void HandleLongTap(const CSSPoint& aPoint,
-                             int32_t aModifiers,
-                             const ScrollableLayerGuid& aGuid) = 0;
-
-  /**
-   * Requests handling of releasing a long tap. |aPoint| is in CSS pixels,
-   * relative to the current scroll offset. HandleLongTapUp will always be
-   * preceeded by HandleLongTap. However not all calls to HandleLongTap will
-   * be followed by a HandleLongTapUp (for example, if the user drags
-   * around between the long-tap and lifting their finger, or if content
-   * notifies the APZ that the long-tap event was prevent-defaulted).
-   */
-  virtual void HandleLongTapUp(const CSSPoint& aPoint,
-                               int32_t aModifiers,
-                               const ScrollableLayerGuid& aGuid) = 0;
-
-  /**
-   * Requests sending a mozbrowserasyncscroll domevent to embedder.
-   * |aContentRect| is in CSS pixels, relative to the current cssPage.
-   * |aScrollableSize| is the current content width/height in CSS pixels.
-   */
-  virtual void SendAsyncScrollDOMEvent(bool aIsRoot,
-                                       const CSSRect &aContentRect,
-                                       const CSSSize &aScrollableSize) = 0;
+                             Modifiers aModifiers,
+                             const ScrollableLayerGuid& aGuid,
+                             uint64_t aInputBlockId) = 0;
 
   /**
    * Schedules a runnable to run on the controller/UI thread at some time
    * in the future.
+   * This method must always be called on the controller thread.
    */
   virtual void PostDelayedTask(Task* aTask, int aDelayMs) = 0;
-
-  /**
-   * Retrieves the last known zoom constraints for the root scrollable layer
-   * for this layers tree. This function should return false if there are no
-   * last known zoom constraints.
-   */
-  virtual bool GetRootZoomConstraints(ZoomConstraints* aOutConstraints)
-  {
-    return false;
-  }
 
   /**
    * APZ uses |FrameMetrics::mCompositionBounds| for hit testing. Sometimes,
@@ -141,7 +122,6 @@ public:
     EndTouch,
     APZStateChangeSentinel
   };
-
   /**
    * General notices of APZ state changes for consumers.
    * |aGuid| identifies the APZC originating the state change.
@@ -153,14 +133,26 @@ public:
                                     APZStateChange aChange,
                                     int aArg = 0) {}
 
+  /**
+   * Notify content of a MozMouseScrollFailed event.
+   */
+  virtual void NotifyMozMouseScrollEvent(const FrameMetrics::ViewID& aScrollId, const nsString& aEvent)
+  {}
+
+  /**
+   * Notify content that the repaint requests have been flushed.
+   */
+  virtual void NotifyFlushComplete() = 0;
+
   GeckoContentController() {}
+  virtual void Destroy() {}
 
 protected:
   // Protected destructor, to discourage deletion outside of Release():
   virtual ~GeckoContentController() {}
 };
 
-}
-}
+} // namespace layers
+} // namespace mozilla
 
 #endif // mozilla_layers_GeckoContentController_h

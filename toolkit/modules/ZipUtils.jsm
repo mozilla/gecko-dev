@@ -52,7 +52,6 @@ function saveStreamAsync(aPath, aStream, aFile) {
                createInstance(Ci.nsIBinaryInputStream);
   source.setInputStream(input);
 
-  let data = new Uint8Array(EXTRACTION_BUFFER);
 
   function readFailed(error) {
     try {
@@ -72,7 +71,8 @@ function saveStreamAsync(aPath, aStream, aFile) {
 
   function readData() {
     try {
-      let count = Math.min(source.available(), data.byteLength);
+      let count = Math.min(source.available(), EXTRACTION_BUFFER);
+      let data = new Uint8Array(count);
       source.readArrayBuffer(count, data.buffer);
 
       aFile.write(data, { bytes: count }).then(function() {
@@ -211,7 +211,7 @@ this.ZipUtils = {
           target.permissions |= FileUtils.PERMS_FILE;
         }
         catch (e) {
-          dump("Failed to set permissions " + aPermissions.toString(8) + " on " + target.path + "\n");
+          dump("Failed to set permissions " + FileUtils.PERMS_FILE.toString(8) + " on " + target.path + " " + e + "\n");
         }
       }
     }

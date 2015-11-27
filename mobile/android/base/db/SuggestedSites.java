@@ -34,14 +34,13 @@ import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import org.mozilla.gecko.BrowserLocaleManager;
+import org.mozilla.gecko.annotation.RobocopTarget;
 import org.mozilla.gecko.GeckoSharedPrefs;
 import org.mozilla.gecko.GeckoProfile;
+import org.mozilla.gecko.Locales;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.distribution.Distribution;
-import org.mozilla.gecko.db.BrowserContract;
-import org.mozilla.gecko.mozglue.RobocopTarget;
+import org.mozilla.gecko.Restrictions;
 import org.mozilla.gecko.preferences.GeckoPreferences;
 import org.mozilla.gecko.util.RawResource;
 import org.mozilla.gecko.util.ThreadUtils;
@@ -81,21 +80,29 @@ public class SuggestedSites {
     private static final String[] COLUMNS = new String[] {
         BrowserContract.SuggestedSites._ID,
         BrowserContract.SuggestedSites.URL,
-        BrowserContract.SuggestedSites.TITLE
+        BrowserContract.SuggestedSites.TITLE,
     };
 
+    public static final int TRACKING_ID_NONE = -1;
+
+    private static final String JSON_KEY_TRACKING_ID = "trackingid";
     private static final String JSON_KEY_URL = "url";
     private static final String JSON_KEY_TITLE = "title";
     private static final String JSON_KEY_IMAGE_URL = "imageurl";
     private static final String JSON_KEY_BG_COLOR = "bgcolor";
+    private static final String JSON_KEY_RESTRICTED = "restricted";
 
     private static class Site {
         public final String url;
         public final String title;
         public final String imageUrl;
         public final String bgColor;
+        public final int trackingId;
+        public final boolean restricted;
 
         public Site(JSONObject json) throws JSONException {
+            this.trackingId = json.isNull(JSON_KEY_TRACKING_ID) ? TRACKING_ID_NONE : json.getInt(JSON_KEY_TRACKING_ID);
+            this.restricted =  !json.isNull(JSON_KEY_RESTRICTED);
             this.url = json.getString(JSON_KEY_URL);
             this.title = json.getString(JSON_KEY_TITLE);
             this.imageUrl = json.getString(JSON_KEY_IMAGE_URL);
@@ -104,17 +111,19 @@ public class SuggestedSites {
             validate();
         }
 
-        public Site(String url, String title, String imageUrl, String bgColor) {
+        public Site(int trackingId, String url, String title, String imageUrl, String bgColor) {
+            this.trackingId = trackingId;
             this.url = url;
             this.title = title;
             this.imageUrl = imageUrl;
             this.bgColor = bgColor;
+            this.restricted = false;
 
             validate();
         }
 
         private void validate() {
-            // Site instances must have non-empty values for all properties.
+            // Site instances must have non-empty values for all properties except IDs.
             if (TextUtils.isEmpty(url) ||
                 TextUtils.isEmpty(title) ||
                 TextUtils.isEmpty(imageUrl) ||
@@ -126,7 +135,9 @@ public class SuggestedSites {
 
         @Override
         public String toString() {
-            return "{ url = " + url + "\n" +
+            return "{ trackingId = " + trackingId + "\n" +
+                     "url = " + url + "\n" +
+                     "restricted = " + restricted + "\n" +
                      "title = " + title + "\n" +
                      "imageUrl = " + imageUrl + "\n" +
                      "bgColor = " + bgColor + " }";
@@ -134,6 +145,14 @@ public class SuggestedSites {
 
         public JSONObject toJSON() throws JSONException {
             final JSONObject json = new JSONObject();
+
+            if (trackingId >= 0) {
+                json.put(JSON_KEY_TRACKING_ID, trackingId);
+            }
+
+            if (restricted) {
+                json.put(JSON_KEY_RESTRICTED, true);
+            }
 
             json.put(JSON_KEY_URL, url);
             json.put(JSON_KEY_TITLE, title);
@@ -146,7 +165,7 @@ public class SuggestedSites {
 
     final Context context;
     final Distribution distribution;
-    final File file;
+    private File cachedFile;
     private Map<String, Site> cachedSites;
     private Set<String> cachedBlacklist;
 
@@ -155,14 +174,20 @@ public class SuggestedSites {
     }
 
     public SuggestedSites(Context appContext, Distribution distribution) {
-        this(appContext, distribution,
-             GeckoProfile.get(appContext).getFile(FILENAME));
+        this(appContext, distribution, null);
     }
 
     public SuggestedSites(Context appContext, Distribution distribution, File file) {
         this.context = appContext;
         this.distribution = distribution;
-        this.file = file;
+        this.cachedFile = file;
+    }
+
+    synchronized File getFile() {
+        if (cachedFile == null) {
+            cachedFile = GeckoProfile.get(context).getFile(FILENAME);
+        }
+        return cachedFile;
     }
 
     private static boolean isNewLocale(Context context, Locale requestedLocale) {
@@ -272,17 +297,16 @@ public class SuggestedSites {
             return;
         }
 
-        distribution.addOnDistributionReadyCallback(new Runnable() {
+        distribution.addOnDistributionReadyCallback(new Distribution.ReadyCallback() {
             @Override
-            public void run() {
-                Log.d(LOGTAG, "Running post-distribution task: suggested sites.");
-
+            public void distributionNotFound() {
                 // If distribution doesn't exist, simply continue to load
                 // suggested sites directly from resources. See refresh().
-                if (!distribution.exists()) {
-                    return;
-                }
+            }
 
+            @Override
+            public void distributionFound(Distribution distribution) {
+                Log.d(LOGTAG, "Running post-distribution task: suggested sites.");
                 // Merge suggested sites from distribution with the
                 // default ones. Distribution takes precedence.
                 Map<String, Site> sites = loadFromDistribution(distribution);
@@ -295,6 +319,7 @@ public class SuggestedSites {
                 setCachedSites(sites);
 
                 // Save the result to disk.
+                final File file = getFile();
                 synchronized (file) {
                     saveSites(file, sites);
                 }
@@ -302,6 +327,11 @@ public class SuggestedSites {
                 // Then notify any active loaders about the changes.
                 final ContentResolver cr = context.getContentResolver();
                 cr.notifyChange(BrowserContract.SuggestedSites.CONTENT_URI, null);
+            }
+
+            @Override
+            public void distributionArrivedLate(Distribution distribution) {
+                distributionFound(distribution);
             }
         });
     }
@@ -316,7 +346,7 @@ public class SuggestedSites {
     static Map<String, Site> loadFromDistribution(Distribution dist) {
         for (Locale locale : getAcceptableLocales()) {
             try {
-                final String languageTag = BrowserLocaleManager.getLanguageTag(locale);
+                final String languageTag = Locales.getLanguageTag(locale);
                 final String path = String.format("suggestedsites/locales/%s/%s",
                                                   languageTag, FILENAME);
 
@@ -338,6 +368,7 @@ public class SuggestedSites {
 
     private Map<String, Site> loadFromProfile() {
         try {
+            final File file = getFile();
             synchronized (file) {
                 return loadSites(file);
             }
@@ -451,7 +482,7 @@ public class SuggestedSites {
         // Force the suggested sites file in profile dir to be re-generated
         // if the locale has changed.
         if (isNewLocale) {
-            file.delete();
+            getFile().delete();
         }
 
         if (cachedSites == null || isNewLocale) {
@@ -480,10 +511,14 @@ public class SuggestedSites {
                 continue;
             }
 
-            final RowBuilder row = cursor.newRow();
-            row.add(-1);
-            row.add(site.url);
-            row.add(site.title);
+            final boolean restrictedProfile =  Restrictions.isRestrictedProfile(context);
+
+            if (restrictedProfile == site.restricted) {
+                final RowBuilder row = cursor.newRow();
+                row.add(-1);
+                row.add(site.url);
+                row.add(site.title);
+            }
         }
 
         cursor.setNotificationUri(context.getContentResolver(),
@@ -504,6 +539,11 @@ public class SuggestedSites {
     public String getBackgroundColorForUrl(String url) {
         final Site site = getSiteForUrl(url);
         return (site != null ? site.bgColor : null);
+    }
+
+    public int getTrackingIdForUrl(String url) {
+        final Site site = getSiteForUrl(url);
+        return (site != null ? site.trackingId : TRACKING_ID_NONE);
     }
 
     private Set<String> loadBlacklist() {

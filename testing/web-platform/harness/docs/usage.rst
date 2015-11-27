@@ -17,7 +17,7 @@ order to do this you must use use the extra requirements files in
 ``$VIRTUAL_ENV/requirements/requirements_browser.txt``. For example,
 in order to test against Firefox you would have to run::
 
-  pip install requirements/requirements_firefox.txt
+  pip install -r requirements/requirements_firefox.txt
 
 If you intend to work on the code, the ``-e`` option to pip should be
 used in combination with a source checkout i.e. inside a virtual
@@ -28,21 +28,21 @@ environment created as above::
   pip install -e ./
 
 In addition to the dependencies installed by pip, wptrunner requires
-a copy of the web-platform-tests. This can be located anywhere on
-the filesystem, but the easiest option is to put it in a sibling
-directory of the wptrunner checkout called `tests`::
+a copy of the web-platform-tests repository. This can be located
+anywhere on the filesystem, but the easiest option is to put it
+under the same parent directory as the wptrunner checkout::
 
-  git clone https://github.com/w3c/web-platform-tests.git tests
+  git clone https://github.com/w3c/web-platform-tests.git
 
-It is also necessary to generate the ``MANIFEST.json`` file for the
-web-platform-tests. It is recommended to put this file in a separate
-directory called ``meta``::
+It is also necessary to generate a web-platform-tests ``MANIFEST.json``
+file. It's recommended to also put that under the same parent directory as
+the wptrunner checkout, in a directory named ``meta``::
 
   mkdir meta
   cd web-platform-tests
-  python tools/scripts/manifest.py ../meta/MANIFEST.json
+  python manifest --path ../meta/MANIFEST.json
 
-This file needs to be regenerated every time that the
+The ``MANIFEST.json`` file needs to be regenerated each time the
 web-platform-tests checkout is updated. To aid with the update process
 there is a tool called ``wptupdate``, which is described in
 :ref:`wptupdate-label`.
@@ -50,44 +50,125 @@ there is a tool called ``wptupdate``, which is described in
 Running the Tests
 -----------------
 
-A test run is started using the ``wptrunner`` command. By default this
-assumes that tests are in a subdirectory of the current directory
-called ``tests`` and the metadata is in a subdirectory called
-``meta``. These defaults can be changed using either a command line
-flag or a configuration file.
+A test run is started using the ``wptrunner`` command.  The command
+takes multiple options, of which the following are most significant:
 
-To specify the browser product to test against, use the ``--product``
-flag. If no product is specified, the default is ``firefox`` which
-tests Firefox desktop. ``wptrunner --help`` can be used to see a list
-of supported products. Note that this does not take account of the
-products for which the correct dependencies have been installed.
+``--product`` (defaults to `firefox`)
+  The product to test against: `b2g`, `chrome`, `firefox`, or `servo`.
 
-Depending on the product, further arguments may be required. For
-example when testing desktop browsers ``--binary`` is commonly needed
-to specify the path to the browser executable. So a complete command
-line for running tests on firefox desktop might be::
+``--binary`` (required if product is `firefox` or `servo`)
+  The path to a binary file for the product (browser) to test against.
 
-  wptrunner --product=firefox --binary=/usr/bin/firefox
+``--webdriver-binary`` (required if product is `chrome`)
+  The path to a `*driver` binary; e.g., a `chromedriver` binary.
 
-It is also possible to run multiple browser instances in parallel to
-speed up the testing process. This is achieved through the
-``--processes=N`` argument e.g. ``--processes=6`` would attempt to run
-6 browser instances in parallel. Note that behaviour in this mode is
-necessarily less deterministic than with ``--processes=1`` (the
-default) so there may be more noise in the test results.
+``--certutil-binary`` (required if product is `firefox` [#]_)
+  The path to a `certutil` binary (for tests that must be run over https).
 
-Further help can be obtained from::
+``--metadata`` (required only when not `using default paths`_)
+  The path to a directory containing test metadata. [#]_
 
-  wptrunner --help
+``--tests`` (required only when not `using default paths`_)
+  The path to a directory containing a web-platform-tests checkout.
+
+``--prefs-root`` (required only when testing a Firefox binary)
+  The path to a directory containing Firefox test-harness preferences. [#]_
+
+``--config`` (should default to `wptrunner.default.ini`)
+  The path to the config (ini) file.
+
+.. [#] The ``--certutil-binary`` option is required when the product is
+   ``firefox`` unless ``--ssl-type=none`` is specified.
+
+.. [#] The ``--metadata`` path is to a directory that contains:
+
+  * a ``MANIFEST.json`` file (the web-platform-tests documentation has
+    instructions on generating this file)
+  * (optionally) any expectation files (see :ref:`wptupdate-label`)
+
+.. [#] Example ``--prefs-root`` value: ``~/mozilla-central/testing/profiles``.
+
+There are also a variety of other command-line options available; use
+``--help`` to list them.
+
+The following examples show how to start wptrunner with various options.
+
+------------------
+Starting wptrunner
+------------------
+
+The examples below assume the following directory layout,
+though no specific folder structure is required::
+
+  ~/testtwf/wptrunner          # wptrunner checkout
+  ~/testtwf/web-platform-tests # web-platform-tests checkout
+  ~/testtwf/meta               # metadata
+
+To test a Firefox Nightly build in an OS X environment, you might start
+wptrunner using something similar to the following example::
+
+  wptrunner --metadata=~/testtwf/meta/ --tests=~/testtwf/web-platform-tests/ \
+    --binary=~/mozilla-central/obj-x86_64-apple-darwin14.3.0/dist/Nightly.app/Contents/MacOS/firefox \
+    --certutil-binary=~/mozilla-central/obj-x86_64-apple-darwin14.3.0/security/nss/cmd/certutil/certutil \
+    --prefs-root=~/mozilla-central/testing/profiles
+
+
+And to test a Chromium build in an OS X environment, you might start
+wptrunner using something similar to the following example::
+
+  wptrunner --metadata=~/testtwf/meta/ --tests=~/testtwf/web-platform-tests/ \
+    --binary=~/chromium/src/out/Release/Chromium.app/Contents/MacOS/Chromium \
+    --webdriver-binary=/usr/local/bin/chromedriver --product=chrome
+
+--------------------
+Running test subsets
+--------------------
+
+To restrict a test run just to tests in a particular web-platform-tests
+subdirectory, specify the directory name in the positional arguments after
+the options; for example, run just the tests in the `dom` subdirectory::
+
+  wptrunner --metadata=~/testtwf/meta --tests=~/testtwf/web-platform-tests/ \
+    --binary=/path/to/firefox --certutil-binary=/path/to/certutil \
+    --prefs-root=/path/to/testing/profiles \
+    dom
+
+-------------------
+Running in parallel
+-------------------
+
+To speed up the testing process, use the ``--processes`` option to have
+wptrunner run multiple browser instances in parallel. For example, to
+have wptrunner attempt to run tests against with six browser instances
+in parallel, specify ``--processes=6``. But note that behaviour in this
+mode is necessarily less deterministic than with ``--processes=1`` (the
+default), so there may be more noise in the test results.
+
+-------------------
+Using default paths
+-------------------
+
+The (otherwise-required) ``--tests`` and ``--metadata`` command-line
+options/flags be omitted if any configuration file is found that
+contains a section specifying the ``tests`` and ``metadata`` keys.
+
+See the `Configuration File`_ section for more information about
+configuration files, including information about their expected
+locations.
+
+The content of the ``wptrunner.default.ini`` default configuration file
+makes wptrunner look for tests (that is, a web-platform-tests checkout)
+as a subdirectory of the current directory named ``tests``, and for
+metadata files in a subdirectory of the current directory named ``meta``.
 
 Output
 ------
 
-wptrunner uses the :py:mod:`mozlog.structured` package for output. This
+wptrunner uses the :py:mod:`mozlog` package for output. This
 structures events such as test results or log messages as JSON objects
 that can then be fed to other tools for interpretation. More details
 about the message format are given in the
-:py:mod:`mozlog.structured` documentation.
+:py:mod:`mozlog` documentation.
 
 By default the raw JSON messages are dumped to stdout. This is
 convenient for piping into other tools, but not ideal for humans
@@ -109,7 +190,7 @@ Configuration File
 
 wptrunner uses a ``.ini`` file to control some configuration
 sections. The file has three sections; ``[products]``,
-``[paths]`` and ``[web-platform-tests]``.
+``[manifest:default]`` and ``[web-platform-tests]``.
 
 ``[products]`` is used to
 define the set of available products. By default this section is empty
@@ -124,12 +205,12 @@ e.g.::
   chrome =
   netscape4 = path/to/netscape.py
 
-``[paths]`` specifies the default paths for the tests and metadata,
+``[manifest:default]`` specifies the default paths for the tests and metadata,
 relative to the config file. For example::
 
-  [paths]
-  tests = checkouts/web-platform-tests
-  metadata = /home/example/wpt/metadata
+  [manifest:default]
+  tests = ~/testtwf/web-platform-tests
+  metadata = ~/testtwf/meta
 
 
 ``[web-platform-tests]`` is used to set the properties of the upstream

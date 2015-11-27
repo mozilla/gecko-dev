@@ -7,10 +7,8 @@
 toolbarbutton {
   -moz-box-align: center;
   -moz-box-pack: center;
-  margin: 0px 2px 0px 2px;
-  padding: 3px 1px 3px 1px;
-  border-right: 1px solid transparent;
-  border-left: 1px solid transparent;
+  margin: 0 2px;
+  padding: 3px 2px;
   background-color: transparent;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
 }
@@ -74,6 +72,37 @@ toolbarbutton[type="menu-button"][disabled="true"]:hover:active {
   -moz-box-pack: center;
   -moz-box-orient: vertical;
   text-shadow: inherit;
+}
+
+/* ::::: toolbarbutton badged ::::: */
+
+.toolbarbutton-badge {
+  background-color: #d90000;
+  font-size: 9px;
+  padding: 1px 2px;
+  color: #fff;
+  border-radius: 2px;
+  box-shadow: 0 1px 0 hsla(0, 100%, 100%, .2) inset,
+              0 -1px 0 hsla(0, 0%, 0%, .1) inset,
+              0 1px 0 hsla(206, 50%, 10%, .2);
+  margin: -6px 0 0 !important;
+  -moz-margin-end: -6px !important;
+  min-width: 14px;
+  max-width: 28px;
+  line-height: 10px;
+  text-align: center;
+  -moz-stack-sizing: ignore;
+}
+
+.toolbarbutton-badge:-moz-window-inactive {
+  background-color: rgb(230,230,230);
+  box-shadow: none;
+  border: 1px solid rgb(206,206,206);
+  color: rgb(192,192,192);
+}
+
+toolbar[mode="icons"] > *|* > .toolbarbutton-badge {
+  -moz-margin-end: -10px !important;
 }
 
 /* .......... dropmarker .......... */

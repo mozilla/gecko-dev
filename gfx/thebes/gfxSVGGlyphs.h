@@ -6,6 +6,7 @@
 #define GFX_SVG_GLYPHS_WRAPPER_H
 
 #include "gfxFontUtils.h"
+#include "mozilla/gfx/2D.h"
 #include "nsString.h"
 #include "nsAutoPtr.h"
 #include "nsClassHashtable.h"
@@ -25,8 +26,8 @@ class gfxTextContextPaint;
 namespace mozilla {
 namespace dom {
 class Element;
-}
-}
+} // namespace dom
+} // namespace mozilla
 
 /**
  * Wraps an SVG document contained in the SVG table of an OpenType font.
@@ -36,7 +37,7 @@ class Element;
  * Finds and looks up elements contained in the SVG document which have glyph
  *   mappings to be drawn by gfxSVGGlyphs
  */
-class gfxSVGGlyphsDocument MOZ_FINAL : public nsAPostRefreshObserver
+class gfxSVGGlyphsDocument final : public nsAPostRefreshObserver
 {
     typedef mozilla::dom::Element Element;
 
@@ -48,7 +49,7 @@ public:
 
     ~gfxSVGGlyphsDocument();
 
-    virtual void DidRefresh() MOZ_OVERRIDE;
+    virtual void DidRefresh() override;
 
 private:
     nsresult ParseDocument(const uint8_t *aBuffer, uint32_t aBufLen);
@@ -166,6 +167,8 @@ private:
 class gfxTextContextPaint
 {
 protected:
+    typedef mozilla::gfx::DrawTarget DrawTarget;
+
     gfxTextContextPaint() { }
 
 public:
@@ -176,9 +179,11 @@ public:
      * This lets us inherit paints and paint opacities (i.e. fill/stroke and
      * fill-opacity/stroke-opacity) separately.
      */
-    virtual already_AddRefed<gfxPattern> GetFillPattern(float aOpacity,
+    virtual already_AddRefed<gfxPattern> GetFillPattern(const DrawTarget* aDrawTarget,
+                                                        float aOpacity,
                                                         const gfxMatrix& aCTM) = 0;
-    virtual already_AddRefed<gfxPattern> GetStrokePattern(float aOpacity,
+    virtual already_AddRefed<gfxPattern> GetStrokePattern(const DrawTarget* aDrawTarget,
+                                                          float aOpacity,
                                                           const gfxMatrix& aCTM) = 0;
 
     virtual float GetFillOpacity() { return 1.0f; }
@@ -199,12 +204,14 @@ public:
         return mStrokeWidth;
     }
 
-    already_AddRefed<gfxPattern> GetFillPattern(const gfxMatrix& aCTM) {
-        return GetFillPattern(GetFillOpacity(), aCTM);
+    already_AddRefed<gfxPattern> GetFillPattern(const DrawTarget* aDrawTarget,
+                                                const gfxMatrix& aCTM) {
+        return GetFillPattern(aDrawTarget, GetFillOpacity(), aCTM);
     }
 
-    already_AddRefed<gfxPattern> GetStrokePattern(const gfxMatrix& aCTM) {
-        return GetStrokePattern(GetStrokeOpacity(), aCTM);
+    already_AddRefed<gfxPattern> GetStrokePattern(const DrawTarget* aDrawTarget,
+                                                  const gfxMatrix& aCTM) {
+        return GetStrokePattern(aDrawTarget, GetStrokeOpacity(), aCTM);
     }
 
     virtual ~gfxTextContextPaint() { }
@@ -222,7 +229,7 @@ private:
 class SimpleTextContextPaint : public gfxTextContextPaint
 {
 private:
-    static const gfxRGBA sZero;
+    static const mozilla::gfx::Color sZero;
 
 public:
     static gfxMatrix SetupDeviceToPatternMatrix(gfxPattern *aPattern,
@@ -247,21 +254,23 @@ public:
         mStrokeMatrix = SetupDeviceToPatternMatrix(aStrokePattern, aCTM);
     }
 
-    already_AddRefed<gfxPattern> GetFillPattern(float aOpacity,
+    already_AddRefed<gfxPattern> GetFillPattern(const DrawTarget* aDrawTarget,
+                                                float aOpacity,
                                                 const gfxMatrix& aCTM) {
         if (mFillPattern) {
             mFillPattern->SetMatrix(aCTM * mFillMatrix);
         }
-        nsRefPtr<gfxPattern> fillPattern = mFillPattern;
+        RefPtr<gfxPattern> fillPattern = mFillPattern;
         return fillPattern.forget();
     }
 
-    already_AddRefed<gfxPattern> GetStrokePattern(float aOpacity,
+    already_AddRefed<gfxPattern> GetStrokePattern(const DrawTarget* aDrawTarget,
+                                                  float aOpacity,
                                                   const gfxMatrix& aCTM) {
         if (mStrokePattern) {
             mStrokePattern->SetMatrix(aCTM * mStrokeMatrix);
         }
-        nsRefPtr<gfxPattern> strokePattern = mStrokePattern;
+        RefPtr<gfxPattern> strokePattern = mStrokePattern;
         return strokePattern.forget();
     }
 
@@ -274,8 +283,8 @@ public:
     }
 
 private:
-    nsRefPtr<gfxPattern> mFillPattern;
-    nsRefPtr<gfxPattern> mStrokePattern;
+    RefPtr<gfxPattern> mFillPattern;
+    RefPtr<gfxPattern> mStrokePattern;
 
     // Device space to pattern space transforms
     gfxMatrix mFillMatrix;

@@ -17,6 +17,8 @@ class SharedDIB
 public:
   typedef base::SharedMemoryHandle Handle;
 
+  static const uint32_t kBytesPerPixel = 4;
+
 public:
   SharedDIB();
   ~SharedDIB();
@@ -36,13 +38,13 @@ public:
   nsresult Attach(Handle aHandle, uint32_t aSize);
 
   // Returns a SharedMemoryHandle suitable for sharing with another process.
-  nsresult ShareToProcess(base::ProcessHandle aChildProcess, Handle *aChildHandle);
+  nsresult ShareToProcess(base::ProcessId aTargetPid, Handle *aNewHandle);
 
 protected:
   base::SharedMemory *mShMem;
 };
 
-} // gfx
-} // mozilla
+} // namespace gfx
+} // namespace mozilla
 
 #endif

@@ -9,29 +9,25 @@
 #include "gfxTypes.h"
 #include <stdint.h>                     // for uint32_t
 #include "mozilla/Assertions.h"         // for MOZ_ASSERT, etc
-#include "mozilla/RefPtr.h"             // for RefPtr, TemporaryRef
+#include "mozilla/RefPtr.h"             // for RefPtr, already_AddRefed
 #include "mozilla/gfx/2D.h"             // for DrawTarget, etc
 #include "mozilla/mozalloc.h"           // for operator delete
 #include "nsAutoPtr.h"                  // for nsRefPtr
 #include "nsCOMPtr.h"                   // for already_AddRefed
 #include "nsDebug.h"                    // for NS_RUNTIMEABORT
 #include "nsISupportsImpl.h"            // for MOZ_COUNT_CTOR, etc
-#include "nsPoint.h"                    // for nsIntPoint
-#include "nsRect.h"                     // for nsIntRect
 #include "nsRegion.h"                   // for nsIntRegion
 #include "LayersTypes.h"
-
-struct nsIntSize;
 
 namespace mozilla {
 namespace gfx {
 class Matrix;
-}
+} // namespace gfx
 
 namespace layers {
 
 class TextureClient;
-class ThebesLayer;
+class PaintedLayer;
 
 /**
  * This is a cairo/Thebes surface, but with a literal twist. Scrolling
@@ -52,8 +48,8 @@ class RotatedBuffer {
 public:
   typedef gfxContentType ContentType;
 
-  RotatedBuffer(const nsIntRect& aBufferRect,
-                const nsIntPoint& aBufferRotation)
+  RotatedBuffer(const gfx::IntRect& aBufferRect,
+                const gfx::IntPoint& aBufferRotation)
     : mBufferRect(aBufferRect)
     , mBufferRotation(aBufferRotation)
     , mDidSelfCopy(false)
@@ -83,13 +79,13 @@ public:
    * RotatedBuffer covers.  That is what DrawBufferWithRotation()
    * will paint when it's called.
    */
-  const nsIntRect& BufferRect() const { return mBufferRect; }
-  const nsIntPoint& BufferRotation() const { return mBufferRotation; }
+  const gfx::IntRect& BufferRect() const { return mBufferRect; }
+  const gfx::IntPoint& BufferRotation() const { return mBufferRotation; }
 
   virtual bool HaveBuffer() const = 0;
   virtual bool HaveBufferOnWhite() const = 0;
 
-  virtual TemporaryRef<gfx::SourceSurface> GetSourceSurface(ContextSource aSource) const = 0;
+  virtual already_AddRefed<gfx::SourceSurface> GetSourceSurface(ContextSource aSource) const = 0;
 
 protected:
 
@@ -99,7 +95,7 @@ protected:
   enum YSide {
     TOP, BOTTOM
   };
-  nsIntRect GetQuadrantRectangle(XSide aXSide, YSide aYSide) const;
+  gfx::IntRect GetQuadrantRectangle(XSide aXSide, YSide aYSide) const;
 
   gfx::Rect GetSourceRectangle(XSide aXSide, YSide aYSide) const;
 
@@ -115,8 +111,8 @@ protected:
                           gfx::SourceSurface* aMask,
                           const gfx::Matrix* aMaskTransform) const;
 
-  /** The area of the ThebesLayer that is covered by the buffer as a whole */
-  nsIntRect             mBufferRect;
+  /** The area of the PaintedLayer that is covered by the buffer as a whole */
+  gfx::IntRect             mBufferRect;
   /**
    * The x and y rotation of the buffer. Conceptually the buffer
    * has its origin translated to mBufferRect.TopLeft() - mBufferRotation,
@@ -127,7 +123,7 @@ protected:
    * where items falling off the end of the buffer are returned to the
    * buffer at the other end, not 2D rotation!
    */
-  nsIntPoint            mBufferRotation;
+  gfx::IntPoint            mBufferRotation;
   // When this is true it means that all pixels have moved inside the buffer.
   // It's not possible to sync with another buffer without a full copy.
   bool                  mDidSelfCopy;
@@ -137,14 +133,14 @@ class SourceRotatedBuffer : public RotatedBuffer
 {
 public:
   SourceRotatedBuffer(gfx::SourceSurface* aSource, gfx::SourceSurface* aSourceOnWhite,
-                      const nsIntRect& aBufferRect,
-                      const nsIntPoint& aBufferRotation)
+                      const gfx::IntRect& aBufferRect,
+                      const gfx::IntPoint& aBufferRotation)
     : RotatedBuffer(aBufferRect, aBufferRotation)
     , mSource(aSource)
     , mSourceOnWhite(aSourceOnWhite)
   { }
 
-  virtual TemporaryRef<gfx::SourceSurface> GetSourceSurface(ContextSource aSource) const;
+  virtual already_AddRefed<gfx::SourceSurface> GetSourceSurface(ContextSource aSource) const;
 
   virtual bool HaveBuffer() const { return !!mSource; }
   virtual bool HaveBufferOnWhite() const { return !!mSourceOnWhite; }
@@ -169,7 +165,7 @@ protected:
 };
 
 /**
- * This class encapsulates the buffer used to retain ThebesLayer contents,
+ * This class encapsulates the buffer used to retain PaintedLayer contents,
  * i.e., the contents of the layer's GetVisibleRegion().
  */
 class RotatedContentBuffer : public RotatedBuffer
@@ -181,7 +177,7 @@ public:
   /**
    * Controls the size of the backing buffer of this.
    * - SizedToVisibleBounds: the backing buffer is exactly the same
-   *   size as the bounds of ThebesLayer's visible region
+   *   size as the bounds of PaintedLayer's visible region
    * - ContainsVisibleBounds: the backing buffer is large enough to
    *   fit visible bounds.  May be larger.
    */
@@ -229,7 +225,7 @@ public:
       : mRegionToDraw()
       , mRegionToInvalidate()
       , mMode(SurfaceMode::SURFACE_NONE)
-      , mClip(DrawRegionClip::CLIP_NONE)
+      , mClip(DrawRegionClip::NONE)
       , mContentType(gfxContentType::SENTINEL)
       , mDidSelfCopy(false)
     {}
@@ -267,12 +263,11 @@ public:
    * will need to call BorrowDrawTargetForPainting multiple times to achieve
    * this.
    */
-  PaintState BeginPaint(ThebesLayer* aLayer,
+  PaintState BeginPaint(PaintedLayer* aLayer,
                         uint32_t aFlags);
 
   struct DrawIterator {
     friend class RotatedContentBuffer;
-    friend class ContentClientIncremental;
     DrawIterator()
       : mCount(0)
     {}
@@ -302,20 +297,18 @@ public:
                                                DrawIterator* aIter = nullptr);
 
   enum {
-    ALLOW_REPEAT = 0x01,
     BUFFER_COMPONENT_ALPHA = 0x02 // Dual buffers should be created for drawing with
                                   // component alpha.
   };
   /**
    * Return a new surface of |aSize| and |aType|.
-   * @param aFlags if ALLOW_REPEAT is set, then the buffer should be configured
-   * to allow repeat-mode, otherwise it should be in pad (clamp) mode
+   *
    * If the created buffer supports azure content, then the result(s) will
    * be returned in aBlackDT/aWhiteDT, otherwise aBlackSurface/aWhiteSurface
    * will be used.
    */
   virtual void
-  CreateBuffer(ContentType aType, const nsIntRect& aRect, uint32_t aFlags,
+  CreateBuffer(ContentType aType, const gfx::IntRect& aRect, uint32_t aFlags,
                RefPtr<gfx::DrawTarget>* aBlackDT, RefPtr<gfx::DrawTarget>* aWhiteDT) = 0;
 
   /**
@@ -326,14 +319,14 @@ public:
   gfx::DrawTarget* GetDTBuffer() { return mDTBuffer; }
   gfx::DrawTarget* GetDTBufferOnWhite() { return mDTBufferOnWhite; }
 
-  virtual TemporaryRef<gfx::SourceSurface> GetSourceSurface(ContextSource aSource) const;
+  virtual already_AddRefed<gfx::SourceSurface> GetSourceSurface(ContextSource aSource) const;
 
   /**
    * Complete the drawing operation. The region to draw must have been
    * drawn before this is called. The contents of the buffer are drawn
    * to aTarget.
    */
-  void DrawTo(ThebesLayer* aLayer,
+  void DrawTo(PaintedLayer* aLayer,
               gfx::DrawTarget* aTarget,
               float aOpacity,
               gfx::CompositionOp aOp,
@@ -380,7 +373,7 @@ protected:
    * draw target, if necessary.
    */
   gfx::DrawTarget*
-  BorrowDrawTargetForQuadrantUpdate(const nsIntRect& aBounds,
+  BorrowDrawTargetForQuadrantUpdate(const gfx::IntRect& aBounds,
                                     ContextSource aSource,
                                     DrawIterator* aIter);
 
@@ -392,7 +385,7 @@ protected:
    * buffer provider.
    */
   gfxContentType BufferContentType();
-  bool BufferSizeOkFor(const nsIntSize& aSize);
+  bool BufferSizeOkFor(const gfx::IntSize& aSize);
   /**
    * If the buffer hasn't been mapped, map it.
    */
@@ -432,7 +425,7 @@ protected:
   BufferSizePolicy      mBufferSizePolicy;
 };
 
-}
-}
+} // namespace layers
+} // namespace mozilla
 
 #endif /* ROTATEDBUFFER_H_ */

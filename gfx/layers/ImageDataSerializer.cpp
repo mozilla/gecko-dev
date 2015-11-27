@@ -5,9 +5,10 @@
 
 #include "ImageDataSerializer.h"
 #include "gfx2DGlue.h"                  // for SurfaceFormatToImageFormat
-#include "gfxPoint.h"                   // for gfxIntSize
+#include "mozilla/gfx/Point.h"          // for IntSize
 #include "mozilla/Assertions.h"         // for MOZ_ASSERT, etc
 #include "mozilla/gfx/2D.h"             // for DataSourceSurface, Factory
+#include "mozilla/gfx/Logging.h"        // for gfxDebug
 #include "mozilla/gfx/Tools.h"          // for GetAlignedStride, etc
 #include "mozilla/mozalloc.h"           // for operator delete, etc
 
@@ -34,16 +35,16 @@ using namespace gfx;
 namespace {
 struct SurfaceBufferInfo
 {
-  uint32_t width;
-  uint32_t height;
+  int32_t width;
+  int32_t height;
   SurfaceFormat format;
 
-  static uint32_t GetOffset()
+  static int32_t GetOffset()
   {
     return GetAlignedStride<16>(sizeof(SurfaceBufferInfo));
   }
 };
-} // anonymous namespace
+} // namespace
 
 static SurfaceBufferInfo*
 GetBufferInfo(uint8_t* aData, size_t aDataSize)
@@ -65,19 +66,41 @@ ImageDataSerializer::InitializeBufferInfo(IntSize aSize,
   Validate();
 }
 
-static inline uint32_t
-ComputeStride(SurfaceFormat aFormat, uint32_t aWidth)
+static inline int32_t
+ComputeStride(SurfaceFormat aFormat, int32_t aWidth)
 {
-  return GetAlignedStride<4>(BytesPerPixel(aFormat) * aWidth);
+  CheckedInt<int32_t> size = BytesPerPixel(aFormat);
+  size *= aWidth;
+  if (!size.isValid() || size.value() <= 0) {
+    gfxDebug() << "ComputeStride overflow " << aWidth;
+    return 0;
+  }
+
+  return GetAlignedStride<4>(size.value());
 }
 
 uint32_t
 ImageDataSerializerBase::ComputeMinBufferSize(IntSize aSize,
-                                          SurfaceFormat aFormat)
+                                              SurfaceFormat aFormat)
 {
-  uint32_t bufsize = aSize.height * ComputeStride(aFormat, aSize.width);
-  return SurfaceBufferInfo::GetOffset()
-       + GetAlignedStride<16>(bufsize);
+  MOZ_ASSERT(aSize.height >= 0 && aSize.width >= 0);
+
+  // This takes care of checking whether there could be overflow
+  // with enough margin for the metadata.
+  if (!gfx::Factory::AllowedSurfaceSize(aSize)) {
+    return 0;
+  }
+
+  int32_t bufsize = GetAlignedStride<16>(ComputeStride(aFormat, aSize.width)
+                                         * aSize.height)
+                  + SurfaceBufferInfo::GetOffset();
+
+  if (bufsize < 0) {
+    // This should not be possible thanks to Factory::AllowedSurfaceSize
+    return 0;
+  }
+
+  return bufsize;
 }
 
 void
@@ -93,7 +116,8 @@ ImageDataSerializerBase::Validate()
   }
   size_t requiredSize =
            ComputeMinBufferSize(IntSize(info->width, info->height), info->format);
-  mIsValid = requiredSize <= mDataSize;
+
+  mIsValid = !!requiredSize && requiredSize <= mDataSize;
 }
 
 uint8_t*
@@ -126,16 +150,20 @@ ImageDataSerializerBase::GetFormat() const
   return GetBufferInfo(mData, mDataSize)->format;
 }
 
-TemporaryRef<DrawTarget>
+already_AddRefed<DrawTarget>
 ImageDataSerializerBase::GetAsDrawTarget(gfx::BackendType aBackend)
 {
   MOZ_ASSERT(IsValid());
-  return gfx::Factory::CreateDrawTargetForData(aBackend,
+  RefPtr<DrawTarget> dt = gfx::Factory::CreateDrawTargetForData(aBackend,
                                                GetData(), GetSize(),
                                                GetStride(), GetFormat());
+  if (!dt) {
+    gfxCriticalNote << "Failed GetAsDrawTarget " << IsValid() << ", " << hexa(size_t(mData)) << " + " << SurfaceBufferInfo::GetOffset() << ", " << GetSize() << ", " << GetStride() << ", " << (int)GetFormat();
+  }
+  return dt.forget();
 }
 
-TemporaryRef<gfx::DataSourceSurface>
+already_AddRefed<gfx::DataSourceSurface>
 ImageDataSerializerBase::GetAsSurface()
 {
   MOZ_ASSERT(IsValid());

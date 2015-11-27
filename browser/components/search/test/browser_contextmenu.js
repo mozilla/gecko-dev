@@ -11,12 +11,25 @@ function test() {
   const ENGINE_NAME = "Foo";
   var contextMenu;
 
+  let envService = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
+  let originalValue = envService.get("XPCSHELL_TEST_PROFILE_DIR");
+  envService.set("XPCSHELL_TEST_PROFILE_DIR", "1");
+
+  let url = "chrome://mochitests/content/browser/browser/components/search/test/";
+  let resProt = Services.io.getProtocolHandler("resource")
+                        .QueryInterface(Ci.nsIResProtocolHandler);
+  let originalSubstitution = resProt.getSubstitution("search-plugins");
+  resProt.setSubstitution("search-plugins",
+                          Services.io.newURI(url, null, null));
+
   function observer(aSub, aTopic, aData) {
     switch (aData) {
       case "engine-added":
         var engine = ss.getEngineByName(ENGINE_NAME);
         ok(engine, "Engine was added.");
         ss.currentEngine = engine;
+        envService.set("XPCSHELL_TEST_PROFILE_DIR", originalValue);
+        resProt.setSubstitution("search-plugins", originalSubstitution);
         break;
       case "engine-current":
         is(ss.currentEngine.name, ENGINE_NAME, "currentEngine set");
@@ -30,9 +43,8 @@ function test() {
   }
 
   Services.obs.addObserver(observer, "browser-search-engine-modified", false);
-  ss.addEngine("http://mochi.test:8888/browser/browser/components/search/test/testEngine_mozsearch.xml",
-               Ci.nsISearchEngine.DATA_XML, "data:image/x-icon,%00",
-               false);
+  ss.addEngine("resource://search-plugins/testEngine_mozsearch.xml",
+               null, "data:image/x-icon,%00", false);
 
   function startTest() {
     contextMenu = document.getElementById("contentAreaContextMenu");
@@ -68,7 +80,7 @@ function test() {
 
     function checkSearchURL(event) {
       is(event.originalTarget.URL,
-         "http://mochi.test:8888/browser/browser/components/search/test/?test=test+search&ie=utf-8&client=app&channel=contextsearch",
+         "http://mochi.test:8888/browser/browser/components/search/test/?test=test+search&ie=utf-8&channel=contextsearch",
          "Checking context menu search URL");
       // Remove the tab opened by the search
       gBrowser.removeCurrentTab();

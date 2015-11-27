@@ -1,9 +1,10 @@
-/* -*- Mode: C++; tab-width: 40; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/Hal.h"
+#include "Hal.h"
 #include "mozilla/HalWakeLock.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPtr.h"
@@ -54,49 +55,24 @@ WakeLockInfoFromLockCount(const nsAString& aTopic, const LockCount& aLockCount)
   return info;
 }
 
-PLDHashOperator
-CountWakeLocks(const uint64_t& aKey, LockCount aCount, void* aUserArg)
+static void
+CountWakeLocks(ProcessLockTable* aTable, LockCount* aTotalCount)
 {
-  MOZ_ASSERT(aUserArg);
+  for (auto iter = aTable->Iter(); !iter.Done(); iter.Next()) {
+    const uint64_t& key = iter.Key();
+    LockCount count = iter.UserData();
 
-  LockCount* totalCount = static_cast<LockCount*>(aUserArg);
-  totalCount->numLocks += aCount.numLocks;
-  totalCount->numHidden += aCount.numHidden;
+    aTotalCount->numLocks += count.numLocks;
+    aTotalCount->numHidden += count.numHidden;
 
-  // This is linear in the number of processes, but that should be small.
-  if (!totalCount->processes.Contains(aKey)) {
-    totalCount->processes.AppendElement(aKey);
-  }
-
-  return PL_DHASH_NEXT;
-}
-
-static PLDHashOperator
-RemoveChildFromList(const nsAString& aKey, nsAutoPtr<ProcessLockTable>& aTable,
-                    void* aUserArg)
-{
-  MOZ_ASSERT(aUserArg);
-
-  PLDHashOperator op = PL_DHASH_NEXT;
-  uint64_t childID = *static_cast<uint64_t*>(aUserArg);
-  if (aTable->Get(childID, nullptr)) {
-    aTable->Remove(childID);
-
-    LockCount totalCount;
-    aTable->EnumerateRead(CountWakeLocks, &totalCount);
-    if (!totalCount.numLocks) {
-      op = PL_DHASH_REMOVE;
-    }
-
-    if (sActiveListeners) {
-      NotifyWakeLockChange(WakeLockInfoFromLockCount(aKey, totalCount));
+    // This is linear in the number of processes, but that should be small.
+    if (!aTotalCount->processes.Contains(key)) {
+      aTotalCount->processes.AppendElement(key);
     }
   }
-
-  return op;
 }
 
-class ClearHashtableOnShutdown MOZ_FINAL : public nsIObserver {
+class ClearHashtableOnShutdown final : public nsIObserver {
   ~ClearHashtableOnShutdown() {}
 public:
   NS_DECL_ISUPPORTS
@@ -116,7 +92,7 @@ ClearHashtableOnShutdown::Observe(nsISupports* aSubject, const char* aTopic, con
   return NS_OK;
 }
 
-class CleanupOnContentShutdown MOZ_FINAL : public nsIObserver {
+class CleanupOnContentShutdown final : public nsIObserver {
   ~CleanupOnContentShutdown() {}
 public:
   NS_DECL_ISUPPORTS
@@ -144,7 +120,25 @@ CleanupOnContentShutdown::Observe(nsISupports* aSubject, const char* aTopic, con
   nsresult rv = props->GetPropertyAsUint64(NS_LITERAL_STRING("childID"),
                                            &childID);
   if (NS_SUCCEEDED(rv)) {
-    sLockTable->Enumerate(RemoveChildFromList, &childID);
+    for (auto iter = sLockTable->Iter(); !iter.Done(); iter.Next()) {
+      nsAutoPtr<ProcessLockTable>& table = iter.Data();
+
+      if (table->Get(childID, nullptr)) {
+        table->Remove(childID);
+
+        LockCount totalCount;
+        CountWakeLocks(table, &totalCount);
+
+        if (sActiveListeners) {
+          NotifyWakeLockChange(WakeLockInfoFromLockCount(iter.Key(),
+                                                         totalCount));
+        }
+
+        if (totalCount.numLocks == 0) {
+          iter.Remove();
+        }
+      }
+    }
   } else {
     NS_WARNING("ipc:content-shutdown message without childID property");
   }
@@ -164,7 +158,7 @@ Init()
   }
 }
 
-} // anonymous namespace
+} // namespace
 
 namespace mozilla {
 
@@ -222,7 +216,7 @@ ModifyWakeLock(const nsAString& aTopic,
     sLockTable->Put(aTopic, table);
   } else {
     table->Get(aProcessID, &processCount);
-    table->EnumerateRead(CountWakeLocks, &totalCount);
+    CountWakeLocks(table, &totalCount);
   }
 
   MOZ_ASSERT(processCount.numLocks >= processCount.numHidden);
@@ -279,9 +273,9 @@ GetWakeLockInfo(const nsAString& aTopic, WakeLockInformation* aWakeLockInfo)
     return;
   }
   LockCount totalCount;
-  table->EnumerateRead(CountWakeLocks, &totalCount);
+  CountWakeLocks(table, &totalCount);
   *aWakeLockInfo = WakeLockInfoFromLockCount(aTopic, totalCount);
 }
 
-} // hal_impl
-} // mozilla
+} // namespace hal_impl
+} // namespace mozilla

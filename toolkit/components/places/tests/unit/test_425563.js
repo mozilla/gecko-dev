@@ -9,7 +9,7 @@ function run_test()
   run_next_test();
 }
 
-add_task(function test_execute()
+add_task(function* test_execute()
 {
   let count_visited_URIs = ["http://www.test-link.com/",
                             "http://www.test-typed.com/",
@@ -22,7 +22,7 @@ add_task(function test_execute()
                                "http://www.test-framed.com/"];
 
   // add visits, one for each transition type
-  yield promiseAddVisits([
+  yield PlacesTestUtils.addVisits([
     { uri: uri("http://www.test-link.com/"),
       transition: TRANSITION_LINK },
     { uri: uri("http://www.test-typed.com/"),

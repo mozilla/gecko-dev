@@ -17,8 +17,8 @@ namespace net {
 class ChannelEvent;
 class ChannelEventQueue;
 
-class WebSocketChannelChild : public BaseWebSocketChannel,
-                              public PWebSocketChild
+class WebSocketChannelChild final : public BaseWebSocketChannel,
+                                    public PWebSocketChild
 {
  public:
   explicit WebSocketChannelChild(bool aSecure);
@@ -29,28 +29,36 @@ class WebSocketChannelChild : public BaseWebSocketChannel,
   // nsIWebSocketChannel methods BaseWebSocketChannel didn't implement for us
   //
   NS_IMETHOD AsyncOpen(nsIURI *aURI, const nsACString &aOrigin,
-                       nsIWebSocketListener *aListener, nsISupports *aContext);
-  NS_IMETHOD Close(uint16_t code, const nsACString & reason);
-  NS_IMETHOD SendMsg(const nsACString &aMsg);
-  NS_IMETHOD SendBinaryMsg(const nsACString &aMsg);
-  NS_IMETHOD SendBinaryStream(nsIInputStream *aStream, uint32_t aLength);
+                       uint64_t aInnerWindowID,
+                       nsIWebSocketListener *aListener,
+                       nsISupports *aContext) override;
+  NS_IMETHOD Close(uint16_t code, const nsACString & reason) override;
+  NS_IMETHOD SendMsg(const nsACString &aMsg) override;
+  NS_IMETHOD SendBinaryMsg(const nsACString &aMsg) override;
+  NS_IMETHOD SendBinaryStream(nsIInputStream *aStream, uint32_t aLength) override;
   nsresult SendBinaryStream(OptionalInputStreamParams *aStream, uint32_t aLength);
-  NS_IMETHOD GetSecurityInfo(nsISupports **aSecurityInfo);
+  NS_IMETHOD GetSecurityInfo(nsISupports **aSecurityInfo) override;
 
   void AddIPDLReference();
   void ReleaseIPDLReference();
 
+  // Off main thread URI access.
+  void GetEffectiveURL(nsAString& aEffectiveURL) const override;
+  bool IsEncrypted() const override;
+
  private:
   ~WebSocketChannelChild();
 
-  bool RecvOnStart(const nsCString& aProtocol, const nsCString& aExtensions) MOZ_OVERRIDE;
-  bool RecvOnStop(const nsresult& aStatusCode) MOZ_OVERRIDE;
-  bool RecvOnMessageAvailable(const nsCString& aMsg) MOZ_OVERRIDE;
-  bool RecvOnBinaryMessageAvailable(const nsCString& aMsg) MOZ_OVERRIDE;
-  bool RecvOnAcknowledge(const uint32_t& aSize) MOZ_OVERRIDE;
-  bool RecvOnServerClose(const uint16_t& aCode, const nsCString &aReason) MOZ_OVERRIDE;
+  bool RecvOnStart(const nsCString& aProtocol, const nsCString& aExtensions,
+                   const nsString& aEffectiveURL, const bool& aSecure) override;
+  bool RecvOnStop(const nsresult& aStatusCode) override;
+  bool RecvOnMessageAvailable(const nsCString& aMsg) override;
+  bool RecvOnBinaryMessageAvailable(const nsCString& aMsg) override;
+  bool RecvOnAcknowledge(const uint32_t& aSize) override;
+  bool RecvOnServerClose(const uint16_t& aCode, const nsCString &aReason) override;
 
-  void OnStart(const nsCString& aProtocol, const nsCString& aExtensions);
+  void OnStart(const nsCString& aProtocol, const nsCString& aExtensions,
+               const nsString& aEffectiveURL, const bool& aSecure);
   void OnStop(const nsresult& aStatusCode);
   void OnMessageAvailable(const nsCString& aMsg);
   void OnBinaryMessageAvailable(const nsCString& aMsg);
@@ -61,8 +69,19 @@ class WebSocketChannelChild : public BaseWebSocketChannel,
   void DispatchToTargetThread(ChannelEvent *aChannelEvent);
   bool IsOnTargetThread();
 
-  nsRefPtr<ChannelEventQueue> mEventQ;
-  bool mIPCOpen;
+  void MaybeReleaseIPCObject();
+
+  RefPtr<ChannelEventQueue> mEventQ;
+  nsString mEffectiveURL;
+
+  // This variable is protected by mutex.
+  enum {
+    Opened,
+    Closing,
+    Closed
+  } mIPCState;
+
+  mozilla::Mutex mMutex;
 
   friend class StartEvent;
   friend class StopEvent;

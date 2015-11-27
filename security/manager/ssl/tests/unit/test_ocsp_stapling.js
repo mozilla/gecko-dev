@@ -8,7 +8,7 @@
 // locally) with and without OCSP stapling enabled to determine that good
 // things happen and bad things don't.
 
-let gExpectOCSPRequest;
+var gExpectOCSPRequest;
 
 function add_ocsp_test(aHost, aExpectedResult, aStaplingEnabled) {
   add_connection_test(aHost, aExpectedResult,
@@ -21,33 +21,50 @@ function add_ocsp_test(aHost, aExpectedResult, aStaplingEnabled) {
     });
 }
 
-function add_tests(certDB, otherTestCA) {
+function add_tests() {
   // In the absence of OCSP stapling, these should actually all work.
-  add_ocsp_test("ocsp-stapling-good.example.com", Cr.NS_OK, false);
-  add_ocsp_test("ocsp-stapling-revoked.example.com", Cr.NS_OK, false);
-  add_ocsp_test("ocsp-stapling-good-other-ca.example.com", Cr.NS_OK, false);
-  add_ocsp_test("ocsp-stapling-malformed.example.com", Cr.NS_OK, false);
-  add_ocsp_test("ocsp-stapling-srverr.example.com", Cr.NS_OK, false);
-  add_ocsp_test("ocsp-stapling-trylater.example.com", Cr.NS_OK, false);
-  add_ocsp_test("ocsp-stapling-needssig.example.com", Cr.NS_OK, false);
-  add_ocsp_test("ocsp-stapling-unauthorized.example.com", Cr.NS_OK, false);
-  add_ocsp_test("ocsp-stapling-unknown.example.com", Cr.NS_OK, false);
-  add_ocsp_test("ocsp-stapling-good-other.example.com", Cr.NS_OK, false);
-  add_ocsp_test("ocsp-stapling-none.example.com", Cr.NS_OK, false);
-  add_ocsp_test("ocsp-stapling-expired.example.com", Cr.NS_OK, false);
-  add_ocsp_test("ocsp-stapling-expired-fresh-ca.example.com", Cr.NS_OK, false);
-  add_ocsp_test("ocsp-stapling-skip-responseBytes.example.com", Cr.NS_OK, false);
-  add_ocsp_test("ocsp-stapling-critical-extension.example.com", Cr.NS_OK, false);
-  add_ocsp_test("ocsp-stapling-noncritical-extension.example.com", Cr.NS_OK, false);
-  add_ocsp_test("ocsp-stapling-empty-extensions.example.com", Cr.NS_OK, false);
+  add_ocsp_test("ocsp-stapling-good.example.com",
+                PRErrorCodeSuccess, false);
+  add_ocsp_test("ocsp-stapling-revoked.example.com",
+                PRErrorCodeSuccess, false);
+  add_ocsp_test("ocsp-stapling-good-other-ca.example.com",
+                PRErrorCodeSuccess, false);
+  add_ocsp_test("ocsp-stapling-malformed.example.com",
+                PRErrorCodeSuccess, false);
+  add_ocsp_test("ocsp-stapling-srverr.example.com",
+                PRErrorCodeSuccess, false);
+  add_ocsp_test("ocsp-stapling-trylater.example.com",
+                PRErrorCodeSuccess, false);
+  add_ocsp_test("ocsp-stapling-needssig.example.com",
+                PRErrorCodeSuccess, false);
+  add_ocsp_test("ocsp-stapling-unauthorized.example.com",
+                PRErrorCodeSuccess, false);
+  add_ocsp_test("ocsp-stapling-unknown.example.com",
+                PRErrorCodeSuccess, false);
+  add_ocsp_test("ocsp-stapling-good-other.example.com",
+                PRErrorCodeSuccess, false);
+  add_ocsp_test("ocsp-stapling-none.example.com",
+                PRErrorCodeSuccess, false);
+  add_ocsp_test("ocsp-stapling-expired.example.com",
+                PRErrorCodeSuccess, false);
+  add_ocsp_test("ocsp-stapling-expired-fresh-ca.example.com",
+                PRErrorCodeSuccess, false);
+  add_ocsp_test("ocsp-stapling-skip-responseBytes.example.com",
+                PRErrorCodeSuccess, false);
+  add_ocsp_test("ocsp-stapling-critical-extension.example.com",
+                PRErrorCodeSuccess, false);
+  add_ocsp_test("ocsp-stapling-noncritical-extension.example.com",
+                PRErrorCodeSuccess, false);
+  add_ocsp_test("ocsp-stapling-empty-extensions.example.com",
+                PRErrorCodeSuccess, false);
 
   // Now test OCSP stapling
   // The following error codes are defined in security/nss/lib/util/SECerrs.h
 
-  add_ocsp_test("ocsp-stapling-good.example.com", Cr.NS_OK, true);
+  add_ocsp_test("ocsp-stapling-good.example.com", PRErrorCodeSuccess, true);
 
   add_ocsp_test("ocsp-stapling-revoked.example.com",
-                getXPCOMStatusFromNSS(SEC_ERROR_REVOKED_CERTIFICATE), true);
+                SEC_ERROR_REVOKED_CERTIFICATE, true);
 
   // SEC_ERROR_OCSP_INVALID_SIGNING_CERT vs SEC_ERROR_OCSP_UNAUTHORIZED_RESPONSE
   // depends on whether the CA that signed the response is a trusted CA
@@ -56,13 +73,16 @@ function add_tests(certDB, otherTestCA) {
 
   // This stapled response is from a CA that is untrusted and did not issue
   // the server's certificate.
+  let certDB = Cc["@mozilla.org/security/x509certdb;1"]
+                  .getService(Ci.nsIX509CertDB);
+  let otherTestCA = constructCertFromFile("ocsp_certs/other-test-ca.pem");
   add_test(function() {
     certDB.setCertTrust(otherTestCA, Ci.nsIX509Cert.CA_CERT,
                         Ci.nsIX509CertDB.UNTRUSTED);
     run_next_test();
   });
   add_ocsp_test("ocsp-stapling-good-other-ca.example.com",
-                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_INVALID_SIGNING_CERT), true);
+                SEC_ERROR_OCSP_INVALID_SIGNING_CERT, true);
 
   // The stapled response is from a CA that is trusted but did not issue the
   // server's certificate.
@@ -74,31 +94,29 @@ function add_tests(certDB, otherTestCA) {
   // TODO(bug 979055): When using ByName instead of ByKey, the error here is
   // SEC_ERROR_OCSP_UNAUTHORIZED_RESPONSE. We should be testing both cases.
   add_ocsp_test("ocsp-stapling-good-other-ca.example.com",
-                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_INVALID_SIGNING_CERT),
-                true);
+                SEC_ERROR_OCSP_INVALID_SIGNING_CERT, true);
 
   // TODO: Test the case where the signing cert can't be found at all, which
   // will result in SEC_ERROR_BAD_DATABASE in the NSS classic case.
 
   add_ocsp_test("ocsp-stapling-malformed.example.com",
-                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_MALFORMED_REQUEST), true);
+                SEC_ERROR_OCSP_MALFORMED_REQUEST, true);
   add_ocsp_test("ocsp-stapling-srverr.example.com",
-                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_SERVER_ERROR), true);
+                SEC_ERROR_OCSP_SERVER_ERROR, true);
   add_ocsp_test("ocsp-stapling-trylater.example.com",
-                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_TRY_SERVER_LATER), true);
+                SEC_ERROR_OCSP_TRY_SERVER_LATER, true);
   add_ocsp_test("ocsp-stapling-needssig.example.com",
-                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_REQUEST_NEEDS_SIG), true);
+                SEC_ERROR_OCSP_REQUEST_NEEDS_SIG, true);
   add_ocsp_test("ocsp-stapling-unauthorized.example.com",
-                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_UNAUTHORIZED_REQUEST),
-                true);
+                SEC_ERROR_OCSP_UNAUTHORIZED_REQUEST, true);
   add_ocsp_test("ocsp-stapling-unknown.example.com",
-                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_UNKNOWN_CERT), true);
+                SEC_ERROR_OCSP_UNKNOWN_CERT, true);
   add_ocsp_test("ocsp-stapling-good-other.example.com",
-                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_UNKNOWN_CERT), true);
+                MOZILLA_PKIX_ERROR_OCSP_RESPONSE_FOR_CERT_MISSING, true);
   // If the server doesn't staple an OCSP response, we continue as normal
   // (this means that even though stapling is enabled, we expect an OCSP
   // request).
-  add_connection_test("ocsp-stapling-none.example.com", Cr.NS_OK,
+  add_connection_test("ocsp-stapling-none.example.com", PRErrorCodeSuccess,
     function() {
       gExpectOCSPRequest = true;
       clearOCSPCache();
@@ -107,32 +125,90 @@ function add_tests(certDB, otherTestCA) {
     }
   );
   add_ocsp_test("ocsp-stapling-empty.example.com",
-                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_MALFORMED_RESPONSE), true);
+                SEC_ERROR_OCSP_MALFORMED_RESPONSE, true);
 
   add_ocsp_test("ocsp-stapling-skip-responseBytes.example.com",
-                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_MALFORMED_RESPONSE), true);
+                SEC_ERROR_OCSP_MALFORMED_RESPONSE, true);
 
   add_ocsp_test("ocsp-stapling-critical-extension.example.com",
-                getXPCOMStatusFromNSS(SEC_ERROR_UNKNOWN_CRITICAL_EXTENSION),
-                true);
-  add_ocsp_test("ocsp-stapling-noncritical-extension.example.com", Cr.NS_OK, true);
+                SEC_ERROR_UNKNOWN_CRITICAL_EXTENSION, true);
+  add_ocsp_test("ocsp-stapling-noncritical-extension.example.com",
+                PRErrorCodeSuccess, true);
   // TODO(bug 997994): Disallow empty Extensions in responses
-  add_ocsp_test("ocsp-stapling-empty-extensions.example.com", Cr.NS_OK, true);
+  add_ocsp_test("ocsp-stapling-empty-extensions.example.com",
+                PRErrorCodeSuccess, true);
 
-  add_ocsp_test("ocsp-stapling-delegated-included.example.com", Cr.NS_OK, true);
-  add_ocsp_test("ocsp-stapling-delegated-included-last.example.com", Cr.NS_OK, true);
+  add_ocsp_test("ocsp-stapling-delegated-included.example.com",
+                PRErrorCodeSuccess, true);
+  add_ocsp_test("ocsp-stapling-delegated-included-last.example.com",
+                PRErrorCodeSuccess, true);
   add_ocsp_test("ocsp-stapling-delegated-missing.example.com",
-                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_INVALID_SIGNING_CERT), true);
+                SEC_ERROR_OCSP_INVALID_SIGNING_CERT, true);
   add_ocsp_test("ocsp-stapling-delegated-missing-multiple.example.com",
-                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_INVALID_SIGNING_CERT), true);
+                SEC_ERROR_OCSP_INVALID_SIGNING_CERT, true);
   add_ocsp_test("ocsp-stapling-delegated-no-extKeyUsage.example.com",
-                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_INVALID_SIGNING_CERT), true);
+                SEC_ERROR_OCSP_INVALID_SIGNING_CERT, true);
   add_ocsp_test("ocsp-stapling-delegated-from-intermediate.example.com",
-                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_INVALID_SIGNING_CERT), true);
+                SEC_ERROR_OCSP_INVALID_SIGNING_CERT, true);
   add_ocsp_test("ocsp-stapling-delegated-keyUsage-crlSigning.example.com",
-                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_INVALID_SIGNING_CERT), true);
+                SEC_ERROR_OCSP_INVALID_SIGNING_CERT, true);
   add_ocsp_test("ocsp-stapling-delegated-wrong-extKeyUsage.example.com",
-                getXPCOMStatusFromNSS(SEC_ERROR_OCSP_INVALID_SIGNING_CERT), true);
+                SEC_ERROR_OCSP_INVALID_SIGNING_CERT, true);
+
+  // TLS Must Staple tests
+  add_test(function() {
+    clearSessionCache();
+    Services.prefs.setBoolPref("security.ssl.enable_ocsp_must_staple", true);
+    run_next_test();
+  });
+
+  // ensure that the chain is checked for required features in children:
+  // First a case where intermediate and ee both have the extension
+  add_ocsp_test("ocsp-stapling-must-staple-ee-with-must-staple-int.example.com",
+                PRErrorCodeSuccess, true);
+
+  // Next, a case where it's present in the intermediate, not the ee
+  add_ocsp_test("ocsp-stapling-plain-ee-with-must-staple-int.example.com",
+                MOZILLA_PKIX_ERROR_REQUIRED_TLS_FEATURE_MISSING, true);
+
+  // We disable OCSP must-staple in the next two tests so we can perform checks
+  // on TLS Features in the chain without needint to support the TLS
+  // extension values used.
+  // Test an issuer with multiple TLS features in matched in the EE
+  add_ocsp_test("multi-tls-feature-good.example.com",
+                PRErrorCodeSuccess, false);
+
+  // Finally, an inssuer with multiple TLS features not matched by the EE
+  add_ocsp_test("multi-tls-feature-bad.example.com",
+                MOZILLA_PKIX_ERROR_REQUIRED_TLS_FEATURE_MISSING, false);
+
+
+
+  // Now a bunch of operations with only a must-staple ee
+  add_ocsp_test("ocsp-stapling-must-staple.example.com",
+                PRErrorCodeSuccess, true);
+
+  add_ocsp_test("ocsp-stapling-must-staple-revoked.example.com",
+                SEC_ERROR_REVOKED_CERTIFICATE, true);
+
+  add_ocsp_test("ocsp-stapling-must-staple-missing.example.com",
+                MOZILLA_PKIX_ERROR_REQUIRED_TLS_FEATURE_MISSING, true);
+
+  add_ocsp_test("ocsp-stapling-must-staple-empty.example.com",
+                SEC_ERROR_OCSP_MALFORMED_RESPONSE, true);
+
+  add_ocsp_test("ocsp-stapling-must-staple-missing.example.com",
+                PRErrorCodeSuccess, false);
+
+  // check that disabling must-staple works
+  add_test(function() {
+    clearSessionCache();
+    Services.prefs.setBoolPref("security.ssl.enable_ocsp_must_staple", false);
+    run_next_test();
+  });
+
+  add_ocsp_test("ocsp-stapling-must-staple-missing.example.com",
+                PRErrorCodeSuccess, true);
 
   // ocsp-stapling-expired.example.com and
   // ocsp-stapling-expired-fresh-ca.example.com are handled in
@@ -141,11 +217,10 @@ function add_tests(certDB, otherTestCA) {
   // Check that OCSP responder certificates with key sizes below 1024 bits are
   // rejected, even when the main certificate chain keys are at least 1024 bits.
   add_ocsp_test("keysize-ocsp-delegated.example.com",
-                getXPCOMStatusFromNSS(MOZILLA_PKIX_ERROR_INADEQUATE_KEY_SIZE),
-                true);
+                SEC_ERROR_OCSP_INVALID_SIGNING_CERT, true);
 
   add_ocsp_test("revoked-ca-cert-used-as-end-entity.example.com",
-                getXPCOMStatusFromNSS(SEC_ERROR_REVOKED_CERTIFICATE), true);
+                SEC_ERROR_REVOKED_CERTIFICATE, true);
 }
 
 function check_ocsp_stapling_telemetry() {
@@ -153,33 +228,34 @@ function check_ocsp_stapling_telemetry() {
                     .getService(Ci.nsITelemetry)
                     .getHistogramById("SSL_OCSP_STAPLING")
                     .snapshot();
-  do_check_eq(histogram.counts[0], 0); // histogram bucket 0 is unused
-  do_check_eq(histogram.counts[1], 5); // 5 connections with a good response
-  do_check_eq(histogram.counts[2], 18); // 18 connections with no stapled resp.
-  do_check_eq(histogram.counts[3], 0); // 0 connections with an expired response
-  do_check_eq(histogram.counts[4], 21); // 21 connections with bad responses
+  equal(histogram.counts[0], 0,
+        "Should have 0 connections for unused histogram bucket 0");
+  equal(histogram.counts[1], 7,
+        "Actual and expected connections with a good response should match");
+  equal(histogram.counts[2], 22,
+        "Actual and expected connections with no stapled response should match");
+  equal(histogram.counts[3], 0,
+        "Actual and expected connections with an expired response should match");
+  equal(histogram.counts[4], 23,
+        "Actual and expected connections with bad responses should match");
   run_next_test();
 }
 
 function run_test() {
   do_get_profile();
 
-  let certDB = Cc["@mozilla.org/security/x509certdb;1"]
-                  .getService(Ci.nsIX509CertDB);
-  let otherTestCAFile = do_get_file("tlsserver/other-test-ca.der", false);
-  let otherTestCADER = readFile(otherTestCAFile);
-  let otherTestCA = certDB.constructX509(otherTestCADER, otherTestCADER.length);
 
   let fakeOCSPResponder = new HttpServer();
   fakeOCSPResponder.registerPrefixHandler("/", function (request, response) {
     response.setStatusLine(request.httpVersion, 500, "Internal Server Error");
-    do_check_true(gExpectOCSPRequest);
+    ok(gExpectOCSPRequest,
+       "Should be getting an OCSP request only when expected");
   });
-  fakeOCSPResponder.start(8080);
+  fakeOCSPResponder.start(8888);
 
-  add_tls_server_setup("OCSPStaplingServer");
+  add_tls_server_setup("OCSPStaplingServer", "ocsp_certs");
 
-  add_tests(certDB, otherTestCA);
+  add_tests();
 
   add_test(function () {
     fakeOCSPResponder.stop(check_ocsp_stapling_telemetry);

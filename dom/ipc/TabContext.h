@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set sw=2 ts=8 et tw=80 : */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -7,9 +7,9 @@
 #ifndef mozilla_dom_TabContext_h
 #define mozilla_dom_TabContext_h
 
-#include "mozilla/layout/RenderFrameUtils.h"
 #include "mozIApplication.h"
 #include "nsCOMPtr.h"
+#include "mozilla/BasePrincipal.h"
 
 namespace mozilla {
 namespace dom {
@@ -30,9 +30,6 @@ class IPCTabContext;
  */
 class TabContext
 {
-protected:
-  typedef mozilla::layout::ScrollingBehavior ScrollingBehavior;
-
 public:
   TabContext();
 
@@ -107,9 +104,17 @@ public:
   bool HasOwnOrContainingApp() const;
 
   /**
-   * Return the requested scrolling behavior for this frame.
+   * OriginAttributesRef() returns the DocShellOriginAttributes of this frame to the
+   * caller. This is used to store any attribute associated with the frame's
+   * docshell, such as the AppId.
    */
-  ScrollingBehavior GetScrollingBehavior() const { return mScrollingBehavior; }
+  const DocShellOriginAttributes& OriginAttributesRef() const;
+
+  /**
+   * Returns the origin associated with the tab (w/o suffix) if this tab owns
+   * a signed packaged content.
+   */
+  const nsACString& SignedPkgOriginNoSuffix() const;
 
 protected:
   friend class MaybeInvalidTabContext;
@@ -129,24 +134,16 @@ protected:
   bool SetTabContext(const TabContext& aContext);
 
   /**
-   * Set this TabContext to be an app frame (with the given own app) inside the
-   * given app.  Either or both apps may be null.
+   * Set the TabContext for this frame. This can either be:
+   *  - an app frame (with the given own app) inside the given owner app. Either
+   *    apps can be null.
+   *  - a browser frame inside the given owner app (which may be null).
+   *  - a non-browser, non-app frame. Both own app and owner app should be null.
    */
-  bool SetTabContextForAppFrame(mozIApplication* aOwnApp,
-                                mozIApplication* aAppFrameOwnerApp,
-                                ScrollingBehavior aRequestedBehavior);
-
-  /**
-   * Set this TabContext to be a browser frame inside the given app (which may
-   * be null).
-   */
-  bool SetTabContextForBrowserFrame(mozIApplication* aBrowserFrameOwnerApp,
-                                    ScrollingBehavior aRequestedBehavior);
-
-  /**
-   * Set this TabContext to be a normal non-browser non-app frame.
-   */
-  bool SetTabContextForNormalFrame(ScrollingBehavior aRequestedBehavior);
+  bool SetTabContext(mozIApplication* aOwnApp,
+                     mozIApplication* aAppFrameOwnerApp,
+                     const DocShellOriginAttributes& aOriginAttributes,
+                     const nsACString& aSignedPkgOriginNoSuffix);
 
 private:
   /**
@@ -161,12 +158,6 @@ private:
   nsCOMPtr<mozIApplication> mOwnApp;
 
   /**
-   * A cache of mOwnApp->GetLocalId().  Speed really does matter here, since we
-   * read this ID often during process startup.
-   */
-  uint32_t mOwnAppId;
-
-  /**
    * This TabContext's containing app.  If mIsBrowser, this corresponds to the
    * app which contains the browser frame; otherwise, this corresponds to the
    * app which contains the app frame.
@@ -179,16 +170,17 @@ private:
   uint32_t mContainingAppId;
 
   /**
-   * The requested scrolling behavior for this frame.
+   * DocShellOriginAttributes of the top level tab docShell
    */
-  ScrollingBehavior mScrollingBehavior;
+  DocShellOriginAttributes mOriginAttributes;
 
   /**
-   * Does this TabContext correspond to a browser element?
-   *
-   * If this is true, mOwnApp must be null.
+   * The signed package origin without suffix. Since the signed packaged
+   * web content is always loaded in a separate process, it makes sense
+   * that we store this immutable value in TabContext. If the TabContext
+   * doesn't own a signed package, this value would be empty.
    */
-  bool mIsBrowser;
+  nsCString mSignedPkgOriginNoSuffix;
 };
 
 /**
@@ -204,23 +196,15 @@ public:
     return TabContext::SetTabContext(aContext);
   }
 
-  bool SetTabContextForAppFrame(mozIApplication* aOwnApp, mozIApplication* aAppFrameOwnerApp,
-                                ScrollingBehavior aRequestedBehavior)
+  bool SetTabContext(mozIApplication* aOwnApp,
+                     mozIApplication* aAppFrameOwnerApp,
+                     const DocShellOriginAttributes& aOriginAttributes,
+                     const nsACString& aSignedPkgOriginNoSuffix = EmptyCString())
   {
-    return TabContext::SetTabContextForAppFrame(aOwnApp, aAppFrameOwnerApp,
-                                                aRequestedBehavior);
-  }
-
-  bool SetTabContextForBrowserFrame(mozIApplication* aBrowserFrameOwnerApp,
-                                    ScrollingBehavior aRequestedBehavior)
-  {
-    return TabContext::SetTabContextForBrowserFrame(aBrowserFrameOwnerApp,
-                                                    aRequestedBehavior);
-  }
-
-  bool SetTabContextForNormalFrame(ScrollingBehavior aRequestedBehavior)
-  {
-    return TabContext::SetTabContextForNormalFrame(aRequestedBehavior);
+    return TabContext::SetTabContext(aOwnApp,
+                                     aAppFrameOwnerApp,
+                                     aOriginAttributes,
+                                     aSignedPkgOriginNoSuffix);
   }
 };
 
@@ -276,8 +260,8 @@ public:
   const TabContext& GetTabContext();
 
 private:
-  MaybeInvalidTabContext(const MaybeInvalidTabContext&) MOZ_DELETE;
-  MaybeInvalidTabContext& operator=(const MaybeInvalidTabContext&) MOZ_DELETE;
+  MaybeInvalidTabContext(const MaybeInvalidTabContext&) = delete;
+  MaybeInvalidTabContext& operator=(const MaybeInvalidTabContext&) = delete;
 
   const char* mInvalidReason;
   MutableTabContext mTabContext;

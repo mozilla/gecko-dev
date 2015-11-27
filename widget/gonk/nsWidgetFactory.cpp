@@ -17,6 +17,7 @@
 #include "base/basictypes.h"
 
 #include "mozilla/ModuleUtils.h"
+#include "mozilla/WidgetUtils.h"
 
 #include "nsCOMPtr.h"
 #include "nsWidgetsCID.h"
@@ -71,7 +72,7 @@ NS_DEFINE_NAMED_CID(NS_CLIPBOARDHELPER_CID);
 static nsresult
 ScreenManagerConstructor(nsISupports *aOuter, REFNSIID aIID, void **aResult)
 {
-    return (XRE_GetProcessType() == GeckoProcessType_Default) ?
+    return (XRE_IsParentProcess()) ?
         nsScreenManagerGonkConstructor(aOuter, aIID, aResult) :
         PuppetScreenManagerConstructor(aOuter, aIID, aResult);
 }
@@ -107,6 +108,9 @@ static const mozilla::Module::ContractIDEntry kWidgetContracts[] = {
 static void
 nsWidgetGonkModuleDtor()
 {
+    // Shutdown all XP level widget classes.
+    WidgetUtils::Shutdown();
+
     nsLookAndFeel::Shutdown();
     nsAppShellShutdown();
 }

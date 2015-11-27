@@ -41,7 +41,7 @@ void WebRtcIlbcfix_GetCbVec(
   base_size=lMem-cbveclen+1;
 
   if (cbveclen==SUBL) {
-    base_size+=WEBRTC_SPL_RSHIFT_W16(cbveclen,1);
+    base_size += cbveclen / 2;
   }
 
   /* No filter -> First codebook section */
@@ -58,9 +58,9 @@ void WebRtcIlbcfix_GetCbVec(
 
     /* Calculate lag */
 
-    k=(int16_t)WEBRTC_SPL_MUL_16_16(2, (index-(lMem-cbveclen+1)))+cbveclen;
+    k = (int16_t)(2 * (index - (lMem - cbveclen + 1))) + cbveclen;
 
-    lag=WEBRTC_SPL_RSHIFT_W16(k, 1);
+    lag = k / 2;
 
     WebRtcIlbcfix_CreateAugmentedVec(lag, mem+lMem, cbvec);
 

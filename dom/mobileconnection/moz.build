@@ -7,7 +7,6 @@
 MOCHITEST_MANIFESTS += ['tests/mochitest/mochitest.ini']
 
 EXPORTS.mozilla.dom += [
-    'DOMMMIError.h',
     'MobileCellInfo.h',
     'MobileConnection.h',
     'MobileConnectionArray.h',
@@ -19,29 +18,39 @@ EXPORTS.mozilla.dom.mobileconnection += [
     'ipc/MobileConnectionChild.h',
     'ipc/MobileConnectionIPCSerializer.h',
     'ipc/MobileConnectionParent.h',
+    'MobileCallForwardingOptions.h',
 ]
 
 XPIDL_SOURCES += [
     'interfaces/nsICellInfo.idl',
+    'interfaces/nsIMobileCallForwardingOptions.idl',
     'interfaces/nsIMobileCellInfo.idl',
     'interfaces/nsIMobileConnectionInfo.idl',
     'interfaces/nsIMobileConnectionService.idl',
+    'interfaces/nsIMobileDeviceIdentities.idl',
     'interfaces/nsIMobileNetworkInfo.idl',
     'interfaces/nsINeighboringCellInfo.idl',
 ]
 
-SOURCES += [
-    'DOMMMIError.cpp',
+UNIFIED_SOURCES += [
+    'Assertions.cpp',
     'ipc/MobileConnectionChild.cpp',
     'ipc/MobileConnectionIPCService.cpp',
     'ipc/MobileConnectionParent.cpp',
+    'MobileCallForwardingOptions.cpp',
     'MobileCellInfo.cpp',
-    'MobileConnection.cpp',
     'MobileConnectionArray.cpp',
     'MobileConnectionCallback.cpp',
     'MobileConnectionInfo.cpp',
     'MobileNetworkInfo.cpp',
 ]
+
+SOURCES += [
+    'MobileConnection.cpp', # Non-unified due to no_pgo
+]
+
+if CONFIG['_MSC_VER'] and CONFIG['CPU_ARCH'] == 'x86_64':
+    SOURCES['MobileConnection.cpp'].no_pgo = True # VS2013 crashes, bug 1084162
 
 IPDL_SOURCES += [
     'ipc/PMobileConnection.ipdl',
@@ -52,13 +61,17 @@ IPDL_SOURCES += [
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk' and CONFIG['MOZ_B2G_RIL']:
     XPIDL_SOURCES += [
         'gonk/nsIGonkMobileConnectionService.idl',
+        'gonk/nsIMobileConnectionMessenger.idl',
     ]
-    EXTRA_COMPONENTS += [
-        'gonk/MobileConnectionService.js',
-        'gonk/MobileConnectionService.manifest',
-    ]
+    if not CONFIG['DISABLE_MOZ_RIL_GEOLOC']:
+        EXTRA_COMPONENTS += [
+            'gonk/MobileConnectionService.js',
+            'gonk/MobileConnectionService.manifest',
+        ]
 
-FAIL_ON_WARNINGS = True
+LOCAL_INCLUDES += [
+    '/dom/system/gonk',
+]
 
 include('/ipc/chromium/chromium-config.mozbuild')
 

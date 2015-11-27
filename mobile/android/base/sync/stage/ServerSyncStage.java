@@ -125,14 +125,14 @@ public abstract class ServerSyncStage extends AbstractSessionManagingSyncStage i
     Integer version = getStorageVersion();
     if (version == null) {
       Logger.warn(LOG_TAG, "null storage version for " + this + "; using version 0.");
-      version = Integer.valueOf(0);
+      version = 0;
     }
 
     SynchronizerConfiguration config = this.getConfig();
     if (config == null) {
-      return new EngineSettings(null, version.intValue());
+      return new EngineSettings(null, version);
     }
-    return new EngineSettings(config.syncID, version.intValue());
+    return new EngineSettings(config.syncID, version);
   }
 
   protected abstract String getCollection();
@@ -549,13 +549,7 @@ public abstract class ServerSyncStage extends AbstractSessionManagingSyncStage i
     } catch (URISyntaxException e) {
       session.abort(e, "Invalid URI syntax for server repository.");
       return;
-    } catch (NonObjectJSONException e) {
-      session.abort(e, "Invalid persisted JSON for config.");
-      return;
-    } catch (IOException e) {
-      session.abort(e, "Invalid persisted JSON for config.");
-      return;
-    } catch (ParseException e) {
+    } catch (NonObjectJSONException | ParseException | IOException e) {
       session.abort(e, "Invalid persisted JSON for config.");
       return;
     }

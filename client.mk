@@ -91,6 +91,9 @@ convert it to Unix-style line endings, check \
 "https://developer.mozilla.org/en-US/docs/Developer_Guide/Mozilla_build_FAQ\#Win32-specific_questions" \
 for a workaround of this issue.)
 endif
+
+# Set this for baseconfig.mk
+HOST_OS_ARCH=WINNT
 endif
 
 ####################################
@@ -167,6 +170,9 @@ OBJDIR_TARGETS = install export libs clean realclean distclean maybe_clobber_pro
 build::
 	$(MAKE) -f $(TOPSRCDIR)/client.mk $(if $(MOZ_PGO),profiledbuild,realbuild) CREATE_MOZCONFIG_JSON=
 
+# Include baseconfig.mk for its $(MAKE) validation.
+include $(TOPSRCDIR)/config/baseconfig.mk
+
 # Define mkdir
 include $(TOPSRCDIR)/config/makefiles/makeutils.mk
 include $(TOPSRCDIR)/config/makefiles/autotargets.mk
@@ -184,9 +190,10 @@ WANT_MOZCONFIG_MK = 1
 endif
 
 ifdef WANT_MOZCONFIG_MK
-# For now, only output "export" lines from mach environment --format=client.mk output.
-MOZCONFIG_MK_LINES := $(filter export||%,$(MOZCONFIG_OUT_LINES))
-$(OBJDIR)/.mozconfig.mk: $(FOUND_MOZCONFIG) $(call mkdir_deps,$(OBJDIR)) $(OBJDIR)/CLOBBER
+# For now, only output "export" lines and lines containing UPLOAD_EXTRA_FILES
+# from mach environment --format=client.mk output.
+MOZCONFIG_MK_LINES := $(filter export||% UPLOAD_EXTRA_FILES% %UPLOAD_EXTRA_FILES%,$(MOZCONFIG_OUT_LINES))
+$(OBJDIR)/.mozconfig.mk: $(TOPSRCDIR)/client.mk $(FOUND_MOZCONFIG) $(call mkdir_deps,$(OBJDIR)) $(OBJDIR)/CLOBBER
 	$(if $(MOZCONFIG_MK_LINES),( $(foreach line,$(MOZCONFIG_MK_LINES), echo '$(subst ||, ,$(line))';) )) > $@
 
 # Include that makefile so that it is created. This should not actually change
@@ -194,12 +201,6 @@ $(OBJDIR)/.mozconfig.mk: $(FOUND_MOZCONFIG) $(call mkdir_deps,$(OBJDIR)) $(OBJDI
 # from, has already been eval'ed.
 include $(OBJDIR)/.mozconfig.mk
 endif
-
-# UPLOAD_EXTRA_FILES is appended to and exported from mozconfig, which makes
-# submakes as well as configure add even more to that, so just unexport it
-# for submakes to pick it from .mozconfig.mk and for configure to pick it
-# from mach environment.
-unexport UPLOAD_EXTRA_FILES
 
 # Print out any options loaded from mozconfig.
 all realbuild clean distclean export libs install realclean::
@@ -305,6 +306,7 @@ CONFIG_STATUS_DEPS := \
   $(TOPSRCDIR)/nsprpub/configure \
   $(TOPSRCDIR)/config/milestone.txt \
   $(TOPSRCDIR)/browser/config/version.txt \
+  $(TOPSRCDIR)/browser/config/version_display.txt \
   $(TOPSRCDIR)/build/virtualenv_packages.txt \
   $(TOPSRCDIR)/python/mozbuild/mozbuild/virtualenv.py \
   $(TOPSRCDIR)/testing/mozbase/packages.txt \
@@ -349,7 +351,9 @@ endif
 $(OBJDIR)/.mozconfig.json: $(call mkdir_deps,$(OBJDIR)) ;
 
 save-mozconfig: $(FOUND_MOZCONFIG)
+ifdef FOUND_MOZCONFIG
 	-cp $(FOUND_MOZCONFIG) $(OBJDIR)/.mozconfig
+endif
 
 configure:: $(configure-preqs)
 	@echo cd $(OBJDIR);

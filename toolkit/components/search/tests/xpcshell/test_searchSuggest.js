@@ -11,8 +11,8 @@ Cu.import("resource://gre/modules/FormHistory.jsm");
 Cu.import("resource://gre/modules/SearchSuggestionController.jsm");
 Cu.import("resource://gre/modules/Timer.jsm");
 
-let httpServer = new HttpServer();
-let getEngine, postEngine, unresolvableEngine;
+var httpServer = new HttpServer();
+var getEngine, postEngine, unresolvableEngine;
 
 function run_test() {
   Services.prefs.setBoolPref("browser.search.suggest.enabled", true);
@@ -36,21 +36,18 @@ function run_test() {
 add_task(function* add_test_engines() {
   let getEngineData = {
     baseURL: gDataUrl,
-    engineType: Ci.nsISearchEngine.TYPE_OPENSEARCH,
     name: "GET suggestion engine",
     method: "GET",
   };
 
   let postEngineData = {
     baseURL: gDataUrl,
-    engineType: Ci.nsISearchEngine.TYPE_OPENSEARCH,
     name: "POST suggestion engine",
     method: "POST",
   };
 
   let unresolvableEngineData = {
     baseURL: "http://example.invalid/",
-    engineType: Ci.nsISearchEngine.TYPE_OPENSEARCH,
     name: "Offline suggestion engine",
     method: "GET",
   };
@@ -124,6 +121,14 @@ add_task(function* simple_remote_no_local_result() {
   do_check_eq(result.remote[2], "mom");
 });
 
+add_task(function* remote_term_case_mismatch() {
+  let controller = new SearchSuggestionController();
+  let result = yield controller.fetch("Query Case Mismatch", false, getEngine);
+  do_check_eq(result.term, "Query Case Mismatch");
+  do_check_eq(result.remote.length, 1);
+  do_check_eq(result.remote[0], "Query Case Mismatch");
+});
+
 add_task(function* simple_local_no_remote_result() {
   yield updateSearchHistory("bump", "no remote entries");
 
@@ -148,7 +153,6 @@ add_task(function* simple_non_ascii() {
   do_check_eq(result.remote.length, 1);
   do_check_eq(result.remote[0], "I ❤️ Mozilla");
 });
-
 
 add_task(function* both_local_remote_result_dedupe() {
   yield updateSearchHistory("bump", "Mozilla");
@@ -262,17 +266,47 @@ add_task(function* both_identical_with_more_than_max_results() {
   for (let i = 0; i < controller.maxLocalResults; i++) {
     do_check_eq(result.local[i], "letter " + String.fromCharCode("A".charCodeAt() + i));
   }
-  do_check_eq(result.remote.length, 10);
-  for (let i = 0; i < controller.maxRemoteResults; i++) {
+  do_check_eq(result.local.length + result.remote.length, 10);
+  for (let i = 0; i < result.remote.length; i++) {
     do_check_eq(result.remote[i],
                 "letter " + String.fromCharCode("A".charCodeAt() + controller.maxLocalResults + i));
+  }
+});
+
+add_task(function* noremote_maxLocal() {
+  let controller = new SearchSuggestionController();
+  controller.maxLocalResults = 2; // (should be ignored because no remote results)
+  controller.maxRemoteResults = 0;
+  let result = yield controller.fetch("letter ", false, getEngine);
+  do_check_eq(result.term, "letter ");
+  do_check_eq(result.local.length, 26);
+  for (let i = 0; i < result.local.length; i++) {
+    do_check_eq(result.local[i], "letter " + String.fromCharCode("A".charCodeAt() + i));
+  }
+  do_check_eq(result.remote.length, 0);
+});
+
+add_task(function* someremote_maxLocal() {
+  let controller = new SearchSuggestionController();
+  controller.maxLocalResults = 2;
+  controller.maxRemoteResults = 4;
+  let result = yield controller.fetch("letter ", false, getEngine);
+  do_check_eq(result.term, "letter ");
+  do_check_eq(result.local.length, 2);
+  for (let i = 0; i < result.local.length; i++) {
+    do_check_eq(result.local[i], "letter " + String.fromCharCode("A".charCodeAt() + i));
+  }
+  do_check_eq(result.remote.length, 2);
+  // "A" and "B" will have been de-duped, start at C for remote results
+  for (let i = 0; i < result.remote.length; i++) {
+    do_check_eq(result.remote[i], "letter " + String.fromCharCode("C".charCodeAt() + i));
   }
 });
 
 add_task(function* one_of_each() {
   let controller = new SearchSuggestionController();
   controller.maxLocalResults = 1;
-  controller.maxRemoteResults = 1;
+  controller.maxRemoteResults = 2;
   let result = yield controller.fetch("letter ", false, getEngine);
   do_check_eq(result.term, "letter ");
   do_check_eq(result.local.length, 1);
@@ -288,8 +322,10 @@ add_task(function* local_result_returned_remote_result_disabled() {
   controller.maxRemoteResults = 1;
   let result = yield controller.fetch("letter ", false, getEngine);
   do_check_eq(result.term, "letter ");
-  do_check_eq(result.local.length, 1);
-  do_check_eq(result.local[0], "letter A");
+  do_check_eq(result.local.length, 26);
+  for (let i = 0; i < 26; i++) {
+    do_check_eq(result.local[i], "letter " + String.fromCharCode("A".charCodeAt() + i));
+  }
   do_check_eq(result.remote.length, 0);
   Services.prefs.setBoolPref("browser.search.suggest.enabled", true);
 });
@@ -301,8 +337,10 @@ add_task(function* local_result_returned_remote_result_disabled_after_creation_o
   Services.prefs.setBoolPref("browser.search.suggest.enabled", false);
   let result = yield controller.fetch("letter ", false, getEngine);
   do_check_eq(result.term, "letter ");
-  do_check_eq(result.local.length, 1);
-  do_check_eq(result.local[0], "letter A");
+  do_check_eq(result.local.length, 26);
+  for (let i = 0; i < 26; i++) {
+    do_check_eq(result.local[i], "letter " + String.fromCharCode("A".charCodeAt() + i));
+  }
   do_check_eq(result.remote.length, 0);
   Services.prefs.setBoolPref("browser.search.suggest.enabled", true);
 });
@@ -311,7 +349,7 @@ add_task(function* one_of_each_disabled_before_creation_enabled_after_creation_o
   Services.prefs.setBoolPref("browser.search.suggest.enabled", false);
   let controller = new SearchSuggestionController();
   controller.maxLocalResults = 1;
-  controller.maxRemoteResults = 1;
+  controller.maxRemoteResults = 2;
   Services.prefs.setBoolPref("browser.search.suggest.enabled", true);
   let result = yield controller.fetch("letter ", false, getEngine);
   do_check_eq(result.term, "letter ");
@@ -331,8 +369,10 @@ add_task(function* one_local_zero_remote() {
   controller.maxRemoteResults = 0;
   let result = yield controller.fetch("letter ", false, getEngine);
   do_check_eq(result.term, "letter ");
-  do_check_eq(result.local.length, 1);
-  do_check_eq(result.local[0], "letter A");
+  do_check_eq(result.local.length, 26);
+  for (let i = 0; i < 26; i++) {
+    do_check_eq(result.local[i], "letter " + String.fromCharCode("A".charCodeAt() + i));
+  }
   do_check_eq(result.remote.length, 0);
 });
 

@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -166,23 +167,8 @@ class EntryEnumerator
 {
 public:
   static EntryEnumerator* Create(nsTHashtable<CategoryLeaf>& aTable);
-
-private:
-  static PLDHashOperator enumfunc_createenumerator(CategoryLeaf* aLeaf,
-                                                   void* aUserArg);
 };
 
-
-PLDHashOperator
-EntryEnumerator::enumfunc_createenumerator(CategoryLeaf* aLeaf, void* aUserArg)
-{
-  EntryEnumerator* mythis = static_cast<EntryEnumerator*>(aUserArg);
-  if (aLeaf->value) {
-    mythis->mArray[mythis->mCount++] = aLeaf->GetKey();
-  }
-
-  return PL_DHASH_NEXT;
-}
 
 EntryEnumerator*
 EntryEnumerator::Create(nsTHashtable<CategoryLeaf>& aTable)
@@ -198,7 +184,12 @@ EntryEnumerator::Create(nsTHashtable<CategoryLeaf>& aTable)
     return nullptr;
   }
 
-  aTable.EnumerateEntries(enumfunc_createenumerator, enumObj);
+  for (auto iter = aTable.Iter(); !iter.Done(); iter.Next()) {
+    CategoryLeaf* leaf = iter.Get();
+    if (leaf->value) {
+      enumObj->mArray[enumObj->mCount++] = leaf->GetKey();
+    }
+  }
 
   enumObj->Sort();
 
@@ -327,35 +318,7 @@ CategoryNode::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf)
 {
   // We don't measure the strings pointed to by the entries because the
   // pointers are non-owning.
-  return mTable.SizeOfExcludingThis(nullptr, aMallocSizeOf);
-}
-
-struct persistent_userstruct
-{
-  PRFileDesc* fd;
-  const char* categoryName;
-  bool        success;
-};
-
-PLDHashOperator
-enumfunc_pentries(CategoryLeaf* aLeaf, void* aUserArg)
-{
-  persistent_userstruct* args = static_cast<persistent_userstruct*>(aUserArg);
-
-  PLDHashOperator status = PL_DHASH_NEXT;
-
-  if (aLeaf->value) {
-    if (PR_fprintf(args->fd,
-                   "%s,%s,%s\n",
-                   args->categoryName,
-                   aLeaf->GetKey(),
-                   aLeaf->value) == (uint32_t)-1) {
-      args->success = false;
-      status = PL_DHASH_STOP;
-    }
-  }
-
-  return status;
+  return mTable.ShallowSizeOfExcludingThis(aMallocSizeOf);
 }
 
 //
@@ -368,12 +331,6 @@ class CategoryEnumerator
 public:
   static CategoryEnumerator* Create(nsClassHashtable<nsDepCharHashKey,
                                                      CategoryNode>& aTable);
-
-private:
-  static PLDHashOperator
-  enumfunc_createenumerator(const char* aStr,
-                            CategoryNode* aNode,
-                            void* aUserArg);
 };
 
 CategoryEnumerator*
@@ -391,24 +348,16 @@ CategoryEnumerator::Create(nsClassHashtable<nsDepCharHashKey, CategoryNode>&
     return nullptr;
   }
 
-  aTable.EnumerateRead(enumfunc_createenumerator, enumObj);
-
-  return enumObj;
-}
-
-PLDHashOperator
-CategoryEnumerator::enumfunc_createenumerator(const char* aStr,
-                                              CategoryNode* aNode,
-                                              void* aUserArg)
-{
-  CategoryEnumerator* mythis = static_cast<CategoryEnumerator*>(aUserArg);
-
-  // if a category has no entries, we pretend it doesn't exist
-  if (aNode->Count()) {
-    mythis->mArray[mythis->mCount++] = aStr;
+  for (auto iter = aTable.Iter(); !iter.Done(); iter.Next()) {
+    // if a category has no entries, we pretend it doesn't exist
+    CategoryNode* aNode = iter.UserData();
+    if (aNode->Count()) {
+      const char* str = iter.Key();
+      enumObj->mArray[enumObj->mCount++] = str;
+    }
   }
 
-  return PL_DHASH_NEXT;
+  return enumObj;
 }
 
 
@@ -469,7 +418,9 @@ nsCategoryManager::nsCategoryManager()
 void
 nsCategoryManager::InitMemoryReporter()
 {
+#if !defined(MOZILLA_XPCOMRT_API)
   RegisterStrongMemoryReporter(this);
+#endif // !defined(MOZILLA_XPCOMRT_API)
 }
 
 nsCategoryManager::~nsCategoryManager()
@@ -504,17 +455,6 @@ nsCategoryManager::CollectReports(nsIHandleReportCallback* aHandleReport,
                             "Memory used for the XPCOM category manager.");
 }
 
-static size_t
-SizeOfCategoryManagerTableEntryExcludingThis(nsDepCharHashKey::KeyType aKey,
-                                             const nsAutoPtr<CategoryNode>& aData,
-                                             MallocSizeOf aMallocSizeOf,
-                                             void* aUserArg)
-{
-  // We don't measure the string pointed to by aKey because it's a non-owning
-  // pointer.
-  return aData.get()->SizeOfExcludingThis(aMallocSizeOf);
-}
-
 size_t
 nsCategoryManager::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
 {
@@ -522,8 +462,11 @@ nsCategoryManager::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
 
   n += PL_SizeOfArenaPoolExcludingPool(&mArena, aMallocSizeOf);
 
-  n += mTable.SizeOfExcludingThis(SizeOfCategoryManagerTableEntryExcludingThis,
-                                  aMallocSizeOf);
+  n += mTable.ShallowSizeOfExcludingThis(aMallocSizeOf);
+  for (auto iter = mTable.ConstIter(); !iter.Done(); iter.Next()) {
+    // We don't measure the key string because it's a non-owning pointer.
+    n += iter.Data().get()->SizeOfExcludingThis(aMallocSizeOf);
+  }
 
   return n;
 }
@@ -562,7 +505,7 @@ CategoryNotificationRunnable::Run()
   return NS_OK;
 }
 
-} // anonymous namespace
+} // namespace
 
 
 void
@@ -574,7 +517,7 @@ nsCategoryManager::NotifyObservers(const char* aTopic,
     return;
   }
 
-  nsRefPtr<CategoryNotificationRunnable> r;
+  RefPtr<CategoryNotificationRunnable> r;
 
   if (aEntryName) {
     nsCOMPtr<nsISupportsCString> entry =
@@ -692,7 +635,7 @@ nsCategoryManager::AddCategoryEntry(const char* aCategoryName,
     if (aOldValue) {
       *aOldValue = oldEntry;
     } else {
-      NS_Free(oldEntry);
+      free(oldEntry);
     }
   }
 }
@@ -862,8 +805,10 @@ NS_CreateServicesFromCategory(const char* aCategory,
 
     nsCOMPtr<nsISupports> instance = do_GetService(contractID);
     if (!instance) {
+#if !defined(MOZILLA_XPCOMRT_API)
       LogMessage("While creating services from category '%s', could not create service for entry '%s', contract ID '%s'",
                  aCategory, entryString.get(), contractID.get());
+#endif // !defined(MOZILLA_XPCOMRT_API)
       continue;
     }
 
@@ -873,8 +818,10 @@ NS_CreateServicesFromCategory(const char* aCategory,
       if (observer) {
         observer->Observe(aOrigin, aObserverTopic, EmptyString().get());
       } else {
+#if !defined(MOZILLA_XPCOMRT_API)
         LogMessage("While creating services from category '%s', service for entry '%s', contract ID '%s' does not implement nsIObserver.",
                    aCategory, entryString.get(), contractID.get());
+#endif // !defined(MOZILLA_XPCOMRT_API)
       }
     }
   }

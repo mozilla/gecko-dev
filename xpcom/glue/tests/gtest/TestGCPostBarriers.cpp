@@ -54,15 +54,11 @@ RunTest(JSRuntime* rt, JSContext* cx, ArrayT* array)
   RootedValue value(cx);
   const char* property = "foo";
   for (size_t i = 0; i < ElementCount; ++i) {
-    RootedObject obj(cx, JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr()));
-#ifdef JSGC_GENERATIONAL
-    ASSERT_TRUE(js::gc::IsInsideNursery(AsCell(obj)));
-#else
-    ASSERT_FALSE(js::gc::IsInsideNursery(AsCell(obj)));
-#endif
+    RootedObject obj(cx, JS_NewPlainObject(cx));
+    ASSERT_FALSE(JS::ObjectIsTenured(obj));
     value = Int32Value(i);
     ASSERT_TRUE(JS_SetProperty(cx, obj, property, value));
-    array->AppendElement(obj);
+    ASSERT_TRUE(array->AppendElement(obj, fallible));
   }
 
   /*
@@ -76,7 +72,7 @@ RunTest(JSRuntime* rt, JSContext* cx, ArrayT* array)
    */
   for (size_t i = 0; i < ElementCount; ++i) {
     RootedObject obj(cx, array->ElementAt(i));
-    ASSERT_FALSE(js::gc::IsInsideNursery(AsCell(obj)));
+    ASSERT_TRUE(JS::ObjectIsTenured(obj));
     ASSERT_TRUE(JS_GetProperty(cx, obj, property, &value));
     ASSERT_TRUE(value.isInt32());
     ASSERT_EQ(static_cast<int32_t>(i), value.toInt32());
@@ -90,9 +86,9 @@ CreateGlobalAndRunTest(JSRuntime* rt, JSContext* cx)
 {
   static const JSClass GlobalClass = {
     "global", JSCLASS_GLOBAL_FLAGS,
-    JS_PropertyStub, JS_DeletePropertyStub, JS_PropertyStub, JS_StrictPropertyStub,
-    JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub,
     nullptr, nullptr, nullptr, nullptr,
+    nullptr, nullptr, nullptr, nullptr,
+    nullptr, nullptr, nullptr,
     JS_GlobalObjectTraceHook
   };
 

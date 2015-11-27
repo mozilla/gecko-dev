@@ -57,7 +57,7 @@ body {
     min-width: 0;
     color: #000000;
     opacity: 1;
-    flex: 1 1 main-size;
+    flex: 1 1 auto;
 }
 
 #filter-input:-moz-placeholder {
@@ -74,7 +74,7 @@ body {
 
 #new-pref-toggle-button {
     background-position: center center;
-    background-image: url("chrome://browser/skin/images/reader-plus-icon-xhdpi.png");
+    background-image: url("chrome://browser/skin/images/config-plus.png");
     background-size: 48px 48px;
     height: 48px;
     width: 48px;
@@ -193,7 +193,7 @@ li {
 
 .pref-value {
     color: rgba(0,0,0,0.5);
-    flex: 1 1 main-size;
+    flex: 1 1 auto;
     border: none;
     -moz-appearance: none;
     background-image: none;
@@ -227,13 +227,13 @@ li {
 }
 
 #new-pref-value-boolean {
-    flex: 1 1 main-size;
+    flex: 1 1 auto;
 }
 
 #new-pref-container .pref-button.toggle {
     display: inline-block;
     opacity: 1;
-    flex: 0 1 main-size;
+    flex: 0 1 auto;
     float: right;
 }
 
@@ -241,7 +241,7 @@ li {
 #new-pref-container .pref-button.create {
     display: inline-block;
     opacity: 1;
-    flex: 1 1 main-size;
+    flex: 1 1 auto;
 }
 
 .pref-item-line {

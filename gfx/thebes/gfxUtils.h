@@ -6,29 +6,30 @@
 #ifndef GFX_UTILS_H
 #define GFX_UTILS_H
 
-#include "gfxColor.h"
 #include "gfxTypes.h"
-#include "GraphicsFilter.h"
 #include "imgIContainer.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/UniquePtr.h"
+#include "nsColor.h"
 #include "nsPrintfCString.h"
+#include "nsRegionFwd.h"
+#include "mozilla/gfx/Rect.h"
 
 class gfxASurface;
 class gfxDrawable;
-class nsIntRegion;
+class nsIInputStream;
+class nsIGfxInfo;
 class nsIPresShell;
-
-struct nsIntRect;
 
 namespace mozilla {
 namespace layers {
 struct PlanarYCbCrData;
-}
+} // namespace layers
 namespace image {
 class ImageRegion;
-}
-}
+} // namespace image
+} // namespace mozilla
 
 class gfxUtils {
 public:
@@ -55,9 +56,9 @@ public:
     static bool UnpremultiplyDataSurface(DataSourceSurface* srcSurf,
                                          DataSourceSurface* destSurf);
 
-    static mozilla::TemporaryRef<DataSourceSurface>
+    static already_AddRefed<DataSourceSurface>
       CreatePremultipliedDataSurface(DataSourceSurface* srcSurf);
-    static mozilla::TemporaryRef<DataSourceSurface>
+    static already_AddRefed<DataSourceSurface>
       CreateUnpremultipliedDataSurface(DataSourceSurface* srcSurf);
 
     static void ConvertBGRAtoRGBA(uint8_t* aData, uint32_t aLength);
@@ -80,7 +81,7 @@ public:
                                  const gfxSize&     aImageSize,
                                  const ImageRegion& aRegion,
                                  const mozilla::gfx::SurfaceFormat aFormat,
-                                 GraphicsFilter     aFilter,
+                                 mozilla::gfx::Filter aFilter,
                                  uint32_t           aImageFlags = imgIContainer::FLAG_NONE,
                                  gfxFloat           aOpacity = 1.0);
 
@@ -95,24 +96,9 @@ public:
     static void ClipToRegion(mozilla::gfx::DrawTarget* aTarget, const nsIntRegion& aRegion);
 
     /**
-     * Clip aContext to the region aRegion, snapping the rectangles.
-     */
-    static void ClipToRegionSnapped(gfxContext* aContext, const nsIntRegion& aRegion);
-
-    /**
-     * Clip aTarget to the region aRegion, snapping the rectangles.
-     */
-    static void ClipToRegionSnapped(mozilla::gfx::DrawTarget* aTarget, const nsIntRegion& aRegion);
-
-    /**
      * Create a path consisting of rectangles in |aRegion|.
      */
     static void PathFromRegion(gfxContext* aContext, const nsIntRegion& aRegion);
-
-    /**
-     * Create a path consisting of rectangles in |aRegion|, snapping the rectangles.
-     */
-    static void PathFromRegionSnapped(gfxContext* aContext, const nsIntRegion& aRegion);
 
     /*
      * Convert image format to depth value
@@ -135,11 +121,11 @@ public:
                                       const IntPoint& aToBottomRight);
 
     /**
-     * If aIn can be represented exactly using an nsIntRect (i.e.
+     * If aIn can be represented exactly using an gfx::IntRect (i.e.
      * integer-aligned edges and coordinates in the int32_t range) then we
      * set aOut to that rectangle, otherwise return failure.
     */
-    static bool GfxRectToIntRect(const gfxRect& aIn, nsIntRect* aOut);
+    static bool GfxRectToIntRect(const gfxRect& aIn, mozilla::gfx::IntRect* aOut);
 
     /**
      * Return the smallest power of kScaleResolution (2) greater than or equal to
@@ -159,7 +145,7 @@ public:
     static void
     GetYCbCrToRGBDestFormatAndSize(const mozilla::layers::PlanarYCbCrData& aData,
                                    gfxImageFormat& aSuggestedFormat,
-                                   gfxIntSize& aSuggestedSize);
+                                   mozilla::gfx::IntSize& aSuggestedSize);
 
     /**
      * Convert YCbCrImage into RGB aDestBuffer
@@ -169,16 +155,14 @@ public:
     static void
     ConvertYCbCrToRGB(const mozilla::layers::PlanarYCbCrData& aData,
                       const gfxImageFormat& aDestFormat,
-                      const gfxIntSize& aDestSize,
+                      const mozilla::gfx::IntSize& aDestSize,
                       unsigned char* aDestBuffer,
                       int32_t aStride);
 
     /**
      * Clears surface to aColor (which defaults to transparent black).
      */
-    static void ClearThebesSurface(gfxASurface* aSurface,
-                                   nsIntRect* aRect = nullptr,
-                                   const gfxRGBA& aColor = gfxRGBA(0.0, 0.0, 0.0, 0.0));
+    static void ClearThebesSurface(gfxASurface* aSurface);
 
     /**
      * Creates a copy of aSurface, but having the SurfaceFormat aFormat.
@@ -221,7 +205,7 @@ public:
      * realize format conversion may involve expensive copying/uploading/
      * readback.)
      */
-    static mozilla::TemporaryRef<DataSourceSurface>
+    static already_AddRefed<DataSourceSurface>
     CopySurfaceToDataSourceSurfaceWithFormat(SourceSurface* aSurface,
                                              SurfaceFormat aFormat);
 
@@ -295,6 +279,23 @@ public:
     static inline void DumpAsDataURI(DrawTarget* aDT) {
         DumpAsDataURI(aDT, stdout);
     }
+    static nsCString GetAsDataURI(SourceSurface* aSourceSurface);
+    static nsCString GetAsDataURI(DrawTarget* aDT);
+    static nsCString GetAsLZ4Base64Str(DataSourceSurface* aSourceSurface);
+
+    static mozilla::UniquePtr<uint8_t[]> GetImageBuffer(DataSourceSurface* aSurface,
+                                                        bool aIsAlphaPremultiplied,
+                                                        int32_t* outFormat);
+
+    static nsresult GetInputStream(DataSourceSurface* aSurface,
+                                   bool aIsAlphaPremultiplied,
+                                   const char* aMimeType,
+                                   const char16_t* aEncoderOptions,
+                                   nsIInputStream** outStream);
+
+    static nsresult ThreadSafeGetFeatureStatus(const nsCOMPtr<nsIGfxInfo>& gfxInfo,
+                                               int32_t feature,
+                                               int32_t* status);
 
     /**
      * Copy to the clipboard as a PNG encoded Data URL.
@@ -302,18 +303,23 @@ public:
     static void CopyAsDataURI(SourceSurface* aSourceSurface);
     static void CopyAsDataURI(DrawTarget* aDT);
 
-#ifdef MOZ_DUMP_PAINTING
-    static bool DumpPaintList();
+    static bool DumpDisplayList();
 
-    static bool sDumpPainting;
-    static bool sDumpPaintingToFile;
     static FILE* sDumpPaintFile;
-#endif
 };
 
 namespace mozilla {
 namespace gfx {
 
+/**
+ * If the CMS mode is eCMSMode_All, these functions transform the passed
+ * color to a device color using the transform returened by gfxPlatform::
+ * GetCMSRGBTransform().  If the CMS mode is some other value, the color is
+ * returned unchanged (other than a type change to Moz2D Color, if
+ * applicable).
+ */
+Color ToDeviceColor(Color aColor);
+Color ToDeviceColor(nscolor aColor);
 
 /* These techniques are suggested by "Bit Twiddling Hacks"
  */

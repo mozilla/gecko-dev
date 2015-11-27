@@ -8,9 +8,11 @@
 #include <stdint.h>
 
 #include "mozilla/EventForwards.h"
+#include "mozilla/TimeStamp.h"
+
+#include "nsRegionFwd.h"
 
 class nsView;
-class nsIntRegion;
 class nsIPresShell;
 class nsIWidget;
 class nsIXULWindow;
@@ -23,7 +25,8 @@ enum nsSizeMode
   nsSizeMode_Normal = 0,
   nsSizeMode_Minimized,
   nsSizeMode_Maximized,
-  nsSizeMode_Fullscreen
+  nsSizeMode_Fullscreen,
+  nsSizeMode_Invalid
 };
 
 /**
@@ -87,6 +90,11 @@ public:
                              nsIWidget** aActualBelow);
 
   /**
+   * Called when the window entered or left the fullscreen state.
+   */
+  virtual void FullscreenChanged(bool aInFullscreen);
+
+  /**
    * Called when the window is activated and focused.
    */
   virtual void WindowActivated();
@@ -130,7 +138,8 @@ public:
    */
   virtual void DidPaintWindow();
 
-  virtual void DidCompositeWindow();
+  virtual void DidCompositeWindow(const mozilla::TimeStamp& aCompositeStart,
+                                  const mozilla::TimeStamp& aCompositeEnd);
 
   /**
    * Request that layout schedules a repaint on the next refresh driver tick.

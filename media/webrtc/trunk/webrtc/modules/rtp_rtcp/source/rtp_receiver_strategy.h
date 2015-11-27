@@ -11,11 +11,11 @@
 #ifndef WEBRTC_MODULES_RTP_RTCP_SOURCE_RTP_RECEIVER_STRATEGY_H_
 #define WEBRTC_MODULES_RTP_RTCP_SOURCE_RTP_RECEIVER_STRATEGY_H_
 
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/modules/rtp_rtcp/interface/rtp_rtcp.h"
 #include "webrtc/modules/rtp_rtcp/interface/rtp_rtcp_defines.h"
 #include "webrtc/modules/rtp_rtcp/source/rtp_utility.h"
 #include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
@@ -26,8 +26,7 @@ class TelephoneEventHandler;
 // This class is not thread-safe and must be protected by its caller.
 class RTPReceiverStrategy {
  public:
-  static RTPReceiverStrategy* CreateVideoStrategy(int32_t id,
-                                                  RtpData* data_callback);
+  static RTPReceiverStrategy* CreateVideoStrategy(RtpData* data_callback);
   static RTPReceiverStrategy* CreateAudioStrategy(
       int32_t id, RtpData* data_callback,
       RtpAudioFeedback* incoming_messages_callback);
@@ -44,7 +43,7 @@ class RTPReceiverStrategy {
                                  const PayloadUnion& specific_payload,
                                  bool is_red,
                                  const uint8_t* payload,
-                                 uint16_t payload_length,
+                                 size_t payload_length,
                                  int64_t timestamp_ms,
                                  bool is_first_packet) = 0;
 
@@ -100,7 +99,7 @@ class RTPReceiverStrategy {
   // packet.
   RTPReceiverStrategy(RtpData* data_callback);
 
-  scoped_ptr<CriticalSectionWrapper> crit_sect_;
+  rtc::scoped_ptr<CriticalSectionWrapper> crit_sect_;
   PayloadUnion last_payload_;
   RtpData* data_callback_;
 };

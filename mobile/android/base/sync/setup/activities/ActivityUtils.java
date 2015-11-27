@@ -8,6 +8,7 @@ import java.util.Locale;
 
 import org.mozilla.gecko.background.common.GlobalConstants;
 import org.mozilla.gecko.background.common.log.Logger;
+import org.mozilla.gecko.db.BrowserContract;
 import org.mozilla.gecko.sync.SyncConstants;
 import org.mozilla.gecko.sync.setup.InvalidSyncKeyException;
 
@@ -64,6 +65,7 @@ public class ActivityUtils {
     }
     intent.setClassName(GlobalConstants.BROWSER_INTENT_PACKAGE, GlobalConstants.BROWSER_INTENT_CLASS);
     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+    intent.putExtra(BrowserContract.SKIP_TAB_QUEUE_FLAG, true);
     context.startActivity(intent);
   }
 

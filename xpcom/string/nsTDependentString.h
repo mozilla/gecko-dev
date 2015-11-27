@@ -32,13 +32,13 @@ public:
     : string_type(const_cast<char_type*>(aStart),
                   uint32_t(aEnd - aStart), F_TERMINATED)
   {
-    AssertValidDepedentString();
+    AssertValidDependentString();
   }
 
   nsTDependentString_CharT(const char_type* aData, uint32_t aLength)
     : string_type(const_cast<char_type*>(aData), aLength, F_TERMINATED)
   {
-    AssertValidDepedentString();
+    AssertValidDependentString();
   }
 
 #if defined(CharT_is_PRUnichar) && defined(MOZ_USE_CHAR16_WRAPPER)
@@ -53,7 +53,7 @@ public:
     : string_type(const_cast<char_type*>(aData),
                   uint32_t(char_traits::length(aData)), F_TERMINATED)
   {
-    AssertValidDepedentString();
+    AssertValidDependentString();
   }
 
 #if defined(CharT_is_PRUnichar) && defined(MOZ_USE_CHAR16_WRAPPER)
@@ -102,5 +102,5 @@ public:
 private:
 
   // NOT USED
-  nsTDependentString_CharT(const substring_tuple_type&) MOZ_DELETE;
+  nsTDependentString_CharT(const substring_tuple_type&) = delete;
 };

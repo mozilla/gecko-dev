@@ -10,41 +10,24 @@ import pexpect
 import time
 import sys
 
-def init_dsa(db_dir, param_filename = 'dsa_param.pem', key_size = '2048'):
-    """
-    Initialize dsa parameters
-
-    Sets up a set of params to be reused for DSA key generation
-
-    Arguments:
-      db_dir     -- location of the temporary params for the certificate
-      param_filename -- the file name for the param file
-      key_size   -- public key size
-    """
-    dsa_key_params = db_dir + '/' + param_filename
-    os.system("openssl dsaparam -out " + dsa_key_params + ' ' + key_size)
-
+default_validity_in_days = 10 * 365
 
 def generate_cert_generic(db_dir, dest_dir, serial_num,  key_type, name,
                           ext_text, signer_key_filename = "",
                           signer_cert_filename = "",
                           subject_string = "",
-                          dsa_param_filename = 'dsa_param.pem',
-                          key_size = '2048'):
+                          key_size = '2048',
+                          validity_in_days = default_validity_in_days):
     """
     Generate an x509 certificate with a sha256 signature
-
-    Preconditions:
-      if dsa keys are to be generated init_dsa must have been called before.
-
 
     Arguments:
       db_dir     -- location of the temporary params for the certificate
       dest_dir   -- location of the x509 cert
       serial_num -- serial number for the cert (must be unique for each signer
                     key)
-      key_type   -- the type of key generated: potential values: 'rsa', 'dsa',
-                    or any of the curves found by 'openssl ecparam -list_curves'
+      key_type   -- the type of key generated: potential values: 'rsa' or any
+	                of the curves found by 'openssl ecparam -list_curves'
       name       -- the common name for the cert, will match the prefix of the
                     output cert
       ext_text   -- the text for the x509 extensions to be added to the
@@ -54,8 +37,8 @@ def generate_cert_generic(db_dir, dest_dir, serial_num,  key_type, name,
                     roots).
       signer_cert_filename -- the certificate that will sign the certificate
                     (used to extract signer info) it must be in DER format.
-      dsa_param_filename -- the filename for the DSA param file
       key_size   -- public key size for RSA certs
+      validity_in_days -- the number of days the cert will be valid for
 
     output:
       key_name   -- the filename of the key file (PEM format)
@@ -65,9 +48,6 @@ def generate_cert_generic(db_dir, dest_dir, serial_num,  key_type, name,
     if key_type == 'rsa':
       os.system ("openssl genpkey -algorithm RSA -out " + key_name +
                  " -pkeyopt rsa_keygen_bits:" + key_size)
-    elif key_type == 'dsa':
-      dsa_key_params = db_dir + '/' + dsa_param_filename
-      os.system("openssl gendsa -out " + key_name + "  " + dsa_key_params)
     else:
       #assume is ec
       os.system("openssl ecparam -out " + key_name + " -name "+ key_type +
@@ -87,15 +67,17 @@ def generate_cert_generic(db_dir, dest_dir, serial_num,  key_type, name,
     cert_name =  dest_dir + "/"+ name + ".der"
     if not signer_key_filename:
         signer_key_filename = key_name;
-        os.system ("openssl x509 -req -sha256 -days 3650 -in " + csr_name +
+        os.system ("openssl x509 -req -sha256 -in " + csr_name +
+                   " -days " + str(validity_in_days) +
                    " -signkey " + signer_key_filename +
                    " -set_serial " + str(serial_num) +
                    " -extfile " + extensions_filename +
                    " -outform DER -out "+ cert_name)
     else:
-        os.system ("openssl x509 -req -sha256 -days 3650 -in " + csr_name +
+        os.system ("openssl x509 -req -sha256 -in " + csr_name +
                    " -CAkey " + signer_key_filename +
                    " -CA " + signer_cert_filename + " -CAform DER " +
+                   " -days " + str(validity_in_days) +
                    " -set_serial " + str(serial_num) + " -out " + cert_name +
                    " -outform DER  -extfile " + extensions_filename)
     return key_name, cert_name
@@ -103,7 +85,8 @@ def generate_cert_generic(db_dir, dest_dir, serial_num,  key_type, name,
 
 
 def generate_int_and_ee(db_dir, dest_dir, ca_key, ca_cert, name, int_ext_text,
-                        ee_ext_text, key_type = 'rsa'):
+                        ee_ext_text, key_type = 'rsa',
+                        ee_validity_in_days = default_validity_in_days):
     """
     Generate an intermediate and ee signed by the generated intermediate. The
     name of the intermediate files will be the name '.der' or '.key'. The name
@@ -126,8 +109,10 @@ def generate_int_and_ee(db_dir, dest_dir, ca_key, ca_cert, name, int_ext_text,
                     intermediate certificate
       ee_ext_text  -- the text for the x509 extensions to be added to the
                     end entity certificate
-      key_type   -- the type of key generated: potential values: 'rsa', 'dsa',
-                    or any of the curves found by 'openssl ecparam -list_curves'
+      key_type   -- the type of key generated: potential values: 'rsa' or any
+	                of the curves found by 'openssl ecparam -list_curves'
+      ee_validity_in_days -- the number of days the end-entity cert will be
+                             valid for
 
     output:
       int_key   -- the filename of the intermeidate key file (PEM format)
@@ -141,10 +126,16 @@ def generate_int_and_ee(db_dir, dest_dir, ca_key, ca_cert, name, int_ext_text,
                                                 key_type, "int-" + name,
                                                 int_ext_text,
                                                 ca_key, ca_cert)
-    [ee_key, ee_cert] = generate_cert_generic(db_dir, dest_dir,
-                                              random.randint(100,40000000),
-                                              key_type,  name,
-                                              ee_ext_text, int_key, int_cert)
+    [ee_key, ee_cert] = generate_cert_generic(
+        db_dir,
+        dest_dir,
+        random.randint(100,40000000),
+        key_type,
+        name,
+        ee_ext_text,
+        int_key,
+        int_cert,
+        validity_in_days = ee_validity_in_days)
 
     return int_key, int_cert, ee_key, ee_cert
 
@@ -182,6 +173,19 @@ def generate_pkcs12(db_dir, dest_dir, der_cert_filename, key_pem_filename,
     child.sendline('')
     child.expect(pexpect.EOF)
     return pk12_filename
+
+def print_cert_info(cert_filename):
+    """
+    Prints out information (such as fingerprints) for the given cert.
+    The information printed is sufficient for enabling EV for the given cert
+    if necessary.
+
+    Note: The utility 'pp' is available as part of NSS.
+
+    Arguments:
+      cert_filename -- the filename of the cert in DER format
+    """
+    os.system('pp -t certificate-identity -i ' + cert_filename)
 
 def init_nss_db(db_dir):
     """

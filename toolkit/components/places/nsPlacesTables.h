@@ -90,7 +90,6 @@
     ", data BLOB" \
     ", mime_type VARCHAR(32)" \
     ", expiration LONG" \
-    ", guid TEXT" \
   ")" \
 )
 
@@ -121,6 +120,8 @@
   "CREATE TABLE moz_keywords (" \
     "  id INTEGER PRIMARY KEY AUTOINCREMENT" \
     ", keyword TEXT UNIQUE" \
+    ", place_id INTEGER" \
+    ", post_data TEXT" \
   ")" \
 )
 

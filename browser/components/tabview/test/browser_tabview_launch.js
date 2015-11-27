@@ -1,17 +1,17 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-let newWin;
+var newWin;
 
 // ----------
 function test() {
   waitForExplicitFinish();
 
   let panelSelected = false;
-  registerCleanupFunction(function () ok(panelSelected, "panel is selected"));
+  registerCleanupFunction(() => ok(panelSelected, "panel is selected"));
 
   let onLoad = function (win) {
-    registerCleanupFunction(function () win.close());
+    registerCleanupFunction(() => win.close());
 
     newWin = win;
 

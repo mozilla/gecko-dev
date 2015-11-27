@@ -34,7 +34,11 @@
         <script type='text/javascript'>
             var isPointerCapture = false;
             var isRelatedTargetValueTested = false;
+            var isTargetAuthenticityTested = false;
             var count = 0;
+
+            var detected_pointertypes = {};
+            add_completion_callback(showPointerTypes);
 
             var target0 = document.getElementById('target0');
             var target1 = document.getElementById('target1');
@@ -59,6 +63,7 @@
                 on_event(captureButton, 'pointerdown', function(e) {
                     if(isPointerCapture == false) {
                         sPointerCapture(e);
+                        isPointerCapture = true;
                     }
                 });
 
@@ -78,6 +83,7 @@
 
             function run() {
                 on_event(target0, "pointerover", function (event) {
+                    detected_pointertypes[ event.pointerType ] = true;
                     log("pointerover", target0);
                     if(isPointerCapture) {
                         test_pointerover_capture.done();
@@ -86,6 +92,13 @@
                                 assert_true(event.relatedTarget==null, "relatedTarget is null when the capture is set")
                             }, "relatedTarget is null when the capture is set. relatedTarget is " + event.relatedTarget);
                             isRelatedTargetValueTested = true;
+                        }
+                        var hitTest = document.elementFromPoint(event.clientX, event.clientY);
+                        if(event.target !== hitTest && !isTargetAuthenticityTested) {
+                            test(function () {
+                                assert_unreached("pointerover for this target shouldn't trigger events on capture target");
+                            }, "pointerover should only trigger over the black rectangle");
+                            isTargetAuthenticityTested = true;
                         }
                     }
                     else {
@@ -162,7 +175,9 @@
             }
         </script>
         <h1>Pointer Events Capture Test</h1>
-        <div id="complete-notice"></div>
+        <div id="complete-notice">
+            <p>The following pointer types were detected: <span id="pointertype-log"></span>.</p>
+        </div>
         <div id="log"></div>
     </body>
 </html>

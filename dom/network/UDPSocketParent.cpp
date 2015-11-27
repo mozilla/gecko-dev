@@ -15,19 +15,120 @@
 #include "mozilla/net/DNS.h"
 #include "mozilla/net/NeckoCommon.h"
 #include "mozilla/net/PNeckoParent.h"
+#include "nsNetUtil.h"
+#include "mozilla/dom/ContentParent.h"
+#include "mozilla/dom/TabParent.h"
+#include "nsIPermissionManager.h"
+#include "nsIScriptSecurityManager.h"
+#include "mozilla/ipc/PBackgroundParent.h"
+
+//
+// set NSPR_LOG_MODULES=UDPSocket:5
+//
+extern mozilla::LazyLogModule gUDPSocketLog;
+#define UDPSOCKET_LOG(args)     MOZ_LOG(gUDPSocketLog, mozilla::LogLevel::Debug, args)
+#define UDPSOCKET_LOG_ENABLED() MOZ_LOG_TEST(gUDPSocketLog, mozilla::LogLevel::Debug)
 
 namespace mozilla {
 namespace dom {
 
 NS_IMPL_ISUPPORTS(UDPSocketParent, nsIUDPSocketListener)
 
+UDPSocketParent::UDPSocketParent(PBackgroundParent* aManager)
+  : mBackgroundManager(aManager)
+  , mNeckoManager(nullptr)
+  , mIPCOpen(true)
+{
+  mObserver = new mozilla::net::OfflineObserver(this);
+}
+
+UDPSocketParent::UDPSocketParent(PNeckoParent* aManager)
+  : mBackgroundManager(nullptr)
+  , mNeckoManager(aManager)
+  , mIPCOpen(true)
+{
+  mObserver = new mozilla::net::OfflineObserver(this);
+}
+
 UDPSocketParent::~UDPSocketParent()
 {
+  if (mObserver) {
+    mObserver->RemoveObserver();
+  }
+}
+
+nsresult
+UDPSocketParent::OfflineNotification(nsISupports *aSubject)
+{
+  nsCOMPtr<nsIAppOfflineInfo> info(do_QueryInterface(aSubject));
+  if (!info) {
+    return NS_OK;
+  }
+
+  uint32_t targetAppId = nsIScriptSecurityManager::UNKNOWN_APP_ID;
+  info->GetAppId(&targetAppId);
+
+  // Obtain App ID
+  uint32_t appId = GetAppId();
+  if (appId != targetAppId) {
+    return NS_OK;
+  }
+
+  // If the app is offline, close the socket
+  if (mSocket && NS_IsAppOffline(appId)) {
+    mSocket->Close();
+  }
+
+  return NS_OK;
+}
+
+uint32_t
+UDPSocketParent::GetAppId()
+{
+  uint32_t appId;
+  if (!mPrincipal || NS_FAILED(mPrincipal->GetAppId(&appId))) {
+    return nsIScriptSecurityManager::UNKNOWN_APP_ID;
+  }
+  return appId;
 }
 
 bool
-UDPSocketParent::Init(const nsACString& aFilter)
+UDPSocketParent::Init(const IPC::Principal& aPrincipal,
+                      const nsACString& aFilter)
 {
+  MOZ_ASSERT_IF(mBackgroundManager, !aPrincipal);
+  // will be used once we move all UDPSocket to PBackground, or
+  // if we add in Principal checking for mtransport
+  Unused << mBackgroundManager;
+  
+  mPrincipal = aPrincipal;
+  if (net::UsingNeckoIPCSecurity() &&
+      mPrincipal &&
+      !ContentParent::IgnoreIPCPrincipal()) {
+    if (mNeckoManager) {
+      if (!AssertAppPrincipal(mNeckoManager->Manager(), mPrincipal)) {
+        return false;
+      }
+    } else {
+      // PBackground is (for now) using a STUN filter for verification
+      // it's not being used for DoS
+    }
+
+    nsCOMPtr<nsIPermissionManager> permMgr =
+      services::GetPermissionManager();
+    if (!permMgr) {
+      NS_WARNING("No PermissionManager available!");
+      return false;
+    }
+
+    uint32_t permission = nsIPermissionManager::DENY_ACTION;
+    permMgr->TestExactPermissionFromPrincipal(mPrincipal, "udp-socket",
+                                              &permission);
+    if (permission != nsIPermissionManager::ALLOW_ACTION) {
+      return false;
+    }
+  }
+
   if (!aFilter.IsEmpty()) {
     nsAutoCString contractId(NS_NETWORK_UDP_SOCKET_FILTER_HANDLER_PREFIX);
     contractId.Append(aFilter);
@@ -37,7 +138,7 @@ UDPSocketParent::Init(const nsACString& aFilter)
       nsresult rv = filterHandler->NewFilter(getter_AddRefs(mFilter));
       if (NS_FAILED(rv)) {
         printf_stderr("Cannot create filter that content specified. "
-                      "filter name: %s, error code: %d.", aFilter.BeginReading(), rv);
+                      "filter name: %s, error code: %u.", aFilter.BeginReading(),  static_cast<uint32_t>(rv));
         return false;
       }
     } else {
@@ -45,6 +146,12 @@ UDPSocketParent::Init(const nsACString& aFilter)
                     "filter name: %s.", aFilter.BeginReading());
       return false;
     }
+  }
+  // We don't have browser actors in xpcshell, and hence can't run automated
+  // tests without this loophole.
+  if (net::UsingNeckoIPCSecurity() && !mFilter &&
+      (!mPrincipal || ContentParent::IgnoreIPCPrincipal())) {
+    return false;
   }
   return true;
 }
@@ -55,13 +162,7 @@ bool
 UDPSocketParent::RecvBind(const UDPAddressInfo& aAddressInfo,
                           const bool& aAddressReuse, const bool& aLoopback)
 {
-  // We don't have browser actors in xpcshell, and hence can't run automated
-  // tests without this loophole.
-  if (net::UsingNeckoIPCSecurity() && !mFilter &&
-      !AssertAppProcessPermission(Manager()->Manager(), "udp-socket")) {
-    FireInternalError(__LINE__);
-    return false;
-  }
+  UDPSOCKET_LOG(("%s: %s:%u", __FUNCTION__, aAddressInfo.addr().get(), aAddressInfo.port()));
 
   if (NS_FAILED(BindInternal(aAddressInfo.addr(), aAddressInfo.port(), aAddressReuse, aLoopback))) {
     FireInternalError(__LINE__);
@@ -83,7 +184,8 @@ UDPSocketParent::RecvBind(const UDPAddressInfo& aAddressInfo,
     return true;
   }
 
-  mozilla::unused << SendCallbackOpened(UDPAddressInfo(addr, port));
+  UDPSOCKET_LOG(("%s: SendCallbackOpened: %s:%u", __FUNCTION__, addr.get(), port));
+  mozilla::Unused << SendCallbackOpened(UDPAddressInfo(addr, port));
 
   return true;
 }
@@ -94,6 +196,8 @@ UDPSocketParent::BindInternal(const nsCString& aHost, const uint16_t& aPort,
 {
   nsresult rv;
 
+  UDPSOCKET_LOG(("%s: %s:%u", __FUNCTION__, nsCString(aHost).get(), aPort));
+
   nsCOMPtr<nsIUDPSocket> sock =
       do_CreateInstance("@mozilla.org/network/udp-socket;1", &rv);
 
@@ -102,7 +206,8 @@ UDPSocketParent::BindInternal(const nsCString& aHost, const uint16_t& aPort,
   }
 
   if (aHost.IsEmpty()) {
-    rv = sock->Init(aPort, false, aAddressReuse, /* optional_argc = */ 1);
+    rv = sock->Init(aPort, false, mPrincipal, aAddressReuse,
+                    /* optional_argc = */ 1);
   } else {
     PRNetAddr prAddr;
     PR_InitializeNetAddr(PR_IpAddrAny, aPort, &prAddr);
@@ -113,7 +218,8 @@ UDPSocketParent::BindInternal(const nsCString& aHost, const uint16_t& aPort,
 
     mozilla::net::NetAddr addr;
     PRNetAddrToNetAddr(&prAddr, &addr);
-    rv = sock->InitWithAddress(&addr, aAddressReuse, /* optional_argc = */ 1);
+    rv = sock->InitWithAddress(&addr, mPrincipal, aAddressReuse,
+                               /* optional_argc = */ 1);
   }
 
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -280,7 +386,7 @@ UDPSocketParent::RecvClose()
   nsresult rv = mSocket->Close();
   mSocket = nullptr;
 
-  mozilla::unused << NS_WARN_IF(NS_FAILED(rv));
+  mozilla::Unused << NS_WARN_IF(NS_FAILED(rv));
 
   return true;
 }
@@ -288,7 +394,7 @@ UDPSocketParent::RecvClose()
 bool
 UDPSocketParent::RecvRequestDelete()
 {
-  mozilla::unused << Send__delete__(this);
+  mozilla::Unused << Send__delete__(this);
   return true;
 }
 
@@ -325,6 +431,7 @@ UDPSocketParent::OnPacketReceived(nsIUDPSocket* aSocket, nsIUDPMessage* aMessage
 
   const char* buffer = data.get();
   uint32_t len = data.Length();
+  UDPSOCKET_LOG(("%s: %s:%u, length %u", __FUNCTION__, ip.get(), port, len));
 
   if (mFilter) {
     bool allowed;
@@ -336,12 +443,15 @@ UDPSocketParent::OnPacketReceived(nsIUDPSocket* aSocket, nsIUDPMessage* aMessage
                                         &allowed);
     // Receiving unallowed data, drop.
     if (NS_WARN_IF(NS_FAILED(rv)) || !allowed) {
+      if (!allowed) {
+        UDPSOCKET_LOG(("%s: not allowed", __FUNCTION__));
+      }
       return NS_OK;
     }
   }
 
   FallibleTArray<uint8_t> fallibleArray;
-  if (!fallibleArray.InsertElementsAt(0, buffer, len)) {
+  if (!fallibleArray.InsertElementsAt(0, buffer, len, fallible)) {
     FireInternalError(__LINE__);
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -349,7 +459,7 @@ UDPSocketParent::OnPacketReceived(nsIUDPSocket* aSocket, nsIUDPMessage* aMessage
   infallibleArray.SwapElements(fallibleArray);
 
   // compose callback
-  mozilla::unused << SendCallbackReceivedData(UDPAddressInfo(ip, port), infallibleArray);
+  mozilla::Unused << SendCallbackReceivedData(UDPAddressInfo(ip, port), infallibleArray);
 
   return NS_OK;
 }
@@ -359,7 +469,7 @@ UDPSocketParent::OnStopListening(nsIUDPSocket* aSocket, nsresult aStatus)
 {
   // underlying socket is dead, send state update to child process
   if (mIPCOpen) {
-    mozilla::unused << SendCallbackClosed();
+    mozilla::Unused << SendCallbackClosed();
   }
   return NS_OK;
 }
@@ -371,7 +481,7 @@ UDPSocketParent::FireInternalError(uint32_t aLineNo)
     return;
   }
 
-  mozilla::unused << SendCallbackError(NS_LITERAL_CSTRING("Internal error"),
+  mozilla::Unused << SendCallbackError(NS_LITERAL_CSTRING("Internal error"),
                                        NS_LITERAL_CSTRING(__FILE__), aLineNo);
 }
 

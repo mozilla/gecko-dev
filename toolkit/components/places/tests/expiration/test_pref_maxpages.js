@@ -14,10 +14,10 @@
  * If the pref is set to a number < 0 we will use the default value.
  */
 
-let hs = Cc["@mozilla.org/browser/nav-history-service;1"].
+var hs = Cc["@mozilla.org/browser/nav-history-service;1"].
          getService(Ci.nsINavHistoryService);
 
-let tests = [
+var tests = [
 
   { desc: "Set max_pages to a negative value, with 1 page.",
     maxPages: -1,
@@ -64,7 +64,7 @@ function run_test() {
   run_next_test();
 }
 
-add_task(function test_pref_maxpages() {
+add_task(function* test_pref_maxpages() {
   // The pref should not exist by default.
   try {
     getMaxPages();
@@ -84,7 +84,7 @@ add_task(function test_pref_maxpages() {
     let now = getExpirablePRTime();
     for (let i = 0; i < currentTest.addPages; i++) {
       let page = "http://" + testIndex + "." + i + ".mozilla.org/";
-      yield promiseAddVisits({ uri: uri(page), visitDate: now++ });
+      yield PlacesTestUtils.addVisits({ uri: uri(page), visitDate: now++ });
     }
 
     // Observe history.
@@ -116,9 +116,9 @@ add_task(function test_pref_maxpages() {
                 currentTest.expectedNotifications);
 
     // Clean up.
-    yield promiseClearHistory();
+    yield PlacesTestUtils.clearHistory();
   }
 
   clearMaxPages();
-  yield promiseClearHistory();
+  yield PlacesTestUtils.clearHistory();
 });

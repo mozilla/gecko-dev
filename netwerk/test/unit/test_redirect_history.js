@@ -1,4 +1,5 @@
 Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://gre/modules/Services.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "URL", function() {
   return "http://localhost:" + httpServer.identity.primaryPort;
@@ -12,7 +13,14 @@ const numRedirects = 10;
 function make_channel(url, callback, ctx) {
   var ios = Cc["@mozilla.org/network/io-service;1"].
             getService(Ci.nsIIOService);
-  return ios.newChannel(url, "", null);
+  return ios.newChannel2(url,
+                         "",
+                         null,
+                         null,      // aLoadingNode
+                         Services.scriptSecurityManager.getSystemPrincipal(),
+                         null,      // aTriggeringPrincipal
+                         Ci.nsILoadInfo.SEC_NORMAL,
+                         Ci.nsIContentPolicy.TYPE_OTHER);
 }
 
 const responseBody = "response body";
@@ -26,10 +34,12 @@ function contentHandler(request, response)
 function finish_test(request, buffer)
 {
   do_check_eq(buffer, responseBody);
-  let chan = request.QueryInterface(Ci.nsIRedirectHistory);
-  do_check_eq(numRedirects - 1, chan.redirects.length);
+  let chan = request.QueryInterface(Ci.nsIChannel);
+  let redirectChain = chan.loadInfo.redirectChain;
+
+  do_check_eq(numRedirects - 1, redirectChain.length);
   for (let i = 0; i < numRedirects - 1; ++i) {
-    let principal = chan.redirects.queryElementAt(i, Ci.nsIPrincipal);
+    let principal = redirectChain[i];
     do_check_eq(URL + redirects[i], principal.URI.spec);
   }
   httpServer.stop(do_test_finished);

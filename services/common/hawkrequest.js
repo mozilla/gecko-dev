@@ -4,7 +4,7 @@
 
 "use strict";
 
-const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
+var {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 this.EXPORTED_SYMBOLS = [
   "HAWKAuthenticatedRESTRequest",
@@ -67,7 +67,7 @@ HAWKAuthenticatedRESTRequest.prototype = {
 
   dispatch: function dispatch(method, data, onComplete, onProgress) {
     let contentType = "text/plain";
-    if (method == "POST" || method == "PUT") {
+    if (method == "POST" || method == "PUT" || method == "PATCH") {
       contentType = "application/json";
     }
     if (this.credentials) {
@@ -181,7 +181,7 @@ this.Intl.prototype = {
 };
 
 // Singleton getter for Intl, creating an instance only when we first need it.
-let intl = null;
+var intl = null;
 function getIntl() {
   if (!intl) {
     intl = new Intl();

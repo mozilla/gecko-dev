@@ -7,10 +7,10 @@ this.EXPORTED_SYMBOLS = [
   "Resource"
 ];
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
-const Cu = Components.utils;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cr = Components.results;
+var Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://services-common/async.js");
@@ -134,7 +134,9 @@ AsyncResource.prototype = {
   //
   // Get and set the data encapulated in the resource.
   _data: null,
-  get data() this._data,
+  get data() {
+    return this._data;
+  },
   set data(value) {
     this._data = value;
   },
@@ -146,7 +148,14 @@ AsyncResource.prototype = {
   // to obtain a request channel.
   //
   _createRequest: function Res__createRequest(method) {
-    let channel = Services.io.newChannel(this.spec, null, null)
+    let channel = Services.io.newChannel2(this.spec,
+                                          null,
+                                          null,
+                                          null,      // aLoadingNode
+                                          Services.scriptSecurityManager.getSystemPrincipal(),
+                                          null,      // aTriggeringPrincipal
+                                          Ci.nsILoadInfo.SEC_NORMAL,
+                                          Ci.nsIContentPolicy.TYPE_OTHER)
                           .QueryInterface(Ci.nsIRequest)
                           .QueryInterface(Ci.nsIHttpChannel);
 
@@ -302,6 +311,14 @@ AsyncResource.prototype = {
         Observers.notify("weave:service:quota:remaining",
                          parseInt(headers["x-weave-quota-remaining"], 10));
       }
+
+      let contentLength = headers["content-length"];
+      if (success && contentLength && data &&
+          contentLength != data.length) {
+        this._log.warn("The response body's length of: " + data.length +
+                       " doesn't match the header's content-length of: " +
+                       contentLength + ".");
+      }
     } catch (ex) {
       this._log.debug("Caught exception " + CommonUtils.exceptionStr(ex) +
                       " visiting headers in _onComplete.");
@@ -309,6 +326,7 @@ AsyncResource.prototype = {
     }
 
     let ret     = new String(data);
+    ret.url     = channel.URI.spec;
     ret.status  = status;
     ret.success = success;
     ret.headers = headers;
@@ -388,7 +406,7 @@ Resource.prototype = {
     try {
       this._doRequest(action, data, callback);
       return Async.waitForSyncCallback(cb);
-    } catch(ex) {
+    } catch (ex if !Async.isShutdownException(ex)) {
       // Combine the channel stack with this request stack.  Need to create
       // a new error object for that.
       let error = Error(ex.message);
@@ -541,7 +559,7 @@ ChannelListener.prototype = {
 
     try {
       this._onProgress();
-    } catch (ex) {
+    } catch (ex if !Async.isShutdownException(ex)) {
       this._log.warn("Got exception calling onProgress handler during fetch of "
                      + req.URI.spec);
       this._log.debug(CommonUtils.exceptionStr(ex));

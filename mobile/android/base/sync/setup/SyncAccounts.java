@@ -285,7 +285,7 @@ public class SyncAccounts {
     Logger.debug(LOG_TAG, "Account " + account + " added successfully.");
 
     setSyncAutomatically(account, syncAutomatically);
-    setIsSyncable(account, syncAutomatically);
+    setIsSyncable(account, true);
     Logger.debug(LOG_TAG, "Set account to sync automatically? " + syncAutomatically + ".");
 
     try {
@@ -437,9 +437,7 @@ public class SyncAccounts {
     String username;
     try {
       username = Utils.usernameFromAccount(account.name);
-    } catch (NoSuchAlgorithmException e) {
-      throw new CredentialException.MissingCredentialException("username");
-    } catch (UnsupportedEncodingException e) {
+    } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
       throw new CredentialException.MissingCredentialException("username");
     }
 

@@ -25,6 +25,10 @@ XPCOMUtils.defineLazyServiceGetter(this, "appsService",
 XPCOMUtils.defineLazyModuleGetter(this, "SystemAppProxy",
                                   "resource://gre/modules/SystemAppProxy.jsm");
 
+XPCOMUtils.defineLazyServiceGetter(this, "notificationStorage",
+                                   "@mozilla.org/notificationStorage;1",
+                                   "nsINotificationStorage");
+
 XPCOMUtils.defineLazyGetter(this, "ppmm", function() {
   return Cc["@mozilla.org/parentprocessmessagemanager;1"]
          .getService(Ci.nsIMessageListenerManager);
@@ -63,7 +67,7 @@ const kMessages = [
   kMessageAlertNotificationClose
 ];
 
-let AlertsHelper = {
+var AlertsHelper = {
 
   _listeners: {},
 
@@ -157,10 +161,13 @@ let AlertsHelper = {
           );
         }
       }
+      if (detail.type === kDesktopNotificationClose && listener.dbId) {
+        notificationStorage.delete(listener.manifestURL, listener.dbId);
+      }
     }
 
     // we"re done with this notification
-    if (topic === kTopicAlertFinished) {
+    if (detail.type === kDesktopNotificationClose) {
       delete this._listeners[uid];
     }
   },
@@ -225,7 +232,7 @@ let AlertsHelper = {
   },
 
   showNotification: function(imageURL, title, text, textClickable, cookie,
-                             uid, bidi, lang, dataObj, manifestURL, timestamp,
+                             uid, dir, lang, dataObj, manifestURL, timestamp,
                              behavior) {
     function send(appName, appIcon) {
       SystemAppProxy._sendCustomEvent(kMozChromeNotificationEvent, {
@@ -234,7 +241,7 @@ let AlertsHelper = {
         icon: imageURL,
         title: title,
         text: text,
-        bidi: bidi,
+        dir: dir,
         lang: lang,
         appName: appName,
         appIcon: appIcon,
@@ -269,8 +276,8 @@ let AlertsHelper = {
     let dataObj = this.deserializeStructuredClone(data.dataStr);
     this.registerListener(data.name, data.cookie, data.alertListener);
     this.showNotification(data.imageURL, data.title, data.text,
-                          data.textClickable, data.cookie, data.name, data.bidi,
-                          data.lang, dataObj, null);
+                          data.textClickable, data.cookie, data.name, data.dir,
+                          data.lang, dataObj, null, data.inPrivateBrowsing);
   },
 
   showAppNotification: function(aMessage) {
@@ -285,6 +292,7 @@ let AlertsHelper = {
       imageURL: data.imageURL,
       lang: details.lang || undefined,
       id: details.id || undefined,
+      dbId: details.dbId || undefined,
       dir: details.dir || undefined,
       tag: details.tag || undefined,
       timestamp: details.timestamp || undefined,

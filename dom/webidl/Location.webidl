@@ -13,13 +13,41 @@
 
 [Unforgeable]
 interface Location {
+  // Bug 824857: no support for stringifier attributes yet.
+  //  stringifier attribute USVString href;
+
+  // Bug 824857 should remove this.
   [Throws]
-  void assign(DOMString url);
-  [Throws, CrossOriginCallable]
-  void replace(DOMString url);
+  stringifier;
+
+  [Throws, CrossOriginWritable]
+           attribute USVString href;
+  [Throws]
+  readonly attribute USVString origin;
+  [Throws]
+           attribute USVString protocol;
+  [Throws]
+           attribute USVString host;
+  [Throws]
+           attribute USVString hostname;
+  [Throws]
+           attribute USVString port;
+  [Throws]
+           attribute USVString pathname;
+  [Throws]
+           attribute USVString search;
+  [Throws]
+           attribute USVString hash;
+
+  [Throws, UnsafeInPrerendering]
+  void assign(USVString url);
+
+  [Throws, CrossOriginCallable, UnsafeInPrerendering]
+  void replace(USVString url);
+
   // XXXbz there is no forceget argument in the spec!  See bug 1037721.
-  [Throws]
+  [Throws, UnsafeInPrerendering]
   void reload(optional boolean forceget = false);
+
+  // Bug 1085214 [SameObject] readonly attribute USVString[] ancestorOrigins;
 };
-// No support for .searchParams on Location yet.  See bug 1037715.
-Location implements URLUtils;

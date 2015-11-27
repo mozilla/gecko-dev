@@ -8,23 +8,26 @@
 #define VibrancyManager_h
 
 #include "mozilla/Assertions.h"
-#include "mozilla/TypedEnum.h"
 #include "nsClassHashtable.h"
 #include "nsRegion.h"
 #include "nsTArray.h"
 
 #import <Foundation/NSGeometry.h>
 
+@class NSColor;
 @class NSView;
 class nsChildView;
-class nsIntRegion;
 
 namespace mozilla {
 
-MOZ_BEGIN_ENUM_CLASS(VibrancyType)
+enum class VibrancyType {
   LIGHT,
-  DARK
-MOZ_END_ENUM_CLASS(VibrancyType)
+  DARK,
+  TOOLTIP,
+  MENU,
+  HIGHLIGHTED_MENUITEM,
+  SHEET
+};
 
 /**
  * VibrancyManager takes care of updating the vibrant regions of a window.
@@ -76,6 +79,20 @@ public:
   void ClearVibrantAreas() const;
 
   /**
+   * Return the fill color that should be drawn on top of the cleared window
+   * parts. Usually this would be drawn by -[NSVisualEffectView drawRect:].
+   * The returned color is opaque if the system-wide "Reduce transparency"
+   * preference is set.
+   */
+  NSColor* VibrancyFillColorForType(VibrancyType aType);
+
+  /**
+   * Return the font smoothing background color that should be used for text
+   * drawn on top of the vibrant window parts.
+   */
+  NSColor* VibrancyFontSmoothingBackgroundColorForType(VibrancyType aType);
+
+  /**
    * Check whether the operating system supports vibrancy at all.
    * You may only create a VibrancyManager instance if this returns true.
    * @return Whether VibrancyManager can be used on this OS.
@@ -98,6 +115,6 @@ protected:
   nsClassHashtable<nsUint32HashKey, VibrantRegion> mVibrantRegions;
 };
 
-}
+} // namespace mozilla
 
 #endif // VibrancyManager_h

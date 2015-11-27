@@ -7,11 +7,20 @@ structlist_FILES := nsStyleStructList.h
 structlist_DEST = $(DIST)/include
 structlist_TARGET := export
 
-include $(topsrcdir)/config/rules.mk
+# TODO This list should be emitted to a .pp file via
+# GenerateCSSPropsGenerated.py.
+csspropsidlnames_dependencies = \
+  $(srcdir)/nsCSSPropList.h \
+  $(srcdir)/nsCSSPropAliasList.h \
+  $(srcdir)/nsCSSPropsGenerated.inc.in \
+  $(srcdir)/PythonCSSProps.h \
+  $(srcdir)/GenerateCSSPropsGenerated.py \
+  $(GLOBAL_DEPS) \
+  $(NULL)
 
-nsStyleStructList.h : $(srcdir)/generate-stylestructlist.py
-	$(PYTHON) $< > $@
-
-GARBAGE	+= \
-	nsStyleStructList.h \
-	$(NULL)
+nsCSSPropsGenerated.inc : $(csspropsidlnames_dependencies)
+	$(CPP) $(DEFINES) $(ACDEFINES) \
+	  $(srcdir)/PythonCSSProps.h | \
+	    PYTHONDONTWRITEBYTECODE=1 $(PYTHON) \
+	      $(srcdir)/GenerateCSSPropsGenerated.py \
+	      $(srcdir)/nsCSSPropsGenerated.inc.in > $@

@@ -1,6 +1,6 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
@@ -9,7 +9,7 @@
 #ifndef nsStaticNameTable_h___
 #define nsStaticNameTable_h___
 
-#include "pldhash.h"
+#include "PLDHashTable.h"
 #include "nsString.h"
 
 /* This class supports case insensitive lookup.
@@ -33,17 +33,16 @@ class nsStaticCaseInsensitiveNameTable
 public:
   enum { NOT_FOUND = -1 };
 
-  bool             Init(const char* const aNames[], int32_t aLength);
   int32_t          Lookup(const nsACString& aName);
   int32_t          Lookup(const nsAString& aName);
   const nsAFlatCString& GetStringValue(int32_t aIndex);
 
-  nsStaticCaseInsensitiveNameTable();
+  nsStaticCaseInsensitiveNameTable(const char* const aNames[], int32_t aLength);
   ~nsStaticCaseInsensitiveNameTable();
 
 private:
   nsDependentCString*   mNameArray;
-  PLDHashTable mNameTable;
+  PLDHashTable          mNameTable;
   nsDependentCString    mNullStr;
 };
 

@@ -9,6 +9,7 @@
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
+#include <sys/statfs.h>
 
 #include <arpa/inet.h>
 #include <linux/types.h>
@@ -37,8 +38,8 @@
 #include "OpenFileFinder.h"
 #include "Volume.h"
 #include "VolumeManager.h"
+#include "nsIStatusReporter.h"
 
-using namespace mozilla::hal;
 USING_MTP_NAMESPACE
 
 /**************************************************************************
@@ -77,13 +78,17 @@ USING_MTP_NAMESPACE
 #define ICS_SYS_MTP_DIRECTORY "/sys/devices/virtual/android_usb/android0/f_mtp"
 #define ICS_SYS_USB_STATE     "/sys/devices/virtual/android_usb/android0/state"
 
+#undef USE_DEBUG    // MozMtpDatabase.h also defines USE_DEBUG
 #define USE_DEBUG 0
 
 #undef LOG
+#undef LOGW
+#undef ERR
 #define LOG(args...)  __android_log_print(ANDROID_LOG_INFO,  "AutoMounter", ## args)
 #define LOGW(args...) __android_log_print(ANDROID_LOG_WARN,  "AutoMounter", ## args)
 #define ERR(args...)  __android_log_print(ANDROID_LOG_ERROR, "AutoMounter", ## args)
 
+#undef DBG
 #if USE_DEBUG
 #define DBG(args...)  __android_log_print(ANDROID_LOG_DEBUG, "AutoMounter" , ## args)
 #else
@@ -98,8 +103,10 @@ namespace system {
 
 #define USB_FUNC_ADB    "adb"
 #define USB_FUNC_MTP    "mtp"
+#define USB_FUNC_NONE   "none"
 #define USB_FUNC_RNDIS  "rndis"
 #define USB_FUNC_UMS    "mass_storage"
+#define USB_FUNC_DEFAULT    "default"
 
 class AutoMounter;
 
@@ -107,9 +114,9 @@ static void SetAutoMounterStatus(int32_t aStatus);
 
 /***************************************************************************/
 
-inline const char* SwitchStateStr(const SwitchEvent& aEvent)
+inline const char* SwitchStateStr(const hal::SwitchEvent& aEvent)
 {
-  return aEvent.status() == SWITCH_STATE_ON ? "plugged" : "unplugged";
+  return aEvent.status() == hal::SWITCH_STATE_ON ? "plugged" : "unplugged";
 }
 
 /***************************************************************************/
@@ -120,7 +127,7 @@ IsUsbCablePluggedIn()
 #if 0
   // Use this code when bug 745078 gets fixed (or use whatever the
   // appropriate method is)
-  return GetCurrentSwitchEvent(SWITCH_USB) == SWITCH_STATE_ON;
+  return GetCurrentSwitchEvent(SWITCH_USB) == hal::SWITCH_STATE_ON;
 #else
   // Until then, just go read the file directly
   if (access(ICS_SYS_USB_STATE, F_OK) == 0) {
@@ -212,7 +219,7 @@ public:
       mMode(AUTOMOUNTER_DISABLE)
   {
     VolumeManager::RegisterStateObserver(&mVolumeManagerStateObserver);
-    Volume::RegisterObserver(&mVolumeEventObserver);
+    Volume::RegisterVolumeObserver(&mVolumeEventObserver, "AutoMounter");
 
     // It's possible that the VolumeManager is already in the READY state,
     // so we call CheckVolumeSettings here to cover that case. Otherwise,
@@ -221,20 +228,6 @@ public:
 
     DBG("Calling UpdateState from constructor");
     UpdateState();
-  }
-
-  ~AutoMounter()
-  {
-    VolumeManager::VolumeArray::size_type numVolumes = VolumeManager::NumVolumes();
-    VolumeManager::VolumeArray::index_type volIndex;
-    for (volIndex = 0; volIndex < numVolumes; volIndex++) {
-      RefPtr<Volume> vol = VolumeManager::GetVolume(volIndex);
-      if (vol) {
-        vol->UnregisterObserver(&mVolumeEventObserver);
-      }
-    }
-    Volume::UnregisterObserver(&mVolumeEventObserver);
-    VolumeManager::UnregisterStateObserver(&mVolumeManagerStateObserver);
   }
 
   void CheckVolumeSettings()
@@ -254,7 +247,6 @@ public:
     for (i = 0; i < numVolumes; i++) {
       RefPtr<Volume> vol = VolumeManager::GetVolume(i);
       if (vol) {
-        vol->RegisterObserver(&mVolumeEventObserver);
         // We need to pick up the intial value of the
         // ums.volume.NAME.enabled setting.
         AutoMounterSetting::CheckVolumeSettings(vol->Name());
@@ -267,10 +259,14 @@ public:
   }
 
   void UpdateState();
+  void GetStatus(bool& umsAvail, bool& umsConfigured, bool& umsEnabled, bool& mtpAvail,
+	         bool& mtpConfigured, bool& mtpEnabled, bool& rndisConfigured);
+
+  nsresult Dump(nsACString& desc);
 
   void ConfigureUsbFunction(const char* aUsbFunc);
 
-  void StartMtpServer();
+  bool StartMtpServer();
   void StopMtpServer();
 
   void StartUmsSharing();
@@ -391,6 +387,13 @@ public:
     UpdateState();
   }
 
+protected:
+  ~AutoMounter()
+  {
+    Volume::UnregisterVolumeObserver(&mVolumeEventObserver, "AutoMounter");
+    VolumeManager::UnregisterStateObserver(&mVolumeManagerStateObserver);
+  }
+
 private:
 
   enum STATE
@@ -459,6 +462,21 @@ private:
 
 static StaticRefPtr<AutoMounter> sAutoMounter;
 static StaticRefPtr<MozMtpServer> sMozMtpServer;
+
+// The following is for status reporter
+enum STATE_REPORTER_STATE
+{
+  REPORTER_UNREGISTERED,
+  REPORTER_REGISTERED
+};
+
+static int status_reporter_progress = REPORTER_UNREGISTERED;
+nsresult getState(nsACString &desc)
+{
+  sAutoMounter->Dump(desc);
+  return NS_OK;
+}
+NS_STATUS_REPORTER_IMPLEMENT(AutoMounter, "AutoMounter", getState);
 
 /***************************************************************************/
 
@@ -533,6 +551,13 @@ SetUsbFunction(const char* aUsbFunc)
   char oldSysUsbConfig[PROPERTY_VALUE_MAX];
   property_get(SYS_USB_CONFIG, oldSysUsbConfig, "");
 
+  if (strcmp(oldSysUsbConfig, USB_FUNC_NONE) == 0) {
+    // It's quite possible that sys.usb.config may have the value "none". We
+    // convert that to an empty string here, and at the end we convert the
+    // empty string back to "none".
+    oldSysUsbConfig[0] = '\0';
+  }
+
   if (IsUsbFunctionEnabled(oldSysUsbConfig, aUsbFunc)) {
     // The function is already configured. Nothing else to do.
     DBG("SetUsbFunction('%s') - already set - nothing to do", aUsbFunc);
@@ -547,6 +572,9 @@ SetUsbFunction(const char* aUsbFunc)
   } else if (strcmp(aUsbFunc, USB_FUNC_UMS) == 0) {
     // We're enabling UMS. For this we make the assumption that the persisted
     // property has mass_storage enabled.
+    property_get(PERSIST_SYS_USB_CONFIG, newSysUsbConfig, "");
+  } else if (strcmp(aUsbFunc, USB_FUNC_DEFAULT) == 0) {
+    // Set the property as PERSIST_SYS_USB_CONFIG
     property_get(PERSIST_SYS_USB_CONFIG, newSysUsbConfig, "");
   } else {
     printf_stderr("AutoMounter::SetUsbFunction Unrecognized aUsbFunc '%s'\n", aUsbFunc);
@@ -578,28 +606,64 @@ SetUsbFunction(const char* aUsbFunc)
     }
   }
 
-  LOG("SetUsbFunction(%s) %s to '%s'", aUsbFunc, SYS_USB_CONFIG, newSysUsbConfig);
+  // If the persisted function didn't have mass_storage (this happens on
+  // the nexus 4/5, then we can get to here and have oldSysUsbConfig equal
+  // to newSysUsbConfig. So we need to check for that.
+
+  if (strcmp(oldSysUsbConfig, newSysUsbConfig) == 0) {
+    DBG("SetUsbFunction('%s') %s is already set to '%s' - nothing to do",
+        aUsbFunc, SYS_USB_CONFIG, newSysUsbConfig);
+    return;
+  }
+
+  if (newSysUsbConfig[0] == '\0') {
+    // Convert the empty string back to the string "none"
+    strlcpy(newSysUsbConfig, USB_FUNC_NONE, sizeof(newSysUsbConfig));
+  }
+  LOG("SetUsbFunction(%s) %s from '%s' to '%s'", aUsbFunc, SYS_USB_CONFIG,
+      oldSysUsbConfig, newSysUsbConfig);
   property_set(SYS_USB_CONFIG, newSysUsbConfig);
 }
 
-void
+bool
 AutoMounter::StartMtpServer()
 {
   if (sMozMtpServer) {
     // Mtp Server is already running - nothing to do
-    return;
+    return true;
   }
   LOG("Starting MtpServer");
+
+  // For debugging, Change the #if 0 to #if 1, and then attach gdb during
+  // the 5 second interval below. Otherwise, configuring MTP will cause adb
+  // (and thus gdb) to get bounced.
+#if 0
+  LOG("Sleeping");
+  PRTime now = PR_Now();
+  PRTime stopTime = now + 5000000;
+  while (PR_Now() < stopTime) {
+    LOG("Sleeping...");
+    sleep(1);
+  }
+  LOG("Sleep done");
+#endif
+
   sMozMtpServer = new MozMtpServer();
-  sMozMtpServer->Run();
+  if (!sMozMtpServer->Init()) {
+    sMozMtpServer = nullptr;
+    return false;
+  }
 
   VolumeArray::index_type volIndex;
   VolumeArray::size_type  numVolumes = VolumeManager::NumVolumes();
   for (volIndex = 0; volIndex < numVolumes; volIndex++) {
     RefPtr<Volume> vol = VolumeManager::GetVolume(volIndex);
-    nsRefPtr<MozMtpStorage> storage = new MozMtpStorage(vol, sMozMtpServer);
+    RefPtr<MozMtpStorage> storage = new MozMtpStorage(vol, sMozMtpServer);
     mMozMtpStorage.AppendElement(storage);
   }
+
+  sMozMtpServer->Run();
+  return true;
 }
 
 void
@@ -658,48 +722,12 @@ AutoMounter::UpdateState()
   //
   // Since IsUsbCablePluggedIn returns state == CONFIGURED, it will look
   // like a cable pull and replugin.
-
-  bool umsAvail = false;
-  bool umsConfigured = false;
-  bool umsEnabled = false;
-  bool mtpAvail = false;
-  bool mtpConfigured = false;
-  bool mtpEnabled = false;
-  bool rndisConfigured = false;
+  bool umsAvail, umsConfigured, umsEnabled;
+  bool mtpAvail, mtpConfigured, mtpEnabled;
+  bool rndisConfigured;
   bool usbCablePluggedIn = IsUsbCablePluggedIn();
-
-  if (access(ICS_SYS_USB_FUNCTIONS, F_OK) == 0) {
-    char functionsStr[60];
-    if (!ReadSysFile(ICS_SYS_USB_FUNCTIONS, functionsStr, sizeof(functionsStr))) {
-      ERR("Error reading file '%s': %s", ICS_SYS_USB_FUNCTIONS, strerror(errno));
-      functionsStr[0] = '\0';
-    }
-    DBG("UpdateState: USB functions: '%s'", functionsStr);
-
-    bool  usbConfigured = IsUsbConfigured();
-    umsAvail = (access(ICS_SYS_UMS_DIRECTORY, F_OK) == 0);
-    if (umsAvail) {
-      umsConfigured = usbConfigured && strstr(functionsStr, USB_FUNC_UMS) != nullptr;
-      umsEnabled = (mMode == AUTOMOUNTER_ENABLE_UMS) ||
-                   ((mMode == AUTOMOUNTER_DISABLE_WHEN_UNPLUGGED) && umsConfigured);
-    } else {
-      umsConfigured = false;
-      umsEnabled = false;
-    }
-
-    mtpAvail = (access(ICS_SYS_MTP_DIRECTORY, F_OK) == 0);
-    if (mtpAvail) {
-      mtpConfigured = usbConfigured && strstr(functionsStr, USB_FUNC_MTP) != nullptr;
-      mtpEnabled = (mMode == AUTOMOUNTER_ENABLE_MTP) ||
-                   ((mMode == AUTOMOUNTER_DISABLE_WHEN_UNPLUGGED) && mtpConfigured);
-    } else {
-      mtpConfigured = false;
-      mtpEnabled = false;
-    }
-
-    rndisConfigured = strstr(functionsStr, USB_FUNC_RNDIS) != nullptr;
-  }
-
+  GetStatus(umsAvail, umsConfigured, umsEnabled, mtpAvail,
+            mtpConfigured, mtpEnabled, rndisConfigured);
   bool enabled = mtpEnabled || umsEnabled;
 
   if (mMode == AUTOMOUNTER_DISABLE_WHEN_UNPLUGGED) {
@@ -736,8 +764,19 @@ AutoMounter::UpdateState()
           // and start the MTP server. This particular codepath will not
           // normally be taken, but it could happen if you stop and restart
           // b2g while sys.usb.config is set to enable mtp.
-          StartMtpServer();
-          SetState(STATE_MTP_STARTED);
+          if (StartMtpServer()) {
+            SetState(STATE_MTP_STARTED);
+          } else {
+            if (umsAvail) {
+              // Unable to start MTP. Go back to UMS.
+              LOG("UpdateState: StartMtpServer failed, switch to UMS");
+              SetUsbFunction(USB_FUNC_UMS);
+              SetState(STATE_UMS_CONFIGURING);
+            } else {
+              LOG("UpdateState: StartMtpServer failed, keep idle state");
+              SetUsbFunction(USB_FUNC_DEFAULT);
+            }
+          }
         } else {
           // We need to configure USB to use mtp. Wait for it to be configured
           // before we start the MTP server.
@@ -763,8 +802,13 @@ AutoMounter::UpdateState()
       if (mtpEnabled && mtpConfigured) {
         // The USB layer has been configured. Now we can go ahead and start
         // the MTP server.
-        StartMtpServer();
-        SetState(STATE_MTP_STARTED);
+        if (StartMtpServer()) {
+          SetState(STATE_MTP_STARTED);
+        } else {
+          // Unable to start MTP. Go back to UMS.
+          SetUsbFunction(USB_FUNC_UMS);
+          SetState(STATE_UMS_CONFIGURING);
+        }
         break;
       }
       if (rndisConfigured) {
@@ -792,10 +836,24 @@ AutoMounter::UpdateState()
         SetState(STATE_UMS_CONFIGURING);
         break;
       }
+
+      // if ums/rndis is not available and mtp is disable,
+      // restore the usb function as PERSIST_SYS_USB_CONFIG.
+      SetUsbFunction(USB_FUNC_DEFAULT);
       SetState(STATE_IDLE);
       break;
 
     case STATE_UMS_CONFIGURING:
+      if (mtpEnabled) {
+        // MTP was enabled. Start reconfiguring.
+        SetState(STATE_MTP_CONFIGURING);
+        SetUsbFunction(USB_FUNC_MTP);
+        break;
+      }
+      if (rndisConfigured) {
+        SetState(STATE_RNDIS_CONFIGURED);
+        break;
+      }
       // While configuring, the USB configuration state will change from
       // CONFIGURED -> CONNECTED -> DISCONNECTED -> CONNECTED -> CONFIGURED
       // so we don't check for cable unplugged here. However, having said
@@ -804,17 +862,7 @@ AutoMounter::UpdateState()
       // in. This is why we need to check for mtpEnabled once we get the
       // configured event.
       if (umsConfigured) {
-        if (mtpEnabled) {
-          // MTP was enabled. Start reconfiguring.
-          SetState(STATE_MTP_CONFIGURING);
-          SetUsbFunction(USB_FUNC_MTP);
-          break;
-        }
         SetState(STATE_UMS_CONFIGURED);
-      }
-      if (rndisConfigured) {
-        SetState(STATE_RNDIS_CONFIGURED);
-        break;
       }
       break;
 
@@ -895,6 +943,39 @@ AutoMounter::UpdateState()
       continue;
     }
 
+    if (vol->State() == nsIVolume::STATE_CHECKMNT) {
+      // vold reports the volume is "Mounted". Need to check if the volume is
+      // accessible by statfs(). Once it can be accessed, set the volume as
+      // STATE_MOUNTED, otherwise, post a delay task of UpdateState to check it
+      // again.
+      struct statfs fsbuf;
+      int rc = MOZ_TEMP_FAILURE_RETRY(statfs(vol->MountPoint().get(), &fsbuf));
+      if (rc == -1) {
+        // statfs() failed. Stay in STATE_CHECKMNT. Any failures here
+        // are probably non-recoverable, so we need to wait until
+        // something else changes the state back to IDLE/UNMOUNTED, etc.
+        ERR("statfs failed for '%s': errno = %d (%s)", vol->NameStr(), errno, strerror(errno));
+        continue;
+      }
+      static int delay = 250;
+      if (fsbuf.f_blocks == 0) {
+        if (delay <= 4000) {
+          LOG("UpdateState: Volume '%s' is inaccessible, checking again in %d msec", vol->NameStr(), delay);
+          MessageLoopForIO::current()->
+            PostDelayedTask(FROM_HERE,
+                            NewRunnableMethod(this, &AutoMounter::UpdateState),
+                            delay);
+          delay *= 2;
+        } else {
+          LOG("UpdateState: Volume '%s' is inaccessible, giving up", vol->NameStr());
+        }
+        continue;
+      } else {
+        delay = 250;
+        vol->SetState(nsIVolume::STATE_MOUNTED);
+      }
+    }
+
     if ((tryToShare && vol->IsSharingEnabled()) ||
         vol->IsFormatRequested() ||
         vol->IsUnmountRequested()) {
@@ -969,22 +1050,28 @@ AutoMounter::UpdateState()
           vol->StartUnmount(mResponseCallback);
           return; // UpdateState will be called again when the Unmount command completes
         }
-        case nsIVolume::STATE_IDLE: {
-          LOG("UpdateState: Volume %s is nsIVolume::STATE_IDLE", vol->NameStr());
+        case nsIVolume::STATE_IDLE:
+        case nsIVolume::STATE_MOUNT_FAIL: {
+          LOG("UpdateState: Volume %s is %s", vol->NameStr(), vol->StateStr());
           if (vol->IsFormatting() && !vol->IsFormatRequested()) {
             vol->SetFormatRequested(false);
-            LOG("UpdateState: Mounting %s", vol->NameStr());
-            vol->StartMount(mResponseCallback);
-            break;
+            if (!(tryToShare && vol->IsSharingEnabled()) && volState == nsIVolume::STATE_IDLE) {
+              LOG("UpdateState: Mounting %s", vol->NameStr());
+              vol->StartMount(mResponseCallback);
+              break;
+            }
           }
-          if (tryToShare && vol->IsSharingEnabled()) {
-            // Volume is unmounted. We can go ahead and share.
-            LOG("UpdateState: Sharing %s", vol->NameStr());
-            vol->StartShare(mResponseCallback);
-          } else if (vol->IsFormatRequested()){
+
+          // If there are format and share requests in the same time,
+          // we should do format first then share.
+          if (vol->IsFormatRequested()) {
             // Volume is unmounted. We can go ahead and format.
             LOG("UpdateState: Formatting %s", vol->NameStr());
             vol->StartFormat(mResponseCallback);
+          } else if (tryToShare && vol->IsSharingEnabled() && volState == nsIVolume::STATE_IDLE) {
+            // Volume is unmounted. We can go ahead and share.
+            LOG("UpdateState: Sharing %s", vol->NameStr());
+            vol->StartShare(mResponseCallback);
           }
           return; // UpdateState will be called again when the Share/Format command completes
         }
@@ -1032,6 +1119,168 @@ AutoMounter::UpdateState()
 
 /***************************************************************************/
 
+void AutoMounter::GetStatus(bool& umsAvail, bool& umsConfigured, bool& umsEnabled,
+                            bool& mtpAvail, bool& mtpConfigured, bool& mtpEnabled,
+                            bool& rndisConfigured)
+{
+  umsAvail = false;
+  umsConfigured = false;
+  umsEnabled = false;
+  mtpAvail = false;
+  mtpConfigured = false;
+  mtpEnabled = false;
+  rndisConfigured = false;
+
+  if (access(ICS_SYS_USB_FUNCTIONS, F_OK) != 0) {
+    return;
+  }
+
+  char functionsStr[60];
+  if (!ReadSysFile(ICS_SYS_USB_FUNCTIONS, functionsStr, sizeof(functionsStr))) {
+    ERR("Error reading file '%s': %s", ICS_SYS_USB_FUNCTIONS, strerror(errno));
+    functionsStr[0] = '\0';
+  }
+  DBG("GetStatus: USB functions: '%s'", functionsStr);
+
+  bool  usbConfigured = IsUsbConfigured();
+
+  // On the Nexus 4/5, it advertises that the UMS usb function is available,
+  // but we have a further requirement that mass_storage be in the
+  // persist.sys.usb.config property.
+  char persistSysUsbConfig[PROPERTY_VALUE_MAX];
+  property_get(PERSIST_SYS_USB_CONFIG, persistSysUsbConfig, "");
+  if (IsUsbFunctionEnabled(persistSysUsbConfig, USB_FUNC_UMS)) {
+    umsAvail = (access(ICS_SYS_UMS_DIRECTORY, F_OK) == 0);
+  }
+  if (umsAvail) {
+    umsConfigured = usbConfigured && strstr(functionsStr, USB_FUNC_UMS) != nullptr;
+    umsEnabled = (mMode == AUTOMOUNTER_ENABLE_UMS) ||
+                 ((mMode == AUTOMOUNTER_DISABLE_WHEN_UNPLUGGED) && umsConfigured);
+  } else {
+    umsConfigured = false;
+    umsEnabled = false;
+  }
+
+  mtpAvail = (access(ICS_SYS_MTP_DIRECTORY, F_OK) == 0);
+  if (mtpAvail) {
+    mtpConfigured = usbConfigured && strstr(functionsStr, USB_FUNC_MTP) != nullptr;
+    mtpEnabled = (mMode == AUTOMOUNTER_ENABLE_MTP) ||
+                 ((mMode == AUTOMOUNTER_DISABLE_WHEN_UNPLUGGED) && mtpConfigured);
+  } else {
+    mtpConfigured = false;
+    mtpEnabled = false;
+  }
+
+  rndisConfigured = strstr(functionsStr, USB_FUNC_RNDIS) != nullptr;
+}
+
+
+nsresult AutoMounter::Dump(nsACString& desc)
+{
+  DBG("GetState!");
+  bool umsAvail, umsConfigured, umsEnabled;
+  bool mtpAvail, mtpConfigured, mtpEnabled;
+  bool rndisConfigured;
+  GetStatus(umsAvail, umsConfigured, umsEnabled, mtpAvail,
+            mtpConfigured, mtpEnabled, rndisConfigured);
+  if (mMode == AUTOMOUNTER_DISABLE_WHEN_UNPLUGGED) {
+    // DISABLE_WHEN_UNPLUGGED implies already enabled.
+    if (!IsUsbCablePluggedIn()) {
+      mMode = AUTOMOUNTER_DISABLE;
+      mtpEnabled = false;
+      umsEnabled = false;
+    }
+  }
+
+  // Automounter information
+  desc += "Current Mode:";
+  desc += ModeStr(mMode);
+  desc += "|";
+
+
+  desc += "Current State:";
+  desc += StateStr(mState);
+  desc += "|";
+
+  desc += "UMS Status:";
+  if (umsAvail) {
+    desc += "Available";
+  } else {
+    desc += "UnAvailable";
+  }
+  desc += ",";
+  if (umsConfigured) {
+    desc += "Configured";
+  } else {
+    desc += "Un-Configured";
+  }
+  desc += ",";
+  if (umsEnabled) {
+    desc += "Enabled";
+  } else {
+    desc += "Disabled";
+  }
+  desc += "|";
+
+
+  desc += "MTP Status:";
+  if (mtpAvail) {
+    desc += "Available";
+  } else {
+    desc += "UnAvailable";
+  }
+  desc += ",";
+  if (mtpConfigured) {
+    desc += "Configured";
+  } else {
+    desc += "Un-Configured";
+  }
+  desc += ",";
+  if (mtpEnabled) {
+    desc += "Enabled";
+  } else {
+    desc += "Disabled";
+  }
+
+
+  // Volume information
+  VolumeArray::index_type volIndex;
+  VolumeArray::size_type  numVolumes = VolumeManager::NumVolumes();
+  for (volIndex = 0; volIndex < numVolumes; volIndex++) {
+    RefPtr<Volume>  vol = VolumeManager::GetVolume(volIndex);
+
+    desc += "|";
+    desc += vol->NameStr();
+    desc += ":";
+    desc += vol->StateStr();
+    desc += "@";
+    desc += vol->MountPoint().get();
+
+    if (!vol->MediaPresent()) {
+      continue;
+    }
+
+    if (vol->CanBeShared()) {
+      desc += ",CanBeShared";
+    }
+    if (vol->CanBeFormatted()) {
+      desc += ",CanBeFormatted";
+    }
+    if (vol->CanBeMounted()) {
+      desc += ",CanBeMounted";
+    }
+    if (vol->IsRemovable()) {
+      desc += ",Removable";
+    }
+    if (vol->IsHotSwappable()) {
+      desc += ",HotSwappable";
+    }
+  }
+
+  return NS_OK;
+}
+
+
 static void
 InitAutoMounterIOThread()
 {
@@ -1053,7 +1302,7 @@ ShutdownAutoMounterIOThread()
 static void
 SetAutoMounterModeIOThread(const int32_t& aMode)
 {
-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+  MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
   MOZ_ASSERT(sAutoMounter);
 
@@ -1063,7 +1312,7 @@ SetAutoMounterModeIOThread(const int32_t& aMode)
 static void
 SetAutoMounterSharingModeIOThread(const nsCString& aVolumeName, const bool& aAllowSharing)
 {
-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+  MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
   MOZ_ASSERT(sAutoMounter);
 
@@ -1073,7 +1322,7 @@ SetAutoMounterSharingModeIOThread(const nsCString& aVolumeName, const bool& aAll
 static void
 AutoMounterFormatVolumeIOThread(const nsCString& aVolumeName)
 {
-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+  MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
   MOZ_ASSERT(sAutoMounter);
 
@@ -1083,7 +1332,7 @@ AutoMounterFormatVolumeIOThread(const nsCString& aVolumeName)
 static void
 AutoMounterMountVolumeIOThread(const nsCString& aVolumeName)
 {
-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+  MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
   MOZ_ASSERT(sAutoMounter);
 
@@ -1093,7 +1342,7 @@ AutoMounterMountVolumeIOThread(const nsCString& aVolumeName)
 static void
 AutoMounterUnmountVolumeIOThread(const nsCString& aVolumeName)
 {
-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+  MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(MessageLoop::current() == XRE_GetIOMessageLoop());
   MOZ_ASSERT(sAutoMounter);
 
@@ -1121,11 +1370,11 @@ UsbCableEventIOThread()
 *
 **************************************************************************/
 
-class UsbCableObserver MOZ_FINAL : public SwitchObserver
+class UsbCableObserver final : public hal::SwitchObserver
 {
   ~UsbCableObserver()
   {
-    UnregisterSwitchObserver(SWITCH_USB, this);
+    hal::UnregisterSwitchObserver(hal::SWITCH_USB, this);
   }
 
 public:
@@ -1133,10 +1382,10 @@ public:
 
   UsbCableObserver()
   {
-    RegisterSwitchObserver(SWITCH_USB, this);
+    hal::RegisterSwitchObserver(hal::SWITCH_USB, this);
   }
 
-  virtual void Notify(const SwitchEvent& aEvent)
+  virtual void Notify(const hal::SwitchEvent& aEvent)
   {
     DBG("UsbCable switch device: %d state: %s\n",
         aEvent.device(), SwitchStateStr(aEvent));
@@ -1149,68 +1398,9 @@ public:
 static StaticRefPtr<UsbCableObserver> sUsbCableObserver;
 static StaticRefPtr<AutoMounterSetting> sAutoMounterSetting;
 
-static void
-InitVolumeConfig()
-{
-  // This function uses /system/etc/volume.cfg to add additional volumes
-  // to the Volume Manager.
-  //
-  // This is useful on devices like the Nexus 4, which have no physical sd card
-  // or dedicated partition.
-  //
-  // The format of the volume.cfg file is as follows:
-  // create volume-name mount-point
-  // Blank lines and lines starting with the hash character "#" will be ignored.
-
-  nsCOMPtr<nsIVolumeService> vs = do_GetService(NS_VOLUMESERVICE_CONTRACTID);
-  NS_ENSURE_TRUE_VOID(vs);
-
-  ScopedCloseFile fp;
-  int n = 0;
-  char line[255];
-  char *command, *vol_name_cstr, *mount_point_cstr, *save_ptr;
-  const char *filename = "/system/etc/volume.cfg";
-  if (!(fp = fopen(filename, "r"))) {
-    LOG("Unable to open volume configuration file '%s' - ignoring", filename);
-    return;
-  }
-  while(fgets(line, sizeof(line), fp)) {
-    const char *delim = " \t\n";
-    n++;
-
-    if (line[0] == '#')
-      continue;
-    if (!(command = strtok_r(line, delim, &save_ptr))) {
-      // Blank line - ignore
-      continue;
-    }
-    if (!strcmp(command, "create")) {
-      if (!(vol_name_cstr = strtok_r(nullptr, delim, &save_ptr))) {
-        ERR("No vol_name in %s line %d",  filename, n);
-        continue;
-      }
-      if (!(mount_point_cstr = strtok_r(nullptr, delim, &save_ptr))) {
-        ERR("No mount point for volume '%s'. %s line %d", vol_name_cstr, filename, n);
-        continue;
-      }
-      nsString  mount_point = NS_ConvertUTF8toUTF16(mount_point_cstr);
-      nsString vol_name = NS_ConvertUTF8toUTF16(vol_name_cstr);
-      nsresult rv;
-      rv = vs->CreateFakeVolume(vol_name, mount_point);
-      NS_ENSURE_SUCCESS_VOID(rv);
-      rv = vs->SetFakeVolumeState(vol_name, nsIVolume::STATE_MOUNTED);
-      NS_ENSURE_SUCCESS_VOID(rv);
-    }
-    else {
-      ERR("Unrecognized command: '%s'", command);
-    }
-  }
-}
-
 void
 InitAutoMounter()
 {
-  InitVolumeConfig();
   InitVolumeManager();
   sAutoMounterSetting = new AutoMounterSetting();
 
@@ -1222,6 +1412,12 @@ InitAutoMounter()
   // start it here and have it send events to the AutoMounter running
   // on the IO Thread.
   sUsbCableObserver = new UsbCableObserver();
+
+  // Register status reporter into reporter manager
+  if(status_reporter_progress == REPORTER_UNREGISTERED) {
+    NS_RegisterStatusReporter(new NS_STATUS_REPORTER_NAME(AutoMounter));
+  }
+  status_reporter_progress = REPORTER_REGISTERED;
 }
 
 int32_t
@@ -1292,6 +1488,11 @@ ShutdownAutoMounter()
   if (sAutoMounter) {
     DBG("ShutdownAutoMounter: About to StopMtpServer");
     sAutoMounter->StopMtpServer();
+    // Unregister status reporter into reporter manager
+    if(status_reporter_progress == REPORTER_REGISTERED) {
+      NS_UnregisterStatusReporter(new NS_STATUS_REPORTER_NAME(AutoMounter));
+    }
+    status_reporter_progress = REPORTER_UNREGISTERED;
   }
   sAutoMounterSetting = nullptr;
   sUsbCableObserver = nullptr;

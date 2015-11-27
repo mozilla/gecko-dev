@@ -35,14 +35,10 @@ function do_crash(setup, callback, canReturnZero)
   // get current process filename (xpcshell)
   let ds = Components.classes["@mozilla.org/file/directory_service;1"]
     .getService(Components.interfaces.nsIProperties);
-  let bin = ds.get("CurProcD", Components.interfaces.nsILocalFile);
-  bin.append("xpcshell");
+  let bin = ds.get("XREExeF", Components.interfaces.nsILocalFile);
   if (!bin.exists()) {
-    bin.leafName = "xpcshell.exe";
-    do_check_true(bin.exists());
-    if (!bin.exists())
-      // weird, can't find xpcshell binary?
-      do_throw("Can't find xpcshell binary!");
+    // weird, can't find xpcshell binary?
+    do_throw("Can't find xpcshell binary!");
   }
   // get Gre dir (GreD)
   let greD = ds.get("GreD", Components.interfaces.nsILocalFile);
@@ -163,10 +159,10 @@ function do_content_crash(setup, callback)
     do_test_finished();
   };
 
-  sendCommand("load(\"" + headfile.path.replace(/\\/g, "/") + "\");", function()
-    sendCommand(setup, function()
-      sendCommand("load(\"" + tailfile.path.replace(/\\/g, "/") + "\");",
-        function() do_execute_soon(handleCrash)
+  sendCommand("load(\"" + headfile.path.replace(/\\/g, "/") + "\");", () =>
+    sendCommand(setup, () =>
+      sendCommand("load(\"" + tailfile.path.replace(/\\/g, "/") + "\");", () =>
+        do_execute_soon(handleCrash)
       )
     )
   );

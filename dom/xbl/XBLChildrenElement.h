@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 sw=2 et tw=79: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -17,8 +17,6 @@ class nsAnonymousContentList;
 namespace mozilla {
 namespace dom {
 
-class ExplicitChildIterator;
-
 class XBLChildrenElement : public nsXMLElement
 {
 public:
@@ -35,32 +33,36 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   // nsINode interface methods
-  virtual nsresult Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const;
+  virtual nsresult Clone(mozilla::dom::NodeInfo* aNodeInfo, nsINode** aResult) const override;
 
-  virtual nsXPCClassInfo* GetClassInfo() { return nullptr; }
-
-  virtual nsIDOMNode* AsDOMNode() { return this; }
+  virtual nsIDOMNode* AsDOMNode() override { return this; }
 
   // nsIContent interface methods
-  virtual nsIAtom *GetIDAttributeName() const;
-  virtual nsIAtom* DoGetID() const;
   virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
-                             bool aNotify);
+                             bool aNotify) override;
   virtual bool ParseAttribute(int32_t aNamespaceID,
                               nsIAtom* aAttribute,
                               const nsAString& aValue,
-                              nsAttrValue& aResult);
+                              nsAttrValue& aResult) override;
 
   void AppendInsertedChild(nsIContent* aChild)
   {
     mInsertedChildren.AppendElement(aChild);
     aChild->SetXBLInsertionParent(GetParent());
+
+    // Appending an inserted child causes the inserted
+    // children to be projected instead of default content.
+    MaybeRemoveDefaultContent();
   }
 
   void InsertInsertedChildAt(nsIContent* aChild, uint32_t aIndex)
   {
     mInsertedChildren.InsertElementAt(aIndex, aChild);
     aChild->SetXBLInsertionParent(GetParent());
+
+    // Inserting an inserted child causes the inserted
+    // children to be projected instead of default content.
+    MaybeRemoveDefaultContent();
   }
 
   void RemoveInsertedChild(nsIContent* aChild)
@@ -70,6 +72,10 @@ public:
     //NS_ASSERTION(mInsertedChildren.Contains(aChild),
     //             "Removing child that's not there");
     mInsertedChildren.RemoveElement(aChild);
+
+    // After removing the inserted child, default content
+    // may be projected into this insertion point.
+    MaybeSetupDefaultContent();
   }
 
   void ClearInsertedChildren()
@@ -78,6 +84,10 @@ public:
       mInsertedChildren[c]->SetXBLInsertionParent(nullptr);
     }
     mInsertedChildren.Clear();
+
+    // After clearing inserted children, default content
+    // will be projected into this insertion point.
+    MaybeSetupDefaultContent();
   }
 
   void MaybeSetupDefaultContent()
@@ -121,7 +131,7 @@ public:
   {
     NS_ASSERTION(!mIncludes.IsEmpty(),
                  "Shouldn't check for includes on default insertion point");
-    return mIncludes.Contains(aChild->Tag());
+    return mIncludes.Contains(aChild->NodeInfo()->NameAtom());
   }
 
   bool IsDefaultInsertion()
@@ -152,7 +162,6 @@ public:
     : mParent(aParent)
   {
     MOZ_COUNT_CTOR(nsAnonymousContentList);
-    SetIsDOMBinding();
   }
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -161,11 +170,11 @@ public:
   NS_DECL_NSIDOMNODELIST
 
   // nsINodeList interface
-  virtual int32_t IndexOf(nsIContent* aContent);
-  virtual nsINode* GetParentObject() { return mParent; }
-  virtual nsIContent* Item(uint32_t aIndex);
+  virtual int32_t IndexOf(nsIContent* aContent) override;
+  virtual nsINode* GetParentObject() override { return mParent; }
+  virtual nsIContent* Item(uint32_t aIndex) override;
 
-  virtual JSObject* WrapObject(JSContext *cx) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext *cx, JS::Handle<JSObject*> aGivenProto) override;
 
   bool IsListFor(nsIContent* aContent) {
     return mParent == aContent;

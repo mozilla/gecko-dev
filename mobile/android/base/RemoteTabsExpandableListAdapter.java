@@ -4,12 +4,13 @@
 
 package org.mozilla.gecko;
 
-import java.util.ArrayList;
-import java.util.List;
 
-import org.mozilla.gecko.TabsAccessor.RemoteClient;
-import org.mozilla.gecko.TabsAccessor.RemoteTab;
+
+import android.text.format.DateUtils;
+import org.mozilla.gecko.db.RemoteClient;
+import org.mozilla.gecko.db.RemoteTab;
 import org.mozilla.gecko.home.TwoLinePageRow;
+import org.mozilla.gecko.util.ColorUtils;
 
 import android.content.Context;
 import android.text.TextUtils;
@@ -20,6 +21,12 @@ import android.widget.BaseExpandableListAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.List;
+
 /**
  * An adapter that populates group and child views with remote client and tab
  * data maintained in a monolithic static array.
@@ -28,9 +35,33 @@ import android.widget.TextView;
  * specialization to home fragment styles.
  */
 public class RemoteTabsExpandableListAdapter extends BaseExpandableListAdapter {
+    /**
+     * If a device claims to have synced before this date, we will assume it has never synced.
+     */
+    private static final Date EARLIEST_VALID_SYNCED_DATE;
+    static {
+        final Calendar c = GregorianCalendar.getInstance();
+        c.set(2000, Calendar.JANUARY, 1, 0, 0, 0);
+        EARLIEST_VALID_SYNCED_DATE = c.getTime();
+    }
     protected final ArrayList<RemoteClient> clients;
+    private final boolean showGroupIndicator;
     protected int groupLayoutId;
     protected int childLayoutId;
+
+    public static class GroupViewHolder {
+        final TextView nameView;
+        final TextView lastModifiedView;
+        final ImageView deviceTypeView;
+        final ImageView deviceExpandedView;
+
+        public GroupViewHolder(View view) {
+            nameView = (TextView) view.findViewById(R.id.client);
+            lastModifiedView = (TextView) view.findViewById(R.id.last_synced);
+            deviceTypeView = (ImageView) view.findViewById(R.id.device_type);
+            deviceExpandedView = (ImageView) view.findViewById(R.id.device_expanded);
+        }
+    }
 
     /**
      * Construct a new adapter.
@@ -43,14 +74,16 @@ public class RemoteTabsExpandableListAdapter extends BaseExpandableListAdapter {
      * @param childLayoutId
      * @param clients
      *            initial list of clients; can be null.
+     * @param showGroupIndicator
      */
-    public RemoteTabsExpandableListAdapter(int groupLayoutId, int childLayoutId, List<RemoteClient> clients) {
+    public RemoteTabsExpandableListAdapter(int groupLayoutId, int childLayoutId, List<RemoteClient> clients, boolean showGroupIndicator) {
         this.groupLayoutId = groupLayoutId;
         this.childLayoutId = childLayoutId;
-        this.clients = new ArrayList<TabsAccessor.RemoteClient>();
+        this.clients = new ArrayList<>();
         if (clients != null) {
             this.clients.addAll(clients);
         }
+        this.showGroupIndicator = showGroupIndicator;
     }
 
     public void replaceClients(List<RemoteClient> clients) {
@@ -97,41 +130,58 @@ public class RemoteTabsExpandableListAdapter extends BaseExpandableListAdapter {
         } else {
             final LayoutInflater inflater = LayoutInflater.from(context);
             view = inflater.inflate(groupLayoutId, parent, false);
+            final GroupViewHolder holder = new GroupViewHolder(view);
+            view.setTag(holder);
         }
 
         final RemoteClient client = clients.get(groupPosition);
-
-        final TextView nameView = (TextView) view.findViewById(R.id.client);
-        nameView.setText(client.name);
-
-        final TextView lastModifiedView = (TextView) view.findViewById(R.id.last_synced);
-        final long now = System.currentTimeMillis();
-        lastModifiedView.setText(TabsAccessor.getLastSyncedString(context, now, client.lastModified));
-
-        // These views exists only in some of our group views: they are present
-        // for the home panel groups and not for the tabs tray groups.
-        // Therefore, we must handle null.
-        final ImageView deviceTypeView = (ImageView) view.findViewById(R.id.device_type);
-        if (deviceTypeView != null) {
-            if ("desktop".equals(client.deviceType)) {
-                deviceTypeView.setBackgroundResource(R.drawable.sync_desktop);
-            } else {
-                deviceTypeView.setBackgroundResource(R.drawable.sync_mobile);
-            }
-        }
-
-        final ImageView deviceExpandedView = (ImageView) view.findViewById(R.id.device_expanded);
-        if (deviceExpandedView != null) {
-            // If there are no tabs to display, don't show an indicator at all.
-            if (client.tabs.isEmpty()) {
-                deviceExpandedView.setBackgroundResource(0);
-            } else {
-                final int resourceId = isExpanded ? R.drawable.home_group_expanded : R.drawable.home_group_collapsed;
-                deviceExpandedView.setBackgroundResource(resourceId);
-            }
-        }
+        updateClientsItemView(isExpanded, context, view, client);
 
         return view;
+    }
+
+    public void updateClientsItemView(final boolean isExpanded, final Context context, final View view, final RemoteClient client) {
+        final GroupViewHolder holder = (GroupViewHolder) view.getTag();
+
+        // UI elements whose state depends on isExpanded, roughly from left to
+        // right: device type icon; client name text color; expanded state
+        // indicator.
+        final int deviceTypeResId;
+        final int textColorResId;
+        final int deviceExpandedResId;
+
+        if (isExpanded && !client.tabs.isEmpty()) {
+            deviceTypeResId = "desktop".equals(client.deviceType) ? R.drawable.sync_desktop : R.drawable.sync_mobile;
+            textColorResId = R.color.placeholder_active_grey;
+            deviceExpandedResId = showGroupIndicator ? R.drawable.home_group_expanded : R.drawable.home_group_collapsed;
+        } else {
+            deviceTypeResId = "desktop".equals(client.deviceType) ? R.drawable.sync_desktop_inactive : R.drawable.sync_mobile_inactive;
+            textColorResId = R.color.tabs_tray_icon_grey;
+            deviceExpandedResId = showGroupIndicator ? R.drawable.home_group_collapsed : 0;
+        }
+
+        // Now update the UI.
+        holder.nameView.setText(client.name);
+        holder.nameView.setTextColor(ColorUtils.getColor(context, textColorResId));
+
+        final long now = System.currentTimeMillis();
+
+        // It's OK to access the DB on the main thread here, as we're just
+        // getting a string.
+        final GeckoProfile profile = GeckoProfile.get(context);
+        holder.lastModifiedView.setText(this.getLastSyncedString(context, now, client.lastModified));
+
+        // These views exists only in some of our group views: they are present
+        // for the home panel groups and not for the tabs panel groups.
+        // Therefore, we must handle null.
+        if (holder.deviceTypeView != null) {
+            holder.deviceTypeView.setImageResource(deviceTypeResId);
+        }
+
+        if (holder.deviceExpandedView != null) {
+            // If there are no tabs to display, don't show an indicator at all.
+            holder.deviceExpandedView.setImageResource(client.tabs.isEmpty() ? 0 : deviceExpandedResId);
+        }
     }
 
     @Override
@@ -164,7 +214,7 @@ public class RemoteTabsExpandableListAdapter extends BaseExpandableListAdapter {
         final RemoteTab tab = client.tabs.get(childPosition);
 
         // The view is a TwoLinePageRow only for some of our child views: it's
-        // present for the home panel children and not for the tabs tray
+        // present for the home panel children and not for the tabs panel
         // children. Therefore, we must handle one case manually.
         if (view instanceof TwoLinePageRow) {
             ((TwoLinePageRow) view).update(tab.title, tab.url);
@@ -177,5 +227,20 @@ public class RemoteTabsExpandableListAdapter extends BaseExpandableListAdapter {
         }
 
         return view;
+    }
+
+    /**
+     * Return a relative "Last synced" time span for the given tab record.
+     *
+     * @param now local time.
+     * @param time to format string for.
+     * @return string describing time span
+     */
+    public String getLastSyncedString(Context context, long now, long time) {
+        if (new Date(time).before(EARLIEST_VALID_SYNCED_DATE)) {
+            return context.getString(R.string.remote_tabs_never_synced);
+        }
+        final CharSequence relativeTimeSpanString = DateUtils.getRelativeTimeSpanString(time, now, DateUtils.MINUTE_IN_MILLIS);
+        return context.getResources().getString(R.string.remote_tabs_last_synced, relativeTimeSpanString);
     }
 }

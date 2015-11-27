@@ -33,7 +33,7 @@ protected:
                                nsCString &contentType, bool async);
 
   virtual nsresult OpenContentStream(bool async, nsIInputStream **result,
-                                     nsIChannel** channel);
+                                     nsIChannel** channel) override;
 
 private:
   nsCOMPtr<nsIInputStream> mUploadStream;

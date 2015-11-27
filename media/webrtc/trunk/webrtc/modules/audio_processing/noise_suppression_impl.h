@@ -15,38 +15,43 @@
 #include "webrtc/modules/audio_processing/processing_component.h"
 
 namespace webrtc {
-class AudioProcessingImpl;
+
 class AudioBuffer;
+class CriticalSectionWrapper;
 
 class NoiseSuppressionImpl : public NoiseSuppression,
                              public ProcessingComponent {
  public:
-  explicit NoiseSuppressionImpl(const AudioProcessingImpl* apm);
+  NoiseSuppressionImpl(const AudioProcessing* apm,
+                       CriticalSectionWrapper* crit);
   virtual ~NoiseSuppressionImpl();
 
+  int AnalyzeCaptureAudio(AudioBuffer* audio);
   int ProcessCaptureAudio(AudioBuffer* audio);
 
   // NoiseSuppression implementation.
-  virtual bool is_enabled() const OVERRIDE;
-  virtual float speech_probability() const OVERRIDE;
+  bool is_enabled() const override;
+  float speech_probability() const override;
 
  private:
   // NoiseSuppression implementation.
-  virtual int Enable(bool enable) OVERRIDE;
-  virtual int set_level(Level level) OVERRIDE;
-  virtual Level level() const OVERRIDE;
+  int Enable(bool enable) override;
+  int set_level(Level level) override;
+  Level level() const override;
 
   // ProcessingComponent implementation.
-  virtual void* CreateHandle() const OVERRIDE;
-  virtual int InitializeHandle(void* handle) const OVERRIDE;
-  virtual int ConfigureHandle(void* handle) const OVERRIDE;
-  virtual int DestroyHandle(void* handle) const OVERRIDE;
-  virtual int num_handles_required() const OVERRIDE;
-  virtual int GetHandleError(void* handle) const OVERRIDE;
+  void* CreateHandle() const override;
+  int InitializeHandle(void* handle) const override;
+  int ConfigureHandle(void* handle) const override;
+  void DestroyHandle(void* handle) const override;
+  int num_handles_required() const override;
+  int GetHandleError(void* handle) const override;
 
-  const AudioProcessingImpl* apm_;
+  const AudioProcessing* apm_;
+  CriticalSectionWrapper* crit_;
   Level level_;
 };
+
 }  // namespace webrtc
 
 #endif  // WEBRTC_MODULES_AUDIO_PROCESSING_NOISE_SUPPRESSION_IMPL_H_

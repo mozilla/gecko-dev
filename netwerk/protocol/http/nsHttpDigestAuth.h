@@ -30,7 +30,7 @@ namespace mozilla { namespace net {
 // nsHttpDigestAuth
 //-----------------------------------------------------------------------------
 
-class nsHttpDigestAuth MOZ_FINAL : public nsIHttpAuthenticator
+class nsHttpDigestAuth final : public nsIHttpAuthenticator
 {
   public:
     NS_DECL_ISUPPORTS
@@ -89,6 +89,7 @@ class nsHttpDigestAuth MOZ_FINAL : public nsIHttpAuthenticator
     char                           mHashBuf[DIGEST_LENGTH];
 };
 
-}} // namespace mozilla::net
+} // namespace net
+} // namespace mozilla
 
 #endif // nsHttpDigestAuth_h__

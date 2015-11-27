@@ -3,17 +3,8 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-const DEFAULT_QUOTA = 50 * 1024 * 1024;
-
 var bufferCache = [];
 var utils = SpecialPowers.getDOMWindowUtils(window);
-
-if (!SpecialPowers.isMainProcess()) {
-  window.runTest = function() {
-    todo(false, "Test disabled in child processes, for now");
-    finishTest();
-  }
-}
 
 function getBuffer(size)
 {
@@ -103,12 +94,11 @@ function verifyBlob(blob1, blob2, fileId, blobReadHandler)
 {
   is(blob1 instanceof Components.interfaces.nsIDOMBlob, true,
      "Instance of nsIDOMBlob");
-  is(blob1 instanceof Components.interfaces.nsIDOMFile,
-     blob2 instanceof Components.interfaces.nsIDOMFile,
-     "Instance of nsIDOMFile");
+  is(blob1 instanceof File, blob2 instanceof File,
+     "Instance of DOM File");
   is(blob1.size, blob2.size, "Correct size");
   is(blob1.type, blob2.type, "Correct type");
-  if (blob2 instanceof Components.interfaces.nsIDOMFile) {
+  if (blob2 instanceof File) {
     is(blob1.name, blob2.name, "Correct name");
   }
   is(utils.getFileId(blob1), fileId, "Correct file id");
@@ -182,34 +172,37 @@ function verifyBlobArray(blobs1, blobs2, expectedFileIds)
              expectedFileIds[verifiedCount], blobReadHandler);
 }
 
-function grabFileUsageAndContinueHandler(usage, fileUsage)
+function verifyMutableFile(mutableFile1, file2)
 {
-  testGenerator.send(fileUsage);
+  ok(mutableFile1 instanceof IDBMutableFile, "Instance of IDBMutableFile");
+  is(mutableFile1.name, file2.name, "Correct name");
+  is(mutableFile1.type, file2.type, "Correct type");
+  executeSoon(function() {
+    testGenerator.next();
+  });
+}
+
+function grabFileUsageAndContinueHandler(request)
+{
+  testGenerator.send(request.fileUsage);
 }
 
 function getUsage(usageHandler)
 {
-  let comp = SpecialPowers.wrap(Components);
-  let quotaManager = comp.classes["@mozilla.org/dom/quota/manager;1"]
-                         .getService(comp.interfaces.nsIQuotaManager);
-
-  // We need to pass a JS callback to getUsageForURI. However, that callback
-  // takes an XPCOM URI object, which will cause us to throw when we wrap it
-  // for the content compartment. So we need to define the function in a
-  // privileged scope, which we do using a sandbox.
-  var sysPrin = SpecialPowers.Services.scriptSecurityManager.getSystemPrincipal();
-  var sb = new SpecialPowers.Cu.Sandbox(sysPrin);
-  sb.usageHandler = usageHandler;
-  var cb = SpecialPowers.Cu.evalInSandbox((function(uri, usage, fileUsage) {
-                                           usageHandler(usage, fileUsage); }).toSource(), sb);
-
-  let uri = SpecialPowers.wrap(window).document.documentURIObject;
-  quotaManager.getUsageForURI(uri, cb);
+  let qms = SpecialPowers.Services.qms;
+  let principal = SpecialPowers.wrap(document).nodePrincipal;
+  let cb = SpecialPowers.wrapCallback(usageHandler);
+  qms.getUsageForPrincipal(principal, cb);
 }
 
 function getFileId(file)
 {
   return utils.getFileId(file);
+}
+
+function getFilePath(file)
+{
+  return utils.getFilePath(file);
 }
 
 function hasFileInfo(name, id)
@@ -229,4 +222,9 @@ function getFileDBRefCount(name, id)
   let count = {};
   utils.getFileReferences(name, id, null, {}, count);
   return count.value;
+}
+
+function flushPendingFileDeletions()
+{
+  utils.flushPendingFileDeletions();
 }

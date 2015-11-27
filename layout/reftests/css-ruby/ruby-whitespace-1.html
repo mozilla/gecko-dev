@@ -1,28 +1,34 @@
 <html>
-<meta charset="UTF-8">
 <head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="common.css">
 <style>
-ruby { display: ruby; }
-rb   { display: ruby-base; white-space: nowrap; }
-rp   { display: none; }
-rt   { display: ruby-text; white-space: nowrap; font-size: 50%; }
-rbc  { display: ruby-base-container; }
-rtc  { display: ruby-text-container; }
-ruby, rb, rt, rbc, rtc { unicode-bidi: isolate; }
+body { line-height: 5em; }
 </style>
 </head>
 <body>
 
-<ruby>
-  <rbc>       <rb>   </rb>    <rb>Base three</rb>   </rbc> 
-      <rtc>    <rt>   </rt>   <rt>Text two</rt>   </rtc>    <rtc><rt></rt></rtc>
-        <rbc><rb>Segment two</rb></rbc><rtc><rt></rt></rtc>
-</ruby>
+<p>
+  <ruby>
+    <rbc>       <rb>   </rb>    <rb>Base three</rb>   </rbc> 
+    <rtc>    <rt>   </rt>   <rt>Text three</rt>   </rtc>    <rtc><rt></rt></rtc>
+    <rbc><rb>Segment two</rb></rbc><rtc><rt></rt></rtc>
+  </ruby>
+</p>
 
-<rbc>   <rb>  </rb>    <rb>Base two</rb>  </rbc>   <rtc><rt>  </rt>     <rt
-  >Text two</rt></rtc>
+<p>
+  <ruby>
+    <rb>Base one</rb>  <rb>Base three</rb>
+    <rt>Text one</rt>  <rt>Text three</rt>
+  </ruby>
+</p>
 
-<rb></rb>   <rb>Base two</rb>   <rt> </rt>
+<p>
+  <rb>Segment one</rb>  <rbc>   <rb>  </rb>    <rb>Base three</rb>  </rbc
+    >   <rtc><rt>  </rt>     <rt>Text three</rt></rtc>
+
+  <rb>Base one</rb>   <rb>Base three</rb>   <rt>Text one</rt><rt>Text two/three</rt>
+</p>
 
 </body>
 </html>

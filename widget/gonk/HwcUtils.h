@@ -76,21 +76,27 @@ static bool CalculateClipRect(const gfx::Matrix& aTransform,
  *
  * @param aVisible Input. Layer's unclipped visible region
  *        The origin is the top-left corner of the layer
- * @param aTransform Input. Layer's transformation matrix
+ * @param aLayerTransform Input. Layer's transformation matrix
  *        It transforms from layer space to screen space
+ * @param aLayerBufferTransform Input. Layer buffer's transformation matrix
+ *        It transforms from layer buffer's space to screen space
  * @param aClip Input. A clipping rectangle.
  *        The origin is the top-left corner of the screen
  * @param aBufferRect Input. The layer's buffer bounds
  *        The origin is the top-left corner of the layer
  * @param aVisibleRegionScreen Output. Visible region in screen space.
  *        The origin is the top-left corner of the screen
- * @return true if the layer should be rendered.
- *         false if the layer can be skipped
+ * @param aIsVisible Output. true if region is visible
+ *        false if region is not visible
+ * @return true if region can be rendered by HWC.
+ *         false if region should not be rendered by HWC
  */
 static bool PrepareVisibleRegion(const nsIntRegion& aVisible,
-                                 const gfx::Matrix& aTransform,
+                                 const gfx::Matrix& aLayerTransform,
+                                 const gfx::Matrix& aLayerBufferTransform,
                                  nsIntRect aClip, nsIntRect aBufferRect,
-                                 RectVector* aVisibleRegionScreen);
+                                 RectVector* aVisibleRegionScreen,
+                                 bool& aIsVisible);
 
 
 /**
@@ -98,8 +104,10 @@ static bool PrepareVisibleRegion(const nsIntRegion& aVisible,
  *
  * @param aVisible Input. Layer's unclipped visible rectangle
  *        The origin is the top-left corner of the layer
- * @param aTransform Input. Layer's transformation matrix
+ * @param aLayerTransform Input. Layer's transformation matrix
  *        It transforms from layer space to screen space
+ * @param aLayerBufferTransform Input. Layer buffer's transformation matrix
+ *        It transforms from layer buffer's space to screen space
  * @param aClip Input. A clipping rectangle.
  *        The origin is the top-left corner of the screen
  * @param aBufferRect Input. The layer's buffer bounds
@@ -112,14 +120,13 @@ static bool PrepareVisibleRegion(const nsIntRegion& aVisible,
  * @return true if the layer should be rendered.
  *         false if the layer can be skipped
  */
-static bool PrepareLayerRects(nsIntRect aVisible, const gfx::Matrix& aTransform,
+static bool PrepareLayerRects(nsIntRect aVisible,
+                              const gfx::Matrix& aLayerTransform,
+                              const gfx::Matrix& aLayerBufferTransform,
                               nsIntRect aClip, nsIntRect aBufferRect,
                               bool aYFlipped,
                               hwc_rect_t* aSourceCrop,
                               hwc_rect_t* aVisibleRegionScreen);
-
-/* Converts hwc_rect_t to nsIntRect */
-static nsIntRect HwcToIntRect(hwc_rect_t aRect);
 
 };
 

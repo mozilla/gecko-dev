@@ -5,15 +5,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/HangMonitor.h"
+
+#include "mozilla/Atomics.h"
 #include "mozilla/BackgroundHangMonitor.h"
 #include "mozilla/Monitor.h"
 #include "mozilla/Preferences.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/ProcessedStack.h"
-#include "mozilla/Atomics.h"
-#include "nsXULAppAPI.h"
+#include "mozilla/Telemetry.h"
+#include "mozilla/StaticPtr.h"
+#include "mozilla/UniquePtr.h"
+#include "nsReadableUtils.h"
+#include "mozilla/StackWalk.h"
 #include "nsThreadUtils.h"
-#include "nsStackWalk.h"
+#include "nsXULAppAPI.h"
 
 #ifdef MOZ_CRASHREPORTER
 #include "nsExceptionHandler.h"
@@ -113,8 +117,9 @@ Crash()
 }
 
 #ifdef REPORT_CHROME_HANGS
+
 static void
-ChromeStackWalker(void* aPC, void* aSP, void* aClosure)
+ChromeStackWalker(uint32_t aFrameNumber, void* aPC, void* aSP, void* aClosure)
 {
   MOZ_ASSERT(aClosure);
   std::vector<uintptr_t>* stack =
@@ -141,7 +146,7 @@ GetChromeHangReport(Telemetry::ProcessedStack& aStack,
   if (ret == -1) {
     return;
   }
-  NS_StackWalk(ChromeStackWalker, /* skipFrames */ 0, /* maxFrames */ 0,
+  MozStackWalk(ChromeStackWalker, /* skipFrames */ 0, /* maxFrames */ 0,
                reinterpret_cast<void*>(&rawStack),
                reinterpret_cast<uintptr_t>(winMainThreadHandle), nullptr);
   ret = ::ResumeThread(winMainThreadHandle);
@@ -163,6 +168,7 @@ GetChromeHangReport(Telemetry::ProcessedStack& aStack,
     aFirefoxUptime = -1;
   }
 }
+
 #endif
 
 void
@@ -182,6 +188,7 @@ ThreadMain(void*)
   Telemetry::ProcessedStack stack;
   int32_t systemUptime = -1;
   int32_t firefoxUptime = -1;
+  UniquePtr<HangAnnotations> annotations;
 #endif
 
   while (true) {
@@ -209,6 +216,7 @@ ThreadMain(void*)
       // the minimum hang duration has been reached (not when the hang ends)
       if (waitCount == 2) {
         GetChromeHangReport(stack, systemUptime, firefoxUptime);
+        annotations = ChromeHangAnnotatorCallout();
       }
 #else
       // This is the crash-on-hang feature.
@@ -226,8 +234,8 @@ ThreadMain(void*)
 #ifdef REPORT_CHROME_HANGS
       if (waitCount >= 2) {
         uint32_t hangDuration = PR_IntervalToSeconds(now - lastTimestamp);
-        Telemetry::RecordChromeHang(hangDuration, stack,
-                                    systemUptime, firefoxUptime);
+        Telemetry::RecordChromeHang(hangDuration, stack, systemUptime,
+                                    firefoxUptime, Move(annotations));
         stack.Clear();
       }
 #endif
@@ -362,16 +370,10 @@ NotifyActivity(ActivityType aActivityType)
   // penalties here.
   gTimestamp = PR_IntervalNow();
 
-  // If we have UI activity we should reset the timer and report it if it is
-  // significant enough.
+  // If we have UI activity we should reset the timer and report it
   if (aActivityType == kUIActivity) {
-    // The minimum amount of lag time that we should report for telemetry data.
-    // Mozilla's UI responsiveness goal is 50ms
-    static const uint32_t kUIResponsivenessThresholdMS = 50;
-    if (cumulativeUILagMS > kUIResponsivenessThresholdMS) {
-      mozilla::Telemetry::Accumulate(mozilla::Telemetry::EVENTLOOP_UI_LAG_EXP_MS,
+    mozilla::Telemetry::Accumulate(mozilla::Telemetry::EVENTLOOP_UI_ACTIVITY_EXP_MS,
                                      cumulativeUILagMS);
-    }
     cumulativeUILagMS = 0;
   }
 

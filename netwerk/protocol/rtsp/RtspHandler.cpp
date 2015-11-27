@@ -40,8 +40,8 @@ RtspHandler::GetDefaultPort(int32_t *aDefaultPort)
 NS_IMETHODIMP
 RtspHandler::GetProtocolFlags(uint32_t *aProtocolFlags)
 {
-  *aProtocolFlags = URI_NORELATIVE | URI_NOAUTH | URI_INHERITS_SECURITY_CONTEXT |
-    URI_LOADABLE_BY_ANYONE | URI_NON_PERSISTABLE | URI_SYNC_LOAD_IS_OK;
+  *aProtocolFlags = URI_NORELATIVE | URI_NOAUTH | URI_LOADABLE_BY_ANYONE |
+    URI_NON_PERSISTABLE | URI_SYNC_LOAD_IS_OK;
 
   return NS_OK;
 }
@@ -56,7 +56,7 @@ RtspHandler::NewURI(const nsACString & aSpec,
   nsresult rv = GetDefaultPort(&port);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsRefPtr<nsStandardURL> url = new nsStandardURL();
+  RefPtr<nsStandardURL> url = new nsStandardURL();
   rv = url->Init(nsIStandardURL::URLTYPE_AUTHORITY, port, aSpec,
                  aOriginCharset, aBaseURI);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -66,10 +66,12 @@ RtspHandler::NewURI(const nsACString & aSpec,
 }
 
 NS_IMETHODIMP
-RtspHandler::NewChannel(nsIURI *aURI, nsIChannel **aResult)
+RtspHandler::NewChannel2(nsIURI* aURI,
+                         nsILoadInfo* aLoadInfo,
+                         nsIChannel** aResult)
 {
   bool isRtsp = false;
-  nsRefPtr<nsBaseChannel> rtspChannel;
+  RefPtr<nsBaseChannel> rtspChannel;
 
   nsresult rv = aURI->SchemeIs("rtsp", &isRtsp);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -84,8 +86,18 @@ RtspHandler::NewChannel(nsIURI *aURI, nsIChannel **aResult)
   rv = rtspChannel->Init();
   NS_ENSURE_SUCCESS(rv, rv);
 
+  // set the loadInfo on the new channel
+  rv = rtspChannel->SetLoadInfo(aLoadInfo);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   rtspChannel.forget(aResult);
   return NS_OK;
+}
+
+NS_IMETHODIMP
+RtspHandler::NewChannel(nsIURI *aURI, nsIChannel **aResult)
+{
+  return NewChannel2(aURI, nullptr, aResult);
 }
 
 NS_IMETHODIMP

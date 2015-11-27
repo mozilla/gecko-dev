@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -16,7 +17,7 @@ MutationEvent::MutationEvent(EventTarget* aOwner,
                              nsPresContext* aPresContext,
                              InternalMutationEvent* aEvent)
   : Event(aOwner, aPresContext,
-          aEvent ? aEvent : new InternalMutationEvent(false, 0))
+          aEvent ? aEvent : new InternalMutationEvent(false, eVoidEvent))
 {
   mEventIsInternal = (aEvent == nullptr);
 }
@@ -95,8 +96,7 @@ MutationEvent::InitMutationEvent(const nsAString& aTypeArg,
                                  const nsAString& aAttrNameArg,
                                  uint16_t aAttrChangeArg)
 {
-  nsresult rv = Event::InitEvent(aTypeArg, aCanBubbleArg, aCancelableArg);
-  NS_ENSURE_SUCCESS(rv, rv);
+  Event::InitEvent(aTypeArg, aCanBubbleArg, aCancelableArg);
 
   InternalMutationEvent* mutation = mEvent->AsMutationEvent();
   mutation->mRelatedNode = aRelatedNodeArg;
@@ -118,14 +118,11 @@ MutationEvent::InitMutationEvent(const nsAString& aTypeArg,
 using namespace mozilla;
 using namespace mozilla::dom;
 
-nsresult
-NS_NewDOMMutationEvent(nsIDOMEvent** aInstancePtrResult,
-                       EventTarget* aOwner,
+already_AddRefed<MutationEvent>
+NS_NewDOMMutationEvent(EventTarget* aOwner,
                        nsPresContext* aPresContext,
                        InternalMutationEvent* aEvent) 
 {
-  MutationEvent* it = new MutationEvent(aOwner, aPresContext, aEvent);
-  NS_ADDREF(it);
-  *aInstancePtrResult = static_cast<Event*>(it);
-  return NS_OK;
+  RefPtr<MutationEvent> it = new MutationEvent(aOwner, aPresContext, aEvent);
+  return it.forget();
 }

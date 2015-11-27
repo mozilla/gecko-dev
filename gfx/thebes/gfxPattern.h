@@ -11,22 +11,19 @@
 #include "gfxMatrix.h"
 #include "mozilla/Alignment.h"
 #include "mozilla/gfx/2D.h"
-#include "GraphicsFilter.h"
+#include "mozilla/gfx/PatternHelpers.h"
 #include "nsISupportsImpl.h"
 #include "nsAutoPtr.h"
 #include "nsTArray.h"
 
-class gfxContext;
-class gfxASurface;
-struct gfxRGBA;
 typedef struct _cairo_pattern cairo_pattern_t;
 
 
-class gfxPattern MOZ_FINAL{
+class gfxPattern final{
     NS_INLINE_DECL_REFCOUNTING(gfxPattern)
 
 public:
-    explicit gfxPattern(const gfxRGBA& aColor);
+    explicit gfxPattern(const mozilla::gfx::Color& aColor);
     // linear
     gfxPattern(gfxFloat x0, gfxFloat y0, gfxFloat x1, gfxFloat y1); // linear
     gfxPattern(gfxFloat cx0, gfxFloat cy0, gfxFloat radius0,
@@ -34,13 +31,13 @@ public:
     gfxPattern(mozilla::gfx::SourceSurface *aSurface,
                const mozilla::gfx::Matrix &aPatternToUserSpace);
 
-    void AddColorStop(gfxFloat offset, const gfxRGBA& c);
+    void AddColorStop(gfxFloat offset, const mozilla::gfx::Color& c);
     void SetColorStops(mozilla::gfx::GradientStops* aStops);
 
     // This should only be called on a cairo pattern that we want to use with
     // Azure. We will read back the color stops from cairo and try to look
     // them up in the cache.
-    void CacheColorStops(mozilla::gfx::DrawTarget *aDT);
+    void CacheColorStops(const mozilla::gfx::DrawTarget *aDT);
 
     void SetMatrix(const gfxMatrix& matrix);
     gfxMatrix GetMatrix() const;
@@ -51,66 +48,31 @@ public:
      * was set. When this is nullptr it is assumed the transform is identical
      * to the current transform.
      */
-    mozilla::gfx::Pattern *GetPattern(mozilla::gfx::DrawTarget *aTarget,
+    mozilla::gfx::Pattern *GetPattern(const mozilla::gfx::DrawTarget *aTarget,
                                       mozilla::gfx::Matrix *aOriginalUserToDevice = nullptr);
     bool IsOpaque();
 
-    enum GraphicsExtend {
-        EXTEND_NONE,
-        EXTEND_REPEAT,
-        EXTEND_REFLECT,
-        EXTEND_PAD,
-
-        // Our own private flag for setting either NONE or PAD,
-        // depending on what the platform does for NONE.  This is only
-        // relevant for surface patterns; for all other patterns, it
-        // behaves identical to PAD.  On MacOS X, this becomes "NONE",
-        // because Quartz does the thing that we want at image edges;
-        // similarily on the win32 printing surface, since
-        // everything's done with GDI there.  On other platforms, it
-        // usually becomes PAD.
-        EXTEND_PAD_EDGE = 1000
-    };
-
-    // none, repeat, reflect
-    void SetExtend(GraphicsExtend extend);
-    GraphicsExtend Extend() const;
-
-    enum GraphicsPatternType {
-        PATTERN_SOLID,
-        PATTERN_SURFACE,
-        PATTERN_LINEAR,
-        PATTERN_RADIAL
-    };
-
-    GraphicsPatternType GetType() const;
+    // clamp, repeat, reflect
+    void SetExtend(mozilla::gfx::ExtendMode aExtend);
 
     int CairoStatus();
 
-    void SetFilter(GraphicsFilter filter);
-    GraphicsFilter Filter() const;
+    void SetFilter(mozilla::gfx::Filter filter);
+    mozilla::gfx::Filter Filter() const;
 
     /* returns TRUE if it succeeded */
-    bool GetSolidColor(gfxRGBA& aColor);
+    bool GetSolidColor(mozilla::gfx::Color& aColorOut);
 
 private:
     // Private destructor, to discourage deletion outside of Release():
-    ~gfxPattern();
+    ~gfxPattern() {}
 
-    union {
-      mozilla::AlignedStorage2<mozilla::gfx::ColorPattern> mColorPattern;
-      mozilla::AlignedStorage2<mozilla::gfx::LinearGradientPattern> mLinearGradientPattern;
-      mozilla::AlignedStorage2<mozilla::gfx::RadialGradientPattern> mRadialGradientPattern;
-      mozilla::AlignedStorage2<mozilla::gfx::SurfacePattern> mSurfacePattern;
-    };
-
-    mozilla::gfx::Pattern *mGfxPattern;
-
-    mozilla::RefPtr<mozilla::gfx::SourceSurface> mSourceSurface;
+    mozilla::gfx::GeneralPattern mGfxPattern;
+    RefPtr<mozilla::gfx::SourceSurface> mSourceSurface;
     mozilla::gfx::Matrix mPatternToUserSpace;
-    mozilla::RefPtr<mozilla::gfx::GradientStops> mStops;
+    RefPtr<mozilla::gfx::GradientStops> mStops;
     nsTArray<mozilla::gfx::GradientStop> mStopsList;
-    GraphicsExtend mExtend;
+    mozilla::gfx::ExtendMode mExtend;
 };
 
 #endif /* GFX_PATTERN_H */

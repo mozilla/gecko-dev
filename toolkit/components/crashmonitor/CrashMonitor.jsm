@@ -53,7 +53,7 @@ const NOTIFICATIONS = [
   "sessionstore-final-state-write-complete"
 ];
 
-let CrashMonitorInternal = {
+var CrashMonitorInternal = {
 
   /**
    * Notifications received during the current session.
@@ -84,13 +84,9 @@ let CrashMonitorInternal = {
    * Path to checkpoint file.
    *
    * Each time a new notification is received, this file is written to
-   * disc to reflect the information in |checkpoints|. Although Firefox for
-   * Desktop and Metro share the same profile, they need to keep record of
-   * crashes separately.
+   * disc to reflect the information in |checkpoints|.
    */
-  path: (Services.metro && Services.metro.immersive) ?
-    OS.Path.join(OS.Constants.Path.profileDir, "metro", "sessionCheckpoints.json"):
-    OS.Path.join(OS.Constants.Path.profileDir, "sessionCheckpoints.json"),
+  path: OS.Path.join(OS.Constants.Path.profileDir, "sessionCheckpoints.json"),
 
   /**
    * Load checkpoints from previous session asynchronously.
@@ -115,6 +111,12 @@ let CrashMonitorInternal = {
         notifications = JSON.parse(data);
       } catch (ex) {
         Cu.reportError("Error while parsing crash monitor data: " + ex);
+        return null;
+      }
+
+      // If `notifications` isn't an object, then the monitor data isn't valid.
+      if (Object(notifications) !== notifications) {
+        Cu.reportError("Error while parsing crash monitor data: invalid monitor data");
         return null;
       }
 
@@ -172,9 +174,6 @@ this.CrashMonitor = {
     );
 
     CrashMonitorInternal.initialized = true;
-    if (Services.metro && Services.metro.immersive) {
-      OS.File.makeDir(OS.Path.join(OS.Constants.Path.profileDir, "metro"));
-    }
     return promise;
   },
 

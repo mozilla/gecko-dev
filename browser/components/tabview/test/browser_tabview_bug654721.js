@@ -1,7 +1,7 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-let state = {
+var state = {
   windows: [{
     tabs: [{
       entries: [{ url: "about:mozilla" }],
@@ -27,7 +27,7 @@ function test() {
   waitForExplicitFinish();
 
   newWindowWithState(state, function (win) {
-    registerCleanupFunction(function () win.close());
+    registerCleanupFunction(() => win.close());
 
     showTabView(function () {
       let cw = win.TabView.getContentWindow();

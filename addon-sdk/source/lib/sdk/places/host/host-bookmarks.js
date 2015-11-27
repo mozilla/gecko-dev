@@ -7,7 +7,8 @@
 module.metadata = {
   "stability": "experimental",
   "engines": {
-    "Firefox": "*"
+    "Firefox": "*",
+    "SeaMonkey": "*"
   }
 };
 
@@ -62,8 +63,9 @@ function typeMap (type) {
   }
 }
 
-function getBookmarkLastUpdated ({id})
-  resolve(bmsrv.getItemLastModified(id))
+function getBookmarkLastUpdated ({id}) {
+  return resolve(bmsrv.getItemLastModified(id));
+}
 exports.getBookmarkLastUpdated;
 
 function createBookmarkItem (data) {
@@ -199,7 +201,7 @@ exports.getChildren = getChildren;
  * Hook into host
  */
 
-let reqStream = filter(request, (data) => /sdk-places-bookmarks/.test(data.event));
+var reqStream = filter(request, (data) => /sdk-places-bookmarks/.test(data.event));
 on(reqStream, 'data', ({ event, id, data }) => {
   if (!EVENT_MAP[event]) return;
 

@@ -11,6 +11,14 @@
 namespace mozilla {
 namespace gl {
 
+#ifdef DEBUG
+bool
+IsContextCurrent(GLContext* gl)
+{
+    return gl->IsCurrent();
+}
+#endif
+
 /* ScopedGLState - Wraps glEnable/glDisable. **********************************/
 
 // Use |newState = true| to enable, |false| to disable.
@@ -54,7 +62,7 @@ ScopedGLState::UnwrapImpl()
 void
 ScopedBindFramebuffer::Init()
 {
-    if (mGL->IsSupported(GLFeature::framebuffer_blit)) {
+    if (mGL->IsSupported(GLFeature::split_framebuffer)) {
         mOldReadFB = mGL->GetReadFB();
         mOldDrawFB = mGL->GetDrawFB();
     } else {
@@ -166,33 +174,56 @@ ScopedRenderbuffer::UnwrapImpl()
 }
 
 /* ScopedBindTexture **********************************************************/
-void
-ScopedBindTexture::Init(GLenum aTarget)
+
+static GLuint
+GetBoundTexture(GLContext* gl, GLenum texTarget)
 {
-    mTarget = aTarget;
-    mOldTex = 0;
-    GLenum bindingTarget = (aTarget == LOCAL_GL_TEXTURE_2D) ? LOCAL_GL_TEXTURE_BINDING_2D
-                         : (aTarget == LOCAL_GL_TEXTURE_RECTANGLE_ARB) ? LOCAL_GL_TEXTURE_BINDING_RECTANGLE_ARB
-                         : (aTarget == LOCAL_GL_TEXTURE_CUBE_MAP) ? LOCAL_GL_TEXTURE_BINDING_CUBE_MAP
-                         : (aTarget == LOCAL_GL_TEXTURE_EXTERNAL) ? LOCAL_GL_TEXTURE_BINDING_EXTERNAL
-                         : LOCAL_GL_NONE;
-    MOZ_ASSERT(bindingTarget != LOCAL_GL_NONE);
-    mGL->GetUIntegerv(bindingTarget, &mOldTex);
+    GLenum bindingTarget;
+    switch (texTarget) {
+    case LOCAL_GL_TEXTURE_2D:
+        bindingTarget = LOCAL_GL_TEXTURE_BINDING_2D;
+        break;
+
+    case LOCAL_GL_TEXTURE_CUBE_MAP:
+        bindingTarget = LOCAL_GL_TEXTURE_BINDING_CUBE_MAP;
+        break;
+
+    case LOCAL_GL_TEXTURE_3D:
+        bindingTarget = LOCAL_GL_TEXTURE_BINDING_3D;
+        break;
+
+    case LOCAL_GL_TEXTURE_2D_ARRAY:
+        bindingTarget = LOCAL_GL_TEXTURE_BINDING_2D_ARRAY;
+        break;
+
+    case LOCAL_GL_TEXTURE_RECTANGLE_ARB:
+        bindingTarget = LOCAL_GL_TEXTURE_BINDING_RECTANGLE_ARB;
+        break;
+
+    case LOCAL_GL_TEXTURE_EXTERNAL:
+        bindingTarget = LOCAL_GL_TEXTURE_BINDING_EXTERNAL;
+        break;
+
+    default:
+        MOZ_CRASH("bad texTarget");
+    }
+
+    GLuint ret = 0;
+    gl->GetUIntegerv(bindingTarget, &ret);
+    return ret;
 }
 
 ScopedBindTexture::ScopedBindTexture(GLContext* aGL, GLuint aNewTex, GLenum aTarget)
         : ScopedGLWrapper<ScopedBindTexture>(aGL)
-    {
-        Init(aTarget);
-        mGL->fBindTexture(aTarget, aNewTex);
-    }
+        , mTarget(aTarget)
+        , mOldTex(GetBoundTexture(aGL, aTarget))
+{
+    mGL->fBindTexture(mTarget, aNewTex);
+}
 
 void
 ScopedBindTexture::UnwrapImpl()
 {
-    // Check that we're not falling out of scope after the current context changed.
-    MOZ_ASSERT(mGL->IsCurrent());
-
     mGL->fBindTexture(mTarget, mOldTex);
 }
 
@@ -305,16 +336,16 @@ ScopedViewportRect::ScopedViewportRect(GLContext* aGL,
                                        GLsizei width, GLsizei height)
   : ScopedGLWrapper<ScopedViewportRect>(aGL)
 {
-  mGL->fGetIntegerv(LOCAL_GL_VIEWPORT, mSavedViewportRect);
-  mGL->fViewport(x, y, width, height);
+    mGL->fGetIntegerv(LOCAL_GL_VIEWPORT, mSavedViewportRect);
+    mGL->fViewport(x, y, width, height);
 }
 
 void ScopedViewportRect::UnwrapImpl()
 {
-  mGL->fViewport(mSavedViewportRect[0],
-                 mSavedViewportRect[1],
-                 mSavedViewportRect[2],
-                 mSavedViewportRect[3]);
+    mGL->fViewport(mSavedViewportRect[0],
+                   mSavedViewportRect[1],
+                   mSavedViewportRect[2],
+                   mSavedViewportRect[3]);
 }
 
 /* ScopedScissorRect **********************************************************/
@@ -324,22 +355,22 @@ ScopedScissorRect::ScopedScissorRect(GLContext* aGL,
                                      GLsizei width, GLsizei height)
   : ScopedGLWrapper<ScopedScissorRect>(aGL)
 {
-  mGL->fGetIntegerv(LOCAL_GL_SCISSOR_BOX, mSavedScissorRect);
-  mGL->fScissor(x, y, width, height);
+    mGL->fGetIntegerv(LOCAL_GL_SCISSOR_BOX, mSavedScissorRect);
+    mGL->fScissor(x, y, width, height);
 }
 
 ScopedScissorRect::ScopedScissorRect(GLContext* aGL)
   : ScopedGLWrapper<ScopedScissorRect>(aGL)
 {
-  mGL->fGetIntegerv(LOCAL_GL_SCISSOR_BOX, mSavedScissorRect);
+    mGL->fGetIntegerv(LOCAL_GL_SCISSOR_BOX, mSavedScissorRect);
 }
 
 void ScopedScissorRect::UnwrapImpl()
 {
-  mGL->fScissor(mSavedScissorRect[0],
-                mSavedScissorRect[1],
-                mSavedScissorRect[2],
-                mSavedScissorRect[3]);
+    mGL->fScissor(mSavedScissorRect[0],
+                  mSavedScissorRect[1],
+                  mSavedScissorRect[2],
+                  mSavedScissorRect[3]);
 }
 
 /* ScopedVertexAttribPointer **************************************************/
@@ -450,6 +481,8 @@ ScopedGLDrawState::ScopedGLDrawState(GLContext* aGL)
 
 ScopedGLDrawState::~ScopedGLDrawState()
 {
+    MOZ_ASSERT(mGL->IsCurrent());
+
     mGL->fScissor(scissorBox[0], scissorBox[1],
                   scissorBox[2], scissorBox[3]);
 
@@ -483,5 +516,63 @@ ScopedGLDrawState::~ScopedGLDrawState()
 
     mGL->fUseProgram(boundProgram);
 }
+
+////////////////////////////////////////////////////////////////////////
+// ScopedPackAlignment
+
+ScopedPackAlignment::ScopedPackAlignment(GLContext* gl, GLint scopedVal)
+    : ScopedGLWrapper<ScopedPackAlignment>(gl)
+{
+    MOZ_ASSERT(scopedVal == 1 ||
+               scopedVal == 2 ||
+               scopedVal == 4 ||
+               scopedVal == 8);
+
+    gl->fGetIntegerv(LOCAL_GL_PACK_ALIGNMENT, &mOldVal);
+
+    if (scopedVal != mOldVal) {
+        gl->fPixelStorei(LOCAL_GL_PACK_ALIGNMENT, scopedVal);
+    } else {
+      // Don't try to re-set it during unwrap.
+        mOldVal = 0;
+    }
+}
+
+void
+ScopedPackAlignment::UnwrapImpl() {
+    // Check that we're not falling out of scope after the current context changed.
+    MOZ_ASSERT(mGL->IsCurrent());
+
+    if (mOldVal) {
+        mGL->fPixelStorei(LOCAL_GL_PACK_ALIGNMENT, mOldVal);
+    }
+}
+
+////////////////////////////////////////////////////////////////////////
+// ScopedUnpackAlignment
+
+ScopedUnpackAlignment::ScopedUnpackAlignment(GLContext* gl, GLint scopedVal)
+    : ScopedGLWrapper<ScopedUnpackAlignment>(gl)
+{
+    MOZ_ASSERT(scopedVal == 1 ||
+               scopedVal == 2 ||
+               scopedVal == 4 ||
+               scopedVal == 8);
+
+    gl->fGetIntegerv(LOCAL_GL_UNPACK_ALIGNMENT, &mOldVal);
+
+    if (scopedVal != mOldVal) {
+        gl->fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT, scopedVal);
+    }
+}
+
+void
+ScopedUnpackAlignment::UnwrapImpl() {
+    // Check that we're not falling out of scope after the current context changed.
+    MOZ_ASSERT(mGL->IsCurrent());
+
+    mGL->fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT, mOldVal);
+}
+
 } /* namespace gl */
 } /* namespace mozilla */

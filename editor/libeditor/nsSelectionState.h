@@ -14,15 +14,13 @@
 
 class nsCycleCollectionTraversalCallback;
 class nsIDOMCharacterData;
-class nsIDOMRange;
-class nsISelection;
 class nsRange;
 namespace mozilla {
 namespace dom {
 class Selection;
 class Text;
-}
-}
+} // namespace dom
+} // namespace mozilla
 
 /***************************************************************************
  * class for recording selection info.  stores selection as collection of
@@ -31,7 +29,7 @@ class Text;
  */
 
 // first a helper struct for saving/setting ranges
-struct nsRangeStore MOZ_FINAL
+struct nsRangeStore final
 {
   nsRangeStore();
 
@@ -44,7 +42,7 @@ public:
   already_AddRefed<nsRange> GetRange();
 
   NS_INLINE_DECL_REFCOUNTING(nsRangeStore)
-        
+
   nsCOMPtr<nsINode> startNode;
   int32_t           startOffset;
   nsCOMPtr<nsINode> endNode;
@@ -54,37 +52,37 @@ public:
 class nsSelectionState
 {
   public:
-      
+
     nsSelectionState();
     ~nsSelectionState();
 
     void DoTraverse(nsCycleCollectionTraversalCallback &cb);
     void DoUnlink() { MakeEmpty(); }
-  
+
     void     SaveSelection(mozilla::dom::Selection *aSel);
-    nsresult RestoreSelection(nsISelection *aSel);
+    nsresult RestoreSelection(mozilla::dom::Selection* aSel);
     bool     IsCollapsed();
     bool     IsEqual(nsSelectionState *aSelState);
     void     MakeEmpty();
     bool     IsEmpty();
-  protected:    
-    nsTArray<nsRefPtr<nsRangeStore> > mArray;
-    
+  protected:
+    nsTArray<RefPtr<nsRangeStore> > mArray;
+
     friend class nsRangeUpdater;
 };
 
 class nsRangeUpdater
 {
-  public:    
-  
+  public:
+
     nsRangeUpdater();
     ~nsRangeUpdater();
-  
+
     void RegisterRangeItem(nsRangeStore *aRangeItem);
     void DropRangeItem(nsRangeStore *aRangeItem);
     nsresult RegisterSelectionState(nsSelectionState &aSelState);
     nsresult DropSelectionState(nsSelectionState &aSelState);
-    
+
     // editor selection gravity routines.  Note that we can't always depend on
     // DOM Range gravity to do what we want to the "real" selection.  For instance,
     // if you move a node, that corresponds to deleting it and reinserting it.
@@ -96,17 +94,11 @@ class nsRangeUpdater
     nsresult SelAdjInsertNode(nsIDOMNode *aParent, int32_t aPosition);
     void     SelAdjDeleteNode(nsINode* aNode);
     void     SelAdjDeleteNode(nsIDOMNode *aNode);
-    nsresult SelAdjSplitNode(nsINode* aOldRightNode, int32_t aOffset,
-                             nsINode* aNewLeftNode);
-    nsresult SelAdjSplitNode(nsIDOMNode *aOldRightNode, int32_t aOffset, nsIDOMNode *aNewLeftNode);
-    nsresult SelAdjJoinNodes(nsINode* aLeftNode,
-                             nsINode* aRightNode,
-                             nsINode* aParent,
-                             int32_t aOffset,
-                             int32_t aOldLeftNodeLength);
-    nsresult SelAdjJoinNodes(nsIDOMNode *aLeftNode, 
-                             nsIDOMNode *aRightNode, 
-                             nsIDOMNode *aParent, 
+    nsresult SelAdjSplitNode(nsIContent& aOldRightNode, int32_t aOffset,
+                             nsIContent* aNewLeftNode);
+    nsresult SelAdjJoinNodes(nsINode& aLeftNode,
+                             nsINode& aRightNode,
+                             nsINode& aParent,
                              int32_t aOffset,
                              int32_t aOldLeftNodeLength);
     void     SelAdjInsertText(mozilla::dom::Text& aTextNode, int32_t aOffset,
@@ -128,8 +120,8 @@ class nsRangeUpdater
     void WillMoveNode();
     void DidMoveNode(nsINode* aOldParent, int32_t aOldOffset,
                      nsINode* aNewParent, int32_t aNewOffset);
-  protected:    
-    nsTArray<nsRefPtr<nsRangeStore> > mArray;
+  protected:
+    nsTArray<RefPtr<nsRangeStore> > mArray;
     bool mLock;
 };
 
@@ -147,7 +139,7 @@ class MOZ_STACK_CLASS nsAutoTrackDOMPoint
     nsCOMPtr<nsINode>* mNode;
     nsCOMPtr<nsIDOMNode>* mDOMNode;
     int32_t* mOffset;
-    nsRefPtr<nsRangeStore> mRangeItem;
+    RefPtr<nsRangeStore> mRangeItem;
   public:
     nsAutoTrackDOMPoint(nsRangeUpdater &aRangeUpdater,
                         nsCOMPtr<nsINode>* aNode, int32_t* aOffset)
@@ -223,8 +215,9 @@ class MOZ_STACK_CLASS AutoReplaceContainerSelNotify
       mRU.DidReplaceContainer(mOriginalElement, mNewElement);
     }
 };
-}
-}
+
+} // namespace dom
+} // namespace mozilla
 
 
 /***************************************************************************
@@ -255,7 +248,7 @@ class MOZ_STACK_CLASS nsAutoRemoveContainerSelNotify
     {
       mRU.WillRemoveContainer();
     }
-    
+
     ~nsAutoRemoveContainerSelNotify()
     {
       mRU.DidRemoveContainer(mNode, mParent, mOffset, mNodeOrigLen);
@@ -278,7 +271,7 @@ class MOZ_STACK_CLASS nsAutoInsertContainerSelNotify
     {
       mRU.WillInsertContainer();
     }
-    
+
     ~nsAutoInsertContainerSelNotify()
     {
       mRU.DidInsertContainer();
@@ -301,9 +294,9 @@ class MOZ_STACK_CLASS nsAutoMoveNodeSelNotify
     int32_t    mNewOffset;
 
   public:
-    nsAutoMoveNodeSelNotify(nsRangeUpdater &aRangeUpdater, 
+    nsAutoMoveNodeSelNotify(nsRangeUpdater &aRangeUpdater,
                             nsINode* aOldParent,
-                            int32_t aOldOffset, 
+                            int32_t aOldOffset,
                             nsINode* aNewParent,
                             int32_t aNewOffset)
       : mRU(aRangeUpdater)
@@ -316,7 +309,7 @@ class MOZ_STACK_CLASS nsAutoMoveNodeSelNotify
       MOZ_ASSERT(aNewParent);
       mRU.WillMoveNode();
     }
-    
+
     ~nsAutoMoveNodeSelNotify()
     {
       mRU.DidMoveNode(mOldParent, mOldOffset, mNewParent, mNewOffset);

@@ -6,7 +6,7 @@
   xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
   <script type="application/javascript"
           src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js" />
-  <script type="application/javascript" src="utils.js"></script>
+  <script type="application/javascript" src="plugin-utils.js"></script>
   <script type="application/javascript">
     setTestPluginEnabledState(SpecialPowers.Ci.nsIPluginTag.STATE_ENABLED);
   </script>
@@ -29,11 +29,10 @@ function runTests() {
 
   var domWindowUtils = window.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
                              .getInterface(Components.interfaces.nsIDOMWindowUtils);
-  var devPxPerCSSPx = domWindowUtils.screenPixelsPerCSSPixel;
 
   var pluginRect = pluginElement.getBoundingClientRect();
-  var pluginX = (pluginRect.left * devPxPerCSSPx) + ((window.mozInnerScreenX * devPxPerCSSPx) - window.screenX);
-  var pluginY = (pluginRect.top * devPxPerCSSPx) + ((window.mozInnerScreenY * devPxPerCSSPx) - window.screenY);
+  var pluginX = pluginRect.left + (window.mozInnerScreenX - window.screenX);
+  var pluginY = pluginRect.top + (window.mozInnerScreenY - window.screenY);
 
   var windowX = window.screenX;
   var windowY = window.screenY;

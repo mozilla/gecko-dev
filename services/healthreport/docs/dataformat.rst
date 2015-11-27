@@ -293,6 +293,11 @@ Abnormal terminations will be missing a duration and will feature these keys:
 "stopped"
     was the session stopped gently?
 
+Version 3.2
+-----------
+
+As of Firefox 35, the search counts measurement is now bumped to v6, including the *activity* location for the search activity.
+
 Version 3.1
 -----------
 
@@ -663,7 +668,7 @@ Example
     }
 
 org.mozilla.addons.plugins
--------------------------
+--------------------------
 
 This measurement contains information about the currently-installed plugins.
 
@@ -692,7 +697,7 @@ directly from ``nsIPluginTag`` via ``nsIPluginHost``.
 *updateDay* is the number of days since UNIX epoch of the plugins last modified
 time.
 *mimeTypes* is the list of mimetypes the plugin supports, see
-``nsIPluginTag.getMimeTypes()`.
+``nsIPluginTag.getMimeTypes()``.
 
 Example
 ^^^^^^^
@@ -1073,6 +1078,39 @@ org.mozilla.crashes.crashes
 
 This measurement contains a historical record of application crashes.
 
+Version 6
+^^^^^^^^^
+
+This version adds tracking for out-of-memory (OOM) crashes in the main process.
+An OOM crash will be counted as both main-crash and main-crash-oom.
+
+This measurement will be reported on each day there was a crash or crash
+submission. Records may contain the following fields, whose values indicate
+the number of crashes, hangs, or submissions that occurred on the given day:
+
+* content-crash
+* content-crash-submission-succeeded
+* content-crash-submission-failed
+* content-hang
+* content-hang-submission-succeeded
+* content-hang-submission-failed
+* gmplugin-crash
+* gmplugin-crash-submission-succeeded
+* gmplugin-crash-submission-failed
+* main-crash
+* main-crash-oom
+* main-crash-submission-succeeded
+* main-crash-submission-failed
+* main-hang
+* main-hang-submission-succeeded
+* main-hang-submission-failed
+* plugin-crash
+* plugin-crash-submission-succeeded
+* plugin-crash-submission-failed
+* plugin-hang
+* plugin-hang-submission-succeeded
+* plugin-hang-submission-failed
+
 Version 5
 ^^^^^^^^^
 
@@ -1355,7 +1393,15 @@ Example
 org.mozilla.profile.age
 -----------------------
 
-This measurement contains information about the current profile's age.
+This measurement contains information about the current profile's age (and
+in version 2, the profile's most recent reset date)
+
+Version 2
+^^^^^^^^^
+
+*profileCreation* and *profileReset* properties are present.  Both define
+the integer days since UNIX epoch that the current profile was created or
+reset accordingly.
 
 Version 1
 ^^^^^^^^^
@@ -1367,7 +1413,9 @@ Notes
 ^^^^^
 
 It is somewhat difficult to obtain a reliable *profile born date* due to a
-number of factors.
+number of factors, but since Version 2, improvements have been made - on a
+"profile reset" we copy the profileCreation date from the old profile and
+record the time of the reset in profileReset.
 
 Example
 ^^^^^^^
@@ -1375,8 +1423,9 @@ Example
 ::
 
     "org.mozilla.profile.age": {
-      "_v": 1,
+      "_v": 2,
       "profileCreation": 15176
+      "profileReset": 15576
     }
 
 org.mozilla.searches.counts
@@ -1384,6 +1433,11 @@ org.mozilla.searches.counts
 
 This measurement contains information about searches performed in the
 application.
+
+Version 6 (mobile)
+^^^^^^^^^^^^^^^^^^
+
+This adds two new search locations: *widget* and *activity*, corresponding to the search widget and search activity respectively.
 
 Version 2
 ^^^^^^^^^
@@ -1549,6 +1603,15 @@ default
    In other words, search engines without an ``.identifier``
    are prefixed with ``other-``.
 
+Version 2
+^^^^^^^^^
+
+Starting with Firefox 40, there is an additional optional value:
+
+cohort
+  Daily cohort string identifier, recorded if the user is part of
+  search defaults A/B testing.
+
 org.mozilla.sync.sync
 ---------------------
 
@@ -1616,6 +1679,45 @@ desktop
 
 mobile
    Corresponds to a Fennec client.
+
+org.mozilla.sync.migration
+--------------------------
+
+This daily measurement contains information about sync migration (that is, the
+semi-automated process of migrating a legacy sync account to an FxA account.)
+
+Measurements will start being recorded after a migration is offered by the
+sync server and stop after migration is complete or the user elects to "unlink"
+their sync account.  In other words, it is expected that users with Sync setup
+for FxA or with sync unconfigured will not collect data, and that for users
+where data is collected, the collection will only be for a relatively short
+period.
+
+Version 1
+^^^^^^^^^
+
+Version 1 was introduced with Firefox 37 and includes the following properties:
+
+state
+   Corresponds to either a STATE_USER_* string or a STATE_INTERNAL_* string in
+   FxaMigration.jsm.  This reflects a state where we are waiting for the user,
+   or waiting for some internal process to complete on the way to completing
+   the migration.
+
+declined
+    Corresponds to the number of times the user closed the migration infobar.
+
+unlinked
+    Set if the user declined to migrate and instead "unlinked" Sync from the
+    browser.
+
+accepted
+    Corresponds to the number of times the user explicitly elected to start or
+    continue the migration - it counts how often the user clicked on any UI
+    created specifically for migration. The "ideal" UX for migration would see
+    this at exactly 1, some known edge-cases (eg, browser restart required to
+    finish) could expect this to be 2, and anything more means we are doing
+    something wrong.
 
 org.mozilla.sysinfo.sysinfo
 ---------------------------
@@ -1810,3 +1912,86 @@ Example
       "lastActiveBranch": "control"
     }
 
+org.mozilla.uitour.treatment
+----------------------------
+
+Daily measurement reporting information about treatment tagging done
+by the UITour module.
+
+Version 1
+^^^^^^^^^
+
+Daily text values in the following properties:
+
+<tag>:
+    Array of discrete strings corresponding to calls for setTreatmentTag(tag, value).
+
+Example
+^^^^^^^
+
+::
+
+    "org.mozilla.uitour.treatment": {
+      "_v": 1,
+      "treatment": [
+        "optin",
+        "optin-DNT"
+      ],
+      "another-tag": [
+        "foobar-value"
+      ]
+    }
+
+org.mozilla.passwordmgr.passwordmgr
+-----------------------------------
+
+Daily measurement reporting information about the Password Manager
+
+Version 1
+^^^^^^^^^
+
+Property:
+
+numSavedPasswords
+    number of passwords saved in the Password Manager
+
+enabled
+    Whether or not the user has disabled the Password Manager in prefernces
+
+Example
+^^^^^^^
+
+::
+
+    "org.mozilla.passwordmgr.passwordmgr": {
+      "_v": 1,
+      "numSavedPasswords": 5,
+      "enabled": 0,
+    }
+
+Version 2
+^^^^^^^^^
+
+More detailed measurements of login forms & their behavior
+
+numNewSavedPasswordsInSession
+    Number of passwords saved to the password manager this session.
+
+numSuccessfulFills
+    Number of times the password manager filled in password fields for user this session.
+
+numTotalLoginsEncountered
+    Number of times a login form was encountered by the user in the session.
+
+Example
+^^^^^^^
+
+::
+    "org.mozilla.passwordmgr.passwordmgr": {
+      "_v": 2,
+      "numSavedPasswords": 32,
+      "enabled": 1,
+      "numNewSavedPasswords": 5,
+      "numSuccessfulFills": 11,
+      "numTotalLoginsEncountered": 23,
+    }

@@ -17,13 +17,13 @@ nsChromeRegistryContent::nsChromeRegistryContent()
 void
 nsChromeRegistryContent::RegisterRemoteChrome(
     const InfallibleTArray<ChromePackage>& aPackages,
-    const InfallibleTArray<ResourceMapping>& aResources,
+    const InfallibleTArray<SubstitutionMapping>& aSubstitutions,
     const InfallibleTArray<OverrideMapping>& aOverrides,
     const nsACString& aLocale,
     bool aReset)
 {
-  NS_ABORT_IF_FALSE(aReset || mLocale.IsEmpty(),
-                    "RegisterChrome twice?");
+  MOZ_ASSERT(aReset || mLocale.IsEmpty(),
+             "RegisterChrome twice?");
 
   if (aReset) {
     mPackagesHash.Clear();
@@ -36,9 +36,9 @@ nsChromeRegistryContent::RegisterRemoteChrome(
     RegisterPackage(aPackages[i]);
   }
 
-  for (uint32_t i = aResources.Length(); i > 0; ) {
+  for (uint32_t i = aSubstitutions.Length(); i > 0; ) {
     --i;
-    RegisterResource(aResources[i]);
+    RegisterSubstitution(aSubstitutions[i]);
   }
 
   for (uint32_t i = aOverrides.Length(); i > 0; ) {
@@ -94,32 +94,32 @@ nsChromeRegistryContent::RegisterPackage(const ChromePackage& aPackage)
 }
 
 void
-nsChromeRegistryContent::RegisterResource(const ResourceMapping& aResource)
+nsChromeRegistryContent::RegisterSubstitution(const SubstitutionMapping& aSubstitution)
 {
   nsCOMPtr<nsIIOService> io (do_GetIOService());
   if (!io)
     return;
 
   nsCOMPtr<nsIProtocolHandler> ph;
-  nsresult rv = io->GetProtocolHandler("resource", getter_AddRefs(ph));
+  nsresult rv = io->GetProtocolHandler(aSubstitution.scheme.get(), getter_AddRefs(ph));
   if (NS_FAILED(rv))
     return;
   
-  nsCOMPtr<nsIResProtocolHandler> rph (do_QueryInterface(ph));
-  if (!rph)
+  nsCOMPtr<nsISubstitutingProtocolHandler> sph (do_QueryInterface(ph));
+  if (!sph)
     return;
 
   nsCOMPtr<nsIURI> resolvedURI;
-  if (aResource.resolvedURI.spec.Length()) {
+  if (aSubstitution.resolvedURI.spec.Length()) {
     nsresult rv = NS_NewURI(getter_AddRefs(resolvedURI),
-                            aResource.resolvedURI.spec,
-                            aResource.resolvedURI.charset.get(),
+                            aSubstitution.resolvedURI.spec,
+                            aSubstitution.resolvedURI.charset.get(),
                             nullptr, io);
     if (NS_FAILED(rv))
       return;
   }
 
-  rv = rph->SetSubstitution(aResource.resource, resolvedURI);
+  rv = sph->SetSubstitution(aSubstitution.path, resolvedURI);
   if (NS_FAILED(rv))
     return;
 }
@@ -210,10 +210,15 @@ nsChromeRegistryContent::CheckForNewChrome()
 }
 
 NS_IMETHODIMP
-nsChromeRegistryContent::IsLocaleRTL(const nsACString& package,
+nsChromeRegistryContent::IsLocaleRTL(const nsACString& aPackage,
                                      bool *aResult)
 {
-  CONTENT_NOT_IMPLEMENTED();
+  if (aPackage != nsDependentCString("global")) {
+    NS_ERROR("Packages other than global unavailable");
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  *aResult = GetDirectionForLocale(mLocale);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -257,7 +262,7 @@ nsresult nsChromeRegistryContent::UpdateSelectedLocale()
 void
 nsChromeRegistryContent::ManifestContent(ManifestProcessingContext& cx,
                                          int lineno, char *const * argv,
-                                         bool platform, bool contentaccessible)
+                                         int flags)
 {
   CONTENT_NOTREACHED();
 }
@@ -265,8 +270,7 @@ nsChromeRegistryContent::ManifestContent(ManifestProcessingContext& cx,
 void
 nsChromeRegistryContent::ManifestLocale(ManifestProcessingContext& cx,
                                         int lineno,
-                                        char *const * argv, bool platform,
-                                        bool contentaccessible)
+                                        char *const * argv, int flags)
 {
   CONTENT_NOTREACHED();
 }
@@ -274,16 +278,14 @@ nsChromeRegistryContent::ManifestLocale(ManifestProcessingContext& cx,
 void
 nsChromeRegistryContent::ManifestSkin(ManifestProcessingContext& cx,
                                       int lineno,
-                                      char *const * argv, bool platform,
-                                      bool contentaccessible)
+                                      char *const * argv, int flags)
 {
   CONTENT_NOTREACHED();
 }
 
 void
 nsChromeRegistryContent::ManifestOverlay(ManifestProcessingContext& cx, int lineno,
-                                         char *const * argv, bool platform,
-                                         bool contentaccessible)
+                                         char *const * argv, int flags)
 {
   CONTENT_NOTREACHED();
 }
@@ -291,8 +293,7 @@ nsChromeRegistryContent::ManifestOverlay(ManifestProcessingContext& cx, int line
 void
 nsChromeRegistryContent::ManifestStyle(ManifestProcessingContext& cx,
                                        int lineno,
-                                       char *const * argv, bool platform,
-                                       bool contentaccessible)
+                                       char *const * argv, int flags)
 {
   CONTENT_NOTREACHED();
 }
@@ -300,8 +301,7 @@ nsChromeRegistryContent::ManifestStyle(ManifestProcessingContext& cx,
 void
 nsChromeRegistryContent::ManifestOverride(ManifestProcessingContext& cx,
                                           int lineno,
-                                          char *const * argv, bool platform,
-                                          bool contentaccessible)
+                                          char *const * argv, int flags)
 {
   CONTENT_NOTREACHED();
 }
@@ -309,8 +309,7 @@ nsChromeRegistryContent::ManifestOverride(ManifestProcessingContext& cx,
 void
 nsChromeRegistryContent::ManifestResource(ManifestProcessingContext& cx,
                                           int lineno,
-                                          char *const * argv, bool platform,
-                                          bool contentaccessible)
+                                          char *const * argv, int flags)
 {
   CONTENT_NOTREACHED();
 }

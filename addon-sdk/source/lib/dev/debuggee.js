@@ -11,7 +11,8 @@ module.metadata = {
 const { Cu } = require("chrome");
 const { Class } = require("../sdk/core/heritage");
 const { MessagePort, MessageChannel } = require("../sdk/messaging");
-const { DebuggerServer } = Cu.import("resource://gre/modules/devtools/dbg-server.jsm", {});
+const { require: devtoolsRequire } = Cu.import("resource://devtools/shared/Loader.jsm", {});
+const { DebuggerServer } = devtoolsRequire("devtools/server/main");
 
 const outputs = new WeakMap();
 const inputs = new WeakMap();
@@ -21,7 +22,6 @@ const transports = new WeakMap();
 const inputFor = port => inputs.get(port);
 const outputFor = port => outputs.get(port);
 const transportFor = port => transports.get(port);
-
 
 const fromTarget = target => {
   const debuggee = new Debuggee();

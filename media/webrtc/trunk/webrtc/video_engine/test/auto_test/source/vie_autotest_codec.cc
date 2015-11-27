@@ -8,10 +8,10 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/common_types.h"
 #include "webrtc/engine_configurations.h"
 #include "webrtc/modules/video_coding/codecs/i420/main/interface/i420.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/test/channel_transport/include/channel_transport.h"
 #include "webrtc/video_engine/include/vie_base.h"
 #include "webrtc/video_engine/include/vie_capture.h"
@@ -100,7 +100,7 @@ class TestCodecObserver : public webrtc::ViEEncoderObserver,
     last_outgoing_bitrate_ += bitrate;
   }
 
-  virtual void SuspendChange(int video_channel, bool is_suspended) OVERRIDE {
+  void SuspendChange(int video_channel, bool is_suspended) override {
     suspend_change_called_++;
   }
 
@@ -122,9 +122,10 @@ class RenderFilter : public webrtc::ViEEffectFilter {
 
   virtual ~RenderFilter() {
   }
-  virtual int Transform(int size,
+  virtual int Transform(size_t size,
                         unsigned char* frame_buffer,
-                        unsigned int time_stamp90KHz,
+                        int64_t ntp_time_ms,
+                        unsigned int timestamp,
                         unsigned int width,
                         unsigned int height)  {
     num_frames_++;
@@ -189,9 +190,8 @@ void ViEAutoTest::ViECodecStandardTest() {
   const char* ip_address = "127.0.0.1";
   const uint16_t rtp_port = 6000;
 
-  webrtc::scoped_ptr<webrtc::test::VideoChannelTransport>
-      video_channel_transport(
-          new webrtc::test::VideoChannelTransport(network, video_channel));
+  rtc::scoped_ptr<webrtc::test::VideoChannelTransport> video_channel_transport(
+      new webrtc::test::VideoChannelTransport(network, video_channel));
 
   ASSERT_EQ(0, video_channel_transport->SetSendDestination(ip_address,
                                                            rtp_port));
@@ -335,7 +335,7 @@ void ViEAutoTest::ViECodecExtendedTest() {
     const char* ip_address = "127.0.0.1";
     const uint16_t rtp_port = 6000;
 
-    webrtc::scoped_ptr<webrtc::test::VideoChannelTransport>
+    rtc::scoped_ptr<webrtc::test::VideoChannelTransport>
         video_channel_transport(
             new webrtc::test::VideoChannelTransport(network, video_channel));
 
@@ -386,7 +386,7 @@ void ViEAutoTest::ViECodecExtendedTest() {
     uint16_t rtp_port_1 = 12000;
     uint16_t rtp_port_2 = 13000;
 
-    webrtc::scoped_ptr<webrtc::test::VideoChannelTransport>
+    rtc::scoped_ptr<webrtc::test::VideoChannelTransport>
         video_channel_transport_1(
             new webrtc::test::VideoChannelTransport(network, video_channel_1));
 
@@ -394,7 +394,7 @@ void ViEAutoTest::ViECodecExtendedTest() {
                                                                rtp_port_1));
     ASSERT_EQ(0, video_channel_transport_1->SetLocalReceiver(rtp_port_1));
 
-    webrtc::scoped_ptr<webrtc::test::VideoChannelTransport>
+    rtc::scoped_ptr<webrtc::test::VideoChannelTransport>
         video_channel_transport_2(
             new webrtc::test::VideoChannelTransport(network, video_channel_2));
 
@@ -509,6 +509,15 @@ void ViEAutoTest::ViECodecAPITest() {
       break;
     }
   }
+  const unsigned int kMinBitrate = 123;
+  video_codec.minBitrate = kMinBitrate;
+  video_codec.startBitrate = 50;
+  EXPECT_EQ(0, codec->SetSendCodec(video_channel, video_codec));
+  EXPECT_EQ(0, codec->GetSendCodec(video_channel, video_codec));
+  // We don't allow allocated start bitrate to be decreased via SetSendCodec,
+  // and the default bitrate available in the allocator is 300.
+  EXPECT_EQ(300u, video_codec.startBitrate);
+
   memset(&video_codec, 0, sizeof(video_codec));
   EXPECT_EQ(0, codec->GetSendCodec(video_channel, video_codec));
   EXPECT_EQ(webrtc::kVideoCodecVP8, video_codec.codecType);

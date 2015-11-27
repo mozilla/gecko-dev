@@ -4,11 +4,13 @@
 
 [Pref="dom.sysmsg.enabled",
  JSImplementation="@mozilla.org/dom/activities/request-handler;1",
- ChromeConstructor(DOMString id, optional ActivityOptions options),
+ ChromeConstructor(DOMString id, optional ActivityOptions options, optional boolean returnvalue),
  ChromeOnly]
 interface ActivityRequestHandler
 {
+    [UnsafeInPrerendering]
     void postResult(any result);
+    [UnsafeInPrerendering]
     void postError(DOMString error);
     [Pure, Cached, Frozen]
     readonly attribute ActivityOptions source;

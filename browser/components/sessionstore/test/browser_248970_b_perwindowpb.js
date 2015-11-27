@@ -26,10 +26,10 @@ function test() {
     "//input[@type='file']":      filePath
   };
 
-  registerCleanupFunction(function() {
-    windowsToClose.forEach(function(win) {
-      win.close();
-    });
+  registerCleanupFunction(function* () {
+    for (let win of windowsToClose) {
+      yield BrowserTestUtils.closeWindow(win);
+    }
   });
 
   function test(aLambda) {
@@ -54,7 +54,7 @@ function test() {
     else if (typeof aValue == "number")
       node.selectedIndex = aValue;
     else
-      Array.forEach(node.options, function(aOpt, aIx)
+      Array.forEach(node.options, (aOpt, aIx) =>
         (aOpt.selected = aValue.indexOf(aIx) > -1));
   }
 
@@ -69,7 +69,7 @@ function test() {
       return aValue == node.value;
     if (!node.multiple)
       return aValue == node.selectedIndex;
-    return Array.every(node.options, function(aOpt, aIx)
+    return Array.every(node.options, (aOpt, aIx) =>
             (aValue.indexOf(aIx) > -1) == aOpt.selected);
   }
 
@@ -100,7 +100,7 @@ function test() {
     // public session, add new tab: (A)
     let tab_A = aWin.gBrowser.addTab(testURL);
     ss.setTabState(tab_A, JSON.stringify(state));
-    whenBrowserLoaded(tab_A.linkedBrowser, function() {
+    promiseBrowserLoaded(tab_A.linkedBrowser).then(() => {
       // make sure that the next closed tab will increase getClosedTabCount
       Services.prefs.setIntPref(
         "browser.sessionstore.max_tabs_undo", max_tabs_undo + 1)
@@ -117,9 +117,9 @@ function test() {
          "getClosedTabCount has increased after closing a tab");
 
       // verify tab: (A), in undo list
-      let tab_A_restored = test(function() ss.undoCloseTab(aWin, 0));
+      let tab_A_restored = test(() => ss.undoCloseTab(aWin, 0));
       ok(tab_A_restored, "a tab is in undo list");
-      whenTabRestored(tab_A_restored, function() {
+      promiseTabRestored(tab_A_restored).then(() => {
         is(testURL, tab_A_restored.linkedBrowser.currentURI.spec,
            "it's the same tab that we expect");
         aWin.gBrowser.removeTab(tab_A_restored);
@@ -136,15 +136,14 @@ function test() {
           };
 
           let tab_B = aWin.gBrowser.addTab(testURL2);
-          ss.setTabState(tab_B, JSON.stringify(state1));
-          whenTabRestored(tab_B, function() {
+          promiseTabState(tab_B, state1).then(() => {
             // populate tab: (B) with different form data
             for (let item in fieldList)
               setFormValue(tab_B, item, fieldList[item]);
 
             // duplicate tab: (B)
             let tab_C = aWin.gBrowser.duplicateTab(tab_B);
-            whenTabRestored(tab_C, function() {
+            promiseTabRestored(tab_C).then(() => {
               // verify the correctness of the duplicated tab
               is(ss.getTabValue(tab_C, key1), value1,
                 "tab successfully duplicated - correct state");

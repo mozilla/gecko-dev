@@ -18,6 +18,20 @@ Cu.import("resource://gre/modules/Credentials.jsm");
 
 const HOST = Services.prefs.getCharPref("identity.fxaccounts.auth.uri");
 
+const STATUS_CODE_TO_OTHER_ERRORS_LABEL = {
+  400: 0,
+  401: 1,
+  403: 2,
+  410: 3,
+  411: 4,
+  413: 5,
+  429: 6,
+  500: 7,
+};
+
+const SIGNIN = "/account/login";
+const SIGNUP = "/account/create";
+
 this.FxAccountsClient = function(host = HOST) {
   this.host = host;
 
@@ -57,33 +71,10 @@ this.FxAccountsClient.prototype = {
   },
 
   /**
-   * Create a new Firefox Account and authenticate
+   * Common code from signIn and signUp.
    *
-   * @param email
-   *        The email address for the account (utf8)
-   * @param password
-   *        The user's password
-   * @return Promise
-   *        Returns a promise that resolves to an object:
-   *        {
-   *          uid: the user's unique ID (hex)
-   *          sessionToken: a session token (hex)
-   *          keyFetchToken: a key fetch token (hex)
-   *        }
-   */
-  signUp: function(email, password) {
-    return Credentials.setup(email, password).then((creds) => {
-      let data = {
-        email: creds.emailUTF8,
-        authPW: CommonUtils.bytesAsHex(creds.authPW),
-      };
-      return this._request("/account/create", "POST", null, data);
-    });
-  },
-
-  /**
-   * Authenticate and create a new session with the Firefox Account API server
-   *
+   * @param path
+   *        Request URL path. Can be /account/create or /account/login
    * @param email
    *        The email address for the account (utf8)
    * @param password
@@ -103,10 +94,12 @@ this.FxAccountsClient.prototype = {
    *          uid: the user's unique ID (hex)
    *          unwrapBKey: used to unwrap kB, derived locally from the
    *                      password (not revealed to the FxA server)
-   *          verified: flag indicating verification status of the email
+   *          verified (optional): flag indicating verification status of the
+   *                               email
    *        }
    */
-  signIn: function signIn(email, password, getKeys=false, retryOK=true) {
+  _createSession: function(path, email, password, getKeys=false,
+                           retryOK=true) {
     return Credentials.setup(email, password).then((creds) => {
       let data = {
         authPW: CommonUtils.bytesAsHex(creds.authPW),
@@ -114,7 +107,7 @@ this.FxAccountsClient.prototype = {
       };
       let keys = getKeys ? "?keys=true" : "";
 
-      return this._request("/account/login" + keys, "POST", null, data).then(
+      return this._request(path + keys, "POST", null, data).then(
         // Include the canonical capitalization of the email in the response so
         // the caller can set its signed-in user state accordingly.
         result => {
@@ -124,7 +117,7 @@ this.FxAccountsClient.prototype = {
           return result;
         },
         error => {
-          log.debug("signIn error: " + JSON.stringify(error));
+          log.debug("Session creation failed", error);
           // If the user entered an email with different capitalization from
           // what's stored in the database (e.g., Greta.Garbo@gmail.COM as
           // opposed to greta.garbo@gmail.com), the server will respond with a
@@ -141,12 +134,64 @@ this.FxAccountsClient.prototype = {
               log.error("Server returned errno 120 but did not provide email");
               throw error;
             }
-            return this.signIn(error.email, password, getKeys, false);
+            return this._createSession(path, error.email, password, getKeys,
+                                       false);
           }
           throw error;
         }
       );
     });
+  },
+
+  /**
+   * Create a new Firefox Account and authenticate
+   *
+   * @param email
+   *        The email address for the account (utf8)
+   * @param password
+   *        The user's password
+   * @param [getKeys=false]
+   *        If set to true the keyFetchToken will be retrieved
+   * @return Promise
+   *        Returns a promise that resolves to an object:
+   *        {
+   *          uid: the user's unique ID (hex)
+   *          sessionToken: a session token (hex)
+   *          keyFetchToken: a key fetch token (hex),
+   *          unwrapBKey: used to unwrap kB, derived locally from the
+   *                      password (not revealed to the FxA server)
+   *        }
+   */
+  signUp: function(email, password, getKeys=false) {
+    return this._createSession(SIGNUP, email, password, getKeys,
+                               false /* no retry */);
+  },
+
+  /**
+   * Authenticate and create a new session with the Firefox Account API server
+   *
+   * @param email
+   *        The email address for the account (utf8)
+   * @param password
+   *        The user's password
+   * @param [getKeys=false]
+   *        If set to true the keyFetchToken will be retrieved
+   * @return Promise
+   *        Returns a promise that resolves to an object:
+   *        {
+   *          authAt: authentication time for the session (seconds since epoch)
+   *          email: the primary email for this account
+   *          keyFetchToken: a key fetch token (hex)
+   *          sessionToken: a session token (hex)
+   *          uid: the user's unique ID (hex)
+   *          unwrapBKey: used to unwrap kB, derived locally from the
+   *                      password (not revealed to the FxA server)
+   *          verified: flag indicating verification status of the email
+   *        }
+   */
+  signIn: function signIn(email, password, getKeys=false) {
+    return this._createSession(SIGNIN, email, password, getKeys,
+                               true /* retry */);
   },
 
   /**
@@ -156,8 +201,12 @@ this.FxAccountsClient.prototype = {
    *        The session token encoded in hex
    * @return Promise
    */
-  signOut: function (sessionTokenHex) {
-    return this._request("/session/destroy", "POST",
+  signOut: function (sessionTokenHex, options = {}) {
+    let path = "/session/destroy";
+    if (options.service) {
+      path += "?service=" + options.service;
+    }
+    return this._request(path, "POST",
       deriveHawkCredentials(sessionTokenHex, "sessionToken"));
   },
 
@@ -370,7 +419,19 @@ this.FxAccountsClient.prototype = {
             this,
             "fxaBackoffTimer"
            );
-	}
+        }
+        if (error.errno == ERRNO_UNVERIFIED_ACCOUNT) {
+          Services.telemetry.getKeyedHistogramById(
+            "FXA_UNVERIFIED_ACCOUNT_ERRORS").add(path);
+        } else if (isInvalidTokenError(error)) {
+          Services.telemetry.getKeyedHistogramById(
+            "FXA_HAWK_ERRORS").add(path);
+        } else if (error.code >= 500 || error.code in STATUS_CODE_TO_OTHER_ERRORS_LABEL) {
+          let label = STATUS_CODE_TO_OTHER_ERRORS_LABEL[
+            error.code >= 500 ? 500 : error.code];
+          Services.telemetry.getKeyedHistogramById(
+            "FXA_SERVER_ERRORS").add(path, label);
+        }
         deferred.reject(error);
       }
     );
@@ -379,3 +440,15 @@ this.FxAccountsClient.prototype = {
   },
 };
 
+function isInvalidTokenError(error) {
+  if (error.code != 401) {
+    return false;
+  }
+  switch (error.errno) {
+    case ERRNO_INVALID_AUTH_TOKEN:
+    case ERRNO_INVALID_AUTH_TIMESTAMP:
+    case ERRNO_INVALID_AUTH_NONCE:
+      return true;
+  }
+  return false;
+}

@@ -4,7 +4,7 @@
 const DUMMY_PAGE_URL = "http://mochi.test:8888/browser/browser/components/tabview/test/dummy_page.html";
 const DUMMY_PAGE_URL_2 = "http://mochi.test:8888/";
 
-let state = {
+var state = {
   windows: [{
     tabs: [{
       entries: [{ url: DUMMY_PAGE_URL }],
@@ -58,7 +58,7 @@ function test() {
 
 function testTabSwitchAfterRestore(callback) {
   newWindowWithState(state, function (win) {
-    registerCleanupFunction(function () win.close());
+    registerCleanupFunction(() => win.close());
 
     let [firstTab, secondTab] = win.gBrowser.tabs;
     is(firstTab.linkedBrowser.currentURI.spec, DUMMY_PAGE_URL,

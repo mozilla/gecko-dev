@@ -18,8 +18,8 @@
 #     NB: not all the files are actually needed; currently, we require
 #       - UnicodeData.txt
 #       - Scripts.txt
-#       - EastAsianWidth.txt
 #       - BidiMirroring.txt
+#       - BidiBrackets.txt
 #       - HangulSyllableType.txt
 #       - ReadMe.txt (to record version/date of the UCD)
 #       - Unihan_Variants.txt (from Unihan.zip)
@@ -27,7 +27,7 @@
 #
 #     The Unicode data files listed above should be together in one directory.
 #
-#     We also require the file 
+#     We also require the file
 #        http://www.unicode.org/Public/security/latest/xidmodifications.txt
 #     This file should be in a sub-directory "security" immediately below the
 #        directory containing the other Unicode data files.
@@ -229,9 +229,16 @@ my %scriptCode = (
   SIDDHAM => 123,
   TIRHUTA => 124,
   WARANG_CITI => 125,
+# unicode 8.0 additions
+  AHOM => 126,
+  ANATOLIAN_HIEROGLYPHS => 127,
+  HATRAN => 128,
+  MULTANI => 129,
+  OLD_HUNGARIAN => 130,
+  SIGNWRITING => 131,
 
 # additional "script" code, not from Unicode (but matches ISO 15924's Zmth tag)
-  MATHEMATICAL_NOTATION => 126,
+  MATHEMATICAL_NOTATION => 132,
 );
 
 my $sc = -1;
@@ -275,16 +282,19 @@ $scriptCodeToTag[$sc] = "'Z','m','t','h'";
 $scriptCodeToName[$sc] = "MATHEMATICAL_NOTATION";
 
 my %xidmodCode = (
-'inclusion'         => 0,
-'recommended'       => 1,
-'default-ignorable' => 2,
-'historic'          => 3,
-'limited-use'       => 4,
-'not-NFKC'          => 5,
-'not-xid'           => 6,
-'obsolete'          => 7,
-'technical'         => 8,
-'not-chars'         => 9
+'Recommended'       => 0,
+'Inclusion'         => 1,
+'Uncommon_Use'      => 2,
+'Technical'         => 3,
+'Obsolete'          => 4,
+'Aspirational'      => 5,
+'Limited_Use'       => 6,
+'Exclusion'         => 7,
+'Not_XID'           => 8,
+'Not_NFKC'          => 9,
+'Default_Ignorable' => 10,
+'Deprecated'        => 11,
+'not-chars'         => 12
 );
 
 my %bidicategoryCode = (
@@ -306,7 +316,11 @@ my %bidicategoryCode = (
   "RLO" => "15", # Right-to-Left Override
   "PDF" => "16", # Pop Directional Format
   "NSM" => "17", # Non-Spacing Mark
-  "BN"  => "18"  # Boundary Neutral
+  "BN"  => "18", # Boundary Neutral
+  "LRI" => "19", # Left-to-Right Isolate
+  "RLI" => "20", # Right-to-left Isolate
+  "FSI" => "21", # First Strong Isolate
+  "PDI" => "22"  # Pop Direcitonal Isolate
 );
 
 my %verticalOrientationCode = (
@@ -320,8 +334,8 @@ my %verticalOrientationCode = (
 my @script;
 my @category;
 my @combining;
-my @eaw;
 my @mirror;
+my @pairedBracketType;
 my @hangul;
 my @casemap;
 my @xidmod;
@@ -334,6 +348,7 @@ for (my $i = 0; $i < 0x110000; ++$i) {
     $script[$i] = $scriptCode{"UNKNOWN"};
     $category[$i] = $catCode{"UNASSIGNED"};
     $combining[$i] = 0;
+    $pairedBracketType[$i] = 0;
     $casemap[$i] = 0;
     $xidmod[$i] = $xidmodCode{"not-chars"};
     $numericvalue[$i] = -1;
@@ -496,37 +511,6 @@ while (<FH>) {
 }
 close FH;
 
-# read EastAsianWidth.txt
-my %eawCode = (
-  'A' => 0, #         ; Ambiguous
-  'F' => 1, #         ; Fullwidth
-  'H' => 2, #         ; Halfwidth
-  'N' => 3, #         ; Neutral
-  'NA'=> 4, #         ; Narrow
-  'W' => 5  #         ; Wide 
-);
-open FH, "< $ARGV[1]/EastAsianWidth.txt" or die "can't open UCD file EastAsianWidth.txt\n";
-push @versionInfo, "";
-while (<FH>) {
-    chomp;
-    push @versionInfo, $_;
-    last if /Date:/;
-}
-while (<FH>) {
-    s/#.*//;
-    if (m/([0-9A-F]{4,6})(?:\.\.([0-9A-F]{4,6}))*\s*;\s*([^ ]+)/) {
-        my $eaw = uc($3);
-        warn "unknown EAW code $eaw" unless exists $eawCode{$eaw};
-        $eaw = $eawCode{$eaw};
-        my $start = hex "0x$1";
-        my $end = (defined $2) ? hex "0x$2" : $start;
-        for (my $i = $start; $i <= $end; ++$i) {
-            $eaw[$i] = $eaw;
-        }
-    }
-}
-close FH;
-
 # read BidiMirroring.txt
 my @offsets = ();
 push @offsets, 0;
@@ -542,13 +526,38 @@ while (<FH>) {
     s/#.*//;
     if (m/([0-9A-F]{4,6});\s*([0-9A-F]{4,6})/) {
         my $mirrorOffset = hex("0x$2") - hex("0x$1");
-	my $offsetIndex = first { $offsets[$_] eq $mirrorOffset } 0..$#offsets;
-	if ($offsetIndex == undef) {
+        my $offsetIndex = first { $offsets[$_] eq $mirrorOffset } 0..$#offsets;
+        if ($offsetIndex == undef) {
             die "too many offset codes\n" if scalar @offsets == 31;
             push @offsets, $mirrorOffset;
-	    $offsetIndex = $#offsets;
+            $offsetIndex = $#offsets;
         }
-	$mirror[hex "0x$1"] = $offsetIndex;
+        $mirror[hex "0x$1"] = $offsetIndex;
+    }
+}
+close FH;
+
+# read BidiBrackets.txt
+my %pairedBracketTypeCode = (
+  'N' => 0,
+  'O' => 1,
+  'C' => 2
+);
+open FH, "< $ARGV[1]/BidiBrackets.txt" or die "can't open UCD file BidiBrackets.txt\n";
+push @versionInfo, "";
+while (<FH>) {
+    chomp;
+    push @versionInfo, $_;
+    last if /Date:/;
+}
+while (<FH>) {
+    s/#.*//;
+    if (m/([0-9A-F]{4,6});\s*([0-9A-F]{4,6});\s*(.)/) {
+        my $mirroredChar = $offsets[$mirror[hex "0x$1"]] + hex "0x$1";
+        die "bidi bracket does not match mirrored char\n" unless $mirroredChar == hex "0x$2";
+        my $pbt = uc($3);
+        warn "unknown Bidi Bracket type" unless exists $pairedBracketTypeCode{$pbt};
+        $pairedBracketType[hex "0x$1"] = $pairedBracketTypeCode{$pbt};
     }
 }
 close FH;
@@ -606,8 +615,6 @@ while (<FH>) {
   }
 }
 close FH;
-# special case U+30FB KATAKANA MIDDLE DOT -- see bug 857490
-$xidmod[0x30FB] = 1;
 
 open FH, "< $ARGV[1]/Unihan_Variants.txt" or die "can't open UCD file Unihan_Variants.txt (from Unihan.zip)\n";
 push @versionInfo, "";
@@ -755,27 +762,29 @@ struct nsCharProps1 {
   unsigned char mCombiningClass:8;
 };
 /;
+print DATA_TABLES "#ifndef ENABLE_INTL_API\n";
 &genTables("CharProp1", $type, "nsCharProps1", 11, 5, \&sprintCharProps1, 1, 2, 1);
+print DATA_TABLES "#endif\n\n";
 
 sub sprintCharProps2
 {
   my $usv = shift;
   return sprintf("{%d,%d,%d,%d,%d,%d,%d},",
-                 $script[$usv], $eaw[$usv], $category[$usv],
+                 $script[$usv], $pairedBracketType[$usv], $category[$usv],
                  $bidicategory[$usv], $xidmod[$usv], $numericvalue[$usv],
                  $verticalOrientation[$usv]);
 }
-$type = q/
+$type = q|
 struct nsCharProps2 {
   unsigned char mScriptCode:8;
-  unsigned char mEAW:3;
+  unsigned char mPairedBracketType:3; // only 2 bits actually needed
   unsigned char mCategory:5;
   unsigned char mBidiCategory:5;
   unsigned char mXidmod:4;
   signed char   mNumericValue:5;
   unsigned char mVertOrient:2;
 };
-/;
+|;
 &genTables("CharProp2", $type, "nsCharProps2", 11, 5, \&sprintCharProps2, 16, 4, 1);
 
 print HEADER "#pragma pack()\n\n";

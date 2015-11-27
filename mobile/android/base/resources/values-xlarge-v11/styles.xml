@@ -10,27 +10,17 @@
         Please refer to values/styles.xml for default styles.
     -->
 
-    <!-- TabWidget --> 
+    <!-- TabWidget -->
     <style name="TabWidget">
         <item name="android:layout_width">300dip</item>
         <item name="android:layout_height">48dip</item>
-    </style>
-
-    <style name="Widget.Home.HomeList">
-        <item name="android:scrollbarStyle">outsideOverlay</item>
-        <item name="topDivider">true</item>
-    </style>
-
-    <!-- Tabs panel -->
-    <style name="TabsPanelFrame.RemoteTabs" parent="TabsPanelFrameBase">
-        <item name="android:paddingLeft">212dp</item>
-        <item name="android:paddingRight">212dp</item>
     </style>
 
     <style name="Widget.TopSitesListView" parent="Widget.BookmarksListView">
         <item name="android:paddingTop">30dp</item>
         <item name="android:paddingLeft">32dp</item>
         <item name="android:paddingRight">32dp</item>
+        <item name="android:clipToPadding">false</item>
         <item name="topDivider">false</item>
     </style>
 

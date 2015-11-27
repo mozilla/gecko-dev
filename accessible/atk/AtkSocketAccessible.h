@@ -45,10 +45,9 @@ public:
   AtkSocketAccessible(nsIContent* aContent, DocAccessible* aDoc,
                       const nsCString& aPlugId);
 
-  virtual void Shutdown();
+  virtual void Shutdown() override;
 
-  // nsIAccessible
-  NS_IMETHODIMP GetNativeInterface(void** aOutAccessible);
+  virtual void GetNativeInterface(void** aOutAccessible) override;
 };
 
 } // namespace a11y

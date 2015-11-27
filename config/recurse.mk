@@ -6,10 +6,6 @@ ifndef INCLUDED_RULES_MK
 include $(topsrcdir)/config/rules.mk
 endif
 
-# Make sure that anything that needs to be defined in moz.build wasn't
-# overwritten after including rules.mk.
-_eval_for_side_effects := $(CHECK_MOZBUILD_VARIABLES)
-
 # The traditional model of directory traversal with make is as follows:
 #   make -C foo
 #     Entering foo
@@ -30,15 +26,9 @@ ifeq (.,$(DEPTH))
 
 include root.mk
 
-# Disable build status for mach in top directories without TIERS.
-# In practice this disables it when recursing under js/src, which confuses mach.
-ifndef TIERS
-BUILDSTATUS =
-endif
-
 # Main rules (export, compile, libs and tools) call recurse_* rules.
 # This wrapping is only really useful for build status.
-compile libs export tools::
+$(TIERS)::
 	$(call BUILDSTATUS,TIER_START $@)
 	+$(MAKE) recurse_$@
 	$(call BUILDSTATUS,TIER_FINISH $@)
@@ -50,7 +40,7 @@ binaries::
 # Carefully avoid $(eval) type of rule generation, which makes pymake slower
 # than necessary.
 # Get current tier and corresponding subtiers from the data in root.mk.
-CURRENT_TIER := $(filter $(foreach tier,compile libs export tools,recurse_$(tier) $(tier)-deps),$(MAKECMDGOALS))
+CURRENT_TIER := $(filter $(foreach tier,$(TIERS),recurse_$(tier) $(tier)-deps),$(MAKECMDGOALS))
 ifneq (,$(filter-out 0 1,$(words $(CURRENT_TIER))))
 $(error $(CURRENT_TIER) not supported on the same make command line)
 endif
@@ -59,7 +49,7 @@ CURRENT_TIER := $(subst recurse_,,$(CURRENT_TIER:-deps=))
 # The rules here are doing directory traversal, so we don't want further
 # recursion to happen when running make -C subdir $tier. But some make files
 # further call make -C something else, and sometimes expect recursion to
-# happen in that case (see browser/metro/locales/Makefile.in for example).
+# happen in that case.
 # Conveniently, every invocation of make increases MAKELEVEL, so only stop
 # recursion from happening at current MAKELEVEL + 1.
 ifdef CURRENT_TIER
@@ -70,16 +60,15 @@ export NO_RECURSE_MAKELEVEL=$(word $(MAKELEVEL),2 3 4 5 6 7 8 9 10 11 12 13 14 1
 endif
 endif
 
-# Get all directories traversed for all subtiers in the current tier, or use
-# directly the $(*_dirs) variables available in root.mk when there is no
-# TIERS (like for js/src).
+# Use the $(*_dirs) variables available in root.mk
 CURRENT_DIRS := $($(CURRENT_TIER)_dirs)
 
 # Need a list of compile targets because we can't use pattern rules:
 # https://savannah.gnu.org/bugs/index.php?42833
+# Only recurse the paths starting with RECURSE_BASE_DIR when provided.
 .PHONY: $(compile_targets)
 $(compile_targets):
-	$(call SUBMAKE,$(@F),$(@D))
+	$(if $(filter $(RECURSE_BASE_DIR)%,$@),$(call SUBMAKE,$(@F),$(@D)))
 
 # The compile tier has different rules from other tiers.
 ifneq ($(CURRENT_TIER),compile)
@@ -104,8 +93,10 @@ $(addsuffix /$(CURRENT_TIER),$(filter-out config,$(CURRENT_DIRS))): config/$(CUR
 # is done with the config/host target. Note the config/host target only exists if
 # nsinstall is actually built, which it is not on Windows, because we use
 # nsinstall.py there.
+ifdef COMPILE_ENVIRONMENT
 ifneq (,$(filter config/host, $(compile_targets)))
 $(addsuffix /$(CURRENT_TIER),$(CURRENT_DIRS)): config/host
+endif
 endif
 endif
 
@@ -116,22 +107,12 @@ else
 # Don't recurse if MAKELEVEL is NO_RECURSE_MAKELEVEL as defined above
 ifeq ($(NO_RECURSE_MAKELEVEL),$(MAKELEVEL))
 
-compile libs export tools::
+$(TIERS)::
 
 else
 #########################
 # Tier traversal handling
 #########################
-
-ifdef TIERS
-
-libs export tools::
-	$(call BUILDSTATUS,TIER_START $@)
-	$(foreach tier,$(TIERS), $(if $(filter-out libs_precompile tools_precompile,$@_$(tier)), \
-		$(foreach dir, $(tier_$(tier)_dirs), $(call TIER_DIR_SUBMAKE,$@,$(tier),$(dir),$@))))
-	$(call BUILDSTATUS,TIER_FINISH $@)
-
-else
 
 define CREATE_SUBTIER_TRAVERSAL_RULE
 .PHONY: $(1)
@@ -141,13 +122,14 @@ $(1):: $$(SUBMAKEFILES)
 
 endef
 
-$(foreach subtier,export libs tools,$(eval $(call CREATE_SUBTIER_TRAVERSAL_RULE,$(subtier))))
+$(foreach subtier,$(filter-out compile,$(TIERS)),$(eval $(call CREATE_SUBTIER_TRAVERSAL_RULE,$(subtier))))
 
 ifndef TOPLEVEL_BUILD
-libs:: target host
+ifdef COMPILE_ENVIRONMENT
+compile::
+	@$(MAKE) -C $(DEPTH) compile RECURSE_BASE_DIR=$(relativesrcdir)/
+endif # COMPILE_ENVIRONMENT
 endif
-
-endif # ifdef TIERS
 
 endif # ifeq ($(NO_RECURSE_MAKELEVEL),$(MAKELEVEL))
 
@@ -161,6 +143,14 @@ ifeq (.,$(DEPTH))
 # Interdependencies for parallel export.
 js/xpconnect/src/export: dom/bindings/export xpcom/xpidl/export
 accessible/xpcom/export: xpcom/xpidl/export
+
+# The widget binding generator code is part of the annotationProcessors.
+widget/android/bindings/export: build/annotationProcessors/export
+
+# The roboextender addon includes a classes.dex containing a test Java addon.
+# The test addon must be built first.
+mobile/android/tests/browser/robocop/roboextender/tools: mobile/android/tests/javaaddons/tools
+
 ifdef ENABLE_CLANG_PLUGIN
 $(filter-out build/clang-plugin/%,$(compile_targets)): build/clang-plugin/target build/clang-plugin/tests/target
 build/clang-plugin/tests/target: build/clang-plugin/target
@@ -175,13 +165,14 @@ ifdef MOZ_LDAP_XPCOM
 ldap/target: config/external/nss/target mozglue/build/target
 toolkit/library/target: ldap/target
 endif
-ifndef MOZ_FOLD_LIBS
-ifndef MOZ_NATIVE_SQLITE
-config/external/nss/target: db/sqlite3/src/target
-endif
-endif
 ifeq ($(MOZ_REPLACE_MALLOC_LINKAGE),dummy library)
-mozglue/build/target: memory/replace/dummy/target
+mozglue/build/target memory/replace/logalloc/replay/target: memory/replace/dummy/target
 endif
-
+ifdef MOZ_CRT
+mozglue/crt/target: mozglue/build/target
+endif
+# js/src/target can end up invoking js/src/host rules (through object files
+# depending on jsautokw.h, which depends on host_jskwgen, and that can't
+# happen at the same time (bug #1146738)
+js/src/target: js/src/host
 endif

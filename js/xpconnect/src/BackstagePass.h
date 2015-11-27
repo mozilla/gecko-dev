@@ -15,6 +15,8 @@
 
 #include "js/HeapAPI.h"
 
+class XPCWrappedNative;
+
 class BackstagePass : public nsIGlobalObject,
                       public nsIScriptObjectPrincipal,
                       public nsIXPCScriptable,
@@ -26,23 +28,19 @@ public:
   NS_DECL_NSIXPCSCRIPTABLE
   NS_DECL_NSICLASSINFO
 
-  virtual nsIPrincipal* GetPrincipal() {
+  virtual nsIPrincipal* GetPrincipal() override {
     return mPrincipal;
   }
 
-  virtual JSObject* GetGlobalJSObject() {
-    return mGlobal;
+  virtual JSObject* GetGlobalJSObject() override;
+
+  void ForgetGlobalObject() {
+    mWrapper = nullptr;
   }
 
-  virtual void ForgetGlobalObject() {
-    mGlobal = nullptr;
-  }
+  void SetGlobalObject(JSObject* global);
 
-  virtual void SetGlobalObject(JSObject* global) {
-    mGlobal = global;
-  }
-
-  explicit BackstagePass(nsIPrincipal *prin) :
+  explicit BackstagePass(nsIPrincipal* prin) :
     mPrincipal(prin)
   {
   }
@@ -51,7 +49,7 @@ private:
   virtual ~BackstagePass() { }
 
   nsCOMPtr<nsIPrincipal> mPrincipal;
-  JS::TenuredHeap<JSObject*> mGlobal;
+  XPCWrappedNative* mWrapper;
 };
 
 nsresult

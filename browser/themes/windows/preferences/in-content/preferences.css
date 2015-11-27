@@ -2,7 +2,41 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this file,
    - You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-%include ../../../shared/incontentprefs/preferences.css
+%include ../../../shared/incontentprefs/preferences.inc.css
+
+@media not all and (-moz-windows-default-theme) {
+  #category-general > .category-icon {
+    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#general-native");
+  }
+
+  #category-search > .category-icon {
+    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#search-native");
+  }
+
+  #category-content > .category-icon {
+    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#content-native");
+  }
+
+  #category-application > .category-icon {
+    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#applications-native");
+  }
+
+  #category-privacy > .category-icon {
+    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#privacy-native");
+  }
+
+  #category-security > .category-icon {
+    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#security-native");
+  }
+
+  #category-sync > .category-icon {
+    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#sync-native");
+  }
+
+  #category-advanced > .category-icon {
+    list-style-image: url("chrome://browser/skin/preferences/in-content/icons.svg#advanced-native");
+  }
+}
 
 .actionsMenu > .menulist-label-box > .menulist-icon {
   -moz-margin-end: 9px;
@@ -13,11 +47,14 @@ filefield + button {
   -moz-margin-start: -4px;
 }
 
-#dialogTitle {
-  -moz-margin-start: 13px !important;
+#advancedPrefs {
+  padding-bottom: 0; /* override padding from normal preferences.css */
 }
 
-.actionButtons {
-  margin-right: 8px !important;
-  margin-left: 8px !important;
+/**
+ * Dialog
+ */
+
+#dialogTitle {
+  font-size: 1em;
 }

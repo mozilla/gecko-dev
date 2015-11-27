@@ -28,7 +28,7 @@ nsDeviceContextSpecAndroid::GetSurfaceForPrinter(gfxASurface** aSurface)
   rv = stream->Init(mTempFile, -1, -1, 0);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsRefPtr<gfxASurface> surface;
+  RefPtr<gfxASurface> surface;
 
   // XXX: what should we do here for size? screen size?
   gfxSize surfaceSize(480, 800);
@@ -36,7 +36,7 @@ nsDeviceContextSpecAndroid::GetSurfaceForPrinter(gfxASurface** aSurface)
   surface = new gfxPDFSurface(stream, surfaceSize);
 
 
-  NS_ABORT_IF_FALSE(surface, "valid address expected");
+  MOZ_ASSERT(surface, "valid address expected");
   surface.swap(*aSurface);
   return NS_OK;
 }
@@ -82,11 +82,5 @@ nsDeviceContextSpecAndroid::EndDocument()
   NS_ENSURE_SUCCESS(rv, rv);
   
   destFile->SetPermissions(0666);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDeviceContextSpecAndroid::GetPath (const char** aPath)
-{
   return NS_OK;
 }

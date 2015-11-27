@@ -5,6 +5,12 @@
 function test() {
   waitForExplicitFinish();
 
+  // Ensure TabView has been initialized already. Otherwise it could
+  // activate at an unexpected time and show/hide tabs.
+  TabView._initFrame(runTest);
+}
+
+function runTest() {
   // There should be one tab when we start the test
   let [origTab] = gBrowser.visibleTabs;
   is(gBrowser.visibleTabs.length, 1, "1 tab should be open");  
@@ -39,7 +45,7 @@ function test() {
     is(Hidden(), true, "Bookmark All Tabs should be hidden on a pinned tab");
 
     // Show all tabs
-    let allTabs = [tab for each (tab in gBrowser.tabs)];
+    let allTabs = Array.from(gBrowser.tabs);
     gBrowser.showOnlyTheseTabs(allTabs);
 
     // reset the environment  

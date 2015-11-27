@@ -85,9 +85,12 @@
 
   <binding id="iframe" role="outerdoc">
     <implementation>
-      <property name="docShell"
-                readonly="true"
-                onget="return this.boxObject.QueryInterface(Components.interfaces.nsIContainerBoxObject).docShell"/>
+      <property name="docShell" readonly="true">
+        <getter><![CDATA[
+          let frameLoader = this.QueryInterface(Components.interfaces.nsIFrameLoaderOwner).frameLoader;
+          return frameLoader ? frameLoader.docShell : null;
+        ]]></getter>
+      </property>
       <property name="contentWindow"
                 readonly="true"
                 onget="return this.docShell.QueryInterface(Components.interfaces.nsIInterfaceRequestor).getInterface(Components.interfaces.nsIDOMWindow);"/>
@@ -216,7 +219,9 @@
             let tmp = {};
             Components.utils.import("resource://gre/modules/WindowDraggingUtils.jsm", tmp);
             let draghandle = new tmp.WindowDraggingElement(this);
-            draghandle.mouseDownCheck = function () this._dragBindingAlive;
+            draghandle.mouseDownCheck = function () {
+              return this._dragBindingAlive;
+            };
           } catch (e) {}
         }
       </constructor>

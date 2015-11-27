@@ -60,7 +60,7 @@ namespace {
  * between read()s, we sleep by Wait()'ing on a monitor, which we notify on
  * shutdown.
  */
-class MemoryPressureWatcher
+class MemoryPressureWatcher final
   : public nsIRunnable
   , public nsIObserver
 {
@@ -121,8 +121,6 @@ public:
 
 #ifdef MOZ_NUWA_PROCESS
     if (IsNuwaProcess()) {
-      NS_ASSERTION(NuwaMarkCurrentThread != nullptr,
-                   "NuwaMarkCurrentThread is undefined!");
       NuwaMarkCurrentThread(nullptr, nullptr);
     }
 #endif
@@ -215,6 +213,9 @@ public:
     return NS_OK;
   }
 
+protected:
+  ~MemoryPressureWatcher() {}
+
 private:
   /**
    * Read from aLowMemFd, which we assume corresponds to the
@@ -271,7 +272,7 @@ private:
 
 NS_IMPL_ISUPPORTS(MemoryPressureWatcher, nsIRunnable, nsIObserver);
 
-} // anonymous namespace
+} // namespace
 
 namespace mozilla {
 
@@ -279,7 +280,7 @@ void
 InitGonkMemoryPressureMonitoring()
 {
   // memoryPressureWatcher is held alive by the observer service.
-  nsRefPtr<MemoryPressureWatcher> memoryPressureWatcher =
+  RefPtr<MemoryPressureWatcher> memoryPressureWatcher =
     new MemoryPressureWatcher();
   NS_ENSURE_SUCCESS_VOID(memoryPressureWatcher->Init());
 

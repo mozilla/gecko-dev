@@ -7,7 +7,8 @@
 module.metadata = {
   "stability": "stable",
   "engines": {
-    "Firefox": "*"
+    "Firefox": "*",
+    "SeaMonkey": "*"
   }
 };
 
@@ -19,11 +20,10 @@ const { Ci, Cc } = require("chrome"),
     { ns } = require("./core/namespace"),
     { when: unload } = require("./system/unload"),
     { ignoreWindow } = require('./private-browsing/utils'),
-    { getTabs, getTabContentWindow, getTabForContentWindow,
+    { getTabs, getTabForContentWindow,
       getAllTabContentWindows } = require('./tabs/utils'),
     winUtils = require("./window/utils"),
-    events = require("./system/events"),
-    { iteratorSymbol, forInIterator } = require("./util/iteration");
+    events = require("./system/events");
 
 // The selection types
 const HTML = 0x01,
@@ -80,7 +80,7 @@ const Selection = Class({
 
 const selectionListener = {
   notifySelectionChanged: function (document, selection, reason) {
-    if (!["SELECTALL", "KEYPRESS", "MOUSEUP"].some(function(type) reason &
+    if (!["SELECTALL", "KEYPRESS", "MOUSEUP"].some(type => reason &
       Ci.nsISelectionListener[type + "_REASON"]) || selection.toString() == "")
         return;
 
@@ -116,9 +116,12 @@ function* forOfIterator() {
 }
 
 const selectionIteratorOptions = {
-  __iterator__: forInIterator
+  __iterator__: function() {
+      for (let item of this)
+          yield item;
+  }
 }
-selectionIteratorOptions[iteratorSymbol] = forOfIterator;
+selectionIteratorOptions[Symbol.iterator] = forOfIterator;
 const selectionIterator = obscure(selectionIteratorOptions);
 
 /**

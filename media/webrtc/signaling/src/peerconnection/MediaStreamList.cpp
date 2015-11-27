@@ -15,12 +15,11 @@
 namespace mozilla {
 namespace dom {
 
-MediaStreamList::MediaStreamList(sipcc::PeerConnectionImpl* peerConnection,
+MediaStreamList::MediaStreamList(PeerConnectionImpl* peerConnection,
                                  StreamType type)
   : mPeerConnection(peerConnection),
     mType(type)
 {
-  SetIsDOMBinding();
 }
 
 MediaStreamList::~MediaStreamList()
@@ -47,10 +46,10 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(MediaStreamList)
 NS_INTERFACE_MAP_END
 
 JSObject*
-MediaStreamList::WrapObject(JSContext* cx)
+MediaStreamList::WrapObject(JSContext* cx, JS::Handle<JSObject*> aGivenProto)
 {
 #ifdef MOZILLA_INTERNAL_API
-  return MediaStreamListBinding::Wrap(cx, this);
+  return MediaStreamListBinding::Wrap(cx, this, aGivenProto);
 #else
   return nullptr;
 #endif
@@ -84,11 +83,11 @@ MediaStreamList::IndexedGetter(uint32_t index, bool& found)
   }
   if (mType == Local) {
     return GetStreamFromInfo(mPeerConnection->media()->
-      GetLocalStream(index), found);
+      GetLocalStreamByIndex(index), found);
   }
 
   return GetStreamFromInfo(mPeerConnection->media()->
-    GetRemoteStream(index), found);
+    GetRemoteStreamByIndex(index), found);
 }
 
 uint32_t

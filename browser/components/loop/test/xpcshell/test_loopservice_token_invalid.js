@@ -1,6 +1,8 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
+"use strict";
+
 const LOOP_HAWK_PREF = "loop.hawk-session-token";
 const fakeSessionToken1 = "1bad3e44b12f77a88fe09f016f6a37c42e40f974bc7a8b432bb0d2f0e37e1751";
 const fakeSessionToken2 = "1bad3e44b12f77a88fe09f016f6a37c42e40f974bc7a8b432bb0d2f0e37e1750";
@@ -18,11 +20,8 @@ add_test(function test_registration_invalid_token() {
       response.write(JSON.stringify({
         code: 401,
         errno: 110,
-        error: {
-          error: "Unauthorized",
-          message: "Unknown credentials",
-          statusCode: 401
-        }
+        error: "Unauthorized",
+        message: "Unknown credentials"
       }));
     } else {
       // We didn't have an authorization header, so check the pref has been cleared.
@@ -34,10 +33,10 @@ add_test(function test_registration_invalid_token() {
     response.finish();
   });
 
-  MozLoopService.register(mockPushHandler).then(() => {
+  MozLoopService.promiseRegisteredWithServers().then(() => {
     // Due to the way the time stamp checking code works in hawkclient, we expect a couple
     // of authorization requests before we reset the token.
-    Assert.equal(authorizationAttempts, 2);
+    Assert.equal(authorizationAttempts, 2); // Hawk will repeat the registration attempt twice.
     Assert.equal(Services.prefs.getCharPref(LOOP_HAWK_PREF), fakeSessionToken2);
     run_next_test();
   }, err => {
@@ -46,9 +45,10 @@ add_test(function test_registration_invalid_token() {
 });
 
 
-function run_test()
-{
+function run_test() {
   setupFakeLoopServer();
+
+  mockPushHandler.registrationPushURL = kEndPointUrl;
 
   do_register_cleanup(function() {
     Services.prefs.clearUserPref("loop.hawk-session-token");

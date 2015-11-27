@@ -28,7 +28,7 @@ Cu.import("resource://gre/modules/services/healthreport/providers.jsm");
 Cu.import("resource://testing-common/services/datareporting/mocks.jsm");
 
 
-let APP_INFO = {
+var APP_INFO = {
   vendor: "Mozilla",
   name: "xpcshell",
   ID: "xpcshell@tests.mozilla.org",
@@ -130,8 +130,8 @@ this.createFakeCrash = function (submitted=false, date=new Date()) {
  *
  * The purpose of this type is to aid testing of startup and shutdown.
  */
-this.InspectedHealthReporter = function (branch, policy, recorder, stateLeaf) {
-  HealthReporter.call(this, branch, policy, recorder, stateLeaf);
+this.InspectedHealthReporter = function (branch, policy, stateLeaf) {
+  HealthReporter.call(this, branch, policy, stateLeaf);
 
   this.onStorageCreated = null;
   this.onProviderManagerInitialized = null;
@@ -182,6 +182,14 @@ InspectedHealthReporter.prototype = {
 const DUMMY_URI="http://localhost:62013/";
 
 this.getHealthReporter = function (name, uri=DUMMY_URI, inspected=false) {
+  // The healthreporters use the client id from the datareporting service,
+  // so we need to ensure it is initialized.
+  let drs = Cc["@mozilla.org/datareporting/service;1"]
+              .getService(Ci.nsISupports)
+              .wrappedJSObject;
+  drs.observe(null, "app-startup", null);
+  drs.observe(null, "profile-after-change", null);
+
   let branch = "healthreport.testing." + name + ".";
 
   let prefs = new Preferences(branch + "healthreport.");
@@ -193,16 +201,18 @@ this.getHealthReporter = function (name, uri=DUMMY_URI, inspected=false) {
   let policyPrefs = new Preferences(branch + "policy.");
   let listener = new MockPolicyListener();
   listener.onRequestDataUpload = function (request) {
-    reporter.requestDataUpload(request);
+    let promise = reporter.requestDataUpload(request);
     MockPolicyListener.prototype.onRequestDataUpload.call(this, request);
+    return promise;
   }
   listener.onRequestRemoteDelete = function (request) {
-    reporter.deleteRemoteData(request);
+    let promise = reporter.deleteRemoteData(request);
     MockPolicyListener.prototype.onRequestRemoteDelete.call(this, request);
+    return promise;
   }
   let policy = new DataReportingPolicy(policyPrefs, prefs, listener);
   let type = inspected ? InspectedHealthReporter : HealthReporter;
-  reporter = new type(branch + "healthreport.", policy, null,
+  reporter = new type(branch + "healthreport.", policy,
                       "state-" + name + ".json");
 
   return reporter;

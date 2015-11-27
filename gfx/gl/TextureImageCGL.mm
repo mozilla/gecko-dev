@@ -17,7 +17,7 @@ using namespace gfx;
 namespace gl {
 
 TextureImageCGL::TextureImageCGL(GLuint aTexture,
-                const nsIntSize& aSize,
+                const IntSize& aSize,
                 GLenum aWrapMode,
                 ContentType aContentType,
                 GLContext* aContext,
@@ -70,7 +70,7 @@ CreateTextureImageCGL(GLContext* gl,
     if (!gl->IsOffscreenSizeAllowed(aSize) &&
         gfxPlatform::OffMainThreadCompositingEnabled()) {
       NS_ASSERTION(aWrapMode == LOCAL_GL_CLAMP_TO_EDGE, "Can't support wrapping with tiles!");
-      nsRefPtr<TextureImage> t = new gl::TiledTextureImage(gl, aSize, aContentType,
+      RefPtr<TextureImage> t = new gl::TiledTextureImage(gl, aSize, aContentType,
                                                            aFlags, aImageFormat);
       return t.forget();
     }
@@ -81,7 +81,7 @@ CreateTextureImageCGL(GLContext* gl,
 
 already_AddRefed<TextureImage>
 TileGenFuncCGL(GLContext *gl,
-               const nsIntSize& aSize,
+               const IntSize& aSize,
                TextureImage::ContentType aContentType,
                TextureImage::Flags aFlags,
                TextureImage::ImageFormat aImageFormat)
@@ -101,11 +101,11 @@ TileGenFuncCGL(GLContext *gl,
     gl->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_WRAP_S, LOCAL_GL_CLAMP_TO_EDGE);
     gl->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_WRAP_T, LOCAL_GL_CLAMP_TO_EDGE);
 
-    nsRefPtr<TextureImageCGL> teximage
+    RefPtr<TextureImageCGL> teximage
         (new TextureImageCGL(texture, aSize, LOCAL_GL_CLAMP_TO_EDGE, aContentType,
                              gl, aFlags, aImageFormat));
     return teximage.forget();
 }
 
-}
-}
+} // namespace gl
+} // namespace mozilla

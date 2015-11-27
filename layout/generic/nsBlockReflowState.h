@@ -32,7 +32,9 @@ class nsOverflowContinuationTracker;
 #define BRS_ISOVERFLOWCONTAINER   0x00000100
 // Our mPushedFloats list is stored on the blocks' proptable
 #define BRS_PROPTABLE_FLOATCLIST  0x00000200
-#define BRS_LASTFLAG              BRS_PROPTABLE_FLOATCLIST
+// Set when the pref layout.float-fragments-inside-column.enabled is true.
+#define BRS_FLOAT_FRAGMENTS_INSIDE_COLUMN_ENABLED 0x00000400
+#define BRS_LASTFLAG              BRS_FLOAT_FRAGMENTS_INSIDE_COLUMN_ENABLED
 
 class nsBlockReflowState {
 public:
@@ -91,6 +93,32 @@ public:
                       nsIFrame *aReplacedBlock = nullptr,
                       uint32_t aFlags = 0);
 
+  // Advances to the next band, i.e., the next horizontal stripe in
+  // which there is a different set of floats.
+  // Return false if it did not advance, which only happens for
+  // constrained heights (and means that we should get pushed to the
+  // next column/page).
+  bool AdvanceToNextBand(const mozilla::LogicalRect& aFloatAvailableSpace,
+                         nscoord *aBCoord) const {
+    mozilla::WritingMode wm = mReflowState.GetWritingMode();
+    if (aFloatAvailableSpace.BSize(wm) > 0) {
+      // See if there's room in the next band.
+      *aBCoord += aFloatAvailableSpace.BSize(wm);
+    } else {
+      if (mReflowState.AvailableHeight() != NS_UNCONSTRAINEDSIZE) {
+        // Stop trying to clear here; we'll just get pushed to the
+        // next column or page and try again there.
+        return false;
+      }
+      NS_NOTREACHED("avail space rect with zero height!");
+      *aBCoord += 1;
+    }
+    return true;
+  }
+
+  bool ReplacedBlockFitsInAvailSpace(nsIFrame* aReplacedBlock,
+                            const nsFlowAreaRect& aFloatAvailableSpace) const;
+
   bool IsAdjacentWithTop() const {
     return mBCoord == mBorderPadding.BStart(mReflowState.GetWritingMode());
   }
@@ -113,16 +141,16 @@ public:
   // Caller must have called GetAvailableSpace for the correct position
   // (which need not be the current mBCoord).
   void ComputeReplacedBlockOffsetsForFloats(nsIFrame* aFrame,
-                                            const nsRect& aFloatAvailableSpace,
-                                            nscoord& aLeftResult,
-                                            nscoord& aRightResult);
+                          const mozilla::LogicalRect& aFloatAvailableSpace,
+                                            nscoord&  aIStartResult,
+                                            nscoord&  aIEndResult) const;
 
   // Caller must have called GetAvailableSpace for the current mBCoord
   void ComputeBlockAvailSpace(nsIFrame* aFrame,
                               const nsStyleDisplay* aDisplay,
                               const nsFlowAreaRect& aFloatAvailableSpace,
                               bool aBlockAvoidsFloats,
-                              nsRect& aResult);
+                              mozilla::LogicalRect& aResult);
 
 protected:
   void RecoverFloats(nsLineList::iterator aLine, nscoord aDeltaBCoord);
@@ -157,7 +185,7 @@ public:
   // padding. This, therefore, represents the inner "content area" (in
   // spacemanager coordinates) where child frames will be placed,
   // including child blocks and floats.
-  nscoord mFloatManagerX, mFloatManagerY;
+  nscoord mFloatManagerI, mFloatManagerB;
 
   // XXX get rid of this
   nsReflowStatus mReflowStatus;
@@ -202,7 +230,10 @@ public:
     mozilla::WritingMode wm = mReflowState.GetWritingMode();
     return mContentArea.Size(wm).ConvertTo(aWM, wm);
   }
-  nscoord mContainerWidth;
+
+  // Physical size. Use only for physical <-> logical coordinate conversion.
+  nsSize mContainerSize;
+  const nsSize& ContainerSize() const { return mContainerSize; }
 
   // Continuation out-of-flow float frames that need to move to our
   // next in flow are placed here during reflow.  It's a pointer to
@@ -211,8 +242,14 @@ public:
   // This method makes sure pushed floats are accessible to
   // StealFrame. Call it before adding any frames to mPushedFloats.
   void SetupPushedFloatList();
-  // Use this method to append to mPushedFloats.
-  void AppendPushedFloat(nsIFrame* aFloatCont);
+  /**
+   * Append aFloatCont and its next-in-flows within the same block to
+   * mPushedFloats.  aFloatCont should not be on any child list when
+   * making this call.  Its next-in-flows will be removed from
+   * mBlock using StealFrame() before being added to mPushedFloats.
+   * All appended frames will be marked NS_FRAME_IS_PUSHED_FLOAT.
+   */
+  void AppendPushedFloatChain(nsIFrame* aFloatCont);
 
   // Track child overflow continuations.
   nsOverflowContinuationTracker* mOverflowTracker;

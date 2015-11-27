@@ -42,7 +42,7 @@ public:
     CreateFontEntry(const nsAString& aFontName,
                     uint16_t aWeight,
                     int16_t aStretch,
-                    bool aItalic,
+                    uint8_t aStyle,
                     const uint8_t* aFontData,
                     uint32_t aLength);
 
@@ -75,10 +75,10 @@ public:
 
     nsresult ReadCMAP(FontInfoData *aFontInfoData = nullptr);
 
-    virtual hb_blob_t* GetFontTable(uint32_t aTableTag) MOZ_OVERRIDE;
+    virtual hb_blob_t* GetFontTable(uint32_t aTableTag) override;
 
     virtual nsresult CopyFontTable(uint32_t aTableTag,
-                                   FallibleTArray<uint8_t>& aBuffer) MOZ_OVERRIDE;
+                                   FallibleTArray<uint8_t>& aBuffer) override;
 
     // Check for various kinds of brokenness, and set flags on the entry
     // accordingly so that we avoid using bad font tables
@@ -125,22 +125,22 @@ public:
     virtual gfxFontEntry* LookupLocalFont(const nsAString& aFontName,
                                           uint16_t aWeight,
                                           int16_t aStretch,
-                                          bool aItalic);
+                                          uint8_t aStyle);
 
     virtual gfxFontEntry* MakePlatformFont(const nsAString& aFontName,
                                            uint16_t aWeight,
                                            int16_t aStretch,
-                                           bool aItalic,
+                                           uint8_t aStyle,
                                            const uint8_t* aFontData,
                                            uint32_t aLength);
 
-    void GetFontList(InfallibleTArray<FontListEntry>* retValue);
+    void GetSystemFontList(InfallibleTArray<FontListEntry>* retValue);
 
     static gfxFT2FontList* PlatformFontList() {
         return static_cast<gfxFT2FontList*>(gfxPlatformFontList::PlatformFontList());
     }
 
-    virtual void GetFontFamilyList(nsTArray<nsRefPtr<gfxFontFamily> >& aFamilyArray);
+    virtual void GetFontFamilyList(nsTArray<RefPtr<gfxFontFamily> >& aFamilyArray);
 
 protected:
     typedef enum {
@@ -185,7 +185,7 @@ protected:
     nsTHashtable<nsStringHashKey> mSkipSpaceLookupCheckFamilies;
 
 private:
-    nsRefPtrHashtable<nsStringHashKey, gfxFontFamily> mHiddenFontFamilies;
+    FontFamilyTable mHiddenFontFamilies;
 };
 
 #endif /* GFX_FT2FONTLIST_H */

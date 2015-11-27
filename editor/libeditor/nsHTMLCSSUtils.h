@@ -22,11 +22,10 @@ class nsString;
 namespace mozilla {
 namespace dom {
 class Element;
-}  // namespace dom
-}  // namespace mozilla
+} // namespace dom
+} // namespace mozilla
 
 class nsHTMLEditor;
-class nsIDOMWindow;
 
 typedef void (*nsProcessValueFunc)(const nsAString * aInputString, nsAString & aOutputString,
                                    const char * aDefaultValueString,
@@ -83,8 +82,8 @@ public:
     * @param aAttribute     [IN] a string containing the name of a HTML
     *                            attribute carried by the element above
     */
-  bool IsCSSEditableProperty(nsIContent* aNode, nsIAtom* aProperty, const nsAString* aAttribute);
-  bool IsCSSEditableProperty(nsIDOMNode* aNode, nsIAtom* aProperty, const nsAString* aAttribute);
+  bool IsCSSEditableProperty(nsINode* aNode, nsIAtom* aProperty,
+                             const nsAString* aAttribute);
 
   /** adds/remove a CSS declaration to the STYLE atrribute carried by a given element
     *
@@ -117,17 +116,17 @@ public:
                                    const nsAString & aProperty,
                                    int32_t aIntValue);
 
-  /** gets the specified/computed style value of a CSS property for a given node (or its element
-    * ancestor if it is not an element)
+  /** Gets the specified/computed style value of a CSS property for a given
+    * node (or its element ancestor if it is not an element)
     *
     * @param aNode          [IN] a DOM node
     * @param aProperty      [IN] an atom containing the CSS property to get
     * @param aPropertyValue [OUT] the retrieved value of the property
     */
-  nsresult    GetSpecifiedProperty(nsIDOMNode *aNode, nsIAtom *aProperty,
-                                   nsAString & aValue);
-  nsresult    GetComputedProperty(nsIDOMNode *aNode, nsIAtom *aProperty,
-                                  nsAString & aValue);
+  nsresult    GetSpecifiedProperty(nsINode& aNode, nsIAtom& aProperty,
+                                   nsAString& aValue);
+  nsresult    GetComputedProperty(nsINode& aNode, nsIAtom& aProperty,
+                                  nsAString& aValue);
 
   /** Removes a CSS property from the specified declarations in STYLE attribute
    ** and removes the node if it is an useless span
@@ -146,7 +145,7 @@ public:
      * @param aProperty     [IN] an atom containing a CSS property
      * @param aAttribute    [IN] pointer to an attribute name or null if this information is irrelevant
      */
-  bool        IsCSSInvertable(nsIAtom * aProperty, const nsAString * aAttribute);
+  bool        IsCSSInvertible(nsIAtom& aProperty, const nsAString* aAttribute);
 
   /** Get the default browser background color if we need it for GetCSSBackgroundColorState
     *
@@ -187,10 +186,16 @@ public:
     *
     * The nsIContent variant returns aIsSet instead of using an out parameter.
     */
-  bool IsCSSEquivalentToHTMLInlineStyleSet(nsIContent* aContent,
+  bool IsCSSEquivalentToHTMLInlineStyleSet(nsINode* aContent,
                                            nsIAtom* aProperty,
                                            const nsAString* aAttribute,
                                            const nsAString& aValue,
+                                           StyleType aStyleType);
+
+  bool IsCSSEquivalentToHTMLInlineStyleSet(nsINode* aContent,
+                                           nsIAtom* aProperty,
+                                           const nsAString* aAttribute,
+                                           nsAString& aValue,
                                            StyleType aStyleType);
 
   nsresult    IsCSSEquivalentToHTMLInlineStyleSet(nsIDOMNode * aNode,
@@ -280,7 +285,7 @@ public:
   bool        IsCSSPrefChecked();
 
   /** ElementsSameStyle compares two elements and checks if they have the same
-    * specified CSS declarations in the STYLE attribute 
+    * specified CSS declarations in the STYLE attribute
     * The answer is always false if at least one of them carries an ID or a class
     *
     * @return                     true if the two elements are considered to have same styles
@@ -321,8 +326,6 @@ public:
   /**
    * Gets the computed style for a given element.  Can return null.
    */
-  already_AddRefed<nsComputedDOMStyle>
-    GetComputedStyle(nsIDOMElement* aElement);
   already_AddRefed<nsComputedDOMStyle>
     GetComputedStyle(mozilla::dom::Element* aElement);
 
@@ -397,13 +400,11 @@ private:
    */
   nsresult GetCSSInlinePropertyBase(nsINode* aNode, nsIAtom* aProperty,
                                     nsAString& aValue, StyleType aStyleType);
-  nsresult GetCSSInlinePropertyBase(nsIDOMNode* aNode, nsIAtom* aProperty,
-                                    nsAString& aValue, StyleType aStyleType);
 
 
 private:
   nsHTMLEditor            *mHTMLEditor;
-  bool                    mIsCSSPrefChecked; 
+  bool                    mIsCSSPrefChecked;
 };
 
 #define NS_EDITOR_INDENT_INCREMENT_IN        0.4134f
@@ -414,6 +415,6 @@ private:
 #define NS_EDITOR_INDENT_INCREMENT_EM        3
 #define NS_EDITOR_INDENT_INCREMENT_EX        6
 #define NS_EDITOR_INDENT_INCREMENT_PX        40
-#define NS_EDITOR_INDENT_INCREMENT_PERCENT   4 
+#define NS_EDITOR_INDENT_INCREMENT_PERCENT   4
 
 #endif /* nsHTMLCSSUtils_h__ */

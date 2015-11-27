@@ -15,8 +15,21 @@
 #include "base/scoped_nsautorelease_pool.h"
 #include "base/time.h"
 #include "nsDependentSubstring.h"
-#include "third_party/libevent/event.h"
+#include "event.h"
 #include "mozilla/UniquePtr.h"
+
+// This macro checks that the _EVENT_SIZEOF_* constants defined in
+// ipc/chromiume/src/third_party/<platform>/event2/event-config.h are correct.
+#define CHECK_EVENT_SIZEOF(TYPE, type) \
+    static_assert(_EVENT_SIZEOF_##TYPE == sizeof(type), \
+    "bad _EVENT_SIZEOF_"#TYPE);
+
+CHECK_EVENT_SIZEOF(LONG,      long);
+CHECK_EVENT_SIZEOF(LONG_LONG, long long);
+CHECK_EVENT_SIZEOF(PTHREAD_T, pthread_t);
+CHECK_EVENT_SIZEOF(SHORT,     short);
+CHECK_EVENT_SIZEOF(SIZE_T,    size_t);
+CHECK_EVENT_SIZEOF(VOID_P,    void*);
 
 // Lifecycle of struct event
 // Libevent uses two main data structures:
@@ -175,6 +188,23 @@ bool MessagePumpLibevent::WatchFileDescriptor(int fd,
     should_delete_event = false;
     // Ownership is transferred to the controller.
     evt = mozilla::MakeUnique<event>();
+  } else {
+    // It's illegal to use this function to listen on 2 separate fds with the
+    // same |controller|.
+    if (EVENT_FD(evt.get()) != fd) {
+      NOTREACHED() << "FDs don't match" << EVENT_FD(evt.get()) << "!=" << fd;
+      return false;
+    }
+
+    // Make sure we don't pick up any funky internal libevent masks.
+    int old_interest_mask = evt.get()->ev_events &
+      (EV_READ | EV_WRITE | EV_PERSIST);
+
+    // Combine old/new event masks.
+    event_mask |= old_interest_mask;
+
+    // Must disarm the event before we can reuse it.
+    event_del(evt.get());
   }
 
   // Set current interest mask and message pump for this event.

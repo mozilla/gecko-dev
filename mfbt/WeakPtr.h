@@ -17,7 +17,7 @@
  * PLEASE NOTE: This weak pointer implementation is not thread-safe.
  *
  * Note that when deriving from SupportsWeakPtr you should add
- * MOZ_DECLARE_REFCOUNTED_TYPENAME(ClassName) to the public section of your
+ * MOZ_DECLARE_WEAKREFERENCE_TYPENAME(ClassName) to the public section of your
  * class, where ClassName is the name of your class.
  *
  * The overhead of WeakPtr is that accesses to 'Foo' becomes an additional
@@ -31,7 +31,7 @@
  *   class C : public SupportsWeakPtr<C>
  *   {
  *   public:
- *     MOZ_DECLARE_REFCOUNTED_TYPENAME(C)
+ *     MOZ_DECLARE_WEAKREFERENCE_TYPENAME(C)
  *     int mNum;
  *     void act();
  *   };
@@ -69,7 +69,8 @@
 
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Assertions.h"
-#include "mozilla/NullPtr.h"
+#include "mozilla/Attributes.h"
+#include "mozilla/RefCounted.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/TypeTraits.h"
 
@@ -79,6 +80,13 @@ namespace mozilla {
 
 template <typename T> class WeakPtr;
 template <typename T> class SupportsWeakPtr;
+
+#ifdef MOZ_REFCOUNTED_LEAK_CHECKING
+#define MOZ_DECLARE_WEAKREFERENCE_TYPENAME(T) \
+  static const char* weakReferenceTypeName() { return "WeakReference<" #T ">"; }
+#else
+#define MOZ_DECLARE_WEAKREFERENCE_TYPENAME(T)
+#endif
 
 namespace detail {
 
@@ -93,28 +101,13 @@ public:
   T* get() const { return mPtr; }
 
 #ifdef MOZ_REFCOUNTED_LEAK_CHECKING
-#ifdef XP_WIN
-#define snprintf _snprintf
-#endif
   const char* typeName() const
   {
-    static char nameBuffer[1024];
-    const char* innerType = mPtr->typeName();
-    // We could do fancier length checks at runtime, but innerType is
-    // controlled by us so we can ensure that this never causes a buffer
-    // overflow by this assertion.
-    MOZ_ASSERT(strlen(innerType) + sizeof("WeakReference<>") <
-               ArrayLength(nameBuffer),
-               "Exceedingly large type name");
-    snprintf(nameBuffer, ArrayLength(nameBuffer), "WeakReference<%s>",
-             innerType);
-    // This is usually not OK, but here we are returning a pointer to a static
-    // buffer which will immediately be used by the caller.
-    return nameBuffer;
+    // The first time this is called mPtr is null, so don't
+    // invoke any methods on mPtr.
+    return T::weakReferenceTypeName();
   }
-
   size_t typeSize() const { return sizeof(*this); }
-#undef snprintf
 #endif
 
 private:
@@ -122,7 +115,7 @@ private:
 
   void detach() { mPtr = nullptr; }
 
-  T* mPtr;
+  T* MOZ_NON_OWNING_REF mPtr;
 };
 
 } // namespace detail
@@ -180,7 +173,13 @@ public:
 
   WeakPtr& operator=(T* aOther)
   {
-    return *this = aOther->SelfReferencingWeakPtr();
+    if (aOther) {
+      *this = aOther->SelfReferencingWeakPtr();
+    } else if (!mRef || mRef->get()) {
+      // Ensure that mRef is dereferenceable in the uninitialized state.
+      mRef = new WeakReference(nullptr);
+    }
+    return *this;
   }
 
   MOZ_IMPLICIT WeakPtr(T* aOther)
@@ -194,7 +193,7 @@ public:
   operator T*() const { return mRef->get(); }
   T& operator*() const { return *mRef->get(); }
 
-  T* operator->() const { return mRef->get(); }
+  T* operator->() const MOZ_NO_ADDREF_RELEASE_ON_RETURN { return mRef->get(); }
 
   T* get() const { return mRef->get(); }
 

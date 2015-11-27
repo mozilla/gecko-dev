@@ -93,7 +93,7 @@ static int32_t GetCSSFloatValue(nsIDOMCSSStyleDeclaration * aDecl,
   return (int32_t) f;
 }
 
-class nsElementDeletionObserver MOZ_FINAL : public nsIMutationObserver
+class nsElementDeletionObserver final : public nsIMutationObserver
 {
 public:
   nsElementDeletionObserver(nsINode* aNativeAnonNode, nsINode* aObservedNode)
@@ -188,6 +188,15 @@ nsHTMLEditor::CreateAnonymousElement(const nsAString & aTag, nsIDOMNode *  aPare
   parentContent->AddMutationObserver(observer);
   newContent->AddMutationObserver(observer);
 
+#ifdef DEBUG
+  // Editor anonymous content gets passed to RecreateFramesFor... which can't
+  // _really_ deal with anonymous content (because it can't get the frame tree
+  // ordering right).  But for us the ordering doesn't matter so this is sort of
+  // ok.
+  newContent->SetProperty(nsGkAtoms::restylableAnonymousNode,
+			  reinterpret_cast<void*>(true));
+#endif // DEBUG
+
   // display the element
   ps->RecreateFramesFor(newContent);
 
@@ -200,7 +209,7 @@ void
 nsHTMLEditor::RemoveListenerAndDeleteRef(const nsAString& aEvent,
                                          nsIDOMEventListener* aListener,
                                          bool aUseCapture,
-                                         nsIDOMElement* aElement,
+                                         Element* aElement,
                                          nsIContent * aParentContent,
                                          nsIPresShell* aShell)
 {
@@ -208,7 +217,7 @@ nsHTMLEditor::RemoveListenerAndDeleteRef(const nsAString& aEvent,
   if (evtTarget) {
     evtTarget->RemoveEventListener(aEvent, aListener, aUseCapture);
   }
-  DeleteRefToAnonymousNode(aElement, aParentContent, aShell);
+  DeleteRefToAnonymousNode(static_cast<nsIDOMElement*>(GetAsDOMNode(aElement)), aParentContent, aShell);
 }
 
 // Deletes all references to an anonymous element
@@ -339,14 +348,14 @@ nsHTMLEditor::CheckSelectionStateForAnonymousButtons(nsISelection * aSelection)
   // side effects while this code runs (bug 420439).
 
   if (mIsAbsolutelyPositioningEnabled && mAbsolutelyPositionedObject &&
-      absPosElement != mAbsolutelyPositionedObject) {
+      absPosElement != GetAsDOMNode(mAbsolutelyPositionedObject)) {
     res = HideGrabber();
     NS_ENSURE_SUCCESS(res, res);
     NS_ASSERTION(!mAbsolutelyPositionedObject, "HideGrabber failed");
   }
 
   if (mIsObjectResizingEnabled && mResizedObject &&
-      mResizedObject != focusElement) {
+      GetAsDOMNode(mResizedObject) != focusElement) {
     res = HideResizers();
     NS_ENSURE_SUCCESS(res, res);
     NS_ASSERTION(!mResizedObject, "HideResizers failed");
@@ -406,7 +415,8 @@ nsHTMLEditor::GetPositionAndDimensions(nsIDOMElement * aElement,
                                        int32_t & aMarginLeft,
                                        int32_t & aMarginTop)
 {
-  NS_ENSURE_ARG_POINTER(aElement);
+  nsCOMPtr<Element> element = do_QueryInterface(aElement);
+  NS_ENSURE_ARG_POINTER(element);
 
   // Is the element positioned ? let's check the cheap way first...
   bool isPositioned = false;
@@ -415,7 +425,7 @@ nsHTMLEditor::GetPositionAndDimensions(nsIDOMElement * aElement,
   if (!isPositioned) {
     // hmmm... the expensive way now...
     nsAutoString positionStr;
-    mHTMLCSSUtils->GetComputedProperty(aElement, nsGkAtoms::position,
+    mHTMLCSSUtils->GetComputedProperty(*element, *nsGkAtoms::position,
                                        positionStr);
     isPositioned = positionStr.EqualsLiteral("absolute");
   }
@@ -425,8 +435,8 @@ nsHTMLEditor::GetPositionAndDimensions(nsIDOMElement * aElement,
     mResizedObjectIsAbsolutelyPositioned = true;
 
     // Get the all the computed css styles attached to the element node
-    nsRefPtr<nsComputedDOMStyle> cssDecl =
-      mHTMLCSSUtils->GetComputedStyle(aElement);
+    RefPtr<nsComputedDOMStyle> cssDecl =
+      mHTMLCSSUtils->GetComputedStyle(element);
     NS_ENSURE_STATE(cssDecl);
 
     aBorderLeft = GetCSSFloatValue(cssDecl, NS_LITERAL_STRING("border-left-width"));

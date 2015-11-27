@@ -73,7 +73,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#if defined(_MSC_VER) && _MSC_VER >= 1300
+#if defined(_MSC_VER)
 #  include <stdlib.h>
 #  pragma intrinsic(_byteswap_ushort)
 #  pragma intrinsic(_byteswap_ulong)
@@ -88,6 +88,8 @@
 #  endif
 #elif defined(_WIN32)
 #  if defined(_M_IX86)
+#    define MOZ_LITTLE_ENDIAN 1
+#  elif defined(_M_ARM)
 #    define MOZ_LITTLE_ENDIAN 1
 #  else
 #    error "CPU type is unknown"
@@ -615,9 +617,9 @@ private:
     memcpy(aPtr, &tmp, sizeof(T));
   }
 
-  Endian() MOZ_DELETE;
-  Endian(const Endian& aTther) MOZ_DELETE;
-  void operator=(const Endian& aOther) MOZ_DELETE;
+  Endian() = delete;
+  Endian(const Endian& aTther) = delete;
+  void operator=(const Endian& aOther) = delete;
 };
 
 template<Endianness ThisEndian>
@@ -643,15 +645,15 @@ public:
 
 } /* namespace detail */
 
-class LittleEndian MOZ_FINAL : public detail::EndianReadWrite<detail::Little>
+class LittleEndian final : public detail::EndianReadWrite<detail::Little>
 {};
 
-class BigEndian MOZ_FINAL : public detail::EndianReadWrite<detail::Big>
+class BigEndian final : public detail::EndianReadWrite<detail::Big>
 {};
 
 typedef BigEndian NetworkEndian;
 
-class NativeEndian MOZ_FINAL : public detail::Endian<MOZ_NATIVE_ENDIANNESS>
+class NativeEndian final : public detail::Endian<MOZ_NATIVE_ENDIANNESS>
 {
 private:
   typedef detail::Endian<MOZ_NATIVE_ENDIANNESS> super;

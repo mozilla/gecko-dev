@@ -1,13 +1,11 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/CallbackObject.h"
 #include "mozilla/dom/BindingUtils.h"
-#include "mozilla/dom/DOMError.h"
-#include "mozilla/dom/DOMErrorBinding.h"
 #include "jsfriendapi.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIXPConnect.h"
@@ -19,6 +17,8 @@
 #include "WorkerPrivate.h"
 #include "nsGlobalWindow.h"
 #include "WorkerScope.h"
+#include "jsapi.h"
+#include "nsJSPrincipals.h"
 
 namespace mozilla {
 namespace dom {
@@ -43,11 +43,13 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(CallbackObject)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(CallbackObject)
   NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mCallback)
+  NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mCreationStack)
   NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mIncumbentJSGlobal)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
                                      ErrorResult& aRv,
+                                     const char* aExecutionReason,
                                      ExceptionHandling aExceptionHandling,
                                      JSCompartment* aCompartment,
                                      bool aIsJSImplementedWebIDL)
@@ -65,7 +67,7 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
   // do anything that might perturb the relevant state.
   nsIPrincipal* webIDLCallerPrincipal = nullptr;
   if (aIsJSImplementedWebIDL) {
-    webIDLCallerPrincipal = nsContentUtils::SubjectPrincipal();
+    webIDLCallerPrincipal = nsContentUtils::SubjectPrincipalOrSystemIfNativeCaller();
   }
 
   // We need to produce a useful JSContext here.  Ideally one that the callback
@@ -90,14 +92,13 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
       nsGlobalWindow* win =
         aIsJSImplementedWebIDL ? nullptr : xpc::WindowGlobalOrNull(realCallback);
       if (win) {
-        // Make sure that if this is a window it's the current inner, since the
-        // nsIScriptContext and hence JSContext are associated with the outer
-        // window.  Which means that if someone holds on to a function from a
-        // now-unloaded document we'd have the new document as the script entry
-        // point...
+        // Make sure that if this is a window it has an active document, since
+        // the nsIScriptContext and hence JSContext are associated with the
+        // outer window.  Which means that if someone holds on to a function
+        // from a now-unloaded document we'd have the new document as the
+        // script entry point...
         MOZ_ASSERT(win->IsInnerWindow());
-        nsPIDOMWindow* outer = win->GetOuterWindow();
-        if (!outer || win != outer->GetCurrentInnerWindow()) {
+        if (!win->HasActiveDocument()) {
           // Just bail out from here
           return;
         }
@@ -115,7 +116,9 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
       }
     } else {
       cx = workers::GetCurrentThreadJSContext();
-      globalObject = workers::GetCurrentThreadWorkerPrivate()->GlobalScope();
+      JSObject *global = js::GetGlobalForObjectCrossCompartment(realCallback);
+      globalObject = workers::GetGlobalObjectForGlobal(global);
+      MOZ_ASSERT(globalObject);
     }
 
     // Bail out if there's no useful global. This seems to happen intermittently
@@ -125,7 +128,8 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
       return;
     }
 
-    mAutoEntryScript.emplace(globalObject, mIsMainThread, cx);
+    mAutoEntryScript.emplace(globalObject, aExecutionReason,
+                             mIsMainThread, cx);
     mAutoEntryScript->SetWebIDLCallerPrincipal(webIDLCallerPrincipal);
     nsIGlobalObject* incumbent = aCallback->IncumbentGlobalOrNull();
     if (incumbent) {
@@ -166,6 +170,16 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
     }
   }
 
+  mAsyncStack.emplace(cx, aCallback->GetCreationStack());
+  if (*mAsyncStack) {
+    mAsyncCause.emplace(cx, JS_NewStringCopyZ(cx, aExecutionReason));
+    if (*mAsyncCause) {
+      mAsyncStackSetter.emplace(cx, *mAsyncStack, *mAsyncCause);
+    } else {
+      JS_ClearPendingException(cx);
+    }
+  }
+
   // Enter the compartment of our callback, so we can actually work with it.
   //
   // Note that if the callback is a wrapper, this will not be the same
@@ -188,27 +202,43 @@ bool
 CallbackObject::CallSetup::ShouldRethrowException(JS::Handle<JS::Value> aException)
 {
   if (mExceptionHandling == eRethrowExceptions) {
-    return true;
+    if (!mCompartment) {
+      // Caller didn't ask us to filter for only exceptions we subsume.
+      return true;
+    }
+
+    // On workers, we don't have nsIPrincipals to work with.  But we also only
+    // have one compartment, so check whether mCompartment is the same as the
+    // current compartment of mCx.
+    if (mCompartment == js::GetContextCompartment(mCx)) {
+      return true;
+    }
+
+    MOZ_ASSERT(NS_IsMainThread());
+
+    // At this point mCx is in the compartment of our unwrapped callback, so
+    // just check whether the principal of mCompartment subsumes that of the
+    // current compartment/global of mCx.
+    nsIPrincipal* callerPrincipal =
+      nsJSPrincipals::get(JS_GetCompartmentPrincipals(mCompartment));
+    nsIPrincipal* calleePrincipal = nsContentUtils::SubjectPrincipal();
+    if (callerPrincipal->SubsumesConsideringDomain(calleePrincipal)) {
+      return true;
+    }
   }
 
-  MOZ_ASSERT(mExceptionHandling == eRethrowContentExceptions);
+  MOZ_ASSERT(mCompartment);
 
-  // For eRethrowContentExceptions we only want to throw an exception if the
-  // object that was thrown is a DOMError object in the caller compartment
-  // (which we stored in mCompartment).
+  // Now we only want to throw an exception to the caller if the object that was
+  // thrown is in the caller compartment (which we stored in mCompartment).
 
   if (!aException.isObject()) {
     return false;
   }
 
   JS::Rooted<JSObject*> obj(mCx, &aException.toObject());
-  obj = js::UncheckedUnwrap(obj, /* stopAtOuter = */ false);
-  if (js::GetObjectCompartment(obj) != mCompartment) {
-    return false;
-  }
-
-  DOMError* domError;
-  return NS_SUCCEEDED(UNWRAP_OBJECT(DOMError, obj, domError));
+  obj = js::UncheckedUnwrap(obj, /* stopAtWindowProxy = */ false);
+  return js::GetObjectCompartment(obj) == mCompartment;
 }
 
 CallbackObject::CallSetup::~CallSetup()
@@ -296,7 +326,7 @@ CallbackObjectHolderBase::ToXPCOMCallback(CallbackObject* aCallback,
   JS::Rooted<JSObject*> callback(cx, aCallback->Callback());
 
   JSAutoCompartment ac(cx, callback);
-  nsRefPtr<nsXPCWrappedJS> wrappedJS;
+  RefPtr<nsXPCWrappedJS> wrappedJS;
   nsresult rv =
     nsXPCWrappedJS::GetNewOrUsed(callback, aIID, getter_AddRefs(wrappedJS));
   if (NS_FAILED(rv) || !wrappedJS) {

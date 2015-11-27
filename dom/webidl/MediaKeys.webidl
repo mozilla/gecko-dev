@@ -10,22 +10,15 @@
  * W3C liability, trademark and document use rules apply.
  */
 
-enum IsTypeSupportedResult { "" /* empty string */, "maybe", "probably" };
 enum SessionType { "temporary", "persistent" };
 
-[Pref="media.eme.enabled"]
+[Pref="media.eme.apiVisible"]
 interface MediaKeys {
   readonly attribute DOMString keySystem;
 
   [NewObject, Throws]
   MediaKeySession createSession(optional SessionType sessionType = "temporary");
 
-  // void, not any: https://www.w3.org/Bugs/Public/show_bug.cgi?id=26457
-  [NewObject, Throws]
+  [NewObject]
   Promise<void> setServerCertificate((ArrayBufferView or ArrayBuffer) serverCertificate);
-
-  [Throws,NewObject]
-  static Promise<MediaKeys> create(DOMString keySystem);
-  static IsTypeSupportedResult isTypeSupported(DOMString keySystem, optional DOMString initDataType, optional DOMString contentType, optional DOMString capability);
-
 };

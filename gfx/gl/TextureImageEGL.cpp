@@ -8,7 +8,6 @@
 #include "GLContext.h"
 #include "GLUploadHelpers.h"
 #include "gfxPlatform.h"
-#include "gfx2DGlue.h"
 #include "mozilla/gfx/Types.h"
 
 namespace mozilla {
@@ -21,7 +20,7 @@ GLFormatForImage(gfx::SurfaceFormat aFormat)
     case gfx::SurfaceFormat::B8G8R8A8:
     case gfx::SurfaceFormat::B8G8R8X8:
         return LOCAL_GL_RGBA;
-    case gfx::SurfaceFormat::R5G6B5:
+    case gfx::SurfaceFormat::R5G6B5_UINT16:
         return LOCAL_GL_RGB;
     case gfx::SurfaceFormat::A8:
         return LOCAL_GL_LUMINANCE;
@@ -39,7 +38,7 @@ GLTypeForImage(gfx::SurfaceFormat aFormat)
     case gfx::SurfaceFormat::B8G8R8X8:
     case gfx::SurfaceFormat::A8:
         return LOCAL_GL_UNSIGNED_BYTE;
-    case gfx::SurfaceFormat::R5G6B5:
+    case gfx::SurfaceFormat::R5G6B5_UINT16:
         return LOCAL_GL_UNSIGNED_SHORT_5_6_5;
     default:
         NS_WARNING("Unknown GL format for Surface format");
@@ -48,7 +47,7 @@ GLTypeForImage(gfx::SurfaceFormat aFormat)
 }
 
 TextureImageEGL::TextureImageEGL(GLuint aTexture,
-                                 const nsIntSize& aSize,
+                                 const gfx::IntSize& aSize,
                                  GLenum aWrapMode,
                                  ContentType aContentType,
                                  GLContext* aContext,
@@ -66,11 +65,11 @@ TextureImageEGL::TextureImageEGL(GLuint aTexture,
     , mBound(false)
 {
     if (mUpdateFormat == gfx::SurfaceFormat::UNKNOWN) {
-        mUpdateFormat = gfx::ImageFormatToSurfaceFormat(
-                gfxPlatform::GetPlatform()->OptimalFormatForContent(GetContentType()));
+        mUpdateFormat =
+                gfxPlatform::GetPlatform()->Optimal2DFormatForContent(GetContentType());
     }
 
-    if (mUpdateFormat == gfx::SurfaceFormat::R5G6B5) {
+    if (mUpdateFormat == gfx::SurfaceFormat::R5G6B5_UINT16) {
         mTextureFormat = gfx::SurfaceFormat::R8G8B8X8;
     } else if (mUpdateFormat == gfx::SurfaceFormat::B8G8R8X8) {
         mTextureFormat = gfx::SurfaceFormat::B8G8R8X8;
@@ -102,7 +101,7 @@ TextureImageEGL::GetUpdateRegion(nsIntRegion& aForRegion)
     if (mTextureState != Valid) {
         // if the texture hasn't been initialized yet, force the
         // client to paint everything
-        aForRegion = nsIntRect(nsIntPoint(0, 0), gfx::ThebesIntSize(mSize));
+        aForRegion = gfx::IntRect(gfx::IntPoint(0, 0), mSize);
     }
 
     // We can only draw a rectangle, not subregions due to
@@ -122,7 +121,7 @@ TextureImageEGL::BeginUpdate(nsIntRegion& aRegion)
     mUpdateRect = aRegion.GetBounds();
 
     //printf_stderr("BeginUpdate with updateRect [%d %d %d %d]\n", mUpdateRect.x, mUpdateRect.y, mUpdateRect.width, mUpdateRect.height);
-    if (!nsIntRect(nsIntPoint(0, 0), gfx::ThebesIntSize(mSize)).Contains(mUpdateRect)) {
+    if (!gfx::IntRect(gfx::IntPoint(0, 0), mSize).Contains(mUpdateRect)) {
         NS_ERROR("update outside of image");
         return nullptr;
     }
@@ -166,7 +165,7 @@ TextureImageEGL::EndUpdate()
 
     if (mTextureState != Valid) {
         NS_ASSERTION(mUpdateRect.x == 0 && mUpdateRect.y == 0 &&
-                      mUpdateRect.Size() == gfx::ThebesIntSize(mSize),
+                      mUpdateRect.Size() == mSize,
                       "Bad initial update on non-created texture!");
 
         mGLContext->fTexImage2D(LOCAL_GL_TEXTURE_2D,
@@ -198,11 +197,11 @@ TextureImageEGL::EndUpdate()
 bool
 TextureImageEGL::DirectUpdate(gfx::DataSourceSurface* aSurf, const nsIntRegion& aRegion, const gfx::IntPoint& aFrom /* = gfx::IntPoint(0,0) */)
 {
-    nsIntRect bounds = aRegion.GetBounds();
+    gfx::IntRect bounds = aRegion.GetBounds();
 
     nsIntRegion region;
     if (mTextureState != Valid) {
-        bounds = nsIntRect(0, 0, mSize.width, mSize.height);
+        bounds = gfx::IntRect(0, 0, mSize.width, mSize.height);
         region = nsIntRegion(bounds);
     } else {
         region = aRegion;
@@ -214,7 +213,7 @@ TextureImageEGL::DirectUpdate(gfx::DataSourceSurface* aSurf, const nsIntRegion& 
                              region,
                              mTexture,
                              mTextureState == Created,
-                             bounds.TopLeft() + nsIntPoint(aFrom.x, aFrom.y),
+                             bounds.TopLeft() + gfx::IntPoint(aFrom.x, aFrom.y),
                              false);
 
     mTextureState = Valid;
@@ -312,13 +311,13 @@ CreateTextureImageEGL(GLContext *gl,
                       TextureImage::Flags aFlags,
                       TextureImage::ImageFormat aImageFormat)
 {
-    nsRefPtr<TextureImage> t = new gl::TiledTextureImage(gl, aSize, aContentType, aFlags, aImageFormat);
+    RefPtr<TextureImage> t = new gl::TiledTextureImage(gl, aSize, aContentType, aFlags, aImageFormat);
     return t.forget();
 }
 
 already_AddRefed<TextureImage>
 TileGenFuncEGL(GLContext *gl,
-               const nsIntSize& aSize,
+               const gfx::IntSize& aSize,
                TextureImage::ContentType aContentType,
                TextureImage::Flags aFlags,
                TextureImage::ImageFormat aImageFormat)
@@ -328,7 +327,7 @@ TileGenFuncEGL(GLContext *gl,
   GLuint texture;
   gl->fGenTextures(1, &texture);
 
-  nsRefPtr<TextureImageEGL> teximage =
+  RefPtr<TextureImageEGL> teximage =
       new TextureImageEGL(texture, aSize, LOCAL_GL_CLAMP_TO_EDGE, aContentType,
                           gl, aFlags, TextureImage::Created, aImageFormat);
 
@@ -343,5 +342,5 @@ TileGenFuncEGL(GLContext *gl,
   return teximage.forget();
 }
 
-}
-}
+} // namespace gl
+} // namespace mozilla

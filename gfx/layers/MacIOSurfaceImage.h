@@ -15,31 +15,33 @@ namespace mozilla {
 
 namespace layers {
 
-class MacIOSurfaceImage : public Image,
-                          public ISharedImage {
+class MacIOSurfaceImage : public Image {
 public:
-  void SetSurface(MacIOSurface* aSurface) { mSurface = aSurface; }
+  explicit MacIOSurfaceImage(MacIOSurface* aSurface)
+   : Image(nullptr, ImageFormat::MAC_IOSURFACE),
+     mSurface(aSurface)
+  {}
+
   MacIOSurface* GetSurface() { return mSurface; }
 
-  gfx::IntSize GetSize() {
+  gfx::IntSize GetSize() override {
     return gfx::IntSize(mSurface->GetDevicePixelWidth(), mSurface->GetDevicePixelHeight());
   }
 
-  virtual ISharedImage* AsSharedImage() MOZ_OVERRIDE { return this; }
+  virtual already_AddRefed<gfx::SourceSurface> GetAsSourceSurface() override;
 
-  virtual TemporaryRef<gfx::SourceSurface> GetAsSourceSurface();
+  virtual TextureClient* GetTextureClient(CompositableClient* aClient) override;
 
-  virtual TextureClient* GetTextureClient(CompositableClient* aClient) MOZ_OVERRIDE;
-  virtual uint8_t* GetBuffer() MOZ_OVERRIDE { return nullptr; }
-
-  MacIOSurfaceImage() : Image(nullptr, ImageFormat::MAC_IOSURFACE) {}
+  virtual MacIOSurfaceImage* AsMacIOSurfaceImage() override {
+    return this;
+  }
 
 private:
   RefPtr<MacIOSurface> mSurface;
   RefPtr<TextureClient> mTextureClient;
 };
 
-} // layers
-} // mozilla
+} // namespace layers
+} // namespace mozilla
 
 #endif // GFX_SHAREDTEXTUREIMAGE_H

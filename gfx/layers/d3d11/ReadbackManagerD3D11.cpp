@@ -23,15 +23,15 @@ namespace layers {
 // mSink may be released only on the main thread this object should always be
 // destroyed on the main thread!
 struct ReadbackTask {
-  // The texture that we copied the contents of the thebeslayer to.
-  nsRefPtr<ID3D10Texture2D> mReadbackTexture;
+  // The texture that we copied the contents of the paintedlayer to.
+  RefPtr<ID3D10Texture2D> mReadbackTexture;
   // The sink that we're trying to read back to.
   RefPtr<TextureReadbackSink> mSink;
 };
 
 // This class is created and dispatched from the Readback thread but it must be
 // destroyed by the main thread.
-class ReadbackResultWriterD3D11 MOZ_FINAL : public nsIRunnable
+class ReadbackResultWriterD3D11 final : public nsIRunnable
 {
   ~ReadbackResultWriterD3D11() {}
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -44,12 +44,13 @@ public:
     mTask->mReadbackTexture->GetDesc(&desc);
 
     D3D10_MAPPED_TEXTURE2D mappedTex;
-    // We know this map will immediately succeed, as we've already mapped this
-    // copied data on our task thread.
+    // Unless there is an error this map should succeed immediately, as we've
+    // recently mapped (and unmapped) this copied data on our task thread.
     HRESULT hr = mTask->mReadbackTexture->Map(0, D3D10_MAP_READ, 0, &mappedTex);
 
     if (FAILED(hr)) {
       mTask->mSink->ProcessReadback(nullptr);
+      return NS_OK;
     }
 
     {

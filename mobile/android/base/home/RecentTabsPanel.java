@@ -8,6 +8,9 @@ package org.mozilla.gecko.home;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.mozilla.gecko.AboutPages;
 import org.mozilla.gecko.EventDispatcher;
 import org.mozilla.gecko.GeckoAppShell;
@@ -19,20 +22,18 @@ import org.mozilla.gecko.Telemetry;
 import org.mozilla.gecko.TelemetryContract;
 import org.mozilla.gecko.db.BrowserContract.CommonColumns;
 import org.mozilla.gecko.db.BrowserContract.URLColumns;
-import org.mozilla.gecko.home.HomePager.OnNewTabsListener;
 import org.mozilla.gecko.util.EventCallback;
 import org.mozilla.gecko.util.NativeEventListener;
 import org.mozilla.gecko.util.NativeJSObject;
 import org.mozilla.gecko.util.ThreadUtils;
 
-import android.app.Activity;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.database.MatrixCursor.RowBuilder;
 import android.os.Bundle;
-import android.support.v4.app.LoaderManager.LoaderCallbacks;
 import android.support.v4.content.Loader;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -65,49 +66,41 @@ public class RecentTabsPanel extends HomeFragment
     // Callbacks used for the search and favicon cursor loaders
     private CursorLoaderCallbacks mCursorLoaderCallbacks;
 
-    // On new tabs listener
-    private OnNewTabsListener mNewTabsListener;
-
     // Recently closed tabs from gecko
     private ClosedTab[] mClosedTabs;
+
+    private void restoreSessionWithHistory(List<String> dataList) {
+        JSONObject json = new JSONObject();
+        try {
+            json.put("tabs", new JSONArray(dataList));
+        } catch (JSONException e) {
+            Log.e(LOGTAG, "JSON error", e);
+        }
+
+        GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Session:RestoreRecentTabs", json.toString()));
+    }
 
     private static final class ClosedTab {
         public final String url;
         public final String title;
+        public final String data;
 
-        public ClosedTab(String url, String title) {
+        public ClosedTab(String url, String title, String data) {
             this.url = url;
             this.title = title;
+            this.data = data;
         }
     }
 
     public static final class RecentTabs implements URLColumns, CommonColumns {
         public static final String TYPE = "type";
+        public static final String DATA = "data";
 
         public static final int TYPE_HEADER = 0;
         public static final int TYPE_LAST_TIME = 1;
         public static final int TYPE_CLOSED = 2;
         public static final int TYPE_OPEN_ALL_LAST_TIME = 3;
         public static final int TYPE_OPEN_ALL_CLOSED = 4;
-    }
-
-    @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-
-        try {
-            mNewTabsListener = (OnNewTabsListener) activity;
-        } catch (ClassCastException e) {
-            throw new ClassCastException(activity.toString()
-                    + " must implement HomePager.OnNewTabsListener");
-        }
-    }
-
-    @Override
-    public void onDetach() {
-        super.onDetach();
-
-        mNewTabsListener = null;
     }
 
     @Override
@@ -140,12 +133,11 @@ public class RecentTabsPanel extends HomeFragment
                     return;
                 }
 
-                Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, TelemetryContract.Method.LIST_ITEM);
+                Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, TelemetryContract.Method.LIST_ITEM, "recent_tabs");
 
-                final ArrayList<String> urls = new ArrayList<String>();
-                urls.add(c.getString(c.getColumnIndexOrThrow(RecentTabs.URL)));
-
-                mNewTabsListener.onNewTabs(urls);
+                final List<String> dataList = new ArrayList<>();
+                dataList.add(c.getString(c.getColumnIndexOrThrow(RecentTabs.DATA)));
+                restoreSessionWithHistory(dataList);
             }
         });
 
@@ -174,6 +166,11 @@ public class RecentTabsPanel extends HomeFragment
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+
+        // Discard any additional item clicks on the list as the
+        // panel is getting destroyed (bug 1210243).
+        mList.setOnItemClickListener(null);
+
         mList = null;
         mEmptyView = null;
 
@@ -205,7 +202,7 @@ public class RecentTabsPanel extends HomeFragment
             mEmptyView = emptyViewStub.inflate();
 
             final ImageView emptyIcon = (ImageView) mEmptyView.findViewById(R.id.home_empty_image);
-            emptyIcon.setImageResource(R.drawable.icon_last_tabs_empty);
+            emptyIcon.setImageResource(R.drawable.icon_remote_tabs_empty);
 
             final TextView emptyText = (TextView) mEmptyView.findViewById(R.id.home_empty_text);
             emptyText.setText(R.string.home_last_tabs_empty);
@@ -227,7 +224,7 @@ public class RecentTabsPanel extends HomeFragment
         final ClosedTab[] closedTabs = new ClosedTab[length];
         for (int i = 0; i < length; i++) {
             final NativeJSObject tab = tabs[i];
-            closedTabs[i] = new ClosedTab(tab.getString("url"), tab.getString("title"));
+            closedTabs[i] = new ClosedTab(tab.getString("url"), tab.getString("title"), tab.getObject("data").toString());
         }
 
         // Only modify mClosedTabs on the UI thread
@@ -252,16 +249,16 @@ public class RecentTabsPanel extends HomeFragment
             return;
         }
 
-        final List<String> urls = new ArrayList<String>();
+        final List<String> dataList = new ArrayList<String>();
         do {
             if (c.getInt(c.getColumnIndexOrThrow(RecentTabs.TYPE)) == type) {
-                urls.add(c.getString(c.getColumnIndexOrThrow(RecentTabs.URL)));
+                dataList.add(c.getString(c.getColumnIndexOrThrow(RecentTabs.DATA)));
             }
         } while (c.moveToNext());
 
         Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, TelemetryContract.Method.BUTTON);
 
-        mNewTabsListener.onNewTabs(urls);
+        restoreSessionWithHistory(dataList);
     }
 
     private static class RecentTabsCursorLoader extends SimpleCursorLoader {
@@ -272,12 +269,13 @@ public class RecentTabsPanel extends HomeFragment
             this.closedTabs = closedTabs;
         }
 
-        private void addRow(MatrixCursor c, String url, String title, int type) {
+        private void addRow(MatrixCursor c, String url, String title, int type, String data) {
             final RowBuilder row = c.newRow();
             row.add(-1);
             row.add(url);
             row.add(title);
             row.add(type);
+            row.add(data);
         }
 
         @Override
@@ -287,7 +285,8 @@ public class RecentTabsPanel extends HomeFragment
             final MatrixCursor c = new MatrixCursor(new String[] { RecentTabs._ID,
                                                                    RecentTabs.URL,
                                                                    RecentTabs.TITLE,
-                                                                   RecentTabs.TYPE });
+                                                                   RecentTabs.TYPE,
+                                                                   RecentTabs.DATA});
 
             if (closedTabs != null && closedTabs.length > 0) {
                 // How many closed tabs are actually displayed.
@@ -301,16 +300,16 @@ public class RecentTabsPanel extends HomeFragment
                     if (!AboutPages.isTitlelessAboutPage(url)) {
                         // If this is the first closed tab we're adding, add a header for the section.
                         if (visibleClosedTabs == 0) {
-                            addRow(c, null, context.getString(R.string.home_closed_tabs_title), RecentTabs.TYPE_HEADER);
+                            addRow(c, null, context.getString(R.string.home_closed_tabs_title), RecentTabs.TYPE_HEADER, null);
                         }
-                        addRow(c, url, closedTabs[i].title, RecentTabs.TYPE_CLOSED);
+                        addRow(c, url, closedTabs[i].title, RecentTabs.TYPE_CLOSED, closedTabs[i].data);
                         visibleClosedTabs++;
                     }
                 }
 
                 // Add an "Open all" button if more than 2 tabs were added to the list.
                 if (visibleClosedTabs > 1) {
-                    addRow(c, null, null, RecentTabs.TYPE_OPEN_ALL_CLOSED);
+                    addRow(c, null, null, RecentTabs.TYPE_OPEN_ALL_CLOSED, null);
                 }
             }
 
@@ -334,16 +333,16 @@ public class RecentTabsPanel extends HomeFragment
 
                     // If this is the first tab we're reading, add a header.
                     if (c.getCount() == count) {
-                        addRow(c, null, context.getString(R.string.home_last_tabs_title), RecentTabs.TYPE_HEADER);
+                        addRow(c, null, context.getString(R.string.home_last_tabs_title), RecentTabs.TYPE_HEADER, null);
                     }
 
-                    addRow(c, url, tab.getTitle(), RecentTabs.TYPE_LAST_TIME);
+                    addRow(c, url, tab.getTitle(), RecentTabs.TYPE_LAST_TIME, tab.getTabObject().toString());
                 }
             }.parse(jsonString);
 
             // Add an "Open all" button if more than 2 tabs were added to the list (account for the header)
             if (c.getCount() - count > 2) {
-                addRow(c, null, null, RecentTabs.TYPE_OPEN_ALL_LAST_TIME);
+                addRow(c, null, null, RecentTabs.TYPE_OPEN_ALL_LAST_TIME, null);
             }
 
             return c;
@@ -363,6 +362,7 @@ public class RecentTabsPanel extends HomeFragment
             super(context, null, VIEW_TYPES, LAYOUT_TYPES);
         }
 
+        @Override
         public int getItemViewType(int position) {
             final Cursor c = getCursor(position);
             final int type = c.getInt(c.getColumnIndexOrThrow(RecentTabs.TYPE));
@@ -378,6 +378,7 @@ public class RecentTabsPanel extends HomeFragment
             return ROW_STANDARD;
          }
 
+        @Override
         public boolean isEnabled(int position) {
             return (getItemViewType(position) != ROW_HEADER);
         }
@@ -397,25 +398,27 @@ public class RecentTabsPanel extends HomeFragment
                 textView.setText(title);
             } else if (itemType == ROW_STANDARD) {
                 final TwoLinePageRow pageRow = (TwoLinePageRow) view;
+                pageRow.setShowIcons(false);
                 pageRow.updateFromCursor(c);
             }
          }
     }
 
-    private class CursorLoaderCallbacks implements LoaderCallbacks<Cursor> {
+    private class CursorLoaderCallbacks extends TransitionAwareCursorLoaderCallbacks {
         @Override
         public Loader<Cursor> onCreateLoader(int id, Bundle args) {
             return new RecentTabsCursorLoader(getActivity(), mClosedTabs);
         }
 
         @Override
-        public void onLoadFinished(Loader<Cursor> loader, Cursor c) {
+        public void onLoadFinishedAfterTransitions(Loader<Cursor> loader, Cursor c) {
             mAdapter.swapCursor(c);
             updateUiFromCursor(c);
         }
 
         @Override
         public void onLoaderReset(Loader<Cursor> loader) {
+            super.onLoaderReset(loader);
             mAdapter.swapCursor(null);
         }
     }

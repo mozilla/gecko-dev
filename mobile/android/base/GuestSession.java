@@ -4,46 +4,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package org.mozilla.gecko;
 
-import android.app.NotificationManager;
 import android.app.KeyguardManager;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
-import android.net.Uri;
-import android.util.Log;
+import android.support.v4.app.NotificationCompat;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.ListView;
-import android.support.v4.app.NotificationCompat;
-
-import org.mozilla.gecko.prompts.Prompt;
-import org.mozilla.gecko.util.EventCallback;
-import org.mozilla.gecko.util.NativeEventListener;
-import org.mozilla.gecko.util.NativeJSObject;
-import org.mozilla.gecko.util.ThreadUtils;
-
-import java.io.File;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 // Utility methods for entering/exiting guest mode.
 public class GuestSession {
     public static final String NOTIFICATION_INTENT = "org.mozilla.gecko.GUEST_SESSION_INPROGRESS";
     private static final String LOGTAG = "GeckoGuestSession";
-
-    // Returns true if the user is using a secure keyguard, and its currently locked.
-    static boolean isSecureKeyguardLocked(Context context) {
-        final KeyguardManager manager = (KeyguardManager) context.getSystemService(Context.KEYGUARD_SERVICE);
-
-        // The test machines return null for the KeyguardService, despite running Android 4.2.
-        if (AppConstants.Versions.preJB || manager == null) {
-            return false;
-        }
-
-        return manager.isKeyguardLocked() && manager.isKeyguardSecure();
-    }
 
     /* Returns true if you should be in guest mode. This can be because a secure keyguard
      * is locked, or because the user has explicitly started guest mode via a dialog. If the
@@ -56,12 +30,6 @@ public class GuestSession {
             return true;
         }
 
-        // Otherwise, is the device locked?
-        final boolean keyguard = isSecureKeyguardLocked(context);
-        if (keyguard) {
-            return true;
-        }
-
         // Otherwise, is there a locked guest mode profile?
         final GeckoProfile profile = GeckoProfile.getGuestProfile(context);
         if (profile == null) {
@@ -71,14 +39,9 @@ public class GuestSession {
         return profile.locked();
     }
 
-    public static void configureWindow(Window window) {
-        // In guest sessions we allow showing over the keyguard.
-        window.addFlags(WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD);
-        window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
-    }
     private static PendingIntent getNotificationIntent(Context context) {
         Intent intent = new Intent(NOTIFICATION_INTENT);
-        intent.setClass(context, BrowserApp.class);
+        intent.setClassName(context, AppConstants.MOZ_ANDROID_BROWSER_INTENT_CLASS);
         return PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
@@ -98,12 +61,6 @@ public class GuestSession {
     public static void hideNotification(Context context) {
         final NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         manager.cancel(R.id.guestNotification);
-    }
-
-    public static void onDestroy(Context context) {
-        if (GeckoProfile.get(context).inGuestMode()) {
-            hideNotification(context);
-        }
     }
 
     public static void handleIntent(BrowserApp context, Intent intent) {

@@ -3,7 +3,7 @@
 <!-- Using windows-1252 to ensure that new Document() doesn't inherit utf-8
      from the parent document. -->
 <title>Document constructor</title>
-<link rel=help href="http://dom.spec.whatwg.org/#dom-document">
+<link rel=help href="https://dom.spec.whatwg.org/#dom-document">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
@@ -31,11 +31,17 @@ test(function() {
   assert_equals(doc.URL, "about:blank");
   assert_equals(doc.documentURI, "about:blank");
   assert_equals(doc.compatMode, "CSS1Compat");
-  // XXX Spec says "utf-8", browsers do "UTF-8".
-  assert_equals(doc.characterSet.toUpperCase(), "UTF-8");
+  assert_equals(doc.characterSet, "UTF-8");
   assert_equals(doc.contentType, "application/xml");
   assert_equals(doc.createElement("DIV").localName, "DIV");
 }, "new Document(): metadata")
+
+test(function() {
+  var doc = new Document();
+  assert_equals(doc.characterSet, "UTF-8", "characterSet");
+  assert_equals(doc.charset, "UTF-8", "charset");
+  assert_equals(doc.inputEncoding, "UTF-8", "inputEncoding");
+}, "new Document(): characterSet aliases")
 
 test(function() {
   var doc = new Document();

@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -5,20 +7,30 @@
 #ifndef mozilla_dom_Icc_h
 #define mozilla_dom_Icc_h
 
+#include "mozilla/dom/MozIccBinding.h"
 #include "mozilla/DOMEventTargetHelper.h"
-#include "nsIIccProvider.h"
+
+class nsIIcc;
+class nsIIccInfo;
+class nsIIccProvider;
+class nsIStkProactiveCmd;
 
 namespace mozilla {
 namespace dom {
 
 class DOMRequest;
+class OwningMozIccInfoOrMozGsmIccInfoOrMozCdmaIccInfo;
+class mozContact;
+class Promise;
 
-class Icc MOZ_FINAL : public DOMEventTargetHelper
+class Icc final : public DOMEventTargetHelper
 {
 public:
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(Icc, DOMEventTargetHelper)
   NS_REALLY_FORWARD_NSIDOMEVENTTARGET(DOMEventTargetHelper)
 
-  Icc(nsPIDOMWindow* aWindow, long aClientId, const nsAString& aIccId);
+  Icc(nsPIDOMWindow* aWindow, nsIIcc* aHandler, nsIIccInfo* aIccInfo);
 
   void
   Shutdown();
@@ -27,13 +39,16 @@ public:
   NotifyEvent(const nsAString& aName);
 
   nsresult
-  NotifyStkEvent(const nsAString& aName, const nsAString& aMessage);
+  NotifyStkEvent(const nsAString& aName, nsIStkProactiveCmd* aStkProactiveCmd);
 
   nsString
   GetIccId()
   {
     return mIccId;
   }
+
+  void
+  UpdateIccInfo(nsIIccInfo* aIccInfo);
 
   nsPIDOMWindow*
   GetParentObject() const
@@ -43,14 +58,14 @@ public:
 
   // WrapperCache
   virtual JSObject*
-  WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   // MozIcc WebIDL
-  already_AddRefed<nsIDOMMozIccInfo>
-  GetIccInfo() const;
-
   void
-  GetCardState(nsString& aCardState) const;
+  GetIccInfo(Nullable<OwningMozIccInfoOrMozGsmIccInfoOrMozCdmaIccInfo>& aIccInfo) const;
+
+  Nullable<IccCardState>
+  GetCardState() const;
 
   void
   SendStkResponse(const JSContext* aCx, JS::Handle<JS::Value> aCommand,
@@ -69,40 +84,30 @@ public:
                        ErrorResult& aRv);
 
   already_AddRefed<DOMRequest>
-  GetCardLock(const nsAString& aLockType, ErrorResult& aRv);
+  GetCardLock(IccLockType aLockType, ErrorResult& aRv);
 
   already_AddRefed<DOMRequest>
-  UnlockCardLock(const JSContext* aCx, JS::Handle<JS::Value> aInfo,
-                 ErrorResult& aRv);
+  UnlockCardLock(const IccUnlockCardLockOptions& aOptions, ErrorResult& aRv);
 
   already_AddRefed<DOMRequest>
-  SetCardLock(const JSContext* aCx, JS::Handle<JS::Value> aInfo,
-              ErrorResult& aRv);
+  SetCardLock(const IccSetCardLockOptions& aOptions, ErrorResult& aRv);
 
   already_AddRefed<DOMRequest>
-  GetCardLockRetryCount(const nsAString& aLockType, ErrorResult& aRv);
+  GetCardLockRetryCount(IccLockType aLockType, ErrorResult& aRv);
 
   already_AddRefed<DOMRequest>
-  ReadContacts(const nsAString& aContactType, ErrorResult& aRv);
+  ReadContacts(IccContactType aContactType, ErrorResult& aRv);
 
   already_AddRefed<DOMRequest>
-  UpdateContact(const JSContext* aCx, const nsAString& aContactType,
-                JS::Handle<JS::Value> aContact, const nsAString& aPin2,
-                ErrorResult& aRv);
+  UpdateContact(IccContactType aContactType, mozContact& aContact,
+                const nsAString& aPin2, ErrorResult& aRv);
 
   already_AddRefed<DOMRequest>
-  IccOpenChannel(const nsAString& aAid, ErrorResult& aRv);
-
-  already_AddRefed<DOMRequest>
-  IccExchangeAPDU(const JSContext* aCx, int32_t aChannel,
-                  JS::Handle<JS::Value> aApdu, ErrorResult& aRv);
-
-  already_AddRefed<DOMRequest>
-  IccCloseChannel(int32_t aChannel, ErrorResult& aRv);
-
-  already_AddRefed<DOMRequest>
-  MatchMvno(const nsAString& aMvnoType, const nsAString& aMatchData,
+  MatchMvno(IccMvnoType aMvnoType, const nsAString& aMatchData,
             ErrorResult& aRv);
+
+  already_AddRefed<Promise>
+  GetServiceState(IccService aService, ErrorResult& aRv);
 
   IMPL_EVENT_HANDLER(iccinfochange)
   IMPL_EVENT_HANDLER(cardstatechange)
@@ -110,12 +115,17 @@ public:
   IMPL_EVENT_HANDLER(stksessionend)
 
 private:
+  // Put definition of the destructor in Icc.cpp to ensure forward declaration
+  // of nsIIccProvider, nsIIcc for the auto-generated .cpp file (i.e.,
+  // MozIccManagerBinding.cpp) that includes this header.
+  ~Icc();
+
   bool mLive;
-  uint32_t mClientId;
   nsString mIccId;
-  // mProvider is a xpcom service and will be released at shutdown, so it
-  // doesn't need to be cycle collected.
-  nsCOMPtr<nsIIccProvider> mProvider;
+  // mHandler will be released at Shutdown(), so there is no need to join cycle
+  // collection.
+  nsCOMPtr<nsIIcc> mHandler;
+  Nullable<OwningMozIccInfoOrMozGsmIccInfoOrMozCdmaIccInfo> mIccInfo;
 };
 
 } // namespace dom

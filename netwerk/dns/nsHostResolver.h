@@ -9,11 +9,12 @@
 #include "nscore.h"
 #include "prclist.h"
 #include "prnetdb.h"
-#include "pldhash.h"
+#include "PLDHashTable.h"
 #include "mozilla/CondVar.h"
 #include "mozilla/Mutex.h"
 #include "nsISupportsImpl.h"
 #include "nsIDNSListener.h"
+#include "nsIDNSService.h"
 #include "nsString.h"
 #include "nsTArray.h"
 #include "GetAddrInfo.h"
@@ -37,6 +38,7 @@ struct nsHostKey
     const char *host;
     uint16_t    flags;
     uint16_t    af;
+    const char *netInterface;
 };
 
 /**
@@ -71,7 +73,7 @@ public:
      */
     Mutex        addr_info_lock;
     int          addr_info_gencnt; /* generation count of |addr_info| */
-    mozilla::net::AddrInfo *addr_info;
+    RefPtr<mozilla::net::AddrInfo> addr_info;
     mozilla::net::NetAddr  *addr;
     bool         negative;   /* True if this record is a cache of a failed lookup.
                                 Negative cache entries are valid just like any other
@@ -101,6 +103,7 @@ public:
     // mValidEnd, and mGraceStart). valid and grace are durations in seconds.
     void SetExpiration(const mozilla::TimeStamp& now, unsigned int valid,
                        unsigned int grace);
+    void CopyExpirationTimesAndFlagsFrom(const nsHostRecord *aFromHostRecord);
 
     // Checks if the record is usable (not expired and has a value)
     bool HasUsableResult(const mozilla::TimeStamp& now, uint16_t queryFlags = 0) const;
@@ -118,6 +121,9 @@ public:
         DNS_PRIORITY_HIGH,
     };
     static DnsPriority GetPriority(uint16_t aFlags);
+
+    bool RemoveOrRefresh(); // Mark records currently being resolved as needed
+                            // to resolve again.
 
 private:
     friend class nsHostResolver;
@@ -140,6 +146,10 @@ private:
     // The number of times ReportUnusable() has been called in the record's
     // lifetime.
     uint32_t mBlacklistedCount;
+
+    // when the results from this resolve is returned, it is not to be
+    // trusted, but instead a new resolve must be made!
+    bool    mResolveAgain;
 
     // a list of addresses associated with this record that have been reported
     // as unusable. the list is kept as a set of strings to make it independent
@@ -233,6 +243,7 @@ public:
     nsresult ResolveHost(const char            *hostname,
                          uint16_t               flags,
                          uint16_t               af,
+                         const char            *netInterface,
                          nsResolveHostCallback *callback);
 
     /**
@@ -244,6 +255,7 @@ public:
     void DetachCallback(const char            *hostname,
                         uint16_t               flags,
                         uint16_t               af,
+                        const char            *netInterface,
                         nsResolveHostCallback *callback,
                         nsresult               status);
 
@@ -257,6 +269,7 @@ public:
     void CancelAsyncRequest(const char            *host,
                             uint16_t               flags,
                             uint16_t               af,
+                            const char            *netInterface,
                             nsIDNSListener        *aListener,
                             nsresult               status);
     /**
@@ -267,16 +280,23 @@ public:
      *       to the flags defined on nsIDNSService.
      */
     enum {
-        RES_BYPASS_CACHE = 1 << 0,
-        RES_CANON_NAME   = 1 << 1,
-        RES_PRIORITY_MEDIUM   = 1 << 2,
-        RES_PRIORITY_LOW  = 1 << 3,
-        RES_SPECULATE     = 1 << 4,
-        //RES_DISABLE_IPV6 = 1 << 5, // Not used
-        RES_OFFLINE       = 1 << 6
+        RES_BYPASS_CACHE = nsIDNSService::RESOLVE_BYPASS_CACHE,
+        RES_CANON_NAME = nsIDNSService::RESOLVE_CANONICAL_NAME,
+        RES_PRIORITY_MEDIUM = nsIDNSService::RESOLVE_PRIORITY_MEDIUM,
+        RES_PRIORITY_LOW = nsIDNSService::RESOLVE_PRIORITY_LOW,
+        RES_SPECULATE = nsIDNSService::RESOLVE_SPECULATE,
+        //RES_DISABLE_IPV6 = nsIDNSService::RESOLVE_DISABLE_IPV6, // Not used
+        RES_OFFLINE = nsIDNSService::RESOLVE_OFFLINE,
+        //RES_DISABLE_IPv4 = nsIDNSService::RESOLVE_DISABLE_IPV4, // Not Used
+        RES_ALLOW_NAME_COLLISION = nsIDNSService::RESOLVE_ALLOW_NAME_COLLISION
     };
 
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
+
+    /**
+     * Flush the DNS cache.
+     */
+    void FlushCache();
 
 private:
    explicit nsHostResolver(uint32_t maxCacheEntries,
@@ -287,7 +307,13 @@ private:
     nsresult Init();
     nsresult IssueLookup(nsHostRecord *);
     bool     GetHostToLookup(nsHostRecord **m);
-    void     OnLookupComplete(nsHostRecord *, nsresult, mozilla::net::AddrInfo *);
+
+    enum LookupStatus {
+      LOOKUP_OK,
+      LOOKUP_RESOLVEAGAIN,
+    };
+
+    LookupStatus OnLookupComplete(nsHostRecord *, nsresult, mozilla::net::AddrInfo *);
     void     DeQueue(PRCList &aQ, nsHostRecord **aResult);
     void     ClearPendingQueue(PRCList *aPendingQueue);
     nsresult ConditionallyCreateThread(nsHostRecord *rec);
@@ -297,22 +323,6 @@ private:
      * period with a failed connect or all cached entries are negative.
      */
     nsresult ConditionallyRefreshRecord(nsHostRecord *rec, const char *host);
-    
-#if TTL_AVAILABLE
-    // For DNS TTL Experiments.
-
-    // Internal function which initializes the TTL experiment pref to a random
-    // value corresponding to one of the TTL experiment variants. To be
-    // dispatched by DnsExperimentChanged to the main thread, since setting
-    // prefs can't be done in the context of a "pref changed" callback.
-    void DnsExperimentChangedInternal();
-
-    // Callback to be registered with Preferences::RegisterCallback.
-    static void DnsExperimentChanged(const char* aPref, void* aClosure);
-
-    // Dispatched to the main thread to ensure that rand is seeded.
-    void InitCRandom();
-#endif
 
     static void  MoveQueue(nsHostRecord *aRec, PRCList &aDestQ);
     
@@ -333,20 +343,21 @@ private:
     uint32_t      mDefaultGracePeriod; // granularity seconds
     mutable Mutex mLock;    // mutable so SizeOfIncludingThis can be const
     CondVar       mIdleThreadCV;
-    uint32_t      mNumIdleThreads;
-    uint32_t      mThreadCount;
-    uint32_t      mActiveAnyThreadCount;
     PLDHashTable  mDB;
     PRCList       mHighQ;
     PRCList       mMediumQ;
     PRCList       mLowQ;
     PRCList       mEvictionQ;
     uint32_t      mEvictionQSize;
-    uint32_t      mPendingCount;
     PRTime        mCreationTime;
-    bool          mShutdown;
     PRIntervalTime mLongIdleTimeout;
     PRIntervalTime mShortIdleTimeout;
+
+    mozilla::Atomic<bool>     mShutdown;
+    mozilla::Atomic<uint32_t> mNumIdleThreads;
+    mozilla::Atomic<uint32_t> mThreadCount;
+    mozilla::Atomic<uint32_t> mActiveAnyThreadCount;
+    mozilla::Atomic<uint32_t> mPendingCount;
 
     // Set the expiration time stamps appropriately.
     void PrepareRecordExpiration(nsHostRecord* rec) const;

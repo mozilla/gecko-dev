@@ -1,0 +1,78 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>MSE: verify correct frames selected for given position</title>
+  <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script type="text/javascript" src="mediasource.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+</head>
+<body>
+<pre id="test">
+<script class="testbody" type="text/javascript">
+
+SimpleTest.waitForExplicitFinish();
+
+var updateCount = 0;
+
+    var targets = [{ currentTime: 3, videoWidth: 160, videoHeight: 120 },
+                   { currentTime: 2, videoWidth: 160, videoHeight: 120 },
+                   { currentTime: 0, videoWidth: 320, videoHeight: 240 }];
+    var target;
+
+var lowResBuffer;
+runWithMSE(function (ms, v) {
+  ms.addEventListener("sourceopen", function () {
+    var sb = ms.addSourceBuffer("video/webm");
+
+    fetchWithXHR("seek.webm")
+    .then(function (arrayBuffer) {
+      var p = once(v, 'loadedmetadata');
+      // Append entire file covering range [0, 4].
+      sb.appendBuffer(new Uint8Array(arrayBuffer));
+      return p;
+    }).then(function() {
+      is(v.currentTime, 0, "currentTime has correct initial value");
+      is(v.videoWidth, 320, "videoWidth has correct initial value");
+      is(v.videoHeight, 240, "videoHeight has correct initial value");
+      return fetchWithXHR("seek_lowres.webm");
+    }).then(function (arrayBuffer) {
+      // Append initialization segment.
+      var p = once(sb, 'updateend');
+      info("Appending low-res init segment");
+      sb.appendBuffer(new Uint8Array(arrayBuffer, 0, 438));
+      lowResBuffer = arrayBuffer;
+      return p;
+    }).then(function() {
+      var p = once(sb, 'updateend');
+      info("Appending low-res range [2,4]");
+      // Append media segment covering range [2, 4].
+      sb.appendBuffer(new Uint8Array(lowResBuffer, 51003));
+      return p;
+    }).then(function() {
+      ms.endOfStream();
+      var p = Promise.all([once(v, 'seeked'), once(v, 'resize')]);
+      info("Seeking to t=3");
+      v.currentTime = 3;
+      return p;
+    }).then(function() {
+      is(v.currentTime, 3, "Video currentTime at target");
+      is(v.videoWidth, 160, "videoWidth has correct low-res value");
+      is(v.videoHeight, 120, "videoHeight has correct low-res value");
+
+      var p = Promise.all([once(v, 'seeked'), once(v, 'resize')]);
+      info("Seeking to t=1");
+      v.currentTime = 1;
+      return p;
+    }).then(function() {
+      is(v.currentTime, 1, "Video currentTime at target");
+      is(v.videoWidth, 320, "videoWidth has correct high-res value");
+      is(v.videoHeight, 240, "videoHeight has correct high-res value");
+      SimpleTest.finish();
+    });
+  });
+});
+
+</script>
+</pre>
+</body>
+</html>

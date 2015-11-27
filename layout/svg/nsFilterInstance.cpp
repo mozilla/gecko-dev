@@ -10,11 +10,13 @@
 #include "mozilla/UniquePtr.h"
 
 // Keep others in (case-insensitive) order:
+#include "gfx2DGlue.h"
+#include "gfxContext.h"
 #include "gfxPlatform.h"
 #include "gfxUtils.h"
 #include "mozilla/gfx/Helpers.h"
+#include "mozilla/gfx/PatternHelpers.h"
 #include "nsISVGChildFrame.h"
-#include "nsRenderingContext.h"
 #include "nsCSSFilterInstance.h"
 #include "nsSVGFilterInstance.h"
 #include "nsSVGFilterPaintCallback.h"
@@ -32,7 +34,7 @@ nsFilterInstance::GetFilterDescription(nsIContent* aFilteredElement,
                                        const nsTArray<nsStyleFilter>& aFilterChain,
                                        const UserSpaceMetrics& aMetrics,
                                        const gfxRect& aBBox,
-                                       nsTArray<mozilla::RefPtr<SourceSurface>>& aOutAdditionalImages)
+                                       nsTArray<RefPtr<SourceSurface>>& aOutAdditionalImages)
 {
   gfxMatrix unused; // aPaintTransform arg not used since we're not painting
   nsFilterInstance instance(nullptr, aFilteredElement, aMetrics,
@@ -47,7 +49,7 @@ nsFilterInstance::GetFilterDescription(nsIContent* aFilteredElement,
 static UniquePtr<UserSpaceMetrics>
 UserSpaceMetricsForFrame(nsIFrame* aFrame)
 {
-  if (aFrame->GetContent()->IsSVG()) {
+  if (aFrame->GetContent()->IsSVGElement()) {
     nsSVGElement* element = static_cast<nsSVGElement*>(aFrame->GetContent());
     return MakeUnique<SVGElementMetrics>(element);
   }
@@ -56,7 +58,7 @@ UserSpaceMetricsForFrame(nsIFrame* aFrame)
 
 nsresult
 nsFilterInstance::PaintFilteredFrame(nsIFrame *aFilteredFrame,
-                                     nsRenderingContext *aContext,
+                                     gfxContext& aContext,
                                      const gfxMatrix& aTransform,
                                      nsSVGFilterPaintCallback *aPaintCallback,
                                      const nsRegion *aDirtyArea)
@@ -69,7 +71,7 @@ nsFilterInstance::PaintFilteredFrame(nsIFrame *aFilteredFrame,
   if (!instance.IsInitialized()) {
     return NS_OK;
   }
-  return instance.Render(aContext->ThebesContext());
+  return instance.Render(&aContext);
 }
 
 nsRegion
@@ -200,6 +202,16 @@ nsFilterInstance::nsFilterInstance(nsIFrame *aTargetFrame,
     mFilterSpaceToFrameSpaceInCSSPxTransform;
   mFrameSpaceInCSSPxToFilterSpaceTransform.Invert();
 
+  nsIntRect targetBounds;
+  if (aPreFilterVisualOverflowRectOverride) {
+    targetBounds =
+      FrameSpaceToFilterSpace(aPreFilterVisualOverflowRectOverride);
+  } else if (mTargetFrame) {
+    nsRect preFilterVOR = mTargetFrame->GetPreEffectsVisualOverflowRect();
+    targetBounds = FrameSpaceToFilterSpace(&preFilterVOR);
+  }
+  mTargetBounds.UnionRect(mTargetBBoxInFilterSpace, targetBounds);
+
   // Build the filter graph.
   rv = BuildPrimitives(aFilterChain);
   if (NS_FAILED(rv)) {
@@ -214,16 +226,6 @@ nsFilterInstance::nsFilterInstance(nsIFrame *aTargetFrame,
   // Convert the passed in rects from frame space to filter space:
   mPostFilterDirtyRegion = FrameSpaceToFilterSpace(aPostFilterDirtyRegion);
   mPreFilterDirtyRegion = FrameSpaceToFilterSpace(aPreFilterDirtyRegion);
-
-  nsIntRect targetBounds;
-  if (aPreFilterVisualOverflowRectOverride) {
-    targetBounds =
-      FrameSpaceToFilterSpace(aPreFilterVisualOverflowRectOverride);
-  } else if (mTargetFrame) {
-    nsRect preFilterVOR = mTargetFrame->GetPreEffectsVisualOverflowRect();
-    targetBounds = FrameSpaceToFilterSpace(&preFilterVOR);
-  }
-  mTargetBounds.UnionRect(mTargetBBoxInFilterSpace, targetBounds);
 
   mInitialized = true;
 }
@@ -316,7 +318,7 @@ nsFilterInstance::BuildPrimitivesForFilter(const nsStyleFilter& aFilter)
     mTargetFrame ? mTargetFrame->StyleColor()->mColor : NS_RGB(0,0,0);
 
   nsCSSFilterInstance cssFilterInstance(aFilter, shadowFallbackColor,
-                                        mTargetBBoxInFilterSpace,
+                                        mTargetBounds,
                                         mFrameSpaceInCSSPxToFilterSpaceTransform);
   return cssFilterInstance.BuildPrimitives(mPrimitiveDescriptions);
 }
@@ -351,7 +353,7 @@ nsFilterInstance::BuildSourcePaint(SourceInfo *aSource,
 
   RefPtr<DrawTarget> offscreenDT =
     gfxPlatform::GetPlatform()->CreateOffscreenContentDrawTarget(
-      ToIntSize(neededRect.Size()), SurfaceFormat::B8G8R8A8);
+      neededRect.Size(), SurfaceFormat::B8G8R8A8);
   if (!offscreenDT) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -362,24 +364,26 @@ nsFilterInstance::BuildSourcePaint(SourceInfo *aSource,
   }
 
   if (!mPaintTransform.IsSingular()) {
-    nsRefPtr<gfxContext> gfx = new gfxContext(offscreenDT);
+    RefPtr<gfxContext> gfx = new gfxContext(offscreenDT);
     gfx->Save();
     gfx->Multiply(mPaintTransform *
                   deviceToFilterSpace *
                   gfxMatrix::Translation(-neededRect.TopLeft()));
-    gfx->Rectangle(FilterSpaceToUserSpace(neededRect));
-    if ((aSource == &mFillPaint &&
-         nsSVGUtils::SetupCairoFillPaint(mTargetFrame, gfx)) ||
-        (aSource == &mStrokePaint &&
-         nsSVGUtils::SetupCairoStrokePaint(mTargetFrame, gfx))) {
-      gfx->Fill();
+    GeneralPattern pattern;
+    if (aSource == &mFillPaint) {
+      nsSVGUtils::MakeFillPatternFor(mTargetFrame, gfx, &pattern);
+    } else if (aSource == &mStrokePaint) {
+      nsSVGUtils::MakeStrokePatternFor(mTargetFrame, gfx, &pattern);
+    }
+    if (pattern.GetPattern()) {
+      offscreenDT->FillRect(ToRect(FilterSpaceToUserSpace(ThebesRect(neededRect))),
+                            pattern);
     }
     gfx->Restore();
   }
 
-
   aSource->mSourceSurface = offscreenDT->Snapshot();
-  aSource->mSurfaceRect = ToIntRect(neededRect);
+  aSource->mSurfaceRect = neededRect;
 
   return NS_OK;
 }
@@ -413,12 +417,12 @@ nsFilterInstance::BuildSourceImage(DrawTarget* aTargetDT)
 
   RefPtr<DrawTarget> offscreenDT =
     gfxPlatform::GetPlatform()->CreateOffscreenContentDrawTarget(
-      ToIntSize(neededRect.Size()), SurfaceFormat::B8G8R8A8);
+      neededRect.Size(), SurfaceFormat::B8G8R8A8);
   if (!offscreenDT) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  gfxRect r = FilterSpaceToUserSpace(neededRect);
+  gfxRect r = FilterSpaceToUserSpace(ThebesRect(neededRect));
   r.RoundOut();
   nsIntRect dirty;
   if (!gfxUtils::GfxRectToIntRect(r, &dirty))
@@ -439,17 +443,15 @@ nsFilterInstance::BuildSourceImage(DrawTarget* aTargetDT)
   if (!deviceToFilterSpace.Invert()) {
     return NS_ERROR_FAILURE;
   }
-  nsRefPtr<gfxContext> ctx = new gfxContext(offscreenDT);
+  RefPtr<gfxContext> ctx = new gfxContext(offscreenDT);
   ctx->SetMatrix(
     ctx->CurrentMatrix().Translate(-neededRect.TopLeft()).
                          PreMultiply(deviceToFilterSpace));
 
-  nsRefPtr<nsRenderingContext> tmpCtx(new nsRenderingContext());
-  tmpCtx->Init(mTargetFrame->PresContext()->DeviceContext(), ctx);
-  mPaintCallback->Paint(tmpCtx, mTargetFrame, mPaintTransform, &dirty);
+  mPaintCallback->Paint(*ctx, mTargetFrame, mPaintTransform, &dirty);
 
   mSourceGraphic.mSourceSurface = offscreenDT->Snapshot();
-  mSourceGraphic.mSurfaceRect = ToIntRect(neededRect);
+  mSourceGraphic.mSurfaceRect = neededRect;
 
   return NS_OK;
 }
@@ -468,7 +470,7 @@ nsFilterInstance::Render(gfxContext* aContext)
 
   RefPtr<DrawTarget> dt = aContext->GetDrawTarget();
 
-  AutoSaveTransform autoSR(dt);
+  AutoRestoreTransform autoRestoreTransform(dt);
   Matrix newTM = ToMatrix(ctm).PreTranslate(filterRect.x, filterRect.y) * dt->GetTransform();
   dt->SetTransform(newTM);
 
@@ -482,7 +484,7 @@ nsFilterInstance::Render(gfxContext* aContext)
     return rv;
 
   FilterSupport::RenderFilterDescription(
-    dt, mFilterDescription, ToRect(filterRect),
+    dt, mFilterDescription, IntRectToRect(filterRect),
     mSourceGraphic.mSourceSurface, mSourceGraphic.mSurfaceRect,
     mFillPaint.mSourceSurface, mFillPaint.mSurfaceRect,
     mStrokePaint.mSourceSurface, mStrokePaint.mSurfaceRect,
@@ -527,9 +529,9 @@ nsFilterInstance::OutputFilterSpaceBounds() const
     return nsIntRect();
 
   nsIntRect bounds =
-    ThebesIntRect(mPrimitiveDescriptions[numPrimitives - 1].PrimitiveSubregion());
+    mPrimitiveDescriptions[numPrimitives - 1].PrimitiveSubregion();
   bool overflow;
-  gfxIntSize surfaceSize =
+  IntSize surfaceSize =
     nsSVGUtils::ConvertToSurfaceSize(bounds.Size(), &overflow);
   bounds.SizeTo(surfaceSize);
   return bounds;

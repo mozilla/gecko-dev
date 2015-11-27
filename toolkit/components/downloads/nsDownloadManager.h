@@ -38,10 +38,10 @@ class nsDownload;
 #include "nsDownloadScanner.h"
 #endif
 
-class nsDownloadManager : public nsIDownloadManager,
-                          public nsINavHistoryObserver,
-                          public nsIObserver,
-                          public nsSupportsWeakReference
+class nsDownloadManager final : public nsIDownloadManager,
+                                public nsINavHistoryObserver,
+                                public nsIObserver,
+                                public nsSupportsWeakReference
 {
 public:
   NS_DECL_ISUPPORTS
@@ -264,7 +264,7 @@ private:
   friend class nsDownload;
 };
 
-class nsDownload MOZ_FINAL : public nsIDownload
+class nsDownload final : public nsIDownload
 {
 public:
   NS_DECL_NSIWEBPROGRESSLISTENER
@@ -306,6 +306,11 @@ protected:
    * dummy target and renaming the temporary.
    */
   nsresult MoveTempToTarget();
+
+  /**
+   * Set the target file permissions to be appropriate.
+   */
+  nsresult FixTargetPermissions();
 
   /**
    * Update the start time which also implies the last update time is the same.

@@ -6,6 +6,7 @@
 
 #include "nsXPCOM.h"
 #include "nsXULAppAPI.h"
+#include "nsAutoPtr.h"
 
 // FIXME/cjones testing
 #if !defined(OS_WIN)
@@ -21,15 +22,17 @@
 #include "nsSetDllDirectory.h"
 #endif
 
-#if defined(XP_WIN) && defined(MOZ_SANDBOX)
-#include "sandbox/chromium/base/basictypes.h"
-#include "sandbox/win/src/sandbox.h"
-#include "sandbox/win/src/sandbox_factory.h"
-#include "mozilla/sandboxTarget.h"
+#include "GMPLoader.h"
 
-#if defined(MOZ_CONTENT_SANDBOX)
-#include "mozilla/warnonlysandbox/wosCallbacks.h"
+#if defined(XP_WIN) && defined(MOZ_SANDBOX)
+#include "mozilla/sandboxTarget.h"
+#include "mozilla/sandboxing/loggingCallbacks.h"
+#include "sandbox/win/src/sandbox_factory.h"
 #endif
+
+#if defined(XP_LINUX) && defined(MOZ_GMP_SANDBOX)
+#include "mozilla/Sandbox.h"
+#include "mozilla/SandboxInfo.h"
 #endif
 
 #ifdef MOZ_WIDGET_GONK
@@ -49,7 +52,11 @@
        "Gecko:MozillaRntimeMain", __VA_ARGS__)) \
      : (void)0 )
 
-#endif
+# ifdef MOZ_CONTENT_SANDBOX
+# include "mozilla/Sandbox.h"
+# endif
+
+#endif // MOZ_WIDGET_GONK
 
 #ifdef MOZ_NUWA_PROCESS
 #include <binder/ProcessState.h>
@@ -74,15 +81,70 @@ InitializeBinder(void *aDummy) {
 
 #if defined(XP_WIN) && defined(MOZ_SANDBOX)
 static bool gIsSandboxEnabled = false;
-void StartSandboxCallback()
-{
-    if (gIsSandboxEnabled) {
-        sandbox::TargetServices* target_service =
-            sandbox::SandboxFactory::GetTargetServices();
-        target_service->LowerToken();
+
+class WinSandboxStarter : public mozilla::gmp::SandboxStarter {
+public:
+    virtual bool Start(const char *aLibPath) override {
+        if (gIsSandboxEnabled) {
+            sandbox::SandboxFactory::GetTargetServices()->LowerToken();
+        }
+        return true;
     }
-}
+};
 #endif
+
+#if defined(XP_LINUX) && defined(MOZ_GMP_SANDBOX)
+class LinuxSandboxStarter : public mozilla::gmp::SandboxStarter {
+    LinuxSandboxStarter() { }
+public:
+    static SandboxStarter* Make() {
+        if (mozilla::SandboxInfo::Get().CanSandboxMedia()) {
+            return new LinuxSandboxStarter();
+        } else {
+            // Sandboxing isn't possible, but the parent has already
+            // checked that this plugin doesn't require it.  (Bug 1074561)
+            return nullptr;
+        }
+    }
+    virtual bool Start(const char *aLibPath) override {
+        mozilla::SetMediaPluginSandbox(aLibPath);
+        return true;
+    }
+};
+#endif
+
+#if defined(XP_MACOSX) && defined(MOZ_GMP_SANDBOX)
+class MacSandboxStarter : public mozilla::gmp::SandboxStarter {
+public:
+    virtual bool Start(const char *aLibPath) override {
+      std::string err;
+      bool rv = mozilla::StartMacSandbox(mInfo, err);
+      if (!rv) {
+        fprintf(stderr, "sandbox_init() failed! Error \"%s\"\n", err.c_str());
+      }
+      return rv;
+    }
+    virtual void SetSandboxInfo(MacSandboxInfo* aSandboxInfo) override {
+      mInfo = *aSandboxInfo;
+    }
+private:
+  MacSandboxInfo mInfo;
+};
+#endif
+
+mozilla::gmp::SandboxStarter*
+MakeSandboxStarter()
+{
+#if defined(XP_WIN) && defined(MOZ_SANDBOX)
+    return new WinSandboxStarter();
+#elif defined(XP_LINUX) && defined(MOZ_GMP_SANDBOX)
+    return LinuxSandboxStarter::Make();
+#elif defined(XP_MACOSX) && defined(MOZ_GMP_SANDBOX)
+    return new MacSandboxStarter();
+#else
+    return nullptr;
+#endif
+}
 
 int
 content_process_main(int argc, char* argv[])
@@ -92,7 +154,6 @@ content_process_main(int argc, char* argv[])
     if (argc < 1) {
       return 3;
     }
-    XRE_SetProcessType(argv[--argc]);
 
     bool isNuwa = false;
     for (int i = 1; i < argc; i++) {
@@ -102,10 +163,40 @@ content_process_main(int argc, char* argv[])
 #endif
     }
 
+#if defined(XP_WIN) && defined(MOZ_SANDBOX)
+    if (gIsSandboxEnabled) {
+        sandbox::TargetServices* target_service =
+            sandbox::SandboxFactory::GetTargetServices();
+        if (!target_service) {
+            return 1;
+        }
+
+        sandbox::ResultCode result = target_service->Init();
+        if (result != sandbox::SBOX_ALL_OK) {
+           return 2;
+        }
+
+        mozilla::SandboxTarget::Instance()->SetTargetServices(target_service);
+        mozilla::sandboxing::PrepareForLogging();
+    }
+#endif
+
+    XRE_SetProcessType(argv[--argc]);
+
 #ifdef MOZ_NUWA_PROCESS
     if (isNuwa) {
         PrepareNuwaProcess();
     }
+#endif
+
+#if defined(XP_LINUX) && defined(MOZ_SANDBOX)
+    // This has to happen while we're still single-threaded, and on
+    // B2G that means before the Android Binder library is
+    // initialized.  Additional special handling is needed for Nuwa:
+    // the Nuwa process itself needs to be unsandboxed, and the same
+    // single-threadedness condition applies to its children; see also
+    // AfterNuwaFork().
+    mozilla::SandboxEarlyInit(XRE_GetProcessType(), isNuwa);
 #endif
 
 #ifdef MOZ_WIDGET_GONK
@@ -133,29 +224,17 @@ content_process_main(int argc, char* argv[])
         mozilla::SanitizeEnvironmentVariables();
         SetDllDirectory(L"");
     }
-
-#ifdef MOZ_SANDBOX
-    if (gIsSandboxEnabled) {
-        sandbox::TargetServices* target_service =
-            sandbox::SandboxFactory::GetTargetServices();
-        if (!target_service) {
-            return 1;
-        }
-
-        sandbox::ResultCode result = target_service->Init();
-        if (result != sandbox::SBOX_ALL_OK) {
-           return 2;
-        }
-        mozilla::SandboxTarget::Instance()->SetStartSandboxCallback(StartSandboxCallback);
-
-#if defined(MOZ_CONTENT_SANDBOX)
-        mozilla::warnonlysandbox::PrepareForInit();
 #endif
+    nsAutoPtr<mozilla::gmp::GMPLoader> loader;
+#if !defined(MOZ_WIDGET_ANDROID) && !defined(MOZ_WIDGET_GONK)
+    // On desktop, the GMPLoader lives in plugin-container, so that its
+    // code can be covered by an EME/GMP vendor's voucher.
+    nsAutoPtr<mozilla::gmp::SandboxStarter> starter(MakeSandboxStarter());
+    if (XRE_GetProcessType() == GeckoProcessType_GMPlugin) {
+        loader = mozilla::gmp::CreateGMPLoader(starter);
     }
 #endif
-#endif
-
-    nsresult rv = XRE_InitChildProcess(argc, argv);
+    nsresult rv = XRE_InitChildProcess(argc, argv, loader);
     NS_ENSURE_SUCCESS(rv, 1);
 
     return 0;

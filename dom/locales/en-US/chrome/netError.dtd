@@ -81,24 +81,32 @@
 <p>Website owners who believe their site has been reported as an attack site in error may <a href='http://www.stopbadware.org/home/reviewinfo' >request a review</a>.</p>
 ">
 
+<!ENTITY unwantedBlocked.title "Suspected Unwanted Software Site!">
+<!ENTITY unwantedBlocked.longDesc "
+<p>Unwanted software pages try to install software that can be deceptive and affect your system in unexpected ways.</p>
+">
+
 <!ENTITY phishingBlocked.title "Suspected Web Forgery!">
 <!ENTITY phishingBlocked.longDesc "
 <p>Entering any personal information on this page may result in identity theft or other fraud.</p>
 <p>These types of web forgeries are used in scams known as phishing attacks, in which fraudulent web pages and emails are used to imitate sources you may trust.</p>
 ">
 
-<!ENTITY cspFrameAncestorBlocked.title "Blocked by Content Security Policy">
-<!ENTITY cspFrameAncestorBlocked.longDesc "<p>The browser prevented this page from loading in this way because the page has a content security policy that disallows it.</p>">
+<!ENTITY forbiddenBlocked.title "Forbidden Site">
+<!ENTITY forbiddenBlocked.longDesc "<p>The browser prevented this page from loading because it is configured to block it.</p>
+">
+
+<!ENTITY securityOverride.linkText "Or you can add an exception…">
+<!ENTITY securityOverride.warningContent "
+<p>You should not add an exception if you are using an internet connection that you do not trust completely or if you are not used to seeing a warning for this server.</p>
+<p>If you still wish to add an exception for this site, you can do so in your advanced encryption settings.</p>
+">
+
+<!ENTITY cspBlocked.title "Blocked by Content Security Policy">
+<!ENTITY cspBlocked.longDesc "<p>The browser prevented this page from loading in this way because the page has a content security policy that disallows it.</p>">
 
 <!ENTITY corruptedContentError.title "Corrupted Content Error">
 <!ENTITY corruptedContentError.longDesc "<p>The page you are trying to view cannot be shown because an error in the data transmission was detected.</p><ul><li>Please contact the website owners to inform them of this problem.</li></ul>">
 
 <!ENTITY remoteXUL.title "Remote XUL">
 <!ENTITY remoteXUL.longDesc "<p><ul><li>Please contact the website owners to inform them of this problem.</li></ul></p>">
-
-<!-- Include app-specific error messages - do not change this in localization!
-     Some applications might override netErrorApp.dtd with their specific version,
-     this inclusion needs to be intact for that approach to work correctly.
-     Please, try to keep this at the end of the file. -->
-<!ENTITY % netErrorAppDTD SYSTEM "chrome://global/locale/netErrorApp.dtd">
-%netErrorAppDTD;

@@ -16,7 +16,7 @@ static uint32_t psize = 0;
 static uint32_t max_stack = 0;
 
 static void
-reset(JSContext *cx)
+reset(JSContext* cx)
 {
     psize = max_stack = 0;
     memset(pstack, 0, sizeof(pstack));
@@ -26,19 +26,18 @@ reset(JSContext *cx)
 }
 
 static const JSClass ptestClass = {
-    "Prof", 0, JS_PropertyStub, JS_DeletePropertyStub, JS_PropertyStub,
-    JS_StrictPropertyStub, JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub
+    "Prof", 0
 };
 
 static bool
-test_fn(JSContext *cx, unsigned argc, jsval *vp)
+test_fn(JSContext* cx, unsigned argc, JS::Value* vp)
 {
     max_stack = psize;
     return true;
 }
 
 static bool
-test_fn2(JSContext *cx, unsigned argc, jsval *vp)
+test_fn2(JSContext* cx, unsigned argc, JS::Value* vp)
 {
     JS::RootedValue r(cx);
     JS::RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
@@ -46,24 +45,24 @@ test_fn2(JSContext *cx, unsigned argc, jsval *vp)
 }
 
 static bool
-enable(JSContext *cx, unsigned argc, jsval *vp)
+enable(JSContext* cx, unsigned argc, JS::Value* vp)
 {
     js::EnableRuntimeProfilingStack(cx->runtime(), true);
     return true;
 }
 
 static bool
-disable(JSContext *cx, unsigned argc, jsval *vp)
+disable(JSContext* cx, unsigned argc, JS::Value* vp)
 {
     js::EnableRuntimeProfilingStack(cx->runtime(), false);
     return true;
 }
 
 static bool
-Prof(JSContext* cx, unsigned argc, jsval *vp)
+Prof(JSContext* cx, unsigned argc, JS::Value* vp)
 {
     JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-    JSObject *obj = JS_NewObjectForConstructor(cx, &ptestClass, args);
+    JSObject* obj = JS_NewObjectForConstructor(cx, &ptestClass, args);
     if (!obj)
         return false;
     args.rval().setObject(*obj);
@@ -79,11 +78,11 @@ static const JSFunctionSpec ptestFunctions[] = {
 };
 
 static JSObject*
-initialize(JSContext *cx)
+initialize(JSContext* cx)
 {
     js::SetRuntimeProfilingStack(cx->runtime(), pstack, &psize, 10);
     JS::RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
-    return JS_InitClass(cx, global, js::NullPtr(), &ptestClass, Prof, 0,
+    return JS_InitClass(cx, global, nullptr, &ptestClass, Prof, 0,
                         nullptr, ptestFunctions, nullptr, nullptr);
 }
 

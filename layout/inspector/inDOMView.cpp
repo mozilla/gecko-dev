@@ -27,7 +27,6 @@
 #include "mozilla/Services.h"
 
 #ifdef ACCESSIBILITY
-#include "nsIAccessible.h"
 #include "nsIAccessibilityService.h"
 #endif
 
@@ -334,10 +333,7 @@ inDOMView::GetCellProperties(int32_t row, nsITreeColumn* col,
         services::GetAccessibilityService();
     NS_ENSURE_TRUE(accService, NS_ERROR_FAILURE);
 
-    nsCOMPtr<nsIAccessible> accessible;
-    nsresult rv =
-      accService->GetAccessibleFor(node->node, getter_AddRefs(accessible));
-    if (NS_SUCCEEDED(rv) && accessible)
+    if (accService->HasAccessible(node->node))
       aProps.AppendLiteral(" ACCESSIBLE_NODE");
   }
 #endif
@@ -636,7 +632,8 @@ inDOMView::NodeWillBeDestroyed(const nsINode* aNode)
 void
 inDOMView::AttributeChanged(nsIDocument* aDocument, dom::Element* aElement,
                             int32_t aNameSpaceID, nsIAtom* aAttribute,
-                            int32_t aModType)
+                            int32_t aModType,
+                            const nsAttrValue* aOldValue)
 {
   if (!mTree) {
     return;

@@ -21,7 +21,7 @@
 namespace mozilla {
 namespace dom {
 
-class ImageData MOZ_FINAL : public nsISupports
+class ImageData final : public nsISupports
 {
   ~ImageData()
   {
@@ -73,13 +73,13 @@ public:
     return mData;
   }
 
-  JSObject* WrapObject(JSContext* cx);
+  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto, JS::MutableHandle<JSObject*> aReflector);
 
 private:
   void HoldData();
   void DropData();
 
-  ImageData() MOZ_DELETE;
+  ImageData() = delete;
 
   uint32_t mWidth, mHeight;
   JS::Heap<JSObject*> mData;

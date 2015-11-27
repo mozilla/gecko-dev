@@ -15,10 +15,12 @@
 
 #include "mozilla/GuardObjects.h"
 #include "mozilla/PodOperations.h"
+#include "mozilla/Variant.h"
 
 #include "jscntxt.h"
 #include "jslock.h"
 
+#include "asmjs/AsmJSCompileInputs.h"
 #include "frontend/TokenStream.h"
 #include "jit/Ion.h"
 
@@ -27,9 +29,12 @@ namespace js {
 struct HelperThread;
 struct AsmJSParallelTask;
 struct ParseTask;
+class AsmFunction;
+class FunctionCompileResults;
+struct ModuleCompileInputs;
 namespace jit {
   class IonBuilder;
-}
+} // namespace jit
 
 // Per-process state for off thread work items.
 class GlobalHelperThreadState
@@ -46,11 +51,12 @@ class GlobalHelperThreadState
     typedef Vector<AsmJSParallelTask*, 0, SystemAllocPolicy> AsmJSParallelTaskVector;
     typedef Vector<ParseTask*, 0, SystemAllocPolicy> ParseTaskVector;
     typedef Vector<SourceCompressionTask*, 0, SystemAllocPolicy> SourceCompressionTaskVector;
-    typedef Vector<GCHelperState *, 0, SystemAllocPolicy> GCHelperStateVector;
+    typedef Vector<GCHelperState*, 0, SystemAllocPolicy> GCHelperStateVector;
+    typedef Vector<GCParallelTask*, 0, SystemAllocPolicy> GCParallelTaskVector;
     typedef mozilla::LinkedList<jit::IonBuilder> IonBuilderList;
 
     // List of available threads, or null if the thread state has not been initialized.
-    HelperThread *threads;
+    HelperThread* threads;
 
   private:
     // The lists below are all protected by |lock|.
@@ -87,20 +93,23 @@ class GlobalHelperThreadState
     // Runtimes which have sweeping / allocating work to do.
     GCHelperStateVector gcHelperWorklist_;
 
+    // GC tasks needing to be done in parallel.
+    GCParallelTaskVector gcParallelWorklist_;
+
   public:
-    size_t maxIonCompilationThreads() const {
-        return 1;
-    }
-    size_t maxAsmJSCompilationThreads() const {
-        if (cpuCount < 2)
-            return 2;
-        return cpuCount;
-    }
+    size_t maxIonCompilationThreads() const;
+    size_t maxUnpausedIonCompilationThreads() const;
+    size_t maxAsmJSCompilationThreads() const;
+    size_t maxParseThreads() const;
+    size_t maxCompressionThreads() const;
+    size_t maxGCHelperThreads() const;
+    size_t maxGCParallelThreads() const;
 
     GlobalHelperThreadState();
 
-    void ensureInitialized();
+    bool ensureInitialized();
     void finish();
+    void finishThreads();
 
     void lock();
     void unlock();
@@ -127,55 +136,61 @@ class GlobalHelperThreadState
 
     // Helper method for removing items from the vectors below while iterating over them.
     template <typename T>
-    void remove(T &vector, size_t *index)
+    void remove(T& vector, size_t* index)
     {
         vector[(*index)--] = vector.back();
         vector.popBack();
     }
 
-    IonBuilderVector &ionWorklist() {
-        JS_ASSERT(isLocked());
+    IonBuilderVector& ionWorklist() {
+        MOZ_ASSERT(isLocked());
         return ionWorklist_;
     }
-    IonBuilderVector &ionFinishedList() {
-        JS_ASSERT(isLocked());
+    IonBuilderVector& ionFinishedList() {
+        MOZ_ASSERT(isLocked());
         return ionFinishedList_;
     }
-    IonBuilderList &ionLazyLinkList() {
-        JS_ASSERT(isLocked());
+    IonBuilderList& ionLazyLinkList() {
+        MOZ_ASSERT(TlsPerThreadData.get()->runtimeFromMainThread(),
+                   "Should only be mutated by the main thread.");
         return ionLazyLinkList_;
     }
 
-    AsmJSParallelTaskVector &asmJSWorklist() {
-        JS_ASSERT(isLocked());
+    AsmJSParallelTaskVector& asmJSWorklist() {
+        MOZ_ASSERT(isLocked());
         return asmJSWorklist_;
     }
-    AsmJSParallelTaskVector &asmJSFinishedList() {
-        JS_ASSERT(isLocked());
+    AsmJSParallelTaskVector& asmJSFinishedList() {
+        MOZ_ASSERT(isLocked());
         return asmJSFinishedList_;
     }
 
-    ParseTaskVector &parseWorklist() {
-        JS_ASSERT(isLocked());
+    ParseTaskVector& parseWorklist() {
+        MOZ_ASSERT(isLocked());
         return parseWorklist_;
     }
-    ParseTaskVector &parseFinishedList() {
-        JS_ASSERT(isLocked());
+    ParseTaskVector& parseFinishedList() {
+        MOZ_ASSERT(isLocked());
         return parseFinishedList_;
     }
-    ParseTaskVector &parseWaitingOnGC() {
-        JS_ASSERT(isLocked());
+    ParseTaskVector& parseWaitingOnGC() {
+        MOZ_ASSERT(isLocked());
         return parseWaitingOnGC_;
     }
 
-    SourceCompressionTaskVector &compressionWorklist() {
-        JS_ASSERT(isLocked());
+    SourceCompressionTaskVector& compressionWorklist() {
+        MOZ_ASSERT(isLocked());
         return compressionWorklist_;
     }
 
-    GCHelperStateVector &gcHelperWorklist() {
-        JS_ASSERT(isLocked());
+    GCHelperStateVector& gcHelperWorklist() {
+        MOZ_ASSERT(isLocked());
         return gcHelperWorklist_;
+    }
+
+    GCParallelTaskVector& gcParallelWorklist() {
+        MOZ_ASSERT(isLocked());
+        return gcParallelWorklist_;
     }
 
     bool canStartAsmJSCompile();
@@ -183,24 +198,25 @@ class GlobalHelperThreadState
     bool canStartParseTask();
     bool canStartCompressionTask();
     bool canStartGCHelperTask();
+    bool canStartGCParallelTask();
 
     // Unlike the methods above, the value returned by this method can change
     // over time, even if the helper thread state lock is held throughout.
     bool pendingIonCompileHasSufficientPriority();
 
-    jit::IonBuilder *highestPriorityPendingIonCompile(bool remove = false);
-    HelperThread *lowestPriorityUnpausedIonCompileAtThreshold();
-    HelperThread *highestPriorityPausedIonCompile();
+    jit::IonBuilder* highestPriorityPendingIonCompile(bool remove = false);
+    HelperThread* lowestPriorityUnpausedIonCompileAtThreshold();
+    HelperThread* highestPriorityPausedIonCompile();
 
     uint32_t harvestFailedAsmJSJobs() {
-        JS_ASSERT(isLocked());
+        MOZ_ASSERT(isLocked());
         uint32_t n = numAsmJSFailedJobs;
         numAsmJSFailedJobs = 0;
         return n;
     }
-    void noteAsmJSFailure(void *func) {
+    void noteAsmJSFailure(AsmFunction* func) {
         // Be mindful to signal the main thread after calling this function.
-        JS_ASSERT(isLocked());
+        MOZ_ASSERT(isLocked());
         if (!asmJSFailedFunction)
             asmJSFailedFunction = func;
         numAsmJSFailedJobs++;
@@ -212,13 +228,22 @@ class GlobalHelperThreadState
         numAsmJSFailedJobs = 0;
         asmJSFailedFunction = nullptr;
     }
-    void *maybeAsmJSFailedFunction() const {
+    AsmFunction* maybeAsmJSFailedFunction() const {
         return asmJSFailedFunction;
     }
 
-    JSScript *finishParseTask(JSContext *maybecx, JSRuntime *rt, void *token);
-    bool compressionInProgress(SourceCompressionTask *task);
-    SourceCompressionTask *compressionTaskForSource(ScriptSource *ss);
+    JSScript* finishParseTask(JSContext* maybecx, JSRuntime* rt, void* token);
+    void mergeParseTaskCompartment(JSRuntime* rt, ParseTask* parseTask,
+                                   Handle<GlobalObject*> global,
+                                   JSCompartment* dest);
+    bool compressionInProgress(SourceCompressionTask* task);
+    SourceCompressionTask* compressionTaskForSource(ScriptSource* ss);
+
+    bool hasActiveThreads();
+    void waitForAllThreads();
+
+    template <typename T>
+    bool checkTaskThreadLimit(size_t maxThreads) const;
 
   private:
 
@@ -226,17 +251,15 @@ class GlobalHelperThreadState
      * Lock protecting all mutable shared state accessed by helper threads, and
      * used by all condition variables.
      */
-    PRLock *helperLock;
-#ifdef DEBUG
-    PRThread *lockOwner;
-#endif
+    PRLock* helperLock;
+    mozilla::DebugOnly<mozilla::Atomic<PRThread*>> lockOwner;
 
     /* Condvars for threads waiting/notifying each other. */
-    PRCondVar *consumerWakeup;
-    PRCondVar *producerWakeup;
-    PRCondVar *pauseWakeup;
+    PRCondVar* consumerWakeup;
+    PRCondVar* producerWakeup;
+    PRCondVar* pauseWakeup;
 
-    PRCondVar *whichWakeup(CondVar which) {
+    PRCondVar* whichWakeup(CondVar which) {
         switch (which) {
           case CONSUMER: return consumerWakeup;
           case PRODUCER: return producerWakeup;
@@ -255,21 +278,23 @@ class GlobalHelperThreadState
      * Function index |i| in |Module.function(i)| of first failed AsmJS function.
      * -1 if no function has failed.
      */
-    void *asmJSFailedFunction;
+    AsmFunction* asmJSFailedFunction;
 };
 
-static inline GlobalHelperThreadState &
+static inline GlobalHelperThreadState&
 HelperThreadState()
 {
-    extern GlobalHelperThreadState gHelperThreadState;
-    return gHelperThreadState;
+    extern GlobalHelperThreadState* gHelperThreadState;
+
+    MOZ_ASSERT(gHelperThreadState);
+    return *gHelperThreadState;
 }
 
 /* Individual helper thread, one allocated per core. */
 struct HelperThread
 {
     mozilla::Maybe<PerThreadData> threadData;
-    PRThread *thread;
+    PRThread* thread;
 
     /*
      * Indicate to a thread that it should terminate itself. This is only read
@@ -284,42 +309,83 @@ struct HelperThread
      */
     mozilla::Atomic<bool, mozilla::Relaxed> pause;
 
-    /* Any builder currently being compiled by Ion on this thread. */
-    jit::IonBuilder *ionBuilder;
-
-    /* Any AsmJS data currently being optimized by Ion on this thread. */
-    AsmJSParallelTask *asmData;
-
-    /* Any source being parsed/emitted on this thread. */
-    ParseTask *parseTask;
-
-    /* Any source being compressed on this thread. */
-    SourceCompressionTask *compressionTask;
-
-    /* Any GC state for background sweeping or allocating being performed. */
-    GCHelperState *gcHelperState;
+    /* The current task being executed by this thread, if any. */
+    mozilla::Maybe<mozilla::Variant<jit::IonBuilder*,
+                                    AsmJSParallelTask*,
+                                    ParseTask*,
+                                    SourceCompressionTask*,
+                                    GCHelperState*,
+                                    GCParallelTask*>> currentTask;
 
     bool idle() const {
-        return !ionBuilder && !asmData && !parseTask && !compressionTask && !gcHelperState;
+        return currentTask.isNothing();
+    }
+
+    /* Any builder currently being compiled by Ion on this thread. */
+    jit::IonBuilder* ionBuilder() {
+        return maybeCurrentTaskAs<jit::IonBuilder*>();
+    }
+
+    /* Any AsmJS data currently being optimized by Ion on this thread. */
+    AsmJSParallelTask* asmJSTask() {
+        return maybeCurrentTaskAs<AsmJSParallelTask*>();
+    }
+
+    /* Any source being parsed/emitted on this thread. */
+    ParseTask* parseTask() {
+        return maybeCurrentTaskAs<ParseTask*>();
+    }
+
+    /* Any source being compressed on this thread. */
+    SourceCompressionTask* compressionTask() {
+        return maybeCurrentTaskAs<SourceCompressionTask*>();
+    }
+
+    /* Any GC state for background sweeping or allocating being performed. */
+    GCHelperState* gcHelperTask() {
+        return maybeCurrentTaskAs<GCHelperState*>();
+    }
+
+    /* State required to perform a GC parallel task. */
+    GCParallelTask* gcParallelTask() {
+        return maybeCurrentTaskAs<GCParallelTask*>();
     }
 
     void destroy();
+
+    static void ThreadMain(void* arg);
+    void threadLoop();
+
+  private:
+    template <typename T>
+    T maybeCurrentTaskAs() {
+        if (currentTask.isSome() && currentTask->is<T>())
+            return currentTask->as<T>();
+
+        return nullptr;
+    }
 
     void handleAsmJSWorkload();
     void handleIonWorkload();
     void handleParseWorkload();
     void handleCompressionWorkload();
     void handleGCHelperWorkload();
-
-    static void ThreadMain(void *arg);
-    void threadLoop();
+    void handleGCParallelWorkload();
 };
 
 /* Methods for interacting with helper threads. */
 
-// Initialize helper threads unless already initialized.
+// Create data structures used by helper threads.
+bool
+CreateHelperThreadsState();
+
+// Destroy data structures used by helper threads.
 void
-EnsureHelperThreadsInitialized(ExclusiveContext *cx);
+DestroyHelperThreadsState();
+
+// Initialize helper threads unless already initialized.
+bool
+EnsureHelperThreadsInitialized();
 
 // This allows the JS shell to override GetCPUCount() when passed the
 // --thread-count=N option.
@@ -332,47 +398,53 @@ PauseCurrentHelperThread();
 
 /* Perform MIR optimization and LIR generation on a single function. */
 bool
-StartOffThreadAsmJSCompile(ExclusiveContext *cx, AsmJSParallelTask *asmData);
+StartOffThreadAsmJSCompile(ExclusiveContext* cx, AsmJSParallelTask* asmData);
 
 /*
  * Schedule an Ion compilation for a script, given a builder which has been
  * generated and read everything needed from the VM state.
  */
 bool
-StartOffThreadIonCompile(JSContext *cx, jit::IonBuilder *builder);
+StartOffThreadIonCompile(JSContext* cx, jit::IonBuilder* builder);
 
 /*
  * Cancel a scheduled or in progress Ion compilation for script. If script is
  * nullptr, all compilations for the compartment are cancelled.
  */
 void
-CancelOffThreadIonCompile(JSCompartment *compartment, JSScript *script);
+CancelOffThreadIonCompile(JSCompartment* compartment, JSScript* script);
 
 /* Cancel all scheduled, in progress or finished parses for runtime. */
 void
-CancelOffThreadParses(JSRuntime *runtime);
+CancelOffThreadParses(JSRuntime* runtime);
 
 /*
  * Start a parse/emit cycle for a stream of source. The characters must stay
  * alive until the compilation finishes.
  */
 bool
-StartOffThreadParseScript(JSContext *cx, const ReadOnlyCompileOptions &options,
-                          const char16_t *chars, size_t length,
-                          JS::OffThreadCompileCallback callback, void *callbackData);
+StartOffThreadParseScript(JSContext* cx, const ReadOnlyCompileOptions& options,
+                          const char16_t* chars, size_t length,
+                          JS::OffThreadCompileCallback callback, void* callbackData);
 
 /*
  * Called at the end of GC to enqueue any Parse tasks that were waiting on an
  * atoms-zone GC to finish.
  */
 void
-EnqueuePendingParseTasksAfterGC(JSRuntime *rt);
+EnqueuePendingParseTasksAfterGC(JSRuntime* rt);
+
+struct AutoEnqueuePendingParseTasksAfterGC {
+    const gc::GCRuntime& gc_;
+    explicit AutoEnqueuePendingParseTasksAfterGC(const gc::GCRuntime& gc) : gc_(gc) {}
+    ~AutoEnqueuePendingParseTasksAfterGC();
+};
 
 /* Start a compression job for the specified token. */
 bool
-StartOffThreadCompression(ExclusiveContext *cx, SourceCompressionTask *task);
+StartOffThreadCompression(ExclusiveContext* cx, SourceCompressionTask* task);
 
-class AutoLockHelperThreadState
+class MOZ_RAII AutoLockHelperThreadState
 {
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 
@@ -388,7 +460,7 @@ class AutoLockHelperThreadState
     }
 };
 
-class AutoUnlockHelperThreadState
+class MOZ_RAII AutoUnlockHelperThreadState
 {
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 
@@ -406,69 +478,43 @@ class AutoUnlockHelperThreadState
     }
 };
 
-struct AsmJSParallelTask
-{
-    JSRuntime *runtime;     // Associated runtime.
-    LifoAlloc lifo;         // Provider of all heap memory used for compilation.
-    void *func;             // Really, a ModuleCompiler::Func*
-    jit::MIRGenerator *mir; // Passed from main thread to helper.
-    jit::LIRGraph *lir;     // Passed from helper to main thread.
-    unsigned compileTime;
-
-    explicit AsmJSParallelTask(size_t defaultChunkSize)
-      : runtime(nullptr), lifo(defaultChunkSize), func(nullptr), mir(nullptr), lir(nullptr), compileTime(0)
-    { }
-
-    void init(JSRuntime *rt, void *func, jit::MIRGenerator *mir) {
-        this->runtime = rt;
-        this->func = func;
-        this->mir = mir;
-        this->lir = nullptr;
-    }
-};
-
 struct ParseTask
 {
-    ExclusiveContext *cx;
+    ExclusiveContext* cx;
     OwningCompileOptions options;
-    const char16_t *chars;
+    const char16_t* chars;
     size_t length;
     LifoAlloc alloc;
 
     // Rooted pointer to the global object used by 'cx'.
     PersistentRootedObject exclusiveContextGlobal;
 
-    // Saved GC-managed CompileOptions fields that will populate slots in
-    // the ScriptSourceObject. We create the ScriptSourceObject in the
-    // compilation's temporary compartment, so storing these values there
-    // at that point would create cross-compartment references. Instead we
-    // hold them here, and install them after merging the compartments.
-    PersistentRootedObject optionsElement;
-    PersistentRootedScript optionsIntroductionScript;
-
     // Callback invoked off the main thread when the parse finishes.
     JS::OffThreadCompileCallback callback;
-    void *callbackData;
+    void* callbackData;
 
     // Holds the final script between the invocation of the callback and the
     // point where FinishOffThreadScript is called, which will destroy the
     // ParseTask.
-    JSScript *script;
+    JSScript* script;
+
+    // Holds the ScriptSourceObject generated for the script compilation.
+    ScriptSourceObject* sourceObject;
 
     // Any errors or warnings produced during compilation. These are reported
     // when finishing the script.
-    Vector<frontend::CompileError *> errors;
+    Vector<frontend::CompileError*> errors;
     bool overRecursed;
 
-    ParseTask(ExclusiveContext *cx, JSObject *exclusiveContextGlobal,
-              JSContext *initCx, const char16_t *chars, size_t length,
-              JS::OffThreadCompileCallback callback, void *callbackData);
-    bool init(JSContext *cx, const ReadOnlyCompileOptions &options);
+    ParseTask(ExclusiveContext* cx, JSObject* exclusiveContextGlobal,
+              JSContext* initCx, const char16_t* chars, size_t length,
+              JS::OffThreadCompileCallback callback, void* callbackData);
+    bool init(JSContext* cx, const ReadOnlyCompileOptions& options);
 
-    void activate(JSRuntime *rt);
-    bool finish(JSContext *cx);
+    void activate(JSRuntime* rt);
+    bool finish(JSContext* cx);
 
-    bool runtimeMatches(JSRuntime *rt) {
+    bool runtimeMatches(JSRuntime* rt) {
         return exclusiveContextGlobal->runtimeFromAnyThread() == rt;
     }
 
@@ -478,7 +524,7 @@ struct ParseTask
 // Return whether, if a new parse task was started, it would need to wait for
 // an in-progress GC to complete before starting.
 extern bool
-OffThreadParsingMustWaitForGC(JSRuntime *rt);
+OffThreadParsingMustWaitForGC(JSRuntime* rt);
 
 // Compression tasks are allocated on the stack by their triggering thread,
 // which will block on the compression completing as the task goes out of scope
@@ -489,13 +535,13 @@ struct SourceCompressionTask
     friend struct HelperThread;
 
     // Thread performing the compression.
-    HelperThread *helperThread;
+    HelperThread* helperThread;
 
   private:
     // Context from the triggering thread. Don't use this off thread!
-    ExclusiveContext *cx;
+    ExclusiveContext* cx;
 
-    ScriptSource *ss;
+    ScriptSource* ss;
 
     // Atomic flag to indicate to a helper thread that it should abort
     // compression on the source.
@@ -507,12 +553,12 @@ struct SourceCompressionTask
         Aborted,
         Success
     } result;
-    void *compressed;
+    void* compressed;
     size_t compressedBytes;
     HashNumber compressedHash;
 
   public:
-    explicit SourceCompressionTask(ExclusiveContext *cx)
+    explicit SourceCompressionTask(ExclusiveContext* cx)
       : helperThread(nullptr), cx(cx), ss(nullptr), abort_(false),
         result(OOM), compressed(nullptr), compressedBytes(0), compressedHash(0)
     {}
@@ -526,7 +572,7 @@ struct SourceCompressionTask
     bool complete();
     void abort() { abort_ = true; }
     bool active() const { return !!ss; }
-    ScriptSource *source() { return ss; }
+    ScriptSource* source() { return ss; }
 };
 
 } /* namespace js */

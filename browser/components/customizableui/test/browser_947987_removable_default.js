@@ -4,16 +4,16 @@
 
 "use strict";
 
-let kWidgetId = "test-removable-widget-default";
+var kWidgetId = "test-removable-widget-default";
 const kNavBar = CustomizableUI.AREA_NAVBAR;
-let widgetCounter = 0;
+var widgetCounter = 0;
 
 registerCleanupFunction(removeCustomToolbars);
 
 // Sanity checks
 add_task(function() {
   let brokenSpec = {id: kWidgetId + (widgetCounter++), removable: false};
-  SimpleTest.doesThrow(function() CustomizableUI.createWidget(brokenSpec),
+  SimpleTest.doesThrow(() => CustomizableUI.createWidget(brokenSpec),
                        "Creating non-removable widget without defaultArea should throw.");
 
   // Widget without removable set should be removable:

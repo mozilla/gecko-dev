@@ -9,7 +9,6 @@ XPIDL_SOURCES += [
     'nsIConsoleMessage.idl',
     'nsIConsoleService.idl',
     'nsICycleCollectorListener.idl',
-    'nsIDebug.idl',
     'nsIDebug2.idl',
     'nsIErrorService.idl',
     'nsIException.idl',
@@ -26,7 +25,6 @@ XPIDL_SOURCES += [
     'nsISupports.idl',
     'nsIUUIDGenerator.idl',
     'nsIVersionComparator.idl',
-    'nsIVisualEventTracer.idl',
     'nsIWeakReference.idl',
     'nsrootidl.idl',
 ]
@@ -35,6 +33,12 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
     XPIDL_SOURCES += [
         'nsIMacUtils.idl',
     ]
+    EXPORTS.mozilla += [
+        'MacHelpers.h',
+    ]
+    UNIFIED_SOURCES += [
+        'MacHelpers.mm',
+    ]
 
 XPIDL_MODULE = 'xpcom_base'
 
@@ -42,21 +46,22 @@ EXPORTS += [
     'CodeAddressService.h',
     'ErrorList.h',
     'nsAgg.h',
+    'nsAlgorithm.h',
     'nsAutoPtr.h',
     'nsAutoRef.h',
     'nsCom.h',
     'nscore.h',
     'nsCycleCollector.h',
     'nsDebugImpl.h',
+    'nsDumpUtils.h',
     'nsError.h',
     'nsGZFileWriter.h',
     'nsIID.h',
     'nsInterfaceRequestorAgg.h',
     'nsISizeOf.h',
     'nsISupportsBase.h',
-    'nsISupportsObsolete.h',
     'nsObjCExceptions.h',
-    'nsStackWalk.h',
+    'nsQueryObject.h',
     'nsTraceRefcnt.h',
     'nsWeakPtr.h',
 ]
@@ -65,9 +70,6 @@ if CONFIG['OS_ARCH'] == 'WINNT':
     EXPORTS += [
         'nsWindowsHelpers.h',
     ]
-    if CONFIG['MOZ_DEBUG']:
-        EXPORTS += ['pure.h']
-        SOURCES += ['pure_api.c']
 
 EXPORTS.mozilla += [
     'AvailableMemoryTracker.h',
@@ -75,13 +77,18 @@ EXPORTS.mozilla += [
     'CountingAllocatorBase.h',
     'CycleCollectedJSRuntime.h',
     'Debug.h',
+    'DebuggerOnGCRunnable.h',
+    'DeferredFinalize.h',
+    'ErrorNames.h',
+    'HoldDropJSObjects.h',
+    'JSObjectHolder.h',
     'LinuxUtils.h',
+    'Logging.h',
     'nsMemoryInfoDumper.h',
-    'StackWalk.h',
+    'OwningNonNull.h',
     'StaticMutex.h',
     'StaticPtr.h',
     'SystemMemoryReporter.h',
-    'VisualEventTracer.h',
 ]
 
 # nsDebugImpl isn't unified because we disable PGO so that NS_ABORT_OOM isn't
@@ -96,6 +103,12 @@ UNIFIED_SOURCES += [
     'ClearOnShutdown.cpp',
     'CycleCollectedJSRuntime.cpp',
     'Debug.cpp',
+    'DebuggerOnGCRunnable.cpp',
+    'DeferredFinalize.cpp',
+    'ErrorNames.cpp',
+    'HoldDropJSObjects.cpp',
+    'JSObjectHolder.cpp',
+    'Logging.cpp',
     'nsConsoleMessage.cpp',
     'nsConsoleService.cpp',
     'nsCycleCollector.cpp',
@@ -113,18 +126,7 @@ UNIFIED_SOURCES += [
     'nsTraceRefcnt.cpp',
     'nsUUIDGenerator.cpp',
     'nsVersionComparatorImpl.cpp',
-    'VisualEventTracer.cpp',
 ]
-
-# MOZ_STACKWALKING is defined in configure.in when the build configuration meets
-# the conditions for NS_StackWalk to work correctly.
-# We exclude this file from other build configurations so that if somebody adds a
-# new usage of NS_StackWalk it will cause a link error, which is better than having
-# NS_StackWalk silently return garbage at runtime.
-if CONFIG['MOZ_STACKWALKING']:
-    UNIFIED_SOURCES += [
-        'nsStackWalk.cpp',
-    ]
 
 if CONFIG['OS_ARCH'] == 'Linux':
     SOURCES += [
@@ -141,12 +143,6 @@ elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'windows':
         'nsCrashOnException.cpp',
     ]
 
-UNIFIED_SOURCES += [
-    'nsErrorAssertsC.c',
-]
-
-MSVC_ENABLE_PGO = True
-
 include('/ipc/chromium/chromium-config.mozbuild')
 
 FINAL_LIBRARY = 'xul'
@@ -158,3 +154,6 @@ LOCAL_INCLUDES += [
 
 if CONFIG['MOZ_WIDGET_GTK']:
     CXXFLAGS += CONFIG['TK_CFLAGS']
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wshadow']

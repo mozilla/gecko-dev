@@ -27,6 +27,7 @@
 #include "nsWidgetsCID.h"
 #include "nsIWidget.h"
 #include "nsIRequestObserver.h"
+#include "nsIEmbeddingSiteWindow.h"
 
 /* For implementing GetHiddenWindowAndJSContext */
 #include "nsIScriptGlobalObject.h"
@@ -40,6 +41,7 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/Services.h"
 #include "mozilla/StartupTimeline.h"
 
 #include "nsEmbedCID.h"
@@ -57,14 +59,14 @@ using namespace mozilla;
 
 class nsIAppShell;
 
-nsAppShellService::nsAppShellService() : 
+nsAppShellService::nsAppShellService() :
   mXPCOMWillShutDown(false),
   mXPCOMShuttingDown(false),
   mModalWindowCount(0),
-  mApplicationProvidedHiddenWindow(false)
+  mApplicationProvidedHiddenWindow(false),
+  mScreenId(0)
 {
-  nsCOMPtr<nsIObserverService> obs
-    (do_GetService("@mozilla.org/observer-service;1"));
+  nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
 
   if (obs) {
     obs->AddObserver(this, "xpcom-will-shutdown", false);
@@ -88,6 +90,13 @@ NS_IMETHODIMP
 nsAppShellService::CreateHiddenWindow()
 {
   return CreateHiddenWindowHelper(false);
+}
+
+NS_IMETHODIMP
+nsAppShellService::SetScreenId(uint32_t aScreenId)
+{
+  mScreenId = aScreenId;
+  return NS_OK;
 }
 
 void
@@ -123,7 +132,7 @@ nsAppShellService::CreateHiddenWindowHelper(bool aIsPrivate)
   rv = NS_NewURI(getter_AddRefs(url), hiddenWindowURL);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsRefPtr<nsWebShellWindow> newWindow;
+  RefPtr<nsWebShellWindow> newWindow;
   if (!aIsPrivate) {
     rv = JustCreateTopWindow(nullptr, url,
                              chromeMask, initialWidth, initialHeight,
@@ -213,6 +222,7 @@ nsAppShellService::CreateTopLevelWindow(nsIXULWindow *aParent,
  * by nsAppShellService::CreateWindowlessBrowser
  */
 class WebBrowserChrome2Stub : public nsIWebBrowserChrome2,
+                              public nsIEmbeddingSiteWindow,
                               public nsIInterfaceRequestor,
                               public nsSupportsWeakReference {
 protected:
@@ -222,6 +232,7 @@ public:
     NS_DECL_NSIWEBBROWSERCHROME
     NS_DECL_NSIWEBBROWSERCHROME2
     NS_DECL_NSIINTERFACEREQUESTOR
+    NS_DECL_NSIEMBEDDINGSITEWINDOW
 };
 
 NS_INTERFACE_MAP_BEGIN(WebBrowserChrome2Stub)
@@ -230,6 +241,7 @@ NS_INTERFACE_MAP_BEGIN(WebBrowserChrome2Stub)
   NS_INTERFACE_MAP_ENTRY(nsIWebBrowserChrome2)
   NS_INTERFACE_MAP_ENTRY(nsIInterfaceRequestor)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
+  NS_INTERFACE_MAP_ENTRY(nsIEmbeddingSiteWindow)
 NS_INTERFACE_MAP_END
 
 NS_IMPL_ADDREF(WebBrowserChrome2Stub)
@@ -313,16 +325,86 @@ WebBrowserChrome2Stub::SetStatusWithContext(uint32_t aStatusType,
 }
 
 NS_IMETHODIMP
-WebBrowserChrome2Stub::GetInterface(const nsIID & aIID, void **aSink)
+WebBrowserChrome2Stub::GetInterface(const nsIID& aIID, void** aSink)
 {
     return QueryInterface(aIID, aSink);
+}
+
+// nsIEmbeddingSiteWindow impl
+NS_IMETHODIMP
+WebBrowserChrome2Stub::GetDimensions(uint32_t flags, int32_t* x, int32_t* y, int32_t* cx, int32_t* cy)
+{
+  if (x) {
+    *x = 0;
+  }
+
+  if (y) {
+    *y = 0;
+  }
+
+  if (cx) {
+    *cx = 0;
+  }
+
+  if (cy) {
+    *cy = 0;
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+WebBrowserChrome2Stub::SetDimensions(uint32_t flags, int32_t x, int32_t y, int32_t cx, int32_t cy)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+WebBrowserChrome2Stub::SetFocus()
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+WebBrowserChrome2Stub::GetVisibility(bool* aVisibility)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+NS_IMETHODIMP
+WebBrowserChrome2Stub::SetVisibility(bool aVisibility)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+WebBrowserChrome2Stub::GetTitle(char16_t** aTitle)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+NS_IMETHODIMP
+WebBrowserChrome2Stub::SetTitle(const char16_t* aTitle)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+WebBrowserChrome2Stub::GetSiteWindow(void** aSiteWindow)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+WebBrowserChrome2Stub::Blur()
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 // This is the "stub" we return from CreateWindowlessBrowser - it exists
 // purely to keep a strong reference to the browser and the container to
 // prevent the container being collected while the stub remains alive.
-class WindowlessBrowserStub MOZ_FINAL : public nsIWebNavigation,
-                                        public nsIInterfaceRequestor {
+class WindowlessBrowserStub final : public nsIWebNavigation,
+                                    public nsIInterfaceRequestor
+{
 public:
   WindowlessBrowserStub(nsIWebBrowser *aBrowser, nsISupports *aContainer) {
     mBrowser = aBrowser;
@@ -369,7 +451,7 @@ nsAppShellService::CreateWindowlessBrowser(bool aIsChrome, nsIWebNavigation **aR
    * an instance of WebBrowserChrome2Stub, which provides a stub implementation
    * of nsIWebBrowserChrome2.
    */
-  nsRefPtr<WebBrowserChrome2Stub> stub = new WebBrowserChrome2Stub();
+  RefPtr<WebBrowserChrome2Stub> stub = new WebBrowserChrome2Stub();
   if (!stub) {
     NS_ERROR("Couldn't create instance of WebBrowserChrome2Stub!");
     return NS_ERROR_FAILURE;
@@ -392,14 +474,14 @@ nsAppShellService::CreateWindowlessBrowser(bool aIsChrome, nsIWebNavigation **aR
     NS_ERROR("Couldn't create instance of PuppetWidget");
     return NS_ERROR_FAILURE;
   }
-  widget->Create(nullptr, 0, nsIntRect(nsIntPoint(0, 0), nsIntSize(0, 0)),
-                 nullptr, nullptr);
+  widget->Create(nullptr, 0, gfx::IntRect(gfx::IntPoint(0, 0), gfx::IntSize(0, 0)),
+                 nullptr);
   nsCOMPtr<nsIBaseWindow> window = do_QueryInterface(navigation);
   window->InitWindow(0, widget, 0, 0, 0, 0);
   window->Create();
 
   nsISupports *isstub = NS_ISUPPORTS_CAST(nsIWebBrowserChrome2*, stub);
-  nsRefPtr<nsIWebNavigation> result = new WindowlessBrowserStub(browser, isstub);
+  RefPtr<nsIWebNavigation> result = new WindowlessBrowserStub(browser, isstub);
   nsCOMPtr<nsIDocShell> docshell = do_GetInterface(result);
   docshell->SetInvisible(true);
 
@@ -500,7 +582,7 @@ nsAppShellService::JustCreateTopWindow(nsIXULWindow *aParent,
   if (aChromeMask & nsIWebBrowserChrome::CHROME_DEPENDENT)
     parent = aParent;
 
-  nsRefPtr<nsWebShellWindow> window = new nsWebShellWindow(aChromeMask);
+  RefPtr<nsWebShellWindow> window = new nsWebShellWindow(aChromeMask);
   NS_ENSURE_TRUE(window, NS_ERROR_OUT_OF_MEMORY);
 
 #ifdef XP_WIN
@@ -524,9 +606,6 @@ nsAppShellService::JustCreateTopWindow(nsIXULWindow *aParent,
 
   if (aChromeMask & nsIWebBrowserChrome::CHROME_MAC_SUPPRESS_ANIMATION)
     widgetInitData.mIsAnimationSuppressed = true;
-
-  if (aChromeMask & nsIWebBrowserChrome::CHROME_REMOTE_WINDOW)
-    widgetInitData.mRequireOffMainThreadCompositing = true;
 
 #ifdef XP_MACOSX
   // Mac OS X sheet support
@@ -598,6 +677,13 @@ nsAppShellService::JustCreateTopWindow(nsIXULWindow *aParent,
     reg->IsLocaleRTL(package, &isRTL);
     widgetInitData.mRTL = isRTL;
   }
+
+#ifdef MOZ_WIDGET_GONK
+  // B2G multi-screen support. Screen ID is for differentiating screens of
+  // windows, and due to the hardware limitation, it is platform-specific for
+  // now, which align with the value of display type defined in HWC.
+  widgetInitData.mScreenId = mScreenId;
+#endif
 
   nsresult rv = window->Initialize(parent, center ? aParent : nullptr,
                                    aUrl, aInitialWidth, aInitialHeight,
@@ -806,8 +892,7 @@ nsAppShellService::RegisterTopLevelWindow(nsIXULWindow* aWindow)
   }
 
   // an ongoing attempt to quit is stopped by a newly opened window
-  nsCOMPtr<nsIObserverService> obssvc =
-    do_GetService("@mozilla.org/observer-service;1");
+  nsCOMPtr<nsIObserverService> obssvc = services::GetObserverService();
   NS_ASSERTION(obssvc, "Couldn't get observer service.");
 
   if (obssvc)

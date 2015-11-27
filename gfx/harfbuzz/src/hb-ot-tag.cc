@@ -175,6 +175,11 @@ typedef struct {
  *
  * Some items still missing.  Those are commented out at the end.
  * Keep sorted for bsearch.
+ *
+ * Updated as of 2015-05-06: OT1.7 on MS website has some newer
+ * items that we don't have here, eg. Zazaki.  This is the new
+ * items in OpenType 1.7 (red items), most of which we have:
+ * http://www.microsoft.com/typography/otspec170/languagetags.htm
  */
 
 static const LangTag ot_languages[] = {
@@ -217,9 +222,9 @@ static const LangTag ot_languages[] = {
   {"bci",	HB_TAG('B','A','U',' ')},	/* Baoulé */
   {"bcl",	HB_TAG('B','I','K',' ')},	/* Central Bikol */
   {"bcq",	HB_TAG('B','C','H',' ')},	/* Bench */
-  {"be",	HB_TAG('B','E','L',' ')},  	/* Belarusian */
+  {"be",	HB_TAG('B','E','L',' ')},	/* Belarusian */
   {"bem",	HB_TAG('B','E','M',' ')},	/* Bemba (Zambia) */
-  {"ber",	HB_TAG('B','E','R',' ')},  	/* Berber [family] */
+  {"ber",	HB_TAG('B','E','R',' ')},	/* Berber [family] */
   {"bfq",	HB_TAG('B','A','D',' ')},	/* Badaga */
   {"bft",	HB_TAG('B','L','T',' ')},	/* Balti */
   {"bfy",	HB_TAG('B','A','G',' ')},	/* Baghelkhandi */
@@ -346,9 +351,9 @@ static const LangTag ot_languages[] = {
   {"gv",	HB_TAG('M','N','X',' ')},	/* Manx */
   {"ha",	HB_TAG('H','A','U',' ')},	/* Hausa */
   {"har",	HB_TAG('H','R','I',' ')},	/* Harari */
-  {"haw",	HB_TAG('H','A','W',' ')},  	/* Hawaiian */
-  {"hay",	HB_TAG('H','A','Y',' ')},  	/* Haya */
-  {"haz",	HB_TAG('H','A','Z',' ')},  	/* Hazaragi */
+  {"haw",	HB_TAG('H','A','W',' ')},	/* Hawaiian */
+  {"hay",	HB_TAG('H','A','Y',' ')},	/* Haya */
+  {"haz",	HB_TAG('H','A','Z',' ')},	/* Hazaragi */
   {"he",	HB_TAG('I','W','R',' ')},	/* Hebrew */
   {"hz",	HB_TAG('H','E','R',' ')},	/* Herero */
   {"hi",	HB_TAG('H','I','N',' ')},	/* Hindi */
@@ -542,6 +547,7 @@ static const LangTag ot_languages[] = {
   {"nr",	HB_TAG('N','D','B',' ')},	/* [South] Ndebele */
   {"nsk",	HB_TAG('N','A','S',' ')},	/* Naskapi */
   {"nso",	HB_TAG('S','O','T',' ')},	/* [Northern] Sotho */
+  {"nv",	HB_TAG('N','A','V',' ')},	/* Navajo */
   {"ny",	HB_TAG('C','H','I',' ')},	/* Chewa/Chichwa/Nyanja */
   {"nym",	HB_TAG('N','Y','M',' ')},	/* Nyamwezi */
   {"nyn",	HB_TAG('N','K','L',' ')},	/* Nyankole */
@@ -727,7 +733,6 @@ static const LangTag ot_languages[] = {
 /*{"fuf?",	HB_TAG('F','T','A',' ')},*/	/* Futa */
 /*{"ar-Syrc?",	HB_TAG('G','A','R',' ')},*/	/* Garshuni */
 /*{"cfm/rnl?",	HB_TAG('H','A','L',' ')},*/	/* Halam */
-/*{"fonipa",	HB_TAG('I','P','P','H')},*/	/* Phonetic transcription—IPA conventions */
 /*{"ga-Latg?/Latg?",	HB_TAG('I','R','T',' ')},*/	/* Irish Traditional */
 /*{"krc",	HB_TAG('K','A','R',' ')},*/	/* Karachay */
 /*{"alw?/ktb?",	HB_TAG('K','E','B',' ')},*/	/* Kebena */
@@ -826,6 +831,14 @@ hb_ot_tag_from_language (hb_language_t language)
     }
   }
 
+  /*
+   * The International Phonetic Alphabet is a variant tag in BCP-47,
+   * which can be applied to any language.
+   */
+  if (strstr (lang_str, "-fonipa")) {
+    return HB_TAG('I','P','P','H');  /* Phonetic transcription—IPA conventions */
+  }
+
   /* Find a language matching in the first component */
   {
     const LangTag *lang_tag;
@@ -864,6 +877,15 @@ hb_ot_tag_from_language (hb_language_t language)
   return HB_OT_TAG_DEFAULT_LANGUAGE;
 }
 
+/**
+ * hb_ot_tag_to_language:
+ *
+ * 
+ *
+ * Return value: (transfer none):
+ *
+ * Since: 0.9.2
+ **/
 hb_language_t
 hb_ot_tag_to_language (hb_tag_t tag)
 {
@@ -884,6 +906,12 @@ hb_ot_tag_to_language (hb_tag_t tag)
       case HB_TAG('Z','H','T',' '): return hb_language_from_string ("zh-Hant", -1); /* Traditional */
       default: break; /* Fall through */
     }
+  }
+
+  /* struct LangTag has only room for 3-letter language tags. */
+  switch (tag) {
+  case HB_TAG('I','P','P','H'):  /* Phonetic transcription—IPA conventions */
+    return hb_language_from_string ("und-fonipa", -1);
   }
 
   /* Else return a custom language in the form of "x-hbotABCD" */

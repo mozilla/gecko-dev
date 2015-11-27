@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const { classes: Cc, utils: Cu, interfaces: Ci } = Components;
+var { classes: Cc, utils: Cu, interfaces: Ci } = Components;
 
 var reportURL;
 
@@ -17,44 +17,34 @@ XPCOMUtils.defineLazyModuleGetter(this, "CrashSubmit",
 
 const buildID = Services.appinfo.appBuildID;
 
-function submitSuccess(dumpid, ret) {
-  let link = document.getElementById(dumpid);
-  if (link) {
-    link.className = "";
-    // reset the link to point at our new crash report. this way, if the
-    // user clicks "Back", the link will be correct.
-    let CrashID = ret.CrashID;
-    link.firstChild.textContent = CrashID;
-    link.setAttribute("id", CrashID);
-    link.removeEventListener("click", submitPendingReport, true);
-
-    if (reportURL) {
-      link.setAttribute("href", reportURL + CrashID);
-      // redirect the user to their brand new crash report
-      window.location.href = reportURL + CrashID;
-    }
-  }
-}
-
-function submitError(dumpid) {
-  //XXX: do something more useful here
-  let link = document.getElementById(dumpid);
-  if (link)
-    link.className = "";
-  // dispatch an event, useful for testing
-  let event = document.createEvent("Events");
-  event.initEvent("CrashSubmitFailed", true, false);
-  document.dispatchEvent(event);
-}
-
 function submitPendingReport(event) {
-  var link = event.target;
-  var id = link.firstChild.textContent;
-  if (CrashSubmit.submit(id, { submitSuccess: submitSuccess,
-                               submitError: submitError,
-                               noThrottle: true })) {
-    link.className = "submitting";
-  }
+  let link = event.target;
+  let id = link.firstChild.textContent;
+  link.className = "submitting";
+  CrashSubmit.submit(id, { noThrottle: true }).then(
+    (remoteCrashID) => {
+      link.className = "";
+      // Reset the link to point at our new crash report. This way, if the
+      // user clicks "Back", the link will be correct.
+      link.firstChild.textContent = remoteCrashID;
+      link.setAttribute("id", remoteCrashID);
+      link.removeEventListener("click", submitPendingReport, true);
+
+      if (reportURL) {
+        link.setAttribute("href", reportURL + remoteCrashID);
+        // redirect the user to their brand new crash report
+        window.location.href = reportURL + remoteCrashID;
+      }
+    },
+    () => {
+      // XXX: do something more useful here
+      link.className = "";
+
+      // Dispatch an event, useful for testing
+      let event = document.createEvent("Events");
+      event.initEvent("CrashSubmitFailed", true, false);
+      document.dispatchEvent(event);
+    });
   event.preventDefault();
   return false;
 }
@@ -131,7 +121,7 @@ function populateReportList() {
   }
 }
 
-let clearReports = Task.async(function*() {
+var clearReports = Task.async(function*() {
   let bundle = Services.strings.createBundle("chrome://global/locale/crashes.properties");
 
   if (!Services.

@@ -6,11 +6,11 @@
            position="after_start"
            hidden="true"
            orient="vertical"
+           noautofocus="true"
            role="alert"/>
 
     <popupnotification id="webRTC-shareDevices-notification" hidden="true">
       <popupnotificationcontent id="webRTC-selectCamera" orient="vertical">
-        <separator class="thin"/>
         <label value="&getUserMedia.selectCamera.label;"
                accesskey="&getUserMedia.selectCamera.accesskey;"
                control="webRTC-selectCamera-menulist"/>
@@ -20,7 +20,6 @@
       </popupnotificationcontent>
 
       <popupnotificationcontent id="webRTC-selectWindowOrScreen" orient="vertical">
-        <separator class="thin"/>
         <label id="webRTC-selectWindow-label"
                control="webRTC-selectWindow-menulist"/>
         <menulist id="webRTC-selectWindow-menulist"
@@ -31,7 +30,6 @@
       </popupnotificationcontent>
 
       <popupnotificationcontent id="webRTC-selectMicrophone" orient="vertical">
-        <separator class="thin"/>
         <label value="&getUserMedia.selectMicrophone.label;"
                accesskey="&getUserMedia.selectMicrophone.accesskey;"
                control="webRTC-selectMicrophone-menulist"/>
@@ -42,9 +40,7 @@
     </popupnotification>
 
     <popupnotification id="webapps-install-progress-notification" hidden="true">
-      <popupnotificationcontent id="webapps-install-progress-content" orient="vertical" align="start">
-        <separator class="thin"/>
-      </popupnotificationcontent>
+      <popupnotificationcontent id="webapps-install-progress-content" orient="vertical" align="start"/>
     </popupnotification>
 
     <popupnotification id="servicesInstall-notification" hidden="true">
@@ -55,7 +51,55 @@
 
     <popupnotification id="pointerLock-notification" hidden="true">
       <popupnotificationcontent orient="vertical" align="start">
-        <separator class="thin"/>
-        <label id="pointerLock-cancel" value="&pointerLock.notification.message;"/>
+        <label id="pointerLock-cancel">&pointerLock.notification.message;</label>
       </popupnotificationcontent>
+    </popupnotification>
+
+    <popupnotification id="password-notification" hidden="true">
+      <popupnotificationcontent orient="vertical">
+        <textbox id="password-notification-username"/>
+        <textbox id="password-notification-password" type="password" show-content=""/>
+      </popupnotificationcontent>
+    </popupnotification>
+
+    <stack id="login-fill-doorhanger" hidden="true">
+      <vbox id="login-fill-mainview">
+        <description id="login-fill-testing"
+                     value="Thanks for testing the login fill doorhanger!"/>
+        <textbox id="login-fill-filter"/>
+        <richlistbox id="login-fill-list"/>
+      </vbox>
+      <vbox id="login-fill-clickcapturer"/>
+      <vbox id="login-fill-details">
+        <textbox id="login-fill-username" readonly="true"/>
+        <textbox id="login-fill-password" type="password" disabled="true"/>
+        <hbox>
+          <button id="login-fill-use" label="Use in form"/>
+        </hbox>
+      </vbox>
+    </stack>
+
+#ifdef E10S_TESTING_ONLY
+    <popupnotification id="enable-e10s-notification" hidden="true">
+      <popupnotificationcontent orient="vertical"/>
+    </popupnotification>
+#endif
+
+    <popupnotification id="addon-progress-notification" hidden="true">
+      <popupnotificationcontent orient="vertical">
+        <progressmeter id="addon-progress-notification-progressmeter"/>
+        <label id="addon-progress-notification-progresstext" crop="end"/>
+      </popupnotificationcontent>
+      <button id="addon-progress-cancel"
+              oncommand="this.parentNode.cancel();"/>
+      <button id="addon-progress-accept" disabled="true"/>
+    </popupnotification>
+
+    <popupnotification id="addon-install-confirmation-notification" hidden="true">
+      <popupnotificationcontent id="addon-install-confirmation-content" orient="vertical"/>
+      <button id="addon-install-confirmation-cancel"
+              oncommand="PopupNotifications.getNotification('addon-install-confirmation').remove();"/>
+      <button id="addon-install-confirmation-accept"
+              oncommand="gXPInstallObserver.acceptInstallation();
+                         PopupNotifications.getNotification('addon-install-confirmation').remove();"/>
     </popupnotification>

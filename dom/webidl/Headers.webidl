@@ -19,8 +19,7 @@ enum HeadersGuardEnum {
 };
 
 [Constructor(optional HeadersInit init),
- Exposed=(Window,Worker),
- Func="mozilla::dom::Headers::PrefEnabled"]
+ Exposed=(Window,Worker)]
 interface Headers {
   [Throws] void append(ByteString name, ByteString value);
   [Throws] void delete(ByteString name);
@@ -28,6 +27,7 @@ interface Headers {
   [Throws] sequence<ByteString> getAll(ByteString name);
   [Throws] boolean has(ByteString name);
   [Throws] void set(ByteString name, ByteString value);
+  iterable<ByteString, ByteString>;
 
   // Used to test different guard states from mochitest.
   // Note: Must be set prior to populating headers or will throw.

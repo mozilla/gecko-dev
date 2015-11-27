@@ -42,8 +42,8 @@ this.PermissionsInstaller = {
    *        A function called if an error occurs
    * @returns void
    **/
-  installPermissions: function installPermissions(aApp, aIsReinstall, aOnError,
-                                                  aIsSystemUpdate) {
+  installPermissions: function installPermissions(aApp, aIsReinstall,
+                                                  aOnError) {
     try {
       let newManifest =
         new ManifestHelper(aApp.manifest, aApp.origin, aApp.manifestURL);
@@ -64,6 +64,8 @@ this.PermissionsInstaller = {
                                 newManifest.permissions[permName].access);
             newPermNames = newPermNames.concat(expandedPermNames);
           }
+
+          newPermNames.push("indexedDB");
 
           // Add the appcache related permissions.
           if (newManifest.appcache_path) {
@@ -105,9 +107,6 @@ this.PermissionsInstaller = {
         break;
       case Ci.nsIPrincipal.APP_STATUS_INSTALLED:
         appStatus = "app";
-        if (aApp.kind == "hosted-trusted") {
-          appStatus = "trusted";
-        }
         break;
       default:
         // Cannot determine app type, abort install by throwing an error.
@@ -115,6 +114,8 @@ this.PermissionsInstaller = {
                         "Cannot determine the app's status. Install cancelled.");
         break;
       }
+
+      this._setPermission("indexedDB", "allow", aApp);
 
       // Add the appcache related permissions. We allow it for all kinds of
       // apps.
@@ -153,14 +154,18 @@ this.PermissionsInstaller = {
                 : PermissionsTable[permName][appStatus];
 
           let permValue = PERM_TO_STRING[permission];
-          if (!aIsSystemUpdate && isPromptPermission) {
-            // If it's not a system update, then we should keep the prompt
-            // permissions that have been granted or denied previously.
+          if (isPromptPermission) {
+            // If the permission is prompt, keep the current value. This will
+            // work even on a system update, with the caveat that if a
+            // ALLOW/DENY permission is changed to PROMPT then the system should
+            // inform the user that he can now change a permission that he could
+            // not change before.
             permValue =
               PermissionSettingsModule.getPermission(expandedPermNames[idx],
                                                      aApp.manifestURL,
                                                      aApp.origin,
-                                                     false);
+                                                     false,
+                                                     aApp.isCachedPackage);
             if (permValue === "unknown") {
               permValue = PERM_TO_STRING[permission];
             }
@@ -171,7 +176,8 @@ this.PermissionsInstaller = {
       }
     }
     catch (ex) {
-      dump("Caught webapps install permissions error for " + aApp.origin);
+      dump("Caught webapps install permissions error for " + aApp.origin +
+        " : " + ex + "\n");
       Cu.reportError(ex);
       if (aOnError) {
         aOnError();
@@ -187,7 +193,7 @@ this.PermissionsInstaller = {
    *        The permission value.
    * @param object aApp
    *        The just-installed app configuration.
-   *        The properties used are manifestURL and origin.
+   *        The properties used are manifestURL, origin, appId, isCachedPackage.
    * @returns void
    **/
   _setPermission: function setPermission(aPermName, aPermValue, aApp) {
@@ -196,7 +202,9 @@ this.PermissionsInstaller = {
       origin: aApp.origin,
       manifestURL: aApp.manifestURL,
       value: aPermValue,
-      browserFlag: false
+      browserFlag: false,
+      localId: aApp.localId,
+      isCachedPackage: aApp.isCachedPackage,
     });
   }
 };

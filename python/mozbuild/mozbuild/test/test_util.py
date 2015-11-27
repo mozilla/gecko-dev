@@ -4,10 +4,12 @@
 
 from __future__ import unicode_literals
 
+import itertools
 import hashlib
 import os
 import unittest
 import shutil
+import string
 import sys
 import tempfile
 
@@ -18,16 +20,21 @@ from mozunit import (
 )
 
 from mozbuild.util import (
+    expand_variables,
     FileAvoidWrite,
+    group_unified_files,
     hash_file,
     memoize,
     memoized_property,
+    pair,
     resolve_target_to_make,
     MozbuildDeletionError,
     HierarchicalStringList,
     HierarchicalStringListWithFlagsFactory,
     StrictOrderingOnAppendList,
     StrictOrderingOnAppendListWithFlagsFactory,
+    TypedList,
+    TypedNamedTuple,
     UnsortedError,
 )
 
@@ -536,6 +543,222 @@ class TestMemoize(unittest.TestCase):
         self.assertEqual(instance._count, 1)
         self.assertEqual(instance.wrapped, 42)
         self.assertEqual(instance._count, 1)
+
+
+class TestTypedList(unittest.TestCase):
+    def test_init(self):
+        cls = TypedList(int)
+        l = cls()
+        self.assertEqual(len(l), 0)
+
+        l = cls([1, 2, 3])
+        self.assertEqual(len(l), 3)
+
+        with self.assertRaises(ValueError):
+            cls([1, 2, 'c'])
+
+    def test_extend(self):
+        cls = TypedList(int)
+        l = cls()
+        l.extend([1, 2])
+        self.assertEqual(len(l), 2)
+        self.assertIsInstance(l, cls)
+
+        with self.assertRaises(ValueError):
+            l.extend([3, 'c'])
+
+        self.assertEqual(len(l), 2)
+
+    def test_slicing(self):
+        cls = TypedList(int)
+        l = cls()
+        l[:] = [1, 2]
+        self.assertEqual(len(l), 2)
+        self.assertIsInstance(l, cls)
+
+        with self.assertRaises(ValueError):
+            l[:] = [3, 'c']
+
+        self.assertEqual(len(l), 2)
+
+    def test_add(self):
+        cls = TypedList(int)
+        l = cls()
+        l2 = l + [1, 2]
+        self.assertEqual(len(l), 0)
+        self.assertEqual(len(l2), 2)
+        self.assertIsInstance(l2, cls)
+
+        with self.assertRaises(ValueError):
+            l2 = l + [3, 'c']
+
+        self.assertEqual(len(l), 0)
+
+    def test_iadd(self):
+        cls = TypedList(int)
+        l = cls()
+        l += [1, 2]
+        self.assertEqual(len(l), 2)
+        self.assertIsInstance(l, cls)
+
+        with self.assertRaises(ValueError):
+            l += [3, 'c']
+
+        self.assertEqual(len(l), 2)
+
+    def test_add_coercion(self):
+        objs = []
+
+        class Foo(object):
+            def __init__(self, obj):
+                objs.append(obj)
+
+        cls = TypedList(Foo)
+        l = cls()
+        l += [1, 2]
+        self.assertEqual(len(objs), 2)
+        self.assertEqual(type(l[0]), Foo)
+        self.assertEqual(type(l[1]), Foo)
+
+        # Adding a TypedList to a TypedList shouldn't trigger coercion again
+        l2 = cls()
+        l2 += l
+        self.assertEqual(len(objs), 2)
+        self.assertEqual(type(l2[0]), Foo)
+        self.assertEqual(type(l2[1]), Foo)
+
+        # Adding a TypedList to a TypedList shouldn't even trigger the code
+        # that does coercion at all.
+        l2 = cls()
+        list.__setslice__(l, 0, -1, [1, 2])
+        l2 += l
+        self.assertEqual(len(objs), 2)
+        self.assertEqual(type(l2[0]), int)
+        self.assertEqual(type(l2[1]), int)
+
+    def test_memoized(self):
+        cls = TypedList(int)
+        cls2 = TypedList(str)
+        self.assertEqual(TypedList(int), cls)
+        self.assertNotEqual(cls, cls2)
+
+
+class TypedTestStrictOrderingOnAppendList(unittest.TestCase):
+    def test_init(self):
+        class Unicode(unicode):
+            def __init__(self, other):
+                if not isinstance(other, unicode):
+                    raise ValueError()
+                super(Unicode, self).__init__(other)
+
+        cls = TypedList(Unicode, StrictOrderingOnAppendList)
+        l = cls()
+        self.assertEqual(len(l), 0)
+
+        l = cls(['a', 'b', 'c'])
+        self.assertEqual(len(l), 3)
+
+        with self.assertRaises(UnsortedError):
+            cls(['c', 'b', 'a'])
+
+        with self.assertRaises(ValueError):
+            cls(['a', 'b', 3])
+
+        self.assertEqual(len(l), 3)
+
+
+class TestTypedNamedTuple(unittest.TestCase):
+    def test_simple(self):
+        FooBar = TypedNamedTuple('FooBar', [('foo', unicode), ('bar', int)])
+
+        t = FooBar(foo='foo', bar=2)
+        self.assertEquals(type(t), FooBar)
+        self.assertEquals(t.foo, 'foo')
+        self.assertEquals(t.bar, 2)
+        self.assertEquals(t[0], 'foo')
+        self.assertEquals(t[1], 2)
+
+        FooBar('foo', 2)
+
+        with self.assertRaises(TypeError):
+            FooBar('foo', 'not integer')
+        with self.assertRaises(TypeError):
+            FooBar(2, 4)
+
+        # Passing a tuple as the first argument is the same as passing multiple
+        # arguments.
+        t1 = ('foo', 3)
+        t2 = FooBar(t1)
+        self.assertEquals(type(t2), FooBar)
+        self.assertEqual(FooBar(t1), FooBar('foo', 3))
+
+
+class TestGroupUnifiedFiles(unittest.TestCase):
+    FILES = ['%s.cpp' % letter for letter in string.ascii_lowercase]
+
+    def test_multiple_files(self):
+        mapping = list(group_unified_files(self.FILES, 'Unified', 'cpp', 5))
+
+        def check_mapping(index, expected_num_source_files):
+            (unified_file, source_files) = mapping[index]
+
+            self.assertEqual(unified_file, 'Unified%d.cpp' % index)
+            self.assertEqual(len(source_files), expected_num_source_files)
+
+        all_files = list(itertools.chain(*[files for (_, files) in mapping]))
+        self.assertEqual(len(all_files), len(self.FILES))
+        self.assertEqual(set(all_files), set(self.FILES))
+
+        expected_amounts = [5, 5, 5, 5, 5, 1]
+        for i, amount in enumerate(expected_amounts):
+            check_mapping(i, amount)
+
+    def test_unsorted_files(self):
+        unsorted_files = ['a%d.cpp' % i for i in range(11)]
+        sorted_files = sorted(unsorted_files)
+        mapping = list(group_unified_files(unsorted_files, 'Unified', 'cpp', 5))
+
+        self.assertEqual(mapping[0][1], sorted_files[0:5])
+        self.assertEqual(mapping[1][1], sorted_files[5:10])
+        self.assertEqual(mapping[2][1], sorted_files[10:])
+
+
+class TestMisc(unittest.TestCase):
+    def test_pair(self):
+        self.assertEqual(
+            list(pair([1, 2, 3, 4, 5, 6])),
+            [(1, 2), (3, 4), (5, 6)]
+        )
+
+        self.assertEqual(
+            list(pair([1, 2, 3, 4, 5, 6, 7])),
+            [(1, 2), (3, 4), (5, 6), (7, None)]
+        )
+
+    def test_expand_variables(self):
+        self.assertEqual(
+            expand_variables('$(var)', {'var': 'value'}),
+            'value'
+        )
+
+        self.assertEqual(
+            expand_variables('$(a) and $(b)', {'a': '1', 'b': '2'}),
+            '1 and 2'
+        )
+
+        self.assertEqual(
+            expand_variables('$(a) and $(undefined)', {'a': '1', 'b': '2'}),
+            '1 and '
+        )
+
+        self.assertEqual(
+            expand_variables('before $(string) between $(list) after', {
+                'string': 'abc',
+                'list': ['a', 'b', 'c']
+            }),
+            'before abc between a b c after'
+        )
+
 
 if __name__ == '__main__':
     main()

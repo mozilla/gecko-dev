@@ -25,10 +25,14 @@ NS_IMPL_ISUPPORTS(CacheStorage, nsICacheStorage)
 
 CacheStorage::CacheStorage(nsILoadContextInfo* aInfo,
                            bool aAllowDisk,
-                           bool aLookupAppCache)
+                           bool aLookupAppCache,
+                           bool aSkipSizeCheck,
+                           bool aPinning)
 : mLoadContextInfo(GetLoadContextInfo(aInfo))
 , mWriteToDisk(aAllowDisk)
 , mLookupAppCache(aLookupAppCache)
+, mSkipSizeCheck(aSkipSizeCheck)
+, mPinning(aPinning)
 {
 }
 
@@ -69,6 +73,11 @@ NS_IMETHODIMP CacheStorage::AsyncOpenURI(nsIURI *aURI,
   if (LookupAppCache()) {
     rv = ChooseApplicationCache(noRefURI, getter_AddRefs(appCache));
     NS_ENSURE_SUCCESS(rv, rv);
+
+    if (appCache) {
+      // From a chosen appcache open only as readonly
+      aFlags &= ~nsICacheStorage::OPEN_TRUNCATE;
+    }
   }
 
   if (appCache) {
@@ -80,7 +89,7 @@ NS_IMETHODIMP CacheStorage::AsyncOpenURI(nsIURI *aURI,
     rv = noRefURI->GetScheme(scheme);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    nsRefPtr<_OldCacheLoad> appCacheLoad =
+    RefPtr<_OldCacheLoad> appCacheLoad =
       new _OldCacheLoad(scheme, cacheKey, aCallback, appCache,
                         LoadInfo(), WriteToDisk(), aFlags);
     rv = appCacheLoad->Start();
@@ -90,7 +99,7 @@ NS_IMETHODIMP CacheStorage::AsyncOpenURI(nsIURI *aURI,
     return NS_OK;
   }
 
-  nsRefPtr<CacheEntryHandle> entry;
+  RefPtr<CacheEntryHandle> entry;
   rv = CacheStorageService::Self()->AddStorageEntry(
     this, noRefURI, aIdExtension,
     true, // create always
@@ -117,7 +126,7 @@ NS_IMETHODIMP CacheStorage::OpenTruncate(nsIURI *aURI, const nsACString & aIdExt
   rv = aURI->CloneIgnoringRef(getter_AddRefs(noRefURI));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsRefPtr<CacheEntryHandle> entry;
+  RefPtr<CacheEntryHandle> entry;
   rv = CacheStorageService::Self()->AddStorageEntry(
     this, noRefURI, aIdExtension,
     true, // create always
@@ -211,5 +220,5 @@ nsresult CacheStorage::ChooseApplicationCache(nsIURI* aURI,
   return NS_OK;
 }
 
-} // net
-} // mozilla
+} // namespace net
+} // namespace mozilla

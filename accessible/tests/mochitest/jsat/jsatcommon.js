@@ -122,20 +122,16 @@ var AccessFuTest = {
   },
 
   nextTest: function AccessFuTest_nextTest() {
-    var testFunc;
-    try {
-      // Get the next test function from the iterator. If none left,
-      // StopIteration exception is thrown.
-      testFunc = gIterator.next()[1];
-    } catch (ex) {
-      // StopIteration exception.
+    var result = gIterator.next();
+    if (result.done) {
       this.finish();
       return;
     }
+    var testFunc = result.value;
     testFunc();
   },
 
-  runTests: function AccessFuTest_runTests() {
+  runTests: function AccessFuTest_runTests(aAdditionalPrefs) {
     if (gTestFuncs.length === 0) {
       ok(false, "No tests specified!");
       SimpleTest.finish();
@@ -143,7 +139,11 @@ var AccessFuTest = {
     }
 
     // Create an Iterator for gTestFuncs array.
-    gIterator = Iterator(gTestFuncs); // jshint ignore:line
+    gIterator = (function*() {
+      for (var testFunc of gTestFuncs) {
+        yield testFunc;
+      }
+    })();
 
     // Start AccessFu and put it in stand-by.
     Components.utils.import("resource://gre/modules/accessibility/AccessFu.jsm");
@@ -156,16 +156,17 @@ var AccessFuTest = {
       Logger.logLevel = Logger.DEBUG;
     };
 
-    SpecialPowers.pushPrefEnv({
-      'set': [['accessibility.accessfu.notify_output', 1],
-              ['dom.mozSettings.enabled', true]]
-    }, function () {
+    var prefs = [['accessibility.accessfu.notify_output', 1],
+      ['dom.mozSettings.enabled', true]];
+    prefs.push.apply(prefs, aAdditionalPrefs);
+
+    SpecialPowers.pushPrefEnv({ 'set': prefs }, function () {
       if (AccessFuTest._waitForExplicitFinish) {
         // Run all test functions asynchronously.
         AccessFuTest.nextTest();
       } else {
         // Run all test functions synchronously.
-        [testFunc() for (testFunc of gTestFuncs)]; // jshint ignore:line
+        gTestFuncs.forEach(testFunc => testFunc());
         AccessFuTest.finish();
       }
     });
@@ -364,20 +365,44 @@ var ContentMessages = {
     }
   },
 
-  adjustRangeUp: {
-    name: 'AccessFu:AdjustRange',
-    json: {
-      origin: 'top',
-      direction: 'backward'
+  moveOrAdjustUp: function moveOrAdjustUp(aRule) {
+    return {
+      name: 'AccessFu:MoveCursor',
+      json: {
+        origin: 'top',
+        action: 'movePrevious',
+        inputType: 'gesture',
+        rule: (aRule || 'Simple'),
+        adjustRange: true
+      }
     }
   },
 
-  adjustRangeDown: {
-    name: 'AccessFu:AdjustRange',
-    json: {
-      origin: 'top',
-      direction: 'forward'
+  moveOrAdjustDown: function moveOrAdjustUp(aRule) {
+    return {
+      name: 'AccessFu:MoveCursor',
+      json: {
+        origin: 'top',
+        action: 'moveNext',
+        inputType: 'gesture',
+        rule: (aRule || 'Simple'),
+        adjustRange: true
+      }
     }
+  },
+
+  androidScrollForward: function adjustUp() {
+    return {
+      name: 'AccessFu:AndroidScroll',
+      json: { origin: 'top', direction: 'forward' }
+    };
+  },
+
+  androidScrollBackward: function adjustDown() {
+    return {
+      name: 'AccessFu:AndroidScroll',
+      json: { origin: 'top', direction: 'backward' }
+    };
   },
 
   focusSelector: function focusSelector(aSelector, aBlur) {
@@ -606,14 +631,44 @@ function ExpectedCheckAction(aChecked, aOptions) {
 
 ExpectedCheckAction.prototype = Object.create(ExpectedPresent.prototype);
 
+function ExpectedSwitchAction(aSwitched, aOptions) {
+  ExpectedPresent.call(this, {
+    eventType: 'action',
+    data: [{ string: aSwitched ? 'onAction' : 'offAction' }]
+  }, [{
+    eventType: AndroidEvent.VIEW_CLICKED,
+    checked: aSwitched
+  }], aOptions);
+}
+
+ExpectedSwitchAction.prototype = Object.create(ExpectedPresent.prototype);
+
+function ExpectedNameChange(aName, aOptions) {
+  ExpectedPresent.call(this, {
+    eventType: 'name-change',
+    data: aName
+  }, null, aOptions);
+}
+
+ExpectedNameChange.prototype = Object.create(ExpectedPresent.prototype);
+
 function ExpectedValueChange(aValue, aOptions) {
   ExpectedPresent.call(this, {
     eventType: 'value-change',
-    data: [aValue]
+    data: aValue
   }, null, aOptions);
 }
 
 ExpectedValueChange.prototype = Object.create(ExpectedPresent.prototype);
+
+function ExpectedTextChanged(aValue, aOptions) {
+  ExpectedPresent.call(this, {
+    eventType: 'text-change',
+    data: aValue
+  }, null, aOptions);
+}
+
+ExpectedTextChanged.prototype = Object.create(ExpectedPresent.prototype);
 
 function ExpectedEditState(aEditState, aOptions) {
   ExpectedMessage.call(this, 'AccessFu:Input', aOptions);
@@ -653,6 +708,12 @@ function ExpectedAnnouncement(aAnnouncement, aOptions) {
 }
 
 ExpectedAnnouncement.prototype = Object.create(ExpectedPresent.prototype);
+
+function ExpectedNoMove(aOptions) {
+  ExpectedPresent.call(this, {eventType: 'no-move' }, null, aOptions);
+}
+
+ExpectedNoMove.prototype = Object.create(ExpectedPresent.prototype);
 
 var AndroidEvent = {
   VIEW_CLICKED: 0x01,

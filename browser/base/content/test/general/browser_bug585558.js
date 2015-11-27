@@ -2,7 +2,7 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-let tabs = [];
+var tabs = [];
 
 function addTab(aURL) {
   tabs.push(gBrowser.addTab(aURL, {skipAnimation: true}));
@@ -14,6 +14,13 @@ function testAttrib(elem, attrib, attribValue, msg) {
 
 function test() {
   waitForExplicitFinish();
+
+  // Ensure TabView has been initialized already. Otherwise it could
+  // activate at an unexpected time and show/hide tabs.
+  TabView._initFrame(runTest);
+}
+
+function runTest() {
   is(gBrowser.tabs.length, 1, "one tab is open initially");
 
   // Add several new tabs in sequence, hiding some, to ensure that the

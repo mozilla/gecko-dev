@@ -5,22 +5,27 @@
 
 package org.mozilla.gecko.widget;
 
+import org.mozilla.gecko.R;
+
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
-import android.widget.ImageView;
+import android.support.v4.content.ContextCompat;
+import org.mozilla.gecko.widget.themed.ThemedImageView;
 
 /* Special version of ImageView for thumbnails. Scales a thumbnail so that it maintains its aspect
  * ratio and so that the images width and height are the same size or greater than the view size
  */
-public class ThumbnailView extends ImageView {
+public class ThumbnailView extends ThemedImageView {
     private static final String LOGTAG = "GeckoThumbnailView";
+
     final private Matrix mMatrix;
     private int mWidthSpec = -1;
     private int mHeightSpec = -1;
     private boolean mLayoutChanged;
+    private boolean mScale = false;
 
     public ThumbnailView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -30,13 +35,18 @@ public class ThumbnailView extends ImageView {
 
     @Override
     public void onDraw(Canvas canvas) {
+        if (!mScale) {
+            super.onDraw(canvas);
+            return;
+        }
+
         Drawable d = getDrawable();
         if (mLayoutChanged) {
             int w1 = d.getIntrinsicWidth();
             int h1 = d.getIntrinsicHeight();
             int w2 = getWidth();
             int h2 = getHeight();
-    
+
             float scale = (w2/h2 < w1/h1) ? (float)h2/h1 : (float)w2/w1;
             mMatrix.setScale(scale, scale);
         }
@@ -58,5 +68,19 @@ public class ThumbnailView extends ImageView {
             mLayoutChanged = true;
         }
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+    }
+
+    @Override
+    public void setImageDrawable(Drawable drawable) {
+        if (drawable == null) {
+            drawable = ContextCompat.getDrawable(getContext(), R.drawable.tab_panel_tab_background);
+            setScaleType(ScaleType.FIT_XY);
+            mScale = false;
+        } else {
+            mScale = true;
+            setScaleType(ScaleType.FIT_CENTER);
+        }
+
+        super.setImageDrawable(drawable);
     }
 }

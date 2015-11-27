@@ -16,18 +16,17 @@
 #endif
 
 #include "mozilla/Attributes.h"
+#include "mozilla/EventForwards.h"
 
 class nsIDragService;
 class nsIWidget;
-
-struct IDataObject;
 
 /*
  * nsNativeDragTarget implements the IDropTarget interface and gets most of its
  * behavior from the associated adapter (m_dragDrop).
  */
 
-class nsNativeDragTarget MOZ_FINAL : public IDropTarget
+class nsNativeDragTarget final : public IDropTarget
 {
 public:
   nsNativeDragTarget(nsIWidget * aWidget);
@@ -73,9 +72,10 @@ protected:
 
   void GetGeckoDragAction(DWORD grfKeyState, LPDWORD pdwEffect, 
                           uint32_t * aGeckoAction);
-  void ProcessDrag(uint32_t aEventType, DWORD grfKeyState,
+  void ProcessDrag(mozilla::EventMessage aEventMessage, DWORD grfKeyState,
                    POINTL pt, DWORD* pdwEffect);
-  void DispatchDragDropEvent(uint32_t aType, POINTL pt);
+  void DispatchDragDropEvent(mozilla::EventMessage aEventMessage,
+                             const POINTL& aPT);
   void AddLinkSupportIfCanBeGenerated(LPDATAOBJECT aIDataSource);
 
   // Native Stuff

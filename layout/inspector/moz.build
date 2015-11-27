@@ -13,7 +13,6 @@ XPIDL_SOURCES += [
     'inIDeepTreeWalker.idl',
     'inIDOMUtils.idl',
     'inIDOMView.idl',
-    'inIFlasher.idl',
     'inISearchObserver.idl',
     'inISearchProcess.idl',
     'nsIDOMFontFace.idl',
@@ -31,7 +30,6 @@ UNIFIED_SOURCES += [
     'inCSSValueSearch.cpp',
     'inDeepTreeWalker.cpp',
     'inDOMUtils.cpp',
-    'inFlasher.cpp',
     'inLayoutUtils.cpp',
     'inSearchLoop.cpp',
     'nsFontFace.cpp',
@@ -43,11 +41,12 @@ if CONFIG['MOZ_XUL']:
         'inDOMView.cpp',
     ]
 
-FAIL_ON_WARNINGS = True
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wshadow']
 
 FINAL_LIBRARY = 'xul'
 LOCAL_INCLUDES += [
     '../style',
-    '/content/base/src',
+    '/dom/base',
     '/dom/xbl',
 ]

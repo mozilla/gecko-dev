@@ -19,6 +19,8 @@
 #include "js/HashTable.h"
 
 namespace js {
+class GenericPrinter;
+
 namespace jit {
 
 class RValueAllocation;
@@ -43,8 +45,8 @@ class RValueAllocation
         CST_UNDEFINED       = 0x01,
         CST_NULL            = 0x02,
         DOUBLE_REG          = 0x03,
-        FLOAT32_REG         = 0x04,
-        FLOAT32_STACK       = 0x05,
+        ANY_FLOAT_REG       = 0x04,
+        ANY_FLOAT_STACK     = 0x05,
 #if defined(JS_NUNBOX32)
         UNTYPED_REG_REG     = 0x06,
         UNTYPED_REG_STACK   = 0x07,
@@ -54,7 +56,10 @@ class RValueAllocation
         UNTYPED_REG         = 0x06,
         UNTYPED_STACK       = 0x07,
 #endif
+
+        // Recover instructions.
         RECOVER_INSTRUCTION = 0x0a,
+        RI_WITH_DEFAULT_CST = 0x0b,
 
         // The JSValueType is packed in the Mode.
         TYPED_REG_MIN       = 0x10,
@@ -65,6 +70,17 @@ class RValueAllocation
         TYPED_STACK_MIN     = 0x20,
         TYPED_STACK_MAX     = 0x2f,
         TYPED_STACK = TYPED_STACK_MIN,
+
+        // This mask can be used with any other valid mode. When this flag is
+        // set on the mode, this inform the snapshot iterator that even if the
+        // allocation is readable, the content of if might be incomplete unless
+        // all side-effects are executed.
+        RECOVER_SIDE_EFFECT_MASK = 0x80,
+
+        // This mask represents the set of bits which can be used to encode a
+        // value in a snapshot. The mode is used to determine how to interpret
+        // the union of values and how to pack the value in memory.
+        MODE_BITS_MASK           = 0x17f,
 
         INVALID = 0x100,
     };
@@ -84,7 +100,7 @@ class RValueAllocation
     struct Layout {
         PayloadType type1;
         PayloadType type2;
-        const char *name;
+        const char* name;
     };
 
   private:
@@ -93,13 +109,13 @@ class RValueAllocation
     // Additional information to recover the content of the allocation.
     struct FloatRegisterBits {
         uint32_t data;
-        bool operator == (const FloatRegisterBits &other) const {
+        bool operator == (const FloatRegisterBits& other) const {
             return data == other.data;
         }
         uint32_t code() const {
             return data;
         }
-        const char *name() const {
+        const char* name() const {
             FloatRegister tmp = FloatRegister::FromCode(data);
             return tmp.name();
         }
@@ -144,14 +160,14 @@ class RValueAllocation
         return p;
     }
 
-    static const Layout &layoutFromMode(Mode mode);
+    static const Layout& layoutFromMode(Mode mode);
 
-    static void readPayload(CompactBufferReader &reader, PayloadType t,
-                            uint8_t *mode, Payload *p);
-    static void writePayload(CompactBufferWriter &writer, PayloadType t,
+    static void readPayload(CompactBufferReader& reader, PayloadType t,
+                            uint8_t* mode, Payload* p);
+    static void writePayload(CompactBufferWriter& writer, PayloadType t,
                              Payload p);
-    static void writePadding(CompactBufferWriter &writer);
-    static void dumpPayload(FILE *fp, PayloadType t, Payload p);
+    static void writePadding(CompactBufferWriter& writer);
+    static void dumpPayload(GenericPrinter& out, PayloadType t, Payload p);
     static bool equalPayloads(PayloadType t, Payload lhs, Payload rhs);
 
     RValueAllocation(Mode mode, Payload a1, Payload a2)
@@ -182,27 +198,27 @@ class RValueAllocation
         return RValueAllocation(DOUBLE_REG, payloadOfFloatRegister(reg));
     }
 
-    // FLOAT32_REG or FLOAT32_STACK
-    static RValueAllocation Float32(FloatRegister reg) {
-        return RValueAllocation(FLOAT32_REG, payloadOfFloatRegister(reg));
+    // ANY_FLOAT_REG or ANY_FLOAT_STACK
+    static RValueAllocation AnyFloat(FloatRegister reg) {
+        return RValueAllocation(ANY_FLOAT_REG, payloadOfFloatRegister(reg));
     }
-    static RValueAllocation Float32(int32_t offset) {
-        return RValueAllocation(FLOAT32_STACK, payloadOfStackOffset(offset));
+    static RValueAllocation AnyFloat(int32_t offset) {
+        return RValueAllocation(ANY_FLOAT_STACK, payloadOfStackOffset(offset));
     }
 
     // TYPED_REG or TYPED_STACK
     static RValueAllocation Typed(JSValueType type, Register reg) {
-        JS_ASSERT(type != JSVAL_TYPE_DOUBLE &&
-                  type != JSVAL_TYPE_MAGIC &&
-                  type != JSVAL_TYPE_NULL &&
-                  type != JSVAL_TYPE_UNDEFINED);
+        MOZ_ASSERT(type != JSVAL_TYPE_DOUBLE &&
+                   type != JSVAL_TYPE_MAGIC &&
+                   type != JSVAL_TYPE_NULL &&
+                   type != JSVAL_TYPE_UNDEFINED);
         return RValueAllocation(TYPED_REG, payloadOfValueType(type),
                                 payloadOfRegister(reg));
     }
     static RValueAllocation Typed(JSValueType type, int32_t offset) {
-        JS_ASSERT(type != JSVAL_TYPE_MAGIC &&
-                  type != JSVAL_TYPE_NULL &&
-                  type != JSVAL_TYPE_UNDEFINED);
+        MOZ_ASSERT(type != JSVAL_TYPE_MAGIC &&
+                   type != JSVAL_TYPE_NULL &&
+                   type != JSVAL_TYPE_UNDEFINED);
         return RValueAllocation(TYPED_STACK, payloadOfValueType(type),
                                 payloadOfStackOffset(offset));
     }
@@ -260,57 +276,74 @@ class RValueAllocation
     static RValueAllocation RecoverInstruction(uint32_t index) {
         return RValueAllocation(RECOVER_INSTRUCTION, payloadOfIndex(index));
     }
+    static RValueAllocation RecoverInstruction(uint32_t riIndex, uint32_t cstIndex) {
+        return RValueAllocation(RI_WITH_DEFAULT_CST,
+                                payloadOfIndex(riIndex),
+                                payloadOfIndex(cstIndex));
+    }
 
-    void writeHeader(CompactBufferWriter &writer, JSValueType type, uint32_t regCode) const;
+    void setNeedSideEffect() {
+        MOZ_ASSERT(!needSideEffect() && mode_ != INVALID);
+        mode_ = Mode(mode_ | RECOVER_SIDE_EFFECT_MASK);
+    }
+
+    void writeHeader(CompactBufferWriter& writer, JSValueType type, uint32_t regCode) const;
   public:
-    static RValueAllocation read(CompactBufferReader &reader);
-    void write(CompactBufferWriter &writer) const;
+    static RValueAllocation read(CompactBufferReader& reader);
+    void write(CompactBufferWriter& writer) const;
 
   public:
     Mode mode() const {
-        return mode_;
+        return Mode(mode_ & MODE_BITS_MASK);
+    }
+    bool needSideEffect() const {
+        return mode_ & RECOVER_SIDE_EFFECT_MASK;
     }
 
     uint32_t index() const {
-        JS_ASSERT(layoutFromMode(mode()).type1 == PAYLOAD_INDEX);
+        MOZ_ASSERT(layoutFromMode(mode()).type1 == PAYLOAD_INDEX);
         return arg1_.index;
     }
     int32_t stackOffset() const {
-        JS_ASSERT(layoutFromMode(mode()).type1 == PAYLOAD_STACK_OFFSET);
+        MOZ_ASSERT(layoutFromMode(mode()).type1 == PAYLOAD_STACK_OFFSET);
         return arg1_.stackOffset;
     }
     Register reg() const {
-        JS_ASSERT(layoutFromMode(mode()).type1 == PAYLOAD_GPR);
+        MOZ_ASSERT(layoutFromMode(mode()).type1 == PAYLOAD_GPR);
         return arg1_.gpr;
     }
     FloatRegister fpuReg() const {
-        JS_ASSERT(layoutFromMode(mode()).type1 == PAYLOAD_FPU);
+        MOZ_ASSERT(layoutFromMode(mode()).type1 == PAYLOAD_FPU);
         FloatRegisterBits b = arg1_.fpu;
         return FloatRegister::FromCode(b.data);
     }
     JSValueType knownType() const {
-        JS_ASSERT(layoutFromMode(mode()).type1 == PAYLOAD_PACKED_TAG);
+        MOZ_ASSERT(layoutFromMode(mode()).type1 == PAYLOAD_PACKED_TAG);
         return arg1_.type;
     }
 
+    uint32_t index2() const {
+        MOZ_ASSERT(layoutFromMode(mode()).type2 == PAYLOAD_INDEX);
+        return arg2_.index;
+    }
     int32_t stackOffset2() const {
-        JS_ASSERT(layoutFromMode(mode()).type2 == PAYLOAD_STACK_OFFSET);
+        MOZ_ASSERT(layoutFromMode(mode()).type2 == PAYLOAD_STACK_OFFSET);
         return arg2_.stackOffset;
     }
     Register reg2() const {
-        JS_ASSERT(layoutFromMode(mode()).type2 == PAYLOAD_GPR);
+        MOZ_ASSERT(layoutFromMode(mode()).type2 == PAYLOAD_GPR);
         return arg2_.gpr;
     }
 
   public:
-    void dump(FILE *fp) const;
+    void dump(GenericPrinter& out) const;
 
   public:
-    bool operator==(const RValueAllocation &rhs) const {
+    bool operator==(const RValueAllocation& rhs) const {
         if (mode_ != rhs.mode_)
             return false;
 
-        const Layout &layout = layoutFromMode(mode());
+        const Layout& layout = layoutFromMode(mode());
         return equalPayloads(layout.type1, arg1_, rhs.arg1_) &&
             equalPayloads(layout.type2, arg2_, rhs.arg2_);
     }
@@ -321,10 +354,10 @@ class RValueAllocation
     {
         typedef RValueAllocation Key;
         typedef Key Lookup;
-        static HashNumber hash(const Lookup &v) {
+        static HashNumber hash(const Lookup& v) {
             return v.hash();
         }
-        static bool match(const Key &k, const Lookup &l) {
+        static bool match(const Key& k, const Lookup& l) {
             return k == l;
         }
     };
@@ -359,7 +392,7 @@ class SnapshotWriter
     void trackSnapshot(uint32_t pcOpcode, uint32_t mirOpcode, uint32_t mirId,
                        uint32_t lirOpcode, uint32_t lirId);
 #endif
-    bool add(const RValueAllocation &slot);
+    bool add(const RValueAllocation& slot);
 
     uint32_t allocWritten() const {
         return allocWritten_;
@@ -374,14 +407,14 @@ class SnapshotWriter
     size_t listSize() const {
         return writer_.length();
     }
-    const uint8_t *listBuffer() const {
+    const uint8_t* listBuffer() const {
         return writer_.buffer();
     }
 
     size_t RVATableSize() const {
         return allocWriter_.length();
     }
-    const uint8_t *RVATableBuffer() const {
+    const uint8_t* RVATableBuffer() const {
         return allocWriter_.buffer();
     }
 };
@@ -398,14 +431,14 @@ class RecoverWriter
   public:
     SnapshotOffset startRecover(uint32_t instructionCount, bool resumeAfter);
 
-    bool writeInstruction(const MNode *rp);
+    void writeInstruction(const MNode* rp);
 
     void endRecover();
 
     size_t size() const {
         return writer_.length();
     }
-    const uint8_t *buffer() const {
+    const uint8_t* buffer() const {
         return writer_.buffer();
     }
 
@@ -448,7 +481,7 @@ class SnapshotReader
     uint32_t readAllocationIndex();
 
   public:
-    SnapshotReader(const uint8_t *snapshots, uint32_t offset,
+    SnapshotReader(const uint8_t* snapshots, uint32_t offset,
                    uint32_t RVATableSize, uint32_t listSize);
 
     RValueAllocation readAllocation();
@@ -497,7 +530,7 @@ class RecoverReader
     void readInstruction();
 
   public:
-    RecoverReader(SnapshotReader &snapshot, const uint8_t *recovers, uint32_t size);
+    RecoverReader(SnapshotReader& snapshot, const uint8_t* recovers, uint32_t size);
 
     uint32_t numInstructions() const {
         return numInstructions_;
@@ -513,8 +546,8 @@ class RecoverReader
         readInstruction();
     }
 
-    const RInstruction *instruction() const {
-        return reinterpret_cast<const RInstruction *>(rawData_.addr());
+    const RInstruction* instruction() const {
+        return reinterpret_cast<const RInstruction*>(rawData_.addr());
     }
 
     bool resumeAfter() const {
@@ -522,7 +555,7 @@ class RecoverReader
     }
 };
 
-}
-}
+} // namespace jit
+} // namespace js
 
 #endif /* jit_Snapshot_h */

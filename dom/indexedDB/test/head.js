@@ -3,7 +3,7 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-let gActiveListeners = {};
+var gActiveListeners = {};
 
 function registerPopupEventHandler(eventName, callback) {
   gActiveListeners[eventName] = function (event) {
@@ -109,34 +109,21 @@ function dispatchEvent(eventName)
   gBrowser.selectedBrowser.contentWindow.dispatchEvent(event);
 }
 
-function setPermission(url, permission, value)
+function setPermission(url, permission)
 {
   const nsIPermissionManager = Components.interfaces.nsIPermissionManager;
-
-  switch (value) {
-    case "allow":
-      value = nsIPermissionManager.ALLOW_ACTION;
-      break;
-    case "deny":
-      value = nsIPermissionManager.DENY_ACTION;
-      break;
-    case "unknown":
-      value = nsIPermissionManager.UNKNOWN_ACTION;
-      break;
-    default:
-      throw new Error("No idea what to set here!");
-  }
 
   let uri = Components.classes["@mozilla.org/network/io-service;1"]
                       .getService(Components.interfaces.nsIIOService)
                       .newURI(url, null, null);
-  let principal = Components.classes["@mozilla.org/scriptsecuritymanager;1"]
-                    .getService(Ci.nsIScriptSecurityManager)
-                    .getNoAppCodebasePrincipal(uri);
+  let ssm = Components.classes["@mozilla.org/scriptsecuritymanager;1"]
+                      .getService(Ci.nsIScriptSecurityManager);
+  let principal = ssm.createCodebasePrincipal(uri, {});
 
   Components.classes["@mozilla.org/permissionmanager;1"]
-            .getService(Components.interfaces.nsIPermissionManager)
-            .addFromPrincipal(principal, permission, value);
+            .getService(nsIPermissionManager)
+            .addFromPrincipal(principal, permission,
+                              nsIPermissionManager.ALLOW_ACTION);
 }
 
 function removePermission(url, permission)
@@ -144,9 +131,9 @@ function removePermission(url, permission)
   let uri = Components.classes["@mozilla.org/network/io-service;1"]
                       .getService(Components.interfaces.nsIIOService)
                       .newURI(url, null, null);
-  let principal = Components.classes["@mozilla.org/scriptsecuritymanager;1"]
-                    .getService(Ci.nsIScriptSecurityManager)
-                    .getNoAppCodebasePrincipal(uri);
+  let ssm = Components.classes["@mozilla.org/scriptsecuritymanager;1"]
+                      .getService(Ci.nsIScriptSecurityManager);
+  let principal = ssm.createCodebasePrincipal(uri, {});
 
   Components.classes["@mozilla.org/permissionmanager;1"]
             .getService(Components.interfaces.nsIPermissionManager)
@@ -158,9 +145,9 @@ function getPermission(url, permission)
   let uri = Components.classes["@mozilla.org/network/io-service;1"]
                       .getService(Components.interfaces.nsIIOService)
                       .newURI(url, null, null);
-  let principal = Components.classes["@mozilla.org/scriptsecuritymanager;1"]
-                    .getService(Ci.nsIScriptSecurityManager)
-                    .getNoAppCodebasePrincipal(uri);
+  let ssm = Components.classes["@mozilla.org/scriptsecuritymanager;1"]
+                      .getService(Ci.nsIScriptSecurityManager);
+  let principal = ssm.createCodebasePrincipal(uri, {});
 
   return Components.classes["@mozilla.org/permissionmanager;1"]
                    .getService(Components.interfaces.nsIPermissionManager)

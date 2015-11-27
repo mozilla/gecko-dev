@@ -5,20 +5,34 @@
 
 package org.mozilla.gecko.preferences;
 
+import org.mozilla.gecko.AppConstants.Versions;
 import org.mozilla.gecko.R;
+import org.mozilla.gecko.restrictions.Restrictable;
 import org.mozilla.gecko.util.ThreadUtils;
+import org.mozilla.gecko.Restrictions;
 
 import java.util.Set;
 
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.preference.Preference;
 import android.util.AttributeSet;
 import android.util.Log;
 
 class AndroidImportPreference extends MultiPrefMultiChoicePreference {
-    static final private String LOGTAG = "AndroidImport";
+    private static final String LOGTAG = "AndroidImport";
+    public static final String PREF_KEY = "android.not_a_preference.import_android";
     private static final String PREF_KEY_PREFIX = "import_android.data.";
-    private Context mContext;
+    private final Context mContext;
+
+    public static class Handler implements GeckoPreferences.PrefHandler {
+        public boolean setupPref(Context context, Preference pref) {
+            // Feature disabled on devices running Android M+ (Bug 1183559)
+            return Versions.preM && Restrictions.isAllowed(context, Restrictable.IMPORT_SETTINGS);
+        }
+
+        public void onChange(Context context, Preference pref, Object newValue) { }
+    }
 
     public AndroidImportPreference(Context context, AttributeSet attrs) {
         super(context, attrs);

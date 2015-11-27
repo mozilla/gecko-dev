@@ -14,8 +14,8 @@
 #include <stdlib.h>
 
 #include "webrtc/common_audio/signal_processing/include/signal_processing_library.h"
+#include "webrtc/system_wrappers/interface/logging.h"
 #include "webrtc/system_wrappers/interface/sort.h"
-#include "webrtc/system_wrappers/interface/trace.h"
 
 namespace webrtc {
 
@@ -51,17 +51,11 @@ const uint16_t VPMDeflickering::prob_uw16_[kNumProbs] = {102, 205, 410, 614,
 const uint16_t VPMDeflickering::weight_uw16_[kNumQuants - kMaxOnlyLength] =
     {16384, 18432, 20480, 22528, 24576, 26624, 28672, 30720, 32768}; // <Q15>
 
-VPMDeflickering::VPMDeflickering()
-    : id_(0) {
+VPMDeflickering::VPMDeflickering() {
   Reset();
 }
 
 VPMDeflickering::~VPMDeflickering() {}
-
-int32_t VPMDeflickering::ChangeUniqueId(const int32_t id) {
-  id_ = id;
-  return 0;
-}
 
 void VPMDeflickering::Reset() {
   mean_buffer_length_ = 0;
@@ -75,8 +69,9 @@ void VPMDeflickering::Reset() {
   quant_hist_uw8_[0][0] = 0;
   quant_hist_uw8_[0][kNumQuants - 1] = 255;
   for (int32_t i = 0; i < kNumProbs; i++) {
-    quant_hist_uw8_[0][i + 1] = static_cast<uint8_t>((WEBRTC_SPL_UMUL_16_16(
-        prob_uw16_[i], 255) + (1 << 10)) >> 11);  // Unsigned round. <Q0>
+    // Unsigned round. <Q0>
+    quant_hist_uw8_[0][i + 1] = static_cast<uint8_t>(
+        (prob_uw16_[i] * 255 + (1 << 10)) >> 11);
   }
 
   for (int32_t i = 1; i < kFrameHistory_size; i++) {
@@ -102,21 +97,16 @@ int32_t VPMDeflickering::ProcessFrame(I420VideoFrame* frame,
   int height = frame->height();
 
   if (frame->IsZeroSize()) {
-    WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceVideoPreocessing, id_,
-                 "Null frame pointer");
     return VPM_GENERAL_ERROR;
   }
 
   // Stricter height check due to subsampling size calculation below.
   if (height < 2) {
-    WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceVideoPreocessing, id_,
-                 "Invalid frame size");
+    LOG(LS_ERROR) << "Invalid frame size.";
     return VPM_GENERAL_ERROR;
   }
 
   if (!VideoProcessingModule::ValidFrameStats(*stats)) {
-    WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceVideoPreocessing, id_,
-                 "Invalid frame stats");
     return VPM_GENERAL_ERROR;
   }
 
@@ -152,8 +142,7 @@ int32_t VPMDeflickering::ProcessFrame(I420VideoFrame* frame,
   // Ensure we won't get an overflow below.
   // In practice, the number of subsampled pixels will not become this large.
   if (y_sub_size > (1 << 21) - 1) {
-    WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceVideoPreocessing, id_,
-        "Subsampled number of pixels too large");
+    LOG(LS_ERROR) << "Subsampled number of pixels too large.";
     return -1;
   }
 
@@ -197,9 +186,12 @@ int32_t VPMDeflickering::ProcessFrame(I420VideoFrame* frame,
 
   // Get target quantiles.
   for (int32_t i = 0; i < kNumQuants - kMaxOnlyLength; i++) {
-    target_quant_uw16[i] = static_cast<uint16_t>((WEBRTC_SPL_UMUL_16_16(
-        weight_uw16_[i], maxquant_uw8[i]) + WEBRTC_SPL_UMUL_16_16((1 << 15) -
-        weight_uw16_[i], minquant_uw8[i])) >> 8);  // <Q7>
+    // target = w * maxquant_uw8 + (1 - w) * minquant_uw8
+    // Weights w = |weight_uw16_| are in Q15, hence the final output has to be
+    // right shifted by 8 to end up in Q7.
+    target_quant_uw16[i] = static_cast<uint16_t>((
+        weight_uw16_[i] * maxquant_uw8[i] +
+        ((1 << 15) - weight_uw16_[i]) * minquant_uw8[i]) >> 8);  // <Q7>
   }
 
   for (int32_t i = kNumQuants - kMaxOnlyLength; i < kNumQuants; i++) {

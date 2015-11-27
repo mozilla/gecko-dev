@@ -4,11 +4,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import os
 import sys
+
+here = os.path.split(os.path.abspath(__file__))[0]
+sys.path.insert(0, os.path.join(here, "harness"))
 
 from wptrunner import wptrunner
 
 if __name__ == "__main__":
-    success = wptrunner.main()
-    if not success:
-        sys.exit(1)
+    rv = wptrunner.main()
+    sys.exit(rv)

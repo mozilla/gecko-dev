@@ -1,13 +1,14 @@
-marionette-transport == 0.3
-manifestparser
-mozhttpd >= 0.5
-mozinfo >= 0.7
+marionette-driver >= 1.1.1
+browsermob-proxy >= 0.6.0
+manifestparser >= 1.1
+mozhttpd >= 0.7
+mozinfo >= 0.8
 mozprocess >= 0.9
-mozrunner >= 6.2
-mozdevice >= 0.37
-mozlog >= 2.6
+mozrunner >= 6.9
+mozdevice >= 0.44
+mozlog >= 3.0
 moznetwork >= 0.21
 mozcrash >= 0.5
 mozprofile >= 0.7
 moztest >= 0.7
-mozversion >= 0.2
+mozversion >= 1.1

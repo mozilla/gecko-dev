@@ -54,7 +54,7 @@ public:
 
 
   ePrintDataType               mType;            // the type of data this is (Printing or Print Preview)
-  nsRefPtr<nsDeviceContext>   mPrintDC;
+  RefPtr<nsDeviceContext>   mPrintDC;
   FILE                        *mDebugFilePtr;    // a file where information can go to when printing
 
   nsPrintObject *                mPrintObject;
@@ -85,8 +85,8 @@ public:
   char16_t*            mBrandName; //  needed as a substitute name for a document
 
 private:
-  nsPrintData() MOZ_DELETE;
-  nsPrintData& operator=(const nsPrintData& aOther) MOZ_DELETE;
+  nsPrintData() = delete;
+  nsPrintData& operator=(const nsPrintData& aOther) = delete;
 
 };
 

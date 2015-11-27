@@ -6,6 +6,7 @@
 #ifndef SHARED_SURFACE_GRALLOC_H_
 #define SHARED_SURFACE_GRALLOC_H_
 
+#include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/LayersSurfaces.h"
 #include "SharedSurface.h"
 
@@ -27,6 +28,7 @@ public:
                                                    const GLFormats& formats,
                                                    const gfx::IntSize& size,
                                                    bool hasAlpha,
+                                                   layers::TextureFlags flags,
                                                    layers::ISurfaceAllocator* allocator);
 
     static SharedSurface_Gralloc* Cast(SharedSurface* surf) {
@@ -55,42 +57,43 @@ protected:
 public:
     virtual ~SharedSurface_Gralloc();
 
-    virtual void Fence() MOZ_OVERRIDE;
-    virtual bool WaitSync() MOZ_OVERRIDE;
-    virtual bool PollSync() MOZ_OVERRIDE;
+    virtual void Fence() override;
+    virtual bool WaitSync() override;
+    virtual bool PollSync() override;
 
-    virtual void WaitForBufferOwnership() MOZ_OVERRIDE;
+    virtual void WaitForBufferOwnership() override;
 
-    virtual void LockProdImpl() MOZ_OVERRIDE {}
-    virtual void UnlockProdImpl() MOZ_OVERRIDE {}
+    virtual void LockProdImpl() override {}
+    virtual void UnlockProdImpl() override {}
 
-    virtual GLuint ProdTexture() MOZ_OVERRIDE {
+    virtual GLuint ProdTexture() override {
         return mProdTex;
     }
 
     layers::GrallocTextureClientOGL* GetTextureClient() {
         return mTextureClient;
     }
+
+    virtual bool ToSurfaceDescriptor(layers::SurfaceDescriptor* const out_descriptor) override;
+
+    virtual bool ReadbackBySharedHandle(gfx::DataSourceSurface* out_surface) override;
 };
 
 class SurfaceFactory_Gralloc
     : public SurfaceFactory
 {
-protected:
-    RefPtr<layers::ISurfaceAllocator> mAllocator;
-
 public:
-    SurfaceFactory_Gralloc(GLContext* prodGL,
-                           const SurfaceCaps& caps,
-                           layers::ISurfaceAllocator* allocator = nullptr);
+    SurfaceFactory_Gralloc(GLContext* prodGL, const SurfaceCaps& caps,
+                           const RefPtr<layers::ISurfaceAllocator>& allocator,
+                           const layers::TextureFlags& flags);
 
-    virtual UniquePtr<SharedSurface> CreateShared(const gfx::IntSize& size) MOZ_OVERRIDE {
+    virtual UniquePtr<SharedSurface> CreateShared(const gfx::IntSize& size) override {
         bool hasAlpha = mReadCaps.alpha;
 
         UniquePtr<SharedSurface> ret;
         if (mAllocator) {
-            ret = SharedSurface_Gralloc::Create(mGL, mFormats, size,
-                                                hasAlpha, mAllocator);
+            ret = SharedSurface_Gralloc::Create(mGL, mFormats, size, hasAlpha,
+                                                mFlags, mAllocator);
         }
         return Move(ret);
     }

@@ -8,6 +8,7 @@
 
 #include "xpcprivate.h"
 #include "jswrapper.h"
+#include "jsfriendapi.h"
 
 using namespace mozilla;
 using namespace xpc;
@@ -21,8 +22,8 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
                                HandleObject funobj /* = nullptr               */,
                                HandleId name       /* = JSID_VOID             */,
                                unsigned argc       /* = NO_ARGS               */,
-                               jsval *argv         /* = nullptr               */,
-                               jsval *rval         /* = nullptr               */)
+                               Value* argv         /* = nullptr               */,
+                               Value* rval         /* = nullptr               */)
     :   mAr(cx),
         mState(INIT_FAILED),
         mXPC(nsXPConnect::XPConnect()),
@@ -56,18 +57,20 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
 
     mTearOff = nullptr;
 
-    JSObject *unwrapped = js::CheckedUnwrap(obj, /* stopAtOuter = */ false);
+    JSObject* unwrapped = js::CheckedUnwrap(obj, /* stopAtWindowProxy = */ false);
     if (!unwrapped) {
         JS_ReportError(mJSContext, "Permission denied to call method on |this|");
         mState = INIT_FAILED;
         return;
     }
-    const js::Class *clasp = js::GetObjectClass(unwrapped);
+    const js::Class* clasp = js::GetObjectClass(unwrapped);
     if (IS_WN_CLASS(clasp)) {
         mWrapper = XPCWrappedNative::Get(unwrapped);
     } else if (IS_TEAROFF_CLASS(clasp)) {
         mTearOff = (XPCWrappedNativeTearOff*)js::GetObjectPrivate(unwrapped);
-        mWrapper = XPCWrappedNative::Get(js::GetObjectParent(unwrapped));
+        mWrapper = XPCWrappedNative::Get(
+          &js::GetReservedSlot(unwrapped,
+                               XPC_WN_TEAROFF_FLAT_OBJECT_SLOT).toObject());
     }
     if (mWrapper) {
         if (mTearOff)
@@ -86,7 +89,7 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
 }
 
 // static
-JSContext *
+JSContext*
 XPCCallContext::GetDefaultJSContext()
 {
     // This is slightly questionable. If called without an explicit
@@ -98,7 +101,7 @@ XPCCallContext::GetDefaultJSContext()
     // Note: this *is* what the pre-XPCCallContext xpconnect did too.
 
     XPCJSContextStack* stack = XPCJSRuntime::Get()->GetJSContextStack();
-    JSContext *topJSContext = stack->Peek();
+    JSContext* topJSContext = stack->Peek();
 
     return topJSContext ? topJSContext : stack->GetSafeJSContext();
 }
@@ -163,8 +166,8 @@ XPCCallContext::SetCallInfo(XPCNativeInterface* iface, XPCNativeMember* member,
 
 void
 XPCCallContext::SetArgsAndResultPtr(unsigned argc,
-                                    jsval *argv,
-                                    jsval *rval)
+                                    Value* argv,
+                                    Value* rval)
 {
     CHECK_STATE(HAVE_OBJECT);
 
@@ -230,7 +233,6 @@ XPCCallContext::~XPCCallContext()
     }
 }
 
-/* readonly attribute nsISupports Callee; */
 NS_IMETHODIMP
 XPCCallContext::GetCallee(nsISupports * *aCallee)
 {
@@ -239,15 +241,13 @@ XPCCallContext::GetCallee(nsISupports * *aCallee)
     return NS_OK;
 }
 
-/* readonly attribute uint16_t CalleeMethodIndex; */
 NS_IMETHODIMP
-XPCCallContext::GetCalleeMethodIndex(uint16_t *aCalleeMethodIndex)
+XPCCallContext::GetCalleeMethodIndex(uint16_t* aCalleeMethodIndex)
 {
     *aCalleeMethodIndex = mMethodIndex;
     return NS_OK;
 }
 
-/* readonly attribute XPCNativeInterface CalleeInterface; */
 NS_IMETHODIMP
 XPCCallContext::GetCalleeInterface(nsIInterfaceInfo * *aCalleeInterface)
 {
@@ -256,7 +256,6 @@ XPCCallContext::GetCalleeInterface(nsIInterfaceInfo * *aCalleeInterface)
     return NS_OK;
 }
 
-/* readonly attribute nsIClassInfo CalleeClassInfo; */
 NS_IMETHODIMP
 XPCCallContext::GetCalleeClassInfo(nsIClassInfo * *aCalleeClassInfo)
 {
@@ -265,7 +264,6 @@ XPCCallContext::GetCalleeClassInfo(nsIClassInfo * *aCalleeClassInfo)
     return NS_OK;
 }
 
-/* readonly attribute JSContextPtr JSContext; */
 NS_IMETHODIMP
 XPCCallContext::GetJSContext(JSContext * *aJSContext)
 {
@@ -274,24 +272,22 @@ XPCCallContext::GetJSContext(JSContext * *aJSContext)
     return NS_OK;
 }
 
-/* readonly attribute uint32_t Argc; */
 NS_IMETHODIMP
-XPCCallContext::GetArgc(uint32_t *aArgc)
+XPCCallContext::GetArgc(uint32_t* aArgc)
 {
     *aArgc = (uint32_t) mArgc;
     return NS_OK;
 }
 
-/* readonly attribute JSValPtr ArgvPtr; */
 NS_IMETHODIMP
-XPCCallContext::GetArgvPtr(jsval * *aArgvPtr)
+XPCCallContext::GetArgvPtr(Value** aArgvPtr)
 {
     *aArgvPtr = mArgv;
     return NS_OK;
 }
 
 NS_IMETHODIMP
-XPCCallContext::GetPreviousCallContext(nsAXPCNativeCallContext **aResult)
+XPCCallContext::GetPreviousCallContext(nsAXPCNativeCallContext** aResult)
 {
   NS_ENSURE_ARG_POINTER(aResult);
   *aResult = GetPrevCallContext();
@@ -299,7 +295,7 @@ XPCCallContext::GetPreviousCallContext(nsAXPCNativeCallContext **aResult)
 }
 
 NS_IMETHODIMP
-XPCCallContext::GetLanguage(uint16_t *aResult)
+XPCCallContext::GetLanguage(uint16_t* aResult)
 {
   NS_ENSURE_ARG_POINTER(aResult);
   *aResult = GetCallerLanguage();

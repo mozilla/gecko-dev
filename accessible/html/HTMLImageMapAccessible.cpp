@@ -85,8 +85,9 @@ HTMLImageMapAccessible::UpdateChildAreas(bool aDoFireEvents)
   if (!imageMapObj)
     return;
 
-  bool doReorderEvent = false;
-  nsRefPtr<AccReorderEvent> reorderEvent = new AccReorderEvent(this);
+  bool treeChanged = false;
+  AutoTreeMutation mut(this);
+  RefPtr<AccReorderEvent> reorderEvent = new AccReorderEvent(this);
 
   // Remove areas that are not a valid part of the image map anymore.
   for (int32_t childIdx = mChildren.Length() - 1; childIdx >= 0; childIdx--) {
@@ -95,13 +96,13 @@ HTMLImageMapAccessible::UpdateChildAreas(bool aDoFireEvents)
       continue;
 
     if (aDoFireEvents) {
-      nsRefPtr<AccHideEvent> event = new AccHideEvent(area, area->GetContent());
+      RefPtr<AccHideEvent> event = new AccHideEvent(area, area->GetContent());
       mDoc->FireDelayedEvent(event);
       reorderEvent->AddSubMutationEvent(event);
-      doReorderEvent = true;
     }
 
     RemoveChild(area);
+    treeChanged = true;
   }
 
   // Insert new areas into the tree.
@@ -111,7 +112,7 @@ HTMLImageMapAccessible::UpdateChildAreas(bool aDoFireEvents)
 
     Accessible* area = mChildren.SafeElementAt(idx);
     if (!area || area->GetContent() != areaContent) {
-      nsRefPtr<Accessible> area = new HTMLAreaAccessible(areaContent, mDoc);
+      RefPtr<Accessible> area = new HTMLAreaAccessible(areaContent, mDoc);
       mDoc->BindToDocument(area, aria::GetRoleMap(areaContent));
 
       if (!InsertChildAt(idx, area)) {
@@ -120,17 +121,21 @@ HTMLImageMapAccessible::UpdateChildAreas(bool aDoFireEvents)
       }
 
       if (aDoFireEvents) {
-        nsRefPtr<AccShowEvent> event = new AccShowEvent(area, areaContent);
+        RefPtr<AccShowEvent> event = new AccShowEvent(area, areaContent);
         mDoc->FireDelayedEvent(event);
         reorderEvent->AddSubMutationEvent(event);
-        doReorderEvent = true;
       }
+
+      treeChanged = true;
     }
   }
 
   // Fire reorder event if needed.
-  if (doReorderEvent)
+  if (treeChanged && aDoFireEvents)
     mDoc->FireDelayedEvent(reorderEvent);
+
+  if (!treeChanged)
+    mut.mInvalidationRequired = false;
 }
 
 Accessible*
@@ -170,7 +175,7 @@ HTMLAreaAccessible::
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// HTMLAreaAccessible: nsIAccessible
+// HTMLAreaAccessible: Accessible
 
 ENameValueFlag
 HTMLAreaAccessible::NativeName(nsString& aName)
@@ -180,7 +185,7 @@ HTMLAreaAccessible::NativeName(nsString& aName)
     return nameFlag;
 
   if (!mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::alt, aName))
-    GetValue(aName);
+    Value(aName);
 
   return eNameOK;
 }

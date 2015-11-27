@@ -12,7 +12,7 @@ function test() {
   registerCleanupFunction(function() {
     gBrowser.removeCurrentTab();
   });
-  gBrowser.selectedTab.linkedBrowser.loadURI(REDIRECT_URI.spec);
+  gBrowser.selectedBrowser.loadURI(REDIRECT_URI.spec);
 
   // Create and add history observer.
   let historyObserver = {
@@ -43,7 +43,7 @@ function test() {
             fieldForUrl(TARGET_URI, "hidden", function (aHidden) {
               is(aHidden, 0, "The target page should not be hidden");
 
-              promiseClearHistory().then(finish);
+              PlacesTestUtils.clearHistory().then(finish);
             });
           });
         });

@@ -14,10 +14,14 @@ import org.json.JSONObject;
 import org.mozilla.gecko.GeckoApp;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoEvent;
+import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.gecko.GeckoThread;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.Tab;
 import org.mozilla.gecko.Tabs;
+import org.mozilla.gecko.db.BrowserDB;
+import org.mozilla.gecko.db.StubBrowserDB;
+import org.mozilla.gecko.mozglue.ContextUtils.SafeIntent;
 import org.mozilla.gecko.util.NativeJSObject;
 import org.mozilla.gecko.webapp.InstallHelper.InstallCallback;
 
@@ -56,14 +60,17 @@ public class WebappImpl extends GeckoApp implements InstallCallback {
     @Override
     public int getLayout() { return R.layout.web_app; }
 
-    @Override
-    public boolean hasTabsSideBar() { return false; }
+    public WebappImpl() {
+        GeckoProfile.setBrowserDBFactory(new BrowserDB.Factory() {
+            @Override
+            public BrowserDB get(String profileName, File profileDir) {
+                return new StubBrowserDB(profileName);
+            }
+        });
+    }
 
     @Override
-    public void onCreate(Bundle savedInstance)
-    {
-
-        String action = getIntent().getAction();
+    public void onCreate(Bundle savedInstance) {
         Bundle extras = getIntent().getExtras();
         if (extras == null) {
             extras = savedInstance;
@@ -126,7 +133,7 @@ public class WebappImpl extends GeckoApp implements InstallCallback {
         String origin = allocator.getOrigin(index);
         boolean isInstallCompleting = (origin == null);
 
-        if (!GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning) || !isInstalled || isInstallCompleting) {
+        if (!GeckoThread.isRunning() || !isInstalled || isInstallCompleting) {
             // Show the splash screen if we need to start Gecko, or we need to install this.
             overridePendingTransition(R.anim.grow_fade_in_center, android.R.anim.fade_out);
             showSplash();
@@ -149,15 +156,15 @@ public class WebappImpl extends GeckoApp implements InstallCallback {
                 installHelper.registerGeckoListener();
             }
             return;
-        } else {
-            launchWebapp(origin);
         }
+
+        launchWebapp(origin);
 
         setTitle(mAppName);
     }
 
     @Override
-    protected String getURIFromIntent(Intent intent) {
+    protected String getURIFromIntent(SafeIntent intent) {
         String uri = super.getURIFromIntent(intent);
         if (uri != null) {
             return uri;
@@ -178,14 +185,21 @@ public class WebappImpl extends GeckoApp implements InstallCallback {
     }
 
     @Override
-    protected void loadStartupTab(String uri) {
+    protected void loadStartupTab(final int flags) {
+        loadStartupTab(null, null, flags);
+    }
+
+    // Note: there is no support for loading with intent extras in
+    // Webapps at the moment because I don't have time to debug/test.
+    @Override
+    protected void loadStartupTab(final String uri, final SafeIntent unusedIntent, int flags) {
         // Load a tab so it's available for any code that assumes a tab
         // before the app tab itself is loaded in BrowserApp._loadWebapp.
-        super.loadStartupTab("about:blank");
+        flags = Tabs.LOADURL_NEW_TAB | Tabs.LOADURL_USER_ENTERED | Tabs.LOADURL_EXTERNAL;
+        super.loadStartupTab("about:blank", null, flags);
     }
 
     private void showSplash() {
-
         // get the favicon dominant color, stored when the app was installed
         int dominantColor = Allocator.getInstance().getColor(getIndex());
 
@@ -390,5 +404,10 @@ public class WebappImpl extends GeckoApp implements InstallCallback {
         // This is a legacy shortcut, which didn't provide a way to determine
         // that the app is debuggable, so we say the app is not debuggable.
         return false;
+    }
+
+    @Override
+    protected StartupAction getStartupAction(final String passedURL) {
+        return StartupAction.WEBAPP;
     }
 }

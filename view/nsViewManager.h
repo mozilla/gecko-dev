@@ -21,7 +21,7 @@ class nsRegion;
 class nsDeviceContext;
 class nsIPresShell;
 
-class nsViewManager MOZ_FINAL
+class nsViewManager final
 {
   ~nsViewManager();
 public:
@@ -264,7 +264,7 @@ public:
     AutoDisableRefresh(const AutoDisableRefresh& aOther);
     const AutoDisableRefresh& operator=(const AutoDisableRefresh& aOther);
 
-    nsRefPtr<nsViewManager> mRootVM;
+    RefPtr<nsViewManager> mRootVM;
   };
 
 private:
@@ -385,7 +385,7 @@ private:
   // pending updates.
   void PostPendingUpdate();
 
-  nsRefPtr<nsDeviceContext> mContext;
+  RefPtr<nsDeviceContext> mContext;
   nsIPresShell   *mPresShell;
 
   // The size for a resize that we delayed until the root view becomes
@@ -406,7 +406,6 @@ private:
   bool              mPainting;
   bool              mRecursiveRefreshPending;
   bool              mHasPendingWidgetGeometryChanges;
-  bool              mInScroll;
 
   //from here to public should be static and locked... MMP
 

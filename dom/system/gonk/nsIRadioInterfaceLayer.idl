@@ -3,43 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsISupports.idl"
-#include "nsINetworkManager.idl"
 
-interface nsIDOMMozIccInfo;
+interface nsIIccInfo;
 interface nsIMobileConnectionInfo;
 interface nsIMobileMessageCallback;
-interface nsINeighboringCellIdsCallback;
-interface nsICellInfoListCallback;
-
-[scriptable, uuid(6e0f45b8-410e-11e3-8c8e-b715b2cd0128)]
-interface nsIRilNetworkInterface : nsINetworkInterface
-{
-  readonly attribute unsigned long serviceId;
-  readonly attribute DOMString iccId;
-
-  /* The following attributes are for MMS proxy settings. */
-  readonly attribute DOMString mmsc;     // Empty string if not set.
-  readonly attribute DOMString mmsProxy; // Empty string if not set.
-  readonly attribute long      mmsPort;  // -1 if not set.
-};
-
-[scriptable, uuid(c0c5cb9f-6372-4b5a-b74c-baacc2da5e4f)]
-interface nsIVoicemailInfo : nsISupports
-{
-  readonly attribute DOMString number;
-
-  readonly attribute DOMString displayName;
-};
-
-[scriptable, uuid(0226a2c1-a3b9-416a-92cb-c89e4dad4be0)]
-interface nsIRilContext : nsISupports
-{
-  readonly attribute DOMString cardState;
-
-  readonly attribute DOMString imsi;
-
-  readonly attribute nsIDOMMozIccInfo iccInfo;
-};
 
 [scriptable, function, uuid(3bc96351-53b0-47a1-a888-c74c64b60f25)]
 interface nsIRilSendWorkerMessageCallback : nsISupports
@@ -47,48 +14,33 @@ interface nsIRilSendWorkerMessageCallback : nsISupports
   boolean handleResponse(in jsval response);
 };
 
-[scriptable, uuid(c13a8890-797b-4557-b92f-6b959f56c1d8)]
+[scriptable, uuid(1a3ef88a-e4d1-11e4-8512-176220f2b32b)]
 interface nsIRadioInterface : nsISupports
 {
-  readonly attribute nsIRilContext rilContext;
-
   /**
    * PDP APIs
+   *
+   * @param networkType
+   *        Mobile network type, that is, nsINetworkInterface.NETWORK_TYPE_MOBILE
+   *        or one of the nsINetworkInterface.NETWORK_TYPE_MOBILE_* values.
    */
-  void setupDataCallByType(in DOMString apntype);
-  void deactivateDataCallByType(in DOMString apntype);
-  long getDataCallStateByType(in DOMString apntype);
+  void setupDataCallByType(in long networkType);
+  void deactivateDataCallByType(in long networkType);
+  long getDataCallStateByType(in long networkType);
 
   void updateRILNetworkInterface();
-
-  /**
-   * SMS-related functionality.
-   */
-  void getSegmentInfoForText(in DOMString text,
-                             in nsIMobileMessageCallback request);
-
-  void sendSMS(in DOMString number,
-               in DOMString message,
-               in boolean silent,
-               in nsIMobileMessageCallback request);
 
   void sendWorkerMessage(in DOMString type,
               [optional] in jsval message,
               [optional] in nsIRilSendWorkerMessageCallback callback);
-
-  void getSmscAddress(in nsIMobileMessageCallback request);
-
-  /**
-   * Request neighboring cell ids in GSM/UMTS network.
-   */
-  void getNeighboringCellIds(in nsINeighboringCellIdsCallback callback);
-
-  /**
-   * Request all of the current cell information known to the radio, including
-   * neighboring cells.
-   */
-  void getCellInfoList(in nsICellInfoListCallback callback);
 };
+
+%{C++
+#define NS_RADIOINTERFACELAYER_CID \
+    { 0x2d831c8d, 0x6017, 0x435b, \
+      { 0xa8, 0x0c, 0xe5, 0xd4, 0x22, 0x81, 0x0c, 0xea } }
+#define NS_RADIOINTERFACELAYER_CONTRACTID "@mozilla.org/ril;1"
+%}
 
 [scriptable, uuid(78b65e8c-68e7-4510-9a05-65bba12b283e)]
 interface nsIRadioInterfaceLayer : nsISupports

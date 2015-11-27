@@ -11,31 +11,12 @@ module.metadata = {
 // NOTE: This file should only export Tab instances
 
 
-const { getTabForContentWindow, getTabForBrowser: getRawTabForBrowser } = require('./utils');
-const { Tab } = require('./tab');
-const { rawTabNS } = require('./namespace');
+const { getTabForBrowser: getRawTabForBrowser } = require('./utils');
+const { modelFor } = require('../model/core');
 
-function getTabForWindow(win) {
-  let tab = getTabForContentWindow(win);
-  // We were unable to find the related tab!
-  if (!tab)
-    return null;
-
-  return getTabForRawTab(tab) || Tab({ tab: tab });
-}
-exports.getTabForWindow = getTabForWindow;
-
-// only works on fennec atm
-function getTabForRawTab(rawTab) {
-  let tab = rawTabNS(rawTab).tab;
-  if (tab) {
-    return tab;
-  }
-  return null;
-}
-exports.getTabForRawTab = getTabForRawTab;
+exports.getTabForRawTab = modelFor;
 
 function getTabForBrowser(browser) {
-  return getTabForRawTab(getRawTabForBrowser(browser));
+  return modelFor(getRawTabForBrowser(browser)) || null;
 }
 exports.getTabForBrowser = getTabForBrowser;

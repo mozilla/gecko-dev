@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
+var { classes: Cc, interfaces: Ci, utils: Cu, results: Cr } = Components;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
@@ -76,7 +76,7 @@ function initApp() {
 
 function AsyncRunner() {
   do_test_pending();
-  do_register_cleanup((function () this.destroy()).bind(this));
+  do_register_cleanup(() => this.destroy());
 
   this._callbacks = {
     done: do_test_finished,
@@ -159,68 +159,3 @@ AsyncRunner.prototype = {
     }
   },
 };
-
-
-function promiseAddVisits(aPlaceInfo)
-{
-  let deferred = Promise.defer();
-  let places = [];
-  if (aPlaceInfo instanceof Ci.nsIURI) {
-    places.push({ uri: aPlaceInfo });
-  }
-  else if (Array.isArray(aPlaceInfo)) {
-    places = places.concat(aPlaceInfo);
-  } else {
-    places.push(aPlaceInfo)
-  }
-
-  // Create mozIVisitInfo for each entry.
-  let now = Date.now();
-  for (let i = 0; i < places.length; i++) {
-    if (!places[i].title) {
-      places[i].title = "test visit for " + places[i].uri.spec;
-    }
-    places[i].visits = [{
-      transitionType: places[i].transition === undefined ? Ci.nsINavHistoryService.TRANSITION_LINK
-                                                         : places[i].transition,
-      visitDate: places[i].visitDate || (now++) * 1000,
-      referrerURI: places[i].referrer
-    }];
-  }
-
-  PlacesUtils.asyncHistory.updatePlaces(
-    places,
-    {
-      handleError: function handleError(aResultCode, aPlaceInfo) {
-        let ex = new Components.Exception("Unexpected error in adding visits.",
-                                          aResultCode);
-        deferred.reject(ex);
-      },
-      handleResult: function () {},
-      handleCompletion: function handleCompletion() {
-        deferred.resolve();
-      }
-    }
-  );
-
-  return deferred.promise;
-}
-
-function promiseTopicObserved(aTopic)
-{
-  let deferred = Promise.defer();
-
-  Services.obs.addObserver(
-    function PTO_observe(aSubject, aTopic, aData) {
-      Services.obs.removeObserver(PTO_observe, aTopic);
-      deferred.resolve([aSubject, aData]);
-    }, aTopic, false);
-
-  return deferred.promise;
-}
-
-function promiseClearHistory() {
-  let promise = promiseTopicObserved(PlacesUtils.TOPIC_EXPIRATION_FINISHED);
-  do_execute_soon(function() PlacesUtils.bhistory.removeAllPages());
-  return promise;
-}

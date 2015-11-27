@@ -259,19 +259,25 @@ NetAddrElement::~NetAddrElement()
 {
 }
 
+NS_IMPL_ISUPPORTS0(AddrInfo)
+
 AddrInfo::AddrInfo(const char *host, const PRAddrInfo *prAddrInfo,
-                   bool disableIPv4, const char *cname)
+                   bool disableIPv4, bool filterNameCollision, const char *cname)
 {
   MOZ_ASSERT(prAddrInfo, "Cannot construct AddrInfo with a null prAddrInfo pointer!");
+  const uint32_t nameCollisionAddr = htonl(0x7f003535); // 127.0.53.53
 
   Init(host, cname);
   PRNetAddr tmpAddr;
   void *iter = nullptr;
   do {
     iter = PR_EnumerateAddrInfo(iter, prAddrInfo, 0, &tmpAddr);
-    if (iter && (!disableIPv4 || tmpAddr.raw.family != PR_AF_INET)) {
-      NetAddrElement *addrElement = new NetAddrElement(&tmpAddr);
-      mAddresses.insertBack(addrElement);
+    bool addIt = iter &&
+        (!disableIPv4 || tmpAddr.raw.family != PR_AF_INET) &&
+        (!filterNameCollision || tmpAddr.raw.family != PR_AF_INET || (tmpAddr.inet.ip != nameCollisionAddr));
+    if (addIt) {
+        NetAddrElement *addrElement = new NetAddrElement(&tmpAddr);
+        mAddresses.insertBack(addrElement);
     }
   } while (iter);
 }
@@ -287,8 +293,8 @@ AddrInfo::~AddrInfo()
   while ((addrElement = mAddresses.popLast())) {
     delete addrElement;
   }
-  moz_free(mHostName);
-  moz_free(mCanonicalName);
+  free(mHostName);
+  free(mCanonicalName);
 }
 
 void
@@ -328,5 +334,5 @@ AddrInfo::SizeOfIncludingThis(MallocSizeOf mallocSizeOf) const
   return n;
 }
 
-} // namespace dns
+} // namespace net
 } // namespace mozilla

@@ -13,13 +13,13 @@ BEGIN_TEST(testOOM)
     char16_t ch;
     if (!JS_GetStringCharAt(cx, jsstr, 0, &ch))
         return false;
-    JS_ASSERT(ch == '9');
+    MOZ_RELEASE_ASSERT(ch == '9');
     return true;
 }
 
-virtual JSRuntime * createRuntime()
+virtual JSRuntime * createRuntime() override
 {
-    JSRuntime *rt = JS_NewRuntime(0);
+    JSRuntime* rt = JS_NewRuntime(0);
     if (!rt)
         return nullptr;
     JS_SetGCParameter(rt, JSGC_MAX_BYTES, (uint32_t)-1);
@@ -54,7 +54,7 @@ BEGIN_TEST(testNewRuntime)
 {
     uninit(); // Get rid of test harness' original JSRuntime.
 
-    JSRuntime *rt;
+    JSRuntime* rt;
     START_OOM_TEST("new runtime");
     rt = JS_NewRuntime(8L * 1024 * 1024);
     if (rt)
@@ -70,6 +70,8 @@ uint32_t oomAfter;
 void
 setOOMAfter(uint32_t numAllocs)
 {
+    if (uint64_t(OOM_counter) + numAllocs >= UINT32_MAX)
+	MOZ_CRASH("Can't set maxAllocations - out of range");
     OOM_maxAllocations = OOM_counter + numAllocs;
 }
 

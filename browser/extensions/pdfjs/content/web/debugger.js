@@ -1,5 +1,3 @@
-/* -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set shiftwidth=2 tabstop=2 autoindent cindent expandtab: */
 /* Copyright 2012 Mozilla Foundation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -112,13 +110,20 @@ var FontInspector = (function FontInspectorClosure() {
         return moreInfo;
       }
       var moreInfo = properties(fontObj, ['name', 'type']);
-      var m = /url\(['"]?([^\)"']+)/.exec(url);
       var fontName = fontObj.loadedName;
       var font = document.createElement('div');
       var name = document.createElement('span');
       name.textContent = fontName;
       var download = document.createElement('a');
-      download.href = m[1];
+      if (url) {
+        url = /url\(['"]?([^\)"']+)/.exec(url);
+        download.href = url[1];
+      } else if (fontObj.data) {
+        url = URL.createObjectURL(new Blob([fontObj.data], {
+          type: fontObj.mimeType
+        }));
+        download.href = url;
+      }
       download.textContent = 'Download';
       var logIt = document.createElement('a');
       logIt.href = '';
@@ -211,6 +216,7 @@ var StepperManager = (function StepperManagerClosure() {
     },
     selectStepper: function selectStepper(pageIndex, selectPanel) {
       var i;
+      pageIndex = pageIndex | 0;
       if (selectPanel) {
         this.manager.selectPanel(this);
       }
@@ -419,7 +425,7 @@ var Stepper = (function StepperClosure() {
       var allRows = this.panel.getElementsByClassName('line');
       for (var x = 0, xx = allRows.length; x < xx; ++x) {
         var row = allRows[x];
-        if (parseInt(row.dataset.idx, 10) === idx) {
+        if ((row.dataset.idx | 0) === idx) {
           row.style.backgroundColor = 'rgb(251,250,207)';
           row.scrollIntoView();
         } else {

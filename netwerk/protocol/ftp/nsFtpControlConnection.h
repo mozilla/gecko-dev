@@ -38,7 +38,7 @@ public:
     virtual void OnControlError(nsresult status) = 0;
 };
 
-class nsFtpControlConnection MOZ_FINAL : public nsIInputStreamCallback
+class nsFtpControlConnection final : public nsIInputStreamCallback
 {
     ~nsFtpControlConnection();
 
@@ -79,7 +79,7 @@ private:
     nsCOMPtr<nsIOutputStream>        mSocketOutput;
     nsCOMPtr<nsIAsyncInputStream>    mSocketInput;
 
-    nsRefPtr<nsFtpControlConnectionListener> mListener;
+    RefPtr<nsFtpControlConnectionListener> mListener;
 };
 
 #endif

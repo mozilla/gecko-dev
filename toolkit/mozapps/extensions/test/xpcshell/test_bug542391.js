@@ -9,12 +9,12 @@ const PREF_EM_SHOW_MISMATCH_UI        = "extensions.showMismatchUI";
 // The test extension uses an insecure update url.
 Services.prefs.setBoolPref("extensions.checkUpdateSecurity", false);
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
-const Cr = Components.results;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
+var Cr = Components.results;
 
-Cu.import("resource://testing-common/httpd.js");
+Cu.import("resource://testing-common/MockRegistrar.jsm");
 var testserver;
 
 const profileDir = gProfD.clone();
@@ -26,14 +26,14 @@ var gCheckUpdates = false;
 // This will be called to show the compatibility update dialog.
 var WindowWatcher = {
   expected: false,
-  arguments: null,
+  args: null,
 
   openWindow: function(parent, url, name, features, args) {
     do_check_true(Services.startup.interrupted);
     do_check_eq(url, URI_EXTENSION_UPDATE_DIALOG);
     do_check_true(this.expected);
     this.expected = false;
-    this.arguments = args.QueryInterface(AM_Ci.nsIVariant);
+    this.args = args.QueryInterface(AM_Ci.nsIVariant);
 
     var updated = !gCheckUpdates;
     if (gCheckUpdates) {
@@ -77,18 +77,7 @@ var WindowWatcher = {
   }
 }
 
-var WindowWatcherFactory = {
-  createInstance: function createInstance(outer, iid) {
-    if (outer != null)
-      throw Components.results.NS_ERROR_NO_AGGREGATION;
-    return WindowWatcher.QueryInterface(iid);
-  }
-};
-
-var registrar = Components.manager.QueryInterface(Components.interfaces.nsIComponentRegistrar);
-registrar.registerFactory(Components.ID("{1dfeb90a-2193-45d5-9cb8-864928b2af55}"),
-                          "Fake Window Watcher",
-                          "@mozilla.org/embedcomp/window-watcher;1", WindowWatcherFactory);
+MockRegistrar.register("@mozilla.org/embedcomp/window-watcher;1", WindowWatcher);
 
 function check_state_v1([a1, a2, a3, a4, a5, a6]) {
   do_check_neq(a1, null);
@@ -306,10 +295,9 @@ add_task(function* init() {
   }, profileDir);
 
   // Create and configure the HTTP server.
-  testserver = new HttpServer();
+  testserver = createHttpServer(4444);
   testserver.registerDirectory("/data/", do_get_file("data"));
   testserver.registerDirectory("/addons/", do_get_file("addons"));
-  testserver.start(4444);
 
   startupManager();
 
@@ -397,9 +385,9 @@ add_task(function* run_test_1() {
                                          "override1x2-1x3@tests.mozilla.org"]);
   check_state_v3(addons);
 
-  do_check_eq(WindowWatcher.arguments.length, 2);
-  do_check_true(WindowWatcher.arguments.indexOf("upgradeable1x2-3@tests.mozilla.org") >= 0);
-  do_check_true(WindowWatcher.arguments.indexOf("override1x2-1x3@tests.mozilla.org") >= 0);
+  do_check_eq(WindowWatcher.args.length, 2);
+  do_check_true(WindowWatcher.args.indexOf("upgradeable1x2-3@tests.mozilla.org") >= 0);
+  do_check_true(WindowWatcher.args.indexOf("override1x2-1x3@tests.mozilla.org") >= 0);
 });
 
 // Downgrade to version 2 which will remove appDisable from two add-ons
@@ -450,8 +438,8 @@ add_task(function* run_test_5() {
                                          "override1x2-1x3@tests.mozilla.org"]);
   check_state_v3_2(addons);
 
-  do_check_eq(WindowWatcher.arguments.length, 1);
-  do_check_true(WindowWatcher.arguments.indexOf("upgradeable1x2-3@tests.mozilla.org") >= 0);
+  do_check_eq(WindowWatcher.args.length, 1);
+  do_check_true(WindowWatcher.args.indexOf("upgradeable1x2-3@tests.mozilla.org") >= 0);
 });
 
 // Downgrade to version 1 which will appEnable all the add-ons
@@ -474,13 +462,3 @@ add_task(function* run_test_6() {
                                          "override1x2-1x3@tests.mozilla.org"]);
   check_state_v1_2(addons);
 });
-
-add_task(function* cleanup() {
-  return new Promise((resolve, reject) => {
-    testserver.stop(resolve);
-  });
-});
-
-function run_test() {
-  run_next_test();
-}

@@ -5,6 +5,7 @@ function test() {
   Harness.installConfirmCallback = confirm_install;
   Harness.installEndedCallback = install_ended;
   Harness.installsCompletedCallback = finish_test;
+  Harness.finalContentEvent = "InstallComplete";
   Harness.setup();
 
   var pm = Services.perms;
@@ -38,7 +39,7 @@ function install_ended(install, addon) {
 function finish_test(count) {
   is(count, 1, "1 Add-on should have been successfully installed");
 
-  Services.perms.remove("example.com", "install");
+  Services.perms.remove(makeURI("http://example.com"), "install");
 
   var doc = gBrowser.contentDocument;
   is(doc.getElementById("return").textContent, "true", "installTrigger should have claimed success");

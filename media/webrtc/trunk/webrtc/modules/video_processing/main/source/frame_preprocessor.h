@@ -27,8 +27,6 @@ class VPMFramePreprocessor {
   VPMFramePreprocessor();
   ~VPMFramePreprocessor();
 
-  int32_t ChangeUniqueId(const int32_t id);
-
   void Reset();
 
   // Enable temporal decimation.
@@ -38,9 +36,6 @@ class VPMFramePreprocessor {
 
   // Enable content analysis.
   void EnableContentAnalysis(bool enable);
-
-  // Set max frame rate.
-  int32_t SetMaxFramerate(uint32_t max_frame_rate);
 
   // Set target resolution: frame rate and dimension.
   int32_t SetTargetResolution(uint32_t width, uint32_t height,
@@ -66,9 +61,7 @@ class VPMFramePreprocessor {
   // we can compute new content metrics every |kSkipFrameCA| frames.
   enum { kSkipFrameCA = 2 };
 
-  int32_t id_;
   VideoContentMetrics* content_metrics_;
-  uint32_t max_frame_rate_;
   I420VideoFrame resampled_frame_;
   VPMSpatialResampler* spatial_resampler_;
   VPMContentAnalysis* ca_;

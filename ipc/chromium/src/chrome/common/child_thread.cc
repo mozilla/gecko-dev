@@ -8,7 +8,6 @@
 #include "base/command_line.h"
 #include "chrome/common/child_process.h"
 #include "chrome/common/chrome_switches.h"
-#include "chrome/common/ipc_logging.h"
 
 // V8 needs a 1MB stack size.
 const size_t ChildThread::kV8StackSize = 1024 * 1024;
@@ -33,7 +32,6 @@ ChildThread::~ChildThread() {
 bool ChildThread::Run() {
   bool r = StartWithOptions(options_);
 #ifdef MOZ_NUWA_PROCESS
-  NS_ASSERTION(NuwaMarkCurrentThread, "NuwaMarkCurrentThread is not defined!");
   if (IsNuwaProcess()) {
       message_loop()->PostTask(FROM_HERE,
                                NewRunnableFunction(&ChildThread::MarkThread));
@@ -93,15 +91,9 @@ void ChildThread::Init() {
                                                IPC::Channel::MODE_CLIENT,
                                                this);
 
-#ifdef IPC_MESSAGE_LOG_ENABLED
-  IPC::Logging::current()->SetIPCSender(this);
-#endif
 }
 
 void ChildThread::CleanUp() {
-#ifdef IPC_MESSAGE_LOG_ENABLED
-  IPC::Logging::current()->SetIPCSender(NULL);
-#endif
   // Need to destruct the SyncChannel to the browser before we go away because
   // it caches a pointer to this thread.
   channel_ = nullptr;

@@ -109,18 +109,12 @@ dictionary CameraStartRecordingOptions
      will be left as-is on stopRecording(). If the camera does not
      support this setting, it will be ignored. */
   boolean autoEnableLowLightTorch = false;
-};
 
-callback CameraSetConfigurationCallback = void (CameraConfiguration configuration);
-callback CameraAutoFocusCallback = void (boolean focused);
-callback CameraTakePictureCallback = void (Blob picture);
-callback CameraStartRecordingCallback = void ();
-callback CameraShutterCallback = void ();
-callback CameraClosedCallback = void ();
-callback CameraReleaseCallback = void ();
-callback CameraRecorderStateChange = void (DOMString newState);
-callback CameraPreviewStateChange = void (DOMString newState);
-callback CameraAutoFocusMovingCallback = void (boolean isMoving);
+  /* If true, a poster JPG will be created from the recording and issued
+     via the poster event. PosterCreated or PosterFailed recording state
+     changes will indicate whether or not it was created. */
+  boolean createPoster = false;
+};
 
 /*
     attributes here affect the preview, any pictures taken, and/or
@@ -231,27 +225,61 @@ interface CameraControl : MediaStream
   [Throws]
   attribute DOMString       isoMode;
 
-  /* the function to call on the camera's shutter event, to trigger
-     a shutter sound and/or a visual shutter indicator. */
-  attribute CameraShutterCallback? onShutter;
+  /* the event dispatched on the camera's shutter event, to trigger
+     a shutter sound and/or a visual shutter indicator.
 
-  /* the function to call when the camera hardware is closed
-     by the underlying framework, e.g. when another app makes a more
-     recent call to get the camera. */
-  attribute CameraClosedCallback? onClosed;
+     contains no event-specific data. */
+  attribute EventHandler    onshutter;
 
-  /* the function to call when the recorder changes state, either because
+  /* the event dispatched when the camera hardware is closed; this may
+     be due to a system failure, another process taking over the camera,
+     or a call to release().
+
+     The event has a 'reason' attribute that will be one of the following
+     string values:
+       - SystemFailure    : the camera subsystem failed and was closed;
+       - HardwareReleased : a call to release() was successful;
+       - NotAvailable     : the camera hardware is in use by another process.
+  */
+  attribute EventHandler    onclose;
+
+  /* the event dispatched when the recorder changes state, either because
      the recording process encountered an error, or because one of the
-     recording limits (see CameraStartRecordingOptions) was reached. */
-  attribute CameraRecorderStateChange? onRecorderStateChange;
+     recording limits (see CameraStartRecordingOptions) was reached.
 
-  /* the function to call when the viewfinder stops or starts,
-     useful for synchronizing other UI elements. */
-  attribute CameraPreviewStateChange? onPreviewStateChange;
+     event type is CameraStateChangeEvent where:
+         'newState' is one of the following states:
+             'Started' if the recording has begun capturing data
+             'Stopped' when the recording has completed (success and failure)
+             'Paused' if the recording is paused
+             'Resumed' if the recording is resumed after pausing
+             'PosterCreated' if a poster was requested and created
+             'PosterFailed' if a poster was requested and failed to create
+             'FileSizeLimitReached' if stopped due to file size limit
+             'VideoLengthLimitReached' if stopped due to a time limit
+             'TrackCompleted' if audio or video track complete when stopping
+             'TrackFailed' if audio or video track incomplete when stopping
+             'MediaRecorderFailed' if failed due to local error
+             'MediaServerFailed' if failed due to media server */
+  attribute EventHandler    onrecorderstatechange;
+
+  /* the event dispatched when a poster is successfully captured; it is of the
+     type BlobEvent, where the data attribute contains the poster. */
+  attribute EventHandler    onposter;
+
+  /* the event dispatched when the viewfinder stops or starts,
+     useful for synchronizing other UI elements.
+
+     event type is CameraStateChangeEvent where:
+         'newState' is the new preview state */
+  attribute EventHandler    onpreviewstatechange;
 
   /* the size of the picture to be returned by a call to takePicture();
      an object with 'height' and 'width' properties that corresponds to
-     one of the options returned by capabilities.pictureSizes. */
+     one of the options returned by capabilities.pictureSizes.
+
+     note that unlike when one uses setConfiguration instead to update the
+     picture size, this will not recalculate the ideal preview size. */
   [Throws]
   CameraSize getPictureSize();
   [Throws]
@@ -265,7 +293,7 @@ interface CameraControl : MediaStream
      'get' the exact value that was previously 'set'. If this setting is
      not supported, it is ignored. */
   [Throws]
-  attribute double           pictureQuality;
+  attribute double          pictureQuality;
 
   /* the size of the thumbnail to be included in the picture returned
      by a call to takePicture(), assuming the chosen fileFormat supports
@@ -283,44 +311,70 @@ interface CameraControl : MediaStream
      to the display; e.g. if 'sensorAngle' is 270 degrees (or -90 degrees),
      then the preview stream needs to be rotated +90 degrees to have the
      same orientation as the real world. */
+  [Constant, Cached]
   readonly attribute long   sensorAngle;
+
+  /* the mode the camera will use to determine the correct exposure of
+     the scene; supported modes are exposed by capabilities.meteringModes. */
+  [Throws]
+  attribute DOMString       meteringMode;
 
   /* tell the camera to attempt to focus the image */
   [Throws]
-  void autoFocus(CameraAutoFocusCallback onSuccess, optional CameraErrorCallback onError);
+  Promise<boolean> autoFocus();
 
-  /* if continuous autofocus is supported and focusMode is set to enable it,
-     then this function is called whenever the camera decides to start and
+  /* the event dispatched whenever the focus state changes due to calling
+     autoFocus or due to continuous autofocus.
+
+     if continuous autofocus is supported and focusMode is set to enable it,
+     then this event is dispatched whenever the camera decides to start and
      stop moving the focus position; it can be used to update a UI element to
      indicate that the camera is still trying to focus, or has finished. Some
      platforms do not support this event, in which case the callback is never
-     invoked. */
-  [Pref="camera.control.autofocus_moving_callback.enabled"]
-  attribute CameraAutoFocusMovingCallback? onAutoFocusMoving;
+     invoked.
+
+     event type is CameraStateChangeEvent where:
+         'newState' is one of the following states:
+             'focused' if the focus is now set
+             'focusing' if the focus is moving
+             'unfocused' if last attempt to focus failed */
+  attribute EventHandler    onfocus;
 
   /* capture an image and return it as a blob to the 'onSuccess' callback;
      if the camera supports it, this may be invoked while the camera is
      already recording video.
 
      invoking this function will stop the preview stream, which must be
-     manually restarted (e.g. by calling .play() on it). */
+     manually restarted by calling resumePreview(). */
   [Throws]
-  void takePicture(CameraPictureOptions aOptions,
-                   CameraTakePictureCallback onSuccess,
-                   optional CameraErrorCallback onError);
+  Promise<Blob> takePicture(optional CameraPictureOptions options);
 
-  /* start recording video; 'aOptions' is a
-     CameraStartRecordingOptions object. */
+  /* the event dispatched when a picture is successfully taken; it is of the
+     type BlobEvent, where the data attribute contains the picture. */
+  attribute EventHandler    onpicture;
+
+  /* start recording video; 'options' is a CameraStartRecordingOptions object.
+     If the success/error callbacks are not used, one may determine success by
+     waiting for the recorderstatechange event. */
   [Throws]
-  void startRecording(CameraStartRecordingOptions aOptions,
-                      DeviceStorage storageArea,
-                      DOMString filename,
-                      CameraStartRecordingCallback onSuccess,
-                      optional CameraErrorCallback onError);
+  Promise<void> startRecording(CameraStartRecordingOptions options,
+                               DeviceStorage storageArea,
+                               DOMString filename);
 
-  /* stop precording video. */
+  /* stop recording video. */
   [Throws]
   void stopRecording();
+
+  /* pause recording video. The camera remains active but audio and video
+     frames are no longer saved in the output file. If called when not
+     recording or already paused, it fails silently. */
+  [Throws]
+  void pauseRecording();
+
+  /* resume recording video while paused. If called when not recording or
+     not paused, it fails silently. */
+  [Throws]
+  void resumeRecording();
 
   /* call in or after the takePicture() onSuccess callback to
      resume the camera preview stream. */
@@ -331,27 +385,20 @@ interface CameraControl : MediaStream
      probably call this whenever the camera is not longer in the foreground
      (depending on your usage model).
 
-     the callbacks are optional, unless you really need to know when
-     the hardware is ultimately released.
-
      once this is called, the camera control object is to be considered
      defunct; a new instance will need to be created to access the camera. */
   [Throws]
-  void release(optional CameraReleaseCallback onSuccess,
-               optional CameraErrorCallback onError);
+  Promise<void> release();
 
-  /* changes the camera configuration on the fly;
-     'configuration' is of type CameraConfiguration.
-
-     XXXmikeh the 'configuration' argument needs to be optional, else
-     the WebIDL compiler throws: "WebIDL.WebIDLError: error: Dictionary
-     argument or union argument containing a dictionary not followed by
-     a required argument must be optional"
-  */
+  /* changes the camera configuration on the fly. */
   [Throws]
-  void setConfiguration(optional CameraConfiguration configuration,
-                        optional CameraSetConfigurationCallback onSuccess,
-                        optional CameraErrorCallback onError);
+  Promise<CameraConfiguration> setConfiguration(optional CameraConfiguration configuration);
+
+  /* the event dispatched when the camera is successfully configured.
+
+     event type is CameraConfigurationEvent which has the same members as
+     CameraConfiguration. */
+  attribute EventHandler onconfigurationchange;
 
   /* if focusMode is set to either 'continuous-picture' or 'continuous-video',
      then calling autoFocus() will trigger its onSuccess callback immediately
@@ -408,7 +455,9 @@ interface CameraControl : MediaStream
    'mouth' is the coordinates of the detected mouth; null if not supported or
    detected. Same boundary conditions as 'leftEye'.
 */
-[Pref="camera.control.face_detection.enabled", Func="DOMCameraDetectedFace::HasSupport"]
+[Pref="camera.control.face_detection.enabled",
+ Func="DOMCameraDetectedFace::HasSupport",
+ Constructor(optional CameraDetectedFaceInit initDict)]
 interface CameraDetectedFace
 {
   readonly attribute unsigned long id;
@@ -425,6 +474,19 @@ interface CameraDetectedFace
 
   readonly attribute boolean hasMouth;
   readonly attribute DOMPoint? mouth;
+};
+
+dictionary CameraDetectedFaceInit
+{
+  unsigned long id = 0;
+  unsigned long score = 100;
+  CameraRegion bounds;
+  boolean hasLeftEye = false;
+  DOMPointInit leftEye;
+  boolean hasRightEye = false;
+  DOMPointInit rightEye;
+  boolean hasMouth = false;
+  DOMPointInit mouth;
 };
 
 callback CameraFaceDetectionCallback = void (sequence<CameraDetectedFace> faces);
@@ -449,8 +511,7 @@ partial interface CameraControl
   [Throws, Pref="camera.control.face_detection.enabled"]
   void stopFaceDetection();
 
-  /* Callback for faces detected in the preview frame. If no faces are
-     detected, the callback is invoked with an empty sequence. */
+  /* CameraFacesDetectedEvent */
   [Pref="camera.control.face_detection.enabled"]
-  attribute CameraFaceDetectionCallback? onFacesDetected;
+  attribute EventHandler    onfacesdetected;
 };

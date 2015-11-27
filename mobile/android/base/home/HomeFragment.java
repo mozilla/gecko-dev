@@ -5,30 +5,29 @@
 
 package org.mozilla.gecko.home;
 
-import org.json.JSONException;
-import org.json.JSONObject;
+import java.util.EnumSet;
+
 import org.mozilla.gecko.EditBookmarkDialog;
-import org.mozilla.gecko.GeckoApp;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.ReaderModeUtils;
-import org.mozilla.gecko.Tab;
-import org.mozilla.gecko.Tabs;
+import org.mozilla.gecko.Restrictions;
 import org.mozilla.gecko.Telemetry;
 import org.mozilla.gecko.TelemetryContract;
-import org.mozilla.gecko.db.BrowserContract.SuggestedSites;
 import org.mozilla.gecko.db.BrowserDB;
+import org.mozilla.gecko.db.BrowserContract.SuggestedSites;
 import org.mozilla.gecko.favicons.Favicons;
 import org.mozilla.gecko.home.HomeContextMenuInfo.RemoveItemType;
+import org.mozilla.gecko.home.HomePager.OnUrlOpenInBackgroundListener;
 import org.mozilla.gecko.home.HomePager.OnUrlOpenListener;
 import org.mozilla.gecko.home.TopSitesGridView.TopSitesGridContextMenuInfo;
+import org.mozilla.gecko.restrictions.Restrictable;
 import org.mozilla.gecko.util.Clipboard;
 import org.mozilla.gecko.util.StringUtils;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.gecko.util.UIAsyncTask;
-import org.mozilla.gecko.widget.ButtonToast;
 
 import android.app.Activity;
 import android.content.ContentResolver;
@@ -37,6 +36,7 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
@@ -72,6 +72,9 @@ public abstract class HomeFragment extends Fragment {
     // On URL open listener
     protected OnUrlOpenListener mUrlOpenListener;
 
+    // Helper for opening a tab in the background.
+    private OnUrlOpenInBackgroundListener mUrlOpenInBackgroundListener;
+
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
@@ -82,12 +85,20 @@ public abstract class HomeFragment extends Fragment {
             throw new ClassCastException(activity.toString()
                     + " must implement HomePager.OnUrlOpenListener");
         }
+
+        try {
+            mUrlOpenInBackgroundListener = (OnUrlOpenInBackgroundListener) activity;
+        } catch (ClassCastException e) {
+            throw new ClassCastException(activity.toString()
+                    + " must implement HomePager.OnUrlOpenInBackgroundListener");
+        }
     }
 
     @Override
     public void onDetach() {
         super.onDetach();
         mUrlOpenListener = null;
+        mUrlOpenInBackgroundListener = null;
     }
 
     @Override
@@ -106,7 +117,7 @@ public abstract class HomeFragment extends Fragment {
 
     @Override
     public void onCreateContextMenu(ContextMenu menu, View view, ContextMenuInfo menuInfo) {
-        if (menuInfo == null || !(menuInfo instanceof HomeContextMenuInfo)) {
+        if (!(menuInfo instanceof HomeContextMenuInfo)) {
             return;
         }
 
@@ -141,6 +152,13 @@ public abstract class HomeFragment extends Fragment {
         if (!StringUtils.isShareableUrl(info.url) || GeckoProfile.get(getActivity()).inGuestMode()) {
             menu.findItem(R.id.home_share).setVisible(false);
         }
+
+        if (!Restrictions.isAllowed(view.getContext(), Restrictable.PRIVATE_BROWSING)) {
+            menu.findItem(R.id.home_open_private_tab).setVisible(false);
+        }
+
+        menu.findItem(R.id.mark_read).setVisible(info.isInReadingList() && info.isUnread);
+        menu.findItem(R.id.mark_unread).setVisible(info.isInReadingList() && !info.isUnread);
     }
 
     @Override
@@ -151,7 +169,7 @@ public abstract class HomeFragment extends Fragment {
         // between the activity and its fragments.
 
         ContextMenuInfo menuInfo = item.getMenuInfo();
-        if (menuInfo == null || !(menuInfo instanceof HomeContextMenuInfo)) {
+        if (!(menuInfo instanceof HomeContextMenuInfo)) {
             return false;
         }
 
@@ -162,7 +180,12 @@ public abstract class HomeFragment extends Fragment {
 
         // Track the menu action. We don't know much about the context, but we can use this to determine
         // the frequency of use for various actions.
-        Telemetry.sendUIEvent(TelemetryContract.Event.ACTION, TelemetryContract.Method.CONTEXT_MENU, getResources().getResourceEntryName(itemId));
+        String extras = getResources().getResourceEntryName(itemId);
+        if (TextUtils.equals(extras, "home_open_private_tab")) {
+            // Mask private browsing
+            extras = "home_open_new_tab";
+        }
+        Telemetry.sendUIEvent(TelemetryContract.Event.ACTION, TelemetryContract.Method.CONTEXT_MENU, extras);
 
         if (itemId == R.id.home_copyurl) {
             if (info.url == null) {
@@ -180,10 +203,10 @@ public abstract class HomeFragment extends Fragment {
                 return false;
             } else {
                 GeckoAppShell.openUriExternal(info.url, SHARE_MIME_TYPE, "", "",
-                                              Intent.ACTION_SEND, info.getDisplayTitle());
+                                              Intent.ACTION_SEND, info.getDisplayTitle(), false);
 
                 // Context: Sharing via chrome homepage contextmenu list (home session should be active)
-                Telemetry.sendUIEvent(TelemetryContract.Event.SHARE, TelemetryContract.Method.LIST);
+                Telemetry.sendUIEvent(TelemetryContract.Event.SHARE, TelemetryContract.Method.LIST, "home_contextmenu");
                 return true;
             }
         }
@@ -205,40 +228,23 @@ public abstract class HomeFragment extends Fragment {
                 return false;
             }
 
-            int flags = Tabs.LOADURL_NEW_TAB | Tabs.LOADURL_BACKGROUND;
-            final boolean isPrivate = (item.getItemId() == R.id.home_open_private_tab);
-            if (isPrivate) {
-                flags |= Tabs.LOADURL_PRIVATE;
+            // Some pinned site items have "user-entered" urls. URLs entered in
+            // the PinSiteDialog are wrapped in a special URI until we can get a
+            // valid URL. If the url is a user-entered url, decode the URL
+            // before loading it.
+            final String url = StringUtils.decodeUserEnteredUrl(info.isInReadingList()
+                    ? ReaderModeUtils.getAboutReaderForUrl(info.url)
+                    : info.url);
+
+            final EnumSet<OnUrlOpenInBackgroundListener.Flags> flags = EnumSet.noneOf(OnUrlOpenInBackgroundListener.Flags.class);
+            if (item.getItemId() == R.id.home_open_private_tab) {
+                flags.add(OnUrlOpenInBackgroundListener.Flags.PRIVATE);
             }
+
+            mUrlOpenInBackgroundListener.onUrlOpenInBackground(url, flags);
 
             Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, TelemetryContract.Method.CONTEXT_MENU);
 
-            final String url = (info.isInReadingList() ? ReaderModeUtils.getAboutReaderForUrl(info.url) : info.url);
-
-            // Some pinned site items have "user-entered" urls. URLs entered in the PinSiteDialog are wrapped in
-            // a special URI until we can get a valid URL. If the url is a user-entered url, decode the URL before loading it.
-            final Tab newTab = Tabs.getInstance().loadUrl(StringUtils.decodeUserEnteredUrl(url), flags);
-            final int newTabId = newTab.getId(); // We don't want to hold a reference to the Tab.
-
-            final String message = isPrivate ?
-                    getResources().getString(R.string.new_private_tab_opened) :
-                    getResources().getString(R.string.new_tab_opened);
-            final String buttonMessage = getResources().getString(R.string.switch_button_message);
-            final GeckoApp geckoApp = (GeckoApp) context;
-            geckoApp.getButtonToast().show(false,
-                    message,
-                    ButtonToast.LENGTH_SHORT,
-                    buttonMessage,
-                    R.drawable.switch_button_icon,
-                    new ButtonToast.ToastListener() {
-                        @Override
-                        public void onButtonClicked() {
-                            Tabs.getInstance().selectTab(newTabId);
-                        }
-
-                        @Override
-                        public void onToastHidden(ButtonToast.ReasonHidden reason) { }
-                    });
             return true;
         }
 
@@ -254,6 +260,22 @@ public abstract class HomeFragment extends Fragment {
 
             (new RemoveItemByUrlTask(context, info.url, info.itemType, position)).execute();
             return true;
+        }
+
+        if (itemId == R.id.mark_read) {
+            GeckoProfile
+                    .get(context)
+                    .getDB()
+                    .getReadingListAccessor()
+                    .markAsRead(context.getContentResolver(), info.id);
+        }
+
+        if (itemId == R.id.mark_unread) {
+            GeckoProfile
+                    .get(context)
+                    .getDB()
+                    .getReadingListAccessor()
+                    .markAsUnread(context.getContentResolver(), info.id);
         }
 
         return false;
@@ -333,6 +355,7 @@ public abstract class HomeFragment extends Fragment {
         private final String mUrl;
         private final RemoveItemType mType;
         private final int mPosition;
+        private final BrowserDB mDB;
 
         /**
          * Remove bookmark/history/reading list type item by url, and also unpin the
@@ -345,6 +368,7 @@ public abstract class HomeFragment extends Fragment {
             mUrl = url;
             mType = type;
             mPosition = position;
+            mDB = GeckoProfile.get(context).getDB();
         }
 
         @Override
@@ -352,34 +376,24 @@ public abstract class HomeFragment extends Fragment {
             ContentResolver cr = mContext.getContentResolver();
 
             if (mPosition > -1) {
-                BrowserDB.unpinSite(cr, mPosition);
-                if (BrowserDB.hideSuggestedSite(mUrl)) {
+                mDB.unpinSite(cr, mPosition);
+                if (mDB.hideSuggestedSite(mUrl)) {
                     cr.notifyChange(SuggestedSites.CONTENT_URI, null);
                 }
             }
 
             switch(mType) {
                 case BOOKMARKS:
-                    BrowserDB.removeBookmarksWithURL(cr, mUrl);
+                    mDB.removeBookmarksWithURL(cr, mUrl);
                     break;
 
                 case HISTORY:
-                    BrowserDB.removeHistoryEntry(cr, mUrl);
+                    mDB.removeHistoryEntry(cr, mUrl);
                     break;
 
                 case READING_LIST:
-                    BrowserDB.removeReadingListItemWithURL(cr, mUrl);
-
-                    final JSONObject json = new JSONObject();
-                    try {
-                        json.put("url", mUrl);
-                        json.put("notify", false);
-                    } catch (JSONException e) {
-                        Log.e(LOGTAG, "error building JSON arguments");
-                    }
-
-                    GeckoEvent e = GeckoEvent.createBroadcastEvent("Reader:Remove", json.toString());
-                    GeckoAppShell.sendEventToGecko(e);
+                    mDB.getReadingListAccessor().removeReadingListItemWithURL(cr, mUrl);
+                    GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Reader:Removed", mUrl));
                     break;
 
                 default:

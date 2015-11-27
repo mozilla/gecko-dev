@@ -1,12 +1,11 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 sw=2 et tw=79: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "jsapi.h"
 #include "js/CharacterEncoding.h"
-#include "js/OldDebugAPI.h"
 #include "nsJSON.h"
 #include "nsIXPConnect.h"
 #include "nsIXPCScriptable.h"
@@ -18,11 +17,14 @@
 #include "nsIUnicodeDecoder.h"
 #include "nsXPCOMStrings.h"
 #include "nsNetUtil.h"
+#include "nsIURI.h"
+#include "nsComponentManagerUtils.h"
 #include "nsContentUtils.h"
 #include "nsIScriptError.h"
 #include "nsCRTGlue.h"
 #include "nsAutoPtr.h"
 #include "nsIScriptSecurityManager.h"
+#include "nsNullPrincipal.h"
 #include "mozilla/Maybe.h"
 #include <algorithm>
 
@@ -186,7 +188,7 @@ nsJSON::EncodeFromJSVal(JS::Value *value, JSContext *cx, nsAString &result)
 
   nsJSONWriter writer;
   JS::Rooted<JS::Value> vp(cx, *value);
-  if (!JS_Stringify(cx, &vp, JS::NullPtr(), JS::NullHandleValue, WriteCallback, &writer)) {
+  if (!JS_Stringify(cx, &vp, nullptr, JS::NullHandleValue, WriteCallback, &writer)) {
     return NS_ERROR_XPC_BAD_CONVERT_JS;
   }
   *value = vp;
@@ -217,8 +219,7 @@ nsJSON::EncodeInternal(JSContext* cx, const JS::Value& aValue,
   JS::Rooted<JS::Value> val(cx, aValue);
   JS::Rooted<JS::Value> toJSON(cx);
   if (JS_GetProperty(cx, obj, "toJSON", &toJSON) &&
-      toJSON.isObject() &&
-      JS_ObjectIsCallable(cx, &toJSON.toObject())) {
+      toJSON.isObject() && JS::IsCallable(&toJSON.toObject())) {
     // If toJSON is implemented, it must not throw
     if (!JS_CallFunctionValue(cx, obj, toJSON, JS::HandleValueArray::empty(), &val)) {
       if (JS_IsExceptionPending(cx))
@@ -246,7 +247,7 @@ nsJSON::EncodeInternal(JSContext* cx, const JS::Value& aValue,
     return NS_ERROR_INVALID_ARG;
 
   // We're good now; try to stringify
-  if (!JS_Stringify(cx, &val, JS::NullPtr(), JS::NullHandleValue, WriteCallback, writer))
+  if (!JS_Stringify(cx, &val, nullptr, JS::NullHandleValue, WriteCallback, writer))
     return NS_ERROR_FAILURE;
 
   return NS_OK;
@@ -297,8 +298,6 @@ nsJSONWriter::Write(const char16_t *aBuffer, uint32_t aLength)
 
   if (!mDidWrite) {
     mBuffer = new char16_t[JSON_STREAM_BUFSIZE];
-    if (!mBuffer)
-      return NS_ERROR_OUT_OF_MEMORY;
     mDidWrite = true;
   }
 
@@ -345,7 +344,7 @@ nsJSONWriter::WriteToStream(nsIOutputStream *aStream,
   NS_ENSURE_SUCCESS(rv, rv);
 
   // create the buffer we need
-  char* destBuf = (char *) NS_Alloc(aDestLength);
+  char* destBuf = (char *) moz_xmalloc(aDestLength);
   if (!destBuf)
     return NS_ERROR_OUT_OF_MEMORY;
 
@@ -353,7 +352,7 @@ nsJSONWriter::WriteToStream(nsIOutputStream *aStream,
   if (NS_SUCCEEDED(rv))
     rv = aStream->Write(destBuf, aDestLength, &bytesWritten);
 
-  NS_Free(destBuf);
+  free(destBuf);
   mDidWrite = true;
 
   return rv;
@@ -411,13 +410,22 @@ nsJSON::DecodeInternal(JSContext* cx,
       return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  nsresult rv =
-    NS_NewInputStreamChannel(getter_AddRefs(jsonChannel), mURI, aStream,
-                             NS_LITERAL_CSTRING("application/json"));
+  nsresult rv;
+  nsCOMPtr<nsIPrincipal> nullPrincipal = nsNullPrincipal::Create();
+  NS_ENSURE_TRUE(nullPrincipal, NS_ERROR_FAILURE);
+
+  rv = NS_NewInputStreamChannel(getter_AddRefs(jsonChannel),
+                                mURI,
+                                aStream,
+                                nullPrincipal,
+                                nsILoadInfo::SEC_NORMAL,
+                                nsIContentPolicy::TYPE_OTHER,
+                                NS_LITERAL_CSTRING("application/json"));
+
   if (!jsonChannel || NS_FAILED(rv))
     return NS_ERROR_FAILURE;
 
-  nsRefPtr<nsJSONListener> jsonListener =
+  RefPtr<nsJSONListener> jsonListener =
     new nsJSONListener(cx, aRetval.address(), aNeedsConverter);
 
   //XXX this stream pattern should be consolidated in netwerk
@@ -471,9 +479,6 @@ nsresult
 NS_NewJSON(nsISupports* aOuter, REFNSIID aIID, void** aResult)
 {
   nsJSON* json = new nsJSON();
-  if (!json)
-    return NS_ERROR_OUT_OF_MEMORY;
-
   NS_ADDREF(json);
   *aResult = json;
 
@@ -527,7 +532,7 @@ nsJSONListener::OnStopRequest(nsIRequest *aRequest, nsISupports *aContext,
 
   JS::ConstTwoByteChars chars(reinterpret_cast<const char16_t*>(mBufferedChars.Elements()),
                               mBufferedChars.Length());
-  bool ok = JS_ParseJSONWithReviver(mCx, chars.get(),
+  bool ok = JS_ParseJSONWithReviver(mCx, chars.start().get(),
                                       uint32_t(mBufferedChars.Length()),
                                       reviver, &value);
 
@@ -636,7 +641,7 @@ nsJSONListener::ConsumeConverted(const char* aBuffer, uint32_t aByteLength)
   rv = mDecoder->Convert(aBuffer, &srcLen, endelems, &unicharLength);
   if (NS_FAILED(rv))
     return rv;
-  NS_ABORT_IF_FALSE(preLength >= unicharLength, "GetMaxLength lied");
+  MOZ_ASSERT(preLength >= unicharLength, "GetMaxLength lied");
   if (preLength > unicharLength)
     mBufferedChars.TruncateLength(mBufferedChars.Length() - (preLength - unicharLength));
   return NS_OK;

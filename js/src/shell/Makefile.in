@@ -4,12 +4,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-ifeq ($(OS_ARCH),Darwin)
-ifeq ($(TARGET_CPU),x86_64)
-DARWIN_EXE_LDFLAGS += -pagezero_size 10000 -image_base 100000000
-endif
-endif
-
 ifdef QEMU_EXE
 MOZ_POST_PROGRAM_COMMAND = $(topsrcdir)/build/qemu-wrap --qemu $(QEMU_EXE) --libdir $(CROSS_LIB)
 endif
@@ -23,10 +17,6 @@ SHELL_AUTOLOAD_FLAGS := -Dtopsrcdir=$(abspath $(srcdir)/..)
 INSTALL_TARGETS += SHELL_INSTALL_AUTOLOAD
 SHELL_INSTALL_AUTOLOAD_FILES := $(CURDIR)/js-gdb.py
 SHELL_INSTALL_AUTOLOAD_DEST := $(DIST)/bin
-
-INSTALL_TARGETS += SHELL_INSTALL_AUTOLOAD_SCRIPT
-SHELL_INSTALL_AUTOLOAD_SCRIPT_FILES := js-gdb.gdb
-SHELL_INSTALL_AUTOLOAD_SCRIPT_DEST := $(CURDIR)
 
 include $(topsrcdir)/config/rules.mk
 

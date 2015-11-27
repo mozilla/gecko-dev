@@ -1,4 +1,4 @@
-const Cu = Components.utils;
+var Cu = Components.utils;
 const PREF_UTTERANCE_ORDER = "accessibility.accessfu.utterance";
 
 Cu.import('resource://gre/modules/accessibility/Utils.jsm');
@@ -98,4 +98,17 @@ function testOutput(expected, aAccOrElmOrID, aOldAccOrElmOrID, aOutputKind) {
     return;
   }
   testObjectOutput(aAccOrElmOrID, generator);
+}
+
+function testHints(expected, aAccOrElmOrID, aOldAccOrElmOrID) {
+  var accessible = getAccessible(aAccOrElmOrID);
+  var oldAccessible = aOldAccOrElmOrID !== null ?
+  getAccessible(aOldAccOrElmOrID || 'root') : null;
+  var context = new PivotContext(accessible, oldAccessible);
+  var hints = context.interactionHints;
+
+  isDeeply(hints, expected,
+           "Context hitns are correct for " + aAccOrElmOrID +
+           " (hints: " + JSON.stringify(hints) + ") ==" +
+           " (expected: " + JSON.stringify(expected) + ")");
 }

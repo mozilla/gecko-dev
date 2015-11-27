@@ -21,17 +21,17 @@ enum LibrarySlot {
 
 namespace Library
 {
-  bool Name(JSContext* cx, unsigned argc, JS::Value *vp);
+  bool Name(JSContext* cx, unsigned argc, JS::Value* vp);
 
-  JSObject* Create(JSContext* cx, JS::Value path, JSCTypesCallbacks* callbacks);
+  JSObject* Create(JSContext* cx, JS::Value path, const JSCTypesCallbacks* callbacks);
 
   bool IsLibrary(JSObject* obj);
   PRLibrary* GetLibrary(JSObject* obj);
 
   bool Open(JSContext* cx, unsigned argc, JS::Value* vp);
-}
+} // namespace Library
 
-}
-}
+} // namespace ctypes
+} // namespace js
 
 #endif /* ctypes_Library_h */

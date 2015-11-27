@@ -5,9 +5,7 @@
 
 this.EXPORTED_SYMBOLS = ["RemoteWebNavigation"];
 
-const Ci = Components.interfaces;
-const Cc = Components.classes;
-const Cu = Components.utils;
+const { interfaces: Ci, classes: Cc, utils: Cu, results: Cr } = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
@@ -18,14 +16,29 @@ function makeURI(url)
          newURI(url, null, null);
 }
 
+function readInputStreamToString(aStream)
+{
+  Cu.import("resource://gre/modules/NetUtil.jsm");
+  return NetUtil.readInputStreamToString(aStream, aStream.available());
+}
+
 function RemoteWebNavigation(browser)
 {
-  this._browser = browser;
-  this._browser.messageManager.addMessageListener("WebNavigation:setHistory", this);
+  this.swapBrowser(browser);
 }
 
 RemoteWebNavigation.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebNavigation, Ci.nsISupports]),
+
+  swapBrowser: function(aBrowser) {
+    if (this._messageManager) {
+      this._messageManager.removeMessageListener("WebNavigation:setHistory", this);
+    }
+
+    this._browser = aBrowser;
+    this._messageManager = aBrowser.messageManager;
+    this._messageManager.addMessageListener("WebNavigation:setHistory", this);
+  },
 
   LOAD_FLAGS_MASK: 65535,
   LOAD_FLAGS_NONE: 0,
@@ -60,8 +73,21 @@ RemoteWebNavigation.prototype = {
     this._sendMessage("WebNavigation:GotoIndex", {index: aIndex});
   },
   loadURI: function(aURI, aLoadFlags, aReferrer, aPostData, aHeaders) {
-    this._browser._contentTitle = "";
-    this._sendMessage("WebNavigation:LoadURI", {uri: aURI, flags: aLoadFlags});
+    this.loadURIWithOptions(aURI, aLoadFlags, aReferrer,
+                            Ci.nsIHttpChannel.REFERRER_POLICY_DEFAULT,
+                            aPostData, aHeaders, null);
+  },
+  loadURIWithOptions: function(aURI, aLoadFlags, aReferrer, aReferrerPolicy,
+                               aPostData, aHeaders, aBaseURI) {
+    this._sendMessage("WebNavigation:LoadURI", {
+      uri: aURI,
+      flags: aLoadFlags,
+      referrer: aReferrer ? aReferrer.spec : null,
+      referrerPolicy: aReferrerPolicy,
+      postData: aPostData ? readInputStreamToString(aPostData) : null,
+      headers: aHeaders ? readInputStreamToString(aHeaders) : null,
+      baseURI: aBaseURI ? aBaseURI.spec : null,
+    });
   },
   reload: function(aReloadFlags) {
     this._sendMessage("WebNavigation:Reload", {flags: aReloadFlags});

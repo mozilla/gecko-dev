@@ -39,9 +39,6 @@ ImageAccessible::~ImageAccessible()
 {
 }
 
-NS_IMPL_ISUPPORTS_INHERITED(ImageAccessible, Accessible,
-                            nsIAccessibleImage)
-
 ////////////////////////////////////////////////////////////////////////////////
 // Accessible public
 
@@ -100,7 +97,7 @@ ImageAccessible::NativeRole()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// nsIAccessible
+// Accessible
 
 uint8_t
 ImageAccessible::ActionCount()
@@ -136,13 +133,12 @@ ImageAccessible::DoAction(uint8_t aIndex)
 
   nsIDocument* document = mContent->OwnerDoc();
   nsCOMPtr<nsPIDOMWindow> piWindow = document->GetWindow();
-  nsCOMPtr<nsIDOMWindow> win = do_QueryInterface(piWindow);
-  if (!win)
+  if (!piWindow)
     return false;
 
-  nsCOMPtr<nsIDOMWindow> tmp;
-  return NS_SUCCEEDED(win->Open(spec, EmptyString(), EmptyString(),
-                                getter_AddRefs(tmp)));
+  nsCOMPtr<nsPIDOMWindow> tmp;
+  return NS_SUCCEEDED(piWindow->Open(spec, EmptyString(), EmptyString(),
+                                     getter_AddRefs(tmp)));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -184,20 +180,26 @@ already_AddRefed<nsIURI>
 ImageAccessible::GetLongDescURI() const
 {
   if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::longdesc)) {
-    nsGenericHTMLElement* element =
-      nsGenericHTMLElement::FromContent(mContent);
-    if (element) {
-      nsCOMPtr<nsIURI> uri;
-      element->GetURIAttr(nsGkAtoms::longdesc, nullptr, getter_AddRefs(uri));
-      return uri.forget();
+    // To check if longdesc contains an invalid url.
+    nsAutoString longdesc;
+    mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::longdesc, longdesc);
+    if (longdesc.FindChar(' ') != -1 || longdesc.FindChar('\t') != -1 ||
+        longdesc.FindChar('\r') != -1 || longdesc.FindChar('\n') != -1) {
+      return nullptr;
     }
+    nsCOMPtr<nsIURI> baseURI = mContent->GetBaseURI();
+    nsCOMPtr<nsIURI> uri;
+    nsContentUtils::NewURIWithDocumentCharset(getter_AddRefs(uri), longdesc,
+                                              mContent->OwnerDoc(), baseURI);
+    return uri.forget();
   }
 
   DocAccessible* document = Document();
   if (document) {
     IDRefsIterator iter(document, mContent, nsGkAtoms::aria_describedby);
     while (nsIContent* target = iter.NextElem()) {
-      if ((target->IsHTML(nsGkAtoms::a) || target->IsHTML(nsGkAtoms::area)) &&
+      if ((target->IsHTMLElement(nsGkAtoms::a) ||
+           target->IsHTMLElement(nsGkAtoms::area)) &&
           target->HasAttr(kNameSpaceID_None, nsGkAtoms::href)) {
         nsGenericHTMLElement* element =
           nsGenericHTMLElement::FromContent(target);

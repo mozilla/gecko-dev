@@ -12,7 +12,6 @@
 #include "nsIDOMRange.h"
 #include "nsIEditor.h"
 #include "nsIDOMNode.h"
-#include "nsIDOMHTMLBRElement.h"
 #include "nsUnicharUtilCIID.h"
 #include "nsUnicodeProperties.h"
 #include "nsServiceManagerUtils.h"
@@ -323,7 +322,7 @@ mozInlineSpellWordUtil::MakeRange(NodeOffset aBegin, NodeOffset aEnd,
   if (!mDOMDocument)
     return NS_ERROR_NOT_INITIALIZED;
 
-  nsRefPtr<nsRange> range = new nsRange(aBegin.mNode);
+  RefPtr<nsRange> range = new nsRange(aBegin.mNode);
   nsresult rv = range->Set(aBegin.mNode, aBegin.mOffset,
                            aEnd.mNode, aEnd.mOffset);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -366,8 +365,7 @@ IsDOMWordSeparator(char16_t ch)
 static inline bool
 IsBRElement(nsINode* aNode)
 {
-  return aNode->IsElement() &&
-         aNode->AsElement()->IsHTML(nsGkAtoms::br);
+  return aNode->IsHTMLElement(nsGkAtoms::br);
 }
 
 /**
@@ -442,7 +440,7 @@ IsBreakElement(nsINode* aNode)
 
   dom::Element *element = aNode->AsElement();
     
-  if (element->IsHTML(nsGkAtoms::br))
+  if (element->IsHTMLElement(nsGkAtoms::br))
     return true;
 
   // If we don't have a frame, we don't consider ourselves a break
@@ -576,7 +574,7 @@ mozInlineSpellWordUtil::BuildSoftText()
           DOMTextMapping(NodeOffset(node, firstOffsetInNode), mSoftText.Length(), len));
 
         bool ok = textFragment->AppendTo(mSoftText, firstOffsetInNode, len,
-                                         mozilla::fallible_t());
+                                         mozilla::fallible);
         if (!ok) {
             // probably out of memory, remove from mSoftTextDOMMapping
             mSoftTextDOMMapping.RemoveElementAt(mSoftTextDOMMapping.Length() - 1);
@@ -667,7 +665,7 @@ class FirstLargerOffset
   int32_t mSoftTextOffset;
 
 public:
-  FirstLargerOffset(int32_t aSoftTextOffset) : mSoftTextOffset(aSoftTextOffset) {}
+  explicit FirstLargerOffset(int32_t aSoftTextOffset) : mSoftTextOffset(aSoftTextOffset) {}
   int operator()(const T& t) const {
   // We want the first larger offset, so never return 0 (which would
   // short-circuit evaluation before finding the last such offset).

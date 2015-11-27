@@ -120,7 +120,7 @@ SetWindowAppUserModelProp(nsIDOMWindow *aParent,
 ///////////////////////////////////////////////////////////////////////////////
 // default nsITaskbarPreviewController
 
-class DefaultController MOZ_FINAL : public nsITaskbarPreviewController
+class DefaultController final : public nsITaskbarPreviewController
 {
   ~DefaultController() {}
   HWND mWnd;
@@ -243,11 +243,6 @@ WinTaskbar::~WinTaskbar() {
 // static
 bool
 WinTaskbar::GetAppUserModelID(nsAString & aDefaultGroupId) {
-  // For win8 metro builds, we can't set this. The value is static
-  // for the app.
-  if (XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Metro) {
-    return false;
-  }
   // If marked as such in prefs, use a hash of the profile path for the id
   // instead of the install path hash setup by the installer.
   bool useProfile =
@@ -321,7 +316,6 @@ WinTaskbar::GetAppUserModelID(nsAString & aDefaultGroupId) {
   return true;
 }
 
-/* readonly attribute AString defaultGroupId; */
 NS_IMETHODIMP
 WinTaskbar::GetDefaultGroupId(nsAString & aDefaultGroupId) {
   if (!GetAppUserModelID(aDefaultGroupId))
@@ -335,10 +329,6 @@ bool
 WinTaskbar::RegisterAppUserModelID() {
   if (!IsWin7OrLater())
     return false;
-
-  if (XRE_GetWindowsEnvironment() == WindowsEnvironmentType_Metro) {
-    return false;
-  }
 
   SetCurrentProcessExplicitAppUserModelIDPtr funcAppUserModelID = nullptr;
   bool retVal = false;
@@ -388,7 +378,7 @@ WinTaskbar::CreateTaskbarTabPreview(nsIDocShell *shell, nsITaskbarPreviewControl
   if (!toplevelHWND)
     return NS_ERROR_INVALID_ARG;
 
-  nsRefPtr<TaskbarTabPreview> preview(new TaskbarTabPreview(mTaskbar, controller, toplevelHWND, shell));
+  RefPtr<TaskbarTabPreview> preview(new TaskbarTabPreview(mTaskbar, controller, toplevelHWND, shell));
   if (!preview)
     return NS_ERROR_OUT_OF_MEMORY;
 
@@ -416,7 +406,7 @@ WinTaskbar::GetTaskbarWindowPreview(nsIDocShell *shell, nsITaskbarWindowPreview 
 
   nsCOMPtr<nsITaskbarWindowPreview> preview = window->GetTaskbarPreview();
   if (!preview) {
-    nsRefPtr<DefaultController> defaultController = new DefaultController(toplevelHWND);
+    RefPtr<DefaultController> defaultController = new DefaultController(toplevelHWND);
     preview = new TaskbarWindowPreview(mTaskbar, defaultController, toplevelHWND, shell);
     if (!preview)
       return NS_ERROR_OUT_OF_MEMORY;
@@ -447,7 +437,6 @@ WinTaskbar::GetOverlayIconController(nsIDocShell *shell,
   return CallQueryInterface(preview, _retval);
 }
 
-/* nsIJumpListBuilder createJumpListBuilder(); */
 NS_IMETHODIMP
 WinTaskbar::CreateJumpListBuilder(nsIJumpListBuilder * *aJumpListBuilder) {
   nsresult rv;
@@ -465,14 +454,12 @@ WinTaskbar::CreateJumpListBuilder(nsIJumpListBuilder * *aJumpListBuilder) {
   return NS_OK;
 }
 
-/* void setGroupIdForWindow (in nsIDOMWindow aParent, in AString aIdentifier); */
 NS_IMETHODIMP
 WinTaskbar::SetGroupIdForWindow(nsIDOMWindow *aParent,
                                 const nsAString & aIdentifier) {
   return SetWindowAppUserModelProp(aParent, nsString(aIdentifier));
 }
 
-/* void prepareFullScreen(in nsIDOMWindow aWindow, in boolean aFullScreen); */
 NS_IMETHODIMP
 WinTaskbar::PrepareFullScreen(nsIDOMWindow *aWindow, bool aFullScreen) {
   NS_ENSURE_ARG_POINTER(aWindow);
@@ -484,7 +471,6 @@ WinTaskbar::PrepareFullScreen(nsIDOMWindow *aWindow, bool aFullScreen) {
   return PrepareFullScreenHWND(toplevelHWND, aFullScreen);
 }
 
-/* void prepareFullScreen(in voidPtr aWindow, in boolean aFullScreen); */
 NS_IMETHODIMP
 WinTaskbar::PrepareFullScreenHWND(void *aHWND, bool aFullScreen) {
   if (!Initialize())

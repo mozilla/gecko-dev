@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -26,9 +27,9 @@ SpeechRecognitionError::Constructor(const GlobalObject& aGlobal,
                                     ErrorResult& aRv)
 {
   nsCOMPtr<mozilla::dom::EventTarget> t = do_QueryInterface(aGlobal.GetAsSupports());
-  nsRefPtr<SpeechRecognitionError> e = new SpeechRecognitionError(t, nullptr, nullptr);
+  RefPtr<SpeechRecognitionError> e = new SpeechRecognitionError(t, nullptr, nullptr);
   bool trusted = e->Init(t);
-  e->InitSpeechRecognitionError(aType, aParam.mBubbles, aParam.mCancelable, aParam.mError, aParam.mMessage, aRv);
+  e->InitSpeechRecognitionError(aType, aParam.mBubbles, aParam.mCancelable, aParam.mError, aParam.mMessage);
   e->SetTrusted(trusted);
   return e.forget();
 }
@@ -38,15 +39,11 @@ SpeechRecognitionError::InitSpeechRecognitionError(const nsAString& aType,
                                                    bool aCanBubble,
                                                    bool aCancelable,
                                                    SpeechRecognitionErrorCode aError,
-                                                   const nsAString& aMessage,
-                                                   ErrorResult& aRv)
+                                                   const nsAString& aMessage)
 {
-  aRv = Event::InitEvent(aType, aCanBubble, aCancelable);
-  NS_ENSURE_SUCCESS_VOID(aRv.ErrorCode());
-
+  Event::InitEvent(aType, aCanBubble, aCancelable);
   mError = aError;
   mMessage = aMessage;
-  return;
 }
 
 } // namespace dom

@@ -40,16 +40,15 @@ nsPrintSettingsWin::nsPrintSettingsWin(const nsPrintSettingsWin& aPS) :
  */
 nsPrintSettingsWin::~nsPrintSettingsWin()
 {
-  if (mDeviceName) nsMemory::Free(mDeviceName);
-  if (mDriverName) nsMemory::Free(mDriverName);
+  if (mDeviceName) free(mDeviceName);
+  if (mDriverName) free(mDriverName);
   if (mDevMode) ::HeapFree(::GetProcessHeap(), 0, mDevMode);
 }
 
-/* [noscript] attribute charPtr deviceName; */
 NS_IMETHODIMP nsPrintSettingsWin::SetDeviceName(const char16_t * aDeviceName)
 {
   if (mDeviceName) {
-    nsMemory::Free(mDeviceName);
+    free(mDeviceName);
   }
   mDeviceName = aDeviceName?wcsdup(char16ptr_t(aDeviceName)):nullptr;
   return NS_OK;
@@ -61,11 +60,10 @@ NS_IMETHODIMP nsPrintSettingsWin::GetDeviceName(char16_t **aDeviceName)
   return NS_OK;
 }
 
-/* [noscript] attribute charPtr driverName; */
 NS_IMETHODIMP nsPrintSettingsWin::SetDriverName(const char16_t * aDriverName)
 {
   if (mDriverName) {
-    nsMemory::Free(mDriverName);
+    free(mDriverName);
   }
   mDriverName = aDriverName?wcsdup(char16ptr_t(aDriverName)):nullptr;
   return NS_OK;
@@ -88,7 +86,6 @@ void nsPrintSettingsWin::CopyDevMode(DEVMODEW* aInDevMode, DEVMODEW *& aOutDevMo
 
 }
 
-/* [noscript] attribute nsDevMode devMode; */
 NS_IMETHODIMP nsPrintSettingsWin::GetDevMode(DEVMODEW * *aDevMode)
 {
   NS_ENSURE_ARG_POINTER(aDevMode);
@@ -118,8 +115,9 @@ NS_IMETHODIMP nsPrintSettingsWin::SetDevMode(DEVMODEW * aDevMode)
 nsresult 
 nsPrintSettingsWin::_Clone(nsIPrintSettings **_retval)
 {
-  nsPrintSettingsWin* printSettings = new nsPrintSettingsWin(*this);
-  return printSettings->QueryInterface(NS_GET_IID(nsIPrintSettings), (void**)_retval); // ref counts
+  RefPtr<nsPrintSettingsWin> printSettings = new nsPrintSettingsWin(*this);
+  printSettings.forget(_retval);
+  return NS_OK;
 }
 
 //-------------------------------------------
@@ -157,7 +155,6 @@ nsPrintSettingsWin& nsPrintSettingsWin::operator=(const nsPrintSettingsWin& rhs)
 }
 
 //-------------------------------------------
-/* void assign (in nsIPrintSettings aPS); */
 nsresult 
 nsPrintSettingsWin::_Assign(nsIPrintSettings *aPS)
 {

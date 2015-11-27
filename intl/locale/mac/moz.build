@@ -11,7 +11,7 @@ UNIFIED_SOURCES += [
 ]
 
 FINAL_LIBRARY = 'xul'
+CXXFLAGS += CONFIG['MOZ_ICU_CFLAGS']
 LOCAL_INCLUDES += [
     '..',
 ]
-

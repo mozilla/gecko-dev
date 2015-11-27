@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -17,6 +18,7 @@
 #include "nsXBLProtoImplMethod.h"
 #include "nsXBLPrototypeHandler.h"
 #include "nsXBLPrototypeResources.h"
+#include "mozilla/WeakPtr.h"
 
 class nsIAtom;
 class nsIContent;
@@ -35,9 +37,12 @@ class CSSStyleSheet;
 // Instances of this class are owned by the nsXBLDocumentInfo object returned
 // by XBLDocumentInfo().  Consumers who want to refcount things should refcount
 // that.
-class nsXBLPrototypeBinding MOZ_FINAL
+class nsXBLPrototypeBinding final :
+  public mozilla::SupportsWeakPtr<nsXBLPrototypeBinding>
 {
 public:
+  MOZ_DECLARE_WEAKREFERENCE_TYPENAME(nsXBLPrototypeBinding)
+
   nsIContent* GetBindingElement() const { return mBinding; }
   void SetBindingElement(nsIContent* aElement);
 
@@ -89,11 +94,11 @@ public:
     }
   }
 
-  const nsCString& ClassName() const {
-    return mImplementation ? mImplementation->mClassName : EmptyCString();
+  const nsString& ClassName() const {
+    return mImplementation ? mImplementation->mClassName : EmptyString();
   }
 
-  nsresult InitClass(const nsCString& aClassName, JSContext * aContext,
+  nsresult InitClass(const nsString& aClassName, JSContext* aContext,
                      JS::Handle<JSObject*> aScriptObject,
                      JS::MutableHandle<JSObject*> aClassObject,
                      bool* aNew);
@@ -289,7 +294,8 @@ protected:
   nsXBLProtoImpl* mImplementation; // Our prototype implementation (includes methods, properties, fields,
                                    // the constructor, and the destructor).
 
-  nsXBLPrototypeBinding* mBaseBinding; // Weak.  The docinfo will own our base binding.
+  // Weak.  The docinfo will own our base binding.
+  mozilla::WeakPtr<nsXBLPrototypeBinding> mBaseBinding;
   bool mInheritStyle;
   bool mCheckedBaseProto;
   bool mKeyHandlersRegistered;

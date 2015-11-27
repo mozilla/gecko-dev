@@ -6,8 +6,6 @@
  * For more information see nsIDOMSimpleGestureEvent.idl.
  */
 
-interface WindowProxy;
-
 interface SimpleGestureEvent : MouseEvent
 {
   const unsigned long DIRECTION_UP = 1;
@@ -26,11 +24,10 @@ interface SimpleGestureEvent : MouseEvent
 
   readonly attribute unsigned long clickCount;
 
-  [Throws]
   void initSimpleGestureEvent(DOMString typeArg,
                               boolean canBubbleArg,
                               boolean cancelableArg,
-                              WindowProxy? viewArg,
+                              Window? viewArg,
                               long detailArg,
                               long screenXArg,
                               long screenYArg,

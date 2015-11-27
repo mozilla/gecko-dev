@@ -13,7 +13,7 @@
 #include "nsAutoPtr.h"
 #include "mozilla/Attributes.h"
 
-class nsHtml5Speculation MOZ_FINAL : public nsAHtml5TreeOpSink
+class nsHtml5Speculation final : public nsAHtml5TreeOpSink
 {
   public:
     nsHtml5Speculation(nsHtml5OwningUTF16Buffer* aBuffer,
@@ -55,7 +55,7 @@ class nsHtml5Speculation MOZ_FINAL : public nsAHtml5TreeOpSink
     /**
      * The first buffer in the pending UTF-16 buffer queue
      */
-    nsRefPtr<nsHtml5OwningUTF16Buffer>  mBuffer;
+    RefPtr<nsHtml5OwningUTF16Buffer>  mBuffer;
     
     /**
      * The start index of this speculation in the first buffer

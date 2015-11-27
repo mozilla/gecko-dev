@@ -18,6 +18,7 @@ const { Style } = require('sdk/stylesheet/style');
 const fixtures = require('./fixtures');
 const { viewFor } = require('sdk/view/core');
 const app = require("sdk/system/xul-app");
+const { cleanUI } = require('sdk/test/utils');
 
 const URL = 'data:text/html;charset=utf-8,<html><head><title>#title#</title></head></html>';
 
@@ -49,13 +50,10 @@ exports.testTabRelativePath = function(assert, done) {
   const { merge } = require("sdk/util/object");
   const self = require("sdk/self");
 
-  let loader = Loader(module, null, null, {
-    modules: {
-      "sdk/self": merge({}, self, {
-        data: merge({}, self.data, fixtures)
-      })
-    }
-  });
+  const options = merge({}, require('@loader/options'),
+                        { prefixURI: require('./fixtures').url() });
+
+  let loader = Loader(module, null, options);
 
   let tabs = loader.require("sdk/tabs");
 
@@ -72,6 +70,7 @@ exports.testTabRelativePath = function(assert, done) {
             "Tab attach a contentScriptFile with relative path worked");
 
           tab.close(done);
+          loader.unload();
         }
       });
     }
@@ -210,7 +209,7 @@ exports.testAttachOnMultipleDocuments_alt = function (assert, done) {
       if (onReadyCount == 1) {
         worker1 = tab.attach({
           contentScript: 'self.on("message", ' +
-                         '  function () self.postMessage(document.location.href)' +
+                         '  () => self.postMessage(document.location.href)' +
                          ');',
           onMessage: function (msg) {
             assert.equal(msg, firstLocation,
@@ -233,7 +232,7 @@ exports.testAttachOnMultipleDocuments_alt = function (assert, done) {
       else if (onReadyCount == 2) {
         worker2 = tab.attach({
           contentScript: 'self.on("message", ' +
-                         '  function () self.postMessage(document.location.href)' +
+                         '  () => self.postMessage(document.location.href)' +
                          ');',
           onMessage: function (msg) {
             assert.equal(msg, secondLocation,
@@ -289,7 +288,7 @@ exports.testAttachWrappers_alt = function (assert, done) {
         onMessage: function (msg) {
           assert.equal(msg, true, "Worker has wrapped objects ("+count+")");
           if (count++ == 1)
-            tab.close(function() done());
+            tab.close(() => done());
         }
       });
     }
@@ -308,6 +307,7 @@ exports.testActiveWindowActiveTabOnActivate_alt = function(assert, done) {
                     "the active window's active tab is the tab provided");
 
     if (++activateCount == 2) {
+      assert.equal(newTabs.length, activateCount, "Should have seen the right number of tabs open");
       tabs.removeListener('activate', onActivate);
 
       newTabs.forEach(function(tab) {
@@ -325,11 +325,11 @@ exports.testActiveWindowActiveTabOnActivate_alt = function(assert, done) {
 
   tabs.open({
     url: URL.replace("#title#", "tabs.open1"),
-    onOpen: function(tab) newTabs.push(tab)
+    onOpen: tab => newTabs.push(tab)
   });
   tabs.open({
     url: URL.replace("#title#", "tabs.open2"),
-    onOpen: function(tab) newTabs.push(tab)
+    onOpen: tab => newTabs.push(tab)
   });
 };
 
@@ -454,7 +454,7 @@ exports.testTabReload = function(assert, done) {
           assert.pass("the tab was loaded again");
           assert.equal(tab.url, url, "the tab has the same URL");
 
-          tab.close(function() done());
+          tab.close(() => done());
         }
       );
 
@@ -498,8 +498,12 @@ exports.testOnPageShowEvent = function (assert, done) {
     }
   }
 
-  function onOpen () events.push('open');
-  function onReady () events.push('ready');
+  function onOpen () {
+    return events.push('open');
+  }
+  function onReady () {
+    return events.push('ready');
+  }
 
   tabs.on('pageshow', onPageShow);
   tabs.on('open', onOpen);
@@ -544,8 +548,12 @@ exports.testOnPageShowEventDeclarative = function (assert, done) {
     }
   }
 
-  function onOpen () events.push('open');
-  function onReady () events.push('ready');
+  function onOpen () {
+    return events.push('open');
+  }
+  function onReady () {
+    return events.push('ready');
+  }
 
   tabs.open({
     url: firstUrl,
@@ -605,5 +613,60 @@ exports.testAttachStyleToTab = function(assert, done) {
     }
   });
 };
+
+// Tests that the this property is correct in event listeners called from
+// the tabs API.
+exports.testTabEventBindings = function(assert, done) {
+  let loader = Loader(module);
+  let tabs = loader.require("sdk/tabs");
+  let firstTab = tabs.activeTab;
+
+  let EVENTS = ["open", "close", "activate", "deactivate",
+                "load", "ready", "pageshow"];
+
+  let tabBoundEventHandler = (event) => function(tab) {
+    assert.equal(this, tab, "tab listener for " + event + " event should be bound to the tab object.");
+  };
+
+  let tabsBoundEventHandler = (event) => function(tab) {
+    assert.equal(this, tabs, "tabs listener for " + event + " event should be bound to the tabs object.");
+  }
+  for (let event of EVENTS)
+    tabs.on(event, tabsBoundEventHandler(event));
+
+  let tabsOpenEventHandler = (event) => function(tab) {
+    assert.equal(this, tab, "tabs open listener for " + event + " event should be bound to the tab object.");
+  }
+
+  let openArgs = {
+    url: "data:text/html;charset=utf-8,binding-test",
+    onOpen: function(tab) {
+      tabsOpenEventHandler("open").call(this, tab);
+
+      for (let event of EVENTS)
+        tab.on(event, tabBoundEventHandler(event));
+
+      tab.once("pageshow", () => {
+        tab.once("deactivate", () => {
+          tab.once("close", () => {
+            loader.unload();
+            done();
+          });
+
+          tab.close();
+        });
+
+        firstTab.activate();
+      });
+    }
+  };
+  // Listen to everything except onOpen
+  for (let event of EVENTS.slice(1)) {
+    let eventProperty = "on" + event.slice(0, 1).toUpperCase() + event.slice(1);
+    openArgs[eventProperty] = tabsOpenEventHandler(event);
+  }
+
+  tabs.open(openArgs);
+}
 
 require('sdk/test').run(exports);

@@ -26,7 +26,7 @@ add_test(function test_normal()
 {
   let pageURI = NetUtil.newURI("http://example.com/normal");
 
-  promiseAddVisits(pageURI).then(function () {
+  PlacesTestUtils.addVisits(pageURI).then(function () {
     PlacesUtils.favicons.setAndFetchFaviconForPage(
       pageURI, FAVICON_URI, true,
         PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE,
@@ -39,7 +39,7 @@ add_test(function test_normal()
             do_check_eq(FAVICON_MIMETYPE, aMimeType);
             run_next_test();
           });
-      });
+      }, Services.scriptSecurityManager.getSystemPrincipal());
   });
 });
 

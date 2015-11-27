@@ -1,0 +1,125 @@
+/* -*- Mode: IDL; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+interface nsIDOMDOMRequest;
+interface nsIFrameLoader;
+
+[scriptable, function, uuid(00d0e19d-bd67-491f-8e85-b9905224d3bb)]
+interface nsIBrowserElementNextPaintListener : nsISupports
+{
+  void recvNextPaint();
+};
+
+%{C++
+#define BROWSER_ELEMENT_API_CONTRACTID "@mozilla.org/dom/browser-element-api;1"
+#define BROWSER_ELEMENT_API_CID                                 \
+    { 0x651db7e3, 0x1734, 0x4536,                               \
+      { 0xb1, 0x5a, 0x5b, 0x3a, 0xe6, 0x44, 0x13, 0x4c } }
+%}
+
+/**
+ * Interface to the BrowserElementParent implementation. All methods
+ * but setFrameLoader throw when the remote process is dead.
+ */
+[scriptable, uuid(57758c10-6036-11e5-a837-0800200c9a66)]
+interface nsIBrowserElementAPI : nsISupports
+{
+  const long FIND_CASE_SENSITIVE = 0;
+  const long FIND_CASE_INSENSITIVE = 1;
+
+  const long FIND_FORWARD = 0;
+  const long FIND_BACKWARD = 1;
+
+  void setFrameLoader(in nsIFrameLoader frameLoader);
+
+  void setVisible(in boolean visible);
+  nsIDOMDOMRequest getVisible();
+  void setActive(in boolean active);
+  boolean getActive();
+
+  void sendMouseEvent(in DOMString type,
+                      in uint32_t x,
+                      in uint32_t y,
+                      in uint32_t button,
+                      in uint32_t clickCount,
+                      in uint32_t mifiers);
+  void sendTouchEvent(in DOMString aType,
+                      [const, array, size_is(count)] in uint32_t aIdentifiers,
+                      [const, array, size_is(count)] in int32_t aXs,
+                      [const, array, size_is(count)] in int32_t aYs,
+                      [const, array, size_is(count)] in uint32_t aRxs,
+                      [const, array, size_is(count)] in uint32_t aRys,
+                      [const, array, size_is(count)] in float aRotationAngles,
+                      [const, array, size_is(count)] in float aForces,
+                      in uint32_t count,
+                      in long aModifiers);
+  void goBack();
+  void goForward();
+  void reload(in boolean hardReload);
+  void stop();
+  nsIDOMDOMRequest download(in DOMString url,
+                            [optional] in jsval options);
+  nsIDOMDOMRequest purgeHistory();
+  nsIDOMDOMRequest getScreenshot(in uint32_t width,
+                                 in uint32_t height,
+                                 [optional] in DOMString mimeType);
+  void zoom(in float zoom);
+  nsIDOMDOMRequest getCanGoBack();
+  nsIDOMDOMRequest getCanGoForward();
+  nsIDOMDOMRequest getContentDimensions();
+
+  void findAll(in DOMString searchString, in long caseSensitivity);
+  void findNext(in long direction);
+  void clearMatch();
+
+  void mute();
+  void unmute();
+  nsIDOMDOMRequest getMuted();
+
+  void setVolume(in float volume);
+  nsIDOMDOMRequest getVolume();
+
+  void addNextPaintListener(in nsIBrowserElementNextPaintListener listener);
+  void removeNextPaintListener(in nsIBrowserElementNextPaintListener listener);
+
+  nsIDOMDOMRequest setInputMethodActive(in boolean isActive);
+
+  nsIDOMDOMRequest getAudioChannelVolume(in uint32_t audioChannel);
+  nsIDOMDOMRequest setAudioChannelVolume(in uint32_t audioChannel, in float volume);
+
+  nsIDOMDOMRequest getAudioChannelMuted(in uint32_t audioChannel);
+  nsIDOMDOMRequest setAudioChannelMuted(in uint32_t audioChannel, in bool muted);
+
+  nsIDOMDOMRequest isAudioChannelActive(in uint32_t audioChannel);
+
+  nsIDOMDOMRequest notifyChannel(in DOMString event,
+                                 in DOMString manifest,
+                                 in uint32_t audioChannel);
+
+  void setNFCFocus(in boolean isFocus);
+
+  nsIDOMDOMRequest executeScript(in DOMString script, in jsval options);
+
+  /**
+   * Returns an object that represents a Web Manifest:
+   * http://w3c.github.io/manifest/
+   */
+  nsIDOMDOMRequest getWebManifest();
+
+  /**
+   * Returns a JSON string representing Microdata objects on the page.
+   * Format is described at:
+   *   https://html.spec.whatwg.org/multipage/microdata.html#json
+   *
+   * Also contains hCard and hCalendar objects after converting them
+   * to equivalent Microdata objects described at:
+   *   https://html.spec.whatwg.org/multipage/microdata.html#vcard
+   *   https://html.spec.whatwg.org/multipage/microdata.html#vevent
+   */
+  nsIDOMDOMRequest getStructuredData();
+};

@@ -32,9 +32,7 @@
 #include "ScopedNSSTypes.h"
 #include "secerr.h"
 
-#ifdef PR_LOGGING
 extern PRLogModuleInfo* gCertVerifierLog;
-#endif
 
 using namespace mozilla::pkix;
 
@@ -140,7 +138,7 @@ OCSPCache::FindInternal(const CertID& aCertID, /*out*/ size_t& index,
 static inline void
 LogWithCertID(const char* aMessage, const CertID& aCertID)
 {
-  PR_LOG(gCertVerifierLog, PR_LOG_DEBUG, (aMessage, &aCertID));
+  MOZ_LOG(gCertVerifierLog, LogLevel::Debug, (aMessage, &aCertID));
 }
 
 void
@@ -263,7 +261,7 @@ void
 OCSPCache::Clear()
 {
   MutexAutoLock lock(mMutex);
-  PR_LOG(gCertVerifierLog, PR_LOG_DEBUG, ("OCSPCache::Clear: clearing cache"));
+  MOZ_LOG(gCertVerifierLog, LogLevel::Debug, ("OCSPCache::Clear: clearing cache"));
   // First go through and delete the memory being pointed to by the pointers
   // in the vector.
   for (Entry** entry = mEntries.begin(); entry < mEntries.end();

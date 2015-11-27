@@ -4,16 +4,16 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-SharedLibrary('AccessibleMarshal')
+GeckoSharedLibrary('AccessibleMarshal', linkage=None)
 
-GENERATED_SOURCES += [
-    'dlldata.c',
-    'ISimpleDOMDocument_i.c',
-    'ISimpleDOMDocument_p.c',
-    'ISimpleDOMNode_i.c',
-    'ISimpleDOMNode_p.c',
-    'ISimpleDOMText_i.c',
-    'ISimpleDOMText_p.c',
+SOURCES += [
+    '!dlldata.c',
+    '!ISimpleDOMDocument_i.c',
+    '!ISimpleDOMDocument_p.c',
+    '!ISimpleDOMNode_i.c',
+    '!ISimpleDOMNode_p.c',
+    '!ISimpleDOMText_i.c',
+    '!ISimpleDOMText_p.c',
 ]
 
 DEFINES['REGISTER_PROXY_DLL'] = True
@@ -22,7 +22,6 @@ DEFFILE = SRCDIR + '/AccessibleMarshal.def'
 
 OS_LIBS += [
     'kernel32',
-    'rpcns4',
     'rpcrt4',
     'oleaut32',
 ]

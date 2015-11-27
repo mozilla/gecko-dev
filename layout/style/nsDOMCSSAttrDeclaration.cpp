@@ -72,70 +72,70 @@ nsresult
 nsDOMCSSAttributeDeclaration::SetCSSDeclaration(css::Declaration* aDecl)
 {
   NS_ASSERTION(mElement, "Must have Element to set the declaration!");
-  css::StyleRule* oldRule =
-    mIsSMILOverride ? mElement->GetSMILOverrideStyleRule() :
-    mElement->GetInlineStyleRule();
-  NS_ASSERTION(oldRule, "Element must have rule");
-
-  nsRefPtr<css::StyleRule> newRule =
-    oldRule->DeclarationChanged(aDecl, false);
-  if (!newRule) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
   return
-    mIsSMILOverride ? mElement->SetSMILOverrideStyleRule(newRule, true) :
-    mElement->SetInlineStyleRule(newRule, nullptr, true);
+    mIsSMILOverride ? mElement->SetSMILOverrideStyleDeclaration(aDecl, true) :
+    mElement->SetInlineStyleDeclaration(aDecl, nullptr, true);
 }
 
 nsIDocument*
 nsDOMCSSAttributeDeclaration::DocToUpdate()
 {
-  // XXXbz this is a bit of a hack, especially doing it before the
-  // BeginUpdate(), but this is a good chokepoint where we know we
-  // plan to modify the CSSDeclaration, so need to notify
-  // AttributeWillChange if this is inline style.
-  if (!mIsSMILOverride) {
-    nsNodeUtils::AttributeWillChange(mElement, kNameSpaceID_None,
-                                     nsGkAtoms::style,
-                                     nsIDOMMutationEvent::MODIFICATION);
-  }
- 
   // We need OwnerDoc() rather than GetCurrentDoc() because it might
   // be the BeginUpdate call that inserts mElement into the document.
   return mElement->OwnerDoc();
 }
 
 css::Declaration*
-nsDOMCSSAttributeDeclaration::GetCSSDeclaration(bool aAllocate)
+nsDOMCSSAttributeDeclaration::GetCSSDeclaration(Operation aOperation)
 {
   if (!mElement)
     return nullptr;
 
-  css::StyleRule* cssRule;
+  css::Declaration* declaration;
   if (mIsSMILOverride)
-    cssRule = mElement->GetSMILOverrideStyleRule();
+    declaration = mElement->GetSMILOverrideStyleDeclaration();
   else
-    cssRule = mElement->GetInlineStyleRule();
+    declaration = mElement->GetInlineStyleDeclaration();
 
-  if (cssRule) {
-    return cssRule->GetDeclaration();
+  // Notify observers that our style="" attribute is going to change
+  // unless:
+  //   * this is a declaration that holds SMIL animation values (which
+  //     aren't reflected in the DOM style="" attribute), or
+  //   * we're getting the declaration for reading, or
+  //   * we're getting it for property removal but we don't currently have
+  //     a declaration.
+
+  // XXXbz this is a bit of a hack, especially doing it before the
+  // BeginUpdate(), but this is a good chokepoint where we know we
+  // plan to modify the CSSDeclaration, so need to notify
+  // AttributeWillChange if this is inline style.
+  if (!mIsSMILOverride &&
+      ((aOperation == eOperation_Modify) ||
+       (aOperation == eOperation_RemoveProperty && declaration))) {
+    nsNodeUtils::AttributeWillChange(mElement, kNameSpaceID_None,
+                                     nsGkAtoms::style,
+                                     nsIDOMMutationEvent::MODIFICATION,
+                                     nullptr);
   }
-  if (!aAllocate) {
+
+  if (declaration) {
+    return declaration;
+  }
+
+  if (aOperation != eOperation_Modify) {
     return nullptr;
   }
 
   // cannot fail
-  css::Declaration *decl = new css::Declaration();
+  RefPtr<css::Declaration> decl = new css::Declaration();
   decl->InitializeEmpty();
-  nsRefPtr<css::StyleRule> newRule = new css::StyleRule(nullptr, decl, 0, 0);
 
   // this *can* fail (inside SetAttrAndNotify, at least).
   nsresult rv;
   if (mIsSMILOverride)
-    rv = mElement->SetSMILOverrideStyleRule(newRule, false);
+    rv = mElement->SetSMILOverrideStyleDeclaration(decl, false);
   else
-    rv = mElement->SetInlineStyleRule(newRule, nullptr, false);
+    rv = mElement->SetInlineStyleDeclaration(decl, nullptr, false);
 
   if (NS_FAILED(rv)) {
     return nullptr; // the decl will be destroyed along with the style rule
@@ -182,7 +182,8 @@ nsDOMCSSAttributeDeclaration::SetPropertyValue(const nsCSSProperty aPropID,
       aPropID == eCSSProperty_left || aPropID == eCSSProperty_top ||
       aPropID == eCSSProperty_right || aPropID == eCSSProperty_bottom ||
       aPropID == eCSSProperty_margin_left || aPropID == eCSSProperty_margin_top ||
-      aPropID == eCSSProperty_margin_right || aPropID == eCSSProperty_margin_bottom) {
+      aPropID == eCSSProperty_margin_right || aPropID == eCSSProperty_margin_bottom ||
+      aPropID == eCSSProperty_background_position) {
     nsIFrame* frame = mElement->GetPrimaryFrame();
     if (frame) {
       ActiveLayerTracker::NotifyInlineStyleRuleModified(frame, aPropID);

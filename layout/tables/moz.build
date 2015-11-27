@@ -4,6 +4,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+with Files('**'):
+    BUG_COMPONENT = ('Core', 'Layout: Tables')
+
 MOCHITEST_MANIFESTS += ['test/mochitest.ini']
 
 EXPORTS += [
@@ -25,20 +28,16 @@ UNIFIED_SOURCES += [
     'SpanningCellSorter.cpp',
 ]
 
-FAIL_ON_WARNINGS = True
-
-MSVC_ENABLE_PGO = True
-
 FINAL_LIBRARY = 'xul'
 
 LOCAL_INCLUDES += [
-    '../../content/base/src',
-    '../../content/html/content/src',
     '../../intl/unicharutil/util',
     '../base',
     '../generic',
     '../style',
     '../xul',
+    '/dom/base',
+    '/dom/html',
 ]
 
 DEFINES['DEBUG_TABLE_STRATEGY_off'] = True

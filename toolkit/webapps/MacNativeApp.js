@@ -222,7 +222,8 @@ NativeApp.prototype = {
 
   _copyPrebuiltFiles: function(aDir) {
     let destDir = getFile(aDir, this.macOSDir);
-    let stub = getFile(this.runtimeFolder, "webapprt-stub");
+    let stub = getFile(OS.Path.join(OS.Path.dirname(this.runtimeFolder),
+                                    "Resources"), "webapprt-stub");
     stub.copyTo(destDir, "webapprt");
   },
 
@@ -241,7 +242,7 @@ NativeApp.prototype = {
     writer.setString("Webapp", "Name", this.appLocalizedName);
     writer.setString("Webapp", "Profile", this.uniqueName);
     writer.writeFile();
-    applicationINI.permissions = PERMS_FILE;
+    yield OS.File.setPermissions(applicationINI.path, { unixMode: PERMS_FILE });
 
     // ${InstallDir}/Contents/Info.plist
     let infoPListContent = '<?xml version="1.0" encoding="UTF-8"?>\n\
@@ -268,6 +269,8 @@ NativeApp.prototype = {
     <string>0</string>\n\
     <key>NSHighResolutionCapable</key>\n\
     <true/>\n\
+    <key>NSSupportsAutomaticGraphicsSwitching</key>\n\
+    <true/>\n\
     <key>NSPrincipalClass</key>\n\
     <string>GeckoNSApplication</string>\n\
     <key>FirefoxBinary</key>\n\
@@ -291,7 +294,8 @@ NativeApp.prototype = {
   _processIcon: function(aMimeType, aIcon, aDir) {
     let deferred = Promise.defer();
 
-    let tmpIconPath = OS.Path.join(aDir, this.iconFile);
+    let finalIconPath = OS.Path.join(aDir, this.iconFile);
+    let tmpIconPath = OS.Path.join(OS.Constants.Path.tmpDir, "appicon.icns");
 
     function conversionDone(aSubject, aTopic) {
       if (aTopic != "process-finished") {
@@ -303,7 +307,8 @@ NativeApp.prototype = {
       // icon was successfully converted.
       OS.File.exists(tmpIconPath).then((aExists) => {
         if (aExists) {
-          deferred.resolve();
+          OS.File.move(tmpIconPath, finalIconPath).then(
+            deferred.resolve, err => deferred.reject(err));
         } else {
           deferred.reject("Failure converting icon, unrecognized image format");
         }

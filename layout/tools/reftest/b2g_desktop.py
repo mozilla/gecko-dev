@@ -3,25 +3,28 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 from __future__ import print_function, unicode_literals
 
-import json
 import os
 import signal
 import sys
-import threading
 
 here = os.path.abspath(os.path.dirname(__file__))
 
-from runreftest import RefTest, ReftestOptions
+from runreftest import RefTest
 
-from marionette import Marionette
+from marionette_driver import expected
+from marionette_driver.by import By
+from marionette_driver.marionette import Marionette
+from marionette_driver.wait import Wait
+
 from mozprocess import ProcessHandler
 from mozrunner import FirefoxRunner
 import mozinfo
 import mozlog
 
-log = mozlog.getLogger('REFTEST')
+log = mozlog.unstructured.getLogger('REFTEST')
 
 class B2GDesktopReftest(RefTest):
+    build_type = "desktop"
     marionette = None
 
     def __init__(self, marionette_args):
@@ -37,6 +40,9 @@ class B2GDesktopReftest(RefTest):
         self.marionette = Marionette(**self.marionette_args)
         assert(self.marionette.wait_for_port())
         self.marionette.start_session()
+        if self.build_type == "mulet":
+            self._wait_for_homescreen(timeout=300)
+            self._unlockScreen()
         self.marionette.set_context(self.marionette.CONTEXT_CHROME)
 
         if os.path.isfile(self.test_script):
@@ -45,12 +51,10 @@ class B2GDesktopReftest(RefTest):
             f.close()
         self.marionette.execute_script(self.test_script)
 
-    def run_tests(self, test_path, options):
-        reftestlist = self.getManifestPath(test_path)
-        if not reftestlist.startswith('file://'):
-            reftestlist = 'file://%s' % reftestlist
+    def run_tests(self, tests, options):
+        manifests = self.resolver.resolveManifests(options, tests)
 
-        self.profile = self.create_profile(options, reftestlist,
+        self.profile = self.create_profile(options, manifests,
                                            profile_to_clone=options.profile)
         env = self.buildBrowserEnv(options, self.profile.profile)
         kp_kwargs = { 'processOutputLine': [self._on_output],
@@ -101,16 +105,28 @@ class B2GDesktopReftest(RefTest):
         log.info("%s | Running tests: end.", os.path.basename(__file__))
         return status
 
-    def create_profile(self, options, reftestlist, profile_to_clone=None):
-        profile = RefTest.createReftestProfile(self, options, reftestlist,
+    def create_profile(self, options, manifests, profile_to_clone=None):
+        profile = RefTest.createReftestProfile(self, options, manifests,
                                                profile_to_clone=profile_to_clone)
 
         prefs = {}
         # Turn off the locale picker screen
         prefs["browser.firstrun.show.localepicker"] = False
-        prefs["b2g.system_startup_url"] = "app://test-container.gaiamobile.org/index.html"
-        prefs["b2g.system_manifest_url"] = "app://test-container.gaiamobile.org/manifest.webapp"
-        prefs["browser.tabs.remote"] = False
+        if not self.build_type == "mulet":
+            # FIXME: With Mulet we can't set this values since Gaia won't launch
+            prefs["b2g.system_startup_url"] = \
+                    "app://test-container.gaiamobile.org/index.html"
+            prefs["b2g.system_manifest_url"] = \
+                    "app://test-container.gaiamobile.org/manifest.webapp"
+        # Make sure we disable system updates
+        prefs["app.update.enabled"] = False
+        prefs["app.update.url"] = ""
+        prefs["app.update.url.override"] = ""
+        # Disable webapp updates
+        prefs["webapps.update.enabled"] = False
+        # Disable tiles also
+        prefs["browser.newtabpage.directory.source"] = ""
+        prefs["browser.newtabpage.directory.ping"] = ""
         prefs["dom.ipc.tabs.disabled"] = False
         prefs["dom.mozBrowserFramesEnabled"] = True
         prefs["font.size.inflation.emPerLine"] = 0
@@ -118,7 +134,6 @@ class B2GDesktopReftest(RefTest):
         prefs["network.dns.localDomains"] = "app://test-container.gaiamobile.org"
         prefs["reftest.browser.iframe.enabled"] = False
         prefs["reftest.remote"] = False
-        prefs["reftest.uri"] = "%s" % reftestlist
         # Set a future policy version to avoid the telemetry prompt.
         prefs["toolkit.telemetry.prompted"] = 999
         prefs["toolkit.telemetry.notifiedOptOut"] = 999
@@ -137,10 +152,15 @@ class B2GDesktopReftest(RefTest):
 
         if not ignore_window_size:
             args.extend(['--screen', '800x1000'])
+
+        if self.build_type == "mulet":
+            args += ['-chrome', 'chrome://b2g/content/shell.html']
         return cmd, args
 
     def _on_output(self, line):
-        print(line)
+        sys.stdout.write("%s\n" % line)
+        sys.stdout.flush()
+
         # TODO use structured logging
         if "TEST-START" in line and "|" in line:
             self.last_test = line.split("|")[1].strip()
@@ -152,26 +172,44 @@ class B2GDesktopReftest(RefTest):
         # kill process to get a stack
         self.runner.stop(sig=signal.SIGABRT)
 
+class MuletReftest(B2GDesktopReftest):
+    build_type = "mulet"
 
-def run_desktop_reftests(parser, options, args):
+    def _unlockScreen(self):
+        self.marionette.set_context(self.marionette.CONTEXT_CONTENT)
+        self.marionette.import_script(os.path.abspath(
+            os.path.join(__file__, os.path.pardir, "gaia_lock_screen.js")))
+        self.marionette.switch_to_frame()
+        self.marionette.execute_async_script('GaiaLockScreen.unlock()')
+
+    def _wait_for_homescreen(self, timeout):
+        log.info("Waiting for home screen to load")
+        Wait(self.marionette, timeout).until(expected.element_present(
+            By.CSS_SELECTOR, '#homescreen[loading-state=false]'))
+
+def run_desktop_reftests(parser, options):
     marionette_args = {}
     if options.marionette:
         host, port = options.marionette.split(':')
         marionette_args['host'] = host
         marionette_args['port'] = int(port)
 
-    reftest = B2GDesktopReftest(marionette_args)
+    if options.mulet:
+        reftest = MuletReftest(marionette_args)
+    else:
+        reftest = B2GDesktopReftest(marionette_args)
 
-    options = ReftestOptions.verifyCommonOptions(parser, options, reftest)
-    if options == None:
-        sys.exit(1)
+    parser.validate(options, reftest)
 
     # add a -bin suffix if b2g-bin exists, but just b2g was specified
     if options.app[-4:] != '-bin':
         if os.path.isfile("%s-bin" % options.app):
             options.app = "%s-bin" % options.app
 
+    if options.xrePath is None:
+        options.xrePath = os.path.dirname(options.app)
+
     if options.desktop and not options.profile:
         raise Exception("must specify --profile when specifying --desktop")
 
-    sys.exit(reftest.run_tests(args[0], options))
+    sys.exit(reftest.run_tests(options.tests, options))

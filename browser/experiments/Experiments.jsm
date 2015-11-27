@@ -20,14 +20,14 @@ Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://gre/modules/AsyncShutdown.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "UpdateChannel",
-                                  "resource://gre/modules/UpdateChannel.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "UpdateUtils",
+                                  "resource://gre/modules/UpdateUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "AddonManager",
                                   "resource://gre/modules/AddonManager.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "AddonManagerPrivate",
                                   "resource://gre/modules/AddonManager.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "TelemetryPing",
-                                  "resource://gre/modules/TelemetryPing.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "TelemetryEnvironment",
+                                  "resource://gre/modules/TelemetryEnvironment.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "TelemetryLog",
                                   "resource://gre/modules/TelemetryLog.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "CommonUtils",
@@ -55,8 +55,6 @@ const PREF_LOGGING_LEVEL        = PREF_LOGGING + ".level"; // experiments.loggin
 const PREF_LOGGING_DUMP         = PREF_LOGGING + ".dump"; // experiments.logging.dump
 const PREF_MANIFEST_URI         = "manifest.uri"; // experiments.logging.manifest.uri
 const PREF_FORCE_SAMPLE         = "force-sample-value"; // experiments.force-sample-value
-
-const PREF_HEALTHREPORT_ENABLED = "datareporting.healthreport.service.enabled";
 
 const PREF_BRANCH_TELEMETRY     = "toolkit.telemetry.";
 const PREF_TELEMETRY_ENABLED    = "enabled";
@@ -96,28 +94,29 @@ const TELEMETRY_LOG = {
     RECHECK: "RECHECK",
   },
 };
+XPCOMUtils.defineConstant(this, "TELEMETRY_LOG", TELEMETRY_LOG);
 
 const gPrefs = new Preferences(PREF_BRANCH);
 const gPrefsTelemetry = new Preferences(PREF_BRANCH_TELEMETRY);
-let gExperimentsEnabled = false;
-let gAddonProvider = null;
-let gExperiments = null;
-let gLogAppenderDump = null;
-let gPolicyCounter = 0;
-let gExperimentsCounter = 0;
-let gExperimentEntryCounter = 0;
-let gPreviousProviderCounter = 0;
+var gExperimentsEnabled = false;
+var gAddonProvider = null;
+var gExperiments = null;
+var gLogAppenderDump = null;
+var gPolicyCounter = 0;
+var gExperimentsCounter = 0;
+var gExperimentEntryCounter = 0;
+var gPreviousProviderCounter = 0;
 
 // Tracks active AddonInstall we know about so we can deny external
 // installs.
-let gActiveInstallURLs = new Set();
+var gActiveInstallURLs = new Set();
 
 // Tracks add-on IDs that are being uninstalled by us. This allows us
 // to differentiate between expected uninstalled and user-driven uninstalls.
-let gActiveUninstallAddonIDs = new Set();
+var gActiveUninstallAddonIDs = new Set();
 
-let gLogger;
-let gLogDumping = false;
+var gLogger;
+var gLogDumping = false;
 
 function configureLogging() {
   if (!gLogger) {
@@ -137,28 +136,6 @@ function configureLogging() {
     }
     gLogDumping = logDumping;
   }
-}
-
-// Takes an array of promises and returns a promise that is resolved once all of
-// them are rejected or resolved.
-function allResolvedOrRejected(promises) {
-  if (!promises.length) {
-    return Promise.resolve([]);
-  }
-
-  let countdown = promises.length;
-  let deferred = Promise.defer();
-
-  for (let p of promises) {
-    let helper = () => {
-      if (--countdown == 0) {
-        deferred.resolve();
-      }
-    };
-    Promise.resolve(p).then(helper, helper);
-  }
-
-  return deferred.promise;
 }
 
 // Loads a JSON file using OS.file. file is a string representing the path
@@ -241,7 +218,7 @@ function uninstallAddons(addons) {
  * The experiments module.
  */
 
-let Experiments = {
+var Experiments = {
   /**
    * Provides access to the global `Experiments.Experiments` instance.
    */
@@ -299,31 +276,12 @@ Experiments.Policy.prototype = {
   },
 
   updatechannel: function () {
-    return UpdateChannel.get();
+    return UpdateUtils.UpdateChannel;
   },
 
   locale: function () {
     let chrome = Cc["@mozilla.org/chrome/chrome-registry;1"].getService(Ci.nsIXULChromeRegistry);
     return chrome.getSelectedLocale("global");
-  },
-
-  /*
-   * @return Promise<> Resolved with the payload data.
-   */
-  healthReportPayload: function () {
-    return Task.spawn(function*() {
-      let reporter = Cc["@mozilla.org/datareporting/service;1"]
-            .getService(Ci.nsISupports)
-            .wrappedJSObject
-            .healthReporter;
-      yield reporter.onInit();
-      let payload = yield reporter.collectAndObtainJSONPayload();
-      return payload;
-    });
-  },
-
-  telemetryPayload: function () {
-    return TelemetryPing.getPayload();
   },
 
   /**
@@ -418,6 +376,14 @@ Experiments.Experiments = function (policy=new Experiments.Policy()) {
 
 Experiments.Experiments.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsITimerCallback, Ci.nsIObserver]),
+
+  /**
+   * `true` if the experiments manager is currently setup (has been fully initialized
+   * and not uninitialized yet).
+   */
+  get isReady() {
+    return !this._shutdown;
+  },
 
   init: function () {
     this._shutdown = false;
@@ -1325,6 +1291,7 @@ Experiments.Experiments.prototype = {
     if ("@mozilla.org/toolkit/crash-reporter;1" in Cc && activeExperiment) {
       try {
         gCrashReporter.annotateCrashReport("ActiveExperiment", activeExperiment.id);
+        gCrashReporter.annotateCrashReport("ActiveExperimentBranch", activeExperiment.branch);
       } catch (e) {
         // It's ok if crash reporting is disabled.
       }
@@ -1719,50 +1686,47 @@ Experiments.ExperimentEntry.prototype = {
    * Run the jsfilter function from the manifest in a sandbox and return the
    * result (forced to boolean).
    */
-  _runFilterFunction: function (jsfilter) {
+  _runFilterFunction: Task.async(function* (jsfilter) {
     this._log.trace("runFilterFunction() - filter: " + jsfilter);
 
-    return Task.spawn(function ExperimentEntry_runFilterFunction_task() {
-      const nullprincipal = Cc["@mozilla.org/nullprincipal;1"].createInstance(Ci.nsIPrincipal);
-      let options = {
-        sandboxName: "telemetry experiments jsfilter sandbox",
-        wantComponents: false,
-      };
+    const nullprincipal = Cc["@mozilla.org/nullprincipal;1"].createInstance(Ci.nsIPrincipal);
+    let options = {
+      sandboxName: "telemetry experiments jsfilter sandbox",
+      wantComponents: false,
+    };
 
-      let sandbox = Cu.Sandbox(nullprincipal, options);
-      try {
-        Cu.evalInSandbox(jsfilter, sandbox);
-      } catch (e) {
-        this._log.error("runFilterFunction() - failed to eval jsfilter: " + e.message);
-        throw ["jsfilter-evalfailed"];
-      }
+    let sandbox = Cu.Sandbox(nullprincipal, options);
+    try {
+      Cu.evalInSandbox(jsfilter, sandbox);
+    } catch (e) {
+      this._log.error("runFilterFunction() - failed to eval jsfilter: " + e.message);
+      throw ["jsfilter-evalfailed"];
+    }
 
-      // You can't insert arbitrarily complex objects into a sandbox, so
-      // we serialize everything through JSON.
-      sandbox._hr = yield this._policy.healthReportPayload();
-      Object.defineProperty(sandbox, "_t",
-        { get: () => JSON.stringify(this._policy.telemetryPayload()) });
+    let currentEnvironment = yield TelemetryEnvironment.onInitialized();
 
-      let result = false;
-      try {
-        result = !!Cu.evalInSandbox("filter({healthReportPayload: JSON.parse(_hr), telemetryPayload: JSON.parse(_t)})", sandbox);
-      }
-      catch (e) {
-        this._log.debug("runFilterFunction() - filter function failed: "
+    Object.defineProperty(sandbox, "_e",
+      { get: () => Cu.cloneInto(currentEnvironment, sandbox) });
+
+    let result = false;
+    try {
+      result = !!Cu.evalInSandbox("filter({get telemetryEnvironment() { return _e; } })", sandbox);
+    }
+    catch (e) {
+      this._log.debug("runFilterFunction() - filter function failed: "
                       + e.message + ", " + e.stack);
-        throw ["jsfilter-threw", e.message];
-      }
-      finally {
-        Cu.nukeSandbox(sandbox);
-      }
+      throw ["jsfilter-threw", e.message];
+    }
+    finally {
+      Cu.nukeSandbox(sandbox);
+    }
 
-      if (!result) {
-        throw ["jsfilter-false"];
-      }
+    if (!result) {
+      throw ["jsfilter-false"];
+    }
 
-      throw new Task.Result(true);
-    }.bind(this));
-  },
+    return true;
+  }),
 
   /*
    * Start running the experiment.
@@ -2123,7 +2087,7 @@ Experiments.ExperimentEntry.prototype = {
  *
  * This will return a cloned Date object. The original is unchanged.
  */
-let stripDateToMidnight = function (d) {
+var stripDateToMidnight = function (d) {
   let m = new Date(d);
   m.setUTCHours(0, 0, 0, 0);
 
@@ -2260,6 +2224,8 @@ this.Experiments.PreviousExperimentProvider = function (experiments) {
 }
 
 this.Experiments.PreviousExperimentProvider.prototype = Object.freeze({
+  name: "PreviousExperimentProvider",
+
   startup: function () {
     this._log.trace("startup()");
     Services.obs.addObserver(this, EXPERIMENTS_CHANGED_TOPIC, false);

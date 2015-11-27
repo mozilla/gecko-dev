@@ -47,6 +47,9 @@ public class DateTimePicker extends FrameLayout {
     private static final int DEFAULT_END_YEAR = 9999;
     // Minimal screen width (in inches) for which we can show the calendar;
     private static final int SCREEN_SIZE_THRESHOLD = 5;
+    private static final char DATE_FORMAT_DAY = 'd';
+    private static final char DATE_FORMAT_MONTH = 'M';
+    private static final char DATE_FORMAT_YEAR = 'y';
 
     boolean mYearEnabled = true;
     boolean mMonthEnabled = true;
@@ -58,9 +61,9 @@ public class DateTimePicker extends FrameLayout {
     private boolean mCalendarEnabled;
 
     // Size of the screen in inches;
-    private int mScreenWidth;
-    private int mScreenHeight;
-    private OnValueChangeListener mOnChangeListener;
+    private final int mScreenWidth;
+    private final int mScreenHeight;
+    private final OnValueChangeListener mOnChangeListener;
     private final LinearLayout mPickers;
     private final LinearLayout mDateSpinners;
     private final LinearLayout mTimeSpinners;
@@ -89,7 +92,7 @@ public class DateTimePicker extends FrameLayout {
     Calendar mCurrentDate;
     private Calendar mMinDate;
     private Calendar mMaxDate;
-    private PickersState mState;
+    private final PickersState mState;
 
     public static enum PickersState { DATE, MONTH, WEEK, TIME, DATETIME };
 
@@ -233,18 +236,17 @@ public class DateTimePicker extends FrameLayout {
     }
 
     public DateTimePicker(Context context) {
-        this(context, "", "", PickersState.DATE);
+        this(context, "", "", PickersState.DATE, null, null);
     }
 
-    public DateTimePicker(Context context, String dateFormat, String dateTimeValue, PickersState state) {
+    public DateTimePicker(Context context, String dateFormat, String dateTimeValue, PickersState state, String minDateValue, String maxDateValue) {
         super(context);
         if (Versions.preHC) {
             throw new UnsupportedOperationException("Custom DateTimePicker is only available for SDK > 10");
         }
 
         setCurrentLocale(Locale.getDefault());
-        mMinDate.set(DEFAULT_START_YEAR, Calendar.JANUARY, 1);
-        mMaxDate.set(DEFAULT_END_YEAR, Calendar.DECEMBER, 31);
+
         mState = state;
         LayoutInflater inflater = LayoutInflater.from(context);
         inflater.inflate(R.layout.datetime_picker, this, true);
@@ -287,6 +289,7 @@ public class DateTimePicker extends FrameLayout {
             mCalendar.setFocusableInTouchMode(true);
             mCalendar.setMaxDate(mMaxDate.getTimeInMillis());
             mCalendar.setMinDate(mMinDate.getTimeInMillis());
+            mCalendar.setDate(mTempDate.getTimeInMillis(), false, false);
 
             mCalendar.setOnDateChangeListener(new CalendarView.OnDateChangeListener() {
                 @Override
@@ -320,6 +323,29 @@ public class DateTimePicker extends FrameLayout {
             Log.e(LOGTAG, "Error parsing format string: " + ex);
             mTempDate.setTimeInMillis(System.currentTimeMillis());
         }
+
+	// Set the min / max attribute.
+	try {
+	    if (minDateValue != null && !minDateValue.equals("")) {
+		mMinDate.setTime(new SimpleDateFormat(dateFormat).parse(minDateValue));
+	    } else {
+		mMinDate.set(DEFAULT_START_YEAR, Calendar.JANUARY, 1);
+	    }
+	} catch (Exception ex) {
+	    Log.e(LOGTAG, "Error parsing format sting: " + ex);
+	    mMinDate.set(DEFAULT_START_YEAR, Calendar.JANUARY, 1);
+	}
+
+	try {
+	    if (maxDateValue != null && !maxDateValue.equals("")) {
+		mMaxDate.setTime(new SimpleDateFormat(dateFormat).parse(maxDateValue));
+	    } else {
+		mMaxDate.set(DEFAULT_END_YEAR, Calendar.DECEMBER, 31);
+	    }
+	} catch (Exception ex) {
+	    Log.e(LOGTAG, "Error parsing format string: " + ex);
+	    mMaxDate.set(DEFAULT_END_YEAR, Calendar.DECEMBER, 31);
+	}
 
         // Initialize all spinners.
         mDaySpinner = setupSpinner(R.id.day, 1,
@@ -392,21 +418,23 @@ public class DateTimePicker extends FrameLayout {
         mDateSpinners.removeAllViews();
         char[] order = DateFormat.getDateFormatOrder(getContext());
         final int spinnerCount = order.length;
+
         for (int i = 0; i < spinnerCount; i++) {
             switch (order[i]) {
-                case DateFormat.DATE:
+                case DATE_FORMAT_DAY:
                     mDateSpinners.addView(mDaySpinner);
                     break;
-                case DateFormat.MONTH:
+                case DATE_FORMAT_MONTH:
                     mDateSpinners.addView(mMonthSpinner);
                     break;
-                case DateFormat.YEAR:
+                case DATE_FORMAT_YEAR:
                     mDateSpinners.addView(mYearSpinner);
                     break;
                 default:
                     throw new IllegalArgumentException();
             }
         }
+
         mDateSpinners.addView(mWeekSpinner);
     }
 

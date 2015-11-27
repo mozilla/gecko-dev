@@ -8,10 +8,13 @@
 #include "nsBaseChannel.h"
 #include "nsJARChannel.h"
 #include "nsNetCID.h"
+#include "nsNetUtil.h"
+#include "nsIStandardURL.h"
 #include "nsIAppsService.h"
 #include "nsILoadInfo.h"
 #include "nsXULAppAPI.h"
 #include "nsPrincipal.h"
+#include "nsContentSecurityManager.h"
 
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/Preferences.h"
@@ -34,7 +37,7 @@ public:
 
   DummyChannel();
 
-  NS_IMETHODIMP Run();
+  NS_IMETHODIMP Run() override;
 
 private:
   ~DummyChannel() {}
@@ -97,8 +100,21 @@ NS_IMETHODIMP DummyChannel::Open(nsIInputStream**)
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
+NS_IMETHODIMP
+DummyChannel::Open2(nsIInputStream** aStream)
+{
+  nsCOMPtr<nsIStreamListener> listener;
+  nsresult rv = nsContentSecurityManager::doContentSecurityCheck(this, listener);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return Open(aStream);
+}
+
 NS_IMETHODIMP DummyChannel::AsyncOpen(nsIStreamListener* aListener, nsISupports* aContext)
 {
+  MOZ_ASSERT(!mLoadInfo || mLoadInfo->GetSecurityMode() == 0 ||
+             mLoadInfo->GetInitialSecurityCheckDone(),
+             "security flags in loadInfo but asyncOpen2() not called");
+
   mListener = aListener;
   mListenerContext = aContext;
   mPending = true;
@@ -112,6 +128,15 @@ NS_IMETHODIMP DummyChannel::AsyncOpen(nsIStreamListener* aListener, nsISupports*
   }
 
   return NS_OK;
+}
+
+NS_IMETHODIMP
+DummyChannel::AsyncOpen2(nsIStreamListener* aListener)
+{
+  nsCOMPtr<nsIStreamListener> listener = aListener;
+  nsresult rv = nsContentSecurityManager::doContentSecurityCheck(this, listener);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return AsyncOpen(listener, nullptr);
 }
 
 // nsIJarChannel, needed for XHR to turn NS_ERROR_FILE_NOT_FOUND into
@@ -137,18 +162,11 @@ NS_IMETHODIMP DummyChannel::GetZipEntry(nsIZipEntry* *aEntry)
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-NS_IMETHODIMP DummyChannel::EnsureChildFd()
-{
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
 NS_IMETHODIMP DummyChannel::Run()
 {
   nsresult rv = mListener->OnStartRequest(this, mListenerContext);
-  NS_ENSURE_SUCCESS(rv, rv);
   mPending = false;
   rv = mListener->OnStopRequest(this, mListenerContext, NS_ERROR_FILE_NOT_FOUND);
-  NS_ENSURE_SUCCESS(rv, rv);
   if (mLoadGroup) {
     mLoadGroup->RemoveRequest(this, mListenerContext, NS_ERROR_FILE_NOT_FOUND);
   }
@@ -375,13 +393,13 @@ AppProtocolHandler::NewURI(const nsACString &aSpec,
   return NS_OK;
 }
 
-// We map app://ABCDEF/path/to/file.ext to
-// jar:file:///path/to/profile/webapps/ABCDEF/application.zip!/path/to/file.ext
 NS_IMETHODIMP
-AppProtocolHandler::NewChannel(nsIURI* aUri, nsIChannel* *aResult)
+AppProtocolHandler::NewChannel2(nsIURI* aUri,
+                                nsILoadInfo* aLoadInfo,
+                                nsIChannel** aResult)
 {
   NS_ENSURE_ARG_POINTER(aUri);
-  nsRefPtr<nsJARChannel> channel = new nsJARChannel();
+  RefPtr<nsJARChannel> channel = new nsJARChannel();
 
   nsAutoCString host;
   nsresult rv = aUri->GetHost(host);
@@ -389,7 +407,7 @@ AppProtocolHandler::NewChannel(nsIURI* aUri, nsIChannel* *aResult)
 
   if (Preferences::GetBool("dom.mozApps.themable")) {
     nsAutoCString origin;
-    nsPrincipal::GetOriginForURI(aUri, getter_Copies(origin));
+    nsPrincipal::GetOriginForURI(aUri, origin);
     nsAdoptingCString themeOrigin;
     themeOrigin = Preferences::GetCString("b2g.theme.origin");
     if (themeOrigin.Equals(origin)) {
@@ -423,7 +441,9 @@ AppProtocolHandler::NewChannel(nsIURI* aUri, nsIChannel* *aResult)
     if (NS_FAILED(rv) || !jsInfo.isObject()) {
       // Return a DummyChannel.
       printf_stderr("!! Creating a dummy channel for %s (no appInfo)\n", host.get());
-      NS_IF_ADDREF(*aResult = new DummyChannel());
+      RefPtr<nsIChannel> dummyChannel = new DummyChannel();
+      dummyChannel->SetLoadInfo(aLoadInfo);
+      dummyChannel.forget(aResult);
       return NS_OK;
     }
 
@@ -432,18 +452,19 @@ AppProtocolHandler::NewChannel(nsIURI* aUri, nsIChannel* *aResult)
     if (!appInfo->Init(cx, jsInfo) || appInfo->mPath.IsEmpty()) {
       // Return a DummyChannel.
       printf_stderr("!! Creating a dummy channel for %s (invalid appInfo)\n", host.get());
-      NS_IF_ADDREF(*aResult = new DummyChannel());
+      RefPtr<nsIChannel> dummyChannel = new DummyChannel();
+      dummyChannel->SetLoadInfo(aLoadInfo);
+      dummyChannel.forget(aResult);
       return NS_OK;
     }
     mAppInfoCache.Put(host, appInfo);
   }
 
-  bool noRemote = (appInfo->mIsCoreApp ||
-                   XRE_GetProcessType() == GeckoProcessType_Default);
-
-  // In-parent and CoreApps can directly access files, so use jar:file://
-  nsAutoCString jarSpec(noRemote ? "jar:file://"
-                                 : "jar:remoteopenfile://");
+  // Even core apps are on /system partition and can be accessed directly, but
+  // to ease sandboxing code not to handle the special case of core apps, only
+  // use scheme jar:file in parent, see bug 1119692 comment 20.
+  nsAutoCString jarSpec(XRE_IsParentProcess() ? "jar:file://"
+                                              : "jar:remoteopenfile://");
   jarSpec += NS_ConvertUTF16toUTF8(appInfo->mPath) +
              NS_LITERAL_CSTRING("/application.zip!") +
              fileSpec;
@@ -456,6 +477,10 @@ AppProtocolHandler::NewChannel(nsIURI* aUri, nsIChannel* *aResult)
   rv = channel->Init(jarURI);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  // set the loadInfo on the new channel
+  rv = channel->SetLoadInfo(aLoadInfo);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   rv = channel->SetAppURI(aUri);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -464,6 +489,14 @@ AppProtocolHandler::NewChannel(nsIURI* aUri, nsIChannel* *aResult)
 
   channel.forget(aResult);
   return NS_OK;
+}
+
+// We map app://ABCDEF/path/to/file.ext to
+// jar:file:///path/to/profile/webapps/ABCDEF/application.zip!/path/to/file.ext
+NS_IMETHODIMP
+AppProtocolHandler::NewChannel(nsIURI* aUri, nsIChannel* *aResult)
+{
+  return NewChannel2(aUri, nullptr, aResult);
 }
 
 NS_IMETHODIMP

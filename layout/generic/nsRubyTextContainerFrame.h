@@ -10,9 +10,8 @@
 #define nsRubyTextContainerFrame_h___
 
 #include "nsBlockFrame.h"
-#include "nsRubyBaseFrame.h"
-#include "nsRubyTextFrame.h"
-#include "nsLineLayout.h"
+
+typedef nsContainerFrame nsRubyTextContainerFrameSuper;
 
 /**
  * Factory function.
@@ -21,10 +20,7 @@
 nsContainerFrame* NS_NewRubyTextContainerFrame(nsIPresShell* aPresShell,
                                                nsStyleContext* aContext);
 
-// If this is ever changed to be inline again, the code in
-// nsFrame::IsFontSizeInflationContainer should be updated to stop excluding
-// this from being considered inline.
-class nsRubyTextContainerFrame MOZ_FINAL : public nsBlockFrame
+class nsRubyTextContainerFrame final : public nsRubyTextContainerFrameSuper
 {
 public:
   NS_DECL_FRAMEARENA_HELPERS
@@ -32,36 +28,48 @@ public:
   NS_DECL_QUERYFRAME
 
   // nsIFrame overrides
-  virtual nsIAtom* GetType() const MOZ_OVERRIDE;
+  virtual nsIAtom* GetType() const override;
+  virtual bool IsFrameOfType(uint32_t aFlags) const override;
   virtual void Reflow(nsPresContext* aPresContext,
                       nsHTMLReflowMetrics& aDesiredSize,
                       const nsHTMLReflowState& aReflowState,
-                      nsReflowStatus& aStatus) MOZ_OVERRIDE;
+                      nsReflowStatus& aStatus) override;
 
 #ifdef DEBUG_FRAME_DUMP
-  virtual nsresult GetFrameName(nsAString& aResult) const MOZ_OVERRIDE;
+  virtual nsresult GetFrameName(nsAString& aResult) const override;
 #endif
 
-  void ReflowRubyTextFrame(nsRubyTextFrame* rtFrame, nsIFrame* rbFrame,
-                           nscoord baseStart, nsPresContext* aPresContext,
-                           nsHTMLReflowMetrics& aDesiredSize,
-                           const nsHTMLReflowState& aReflowState);
-  void BeginRTCLineLayout(nsPresContext* aPresContext,
-                          const nsHTMLReflowState& aReflowState);
-  nsLineLayout* GetLineLayout() { return mLineLayout.get(); };
+  // nsContainerFrame overrides
+  virtual void SetInitialChildList(ChildListID aListID,
+                                   nsFrameList& aChildList) override;
+  virtual void AppendFrames(ChildListID aListID,
+                            nsFrameList& aFrameList) override;
+  virtual void InsertFrames(ChildListID aListID, nsIFrame* aPrevFrame,
+                            nsFrameList& aFrameList) override;
+  virtual void RemoveFrame(ChildListID aListID,
+                           nsIFrame* aOldFrame) override;
+
+  bool IsSpanContainer() const
+  {
+    return GetStateBits() & NS_RUBY_TEXT_CONTAINER_IS_SPAN;
+  }
 
 protected:
   friend nsContainerFrame*
     NS_NewRubyTextContainerFrame(nsIPresShell* aPresShell,
                                  nsStyleContext* aContext);
-  explicit nsRubyTextContainerFrame(nsStyleContext* aContext) : nsBlockFrame(aContext) {}
-  // This pointer is active only during reflow of the ruby structure. It gets
-  // created when the corresponding ruby base container is reflowed, and it is
-  // destroyed when the ruby text container itself is reflowed.
-  mozilla::UniquePtr<nsLineLayout> mLineLayout;
-  // The intended dimensions of the ruby text container. These are modified
-  // whenever a ruby text box is reflowed and used when the ruby text container
-  // is reflowed.
+  explicit nsRubyTextContainerFrame(nsStyleContext* aContext)
+    : nsRubyTextContainerFrameSuper(aContext)
+    , mISize(0) {}
+
+  void UpdateSpanFlag();
+
+  friend class nsRubyBaseContainerFrame;
+  void SetISize(nscoord aISize) { mISize = aISize; }
+
+  // The intended inline size of the ruby text container. It is set by
+  // the corresponding ruby base container when the segment is reflowed,
+  // and used when the ruby text container is reflowed by its parent.
   nscoord mISize;
 };
 

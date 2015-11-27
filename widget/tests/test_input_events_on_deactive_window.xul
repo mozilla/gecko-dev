@@ -139,10 +139,7 @@ function startTests()
 
     clear();
     synthesizeKey("a", { type: "keydown" });
-    checkKeyEvents(true, false, false, false, "a keydown");
-    clear();
-    synthesizeKey("a", { type: "keypress" });
-    checkKeyEvents(false, true, false, true, "a keypress");
+    checkKeyEvents(true, true, false, true, "a keydown and a keypress");
     is(textarea.value, "a", "textarea value isn't 'a'");
     clear();
     synthesizeKey("a", { type: "keyup" });
@@ -154,23 +151,18 @@ function startTests()
 
     // IME events
     clear();
-    // start composition
-    synthesizeComposition({ type: "compositionstart" });
-    checkCompositionEvents(true, false, false, false, "compositionstart");
-    clear();
     // input first character
-    synthesizeComposition({ type: "compositionupdate", data: "\u3089" });
-    synthesizeText(
+    synthesizeCompositionChange(
       { "composition":
         { "string": "\u3089",
           "clauses":
           [
-            { "length": 1, "attr": COMPOSITION_ATTR_RAWINPUT }
+            { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE }
           ]
         },
         "caret": { "start": 1, "length": 0 }
       });
-    checkCompositionEvents(false, false, true, true, "composing");
+    checkCompositionEvents(true, false, true, true, "starting to compose");
     var queryText = synthesizeQueryTextContent(0, 100);
     ok(queryText, "query text event result is null");
     if (!queryText) {
@@ -196,17 +188,8 @@ function startTests()
        "query selected text event returns wrong selected text");
     clear();
     // commit composition
-    synthesizeText(
-      { "composition":
-        { "string": "\u3089",
-          "clauses":
-          [
-            { "length": 0, "attr": 0 }
-          ]
-        },
-        "caret": { "start": 1, "length": 0 }
-      });
-    checkCompositionEvents(false, false, false, false, "commit composition");
+    synthesizeComposition({ type: "compositioncommitasis" });
+    checkCompositionEvents(false, true, false, true, "commit composition as is");
     queryText = synthesizeQueryTextContent(0, 100);
     ok(queryText, "query text event result is null after commit");
     if (!queryText) {
@@ -233,9 +216,6 @@ function startTests()
     is(querySelectedText.text, "",
        "query selected text event returns wrong selected text after commit");
     clear();
-    // end composition
-    synthesizeComposition({ type: "compositionend", data: "\u3089" });
-    checkCompositionEvents(false, true, false, true, "compositionend");
   }
 
   textarea.removeEventListener("keydown", onEvent, false);

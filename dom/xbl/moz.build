@@ -36,17 +36,11 @@ UNIFIED_SOURCES += [
     'XBLChildrenElement.cpp',
 ]
 
-FAIL_ON_WARNINGS = True
-
-MSVC_ENABLE_PGO = True
-
 LOCAL_INCLUDES += [
-    '/content/base/src',
-    '/content/html/document/src',
-    '/content/xul/content/src',
-    '/content/xul/document/src',
     '/dom/base',
+    '/dom/html',
     '/dom/xml',
+    '/dom/xul',
     '/layout/style',
 ]
 

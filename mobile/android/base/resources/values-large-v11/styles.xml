@@ -5,34 +5,14 @@
 
 <resources>
 
-    <style name="UrlBar.ImageButton.Forward">
-        <item name="android:contentDescription">@string/forward</item>
-        <item name="android:layout_width">45dip</item>
-        <item name="android:layout_height">37dip</item>
-        <item name="android:paddingLeft">10dp</item>
-        <item name="android:paddingTop">7dp</item>
-        <item name="android:paddingBottom">7dp</item>
-        <item name="android:layout_gravity">center_vertical</item>
-        <item name="android:layout_centerVertical">true</item>
-        <item name="android:src">@drawable/ic_menu_forward</item>
-        <item name="android:background">@drawable/url_bar_nav_button</item>
-        <!-- Start with the button hidden -->
-        <item name="android:alpha">0</item>
-        <item name="android:layout_marginLeft">@dimen/forward_default_offset</item>
+    <style name="UrlBar.ImageButton" parent="UrlBar.ImageButtonBase">
+        <item name="android:layout_width">@dimen/tablet_browser_toolbar_menu_item_width</item>
     </style>
 
-    <style name="UrlBar.ImageButton.Forward.NewTablet">
-        <item name="android:layout_marginLeft">@dimen/new_tablet_forward_default_offset</item>
-        <item name="android:layout_height">match_parent</item>
-        <item name="android:paddingTop">0dp</item>
-        <item name="android:paddingBottom">0dp</item>
-        <item name="android:layout_marginTop">11.5dp</item>
-        <item name="android:layout_marginBottom">11.5dp</item>
-        <item name="android:src">@drawable/new_tablet_ic_menu_forward</item>
-    </style>
-
-    <style name="UrlBar.ImageButton.TabCount.NewTablet">
-        <item name="android:background">@drawable/new_tablet_tabs_count</item>
+    <!-- If this style wasn't actually shared outside the
+         url bar, this name could be improved (bug 1197424). -->
+    <style name="UrlBar.ImageButton.BrowserToolbarColors">
+        <item name="drawableTintList">@color/action_bar_menu_item_colors</item>
     </style>
 
     <style name="UrlBar.Button.Container">
@@ -42,9 +22,8 @@
         <item name="android:orientation">horizontal</item>
     </style>
 
-    <style name="TabsList" parent="TabsListBase">
-         <item name="android:orientation">horizontal</item>
-         <item name="android:scrollbars">horizontal</item>
+    <style name="TabsLayout" parent="TabsLayoutBase">
+         <item name="android:scrollbars">vertical</item>
     </style>
 
     <style name="TabsItem">
@@ -63,11 +42,19 @@
     </style>
 
     <style name="Widget.MenuItemActionBar">
-        <item name="android:layout_width">@dimen/browser_toolbar_height</item>
-        <item name="android:layout_height">@dimen/browser_toolbar_height</item>
-        <item name="android:padding">@dimen/browser_toolbar_button_padding</item>
-        <item name="android:background">@drawable/action_bar_button</item>
-        <item name="android:scaleType">fitCenter</item>
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:background">@drawable/browser_toolbar_action_bar_button</item>
+        <item name="drawableTintList">@color/action_bar_menu_item_colors</item>
+        <item name="android:scaleType">center</item>
+
+        <!-- layout_width/height doesn't work here, likely because it's only
+             added programmatically, so we use padding for the width instead.
+             layout_height is set to MATCH_PARENT programmatically in
+             org.mozilla.gecko.toolbar.BrowserToolbarTabletBase.addActionItem(View) -->
+
+        <item name="android:paddingLeft">@dimen/tablet_browser_toolbar_menu_item_padding_horizontal</item>
+        <item name="android:paddingRight">@dimen/tablet_browser_toolbar_menu_item_padding_horizontal</item>
     </style>
 
     <style name="Widget.BookmarksListView" parent="Widget.HomeListView">
@@ -86,50 +73,22 @@
         <item name="android:paddingTop">30dp</item>
         <item name="android:paddingLeft">32dp</item>
         <item name="android:paddingRight">32dp</item>
+        <item name="android:clipToPadding">false</item>
         <item name="topDivider">false</item>
     </style>
 
     <style name="Widget.ReadingListView" parent="Widget.BookmarksListView"/>
 
+    <style name="Widget.ReadingListRow.Description">
+        <item name="android:textAppearance">@style/TextAppearance.Widget.Home.ItemDescription</item>
+        <item name="android:maxLines">2</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:lineSpacingMultiplier">1.3</item>
+    </style>
+
     <style name="Widget.HomeBanner">
         <item name="android:paddingLeft">32dp</item>
         <item name="android:paddingRight">32dp</item>
-    </style>
-
-    <!-- Tabs panel -->
-    <style name="TabsPanelFrame.RemoteTabs" parent="TabsPanelFrameBase">
-        <item name="android:paddingLeft">112dp</item>
-        <item name="android:paddingRight">112dp</item>
-    </style>
-
-    <style name="TabsPanelFrame.PrivateTabs">
-        <item name="android:orientation">horizontal</item>
-        <item name="android:paddingTop">0dp</item>
-    </style>
-
-    <style name="TabsPanelSection.PrivateTabs">
-        <item name="android:layout_weight">1</item>
-        <item name="android:layout_marginLeft">20dp</item>
-        <item name="android:layout_marginRight">20dp</item>
-    </style>
-
-    <style name="TabsPanelSection.PrivateTabs.Header">
-        <item name="android:paddingTop">10dp</item>
-    </style>
-
-    <style name="TabsPanelItem.TextAppearance.Header.PrivateTabs">
-        <item name="android:visibility">gone</item>
-    </style>
-
-    <style name="TabsPanelItem.TextAppearance.Linkified.LearnMore">
-        <item name="android:layout_height">match_parent</item>
-        <item name="android:gravity">center</item>
-        <item name="android:layout_gravity">center</item>
-    </style>
-
-    <style name="OnboardStartLayout">
-        <item name="android:layout_height">wrap_content</item>
-        <item name="android:layout_width">400dp</item>
     </style>
 
     <style name="TextAppearance.UrlBar.Title" parent="TextAppearance.Medium">

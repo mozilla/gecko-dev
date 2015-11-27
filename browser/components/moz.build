@@ -9,24 +9,28 @@ DIRS += [
     'customizableui',
     'dirprovider',
     'downloads',
+    'extensions',
     'feeds',
     'loop',
+    'migration',
+    'newtab',
     'places',
+    'pocket',
     'preferences',
     'privatebrowsing',
     'search',
     'sessionstore',
     'shell',
     'selfsupport',
-    'sidebar',
     'tabview',
+    'uitour',
     'translation',
-    'migration',
 ]
 
 DIRS += ['build']
 
 XPIDL_SOURCES += [
+    'nsIAboutNewTabService.idl',
     'nsIBrowserGlue.idl',
     'nsIBrowserHandler.idl',
 ]
@@ -35,15 +39,16 @@ XPIDL_MODULE = 'browsercompsbase'
 
 EXTRA_PP_COMPONENTS += [
     'BrowserComponents.manifest',
-    'nsBrowserContentHandler.js',
     'nsBrowserGlue.js',
+]
+
+EXTRA_COMPONENTS += [
+    'nsBrowserContentHandler.js',
 ]
 
 EXTRA_JS_MODULES += [
     'distribution.js',
 ]
-
-DEFINES['E10S_TESTING_ONLY'] = CONFIG['E10S_TESTING_ONLY']
 
 BROWSER_CHROME_MANIFESTS += [
     'test/browser.ini'
@@ -51,3 +56,12 @@ BROWSER_CHROME_MANIFESTS += [
 
 if CONFIG['MOZ_SAFE_BROWSING']:
     BROWSER_CHROME_MANIFESTS += ['safebrowsing/content/test/browser.ini']
+
+with Files('safebrowsing/*'):
+    BUG_COMPONENT = ('Toolkit', 'Phishing Protection')
+
+with Files('controlcenter/**'):
+    BUG_COMPONENT = ('Firefox', 'General')
+
+if CONFIG['MOZ_REQUIRE_SIGNING']:
+    DEFINES['MOZ_REQUIRE_SIGNING'] = 1

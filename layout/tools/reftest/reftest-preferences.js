@@ -3,6 +3,7 @@
     // more interested in testing the behavior of XBL as it works in chrome,
     // so we want this pref to be false.
     branch.setBoolPref("dom.use_xbl_scopes_for_remote_xul", false);
+    branch.setIntPref("gfx.color_management.mode", 2);
     branch.setBoolPref("gfx.color_management.force_srgb", true);
     branch.setBoolPref("browser.dom.window.dump.enabled", true);
     branch.setIntPref("ui.caretBlinkTime", -1);
@@ -22,8 +23,12 @@
     branch.setBoolPref("extensions.blocklist.enabled", false);
     // Make url-classifier updates so rare that they won't affect tests
     branch.setIntPref("urlclassifier.updateinterval", 172800);
-    // Disable high-quality downscaling, since it makes reftests more difficult.
-    branch.setBoolPref("image.high_quality_downscaling.enabled", false);
+    // Disable downscale-during-decode, since it makes reftests more difficult.
+    branch.setBoolPref("image.downscale-during-decode.enabled", false);
+    // Disable the single-color optimization, since it can cause intermittent
+    // oranges and it causes many of our tests to test a different code path
+    // than the one that normal images on the web use.
+    branch.setBoolPref("image.single-color-optimization.enabled", false);
     // Checking whether two files are the same is slow on Windows.
     // Setting this pref makes tests run much faster there.
     branch.setBoolPref("security.fileuri.strict_origin_policy", false);
@@ -49,3 +54,16 @@
     // Disable the auto-hide feature of touch caret to avoid potential
     // intermittent issues.
     branch.setIntPref("touchcaret.expiration.time", 0);
+
+    // Tell the search service we are running in the US.  This also has the
+    // desired side-effect of preventing our geoip lookup.
+    branch.setBoolPref("browser.search.isUS", true);
+    branch.setCharPref("browser.search.countryCode", "US");
+    // Prevent the geoSpecificDefaults XHR by emptying the URL.
+    branch.setCharPref("browser.search.geoSpecificDefaults.url", "");
+
+    // Make sure SelfSupport doesn't hit the network.
+    branch.setCharPref("browser.selfsupport.url", "https://%(server)s/selfsupport-dummy/");
+
+    // Allow XUL and XBL files to be opened from file:// URIs
+    branch.setBoolPref("dom.allow_XUL_XBL_for_file", true);

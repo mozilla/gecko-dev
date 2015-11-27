@@ -4,12 +4,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-CppUnitTests([
+GeckoCppUnitTests([
   'test_tone'
 ])
 
 if CONFIG['OS_TARGET'] != 'Android':
-  CppUnitTests([
+  GeckoCppUnitTests([
     'test_audio',
     'test_latency',
     'test_sanity'
@@ -18,8 +18,6 @@ if CONFIG['OS_TARGET'] != 'Android':
 LOCAL_INCLUDES += [
     '../include'
 ]
-
-FAIL_ON_WARNINGS = True
 
 if CONFIG['OS_ARCH'] == 'WINNT':
     # On windows, the WASAPI backend needs the resampler we have in
@@ -44,17 +42,15 @@ else:
             'speex',
         ]
 
-USE_LIBS += [
-    'mozalloc',
-    'nspr',
-    'xpcomglue_s',
-    'xul',
-]
-
-if CONFIG['OS_TARGET'] == 'Darwin':
+if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
     OS_LIBS += [
         '-framework AudioUnit',
         '-framework CoreAudio',
+    ]
+elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'uikit':
+    OS_LIBS += [
+      '-framework CoreFoundation',
+      '-framework AudioToolbox',
     ]
 elif CONFIG['OS_TARGET'] == 'OpenBSD':
     OS_LIBS += [

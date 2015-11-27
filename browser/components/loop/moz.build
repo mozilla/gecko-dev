@@ -13,11 +13,15 @@ BROWSER_CHROME_MANIFESTS += [
 ]
 
 EXTRA_JS_MODULES.loop += [
-    'CardDavImporter.jsm',
-    'LoopContacts.jsm',
-    'LoopStorage.jsm',
-    'MozLoopAPI.jsm',
-    'MozLoopPushHandler.jsm',
-    'MozLoopService.jsm',
-    'MozLoopWorker.js',
+    'content/shared/js/crypto.js',
+    'content/shared/js/utils.js',
+    'modules/LoopRooms.jsm',
+    'modules/LoopRoomsCache.jsm',
+    'modules/MozLoopAPI.jsm',
+    'modules/MozLoopPushHandler.jsm',
+    'modules/MozLoopService.jsm',
+    'modules/MozLoopWorker.js',
 ]
+
+with Files('**'):
+    BUG_COMPONENT = ('Loop', 'Client')

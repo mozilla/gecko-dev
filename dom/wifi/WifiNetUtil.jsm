@@ -30,24 +30,13 @@ this.WifiNetUtil = function(controlMessage) {
 
   var util = {};
 
-  util.configureInterface = function(cfg, callback) {
-    let message = { cmd:     "ifc_configure",
-                    ifname:  cfg.ifname,
-                    ipaddr:  cfg.ipaddr,
-                    mask:    cfg.mask,
-                    gateway: cfg.gateway,
-                    dns1:    cfg.dns1,
-                    dns2:    cfg.dns2 };
-
-    controlMessage(message, function(data) {
-      callback(!data.status);
-    });
-  };
-
-  util.runDhcp = function (ifname, callback) {
-    controlMessage({ cmd: "dhcp_do_request", ifname: ifname }, function(data) {
-      var dhcpInfo = data.status ? null : data;
-      util.runIpConfig(ifname, dhcpInfo, callback);
+  util.runDhcp = function (ifname, gen, callback) {
+    util.stopDhcp(ifname, function() {
+      gNetworkService.dhcpRequest(ifname, function(success, dhcpInfo) {
+        util.runIpConfig(ifname, dhcpInfo, function(data) {
+          callback(data, gen);
+        });
+      });
     });
   };
 
@@ -59,18 +48,15 @@ this.WifiNetUtil = function(controlMessage) {
     let dhcpService = DHCP_PROP + "_" + ifname;
     let suffix = (ifname.substr(0, 3) === "p2p") ? "p2p" : ifname;
     let processName = DHCP + "_" + suffix;
-    stopProcess(dhcpService, processName, callback);
-  };
 
-  util.enableInterface = function (ifname, callback) {
-    controlMessage({ cmd: "ifc_enable", ifname: ifname }, function (data) {
-      callback(!data.status);
-    });
-  };
-
-  util.disableInterface = function (ifname, callback) {
-    controlMessage({ cmd: "ifc_disable", ifname: ifname }, function (data) {
-      callback(!data.status);
+    // The implementation of |dhcp_do_request| would wait until the
+    // |result_prop_name| (e.g. dhcp.wlan0.result) to be non-null
+    // or 30 second timeout. So we manually change the result property
+    // to 'ko' to avoid timeout.
+    //
+    // http://androidxref.com/4.4.4_r1/xref/system/core/libnetutils/dhcp_utils.c#234
+    setProperty('dhcp.' + suffix + '.result', 'ko', function() {
+      stopProcess(dhcpService, processName, callback);
     });
   };
 
@@ -83,60 +69,6 @@ this.WifiNetUtil = function(controlMessage) {
   util.stopDhcpServer = function (callback) {
     gNetworkService.setDhcpServer(false, null, function (error) {
       callback(!error);
-    });
-  };
-
-  util.addHostRoute = function (ifname, route, callback) {
-    controlMessage({ cmd: "ifc_add_host_route", ifname: ifname, route: route }, function(data) {
-      callback(!data.status);
-    });
-  };
-
-  util.removeHostRoutes = function (ifname, callback) {
-    controlMessage({ cmd: "ifc_remove_host_routes", ifname: ifname }, function(data) {
-      callback(!data.status);
-    });
-  };
-
-  util.setDefaultRoute = function (ifname, route, callback) {
-    controlMessage({ cmd: "ifc_set_default_route", ifname: ifname, route: route }, function(data) {
-      callback(!data.status);
-    });
-  };
-
-  util.getDefaultRoute = function (ifname, callback) {
-    controlMessage({ cmd: "ifc_get_default_route", ifname: ifname }, function(data) {
-      callback(!data.route);
-    });
-  };
-
-  util.removeDefaultRoute = function (ifname, callback) {
-    controlMessage({ cmd: "ifc_remove_default_route", ifname: ifname }, function(data) {
-      callback(!data.status);
-    });
-  };
-
-  util.resetConnections = function (ifname, callback) {
-    controlMessage({ cmd: "ifc_reset_connections", ifname: ifname }, function(data) {
-      callback(!data.status);
-    });
-  };
-
-  util.releaseDhcpLease = function (ifname, callback) {
-    controlMessage({ cmd: "dhcp_release_lease", ifname: ifname }, function(data) {
-      callback(!data.status);
-    });
-  };
-
-  util.getDhcpError = function (callback) {
-    controlMessage({ cmd: "dhcp_get_errmsg" }, function(data) {
-      callback(data.error);
-    });
-  };
-
-  util.runDhcpRenew = function (ifname, callback) {
-    controlMessage({ cmd: "dhcp_do_request", ifname: ifname }, function(data) {
-      callback(data.status ? null : data);
     });
   };
 

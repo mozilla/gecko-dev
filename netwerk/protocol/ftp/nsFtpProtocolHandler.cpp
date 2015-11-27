@@ -25,17 +25,15 @@ using namespace mozilla::net;
 #include "nsFtpProtocolHandler.h"
 #include "nsFTPChannel.h"
 #include "nsIStandardURL.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
 #include "nsIObserverService.h"
 #include "nsEscape.h"
 #include "nsAlgorithm.h"
-#include "nsICacheSession.h"
 
 //-----------------------------------------------------------------------------
 
-#if defined(PR_LOGGING)
 //
 // Log module for FTP Protocol logging...
 //
@@ -44,13 +42,12 @@ using namespace mozilla::net;
 //    set NSPR_LOG_MODULES=nsFtp:5
 //    set NSPR_LOG_FILE=nspr.log
 //
-// this enables PR_LOG_DEBUG level information and places all output in
+// this enables LogLevel::Debug level information and places all output in
 // the file nspr.log
 //
-PRLogModuleInfo* gFTPLog = nullptr;
-#endif
+LazyLogModule gFTPLog("nsFtp");
 #undef LOG
-#define LOG(args) PR_LOG(gFTPLog, PR_LOG_DEBUG, args)
+#define LOG(args) MOZ_LOG(gFTPLog, mozilla::LogLevel::Debug, args)
 
 //-----------------------------------------------------------------------------
 
@@ -70,10 +67,6 @@ nsFtpProtocolHandler::nsFtpProtocolHandler()
     , mControlQoSBits(0x00)
     , mDataQoSBits(0x00)
 {
-#if defined(PR_LOGGING)
-    if (!gFTPLog)
-        gFTPLog = PR_NewLogModule("nsFtp");
-#endif
     LOG(("FTP:creating handler @%x\n", this));
 
     gFtpHandler = this;
@@ -203,19 +196,28 @@ nsFtpProtocolHandler::NewURI(const nsACString &aSpec,
 }
 
 NS_IMETHODIMP
-nsFtpProtocolHandler::NewChannel(nsIURI* url, nsIChannel* *result)
+nsFtpProtocolHandler::NewChannel2(nsIURI* url,
+                                  nsILoadInfo* aLoadInfo,
+                                  nsIChannel** result)
 {
-    return NewProxiedChannel(url, nullptr, 0, nullptr, result);
+    return NewProxiedChannel2(url, nullptr, 0, nullptr, aLoadInfo, result);
 }
 
 NS_IMETHODIMP
-nsFtpProtocolHandler::NewProxiedChannel(nsIURI* uri, nsIProxyInfo* proxyInfo,
-                                        uint32_t proxyResolveFlags,
-                                        nsIURI *proxyURI,
-                                        nsIChannel* *result)
+nsFtpProtocolHandler::NewChannel(nsIURI* url, nsIChannel* *result)
+{
+    return NewChannel2(url, nullptr, result);
+}
+
+NS_IMETHODIMP
+nsFtpProtocolHandler::NewProxiedChannel2(nsIURI* uri, nsIProxyInfo* proxyInfo,
+                                         uint32_t proxyResolveFlags,
+                                         nsIURI *proxyURI,
+                                         nsILoadInfo* aLoadInfo,
+                                         nsIChannel* *result)
 {
     NS_ENSURE_ARG_POINTER(uri);
-    nsRefPtr<nsBaseChannel> channel;
+    RefPtr<nsBaseChannel> channel;
     if (IsNeckoChild())
         channel = new FTPChannelChild(uri);
     else
@@ -225,9 +227,26 @@ nsFtpProtocolHandler::NewProxiedChannel(nsIURI* uri, nsIProxyInfo* proxyInfo,
     if (NS_FAILED(rv)) {
         return rv;
     }
-    
+
+    // set the loadInfo on the new channel
+    rv = channel->SetLoadInfo(aLoadInfo);
+    if (NS_FAILED(rv)) {
+        return rv;
+    }
+
     channel.forget(result);
     return rv;
+}
+
+NS_IMETHODIMP
+nsFtpProtocolHandler::NewProxiedChannel(nsIURI* uri, nsIProxyInfo* proxyInfo,
+                                        uint32_t proxyResolveFlags,
+                                        nsIURI *proxyURI,
+                                        nsIChannel* *result)
+{
+  return NewProxiedChannel2(uri, proxyInfo, proxyResolveFlags,
+                            proxyURI, nullptr /*loadinfo*/,
+                            result);
 }
 
 NS_IMETHODIMP 

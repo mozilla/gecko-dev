@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -11,6 +12,8 @@
 #include "nsIEffectiveTLDService.h"
 
 #include "nsNetUtil.h"
+#include "nsNetCID.h"
+#include "nsIURL.h"
 #include "nsPrintfCString.h"
 #include "nsXULAppAPI.h"
 #include "nsThreadUtils.h"
@@ -26,11 +29,11 @@
 namespace mozilla {
 namespace dom {
 
-namespace { // anon
+namespace {
 
 int32_t gQuotaLimit = DEFAULT_QUOTA_LIMIT;
 
-} // anon
+} // namespace
 
 DOMLocalStorageManager*
 DOMLocalStorageManager::sSelf = nullptr;
@@ -118,7 +121,7 @@ DOMStorageManager::~DOMStorageManager()
   }
 }
 
-namespace { // anon
+namespace {
 
 nsresult
 CreateScopeKey(nsIPrincipal* aPrincipal,
@@ -165,19 +168,9 @@ CreateScopeKey(nsIPrincipal* aPrincipal,
     key.Append(nsPrintfCString(":%d", port));
   }
 
-  bool unknownAppId;
-  rv = aPrincipal->GetUnknownAppId(&unknownAppId);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (!unknownAppId) {
-    uint32_t appId;
-    rv = aPrincipal->GetAppId(&appId);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    bool isInBrowserElement;
-    rv = aPrincipal->GetIsInBrowserElement(&isInBrowserElement);
-    NS_ENSURE_SUCCESS(rv, rv);
-
+  if (!aPrincipal->GetUnknownAppId()) {
+    uint32_t appId = aPrincipal->GetAppId();
+    bool isInBrowserElement = aPrincipal->GetIsInBrowserElement();
     if (appId == nsIScriptSecurityManager::NO_APP_ID && !isInBrowserElement) {
       aKey.Assign(key);
       return NS_OK;
@@ -220,19 +213,9 @@ CreateQuotaDBKey(nsIPrincipal* aPrincipal,
 
   CreateReversedDomain(eTLDplusOne, subdomainsDBKey);
 
-  bool unknownAppId;
-  rv = aPrincipal->GetUnknownAppId(&unknownAppId);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (!unknownAppId) {
-    uint32_t appId;
-    rv = aPrincipal->GetAppId(&appId);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    bool isInBrowserElement;
-    rv = aPrincipal->GetIsInBrowserElement(&isInBrowserElement);
-    NS_ENSURE_SUCCESS(rv, rv);
-
+  if (!aPrincipal->GetUnknownAppId()) {
+    uint32_t appId = aPrincipal->GetAppId();
+    bool isInBrowserElement = aPrincipal->GetIsInBrowserElement();
     if (appId == nsIScriptSecurityManager::NO_APP_ID && !isInBrowserElement) {
       aKey.Assign(subdomainsDBKey);
       return NS_OK;
@@ -249,7 +232,7 @@ CreateQuotaDBKey(nsIPrincipal* aPrincipal,
   return NS_OK;
 }
 
-} // anon
+} // namespace
 
 DOMStorageCache*
 DOMStorageManager::GetCache(const nsACString& aScope) const
@@ -265,7 +248,7 @@ DOMStorageManager::GetCache(const nsACString& aScope) const
 already_AddRefed<DOMStorageUsage>
 DOMStorageManager::GetScopeUsage(const nsACString& aScope)
 {
-  nsRefPtr<DOMStorageUsage> usage;
+  RefPtr<DOMStorageUsage> usage;
   if (mUsages.Get(aScope, &usage)) {
     return usage.forget();
   }
@@ -289,7 +272,7 @@ DOMStorageManager::PutCache(const nsACString& aScope,
                             nsIPrincipal* aPrincipal)
 {
   DOMStorageCacheHashKey* entry = mCaches.PutEntry(aScope);
-  nsRefPtr<DOMStorageCache> cache = entry->cache();
+  RefPtr<DOMStorageCache> cache = entry->cache();
 
   nsAutoCString quotaScope;
   CreateQuotaDBKey(aPrincipal, quotaScope);
@@ -339,7 +322,7 @@ DOMStorageManager::GetStorageInternal(bool aCreate,
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  nsRefPtr<DOMStorageCache> cache = GetCache(scope);
+  RefPtr<DOMStorageCache> cache = GetCache(scope);
 
   // Get or create a cache for the given scope
   if (!cache) {
@@ -417,7 +400,7 @@ DOMStorageManager::CloneStorage(nsIDOMStorage* aStorage)
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
-  nsRefPtr<DOMStorage> storage = static_cast<DOMStorage*>(aStorage);
+  RefPtr<DOMStorage> storage = static_cast<DOMStorage*>(aStorage);
   if (!storage) {
     return NS_ERROR_UNEXPECTED;
   }
@@ -432,7 +415,7 @@ DOMStorageManager::CloneStorage(nsIDOMStorage* aStorage)
 
   // Since this manager is sessionStorage manager, PutCache hard references
   // the cache in our hashtable.
-  nsRefPtr<DOMStorageCache> newCache = PutCache(origCache->Scope(),
+  RefPtr<DOMStorageCache> newCache = PutCache(origCache->Scope(),
                                                 origCache->Principal());
 
   newCache->CloneFrom(origCache);
@@ -444,7 +427,7 @@ DOMStorageManager::CheckStorage(nsIPrincipal* aPrincipal,
                                 nsIDOMStorage* aStorage,
                                 bool* aRetval)
 {
-  nsRefPtr<DOMStorage> storage = static_cast<DOMStorage*>(aStorage);
+  RefPtr<DOMStorage> storage = static_cast<DOMStorage*>(aStorage);
   if (!storage) {
     return NS_ERROR_UNEXPECTED;
   }
@@ -489,34 +472,18 @@ DOMStorageManager::GetLocalStorageForPrincipal(nsIPrincipal* aPrincipal,
   return CreateStorage(nullptr, aPrincipal, aDocumentURI, aPrivate, aRetval);
 }
 
-namespace { // anon
-
-class ClearCacheEnumeratorData
+void
+DOMStorageManager::ClearCaches(uint32_t aUnloadFlags,
+                               const nsACString& aKeyPrefix)
 {
-public:
-  explicit ClearCacheEnumeratorData(uint32_t aFlags)
-    : mUnloadFlags(aFlags)
-  {}
+  for (auto iter = mCaches.Iter(); !iter.Done(); iter.Next()) {
+    DOMStorageCache* cache = iter.Get()->cache();
+    nsCString& key = const_cast<nsCString&>(cache->Scope());
 
-  uint32_t mUnloadFlags;
-  nsCString mKeyPrefix;
-};
-
-} // anon
-
-PLDHashOperator
-DOMStorageManager::ClearCacheEnumerator(DOMStorageCacheHashKey* aEntry, void* aClosure)
-{
-  DOMStorageCache* cache = aEntry->cache();
-  nsCString& key = const_cast<nsCString&>(cache->Scope());
-
-  ClearCacheEnumeratorData* data = static_cast<ClearCacheEnumeratorData*>(aClosure);
-
-  if (data->mKeyPrefix.IsEmpty() || StringBeginsWith(key, data->mKeyPrefix)) {
-    cache->UnloadItems(data->mUnloadFlags);
+    if (aKeyPrefix.IsEmpty() || StringBeginsWith(key, aKeyPrefix)) {
+      cache->UnloadItems(aUnloadFlags);
+    }
   }
-
-  return PL_DHASH_NEXT;
 }
 
 nsresult
@@ -524,37 +491,27 @@ DOMStorageManager::Observe(const char* aTopic, const nsACString& aScopePrefix)
 {
   // Clear everything, caches + database
   if (!strcmp(aTopic, "cookie-cleared")) {
-    ClearCacheEnumeratorData data(DOMStorageCache::kUnloadComplete);
-    mCaches.EnumerateEntries(ClearCacheEnumerator, &data);
-
+    ClearCaches(DOMStorageCache::kUnloadComplete, EmptyCString());
     return NS_OK;
   }
 
   // Clear from caches everything that has been stored
   // while in session-only mode
   if (!strcmp(aTopic, "session-only-cleared")) {
-    ClearCacheEnumeratorData data(DOMStorageCache::kUnloadSession);
-    data.mKeyPrefix = aScopePrefix;
-    mCaches.EnumerateEntries(ClearCacheEnumerator, &data);
-
+    ClearCaches(DOMStorageCache::kUnloadSession, aScopePrefix);
     return NS_OK;
   }
 
   // Clear everything (including so and pb data) from caches and database
   // for the gived domain and subdomains.
   if (!strcmp(aTopic, "domain-data-cleared")) {
-    ClearCacheEnumeratorData data(DOMStorageCache::kUnloadComplete);
-    data.mKeyPrefix = aScopePrefix;
-    mCaches.EnumerateEntries(ClearCacheEnumerator, &data);
-
+    ClearCaches(DOMStorageCache::kUnloadComplete, aScopePrefix);
     return NS_OK;
   }
 
   // Clear all private-browsing caches
   if (!strcmp(aTopic, "private-browsing-data-cleared")) {
-    ClearCacheEnumeratorData data(DOMStorageCache::kUnloadPrivate);
-    mCaches.EnumerateEntries(ClearCacheEnumerator, &data);
-
+    ClearCaches(DOMStorageCache::kUnloadPrivate, EmptyCString());
     return NS_OK;
   }
 
@@ -566,18 +523,13 @@ DOMStorageManager::Observe(const char* aTopic, const nsACString& aScopePrefix)
       return NS_OK;
     }
 
-    ClearCacheEnumeratorData data(DOMStorageCache::kUnloadComplete);
-    data.mKeyPrefix = aScopePrefix;
-    mCaches.EnumerateEntries(ClearCacheEnumerator, &data);
-
+    ClearCaches(DOMStorageCache::kUnloadComplete, aScopePrefix);
     return NS_OK;
   }
 
   if (!strcmp(aTopic, "profile-change")) {
     // For case caches are still referenced - clear them completely
-    ClearCacheEnumeratorData data(DOMStorageCache::kUnloadComplete);
-    mCaches.EnumerateEntries(ClearCacheEnumerator, &data);
-
+    ClearCaches(DOMStorageCache::kUnloadComplete, EmptyCString());
     mCaches.Clear();
     return NS_OK;
   }
@@ -605,13 +557,12 @@ DOMStorageManager::Observe(const char* aTopic, const nsACString& aScopePrefix)
     }
 
     // This immediately completely reloads all caches from the database.
-    ClearCacheEnumeratorData data(DOMStorageCache::kTestReload);
-    mCaches.EnumerateEntries(ClearCacheEnumerator, &data);
+    ClearCaches(DOMStorageCache::kTestReload, EmptyCString());
     return NS_OK;
   }
 
   if (!strcmp(aTopic, "test-flushed")) {
-    if (XRE_GetProcessType() != GeckoProcessType_Default) {
+    if (!XRE_IsParentProcess()) {
       nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
       if (obs) {
         obs->NotifyObservers(nullptr, "domstorage-test-flushed", nullptr);
@@ -634,7 +585,7 @@ DOMLocalStorageManager::DOMLocalStorageManager()
   NS_ASSERTION(!sSelf, "Somebody is trying to do_CreateInstance(\"@mozilla/dom/localStorage-manager;1\"");
   sSelf = this;
 
-  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+  if (!XRE_IsParentProcess()) {
     // Do this only on the child process.  The thread IPC bridge
     // is also used to communicate chrome observer notifications.
     // Note: must be called after we set sSelf
@@ -647,17 +598,32 @@ DOMLocalStorageManager::~DOMLocalStorageManager()
   sSelf = nullptr;
 }
 
+DOMLocalStorageManager*
+DOMLocalStorageManager::Ensure()
+{
+  if (sSelf) {
+    return sSelf;
+  }
+
+  // Cause sSelf to be populated.
+  nsCOMPtr<nsIDOMStorageManager> initializer =
+    do_GetService("@mozilla.org/dom/localStorage-manager;1");
+  MOZ_ASSERT(sSelf, "Didn't initialize?");
+
+  return sSelf;
+}
+
 // DOMSessionStorageManager
 
 DOMSessionStorageManager::DOMSessionStorageManager()
   : DOMStorageManager(SessionStorage)
 {
-  if (XRE_GetProcessType() != GeckoProcessType_Default) {
+  if (!XRE_IsParentProcess()) {
     // Do this only on the child process.  The thread IPC bridge
     // is also used to communicate chrome observer notifications.
     DOMStorageCache::StartDatabase();
   }
 }
 
-} // ::dom
-} // ::mozilla
+} // namespace dom
+} // namespace mozilla

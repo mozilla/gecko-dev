@@ -6,6 +6,7 @@
 #include "txURIUtils.h"
 #include "nsNetUtil.h"
 #include "nsIDocument.h"
+#include "nsIHttpChannelInternal.h"
 #include "nsIPrincipal.h"
 #include "mozilla/LoadInfo.h"
 
@@ -64,13 +65,15 @@ URIUtils::ResetWithSource(nsIDocument *aNewDoc, nsIDOMNode *aSourceNode)
                                     sourceDoc,
                                     nsILoadInfo::SEC_FORCE_INHERIT_PRINCIPAL,
                                     nsIContentPolicy::TYPE_OTHER,
-                                    nullptr,   // aChannelPolicy
-                                    loadGroup);
+                                    loadGroup,
+                                    nullptr, // aCallbacks
+                                    nsIChannel::LOAD_BYPASS_SERVICE_WORKER);
 
         if (NS_FAILED(rv)) {
             return;
         }
     }
+
     aNewDoc->Reset(channel, loadGroup);
     aNewDoc->SetPrincipal(sourcePrincipal);
     aNewDoc->SetBaseURI(sourceDoc->GetDocBaseURI());

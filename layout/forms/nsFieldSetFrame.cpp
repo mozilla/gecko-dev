@@ -5,7 +5,9 @@
 
 #include "nsFieldSetFrame.h"
 
+#include "mozilla/gfx/2D.h"
 #include "nsCSSAnonBoxes.h"
+#include "nsLayoutUtils.h"
 #include "nsLegendFrame.h"
 #include "nsCSSRendering.h"
 #include <algorithm>
@@ -21,6 +23,8 @@
 #include "mozilla/Maybe.h"
 
 using namespace mozilla;
+using namespace mozilla::gfx;
+using namespace mozilla::image;
 using namespace mozilla::layout;
 
 nsContainerFrame*
@@ -33,6 +37,7 @@ NS_IMPL_FRAMEARENA_HELPERS(nsFieldSetFrame)
 
 nsFieldSetFrame::nsFieldSetFrame(nsStyleContext* aContext)
   : nsContainerFrame(aContext)
+  , mLegendRect(GetWritingMode())
 {
   mLegendSpace  = 0;
 }
@@ -46,14 +51,17 @@ nsFieldSetFrame::GetType() const
 nsRect
 nsFieldSetFrame::VisualBorderRectRelativeToSelf() const
 {
-  nscoord topBorder = StyleBorder()->GetComputedBorderWidth(NS_SIDE_TOP);
-  nsRect r(nsPoint(0,0), GetSize());
-  if (topBorder < mLegendRect.height) {
-    nscoord yoff = (mLegendRect.height - topBorder) / 2;
-    r.y += yoff;
-    r.height -= yoff;
+  WritingMode wm = GetWritingMode();
+  css::Side legendSide = wm.PhysicalSide(eLogicalSideBStart);
+  nscoord legendBorder = StyleBorder()->GetComputedBorderWidth(legendSide);
+  LogicalRect r(wm, LogicalPoint(wm, 0, 0), GetLogicalSize(wm));
+  nsSize containerSize = r.Size(wm).GetPhysicalSize(wm);
+  if (legendBorder < mLegendRect.BSize(wm)) {
+    nscoord off = (mLegendRect.BSize(wm) - legendBorder) / 2;
+    r.BStart(wm) += off;
+    r.BSize(wm) -= off;
   }
-  return r;
+  return r.GetPhysicalRect(wm, containerSize);
 }
 
 nsIFrame*
@@ -96,12 +104,13 @@ public:
 
   virtual void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
                        HitTestState* aState,
-                       nsTArray<nsIFrame*> *aOutFrames) MOZ_OVERRIDE;
+                       nsTArray<nsIFrame*> *aOutFrames) override;
   virtual void Paint(nsDisplayListBuilder* aBuilder,
-                     nsRenderingContext* aCtx) MOZ_OVERRIDE;
+                     nsRenderingContext* aCtx) override;
+  virtual nsDisplayItemGeometry* AllocateGeometry(nsDisplayListBuilder* aBuilder) override;
   virtual void ComputeInvalidationRegion(nsDisplayListBuilder* aBuilder,
                                          const nsDisplayItemGeometry* aGeometry,
-                                         nsRegion *aInvalidRegion) MOZ_OVERRIDE;
+                                         nsRegion *aInvalidRegion) override;
   NS_DISPLAY_DECL_NAME("FieldSetBorderBackground", TYPE_FIELDSET_BORDER_BACKGROUND)
 };
 
@@ -118,9 +127,16 @@ void
 nsDisplayFieldSetBorderBackground::Paint(nsDisplayListBuilder* aBuilder,
                                          nsRenderingContext* aCtx)
 {
-  static_cast<nsFieldSetFrame*>(mFrame)->
-    PaintBorderBackground(*aCtx, ToReferenceFrame(),
-                          mVisibleRect, aBuilder->GetBackgroundPaintFlags());
+  DrawResult result = static_cast<nsFieldSetFrame*>(mFrame)->
+    PaintBorderBackground(aBuilder, *aCtx, ToReferenceFrame(), mVisibleRect);
+
+  nsDisplayItemGenericImageGeometry::UpdateDrawResult(this, result);
+}
+
+nsDisplayItemGeometry*
+nsDisplayFieldSetBorderBackground::AllocateGeometry(nsDisplayListBuilder* aBuilder)
+{
+  return new nsDisplayItemGenericImageGeometry(this, aBuilder);
 }
 
 void
@@ -128,7 +144,14 @@ nsDisplayFieldSetBorderBackground::ComputeInvalidationRegion(nsDisplayListBuilde
                                                              const nsDisplayItemGeometry* aGeometry,
                                                              nsRegion *aInvalidRegion)
 {
-  AddInvalidRegionForSyncDecodeBackgroundImages(aBuilder, aGeometry, aInvalidRegion);
+  auto geometry =
+    static_cast<const nsDisplayItemGenericImageGeometry*>(aGeometry);
+
+  if (aBuilder->ShouldSyncDecodeImages() &&
+      geometry->ShouldInvalidateToSyncDecodeImages()) {
+    bool snap;
+    aInvalidRegion->Or(*aInvalidRegion, GetBounds(aBuilder, &snap));
+  }
 
   nsDisplayItem::ComputeInvalidationRegion(aBuilder, aGeometry, aInvalidRegion);
 }
@@ -185,80 +208,97 @@ nsFieldSetFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   contentDisplayItems.MoveTo(aLists);
 }
 
-void
-nsFieldSetFrame::PaintBorderBackground(nsRenderingContext& aRenderingContext,
-    nsPoint aPt, const nsRect& aDirtyRect, uint32_t aBGFlags)
+DrawResult
+nsFieldSetFrame::PaintBorderBackground(
+  nsDisplayListBuilder* aBuilder,
+  nsRenderingContext& aRenderingContext,
+  nsPoint aPt,
+  const nsRect& aDirtyRect)
 {
   // if the border is smaller than the legend. Move the border down
-  // to be centered on the legend. 
+  // to be centered on the legend.
   // FIXME: This means border-radius clamping is incorrect; we should
   // override nsIFrame::GetBorderRadii.
+  WritingMode wm = GetWritingMode();
   nsRect rect = VisualBorderRectRelativeToSelf();
-  nscoord yoff = rect.y;
+  nscoord off = wm.IsVertical() ? rect.x : rect.y;
   rect += aPt;
   nsPresContext* presContext = PresContext();
 
-  nsCSSRendering::PaintBackground(presContext, aRenderingContext, this,
-                                  aDirtyRect, rect, aBGFlags);
+  uint32_t bgFlags = aBuilder->GetBackgroundPaintFlags();
+  PaintBorderFlags borderFlags = aBuilder->ShouldSyncDecodeImages()
+                               ? PaintBorderFlags::SYNC_DECODE_IMAGES
+                               : PaintBorderFlags();
+
+  DrawResult result =
+    nsCSSRendering::PaintBackground(presContext, aRenderingContext, this,
+                                    aDirtyRect, rect, bgFlags);
 
   nsCSSRendering::PaintBoxShadowInner(presContext, aRenderingContext,
                                       this, rect, aDirtyRect);
 
-   if (nsIFrame* legend = GetLegend()) {
-     nscoord topBorder = StyleBorder()->GetComputedBorderWidth(NS_SIDE_TOP);
+  if (nsIFrame* legend = GetLegend()) {
+    css::Side legendSide = wm.PhysicalSide(eLogicalSideBStart);
+    nscoord legendBorderWidth =
+      StyleBorder()->GetComputedBorderWidth(legendSide);
 
     // Use the rect of the legend frame, not mLegendRect, so we draw our
-    // border under the legend's left and right margins.
-    nsRect legendRect = legend->GetRect() + aPt;
-    
-    // we should probably use PaintBorderEdges to do this but for now just use clipping
-    // to achieve the same effect.
+    // border under the legend's inline-start and -end margins.
+    LogicalRect legendRect(wm, legend->GetRect() + aPt, rect.Size());
 
-    // draw left side
-    nsRect clipRect(rect);
-    clipRect.width = legendRect.x - rect.x;
-    clipRect.height = topBorder;
+    // Compute clipRect using logical coordinates, so that the legend space
+    // will be clipped out of the appropriate physical side depending on mode.
+    LogicalRect clipRect = LogicalRect(wm, rect, rect.Size());
+    DrawTarget* drawTarget = aRenderingContext.GetDrawTarget();
+    gfxContext* gfx = aRenderingContext.ThebesContext();
+    int32_t appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
 
-    aRenderingContext.ThebesContext()->Save();
-    aRenderingContext.IntersectClip(clipRect);
-    nsCSSRendering::PaintBorder(presContext, aRenderingContext, this,
-                                aDirtyRect, rect, mStyleContext);
+    // draw inline-start portion of the block-start side of the border
+    clipRect.ISize(wm) = legendRect.IStart(wm) - clipRect.IStart(wm);
+    clipRect.BSize(wm) = legendBorderWidth;
 
-    aRenderingContext.ThebesContext()->Restore();
+    gfx->Save();
+    gfx->Clip(NSRectToSnappedRect(clipRect.GetPhysicalRect(wm, rect.Size()),
+                                  appUnitsPerDevPixel, *drawTarget));
+    result &=
+      nsCSSRendering::PaintBorder(presContext, aRenderingContext, this,
+                                  aDirtyRect, rect, mStyleContext, borderFlags);
+    gfx->Restore();
 
+    // draw inline-end portion of the block-start side of the border
+    clipRect = LogicalRect(wm, rect, rect.Size());
+    clipRect.ISize(wm) = clipRect.IEnd(wm) - legendRect.IEnd(wm);
+    clipRect.IStart(wm) = legendRect.IEnd(wm);
+    clipRect.BSize(wm) = legendBorderWidth;
 
-    // draw right side
-    clipRect = rect;
-    clipRect.x = legendRect.XMost();
-    clipRect.width = rect.XMost() - legendRect.XMost();
-    clipRect.height = topBorder;
+    gfx->Save();
+    gfx->Clip(NSRectToSnappedRect(clipRect.GetPhysicalRect(wm, rect.Size()),
+                                  appUnitsPerDevPixel, *drawTarget));
+    result &=
+      nsCSSRendering::PaintBorder(presContext, aRenderingContext, this,
+                                  aDirtyRect, rect, mStyleContext, borderFlags);
+    gfx->Restore();
 
-    aRenderingContext.ThebesContext()->Save();
-    aRenderingContext.IntersectClip(clipRect);
-    nsCSSRendering::PaintBorder(presContext, aRenderingContext, this,
-                                aDirtyRect, rect, mStyleContext);
+    // draw remainder of the border (omitting the block-start side)
+    clipRect = LogicalRect(wm, rect, rect.Size());
+    clipRect.BStart(wm) += legendBorderWidth;
+    clipRect.BSize(wm) = BSize(wm) - (off + legendBorderWidth);
 
-    aRenderingContext.ThebesContext()->Restore();
-
-    
-    // draw bottom
-    clipRect = rect;
-    clipRect.y += topBorder;
-    clipRect.height = mRect.height - (yoff + topBorder);
-    
-    aRenderingContext.ThebesContext()->Save();
-    aRenderingContext.IntersectClip(clipRect);
-    nsCSSRendering::PaintBorder(presContext, aRenderingContext, this,
-                                aDirtyRect, rect, mStyleContext);
-
-    aRenderingContext.ThebesContext()->Restore();
+    gfx->Save();
+    gfx->Clip(NSRectToSnappedRect(clipRect.GetPhysicalRect(wm, rect.Size()),
+                                  appUnitsPerDevPixel, *drawTarget));
+    result &=
+      nsCSSRendering::PaintBorder(presContext, aRenderingContext, this,
+                                  aDirtyRect, rect, mStyleContext, borderFlags);
+    gfx->Restore();
   } else {
-
-    nsCSSRendering::PaintBorder(presContext, aRenderingContext, this,
-                                aDirtyRect,
-                                nsRect(aPt, mRect.Size()),
-                                mStyleContext);
+    result &=
+      nsCSSRendering::PaintBorder(presContext, aRenderingContext, this,
+                                  aDirtyRect, nsRect(aPt, mRect.Size()),
+                                  mStyleContext, borderFlags);
   }
+
+  return result;
 }
 
 nscoord
@@ -314,7 +354,7 @@ nsFieldSetFrame::ComputeSize(nsRenderingContext *aRenderingContext,
                              const LogicalSize& aMargin,
                              const LogicalSize& aBorder,
                              const LogicalSize& aPadding,
-                             uint32_t aFlags)
+                             ComputeSizeFlags aFlags)
 {
   LogicalSize result =
     nsContainerFrame::ComputeSize(aRenderingContext, aWM,
@@ -348,12 +388,13 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
                         const nsHTMLReflowState& aReflowState,
                         nsReflowStatus&          aStatus)
 {
+  MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("nsFieldSetFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
 
-  NS_PRECONDITION(aReflowState.ComputedWidth() != NS_INTRINSICSIZE,
-                  "Should have a precomputed width!");      
-  
+  NS_PRECONDITION(aReflowState.ComputedISize() != NS_INTRINSICSIZE,
+                  "Should have a precomputed inline-size!");
+
   // Initialize OUT parameter
   aStatus = NS_FRAME_COMPLETE;
 
@@ -381,8 +422,9 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
   // need logic here to push and pull overflow frames.
   // Since we're not applying our padding in this frame, we need to add it here
   // to compute the available width for our children.
-  WritingMode innerWM = inner ? inner->GetWritingMode() : GetWritingMode();
-  WritingMode legendWM = legend ? legend->GetWritingMode() : GetWritingMode();
+  WritingMode wm = GetWritingMode();
+  WritingMode innerWM = inner ? inner->GetWritingMode() : wm;
+  WritingMode legendWM = legend ? legend->GetWritingMode() : wm;
   LogicalSize innerAvailSize = aReflowState.ComputedSizeWithPadding(innerWM);
   LogicalSize legendAvailSize = aReflowState.ComputedSizeWithPadding(legendWM);
   innerAvailSize.BSize(innerWM) = legendAvailSize.BSize(legendWM) =
@@ -401,11 +443,12 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
                "Bogus availSize.ISize; should be bigger");
 
   // get our border and padding
-  nsMargin border = aReflowState.ComputedPhysicalBorderPadding() - aReflowState.ComputedPhysicalPadding();
+  LogicalMargin border = aReflowState.ComputedLogicalBorderPadding() -
+                         aReflowState.ComputedLogicalPadding();
 
-  // Figure out how big the legend is if there is one. 
+  // Figure out how big the legend is if there is one.
   // get the legend's margin
-  nsMargin legendMargin(0,0,0,0);
+  LogicalMargin legendMargin(wm);
   // reflow the legend only if needed
   Maybe<nsHTMLReflowState> legendReflowState;
   if (legend) {
@@ -415,69 +458,78 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
   if (reflowLegend) {
     nsHTMLReflowMetrics legendDesiredSize(aReflowState);
 
+    // We'll move the legend to its proper place later, so the position
+    // and containerSize passed here are unimportant.
+    const nsSize dummyContainerSize;
     ReflowChild(legend, aPresContext, legendDesiredSize, *legendReflowState,
-                0, 0, NS_FRAME_NO_MOVE_FRAME, aStatus);
+                wm, LogicalPoint(wm), dummyContainerSize,
+                NS_FRAME_NO_MOVE_FRAME, aStatus);
 #ifdef NOISY_REFLOW
     printf("  returned (%d, %d)\n",
            legendDesiredSize.Width(), legendDesiredSize.Height());
 #endif
     // figure out the legend's rectangle
-    legendMargin = legend->GetUsedMargin();
-    mLegendRect.width  = legendDesiredSize.Width() + legendMargin.left + legendMargin.right;
-    mLegendRect.height = legendDesiredSize.Height() + legendMargin.top + legendMargin.bottom;
-    mLegendRect.x = 0;
-    mLegendRect.y = 0;
-
+    legendMargin = legend->GetLogicalUsedMargin(wm);
+    mLegendRect =
+      LogicalRect(wm, 0, 0,
+                  legendDesiredSize.ISize(wm) + legendMargin.IStartEnd(wm),
+                  legendDesiredSize.BSize(wm) + legendMargin.BStartEnd(wm));
     nscoord oldSpace = mLegendSpace;
     mLegendSpace = 0;
-    if (mLegendRect.height > border.top) {
+    if (mLegendRect.BSize(wm) > border.BStart(wm)) {
       // center the border on the legend
-      mLegendSpace = mLegendRect.height - border.top;
+      mLegendSpace = mLegendRect.BSize(wm) - border.BStart(wm);
     } else {
-      mLegendRect.y = (border.top - mLegendRect.height)/2;
+      mLegendRect.BStart(wm) =
+        (border.BStart(wm) - mLegendRect.BSize(wm)) / 2;
     }
 
-    // if the legend space changes then we need to reflow the 
+    // if the legend space changes then we need to reflow the
     // content area as well.
     if (mLegendSpace != oldSpace && inner) {
       reflowInner = true;
     }
 
     FinishReflowChild(legend, aPresContext, legendDesiredSize,
-                      legendReflowState.ptr(), 0, 0, NS_FRAME_NO_MOVE_FRAME);    
+                      legendReflowState.ptr(), wm, LogicalPoint(wm),
+                      dummyContainerSize, NS_FRAME_NO_MOVE_FRAME);
   } else if (!legend) {
     mLegendRect.SetEmpty();
     mLegendSpace = 0;
   } else {
     // mLegendSpace and mLegendRect haven't changed, but we need
     // the used margin when placing the legend.
-    legendMargin = legend->GetUsedMargin();
+    legendMargin = legend->GetLogicalUsedMargin(wm);
   }
 
+  // This containerSize is incomplete as yet: it does not include the size
+  // of the |inner| frame itself.
+  nsSize containerSize = (LogicalSize(wm, 0, mLegendSpace) +
+                          border.Size(wm)).GetPhysicalSize(wm);
   // reflow the content frame only if needed
   if (reflowInner) {
     nsHTMLReflowState kidReflowState(aPresContext, aReflowState, inner,
-                                     innerAvailSize, -1, -1,
+                                     innerAvailSize, nullptr,
                                      nsHTMLReflowState::CALLER_WILL_INIT);
     // Override computed padding, in case it's percentage padding
-    kidReflowState.Init(aPresContext, -1, -1, nullptr,
+    kidReflowState.Init(aPresContext, nullptr, nullptr,
                         &aReflowState.ComputedPhysicalPadding());
     // Our child is "height:100%" but we actually want its height to be reduced
     // by the amount of content-height the legend is eating up, unless our
     // height is unconstrained (in which case the child's will be too).
-    if (aReflowState.ComputedHeight() != NS_UNCONSTRAINEDSIZE) {
-      kidReflowState.SetComputedHeight(
-         std::max(0, aReflowState.ComputedHeight() - mLegendSpace));
+    if (aReflowState.ComputedBSize() != NS_UNCONSTRAINEDSIZE) {
+      kidReflowState.SetComputedBSize(
+         std::max(0, aReflowState.ComputedBSize() - mLegendSpace));
     }
 
-    if (aReflowState.ComputedMinHeight() > 0) {
-      kidReflowState.ComputedMinHeight() =
-        std::max(0, aReflowState.ComputedMinHeight() - mLegendSpace);
+    if (aReflowState.ComputedMinBSize() > 0) {
+      kidReflowState.ComputedMinBSize() =
+        std::max(0, aReflowState.ComputedMinBSize() - mLegendSpace);
     }
 
-    if (aReflowState.ComputedMaxHeight() != NS_UNCONSTRAINEDSIZE) {
-      kidReflowState.ComputedMaxHeight() =
-        std::max(0, aReflowState.ComputedMaxHeight() - mLegendSpace);
+    if (aReflowState.ComputedMaxBSize() != NS_UNCONSTRAINEDSIZE) {
+      kidReflowState.ComputedMaxBSize() =
+        std::max(0, aReflowState.ComputedMaxBSize() - mLegendSpace);
     }
 
     nsHTMLReflowMetrics kidDesiredSize(kidReflowState,
@@ -485,81 +537,115 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
     // Reflow the frame
     NS_ASSERTION(kidReflowState.ComputedPhysicalMargin() == nsMargin(0,0,0,0),
                  "Margins on anonymous fieldset child not supported!");
-    nsPoint pt(border.left, border.top + mLegendSpace);
-    ReflowChild(inner, aPresContext, kidDesiredSize, kidReflowState,
-                pt.x, pt.y, 0, aStatus);
+    LogicalPoint pt(wm, border.IStart(wm), border.BStart(wm) + mLegendSpace);
 
+    // We don't know the correct containerSize until we have reflowed |inner|,
+    // so we use a dummy value for now; FinishReflowChild will fix the position
+    // if necessary.
+    const nsSize dummyContainerSize;
+    ReflowChild(inner, aPresContext, kidDesiredSize, kidReflowState,
+                wm, pt, dummyContainerSize, 0, aStatus);
+
+    // Update containerSize to account for size of the inner frame, so that
+    // FinishReflowChild can position it correctly.
+    containerSize += kidDesiredSize.PhysicalSize();
     FinishReflowChild(inner, aPresContext, kidDesiredSize,
-                      &kidReflowState, pt.x, pt.y, 0);
+                      &kidReflowState, wm, pt, containerSize, 0);
     NS_FRAME_TRACE_REFLOW_OUT("FieldSet::Reflow", aStatus);
+  } else if (inner) {
+    // |inner| didn't need to be reflowed but we do need to include its size
+    // in containerSize.
+    containerSize += inner->GetSize();
   }
 
-  LogicalRect contentRect(innerWM);
+  LogicalRect contentRect(wm);
   if (inner) {
     // We don't support margins on inner, so our content rect is just the
-    // inner's border-box.
-    contentRect = inner->GetLogicalRect(aReflowState.ComputedWidth());
+    // inner's border-box. (We don't really care about container size at this
+    // point, as we'll figure out the actual positioning later.)
+    contentRect = inner->GetLogicalRect(wm, containerSize);
   }
 
   // Our content rect must fill up the available width
-  if (innerAvailSize.ISize(innerWM) > contentRect.ISize(innerWM)) {
-    contentRect.ISize(innerWM) = innerAvailSize.ISize(innerWM);
+  LogicalSize availSize = aReflowState.ComputedSizeWithPadding(wm);
+  if (availSize.ISize(wm) > contentRect.ISize(wm)) {
+    contentRect.ISize(wm) = innerAvailSize.ISize(wm);
   }
 
-  //XXX temporary!
-  nsRect physicalContentRect =
-    contentRect.GetPhysicalRect(innerWM, aReflowState.ComputedWidth());
   if (legend) {
-    // the legend is postioned horizontally within the inner's content rect
+    // The legend is positioned inline-wards within the inner's content rect
     // (so that padding on the fieldset affects the legend position).
-    nsRect innerContentRect = physicalContentRect;
-    innerContentRect.Deflate(aReflowState.ComputedPhysicalPadding());
-    // if the inner content rect is larger than the legend, we can align the legend
-    if (innerContentRect.width > mLegendRect.width) {
+    LogicalRect innerContentRect = contentRect;
+    innerContentRect.Deflate(wm, aReflowState.ComputedLogicalPadding());
+    // If the inner content rect is larger than the legend, we can align the
+    // legend.
+    if (innerContentRect.ISize(wm) > mLegendRect.ISize(wm)) {
       int32_t align = static_cast<nsLegendFrame*>
         (legend->GetContentInsertionFrame())->GetAlign();
-
+      if (!wm.IsBidiLTR()) {
+        if (align == NS_STYLE_TEXT_ALIGN_LEFT ||
+            align == NS_STYLE_TEXT_ALIGN_MOZ_LEFT) {
+          align = NS_STYLE_TEXT_ALIGN_END;
+        } else if (align == NS_STYLE_TEXT_ALIGN_RIGHT ||
+                   align == NS_STYLE_TEXT_ALIGN_MOZ_RIGHT) {
+          align = NS_STYLE_TEXT_ALIGN_DEFAULT;
+        }
+      }
       switch (align) {
-        case NS_STYLE_TEXT_ALIGN_RIGHT:
-          mLegendRect.x = innerContentRect.XMost() - mLegendRect.width;
+        case NS_STYLE_TEXT_ALIGN_END:
+          mLegendRect.IStart(wm) =
+            innerContentRect.IEnd(wm) - mLegendRect.ISize(wm);
           break;
         case NS_STYLE_TEXT_ALIGN_CENTER:
+        case NS_STYLE_TEXT_ALIGN_MOZ_CENTER:
           // Note: rounding removed; there doesn't seem to be any need
-          mLegendRect.x = innerContentRect.width / 2 - mLegendRect.width / 2 + innerContentRect.x;
+          mLegendRect.IStart(wm) = innerContentRect.IStart(wm) +
+            (innerContentRect.ISize(wm) - mLegendRect.ISize(wm)) / 2;
           break;
         default:
-          mLegendRect.x = innerContentRect.x;
+          mLegendRect.IStart(wm) = innerContentRect.IStart(wm);
           break;
       }
     } else {
       // otherwise make place for the legend
-      mLegendRect.x = innerContentRect.x;
-      innerContentRect.width = mLegendRect.width;
-      physicalContentRect.width = mLegendRect.width +
-        aReflowState.ComputedPhysicalPadding().LeftRight();
+      mLegendRect.IStart(wm) = innerContentRect.IStart(wm);
+      innerContentRect.ISize(wm) = mLegendRect.ISize(wm);
+      contentRect.ISize(wm) = mLegendRect.ISize(wm) +
+        aReflowState.ComputedLogicalPadding().IStartEnd(wm);
     }
 
     // place the legend
-    nsRect actualLegendRect(mLegendRect);
-    actualLegendRect.Deflate(legendMargin);
-    nsPoint actualLegendPos(actualLegendRect.TopLeft());
-    legendReflowState->ApplyRelativePositioning(&actualLegendPos);
-    legend->SetPosition(actualLegendPos);
+    LogicalRect actualLegendRect = mLegendRect;
+    actualLegendRect.Deflate(wm, legendMargin);
+    LogicalPoint actualLegendPos(actualLegendRect.Origin(wm));
+
+    // Note that legend's writing mode may be different from the fieldset's,
+    // so we need to convert offsets before applying them to it (bug 1134534).
+    LogicalMargin offsets =
+      legendReflowState->ComputedLogicalOffsets().
+        ConvertTo(wm, legendReflowState->GetWritingMode());
+    nsHTMLReflowState::ApplyRelativePositioning(legend, wm, offsets,
+                                                &actualLegendPos,
+                                                containerSize);
+
+    legend->SetPosition(wm, actualLegendPos, containerSize);
     nsContainerFrame::PositionFrameView(legend);
     nsContainerFrame::PositionChildViews(legend);
   }
 
   // Return our size and our result.
-  WritingMode wm = aReflowState.GetWritingMode();
-  nsSize finalSize(physicalContentRect.width + border.LeftRight(),
-                   mLegendSpace + border.TopBottom() +
-                   (inner ? inner->GetRect().height : 0));
-  aDesiredSize.SetSize(wm, LogicalSize(wm, finalSize));
+  LogicalSize finalSize(wm, contentRect.ISize(wm) + border.IStartEnd(wm),
+                        mLegendSpace + border.BStartEnd(wm) +
+                        (inner ? inner->BSize(wm) : 0));
+  aDesiredSize.SetSize(wm, finalSize);
   aDesiredSize.SetOverflowAreasToDesiredBounds();
-  if (legend)
+
+  if (legend) {
     ConsiderChildOverflow(aDesiredSize.mOverflowAreas, legend);
-  if (inner)
+  }
+  if (inner) {
     ConsiderChildOverflow(aDesiredSize.mOverflowAreas, inner);
+  }
 
   // Merge overflow container bounds and status.
   aDesiredSize.mOverflowAreas.UnionWith(ocBounds);
@@ -615,6 +701,6 @@ nscoord
 nsFieldSetFrame::GetLogicalBaseline(WritingMode aWritingMode) const
 {
   nsIFrame* inner = GetInner();
-  return inner->BStart(aWritingMode, GetParent()->GetSize().width) +
+  return inner->BStart(aWritingMode, GetParent()->GetSize()) +
     inner->GetLogicalBaseline(aWritingMode);
 }

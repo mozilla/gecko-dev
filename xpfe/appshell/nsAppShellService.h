@@ -20,8 +20,8 @@
 #define NS_APPSHELLSERVICE_CID \
 { 0x99907d, 0x123c, 0x4853, { 0xa4, 0x6a, 0x43, 0x9, 0x8b, 0x5f, 0xb6, 0x8c } }
 
-class nsAppShellService MOZ_FINAL : public nsIAppShellService,
-                                    public nsIObserver
+class nsAppShellService final : public nsIAppShellService,
+                                public nsIObserver
 {
 public:
   NS_DECL_ISUPPORTS
@@ -45,12 +45,13 @@ protected:
                                nsWebShellWindow **aResult);
   uint32_t CalculateWindowZLevel(nsIXULWindow *aParent, uint32_t aChromeMask);
 
-  nsRefPtr<nsWebShellWindow>  mHiddenWindow;
-  nsRefPtr<nsWebShellWindow>  mHiddenPrivateWindow;
+  RefPtr<nsWebShellWindow>  mHiddenWindow;
+  RefPtr<nsWebShellWindow>  mHiddenPrivateWindow;
   bool                        mXPCOMWillShutDown;
   bool                        mXPCOMShuttingDown;
   uint16_t                    mModalWindowCount;
   bool                        mApplicationProvidedHiddenWindow;
+  uint32_t                    mScreenId;
 };
 
 #endif

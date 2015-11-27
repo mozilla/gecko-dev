@@ -17,26 +17,26 @@
 
 namespace js {
 
-inline const Value &
+inline const Value&
 ArgumentsObject::element(uint32_t i) const
 {
-    JS_ASSERT(!isElementDeleted(i));
-    const Value &v = data()->args[i];
-    if (v.isMagic()) {
-        CallObject &callobj = getFixedSlot(MAYBE_CALL_SLOT).toObject().as<CallObject>();
+    MOZ_ASSERT(!isElementDeleted(i));
+    const Value& v = data()->args[i];
+    if (IsMagicScopeSlotValue(v)) {
+        CallObject& callobj = getFixedSlot(MAYBE_CALL_SLOT).toObject().as<CallObject>();
         return callobj.aliasedVarFromArguments(v);
     }
     return v;
 }
 
 inline void
-ArgumentsObject::setElement(JSContext *cx, uint32_t i, const Value &v)
+ArgumentsObject::setElement(JSContext* cx, uint32_t i, const Value& v)
 {
-    JS_ASSERT(!isElementDeleted(i));
-    HeapValue &lhs = data()->args[i];
-    if (lhs.isMagic()) {
-        uint32_t slot = lhs.magicUint32();
-        CallObject &callobj = getFixedSlot(MAYBE_CALL_SLOT).toObject().as<CallObject>();
+    MOZ_ASSERT(!isElementDeleted(i));
+    HeapValue& lhs = data()->args[i];
+    if (IsMagicScopeSlotValue(lhs)) {
+        uint32_t slot = SlotFromMagicScopeSlotValue(lhs);
+        CallObject& callobj = getFixedSlot(MAYBE_CALL_SLOT).toObject().as<CallObject>();
         for (Shape::Range<NoGC> r(callobj.lastProperty()); !r.empty(); r.popFront()) {
             if (r.front().slot() == slot) {
                 callobj.setAliasedVarFromArguments(cx, lhs, r.front().propid(), v);
@@ -49,9 +49,9 @@ ArgumentsObject::setElement(JSContext *cx, uint32_t i, const Value &v)
 }
 
 inline bool
-ArgumentsObject::maybeGetElements(uint32_t start, uint32_t count, Value *vp)
+ArgumentsObject::maybeGetElements(uint32_t start, uint32_t count, Value* vp)
 {
-    JS_ASSERT(start + count >= start);
+    MOZ_ASSERT(start + count >= start);
 
     uint32_t length = initialLength();
     if (start > length || start + count > length || isAnyElementDeleted())

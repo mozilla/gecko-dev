@@ -16,8 +16,8 @@
 
 namespace mozilla {
 
-class NativeFileWatcherService MOZ_FINAL : public nsINativeFileWatcherService,
-                                           public nsIObserver
+class NativeFileWatcherService final : public nsINativeFileWatcherService,
+                                       public nsIObserver
 {
 public:
   NS_DECL_ISUPPORTS
@@ -41,8 +41,8 @@ private:
 
   // Make the dtor private to make this object only deleted via its ::Release() method.
   ~NativeFileWatcherService();
-  NativeFileWatcherService(const NativeFileWatcherService& other) MOZ_DELETE;
-  void operator=(const NativeFileWatcherService& other) MOZ_DELETE;
+  NativeFileWatcherService(const NativeFileWatcherService& other) = delete;
+  void operator=(const NativeFileWatcherService& other) = delete;
 };
 
 } // namespace mozilla

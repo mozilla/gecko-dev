@@ -55,6 +55,10 @@
  *     }
  *   };
  *
+ * Additionally, the class AutoCleanLinkedList<T> is a LinkedList<T> that will
+ * remove and delete each element still within itself upon destruction. Note
+ * that because each element is deleted, elements must have been allocated
+ * using |new|.
  */
 
 #ifndef mozilla_LinkedList_h
@@ -64,7 +68,6 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Move.h"
-#include "mozilla/NullPtr.h"
 
 #ifdef __cplusplus
 
@@ -117,8 +120,8 @@ private:
 
 public:
   LinkedListElement()
-    : mNext(MOZ_THIS_IN_INITIALIZER_LIST()),
-      mPrev(MOZ_THIS_IN_INITIALIZER_LIST()),
+    : mNext(this),
+      mPrev(this),
       mIsSentinel(false)
   { }
 
@@ -236,8 +239,8 @@ private:
   };
 
   explicit LinkedListElement(NodeKind nodeKind)
-    : mNext(MOZ_THIS_IN_INITIALIZER_LIST()),
-      mPrev(MOZ_THIS_IN_INITIALIZER_LIST()),
+    : mNext(this),
+      mPrev(this),
       mIsSentinel(nodeKind == NODE_KIND_SENTINEL)
   { }
 
@@ -285,8 +288,8 @@ private:
   }
 
 private:
-  LinkedListElement& operator=(const LinkedListElement<T>& aOther) MOZ_DELETE;
-  LinkedListElement(const LinkedListElement<T>& aOther) MOZ_DELETE;
+  LinkedListElement& operator=(const LinkedListElement<T>& aOther) = delete;
+  LinkedListElement(const LinkedListElement<T>& aOther) = delete;
 };
 
 template<typename T>
@@ -296,6 +299,26 @@ private:
   LinkedListElement<T> sentinel;
 
 public:
+  class Iterator {
+    T* mCurrent;
+
+  public:
+    explicit Iterator(T* aCurrent) : mCurrent(aCurrent) {}
+
+    T* operator *() const {
+      return mCurrent;
+    }
+
+    const Iterator& operator++() {
+      mCurrent = mCurrent->getNext();
+      return *this;
+    }
+
+    bool operator!=(Iterator& aOther) const {
+      return mCurrent != aOther.mCurrent;
+    }
+  };
+
   LinkedList() : sentinel(LinkedListElement<T>::NODE_KIND_SENTINEL) { }
 
   LinkedList(LinkedList<T>&& aOther)
@@ -378,6 +401,18 @@ public:
     while (popFirst()) {
       continue;
     }
+  }
+
+  /*
+   * Allow range-based iteration:
+   *
+   *     for (MyElementType* elt : myList) { ... }
+   */
+  Iterator begin() {
+    return Iterator(getFirst());
+  }
+  Iterator end() {
+    return Iterator(nullptr);
   }
 
   /*
@@ -475,8 +510,20 @@ private:
 #endif
   }
 
-  LinkedList& operator=(const LinkedList<T>& aOther) MOZ_DELETE;
-  LinkedList(const LinkedList<T>& aOther) MOZ_DELETE;
+  LinkedList& operator=(const LinkedList<T>& aOther) = delete;
+  LinkedList(const LinkedList<T>& aOther) = delete;
+};
+
+template <typename T>
+class AutoCleanLinkedList : public LinkedList<T>
+{
+public:
+  ~AutoCleanLinkedList()
+  {
+    while (T* element = this->popFirst()) {
+      delete element;
+    }
+  }
 };
 
 } /* namespace mozilla */

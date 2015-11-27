@@ -33,17 +33,24 @@ class ViEBaseImpl
   virtual int SetVoiceEngine(VoiceEngine* voice_engine);
   virtual int RegisterCpuOveruseObserver(int channel,
                                          CpuOveruseObserver* observer);
-  virtual int CpuOveruseMeasures(int channel,
-                                 int* capture_jitter_ms,
-                                 int* avg_encode_time_ms,
-                                 int* encode_usage_percent,
-                                 int* capture_queue_delay_ms_per_s);
+  virtual int SetCpuOveruseOptions(int channel,
+                                   const CpuOveruseOptions& options);
+  void RegisterCpuOveruseMetricsObserver(
+      int channel,
+      CpuOveruseMetricsObserver* observer) override;
+  virtual int GetCpuOveruseMetrics(int channel,
+                                   CpuOveruseMetrics* metrics);
+  void RegisterSendSideDelayObserver(int channel,
+                                     SendSideDelayObserver* observer) override;
   virtual void SetLoadManager(CPULoadStateCallbackInvoker* aLoadManager);
   virtual int CreateChannel(int& video_channel);  // NOLINT
   virtual int CreateChannel(int& video_channel,  // NOLINT
                             const Config* config);
   virtual int CreateChannel(int& video_channel,  // NOLINT
                             int original_channel);
+  virtual int CreateChannelWithoutDefaultEncoder(int& video_channel,  // NOLINT
+                                                 int original_channel);
+
   virtual int CreateReceiveChannel(int& video_channel,  // NOLINT
                                    int original_channel);
   virtual int DeleteChannel(const int video_channel);
@@ -64,14 +71,15 @@ class ViEBaseImpl
   ViESharedData* shared_data() { return &shared_data_; }
 
  private:
-  // Version functions.
-  int32_t AddViEVersion(char* str) const;
-  int32_t AddBuildInfo(char* str) const;
-  int32_t AddExternalTransportBuild(char* str) const;
-
   int CreateChannel(int& video_channel, int original_channel,  // NOLINT
-                    bool sender);
+                    bool sender, bool disable_default_encoder);
 
+  void RegisterSendStatisticsProxy(
+      int channel,
+      SendStatisticsProxy* send_statistics_proxy) override;
+  void RegisterReceiveStatisticsProxy(
+      int channel,
+      ReceiveStatisticsProxy* receive_statistics_proxy) override;
   // ViEBaseImpl owns ViESharedData used by all interface implementations.
   ViESharedData shared_data_;
 };

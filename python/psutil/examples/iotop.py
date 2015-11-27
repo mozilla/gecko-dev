@@ -12,17 +12,33 @@ It works on Linux only (FreeBSD and OSX are missing support for IO
 counters).
 It doesn't work on Windows as curses module is required.
 
+Example output:
+
+$ python examples/iotop.py
+Total DISK READ: 0.00 B/s | Total DISK WRITE: 472.00 K/s
+PID   USER      DISK READ  DISK WRITE  COMMAND
+13155 giampao    0.00 B/s  428.00 K/s  /usr/bin/google-chrome-beta
+3260  giampao    0.00 B/s    0.00 B/s  bash
+3779  giampao    0.00 B/s    0.00 B/s  gnome-session --session=ubuntu
+3830  giampao    0.00 B/s    0.00 B/s  /usr/bin/dbus-launch
+3831  giampao    0.00 B/s    0.00 B/s  //bin/dbus-daemon --fork --print-pid 5
+3841  giampao    0.00 B/s    0.00 B/s  /usr/lib/at-spi-bus-launcher
+3845  giampao    0.00 B/s    0.00 B/s  /bin/dbus-daemon
+3848  giampao    0.00 B/s    0.00 B/s  /usr/lib/at-spi2-core/at-spi2-registryd
+3862  giampao    0.00 B/s    0.00 B/s  /usr/lib/gnome-settings-daemon
+
 Author: Giampaolo Rodola' <g.rodola@gmail.com>
 """
 
-import os
-import sys
-import psutil
-if not hasattr(psutil.Process, 'get_io_counters') or os.name != 'posix':
-    sys.exit('platform not supported')
-import time
-import curses
 import atexit
+import time
+import sys
+try:
+    import curses
+except ImportError:
+    sys.exit('platform not supported')
+
+import psutil
 
 
 # --- curses stuff
@@ -36,6 +52,7 @@ win = curses.initscr()
 atexit.register(tear_down)
 curses.endwin()
 lineno = 0
+
 
 def print_line(line, highlight=False):
     """A thin wrapper around curses's addstr()."""
@@ -65,12 +82,13 @@ def bytes2human(n):
     symbols = ('K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y')
     prefix = {}
     for i, s in enumerate(symbols):
-        prefix[s] = 1 << (i+1)*10
+        prefix[s] = 1 << (i + 1) * 10
     for s in reversed(symbols):
         if n >= prefix[s]:
             value = float(n) / prefix[s]
             return '%.2f %s/s' % (value, s)
     return '%.2f B/s' % (n)
+
 
 def poll(interval):
     """Calculate IO usage by comparing IO statics before and
@@ -82,7 +100,7 @@ def poll(interval):
     procs = [p for p in psutil.process_iter()]
     for p in procs[:]:
         try:
-            p._before = p.get_io_counters()
+            p._before = p.io_counters()
         except psutil.Error:
             procs.remove(p)
             continue
@@ -94,12 +112,12 @@ def poll(interval):
     # then retrieve the same info again
     for p in procs[:]:
         try:
-            p._after = p.get_io_counters()
-            p._cmdline = ' '.join(p.cmdline)
+            p._after = p.io_counters()
+            p._cmdline = ' '.join(p.cmdline())
             if not p._cmdline:
-                p._cmdline = p.name
-            p._username = p.username
-        except psutil.NoSuchProcess:
+                p._cmdline = p.name()
+            p._username = p.username()
+        except (psutil.NoSuchProcess, psutil.ZombieProcess):
             procs.remove(p)
     disks_after = psutil.disk_io_counters()
 
@@ -134,21 +152,23 @@ def refresh_window(procs, disks_read, disks_write):
     print_line(header, highlight=True)
 
     for p in procs:
-        line = templ % (p.pid,
-                        p._username[:7],
-                        bytes2human(p._read_per_sec),
-                        bytes2human(p._write_per_sec),
-                        p._cmdline)
+        line = templ % (
+            p.pid,
+            p._username[:7],
+            bytes2human(p._read_per_sec),
+            bytes2human(p._write_per_sec),
+            p._cmdline)
         try:
             print_line(line)
         except curses.error:
             break
     win.refresh()
 
+
 def main():
     try:
         interval = 0
-        while 1:
+        while True:
             args = poll(interval)
             refresh_window(*args)
             interval = 1

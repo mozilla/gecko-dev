@@ -12,6 +12,36 @@ MOZ_ARG_WITH_STRING(compiler_wrapper,
     Enable compiling with wrappers such as distcc and ccache],
     COMPILER_WRAPPER=$withval, COMPILER_WRAPPER="no")
 
+MOZ_ARG_WITH_STRING(ccache,
+[  --with-ccache[=path/to/ccache]
+                          Enable compiling with ccache],
+    CCACHE=$withval, CCACHE="no")
+
+if test "$CCACHE" != "no"; then
+    if test -z "$CCACHE" -o "$CCACHE" = "yes"; then
+        CCACHE=
+    else
+        if test ! -e "$CCACHE"; then
+            AC_MSG_ERROR([$CCACHE not found])
+        fi
+    fi
+    MOZ_PATH_PROGS(CCACHE, $CCACHE ccache)
+    if test -z "$CCACHE" -o "$CCACHE" = ":"; then
+        AC_MSG_ERROR([ccache not found])
+    elif test -x "$CCACHE"; then
+        if test "$COMPILER_WRAPPER" != "no"; then
+            COMPILER_WRAPPER="$CCACHE $COMPILER_WRAPPER"
+        else
+            COMPILER_WRAPPER="$CCACHE"
+        fi
+        MOZ_USING_CCACHE=1
+    else
+        AC_MSG_ERROR([$CCACHE is not executable])
+    fi
+fi
+
+AC_SUBST(MOZ_USING_CCACHE)
+
 if test "$COMPILER_WRAPPER" != "no"; then
     case "$target" in
     *-mingw*)
@@ -36,9 +66,9 @@ if test "$COMPILER_WRAPPER" != "no"; then
         _SUBDIR_CXX="$CXX"
         ac_cv_prog_CC="$CC"
         ac_cv_prog_CXX="$CXX"
-        MOZ_USING_COMPILER_WRAPPER=1
         ;;
     esac
+    MOZ_USING_COMPILER_WRAPPER=1
 fi
 
 AC_SUBST(MOZ_USING_COMPILER_WRAPPER)

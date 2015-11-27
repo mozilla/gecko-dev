@@ -24,17 +24,17 @@ public:
 
   virtual void LastRelease() {}
 
-  NS_IMETHOD RedoTransaction(void);
-  NS_IMETHOD GetIsTransient(bool *aIsTransient);
-  NS_IMETHOD Merge(nsITransaction *aTransaction, bool *aDidMerge);
+  NS_IMETHOD RedoTransaction(void) override;
+  NS_IMETHOD GetIsTransient(bool *aIsTransient) override;
+  NS_IMETHOD Merge(nsITransaction *aTransaction, bool *aDidMerge) override;
 
 protected:
   virtual ~EditTxn();
 };
 
 #define NS_DECL_EDITTXN \
-  NS_IMETHOD DoTransaction(); \
-  NS_IMETHOD UndoTransaction(); \
-  NS_IMETHOD GetTxnDescription(nsAString& aTxnDescription);
+  NS_IMETHOD DoTransaction() override; \
+  NS_IMETHOD UndoTransaction() override; \
+  NS_IMETHOD GetTxnDescription(nsAString& aTxnDescription) override;
 
 #endif

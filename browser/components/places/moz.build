@@ -10,11 +10,9 @@ BROWSER_CHROME_MANIFESTS += ['tests/browser/browser.ini']
 
 JAR_MANIFESTS += ['jar.mn']
 
-EXTRA_COMPONENTS += [
-    'BrowserPlaces.manifest',
-    'PlacesProtocolHandler.js',
-]
-
-EXTRA_PP_JS_MODULES += [
+EXTRA_JS_MODULES += [
     'PlacesUIUtils.jsm',
 ]
+
+with Files('**'):
+    BUG_COMPONENT = ('Firefox', 'Bookmarks & History')

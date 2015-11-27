@@ -25,7 +25,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://services-common/utils.js");
-Cu.import("resource://gre/modules/UpdateChannel.jsm");
+Cu.import("resource://gre/modules/UpdateUtils.jsm");
 
 // The current policy version number. If the version number stored in the prefs
 // is smaller than this, data upload will be disabled until the user is re-notified
@@ -378,6 +378,16 @@ this.DataReportingPolicy.prototype = Object.freeze({
     this._prefs.set("dataSubmissionEnabled", !!value);
   },
 
+  /**
+   * Whether submission of data is allowed for v2.
+   *
+   * This is used to gently turn off data submission for FHR v2 in Firefox 42+.
+   */
+  get dataSubmissionEnabledV2() {
+    // Default is true because we are opt-out.
+    return this._prefs.get("dataSubmissionEnabled.v2", true);
+  },
+
   get currentPolicyVersion() {
     return this._prefs.get("currentPolicyVersion", DATAREPORTING_POLICY_VERSION);
   },
@@ -388,7 +398,7 @@ this.DataReportingPolicy.prototype = Object.freeze({
    */
   get minimumPolicyVersion() {
     // First check if the current channel has an ove
-    let channel = UpdateChannel.get(false);
+    let channel = UpdateUtils.getUpdateChannel(false);
     let channelPref = this._prefs.get("minimumPolicyVersion.channel-" + channel);
     return channelPref !== undefined ?
            channelPref : this._prefs.get("minimumPolicyVersion", 1);
@@ -648,7 +658,7 @@ this.DataReportingPolicy.prototype = Object.freeze({
     // If the master data submission kill switch is toggled, we have nothing
     // to do. We don't notify about data policies because this would have
     // no effect.
-    if (!this.dataSubmissionEnabled) {
+    if (!this.dataSubmissionEnabled || !this.dataSubmissionEnabledV2) {
       this._log.debug("Data submission is disabled. Doing nothing.");
       return;
     }
@@ -817,7 +827,8 @@ this.DataReportingPolicy.prototype = Object.freeze({
     this._log.info("Requesting data submission. Will expire at " +
                    requestExpiresDate);
     try {
-      this._listener[handler](this._inProgressSubmissionRequest);
+      let promise = this._listener[handler](this._inProgressSubmissionRequest);
+      chained = chained.then(() => promise, null);
     } catch (ex) {
       this._log.warn("Exception when calling " + handler + ": " +
                      CommonUtils.exceptionStr(ex));

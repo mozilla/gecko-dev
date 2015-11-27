@@ -1,4 +1,6 @@
-/*
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ *
  * Copyright (C) 2008 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,6 +28,7 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/TaggedAnonymousMemory.h"
 
+#include <errno.h>
 #include <sys/mman.h>
 #include <unistd.h>
 
@@ -34,31 +37,52 @@
 
 using namespace js::jit;
 
-size_t ExecutableAllocator::determinePageSize()
+size_t
+ExecutableAllocator::determinePageSize()
 {
     return getpagesize();
 }
 
-ExecutablePool::Allocation ExecutableAllocator::systemAlloc(size_t n)
+void*
+js::jit::AllocateExecutableMemory(void* addr, size_t bytes, unsigned permissions, const char* tag,
+                                  size_t pageSize)
 {
-    void *allocation = MozTaggedAnonymousMmap(NULL, n, INITIAL_PROTECTION_FLAGS, MAP_PRIVATE | MAP_ANON, -1, 0, "js-jit-code");
-    if (allocation == MAP_FAILED)
-        allocation = NULL;
+    MOZ_ASSERT(bytes % pageSize == 0);
+    void* p = MozTaggedAnonymousMmap(addr, bytes, permissions, MAP_PRIVATE | MAP_ANON, -1, 0, tag);
+    return p == MAP_FAILED ? nullptr : p;
+}
+
+void
+js::jit::DeallocateExecutableMemory(void* addr, size_t bytes, size_t pageSize)
+{
+    MOZ_ASSERT(bytes % pageSize == 0);
+    mozilla::DebugOnly<int> result = munmap(addr, bytes);
+    MOZ_ASSERT(!result || errno == ENOMEM);
+}
+
+ExecutablePool::Allocation
+ExecutableAllocator::systemAlloc(size_t n)
+{
+    void* allocation = AllocateExecutableMemory(nullptr, n, initialProtectionFlags(Executable),
+                                                "js-jit-code", pageSize);
     ExecutablePool::Allocation alloc = { reinterpret_cast<char*>(allocation), n };
     return alloc;
 }
 
-void ExecutableAllocator::systemRelease(const ExecutablePool::Allocation& alloc)
+void
+ExecutableAllocator::systemRelease(const ExecutablePool::Allocation& alloc)
 {
-    mozilla::DebugOnly<int> result = munmap(alloc.pages, alloc.size);
-    MOZ_ASSERT(!result);
+    DeallocateExecutableMemory(alloc.pages, alloc.size, pageSize);
 }
 
-#if WTF_ENABLE_ASSEMBLER_WX_EXCLUSIVE
-void ExecutableAllocator::reprotectRegion(void* start, size_t size, ProtectionSetting setting)
+static const unsigned FLAGS_RW = PROT_READ | PROT_WRITE;
+static const unsigned FLAGS_RX = PROT_READ | PROT_EXEC;
+
+void
+ExecutableAllocator::reprotectRegion(void* start, size_t size, ProtectionSetting setting)
 {
-    if (!pageSize)
-        intializePageSize();
+    MOZ_ASSERT(nonWritableJitCode);
+    MOZ_ASSERT(pageSize);
 
     // Calculate the start of the page containing this region,
     // and account for this extra memory within size.
@@ -71,22 +95,14 @@ void ExecutableAllocator::reprotectRegion(void* start, size_t size, ProtectionSe
     size += (pageSize - 1);
     size &= ~(pageSize - 1);
 
-    mprotect(pageStart, size, (setting == Writable) ? PROTECTION_FLAGS_RW : PROTECTION_FLAGS_RX);
+    mprotect(pageStart, size, (setting == Writable) ? FLAGS_RW : FLAGS_RX);
 }
-#endif
 
-void
-ExecutablePool::toggleAllCodeAsAccessible(bool accessible)
+/* static */ unsigned
+ExecutableAllocator::initialProtectionFlags(ProtectionSetting protection)
 {
-    char* begin = m_allocation.pages;
-    size_t size = m_freePtr - begin;
+    if (!nonWritableJitCode)
+        return FLAGS_RW | FLAGS_RX;
 
-    if (size) {
-        // N.B. Some systems, like 32bit Mac OS 10.6, implicitly add PROT_EXEC
-        // when mprotect'ing memory with any flag other than PROT_NONE. Be
-        // sure to use PROT_NONE when making inaccessible.
-        int flags = accessible ? PROT_READ | PROT_WRITE | PROT_EXEC : PROT_NONE;
-        if (mprotect(begin, size, flags))
-            MOZ_CRASH();
-    }
+    return (protection == Writable) ? FLAGS_RW : FLAGS_RX;
 }

@@ -12,6 +12,4 @@ SOURCES += [
     'Sandbox.mm',
 ]
 
-FINAL_LIBRARY = 'xul'
-
-FAIL_ON_WARNINGS = True
+Library('mozsandbox');

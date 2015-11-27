@@ -8,7 +8,7 @@
 #define jit_TypedObjectPrediction_h
 
 #include "builtin/TypedObject.h"
-#include "jit/IonAllocPolicy.h"
+#include "jit/JitAllocPolicy.h"
 
 namespace js {
 namespace jit {
@@ -16,22 +16,11 @@ namespace jit {
 // A TypedObjectPrediction summarizes what we know about the type of a
 // typed object at a given point (if anything). The prediction will
 // begin as precise as possible and degrade to less precise as more
-// typed object types are merged using |addProto()|.
-//
-// - Precise type descriptor: the precise TypeDescr is known, which gives
-//   us all possible information, including precise dimensons in the case
-//   of an array.
-// - Proto: precise TypedProto is known. This is almost as precise as the
-//   type descriptor, but does not include array dimensions.
-// - Prefix: the type is known to be a struct and we can track a prefix
-//   of its fields. This doesn't tell us how big the struct is etc but
-//   can give us fast access to those fields we know about. Useful when
-//   modeling inheritance.
-// - Empty/Inconsistent: nothing useful is known.
+// typed object types are merged using |addDescr()|.
 //
 // To create a TypedObjectPrediction from TI, one initially creates an
 // empty prediction using the |TypedObjectPrediction()| constructor,
-// and then invokes |addProto()| with the prototype of each typed
+// and then invokes |addDescr()| with the prototype of each typed
 // object. The prediction will automatically downgrade to less and
 // less specific settings as needed. Note that creating a prediction
 // in this way can never yield precise array dimensions, since TI only
@@ -61,25 +50,18 @@ class TypedObjectPrediction {
         // in a subtyping scenario.
         Prefix,
 
-        // The TypedProto of the value is known. This is generally
-        // less precise than the type descriptor because typed protos
-        // do not track array bounds.
-        Proto,
-
         // The TypeDescr of the value is known. This is the most specific
-        // possible value and includes precise array bounds. Generally
-        // this only happens if we access the field of a struct.
+        // possible value and includes precise array bounds.
         Descr
     };
 
     struct PrefixData {
-        const StructTypeDescr *descr;
+        const StructTypeDescr* descr;
         size_t fields;
     };
 
     union Data {
-        const TypedProto *proto;
-        const TypeDescr *descr;
+        const TypeDescr* descr;
         PrefixData prefix;
     };
 
@@ -95,74 +77,60 @@ class TypedObjectPrediction {
         kind_ = Inconsistent;
     }
 
-    const TypedProto &proto() const {
-        JS_ASSERT(predictionKind() == Proto);
-        return *data_.proto;
-    }
-
-    const TypeDescr &descr() const {
-        JS_ASSERT(predictionKind() == Descr);
+    const TypeDescr& descr() const {
+        MOZ_ASSERT(predictionKind() == Descr);
         return *data_.descr;
     }
 
-    const PrefixData &prefix() const {
-        JS_ASSERT(predictionKind() == Prefix);
+    const PrefixData& prefix() const {
+        MOZ_ASSERT(predictionKind() == Prefix);
         return data_.prefix;
     }
 
-    void setProto(const TypedProto &proto) {
-        kind_ = Proto;
-        data_.proto = &proto;
-    }
-
-    void setDescr(const TypeDescr &descr) {
+    void setDescr(const TypeDescr& descr) {
         kind_ = Descr;
         data_.descr = &descr;
     }
 
-    void setPrefix(const StructTypeDescr &descr, size_t fields) {
+    void setPrefix(const StructTypeDescr& descr, size_t fields) {
         kind_ = Prefix;
         data_.prefix.descr = &descr;
         data_.prefix.fields = fields;
     }
 
-    void markAsCommonPrefix(const StructTypeDescr &descrA,
-                            const StructTypeDescr &descrB,
+    void markAsCommonPrefix(const StructTypeDescr& descrA,
+                            const StructTypeDescr& descrB,
                             size_t max);
 
     template<typename T>
     typename T::Type extractType() const;
 
-    bool hasFieldNamedPrefix(const StructTypeDescr &descr,
+    bool hasFieldNamedPrefix(const StructTypeDescr& descr,
                              size_t fieldCount,
                              jsid id,
-                             size_t *fieldOffset,
-                             TypedObjectPrediction *out,
-                             size_t *index) const;
+                             size_t* fieldOffset,
+                             TypedObjectPrediction* out,
+                             size_t* index) const;
 
   public:
 
     ///////////////////////////////////////////////////////////////////////////
     // Constructing a prediction. Generally, you start with an empty
-    // prediction and invoke addProto() repeatedly.
+    // prediction and invoke addDescr() repeatedly.
 
     TypedObjectPrediction() {
         kind_ = Empty;
     }
 
-    explicit TypedObjectPrediction(const TypedProto &proto) {
-        setProto(proto);
-    }
-
-    explicit TypedObjectPrediction(const TypeDescr &descr) {
+    explicit TypedObjectPrediction(const TypeDescr& descr) {
         setDescr(descr);
     }
 
-    TypedObjectPrediction(const StructTypeDescr &descr, size_t fields) {
+    TypedObjectPrediction(const StructTypeDescr& descr, size_t fields) {
         setPrefix(descr, fields);
     }
 
-    void addProto(const TypedProto &proto);
+    void addDescr(const TypeDescr& descr);
 
     ///////////////////////////////////////////////////////////////////////////
     // Queries that are always valid.
@@ -176,7 +144,7 @@ class TypedObjectPrediction {
     // object is of scalar/reference kind, in which case instances are
     // not objects and hence do not have a (publicly available)
     // prototype.
-    const TypedProto *getKnownPrototype() const;
+    const TypedProto* getKnownPrototype() const;
 
     ///////////////////////////////////////////////////////////////////////////
     // Queries that are valid if not useless.
@@ -191,12 +159,12 @@ class TypedObjectPrediction {
     // The size may not be statically known if (1) the object is
     // an array whose dimensions are unknown or (2) only a prefix
     // of its type is known.
-    bool hasKnownSize(int32_t *out) const;
+    bool hasKnownSize(int32_t* out) const;
 
     //////////////////////////////////////////////////////////////////////
     // Simple operations
     //
-    // Only valid when |kind()| is Scalar, Reference, or x4 (as appropriate).
+    // Only valid when |kind()| is Scalar, Reference, or Simd (as appropriate).
 
     ScalarTypeDescr::Type scalarType() const;
     ReferenceTypeDescr::Type referenceType() const;
@@ -207,7 +175,7 @@ class TypedObjectPrediction {
 
     // Returns true if the length of the array is statically known,
     // and sets |*length| appropriately. Otherwise returns false.
-    bool hasKnownArrayLength(int32_t *length) const;
+    bool hasKnownArrayLength(int32_t* length) const;
 
     // Returns a prediction for the array element type, if any.
     TypedObjectPrediction arrayElementType() const;
@@ -222,9 +190,9 @@ class TypedObjectPrediction {
     // the offset (in bytes), type, and index of the field
     // respectively.  Otherwise returns false.
     bool hasFieldNamed(jsid id,
-                       size_t *fieldOffset,
-                       TypedObjectPrediction *fieldType,
-                       size_t *fieldIndex) const;
+                       size_t* fieldOffset,
+                       TypedObjectPrediction* fieldType,
+                       size_t* fieldIndex) const;
 };
 
 } // namespace jit

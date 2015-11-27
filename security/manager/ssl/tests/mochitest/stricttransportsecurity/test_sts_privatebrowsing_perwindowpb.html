@@ -54,10 +54,18 @@
                      'nosts': 'SECURE'}},
   };
 
+  function whenDelayedStartupFinished(aWindow, aCallback) {
+    SpecialPowers.Services.obs.addObserver(function observer(aSubject, aTopic) {
+      if (aWindow == aSubject) {
+        SpecialPowers.Services.obs.removeObserver(observer, aTopic);
+        SimpleTest.executeSoon(aCallback);
+      }
+    }, "browser-delayed-startup-finished", false);
+  }
+
   function testOnWindow(aIsPrivate, aCallback) {
     var win = mainWindow.OpenBrowserWindow({private: aIsPrivate});
-    win.addEventListener("load", function onLoad() {
-      win.removeEventListener("load", onLoad, false);
+    whenDelayedStartupFinished(win, function () {
       win.gBrowser.addEventListener("DOMContentLoaded", function onInnerLoad() {
         if (win.content.location.href != CONTENT_PAGE) {
           win.gBrowser.loadURI(CONTENT_PAGE);
@@ -67,7 +75,7 @@
         SimpleTest.executeSoon(function() { aCallback(win); });
       }, true);
       win.gBrowser.loadURI(CONTENT_PAGE);
-    }, true);
+    });
   }
 
   function startRound(win, isPrivate, round) {
@@ -184,14 +192,8 @@
   function clean_up_sts_state(isPrivate) {
     // erase all signs that this test ran.
     SimpleTest.info("Cleaning up STS data");
-    var ios =
-      Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
-    var thehost = ios.newURI("http://example.com", null, null);
-    var sss =
-      Cc["@mozilla.org/ssservice;1"].
-        getService(Ci.nsISiteSecurityService);
     var flags = isPrivate ? Ci.nsISocketProvider.NO_PERMANENT_STORAGE : 0
-    sss.removeState(Ci.nsISiteSecurityService.HEADER_HSTS, thehost, flags);
+    SpecialPowers.cleanUpSTSData("http://example.com", flags);
     dump_STSState(isPrivate);
   }
 

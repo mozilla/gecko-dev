@@ -23,10 +23,10 @@ public:
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(CanvasGradient)
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(CanvasGradient)
 
-  MOZ_BEGIN_NESTED_ENUM_CLASS(Type, uint8_t)
+  enum class Type : uint8_t {
     LINEAR = 0,
     RADIAL
-  MOZ_END_NESTED_ENUM_CLASS(Type)
+  };
 
   Type GetType()
   {
@@ -51,9 +51,9 @@ public:
   // WebIDL
   void AddColorStop(float offset, const nsAString& colorstr, ErrorResult& rv);
 
-  JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE
+  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override
   {
-    return CanvasGradientBinding::Wrap(aCx, this);
+    return CanvasGradientBinding::Wrap(aCx, this, aGivenProto);
   }
 
   CanvasRenderingContext2D* GetParentObject()
@@ -66,17 +66,14 @@ protected:
     : mContext(aContext)
     , mType(aType)
   {
-    SetIsDOMBinding();
   }
 
-  nsRefPtr<CanvasRenderingContext2D> mContext;
+  RefPtr<CanvasRenderingContext2D> mContext;
   nsTArray<mozilla::gfx::GradientStop> mRawStops;
-  mozilla::RefPtr<mozilla::gfx::GradientStops> mStops;
+  RefPtr<mozilla::gfx::GradientStops> mStops;
   Type mType;
   virtual ~CanvasGradient() {}
 };
-
-MOZ_FINISH_NESTED_ENUM_CLASS(CanvasGradient::Type)
 
 } // namespace dom
 } // namespace mozilla

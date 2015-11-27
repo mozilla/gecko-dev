@@ -21,6 +21,7 @@ UNIFIED_SOURCES += [
     'mozActionElements.mm',
     'mozDocAccessible.mm',
     'mozHTMLAccessible.mm',
+    'mozTableAccessible.mm',
     'mozTextAccessible.mm',
     'Platform.mm',
     'RootAccessibleWrap.mm',
@@ -30,11 +31,14 @@ LOCAL_INCLUDES += [
     '/accessible/base',
     '/accessible/generic',
     '/accessible/html',
+    '/accessible/ipc',
     '/accessible/xul',
     '/layout/generic',
     '/layout/xul',
+    '/widget',
     '/widget/cocoa',
-    '/widget/xpwidgets',
 ]
 
 FINAL_LIBRARY = 'xul'
+
+include('/ipc/chromium/chromium-config.mozbuild')

@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -14,10 +14,13 @@
 #include "pk11pub.h"
 #include "keyhi.h"
 #include "ScopedNSSTypes.h"
-#include "mozilla/dom/KeyAlgorithm.h"
+#include "mozilla/ErrorResult.h"
 #include "mozilla/dom/CryptoBuffer.h"
+#include "mozilla/dom/KeyAlgorithmProxy.h"
 #include "js/StructuredClone.h"
 #include "js/TypeDecls.h"
+
+#define CRYPTOKEY_SC_VERSION 0x00000001
 
 class nsIGlobalObject;
 
@@ -55,9 +58,9 @@ Thus, internally, a key has the following fields:
 
 struct JsonWebKey;
 
-class CryptoKey MOZ_FINAL : public nsISupports,
-                            public nsWrapperCache,
-                            public nsNSSShutDownObject
+class CryptoKey final : public nsISupports,
+                        public nsWrapperCache,
+                        public nsNSSShutDownObject
 {
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -95,32 +98,38 @@ public:
     return mGlobal;
   }
 
-  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL methods
   void GetType(nsString& aRetVal) const;
   bool Extractable() const;
-  KeyAlgorithm* Algorithm() const;
+  void GetAlgorithm(JSContext* cx, JS::MutableHandle<JSObject*> aRetVal,
+                    ErrorResult& aRv) const;
   void GetUsages(nsTArray<nsString>& aRetVal) const;
 
   // The below methods are not exposed to JS, but C++ can use
   // them to manipulate the object
 
+  KeyAlgorithmProxy& Algorithm();
+  const KeyAlgorithmProxy& Algorithm() const;
   KeyType GetKeyType() const;
   nsresult SetType(const nsString& aType);
   void SetType(KeyType aType);
   void SetExtractable(bool aExtractable);
-  void SetAlgorithm(KeyAlgorithm* aAlgorithm);
+  nsresult AddPublicKeyData(SECKEYPublicKey* point);
   void ClearUsages();
   nsresult AddUsage(const nsString& aUsage);
   nsresult AddUsageIntersecting(const nsString& aUsage, uint32_t aUsageMask);
   void AddUsage(KeyUsage aUsage);
+  bool HasAnyUsage();
   bool HasUsage(KeyUsage aUsage);
   bool HasUsageOtherThan(uint32_t aUsages);
+  static bool IsRecognizedUsage(const nsString& aUsage);
+  static bool AllUsagesRecognized(const Sequence<nsString>& aUsages);
 
-  void SetSymKey(const CryptoBuffer& aSymKey);
-  void SetPrivateKey(SECKEYPrivateKey* aPrivateKey);
-  void SetPublicKey(SECKEYPublicKey* aPublicKey);
+  nsresult SetSymKey(const CryptoBuffer& aSymKey);
+  nsresult SetPrivateKey(SECKEYPrivateKey* aPrivateKey);
+  nsresult SetPublicKey(SECKEYPublicKey* aPublicKey);
 
   // Accessors for the keys themselves
   // Note: GetPrivateKey and GetPublicKey return copies of the internal
@@ -131,7 +140,7 @@ public:
   SECKEYPublicKey* GetPublicKey() const;
 
   // For nsNSSShutDownObject
-  virtual void virtualDestroyNSSReference();
+  virtual void virtualDestroyNSSReference() override;
   void destructorSafeDestroyNSSReference();
 
   // Serialization and deserialization convenience methods
@@ -147,7 +156,7 @@ public:
 
   static SECKEYPublicKey* PublicKeyFromSpki(CryptoBuffer& aKeyData,
                                             const nsNSSShutDownPreventionLock& /*proofOfLock*/);
-  static nsresult PublicKeyToSpki(SECKEYPublicKey* aPrivKey,
+  static nsresult PublicKeyToSpki(SECKEYPublicKey* aPubKey,
                                   CryptoBuffer& aRetVal,
                                   const nsNSSShutDownPreventionLock& /*proofOfLock*/);
 
@@ -159,9 +168,26 @@ public:
 
   static SECKEYPublicKey* PublicKeyFromJwk(const JsonWebKey& aKeyData,
                                            const nsNSSShutDownPreventionLock& /*proofOfLock*/);
-  static nsresult PublicKeyToJwk(SECKEYPublicKey* aPrivKey,
+  static nsresult PublicKeyToJwk(SECKEYPublicKey* aPubKey,
                                  JsonWebKey& aRetVal,
                                  const nsNSSShutDownPreventionLock& /*proofOfLock*/);
+
+  static SECKEYPublicKey* PublicDhKeyFromRaw(CryptoBuffer& aKeyData,
+                                             const CryptoBuffer& aPrime,
+                                             const CryptoBuffer& aGenerator,
+                                             const nsNSSShutDownPreventionLock& /*proofOfLock*/);
+  static nsresult PublicDhKeyToRaw(SECKEYPublicKey* aPubKey,
+                                   CryptoBuffer& aRetVal,
+                                   const nsNSSShutDownPreventionLock& /*proofOfLock*/);
+
+  static SECKEYPublicKey* PublicECKeyFromRaw(CryptoBuffer& aKeyData,
+                                             const nsString& aNamedCurve,
+                                             const nsNSSShutDownPreventionLock& /*proofOfLock*/);
+  static nsresult PublicECKeyToRaw(SECKEYPublicKey* aPubKey,
+                                   CryptoBuffer& aRetVal,
+                                   const nsNSSShutDownPreventionLock& /*proofOfLock*/);
+
+  static bool PublicKeyValid(SECKEYPublicKey* aPubKey);
 
   // Structured clone methods use these to clone keys
   bool WriteStructuredClone(JSStructuredCloneWriter* aWriter) const;
@@ -170,9 +196,9 @@ public:
 private:
   ~CryptoKey();
 
-  nsRefPtr<nsIGlobalObject> mGlobal;
+  RefPtr<nsIGlobalObject> mGlobal;
   uint32_t mAttributes; // see above
-  nsRefPtr<KeyAlgorithm> mAlgorithm;
+  KeyAlgorithmProxy mAlgorithm;
 
   // Only one key handle should be set, according to the KeyType
   CryptoBuffer mSymKey;

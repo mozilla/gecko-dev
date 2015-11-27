@@ -14,30 +14,32 @@
 #include "js/Value.h"
 
 #include "vm/SharedArrayObject.h"
+#include "vm/SharedMem.h"
 
 namespace js {
 
+inline SharedMem<uint8_t*>
+ArrayBufferObjectMaybeShared::dataPointerMaybeShared()
+{
+    ArrayBufferObjectMaybeShared* buf = this;
+    if (buf->is<ArrayBufferObject>())
+        return buf->as<ArrayBufferObject>().dataPointerShared();
+    return buf->as<SharedArrayBufferObject>().dataPointerShared();
+}
+
 inline uint32_t
-AnyArrayBufferByteLength(const ArrayBufferObjectMaybeShared *buf)
+AnyArrayBufferByteLength(const ArrayBufferObjectMaybeShared* buf)
 {
     if (buf->is<ArrayBufferObject>())
-	return buf->as<ArrayBufferObject>().byteLength();
+        return buf->as<ArrayBufferObject>().byteLength();
     return buf->as<SharedArrayBufferObject>().byteLength();
 }
 
-inline uint8_t *
-AnyArrayBufferDataPointer(const ArrayBufferObjectMaybeShared *buf)
-{
-    if (buf->is<ArrayBufferObject>())
-	return buf->as<ArrayBufferObject>().dataPointer();
-    return buf->as<SharedArrayBufferObject>().dataPointer();
-}
-
-inline ArrayBufferObjectMaybeShared &
+inline ArrayBufferObjectMaybeShared&
 AsAnyArrayBuffer(HandleValue val)
 {
     if (val.toObject().is<ArrayBufferObject>())
-	return val.toObject().as<ArrayBufferObject>();
+        return val.toObject().as<ArrayBufferObject>();
     return val.toObject().as<SharedArrayBufferObject>();
 }
 

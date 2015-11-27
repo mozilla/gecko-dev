@@ -57,14 +57,14 @@ _hb_options_init (void)
 
 /**
  * hb_tag_from_string:
- * @str: (array length=len): 
+ * @str: (array length=len) (element-type uint8_t): 
  * @len: 
  *
  * 
  *
  * Return value: 
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 hb_tag_t
 hb_tag_from_string (const char *str, int len)
@@ -92,7 +92,7 @@ hb_tag_from_string (const char *str, int len)
  *
  * 
  *
- * Since: 1.0
+ * Since: 0.9.5
  **/
 void
 hb_tag_to_string (hb_tag_t tag, char *buf)
@@ -115,14 +115,14 @@ const char direction_strings[][4] = {
 
 /**
  * hb_direction_from_string:
- * @str: (array length=len): 
+ * @str: (array length=len) (element-type uint8_t): 
  * @len: 
  *
  * 
  *
  * Return value: 
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 hb_direction_t
 hb_direction_from_string (const char *str, int len)
@@ -149,7 +149,7 @@ hb_direction_from_string (const char *str, int len)
  *
  * Return value: (transfer none): 
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 const char *
 hb_direction_to_string (hb_direction_t direction)
@@ -179,7 +179,7 @@ static const char canon_map[256] = {
   'p', 'q', 'r', 's', 't', 'u', 'v', 'w',  'x', 'y', 'z',  0,   0,   0,   0,   0
 };
 
-static hb_bool_t
+static bool
 lang_equal (hb_language_t  v1,
 	    const void    *v2)
 {
@@ -234,8 +234,8 @@ struct hb_language_item_t {
 
 static hb_language_item_t *langs;
 
-#ifdef HAVE_ATEXIT
-static inline
+#ifdef HB_USE_ATEXIT
+static
 void free_langs (void)
 {
   while (langs) {
@@ -265,11 +265,12 @@ retry:
   *lang = key;
 
   if (!hb_atomic_ptr_cmpexch (&langs, first_lang, lang)) {
+    lang->finish ();
     free (lang);
     goto retry;
   }
 
-#ifdef HAVE_ATEXIT
+#ifdef HB_USE_ATEXIT
   if (!first_lang)
     atexit (free_langs); /* First person registers atexit() callback. */
 #endif
@@ -280,33 +281,33 @@ retry:
 
 /**
  * hb_language_from_string:
- * @str: (array length=len): 
+ * @str: (array length=len) (element-type uint8_t): 
  * @len: 
  *
  * 
  *
- * Return value: 
+ * Return value: (transfer none):
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 hb_language_t
 hb_language_from_string (const char *str, int len)
 {
-  char strbuf[64];
-
   if (!str || !len || !*str)
     return HB_LANGUAGE_INVALID;
 
+  hb_language_item_t *item = NULL;
   if (len >= 0)
   {
     /* NUL-terminate it. */
+    char strbuf[64];
     len = MIN (len, (int) sizeof (strbuf) - 1);
     memcpy (strbuf, str, len);
     strbuf[len] = '\0';
-    str = strbuf;
+    item = lang_find_or_insert (strbuf);
   }
-
-  hb_language_item_t *item = lang_find_or_insert (str);
+  else
+    item = lang_find_or_insert (str);
 
   return likely (item) ? item->lang : HB_LANGUAGE_INVALID;
 }
@@ -319,7 +320,7 @@ hb_language_from_string (const char *str, int len)
  *
  * Return value: (transfer none): 
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 const char *
 hb_language_to_string (hb_language_t language)
@@ -333,9 +334,9 @@ hb_language_to_string (hb_language_t language)
  *
  * 
  *
- * Return value: 
+ * Return value: (transfer none):
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 hb_language_t
 hb_language_get_default (void)
@@ -345,7 +346,7 @@ hb_language_get_default (void)
   hb_language_t language = (hb_language_t) hb_atomic_ptr_get (&default_language);
   if (unlikely (language == HB_LANGUAGE_INVALID)) {
     language = hb_language_from_string (setlocale (LC_CTYPE, NULL), -1);
-    hb_atomic_ptr_cmpexch (&default_language, HB_LANGUAGE_INVALID, language);
+    (void) hb_atomic_ptr_cmpexch (&default_language, HB_LANGUAGE_INVALID, language);
   }
 
   return default_language;
@@ -362,7 +363,7 @@ hb_language_get_default (void)
  *
  * Return value: 
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 hb_script_t
 hb_script_from_iso15924_tag (hb_tag_t tag)
@@ -400,14 +401,14 @@ hb_script_from_iso15924_tag (hb_tag_t tag)
 
 /**
  * hb_script_from_string:
- * @s: (array length=len): 
+ * @s: (array length=len) (element-type uint8_t): 
  * @len: 
  *
  * 
  *
  * Return value: 
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 hb_script_t
 hb_script_from_string (const char *s, int len)
@@ -423,7 +424,7 @@ hb_script_from_string (const char *s, int len)
  *
  * Return value: 
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 hb_tag_t
 hb_script_to_iso15924_tag (hb_script_t script)
@@ -439,7 +440,7 @@ hb_script_to_iso15924_tag (hb_script_t script)
  *
  * Return value: 
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 hb_direction_t
 hb_script_get_horizontal_direction (hb_script_t script)
@@ -492,6 +493,9 @@ hb_script_get_horizontal_direction (hb_script_t script)
     case HB_SCRIPT_PALMYRENE:
     case HB_SCRIPT_PSALTER_PAHLAVI:
 
+    /* Unicode-8.0 additions */
+    case HB_SCRIPT_OLD_HUNGARIAN:
+
       return HB_DIRECTION_RTL;
   }
 
@@ -541,7 +545,7 @@ hb_user_data_array_t::get (hb_user_data_key_t *key)
  *
  * Returns library version as three integer components.
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 void
 hb_version (unsigned int *major,
@@ -560,7 +564,7 @@ hb_version (unsigned int *major,
  *
  * Return value: library version string.
  *
- * Since: 1.0
+ * Since: 0.9.2
  **/
 const char *
 hb_version_string (void)
@@ -578,7 +582,7 @@ hb_version_string (void)
  *
  * Return value: 
  *
- * Since: 1.0
+ * Since: 0.9.30
  **/
 hb_bool_t
 hb_version_atleast (unsigned int major,

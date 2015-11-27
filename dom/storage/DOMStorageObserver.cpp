@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -74,7 +75,7 @@ DOMStorageObserver::Init()
 #ifdef DOM_STORAGE_TESTS
   // Testing
   obs->AddObserver(sSelf, "domstorage-test-flush-force", true);
-  if (XRE_GetProcessType() == GeckoProcessType_Default) {
+  if (XRE_IsParentProcess()) {
     // Only to forward to child process.
     obs->AddObserver(sSelf, "domstorage-test-flushed", true);
   }
@@ -195,8 +196,20 @@ DOMStorageObserver::Observe(nsISupports* aSubject,
       return NS_OK;
     }
 
+    nsCOMPtr<nsIPrincipal> principal;
+    perm->GetPrincipal(getter_AddRefs(principal));
+    if (!principal) {
+      return NS_OK;
+    }
+
+    nsCOMPtr<nsIURI> origin;
+    principal->GetURI(getter_AddRefs(origin));
+    if (!origin) {
+      return NS_OK;
+    }
+
     nsAutoCString host;
-    perm->GetHost(host);
+    origin->GetHost(host);
     if (host.IsEmpty()) {
       return NS_OK;
     }
@@ -341,5 +354,5 @@ DOMStorageObserver::Observe(nsISupports* aSubject,
   return NS_ERROR_UNEXPECTED;
 }
 
-} // ::dom
-} // ::mozilla
+} // namespace dom
+} // namespace mozilla

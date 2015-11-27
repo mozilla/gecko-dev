@@ -5,15 +5,18 @@
 "use strict";
 
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
+const myScope = this;
 
 Cu.import("resource://gre/modules/Log.jsm", this);
-Cu.import("resource://gre/modules/osfile.jsm", this)
+Cu.import("resource://gre/modules/osfile.jsm", this);
 Cu.import("resource://gre/modules/Promise.jsm", this);
 Cu.import("resource://gre/modules/Services.jsm", this);
 Cu.import("resource://gre/modules/Task.jsm", this);
 Cu.import("resource://gre/modules/Timer.jsm", this);
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 Cu.import("resource://services-common/utils.js", this);
+Cu.import("resource://gre/modules/TelemetryController.jsm");
+Cu.import("resource://gre/modules/KeyValueParser.jsm");
 
 this.EXPORTED_SYMBOLS = [
   "CrashManager",
@@ -359,13 +362,14 @@ this.CrashManager.prototype = Object.freeze({
    * @param crashType (string) One of the CRASH_TYPE constants.
    * @param id (string) Crash ID. Likely a UUID.
    * @param date (Date) When the crash occurred.
+   * @param metadata (dictionary) Crash metadata, may be empty.
    *
    * @return promise<null> Resolved when the store has been saved.
    */
-  addCrash: function (processType, crashType, id, date) {
+  addCrash: function (processType, crashType, id, date, metadata) {
     return Task.spawn(function* () {
       let store = yield this._getStore();
-      if (store.addCrash(processType, crashType, id, date)) {
+      if (store.addCrash(processType, crashType, id, date, metadata)) {
         yield store.save();
       }
     }.bind(this));
@@ -432,13 +436,13 @@ this.CrashManager.prototype = Object.freeze({
    * Set the classification of a crash.
    *
    * @param crashID (string) Crash ID. Likely a UUID.
-   * @param classification (string) Crash classification/reason.
+   * @param classifications (array) Crash classifications.
    *
-   * @return boolean True if the classification was recorded and false if not.
+   * @return boolean True if the data was recorded and false if not.
    */
-  setCrashClassification: Task.async(function* (crashID, classification) {
+  setCrashClassifications: Task.async(function* (crashID, classifications) {
     let store = yield this._getStore();
-    if (store.setCrashClassification(crashID, classification)) {
+    if (store.setCrashClassifications(crashID, classifications)) {
       yield store.save();
     }
   }),
@@ -518,10 +522,38 @@ this.CrashManager.prototype = Object.freeze({
                            entry.path);
             return this.EVENT_FILE_ERROR_MALFORMED;
           }
-
-          let [crashID] = lines;
+          // fall-through
+        case "crash.main.2":
+          let crashID = lines[0];
+          let metadata = parseKeyValuePairsFromLines(lines.slice(1));
           store.addCrash(this.PROCESS_TYPE_MAIN, this.CRASH_TYPE_CRASH,
-                         crashID, date);
+                         crashID, date, metadata);
+
+          // If we have a saved environment, use it. Otherwise report
+          // the current environment.
+          let crashEnvironment = null;
+          let reportMeta = Cu.cloneInto(metadata, myScope);
+          if ('TelemetryEnvironment' in reportMeta) {
+            try {
+              crashEnvironment = JSON.parse(reportMeta.TelemetryEnvironment);
+            } catch(e) {
+              Cu.reportError(e);
+            }
+            delete reportMeta.TelemetryEnvironment;
+          }
+          TelemetryController.submitExternalPing("crash",
+            {
+              version: 1,
+              crashDate: date.toISOString().slice(0, 10), // YYYY-MM-DD
+              metadata: reportMeta,
+              hasCrashEnvironment: (crashEnvironment !== null),
+            },
+            {
+              retentionDays: 180,
+              addClientId: true,
+              addEnvironment: true,
+              overrideEnvironment: crashEnvironment,
+            });
           break;
 
         case "crash.submission.1":
@@ -675,7 +707,7 @@ this.CrashManager.prototype = Object.freeze({
   },
 });
 
-let gCrashManager;
+var gCrashManager;
 
 /**
  * Interface to storage of crash data.
@@ -766,14 +798,10 @@ CrashStore.prototype = Object.freeze({
         // with "-submission", we will need to convert the data to be stored
         // as actual submissions.
         //
-        // TODO: The old way of storing submissions was used from FF33 - FF34.
-        // We should drop the conversion code after a few releases. See bug
-        // 1056157.
-        let hasSubmissionsStoredAsCrashes = false;
-
+        // The old way of storing submissions was used from FF33 - FF34. We
+        // drop this old data on the floor.
         for (let id in data.crashes) {
           if (id.endsWith("-submission")) {
-            hasSubmissionsStoredAsCrashes = true;
             continue;
           }
 
@@ -793,32 +821,15 @@ CrashStore.prototype = Object.freeze({
 
           let key = dateToDays(denormalized.crashDate) + "-" + denormalized.type;
           actualCounts.set(key, (actualCounts.get(key) || 0) + 1);
-        }
 
-        if (hasSubmissionsStoredAsCrashes) {
-          for (let id in data.crashes) {
-            if (!id.endsWith("-submission")) {
-              continue;
-            }
-
-            // This type of record will contain e.g.:
-            // {
-            //   "id": "crash1-submission",
-            //   "type": "main-crash-submission-succeeded",
-            //   "crashDate": "...",
-            // }
-            let submissionData = this._denormalize(data.crashes[id]);
-
-            let crashID = id.replace(/-submission$/, "");
-            let result = submissionData.type.endsWith("-succeeded") ?
-              CrashManager.prototype.SUBMISSION_RESULT_OK :
-              CrashManager.prototype.SUBMISSION_RESULT_FAILED;
-
-            this.addSubmissionAttempt(crashID, "converted",
-                                      submissionData.crashDate);
-            this.addSubmissionResult(crashID, "converted",
-                                     submissionData.crashDate, result);
+          // If we have an OOM size, count the crash as an OOM in addition to
+          // being a main process crash.
+          if (denormalized.metadata && 
+              denormalized.metadata.OOMAllocationSize) {
+            let oomKey = key + "-oom";
+            actualCounts.set(oomKey, (actualCounts.get(oomKey) || 0) + 1);
           }
+
         }
 
         // The validation in this loop is arguably not necessary. We perform
@@ -1052,10 +1063,12 @@ CrashStore.prototype = Object.freeze({
    *        (string) The crash ID.
    * @param date
    *        (Date) When this crash occurred.
+   * @param metadata
+   *        (dictionary) Crash metadata, may be empty.
    *
    * @return null | object crash record
    */
-  _ensureCrashRecord: function (processType, crashType, id, date) {
+  _ensureCrashRecord: function (processType, crashType, id, date, metadata) {
     if (!id) {
       // Crashes are keyed on ID, so it's not really helpful to store crashes
       // without IDs.
@@ -1076,13 +1089,22 @@ CrashStore.prototype = Object.freeze({
         return null;
       }
 
+      // If we have an OOM size, count the crash as an OOM in addition to
+      // being a main process crash.
+      if (metadata && metadata.OOMAllocationSize) {
+        let oomType = type + "-oom";
+        let oomCount = (this._countsByDay.get(day).get(oomType) || 0) + 1;
+        this._countsByDay.get(day).set(oomType, oomCount);
+      }
+
       this._data.crashes.set(id, {
         id: id,
         remoteID: null,
         type: type,
         crashDate: date,
         submissions: new Map(),
-        classification: null,
+        classifications: [],
+        metadata: metadata,
       });
     }
 
@@ -1100,11 +1122,12 @@ CrashStore.prototype = Object.freeze({
    * @param crashType (string) One of the CRASH_TYPE constants.
    * @param id (string) Crash ID. Likely a UUID.
    * @param date (Date) When the crash occurred.
+   * @param metadata (dictionary) Crash metadata, may be empty.
    *
    * @return boolean True if the crash was recorded and false if not.
    */
-  addCrash: function (processType, crashType, id, date) {
-    return !!this._ensureCrashRecord(processType, crashType, id, date);
+  addCrash: function (processType, crashType, id, date, metadata) {
+    return !!this._ensureCrashRecord(processType, crashType, id, date, metadata);
   },
 
   /**
@@ -1132,21 +1155,8 @@ CrashStore.prototype = Object.freeze({
   },
 
   /**
-   * Obtain a particular crash submission from its ID.
-   *
-   * @return undefined | submission object
-   */
-  getSubmission: function (crashID, submissionID) {
-    let crash = this._data.crashes.get(crashID);
-    if (!crash || !submissionID) {
-      return undefined;
-    }
-
-    return crash.submissions.get(submissionID);
-  },
-
-  /**
    * Ensure the submission record is present in storage.
+   * @returns [submission, crash]
    */
   _ensureSubmissionRecord: function (crashID, submissionID) {
     let crash = this._data.crashes.get(crashID);
@@ -1162,19 +1172,22 @@ CrashStore.prototype = Object.freeze({
       });
     }
 
-    return crash.submissions.get(submissionID);
+    return [crash.submissions.get(submissionID), crash];
   },
 
   /**
    * @return boolean True if the attempt was recorded.
    */
   addSubmissionAttempt: function (crashID, submissionID, date) {
-    let submission = this._ensureSubmissionRecord(crashID, submissionID);
+    let [submission, crash] =
+      this._ensureSubmissionRecord(crashID, submissionID);
     if (!submission) {
       return false;
     }
 
     submission.requestDate = date;
+    Services.telemetry.getKeyedHistogramById("PROCESS_CRASH_SUBMIT_ATTEMPT")
+      .add(crash.type, 1);
     return true;
   },
 
@@ -1182,26 +1195,32 @@ CrashStore.prototype = Object.freeze({
    * @return boolean True if the response was recorded.
    */
   addSubmissionResult: function (crashID, submissionID, date, result) {
-    let submission = this.getSubmission(crashID, submissionID);
+    let crash = this._data.crashes.get(crashID);
+    if (!crash || !submissionID) {
+      return false;
+    }
+    let submission = crash.submissions.get(submissionID);
     if (!submission) {
       return false;
     }
 
     submission.responseDate = date;
     submission.result = result;
+    Services.telemetry.getKeyedHistogramById("PROCESS_CRASH_SUBMIT_SUCCESS")
+      .add(crash.type, result == "ok");
     return true;
   },
 
   /**
-   * @return boolean True if the classification was set.
+   * @return boolean True if the classifications were set.
    */
-  setCrashClassification: function (crashID, classification) {
+  setCrashClassifications: function (crashID, classifications) {
     let crash = this._data.crashes.get(crashID);
     if (!crash) {
       return false;
     }
 
-    crash.classification = classification;
+    crash.classifications = classifications;
     return true;
   },
 });
@@ -1262,8 +1281,12 @@ CrashRecord.prototype = Object.freeze({
     return this._o.submissions;
   },
 
-  get classification() {
-    return this._o.classification;
+  get classifications() {
+    return this._o.classifications;
+  },
+
+  get metadata() {
+    return this._o.metadata;
   },
 });
 

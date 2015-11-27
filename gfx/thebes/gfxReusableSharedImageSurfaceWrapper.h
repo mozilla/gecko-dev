@@ -13,11 +13,11 @@ class gfxSharedImageSurface;
 namespace mozilla {
 namespace ipc {
 class Shmem;
-}
+} // namespace ipc
 namespace layers {
 class ISurfaceAllocator;
-}
-}
+} // namespace layers
+} // namespace mozilla
 
 /**
  * A cross-process capable implementation of gfxReusableSurfaceWrapper based
@@ -31,13 +31,13 @@ protected:
   ~gfxReusableSharedImageSurfaceWrapper();
 
 public:
-  const unsigned char* GetReadOnlyData() const MOZ_OVERRIDE;
-  gfxImageFormat Format() MOZ_OVERRIDE;
-  gfxReusableSurfaceWrapper* GetWritable(gfxImageSurface** aSurface) MOZ_OVERRIDE;
-  void ReadLock() MOZ_OVERRIDE;
-  void ReadUnlock() MOZ_OVERRIDE;
+  const unsigned char* GetReadOnlyData() const override;
+  gfxImageFormat Format() override;
+  gfxReusableSurfaceWrapper* GetWritable(gfxImageSurface** aSurface) override;
+  void ReadLock() override;
+  void ReadUnlock() override;
 
-  Type GetType()
+  Type GetType() override
   {
     return TYPE_SHARED_IMAGE;
   }
@@ -56,8 +56,8 @@ public:
   Open(mozilla::layers::ISurfaceAllocator* aAllocator, const mozilla::ipc::Shmem& aShmem);
 
 private:
-  mozilla::RefPtr<mozilla::layers::ISurfaceAllocator> mAllocator;
-  nsRefPtr<gfxSharedImageSurface>         mSurface;
+  RefPtr<mozilla::layers::ISurfaceAllocator> mAllocator;
+  RefPtr<gfxSharedImageSurface>         mSurface;
 };
 
 #endif // GFXSHMCOWSURFACEWRAPPER

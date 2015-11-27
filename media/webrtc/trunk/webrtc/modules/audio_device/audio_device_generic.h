@@ -76,10 +76,8 @@ class AudioDeviceGeneric
                                   uint16_t& volumeRight) const = 0;
 
 	// Audio mixer initialization
-	virtual int32_t SpeakerIsAvailable(bool& available) = 0;
     virtual int32_t InitSpeaker() = 0;
     virtual bool SpeakerIsInitialized() const = 0;
-	virtual int32_t MicrophoneIsAvailable(bool& available) = 0;
     virtual int32_t InitMicrophone() = 0;
     virtual bool MicrophoneIsInitialized() const = 0;
 
@@ -137,7 +135,7 @@ class AudioDeviceGeneric
 
     // CPU load
     virtual int32_t CPULoad(uint16_t& load) const = 0;
-    
+
     // Native sample rate controls (samples/sec)
 	virtual int32_t SetRecordingSampleRate(
         const uint32_t samplesPerSec);
@@ -147,7 +145,7 @@ class AudioDeviceGeneric
     // Speaker audio routing (for mobile devices)
     virtual int32_t SetLoudspeakerStatus(bool enable);
     virtual int32_t GetLoudspeakerStatus(bool& enable) const;
-    
+
     // Reset Audio Device (for mobile devices)
     virtual int32_t ResetAudioDevice();
 
@@ -157,8 +155,13 @@ class AudioDeviceGeneric
                                        unsigned int par3 = 0,
                                        unsigned int par4 = 0);
 
-    // Windows Core Audio only.
+    // Android only
+    virtual bool BuiltInAECIsAvailable() const;
+
+    // Windows Core Audio and Android only.
     virtual int32_t EnableBuiltInAEC(bool enable);
+
+    // Windows Core Audio only.
     virtual bool BuiltInAECIsEnabled() const;
 
 public:

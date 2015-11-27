@@ -13,8 +13,9 @@
 
 #include "nsCOMArray.h"
 #include "nsCOMPtr.h"
+#include "mozilla/RefPtr.h"
 
-class nsSimpleArrayEnumerator MOZ_FINAL : public nsISimpleEnumerator
+class nsSimpleArrayEnumerator final : public nsISimpleEnumerator
 {
 public:
   // nsISupports interface
@@ -91,12 +92,8 @@ nsSimpleArrayEnumerator::GetNext(nsISupports** aResult)
 nsresult
 NS_NewArrayEnumerator(nsISimpleEnumerator** aResult, nsIArray* aArray)
 {
-  nsSimpleArrayEnumerator* enumer = new nsSimpleArrayEnumerator(aArray);
-  if (!enumer) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  NS_ADDREF(*aResult = enumer);
+  RefPtr<nsSimpleArrayEnumerator> enumer = new nsSimpleArrayEnumerator(aArray);
+  enumer.forget(aResult);
   return NS_OK;
 }
 
@@ -106,7 +103,7 @@ NS_NewArrayEnumerator(nsISimpleEnumerator** aResult, nsIArray* aArray)
 // creates a snapshot of the array in question
 // you MUST use NS_NewArrayEnumerator to create this, so that
 // allocation is done correctly
-class nsCOMArrayEnumerator MOZ_FINAL : public nsISimpleEnumerator
+class nsCOMArrayEnumerator final : public nsISimpleEnumerator
 {
 public:
   // nsISupports interface
@@ -210,11 +207,7 @@ nsresult
 NS_NewArrayEnumerator(nsISimpleEnumerator** aResult,
                       const nsCOMArray_base& aArray)
 {
-  nsCOMArrayEnumerator* enumerator = new (aArray) nsCOMArrayEnumerator();
-  if (!enumerator) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  NS_ADDREF(*aResult = enumerator);
+  RefPtr<nsCOMArrayEnumerator> enumerator = new (aArray) nsCOMArrayEnumerator();
+  enumerator.forget(aResult);
   return NS_OK;
 }

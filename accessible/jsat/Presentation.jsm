@@ -11,8 +11,7 @@
 const {utils: Cu, interfaces: Ci} = Components;
 
 Cu.import('resource://gre/modules/XPCOMUtils.jsm');
-XPCOMUtils.defineLazyModuleGetter(this, 'Utils', // jshint ignore:line
-  'resource://gre/modules/accessibility/Utils.jsm');
+Cu.import('resource://gre/modules/accessibility/Utils.jsm');
 XPCOMUtils.defineLazyModuleGetter(this, 'Logger', // jshint ignore:line
   'resource://gre/modules/accessibility/Utils.jsm');
 XPCOMUtils.defineLazyModuleGetter(this, 'PivotContext', // jshint ignore:line
@@ -60,8 +59,8 @@ Presenter.prototype = {
   /**
    * Text has changed, either by the user or by the system. TODO.
    */
-  textChanged: function textChanged(aIsInserted, aStartOffset, aLength, aText, // jshint ignore:line
-                                    aModifiedText) {}, // jshint ignore:line
+  textChanged: function textChanged(aAccessible, aIsInserted, aStartOffset, // jshint ignore:line
+                                    aLength, aText, aModifiedText) {}, // jshint ignore:line
 
   /**
    * Text selection has changed. TODO.
@@ -74,6 +73,12 @@ Presenter.prototype = {
    * @param {nsIAccessible} aObject the object that has been selected.
    */
   selectionChanged: function selectionChanged(aObject) {}, // jshint ignore:line
+
+  /**
+   * Name has changed.
+   * @param {nsIAccessible} aAccessible the object whose value has changed.
+   */
+  nameChanged: function nameChanged(aAccessible) {}, // jshint ignore: line
 
   /**
    * Value has changed.
@@ -103,8 +108,9 @@ Presenter.prototype = {
    * The viewport has changed, either a scroll, pan, zoom, or
    *    landscape/portrait toggle.
    * @param {Window} aWindow window of viewport that changed.
+   * @param {PivotContext} aCurrentContext context of last pivot change.
    */
-  viewportChanged: function viewportChanged(aWindow) {}, // jshint ignore:line
+  viewportChanged: function viewportChanged(aWindow, aCurrentContext) {}, // jshint ignore:line
 
   /**
    * We have entered or left text editing mode.
@@ -117,6 +123,11 @@ Presenter.prototype = {
   announce: function announce(aAnnouncement) {}, // jshint ignore:line
 
 
+  /**
+   * User tried to move cursor forward or backward with no success.
+   * @param {string} aMoveMethod move method that was used (eg. 'moveNext').
+   */
+  noMove: function noMove(aMoveMethod) {},
 
   /**
    * Announce a live region.
@@ -132,9 +143,7 @@ Presenter.prototype = {
 /**
  * Visual presenter. Draws a box around the virtual cursor's position.
  */
-function VisualPresenter() {
-  this._displayedAccessibles = new WeakMap();
-}
+function VisualPresenter() {}
 
 VisualPresenter.prototype = Object.create(Presenter.prototype);
 
@@ -146,15 +155,14 @@ VisualPresenter.prototype.type = 'Visual';
 VisualPresenter.prototype.BORDER_PADDING = 2;
 
 VisualPresenter.prototype.viewportChanged =
-  function VisualPresenter_viewportChanged(aWindow) {
-    let currentDisplay = this._displayedAccessibles.get(aWindow);
-    if (!currentDisplay) {
+  function VisualPresenter_viewportChanged(aWindow, aCurrentContext) {
+    if (!aCurrentContext) {
       return null;
     }
 
-    let currentAcc = currentDisplay.accessible;
-    let start = currentDisplay.startOffset;
-    let end = currentDisplay.endOffset;
+    let currentAcc = aCurrentContext.accessibleForBounds;
+    let start = aCurrentContext.startOffset;
+    let end = aCurrentContext.endOffset;
     if (Utils.isAliveAndVisible(currentAcc)) {
       let bounds = (start === -1 && end === -1) ? Utils.getBounds(currentAcc) :
                    Utils.getTextBounds(currentAcc, start, end);
@@ -178,11 +186,6 @@ VisualPresenter.prototype.pivotChanged =
       // XXX: Don't hide because another vc may be using the highlight.
       return null;
     }
-
-    this._displayedAccessibles.set(aContext.accessible.document.window,
-                                   { accessible: aContext.accessibleForBounds,
-                                     startOffset: aContext.startOffset,
-                                     endOffset: aContext.endOffset });
 
     try {
       aContext.accessibleForBounds.scrollTo(
@@ -310,17 +313,19 @@ AndroidPresenter.prototype.actionInvoked =
   function AndroidPresenter_actionInvoked(aObject, aActionName) {
     let state = Utils.getState(aObject);
 
-    // Checkable objects will have a state changed event we will use instead.
-    if (state.contains(States.CHECKABLE)) {
-      return null;
+    // Checkable objects use TalkBack's text derived from the event state,
+    // so we don't populate the text here.
+    let text = '';
+    if (!state.contains(States.CHECKABLE)) {
+      text = Utils.localize(UtteranceGenerator.genForAction(aObject,
+        aActionName));
     }
 
     return {
       type: this.type,
       details: [{
         eventType: this.ANDROID_VIEW_CLICKED,
-        text: Utils.localize(UtteranceGenerator.genForAction(aObject,
-          aActionName)),
+        text: text,
         checked: state.contains(States.CHECKED)
       }]
     };
@@ -339,7 +344,7 @@ AndroidPresenter.prototype.tabStateChanged =
   };
 
 AndroidPresenter.prototype.textChanged = function AndroidPresenter_textChanged(
-  aIsInserted, aStart, aLength, aText, aModifiedText) {
+  aAccessible, aIsInserted, aStart, aLength, aText, aModifiedText) {
     let eventDetails = {
       eventType: this.ANDROID_VIEW_TEXT_CHANGED,
       text: [aText],
@@ -401,21 +406,33 @@ AndroidPresenter.prototype.textSelectionChanged =
   };
 
 AndroidPresenter.prototype.viewportChanged =
-  function AndroidPresenter_viewportChanged(aWindow) {
+  function AndroidPresenter_viewportChanged(aWindow, aCurrentContext) {
     if (Utils.AndroidSdkVersion < 14) {
       return null;
     }
 
+    let events = [{
+      eventType: this.ANDROID_VIEW_SCROLLED,
+      text: [],
+      scrollX: aWindow.scrollX,
+      scrollY: aWindow.scrollY,
+      maxScrollX: aWindow.scrollMaxX,
+      maxScrollY: aWindow.scrollMaxY
+    }];
+
+    if (Utils.AndroidSdkVersion >= 16 && aCurrentContext) {
+      let currentAcc = aCurrentContext.accessibleForBounds;
+      if (Utils.isAliveAndVisible(currentAcc)) {
+        events.push({
+          eventType: this.ANDROID_VIEW_ACCESSIBILITY_FOCUSED,
+          bounds: Utils.getBounds(currentAcc)
+        });
+      }
+    }
+
     return {
       type: this.type,
-      details: [{
-        eventType: this.ANDROID_VIEW_SCROLLED,
-        text: [],
-        scrollX: aWindow.scrollX,
-        scrollY: aWindow.scrollY,
-        maxScrollX: aWindow.scrollMaxX,
-        maxScrollY: aWindow.scrollMaxY
-      }]
+      details: events
     };
   };
 
@@ -447,6 +464,18 @@ AndroidPresenter.prototype.liveRegion =
       UtteranceGenerator.genForLiveRegion(aContext, aIsHide, aModifiedText));
   };
 
+AndroidPresenter.prototype.noMove =
+  function AndroidPresenter_noMove(aMoveMethod) {
+    return {
+      type: this.type,
+      details: [
+      { eventType: this.ANDROID_VIEW_ACCESSIBILITY_FOCUSED,
+        exitView: aMoveMethod,
+        text: ['']
+      }]
+    };
+  };
+
 /**
  * A B2G presenter for Gaia.
  */
@@ -455,6 +484,13 @@ function B2GPresenter() {}
 B2GPresenter.prototype = Object.create(Presenter.prototype);
 
 B2GPresenter.prototype.type = 'B2G';
+
+B2GPresenter.prototype.keyboardEchoSetting =
+  new PrefCache('accessibility.accessfu.keyboard_echo');
+B2GPresenter.prototype.NO_ECHO = 0;
+B2GPresenter.prototype.CHARACTER_ECHO = 1;
+B2GPresenter.prototype.WORD_ECHO = 2;
+B2GPresenter.prototype.CHARACTER_AND_WORD_ECHO = 3;
 
 /**
  * A pattern used for haptic feedback.
@@ -482,23 +518,79 @@ B2GPresenter.prototype.pivotChanged =
         data: UtteranceGenerator.genForContext(aContext),
         options: {
           pattern: this.PIVOT_CHANGE_HAPTIC_PATTERN,
-          isKey: aContext.accessible.role === Roles.KEY,
+          isKey: Utils.isActivatableOnFingerUp(aContext.accessible),
           reason: this.pivotChangedReasons[aReason],
-          isUserInput: aIsUserInput
+          isUserInput: aIsUserInput,
+          hints: aContext.interactionHints
         }
       }
     };
   };
 
+B2GPresenter.prototype.nameChanged =
+  function B2GPresenter_nameChanged(aAccessible, aIsPolite = true) {
+    return {
+      type: this.type,
+      details: {
+        eventType: 'name-change',
+        data: aAccessible.name,
+        options: {enqueue: aIsPolite}
+      }
+    };
+  };
+
 B2GPresenter.prototype.valueChanged =
-  function B2GPresenter_valueChanged(aAccessible) {
+  function B2GPresenter_valueChanged(aAccessible, aIsPolite = true) {
+
+    // the editable value changes are handled in the text changed presenter
+    if (Utils.getState(aAccessible).contains(States.EDITABLE)) {
+      return null;
+    }
+
     return {
       type: this.type,
       details: {
         eventType: 'value-change',
-        data: aAccessible.value
+        data: aAccessible.value,
+        options: {enqueue: aIsPolite}
       }
     };
+  };
+
+B2GPresenter.prototype.textChanged = function B2GPresenter_textChanged(
+  aAccessible, aIsInserted, aStart, aLength, aText, aModifiedText) {
+    let echoSetting = this.keyboardEchoSetting.value;
+    let text = '';
+
+    if (echoSetting == this.CHARACTER_ECHO ||
+        echoSetting == this.CHARACTER_AND_WORD_ECHO) {
+      text = aModifiedText;
+    }
+
+    // add word if word boundary is added
+    if ((echoSetting == this.WORD_ECHO ||
+        echoSetting == this.CHARACTER_AND_WORD_ECHO) &&
+        aIsInserted && aLength === 1) {
+      let accText = aAccessible.QueryInterface(Ci.nsIAccessibleText);
+      let startBefore = {}, endBefore = {};
+      let startAfter = {}, endAfter = {};
+      accText.getTextBeforeOffset(aStart,
+        Ci.nsIAccessibleText.BOUNDARY_WORD_END, startBefore, endBefore);
+      let maybeWord = accText.getTextBeforeOffset(aStart + 1,
+        Ci.nsIAccessibleText.BOUNDARY_WORD_END, startAfter, endAfter);
+      if (endBefore.value !== endAfter.value) {
+        text += maybeWord;
+      }
+    }
+
+    return {
+      type: this.type,
+      details: {
+        eventType: 'text-change',
+        data: text
+      }
+    };
+
   };
 
 B2GPresenter.prototype.actionInvoked =
@@ -532,6 +624,17 @@ B2GPresenter.prototype.announce =
       details: {
         eventType: 'announcement',
         data: aAnnouncement
+      }
+    };
+  };
+
+B2GPresenter.prototype.noMove =
+  function B2GPresenter_noMove(aMoveMethod) {
+    return {
+      type: this.type,
+      details: {
+        eventType: 'no-move',
+        data: aMoveMethod
       }
     };
   };
@@ -581,59 +684,76 @@ this.Presentation = { // jshint ignore:line
       'b2g': [VisualPresenter, B2GPresenter],
       'browser': [VisualPresenter, B2GPresenter, AndroidPresenter]
     };
-    this.presenters = [new P() for (P of presenterMap[Utils.MozBuildApp])]; // jshint ignore:line
+    this.presenters = presenterMap[Utils.MozBuildApp].map(P => new P());
     return this.presenters;
+  },
+
+  get displayedAccessibles() {
+    delete this.displayedAccessibles;
+    this.displayedAccessibles = new WeakMap();
+    return this.displayedAccessibles;
   },
 
   pivotChanged: function Presentation_pivotChanged(
     aPosition, aOldPosition, aReason, aStartOffset, aEndOffset, aIsUserInput) {
     let context = new PivotContext(
       aPosition, aOldPosition, aStartOffset, aEndOffset);
-    return [p.pivotChanged(context, aReason, aIsUserInput)
-      for each (p in this.presenters)]; // jshint ignore:line
+    if (context.accessible) {
+      this.displayedAccessibles.set(context.accessible.document.window, context);
+    }
+
+    return this.presenters.map(p => p.pivotChanged(context, aReason, aIsUserInput));
   },
 
   actionInvoked: function Presentation_actionInvoked(aObject, aActionName) {
-    return [p.actionInvoked(aObject, aActionName) // jshint ignore:line
-      for each (p in this.presenters)]; // jshint ignore:line
+    return this.presenters.map(p => p.actionInvoked(aObject, aActionName));
   },
 
-  textChanged: function Presentation_textChanged(aIsInserted, aStartOffset,
-                                    aLength, aText,
+  textChanged: function Presentation_textChanged(aAccessible, aIsInserted,
+                                    aStartOffset, aLength, aText,
                                     aModifiedText) {
-    return [p.textChanged(aIsInserted, aStartOffset, aLength, aText, // jshint ignore:line
-      aModifiedText) for each (p in this.presenters)]; // jshint ignore:line
+    return this.presenters.map(p => p.textChanged(aAccessible, aIsInserted,
+                                                  aStartOffset, aLength,
+                                                  aText, aModifiedText));
   },
 
   textSelectionChanged: function textSelectionChanged(aText, aStart, aEnd,
                                                       aOldStart, aOldEnd,
                                                       aIsFromUserInput) {
-    return [p.textSelectionChanged(aText, aStart, aEnd, aOldStart, aOldEnd, // jshint ignore:line
-      aIsFromUserInput) for each (p in this.presenters)]; // jshint ignore:line
+    return this.presenters.map(p => p.textSelectionChanged(aText, aStart, aEnd,
+                                                           aOldStart, aOldEnd,
+                                                           aIsFromUserInput));
+  },
+
+  nameChanged: function nameChanged(aAccessible) {
+    return this.presenters.map(p => p.nameChanged(aAccessible));
   },
 
   valueChanged: function valueChanged(aAccessible) {
-    return [ p.valueChanged(aAccessible) for (p of this.presenters) ]; // jshint ignore:line
+    return this.presenters.map(p => p.valueChanged(aAccessible));
   },
 
   tabStateChanged: function Presentation_tabStateChanged(aDocObj, aPageState) {
-    return [p.tabStateChanged(aDocObj, aPageState) // jshint ignore:line
-      for each (p in this.presenters)]; // jshint ignore:line
+    return this.presenters.map(p => p.tabStateChanged(aDocObj, aPageState));
   },
 
   viewportChanged: function Presentation_viewportChanged(aWindow) {
-    return [p.viewportChanged(aWindow) for each (p in this.presenters)]; // jshint ignore:line
+    let context = this.displayedAccessibles.get(aWindow);
+    return this.presenters.map(p => p.viewportChanged(aWindow, context));
   },
 
   editingModeChanged: function Presentation_editingModeChanged(aIsEditing) {
-    return [p.editingModeChanged(aIsEditing) for each (p in this.presenters)]; // jshint ignore:line
+    return this.presenters.map(p => p.editingModeChanged(aIsEditing));
   },
 
   announce: function Presentation_announce(aAnnouncement) {
     // XXX: Typically each presenter uses the UtteranceGenerator,
     // but there really isn't a point here.
-    return [p.announce(UtteranceGenerator.genForAnnouncement(aAnnouncement)) // jshint ignore:line
-      for each (p in this.presenters)]; // jshint ignore:line
+    return this.presenters.map(p => p.announce(UtteranceGenerator.genForAnnouncement(aAnnouncement)));
+  },
+
+  noMove: function Presentation_noMove(aMoveMethod) {
+    return this.presenters.map(p => p.noMove(aMoveMethod));
   },
 
   liveRegion: function Presentation_liveRegion(aAccessible, aIsPolite, aIsHide,
@@ -643,7 +763,7 @@ this.Presentation = { // jshint ignore:line
       context = new PivotContext(aAccessible, null, -1, -1, true,
         aIsHide ? true : false);
     }
-    return [p.liveRegion(context, aIsPolite, aIsHide, aModifiedText) // jshint ignore:line
-      for (p of this.presenters)]; // jshint ignore:line
+    return this.presenters.map(p => p.liveRegion(context, aIsPolite, aIsHide,
+                                                 aModifiedText));
   }
 };

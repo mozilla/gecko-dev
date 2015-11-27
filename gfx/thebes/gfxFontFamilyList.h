@@ -9,6 +9,7 @@
 #include "nsDebug.h"
 #include "nsISupportsImpl.h"
 #include "nsString.h"
+#include "nsUnicharUtils.h"
 #include "nsTArray.h"
 #include "mozilla/MemoryReporting.h"
 
@@ -28,7 +29,7 @@ enum FontFamilyType {
   eFamily_named_quoted,
 
   // generics
-  eFamily_serif,
+  eFamily_serif,         // pref font code relies on this ordering!!!
   eFamily_sans_serif,
   eFamily_monospace,
   eFamily_cursive,
@@ -36,7 +37,11 @@ enum FontFamilyType {
 
   // special
   eFamily_moz_variable,
-  eFamily_moz_fixed
+  eFamily_moz_fixed,
+
+  eFamily_generic_first = eFamily_serif,
+  eFamily_generic_last = eFamily_fantasy,
+  eFamily_generic_count = (eFamily_fantasy - eFamily_serif + 1)
 };
 
 enum QuotedName { eQuotedName, eUnquotedName };
@@ -46,7 +51,7 @@ enum QuotedName { eQuotedName, eUnquotedName };
  * a font type indicated named family or which generic family
  */
 
-struct FontFamilyName MOZ_FINAL {
+struct FontFamilyName final {
     FontFamilyName()
         : mType(eFamily_named)
     {}
@@ -148,12 +153,12 @@ struct FontFamilyName MOZ_FINAL {
     }
 
     // memory reporting
-    size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
+    size_t SizeOfExcludingThis2(mozilla::MallocSizeOf aMallocSizeOf) const {
         return mName.SizeOfExcludingThisIfUnshared(aMallocSizeOf);
     }
 
-    size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
-        return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
+    size_t SizeOfIncludingThis2(mozilla::MallocSizeOf aMallocSizeOf) const {
+        return aMallocSizeOf(this) + SizeOfExcludingThis2(aMallocSizeOf);
     }
 
     FontFamilyType mType;
@@ -256,6 +261,32 @@ public:
         return false;
     }
 
+    // Find the first generic (but ignoring cursive and fantasy, as they are
+    // rarely configured in any useful way) in the list.
+    // If found, move it to the start and return true; else return false.
+    bool PrioritizeFirstGeneric() {
+        uint32_t len = mFontlist.Length();
+        for (uint32_t i = 0; i < len; i++) {
+            const FontFamilyName name = mFontlist[i];
+            if (name.IsGeneric()) {
+                if (name.mType == eFamily_cursive ||
+                    name.mType == eFamily_fantasy) {
+                    continue;
+                }
+                if (i > 0) {
+                    mFontlist.RemoveElementAt(i);
+                    mFontlist.InsertElementAt(0, name);
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void PrependGeneric(FontFamilyType aType) {
+        mFontlist.InsertElementAt(0, FontFamilyName(aType));
+    }
+
     void ToString(nsAString& aFamilyList,
                   bool aQuotes = true,
                   bool aIncludeDefault = false) const {
@@ -280,6 +311,26 @@ public:
         }
     }
 
+    // searches for a specific non-generic name, lowercase comparison
+    bool Contains(const nsAString& aFamilyName) const {
+        uint32_t len = mFontlist.Length();
+        nsAutoString fam(aFamilyName);
+        ToLowerCase(fam);
+        for (uint32_t i = 0; i < len; i++) {
+            const FontFamilyName& name = mFontlist[i];
+            if (name.mType != eFamily_named &&
+                name.mType != eFamily_named_quoted) {
+                continue;
+            }
+            nsAutoString listname(name.mName);
+            ToLowerCase(listname);
+            if (listname.Equals(fam)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     FontFamilyType GetDefaultFontType() const { return mDefaultFontType; }
     void SetDefaultFontType(FontFamilyType aType) {
         NS_ASSERTION(aType == eFamily_none || aType == eFamily_serif ||
@@ -290,7 +341,7 @@ public:
 
     // memory reporting
     size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
-        return mFontlist.SizeOfExcludingThis(aMallocSizeOf);
+        return mFontlist.ShallowSizeOfExcludingThis(aMallocSizeOf);
     }
 
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {

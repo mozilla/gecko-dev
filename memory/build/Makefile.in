@@ -3,6 +3,7 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 STLFLAGS =
-ifdef MOZ_GLUE_PROGRAM_LDFLAGS
-DIST_INSTALL = 1
-endif
+
+# Dummy rule to transition from .c file to .cpp file without a clobber.
+# (bug 1005486)
+%/jemalloc_config.c: ;

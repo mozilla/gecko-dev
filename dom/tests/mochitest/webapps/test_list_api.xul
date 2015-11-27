@@ -20,7 +20,9 @@
 
 var props = {
   checkInstalled: "function",
+  getAdditionalLanguages: "function",
   getInstalled: "function",
+  getLocalizationResource: "function",
   getSelf: "function",
   install: "function",
   installPackage: "function",
@@ -40,13 +42,18 @@ var mgmtProps = {
   dispatchEvent: "function",
   getEventHandler: "function",
   getAll: "function",
+  getIcon: "function",
   getNotInstalled: "function",
   uninstall: "function",
   oninstall: "object",
   onuninstall: "object",
+  onenabledstatechange: "object",
   ownerGlobal: "object",
   removeEventListener: "function",
   setEventHandler: "function",
+  extractManifest: "function",
+  import: "function",
+  setEnabled: "function"
 };
 
 isDeeply([p for (p in navigator.mozApps.mgmt)].sort(),

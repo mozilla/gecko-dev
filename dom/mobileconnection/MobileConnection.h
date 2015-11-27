@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -11,14 +13,16 @@
 #include "mozilla/dom/MobileNetworkInfo.h"
 #include "mozilla/dom/MozMobileConnectionBinding.h"
 #include "nsCycleCollectionParticipant.h"
+#include "nsIIccService.h"
 #include "nsIMobileConnectionService.h"
 #include "nsWeakPtr.h"
 
 namespace mozilla {
 namespace dom {
 
-class MobileConnection MOZ_FINAL : public DOMEventTargetHelper,
-                                   private nsIMobileConnectionListener
+class MobileConnection final : public DOMEventTargetHelper
+                             , private nsIMobileConnectionListener
+                             , private nsIIccListener
 {
   /**
    * Class MobileConnection doesn't actually expose
@@ -33,6 +37,7 @@ class MobileConnection MOZ_FINAL : public DOMEventTargetHelper,
 public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIMOBILECONNECTIONLISTENER
+  NS_DECL_NSIICCLISTENER
   NS_REALLY_FORWARD_NSIDOMEVENTTARGET(DOMEventTargetHelper)
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(MobileConnection,
                                            DOMEventTargetHelper)
@@ -43,7 +48,7 @@ public:
   Shutdown();
 
   virtual void
-  DisconnectFromOwner() MOZ_OVERRIDE;
+  DisconnectFromOwner() override;
 
   nsPIDOMWindow*
   GetParentObject() const
@@ -53,7 +58,7 @@ public:
 
   // WrapperCache
   virtual JSObject*
-  WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+  WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL interface
   void
@@ -108,12 +113,6 @@ public:
   GetVoicePrivacyMode(ErrorResult& aRv);
 
   already_AddRefed<DOMRequest>
-  SendMMI(const nsAString& aMmi, ErrorResult& aRv);
-
-  already_AddRefed<DOMRequest>
-  CancelMMI(ErrorResult& aRv);
-
-  already_AddRefed<DOMRequest>
   SetCallForwardingOption(const MozCallForwardingOptions& aOptions,
                           ErrorResult& aRv);
 
@@ -150,7 +149,6 @@ public:
 
   IMPL_EVENT_HANDLER(voicechange)
   IMPL_EVENT_HANDLER(datachange)
-  IMPL_EVENT_HANDLER(ussdreceived)
   IMPL_EVENT_HANDLER(dataerror)
   IMPL_EVENT_HANDLER(cfstatechange)
   IMPL_EVENT_HANDLER(emergencycbmodechange)
@@ -163,10 +161,13 @@ private:
   ~MobileConnection();
 
 private:
+  uint32_t mClientId;
+  nsString mIccId;
   nsCOMPtr<nsIMobileConnection> mMobileConnection;
-  nsRefPtr<Listener> mListener;
-  nsRefPtr<MobileConnectionInfo> mVoice;
-  nsRefPtr<MobileConnectionInfo> mData;
+  nsCOMPtr<nsIIcc> mIccHandler;
+  RefPtr<Listener> mListener;
+  RefPtr<MobileConnectionInfo> mVoice;
+  RefPtr<MobileConnectionInfo> mData;
 
   bool
   CheckPermission(const char* aType) const;
@@ -176,6 +177,30 @@ private:
 
   void
   UpdateData();
+
+  bool
+  UpdateIccId();
+
+  nsresult
+  NotifyError(nsIDOMDOMRequest* aRequest, const nsAString& aMessage);
+
+  bool
+  IsValidPassword(const nsAString& aPassword);
+
+  bool
+  IsValidCallBarringOptions(const MozCallBarringOptions& aOptions, bool isSetting);
+
+  bool
+  IsValidCallForwardingOptions(const MozCallForwardingOptions& aOptions);
+
+  bool
+  IsValidCallForwardingReason(int32_t aReason);
+
+  bool
+  IsValidCallForwardingAction(int32_t aAction);
+
+  bool
+  IsValidCallBarringProgram(int32_t aProgram);
 };
 
 } // namespace dom

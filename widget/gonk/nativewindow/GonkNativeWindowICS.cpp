@@ -1,3 +1,4 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /*
  * Copyright (C) 2010 The Android Open Source Project
  * Copyright (C) 2012-2013 Mozilla Foundation
@@ -324,6 +325,7 @@ status_t GonkNativeWindow::dequeueBuffer(int *outBuf, uint32_t w, uint32_t h,
                                         gfx::SurfaceFormat::UNKNOWN,
                                         gfx::BackendType::NONE,
                                         TextureFlags::DEALLOCATE_CLIENT);
+        textureClient->SetIsOpaque(true);
         usage |= GraphicBuffer::USAGE_HW_TEXTURE;
         bool result = textureClient->AllocateGralloc(IntSize(w, h), format, usage);
         sp<GraphicBuffer> graphicBuffer = textureClient->GetGraphicBuffer();
@@ -399,7 +401,7 @@ int GonkNativeWindow::getSlotFromTextureClientLocked(
     return BAD_VALUE;
 }
 
-TemporaryRef<TextureClient>
+already_AddRefed<TextureClient>
 GonkNativeWindow::getTextureClientFromBuffer(ANativeWindowBuffer* buffer)
 {
   int buf = getSlotFromBufferLocked(buffer);
@@ -408,7 +410,8 @@ GonkNativeWindow::getTextureClientFromBuffer(ANativeWindowBuffer* buffer)
     return nullptr;
   }
 
-  return mSlots[buf].mTextureClient;
+  RefPtr<TextureClient> client(mSlots[buf].mTextureClient);
+  return client.forget();
 }
 
 status_t GonkNativeWindow::queueBuffer(int buf, int64_t timestamp,
@@ -461,7 +464,7 @@ status_t GonkNativeWindow::queueBuffer(int buf, int64_t timestamp,
 }
 
 
-TemporaryRef<TextureClient>
+already_AddRefed<TextureClient>
 GonkNativeWindow::getCurrentBuffer() {
   CNW_LOGD("GonkNativeWindow::getCurrentBuffer");
   Mutex::Autolock lock(mMutex);
@@ -486,7 +489,8 @@ GonkNativeWindow::getCurrentBuffer() {
   mDequeueCondition.signal();
 
   mSlots[buf].mTextureClient->SetRecycleCallback(GonkNativeWindow::RecycleCallback, this);
-  return mSlots[buf].mTextureClient;
+  RefPtr<TextureClient> client(mSlots[buf].mTextureClient);
+  return client.forget();
 }
 
 
@@ -495,6 +499,7 @@ GonkNativeWindow::RecycleCallback(TextureClient* client, void* closure) {
   GonkNativeWindow* nativeWindow =
     static_cast<GonkNativeWindow*>(closure);
 
+  MOZ_ASSERT(client && !client->IsDead());
   client->ClearRecycleCallback();
   nativeWindow->returnBuffer(client);
 }

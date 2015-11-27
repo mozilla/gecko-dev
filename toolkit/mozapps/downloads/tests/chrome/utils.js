@@ -6,9 +6,9 @@
  * Provides utility functions for the download manager chrome tests.
  */
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cr = Components.results;
 
 Components.utils.import("resource://gre/modules/Services.jsm");
 
@@ -85,7 +85,7 @@ function addDownload(aName) {
                                .QueryInterface(Ci.nsILoadContext);
 
     persist.progressListener = dl.QueryInterface(Ci.nsIWebProgressListener);
-    persist.saveURI(dl.source, null, null, null, null, dl.targetFile, privacyContext);
+    persist.saveURI(dl.source, null, null, 0, null, null, dl.targetFile, privacyContext);
 
     return dl;
   }
@@ -110,7 +110,7 @@ function populateDM(DownloadData)
       "state, currBytes, maxBytes, preferredAction, autoResume) " +
     "VALUES (:name, :source, :target, :startTime, :endTime, :state, " +
       ":currBytes, :maxBytes, :preferredAction, :autoResume)");
-  for each (let dl in DownloadData) {
+  for (let dl of DownloadData) {
     for (let prop in dl)
       stmt.params[prop] = dl[prop];
 
@@ -145,16 +145,4 @@ function setCleanState()
 
   let win = getDMWindow();
   if (win) win.close();
-}
-
-/**
- * Clears history invoking callback when done.
- */
-function waitForClearHistory(aCallback) {
-  Components.utils.import("resource://gre/modules/PlacesUtils.jsm");
-  Services.obs.addObserver(function observeClearHistory(aSubject, aTopic) {
-    Services.obs.removeObserver(observeClearHistory, aTopic);
-    aCallback();
-  }, PlacesUtils.TOPIC_EXPIRATION_FINISHED, false);
-  PlacesUtils.bhistory.removeAllPages();
 }

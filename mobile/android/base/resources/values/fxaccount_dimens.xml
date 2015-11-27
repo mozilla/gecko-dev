@@ -5,11 +5,11 @@
 
 <resources>
   <dimen name="fxaccount_stroke_width">1dp</dimen>
-  <dimen name="fxaccount_corner_radius">5dp</dimen>
+  <dimen name="fxaccount_corner_radius">3dp</dimen>
 
   <!-- The amount of horizontal padding that appears inside the email,
        password, etc input fields. -->
-  <dimen name="fxaccount_input_padding_horizontal">20dp</dimen>
+  <dimen name="fxaccount_input_padding_horizontal">10dp</dimen>
   <!-- And the amount of vertical padding that appears inside input
        fields. -->
   <dimen name="fxaccount_input_padding_vertical">10dp</dimen>
@@ -25,4 +25,9 @@
   <dimen name="preference_fragment_padding_side">16dp</dimen>
 
   <integer name="preference_fragment_scrollbarStyle">0x02000000</integer> <!-- outsideOverlay -->
+
+  <!-- Profile avatar image height. -->
+  <dimen name="fxaccount_profile_image_height">48dp</dimen>
+  <!-- Profile avatar image width. -->
+  <dimen name="fxaccount_profile_image_width">48dp</dimen>
 </resources>

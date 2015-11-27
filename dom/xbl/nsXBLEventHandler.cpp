@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -12,6 +13,7 @@
 #include "nsContentUtils.h"
 #include "mozilla/dom/Event.h" // for nsIDOMEvent::InternalDOMEvent()
 #include "mozilla/dom/EventTarget.h"
+#include "mozilla/TextEvents.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -83,27 +85,40 @@ nsXBLKeyEventHandler::~nsXBLKeyEventHandler()
 NS_IMPL_ISUPPORTS(nsXBLKeyEventHandler, nsIDOMEventListener)
 
 bool
-nsXBLKeyEventHandler::ExecuteMatchedHandlers(nsIDOMKeyEvent* aKeyEvent,
-                                             uint32_t aCharCode,
-                                             bool aIgnoreShiftKey)
+nsXBLKeyEventHandler::ExecuteMatchedHandlers(
+                        nsIDOMKeyEvent* aKeyEvent,
+                        uint32_t aCharCode,
+                        const IgnoreModifierState& aIgnoreModifierState)
 {
-  bool trustedEvent = false;
-  aKeyEvent->GetIsTrusted(&trustedEvent);
-
+  WidgetEvent* event = aKeyEvent->GetInternalNSEvent();
   nsCOMPtr<EventTarget> target = aKeyEvent->InternalDOMEvent()->GetCurrentTarget();
 
   bool executed = false;
   for (uint32_t i = 0; i < mProtoHandlers.Length(); ++i) {
     nsXBLPrototypeHandler* handler = mProtoHandlers[i];
     bool hasAllowUntrustedAttr = handler->HasAllowUntrustedAttr();
-    if ((trustedEvent ||
+    if ((event->mFlags.mIsTrusted ||
         (hasAllowUntrustedAttr && handler->AllowUntrustedEvents()) ||
         (!hasAllowUntrustedAttr && !mIsBoundToChrome && !mUsingContentXBLScope)) &&
-        handler->KeyEventMatched(aKeyEvent, aCharCode, aIgnoreShiftKey)) {
+        handler->KeyEventMatched(aKeyEvent, aCharCode, aIgnoreModifierState)) {
       handler->ExecuteHandler(target, aKeyEvent);
       executed = true;
     }
   }
+#ifdef XP_WIN
+  // Windows native applications ignore Windows-Logo key state when checking
+  // shortcut keys even if the key is pressed.  Therefore, if there is no
+  // shortcut key which exactly matches current modifier state, we should
+  // retry to look for a shortcut key without the Windows-Logo key press.
+  if (!executed && !aIgnoreModifierState.mOS) {
+    WidgetKeyboardEvent* keyEvent = event->AsKeyboardEvent();
+    if (keyEvent && keyEvent->IsOS()) {
+      IgnoreModifierState ignoreModifierState(aIgnoreModifierState);
+      ignoreModifierState.mOS = true;
+      return ExecuteMatchedHandlers(aKeyEvent, aCharCode, ignoreModifierState);
+    }
+  }
+#endif
   return executed;
 }
 
@@ -129,56 +144,41 @@ nsXBLKeyEventHandler::HandleEvent(nsIDOMEvent* aEvent)
   nsContentUtils::GetAccelKeyCandidates(key, accessKeys);
 
   if (accessKeys.IsEmpty()) {
-    ExecuteMatchedHandlers(key, 0, false);
+    ExecuteMatchedHandlers(key, 0, IgnoreModifierState());
     return NS_OK;
   }
 
   for (uint32_t i = 0; i < accessKeys.Length(); ++i) {
+    IgnoreModifierState ignoreModifierState;
+    ignoreModifierState.mShift = accessKeys[i].mIgnoreShift;
     if (ExecuteMatchedHandlers(key, accessKeys[i].mCharCode,
-                               accessKeys[i].mIgnoreShift))
+                               ignoreModifierState)) {
       return NS_OK;
+    }
   }
   return NS_OK;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
 
-nsresult
+already_AddRefed<nsXBLEventHandler>
 NS_NewXBLEventHandler(nsXBLPrototypeHandler* aHandler,
-                      nsIAtom* aEventType,
-                      nsXBLEventHandler** aResult)
+                      nsIAtom* aEventType)
 {
+  RefPtr<nsXBLEventHandler> handler;
+
   switch (nsContentUtils::GetEventClassID(nsDependentAtomString(aEventType))) {
     case eDragEventClass:
     case eMouseEventClass:
     case eMouseScrollEventClass:
     case eWheelEventClass:
     case eSimpleGestureEventClass:
-      *aResult = new nsXBLMouseEventHandler(aHandler);
+      handler = new nsXBLMouseEventHandler(aHandler);
       break;
     default:
-      *aResult = new nsXBLEventHandler(aHandler);
+      handler = new nsXBLEventHandler(aHandler);
       break;
   }
 
-  if (!*aResult)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  NS_ADDREF(*aResult);
-
-  return NS_OK;
-}
-
-nsresult
-NS_NewXBLKeyEventHandler(nsIAtom* aEventType, uint8_t aPhase, uint8_t aType,
-                         nsXBLKeyEventHandler** aResult)
-{
-  *aResult = new nsXBLKeyEventHandler(aEventType, aPhase, aType);
-
-  if (!*aResult)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  NS_ADDREF(*aResult);
-
-  return NS_OK;
+  return handler.forget();
 }

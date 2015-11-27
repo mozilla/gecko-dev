@@ -6,8 +6,8 @@ package org.mozilla.gecko.background.nativecode;
 
 import java.security.GeneralSecurityException;
 
+import org.mozilla.gecko.annotation.RobocopTarget;
 import org.mozilla.gecko.AppConstants;
-import org.mozilla.gecko.mozglue.RobocopTarget;
 
 import android.util.Log;
 
@@ -42,4 +42,19 @@ public class NativeCrypto {
    * Wrapper to perform SHA-1 in native code.
    */
   public native static byte[] sha1(byte[] str);
+
+  /**
+   * Wrapper to perform SHA-256 init in native code. Returns a SHA-256 context.
+   */
+  public native static byte[] sha256init();
+
+  /**
+   * Wrapper to update a SHA-256 context in native code.
+   */
+  public native static void sha256update(byte[] ctx, byte[] str);
+
+  /**
+   * Wrapper to finalize a SHA-256 context in native code. Returns digest.
+   */
+  public native static byte[] sha256finalize(byte[] ctx);
 }

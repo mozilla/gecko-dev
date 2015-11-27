@@ -14,6 +14,7 @@
 #include "nsIObserver.h"
 #include "nsThreadUtils.h"
 #include "nsCOMPtr.h"
+#include "mozilla/TimeStamp.h"
 
 class nsNotifyAddrListener : public nsINetworkLinkService,
                              public nsIRunnable,
@@ -30,6 +31,7 @@ public:
     nsNotifyAddrListener();
 
     nsresult Init(void);
+    void CheckLinkStatus(void);
 
 protected:
     class ChangeEvent : public nsRunnable {
@@ -48,16 +50,43 @@ protected:
     bool mCheckAttempted;
 
     nsresult Shutdown(void);
-    nsresult SendEventToUI(const char *aEventID);
+    nsresult SendEvent(const char *aEventID);
 
     DWORD CheckAdaptersAddresses(void);
-    bool  CheckIsGateway(PIP_ADAPTER_ADDRESSES aAdapter);
+
+    // Checks for an Internet Connection Sharing (ICS) gateway.
+    bool  CheckICSGateway(PIP_ADAPTER_ADDRESSES aAdapter);
     bool  CheckICSStatus(PWCHAR aAdapterName);
-    void  CheckLinkStatus(void);
 
     nsCOMPtr<nsIThread> mThread;
 
-    HANDLE        mShutdownEvent;
+private:
+    // Returns the new timeout period for coalescing (or INFINITE)
+    DWORD nextCoalesceWaitTime();
+
+    // Called for every detected network change
+    nsresult NetworkChanged();
+
+    HANDLE mCheckEvent;
+
+    // set true when mCheckEvent means shutdown
+    bool mShutdown;
+
+    // This is a checksum of various meta data for all network interfaces
+    // considered UP at last check.
+    ULONG mIPInterfaceChecksum;
+
+    // start time of the checking
+    mozilla::TimeStamp mStartTime;
+
+    // Network changed events are enabled
+    bool mAllowChangedEvent;
+
+    // Flag set while coalescing change events
+    bool mCoalescingActive;
+
+    // Time stamp for first event during coalescing
+    mozilla::TimeStamp mChangeTime;
 };
 
 #endif /* NSNOTIFYADDRLISTENER_H_ */

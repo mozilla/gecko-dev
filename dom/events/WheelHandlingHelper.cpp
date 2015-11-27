@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 sw=2 et tw=80: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -17,6 +17,7 @@
 #include "nsIPresShell.h"
 #include "nsIScrollableFrame.h"
 #include "nsITimer.h"
+#include "nsPluginFrame.h"
 #include "nsPresContext.h"
 #include "prtime.h"
 #include "Units.h"
@@ -43,6 +44,18 @@ WheelHandlingUtils::CanScrollInRange(nscoord aMin, nscoord aValue, nscoord aMax,
 {
   return aDirection > 0.0 ? aValue < static_cast<double>(aMax) :
                             static_cast<double>(aMin) < aValue;
+}
+
+/* static */ bool
+WheelHandlingUtils::CanScrollOn(nsIFrame* aFrame,
+                                double aDirectionX, double aDirectionY)
+{
+  nsIScrollableFrame* scrollableFrame = do_QueryFrame(aFrame);
+  if (scrollableFrame) {
+    return CanScrollOn(scrollableFrame, aDirectionX, aDirectionY);
+  }
+  nsPluginFrame* pluginFrame = do_QueryFrame(aFrame);
+  return pluginFrame && pluginFrame->WantsToHandleWheelEventAsDefaultAction();
 }
 
 /* static */ bool
@@ -94,7 +107,7 @@ WheelTransaction::BeginTransaction(nsIFrame* aTargetFrame,
                                    WidgetWheelEvent* aEvent)
 {
   NS_ASSERTION(!sTargetFrame, "previous transaction is not finished!");
-  MOZ_ASSERT(aEvent->message == NS_WHEEL_WHEEL,
+  MOZ_ASSERT(aEvent->mMessage == eWheel,
              "Transaction must be started with a wheel event");
   ScrollbarsForWheel::OwnWheelTransaction(false);
   sTargetFrame = aTargetFrame;
@@ -108,10 +121,14 @@ WheelTransaction::BeginTransaction(nsIFrame* aTargetFrame,
 /* static */ bool
 WheelTransaction::UpdateTransaction(WidgetWheelEvent* aEvent)
 {
-  nsIScrollableFrame* sf = GetTargetFrame()->GetScrollTargetFrame();
-  NS_ENSURE_TRUE(sf, false);
+  nsIFrame* scrollToFrame = GetTargetFrame();
+  nsIScrollableFrame* scrollableFrame = scrollToFrame->GetScrollTargetFrame();
+  if (scrollableFrame) {
+    scrollToFrame = do_QueryFrame(scrollableFrame);
+  }
 
-  if (!WheelHandlingUtils::CanScrollOn(sf, aEvent->deltaX, aEvent->deltaY)) {
+  if (!WheelHandlingUtils::CanScrollOn(scrollToFrame,
+                                       aEvent->deltaX, aEvent->deltaY)) {
     OnFailToScrollTarget();
     // We should not modify the transaction state when the view will not be
     // scrolled actually.
@@ -159,6 +176,32 @@ WheelTransaction::EndTransaction()
   }
 }
 
+/* static */ bool
+WheelTransaction::WillHandleDefaultAction(WidgetWheelEvent* aWheelEvent,
+                                          nsWeakFrame& aTargetWeakFrame)
+{
+  nsIFrame* lastTargetFrame = GetTargetFrame();
+  if (!lastTargetFrame) {
+    BeginTransaction(aTargetWeakFrame.GetFrame(), aWheelEvent);
+  } else if (lastTargetFrame != aTargetWeakFrame.GetFrame()) {
+    EndTransaction();
+    BeginTransaction(aTargetWeakFrame.GetFrame(), aWheelEvent);
+  } else {
+    UpdateTransaction(aWheelEvent);
+  }
+
+  // When the wheel event will not be handled with any frames,
+  // UpdateTransaction() fires MozMouseScrollFailed event which is for
+  // automated testing.  In the event handler, the target frame might be
+  // destroyed.  Then, the caller shouldn't try to handle the default action.
+  if (!aTargetWeakFrame.IsAlive()) {
+    EndTransaction();
+    return false;
+  }
+
+  return true;
+}
+
 /* static */ void
 WheelTransaction::OnEvent(WidgetEvent* aEvent)
 {
@@ -175,8 +218,8 @@ WheelTransaction::OnEvent(WidgetEvent* aEvent)
     return;
   }
 
-  switch (aEvent->message) {
-    case NS_WHEEL_WHEEL:
+  switch (aEvent->mMessage) {
+    case eWheel:
       if (sMouseMoved != 0 &&
           OutOfTime(sMouseMoved, GetIgnoreMoveDelayTime())) {
         // Terminate the current mousewheel transaction if the mouse moved more
@@ -184,8 +227,8 @@ WheelTransaction::OnEvent(WidgetEvent* aEvent)
         EndTransaction();
       }
       return;
-    case NS_MOUSE_MOVE:
-    case NS_DRAGDROP_OVER: {
+    case eMouseMove:
+    case eDragOver: {
       WidgetMouseEvent* mouseEvent = aEvent->AsMouseEvent();
       if (mouseEvent->IsReal()) {
         // If the cursor is moving to be outside the frame,
@@ -207,17 +250,19 @@ WheelTransaction::OnEvent(WidgetEvent* aEvent)
       }
       return;
     }
-    case NS_KEY_PRESS:
-    case NS_KEY_UP:
-    case NS_KEY_DOWN:
-    case NS_MOUSE_BUTTON_UP:
-    case NS_MOUSE_BUTTON_DOWN:
-    case NS_MOUSE_DOUBLECLICK:
-    case NS_MOUSE_CLICK:
-    case NS_CONTEXTMENU:
-    case NS_DRAGDROP_DROP:
+    case eKeyPress:
+    case eKeyUp:
+    case eKeyDown:
+    case eMouseUp:
+    case eMouseDown:
+    case eMouseDoubleClick:
+    case eMouseClick:
+    case eContextMenu:
+    case eDrop:
       EndTransaction();
       return;
+    default:
+      break;
   }
 }
 
@@ -293,8 +338,8 @@ WheelTransaction::GetScreenPoint(WidgetGUIEvent* aEvent)
 {
   NS_ASSERTION(aEvent, "aEvent is null");
   NS_ASSERTION(aEvent->widget, "aEvent-widget is null");
-  return LayoutDeviceIntPoint::ToUntyped(aEvent->refPoint) +
-           aEvent->widget->WidgetToScreenOffset();
+  return (aEvent->refPoint + aEvent->widget->WidgetToScreenOffset())
+      .ToUnknownPoint();
 }
 
 /* static */ uint32_t
@@ -413,7 +458,7 @@ ScrollbarsForWheel::PrepareToScrollText(EventStateManager* aESM,
                                         nsIFrame* aTargetFrame,
                                         WidgetWheelEvent* aEvent)
 {
-  if (aEvent->message == NS_WHEEL_START) {
+  if (aEvent->mMessage == eWheelOperationStart) {
     WheelTransaction::OwnScrollbars(false);
     if (!IsActive()) {
       TemporarilyActivateAllPossibleScrollTargets(aESM, aTargetFrame, aEvent);
@@ -495,9 +540,9 @@ ScrollbarsForWheel::TemporarilyActivateAllPossibleScrollTargets(
     const DeltaValues *dir = &directions[i];
     nsWeakFrame* scrollTarget = &sActivatedScrollTargets[i];
     MOZ_ASSERT(!*scrollTarget, "scroll target still temporarily activated!");
-    nsIScrollableFrame* target =
+    nsIScrollableFrame* target = do_QueryFrame(
       aESM->ComputeScrollTarget(aTargetFrame, dir->deltaX, dir->deltaY, aEvent,
-              EventStateManager::COMPUTE_DEFAULT_ACTION_TARGET);
+              EventStateManager::COMPUTE_DEFAULT_ACTION_TARGET));
     nsIScrollbarMediator* scrollbarMediator = do_QueryFrame(target);
     if (scrollbarMediator) {
       nsIFrame* targetFrame = do_QueryFrame(target);

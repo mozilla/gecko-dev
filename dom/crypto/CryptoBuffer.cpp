@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -17,13 +17,14 @@ CryptoBuffer::Assign(const CryptoBuffer& aData)
 {
   // Same as in nsTArray_Impl::operator=, but return the value
   // returned from ReplaceElementsAt to enable OOM detection
-  return ReplaceElementsAt(0, Length(), aData.Elements(), aData.Length());
+  return ReplaceElementsAt(0, Length(), aData.Elements(), aData.Length(),
+                           fallible);
 }
 
 uint8_t*
 CryptoBuffer::Assign(const uint8_t* aData, uint32_t aLength)
 {
-  return ReplaceElementsAt(0, Length(), aData, aLength);
+  return ReplaceElementsAt(0, Length(), aData, aLength, fallible);
 }
 
 uint8_t*
@@ -58,7 +59,7 @@ CryptoBuffer::Assign(const ArrayBufferViewOrArrayBuffer& aData)
 
   // If your union is uninitialized, something's wrong
   MOZ_ASSERT(false);
-  SetLength(0);
+  Clear();
   return nullptr;
 }
 
@@ -73,7 +74,7 @@ CryptoBuffer::Assign(const OwningArrayBufferViewOrArrayBuffer& aData)
 
   // If your union is uninitialized, something's wrong
   MOZ_ASSERT(false);
-  SetLength(0);
+  Clear();
   return nullptr;
 }
 
@@ -143,23 +144,26 @@ CryptoBuffer::ToJwkBase64(nsString& aBase64)
   return NS_OK;
 }
 
-SECItem*
-CryptoBuffer::ToSECItem() const
+bool
+CryptoBuffer::ToSECItem(PLArenaPool *aArena, SECItem* aItem) const
 {
-  uint8_t* data = (uint8_t*) moz_malloc(Length());
-  if (!data) {
-    return nullptr;
+  aItem->type = siBuffer;
+  aItem->data = nullptr;
+
+  if (!::SECITEM_AllocItem(aArena, aItem, Length())) {
+    return false;
   }
 
-  SECItem* item = ::SECITEM_AllocItem(nullptr, nullptr, 0);
-  item->type = siBuffer;
-  item->data = data;
-  item->len = Length();
-
-  memcpy(item->data, Elements(), Length());
-
-  return item;
+  memcpy(aItem->data, Elements(), Length());
+  return true;
 }
+
+JSObject*
+CryptoBuffer::ToUint8Array(JSContext* aCx) const
+{
+  return Uint8Array::Create(aCx, Length(), Elements());
+}
+
 
 // "BigInt" comes from the WebCrypto spec
 // ("unsigned long" isn't very "big", of course)

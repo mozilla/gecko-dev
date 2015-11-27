@@ -226,7 +226,7 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
     }
     html_msg()
     {
-        if [ "$1" -ne "$2" ] ; then
+        if [ $1 -ne $2 ] ; then
             html_failed "$3" "$4"
         else
             html_passed "$3" "$4"
@@ -235,7 +235,7 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
     HTML_FAILED='</TD><TD bgcolor=red>Failed</TD><TR>'
     HTML_FAILED_CORE='</TD><TD bgcolor=red>Failed Core</TD><TR>'
     HTML_PASSED='</TD><TD bgcolor=lightGreen>Passed</TD><TR>'
-    HTML_UNKNOWN='</TD><TD>Unknown/TD><TR>'
+    HTML_UNKNOWN='</TD><TD>Unknown</TD><TR>'
     TABLE_ARGS=
 
 

@@ -11,13 +11,13 @@
 #include "mozilla/ModuleUtils.h"
 #include "nsIServiceManager.h"
 #include "nsPrintfCString.h"
-#include "nsNetUtil.h"
+#include "nsNetCID.h"
 #include "nsISupportsPrimitives.h"
 #include "nsIURI.h"
 #include "nsObjCExceptions.h"
 #include "mozilla/Attributes.h"
 
-class nsOSXSystemProxySettings MOZ_FINAL : public nsISystemProxySettings {
+class nsOSXSystemProxySettings final : public nsISystemProxySettings {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSISYSTEMPROXYSETTINGS

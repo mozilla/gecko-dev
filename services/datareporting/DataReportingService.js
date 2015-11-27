@@ -6,14 +6,17 @@
 
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
+Cu.import("resource://gre/modules/ClientID.jsm");
 Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://services-common/utils.js");
+Cu.import("resource://gre/modules/Promise.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
+Cu.import("resource://gre/modules/osfile.jsm");
 
 
 const ROOT_BRANCH = "datareporting.";
 const POLICY_BRANCH = ROOT_BRANCH + "policy.";
-const SESSIONS_BRANCH = ROOT_BRANCH + "sessions.";
 const HEALTHREPORT_BRANCH = ROOT_BRANCH + "healthreport.";
 const HEALTHREPORT_LOGGING_BRANCH = HEALTHREPORT_BRANCH + "logging.";
 const DEFAULT_LOAD_DELAY_MSEC = 10 * 1000;
@@ -111,16 +114,6 @@ DataReportingService.prototype = Object.freeze({
 
         try {
           this._prefs = new Preferences(HEALTHREPORT_BRANCH);
-
-          // We don't initialize the sessions recorder unless Health Report is
-          // around to provide pruning of data.
-          //
-          // FUTURE consider having the SessionsRecorder always enabled and/or
-          // living in its own XPCOM service.
-          if (this._prefs.get("service.enabled", true)) {
-            this.sessionRecorder = new SessionRecorder(SESSIONS_BRANCH);
-            this.sessionRecorder.onStartup();
-          }
 
           // We can't interact with prefs until after the profile is present.
           let policyPrefs = new Preferences(POLICY_BRANCH);
@@ -274,15 +267,24 @@ DataReportingService.prototype = Object.freeze({
       }
     }
 
-    this._healthReporter = new ns.HealthReporter(HEALTHREPORT_BRANCH,
-                                                 this.policy,
-                                                 this.sessionRecorder);
+    this._healthReporter = new ns.HealthReporter(HEALTHREPORT_BRANCH, this.policy);
 
     // Wait for initialization to finish so if a shutdown occurs before init
     // has finished we don't adversely affect app startup on next run.
     this._healthReporter.init().then(function onInit() {
       this._prefs.set("service.firstRun", true);
     }.bind(this));
+  },
+
+  /**
+   * This returns a promise resolving to the the stable client ID we use for
+   * data reporting (FHR & Telemetry). Previously exising FHR client IDs are
+   * migrated to this.
+   *
+   * @return Promise<string> The stable client ID.
+   */
+  getClientID: function() {
+    return ClientID.getClientID();
   },
 });
 
@@ -293,7 +295,5 @@ this.NSGetFactory = XPCOMUtils.generateNSGetFactory([DataReportingService]);
 #include ../common/observers.js
 ;
 #include policy.jsm
-;
-#include sessions.jsm
 ;
 

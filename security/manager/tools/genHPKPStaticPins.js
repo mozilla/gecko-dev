@@ -8,23 +8,23 @@
 // 3. run `[path to]/run-mozilla.sh [path to]/xpcshell \
 //                                  [path to]/genHPKPStaticpins.js \
 //                                  [absolute path to]/PreloadedHPKPins.json \
-//                                  [absolute path to]/default-ee.der \
+//                                  [an unused argument - see bug 1205406] \
 //                                  [absolute path to]/StaticHPKPins.h
 
 if (arguments.length != 3) {
   throw "Usage: genHPKPStaticPins.js " +
         "<absolute path to PreloadedHPKPins.json> " +
-        "<absolute path to default-ee.der> " +
+        "<an unused argument - see bug 1205406> " +
         "<absolute path to StaticHPKPins.h>";
 }
 
-const { 'classes': Cc, 'interfaces': Ci, 'utils': Cu, 'results': Cr } = Components;
+var { 'classes': Cc, 'interfaces': Ci, 'utils': Cu, 'results': Cr } = Components;
 
-let { NetUtil } = Cu.import("resource://gre/modules/NetUtil.jsm", {});
-let { FileUtils } = Cu.import("resource://gre/modules/FileUtils.jsm", {});
-let { Services } = Cu.import("resource://gre/modules/Services.jsm", {});
+var { NetUtil } = Cu.import("resource://gre/modules/NetUtil.jsm", {});
+var { FileUtils } = Cu.import("resource://gre/modules/FileUtils.jsm", {});
+var { Services } = Cu.import("resource://gre/modules/Services.jsm", {});
 
-let gCertDB = Cc["@mozilla.org/security/x509certdb;1"]
+var gCertDB = Cc["@mozilla.org/security/x509certdb;1"]
                 .getService(Ci.nsIX509CertDB);
 
 const BUILT_IN_NICK_PREFIX = "Builtin Object Token:";
@@ -68,12 +68,13 @@ const PINSETDEF = "/* Pinsets are each an ordered list by the actual value of th
 
 // Command-line arguments
 var gStaticPins = parseJson(arguments[0]);
-var gTestCertFile = arguments[1];
+
+// arguments[1] is ignored for now. See bug 1205406.
 
 // Open the output file.
-let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
+var file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
 file.initWithPath(arguments[2]);
-let gFileOutputStream = FileUtils.openSafeFileOutputStream(file);
+var gFileOutputStream = FileUtils.openSafeFileOutputStream(file);
 
 function writeString(string) {
   gFileOutputStream.write(string, string.length);
@@ -90,7 +91,7 @@ function readFileToString(filename) {
 }
 
 function stripComments(buf) {
-  var lines = buf.split("\n");
+  let lines = buf.split("\n");
   let entryRegex = /^\s*\/\//;
   let data = "";
   for (let i = 0; i < lines.length; ++i) {
@@ -118,7 +119,7 @@ function isCertBuiltIn(cert) {
 }
 
 function download(filename) {
-  var req = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
+  let req = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
               .createInstance(Ci.nsIXMLHttpRequest);
   req.open("GET", filename, false); // doing the request synchronously
   try {
@@ -132,13 +133,21 @@ function download(filename) {
     throw("ERROR: problem downloading '" + filename + "': status " +
           req.status);
   }
-  return req.responseText;
+
+  let resultDecoded;
+  try {
+    resultDecoded = atob(req.responseText);
+  }
+  catch (e) {
+    throw "ERROR: could not decode data as base64 from '" + filename + "': " + e;
+  }
+  return resultDecoded;
 }
 
 function downloadAsJson(filename) {
-  // we have to filter out '//' comments
-  var result = download(filename).replace(/\/\/[^\n]*\n/g, "");
-  var data = null;
+  // we have to filter out '//' comments, while not mangling the json
+  let result = download(filename).replace(/^(\s*)?\/\/[^\n]*\n/mg, "");
+  let data = null;
   try {
     data = JSON.parse(result);
   }
@@ -188,6 +197,7 @@ function downloadAndParseChromeCerts(filename, certSKDToName) {
   let hash = "";
   let chromeNameToHash = {};
   let chromeNameToMozName = {}
+  let chromeName;
   for (let i = 0; i < lines.length; ++i) {
     let line = lines[i];
     // Skip comments and newlines.
@@ -224,6 +234,7 @@ function downloadAndParseChromeCerts(filename, certSKDToName) {
           state = PRE_NAME;
           hash = getSKDFromPem(pemCert);
           pemCert = "";
+          let mozName;
           if (hash in certSKDToName) {
             mozName = certSKDToName[hash];
           } else {
@@ -311,6 +322,10 @@ function downloadAndParseChromePins(filename,
   const cData = gStaticPins.chromium_data;
   let entries = chromePreloads.entries;
   entries.forEach(function(entry) {
+    // HSTS entry only
+    if (!entry.pins) {
+      return;
+    }
     let pinsetName = cData.substitute_pinsets[entry.pins];
     if (!pinsetName) {
       pinsetName = entry.pins;
@@ -336,7 +351,7 @@ function downloadAndParseChromePins(filename,
 
 // Returns a pair of maps [certNameToSKD, certSKDToName] between cert
 // nicknames and digests of the SPKInfo for the mozilla trust store
-function loadNSSCertinfo(derTestFile, extraCertificates) {
+function loadNSSCertinfo(extraCertificates) {
   let allCerts = gCertDB.getCerts();
   let enumerator = allCerts.getEnumerator();
   let certNameToSKD = {};
@@ -360,13 +375,10 @@ function loadNSSCertinfo(derTestFile, extraCertificates) {
   }
 
   {
-    // A certificate for *.example.com.
-    let der = readFileToString(derTestFile);
-    let testCert = gCertDB.constructX509(der, der.length);
-    // We can't include this cert in the previous loop, because it skips
-    // non-builtin certs and the nickname is not built-in to the cert.
+    // This is the pinning test certificate. The key hash identifies the
+    // default RSA key from pykey.
     let name = "End Entity Test Cert";
-    let SKD  = testCert.sha256SubjectPublicKeyInfoDigest;
+    let SKD = "VCIlmPM9NkgFQtrs4Oa5TeFcDu6MWRTKSNdePEhOgD8=";
     certNameToSKD[name] = SKD;
     certSKDToName[SKD] = name;
   }
@@ -460,16 +472,19 @@ function writeEntry(entry) {
   } else {
     printVal += "false, ";
   }
-  if (entry.is_moz || (entry.pins == "mozilla")) {
+  if (entry.is_moz || (entry.pins.indexOf("mozilla") != -1 &&
+                       entry.pins != "mozilla_test")) {
     printVal += "true, ";
   } else {
     printVal += "false, ";
   }
-  if (entry.id >= 256) {
-    throw("Not enough buckets in histogram");
-  }
-  if (entry.id >= 0) {
-    printVal += entry.id + ", ";
+  if ("id" in entry) {
+    if (entry.id >= 256) {
+      throw("Not enough buckets in histogram");
+    }
+    if (entry.id >= 0) {
+      printVal += entry.id + ", ";
+    }
   } else {
     printVal += "-1, ";
   }
@@ -483,6 +498,19 @@ function writeDomainList(chromeImportedEntries) {
   writeString("static const TransportSecurityPreload " +
           "kPublicKeyPinningPreloadList[] = {\n");
   let count = 0;
+  let mozillaDomains = {};
+  gStaticPins.entries.forEach(function(entry) {
+    mozillaDomains[entry.name] = true;
+  });
+  // For any domain for which we have set pins, exclude them from
+  // chromeImportedEntries.
+  for (let i = chromeImportedEntries.length - 1; i >= 0; i--) {
+    if (mozillaDomains[chromeImportedEntries[i].name]) {
+      dump("Skipping duplicate pinset for domain " +
+           JSON.stringify(chromeImportedEntries[i], undefined, 2) + "\n");
+      chromeImportedEntries.splice(i, 1);
+    }
+  }
   let sortedEntries = gStaticPins.entries;
   sortedEntries.push.apply(sortedEntries, chromeImportedEntries);
   for (let entry of sortedEntries.sort(compareByName)) {
@@ -499,8 +527,10 @@ function writeFile(certNameToSKD, certSKDToName,
                    chromeImportedPinsets, chromeImportedEntries) {
   // Compute used pins from both Chrome's and our pinsets, so we can output
   // them later.
-  usedFingerprints = {};
+  let usedFingerprints = {};
+  let mozillaPins = {};
   gStaticPins.pinsets.forEach(function(pinset) {
+    mozillaPins[pinset.name] = true;
     // We aren't guaranteed to have sha1_hashes in our own JSON.
     if (pinset.sha1_hashes) {
       pinset.sha1_hashes.forEach(function(name) {
@@ -543,7 +573,12 @@ function writeFile(certNameToSKD, certSKDToName,
   });
   writeString("/* Chrome static pinsets */\n");
   for (let key in chromeImportedPinsets) {
-    writeFullPinset(certNameToSKD, certSKDToName, chromeImportedPinsets[key]);
+    if (mozillaPins[key]) {
+      dump("Skipping duplicate pinset " + key + "\n");
+    } else {
+      dump("Writing pinset " + key + "\n");
+      writeFullPinset(certNameToSKD, certSKDToName, chromeImportedPinsets[key]);
+    }
   }
 
   // Write the domainlist entries.
@@ -561,12 +596,11 @@ function loadExtraCertificates(certStringList) {
   return constructedCerts;
 }
 
-let extraCertificates = loadExtraCertificates(gStaticPins.extra_certificates);
-let [ certNameToSKD, certSKDToName ] = loadNSSCertinfo(gTestCertFile,
-                                                       extraCertificates);
-let [ chromeNameToHash, chromeNameToMozName ] = downloadAndParseChromeCerts(
+var extraCertificates = loadExtraCertificates(gStaticPins.extra_certificates);
+var [ certNameToSKD, certSKDToName ] = loadNSSCertinfo(extraCertificates);
+var [ chromeNameToHash, chromeNameToMozName ] = downloadAndParseChromeCerts(
   gStaticPins.chromium_data.cert_file_url, certSKDToName);
-let [ chromeImportedPinsets, chromeImportedEntries ] =
+var [ chromeImportedPinsets, chromeImportedEntries ] =
   downloadAndParseChromePins(gStaticPins.chromium_data.json_file_url,
     chromeNameToHash, chromeNameToMozName, certNameToSKD, certSKDToName);
 

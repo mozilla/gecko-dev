@@ -31,7 +31,7 @@ function test() {
   waitForExplicitFinish();
 
   // Cleanup.
-  waitForClearHistory(continue_test);
+  PlacesTestUtils.clearHistory().then(continue_test);
 }
 
 function continue_test() {
@@ -43,8 +43,8 @@ function continue_test() {
     places.push({uri: uri(pages[i]), visitDate: (time - i) * 1000,
                  transition: hs.TRANSITION_TYPED});
   }
-  addVisits(places, window, function() {
-    toggleSidebar("viewHistorySidebar", true);
+  PlacesTestUtils.addVisits(places).then(() => {
+    SidebarUI.show("viewHistorySidebar");
   });
 
   sidebar.addEventListener("load", function() {
@@ -63,8 +63,8 @@ function continue_test() {
       check_sidebar_tree_order(pages.length);
 
       // Cleanup.
-      toggleSidebar("viewHistorySidebar", false);
-      waitForClearHistory(finish);
+      SidebarUI.hide();
+      PlacesTestUtils.clearHistory().then(finish);
     });
   }, true);
 }
@@ -80,7 +80,7 @@ function check_sidebar_tree_order(aExpectedRows) {
     var node = treeView.nodeForTreeIndex(r);
     // We could inherit visits from previous tests, skip them since they are
     // not interesting for us.
-    if (pages.indexOf(node.uri) == -1)
+    if (!pages.includes(node.uri))
       continue;
     is(node.uri, pages[r], "Node is in correct position based on its visit date");
     found++;

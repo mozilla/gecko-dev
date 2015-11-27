@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 sw=2 et tw=78: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -26,7 +26,7 @@ using namespace mozilla;
 using namespace mozilla::dom;
 
 // Our JS nsIScriptTimeoutHandler implementation.
-class nsJSScriptTimeoutHandler MOZ_FINAL : public nsIScriptTimeoutHandler
+class nsJSScriptTimeoutHandler final : public nsIScriptTimeoutHandler
 {
 public:
   // nsISupports
@@ -35,31 +35,31 @@ public:
 
   nsJSScriptTimeoutHandler();
   // This will call SwapElements on aArguments with an empty array.
-  nsJSScriptTimeoutHandler(nsGlobalWindow *aWindow, Function& aFunction,
+  nsJSScriptTimeoutHandler(JSContext* aCx, nsGlobalWindow *aWindow,
+                           Function& aFunction,
                            FallibleTArray<JS::Heap<JS::Value> >& aArguments,
                            ErrorResult& aError);
   nsJSScriptTimeoutHandler(JSContext* aCx, nsGlobalWindow *aWindow,
                            const nsAString& aExpression, bool* aAllowEval,
                            ErrorResult& aError);
 
-  virtual const char16_t *GetHandlerText();
-  virtual Function* GetCallback()
+  virtual const char16_t* GetHandlerText() override;
+  virtual Function* GetCallback() override
   {
     return mFunction;
   }
-  virtual void GetLocation(const char **aFileName, uint32_t *aLineNo)
+  virtual void GetLocation(const char** aFileName, uint32_t* aLineNo,
+                           uint32_t* aColumn) override
   {
     *aFileName = mFileName.get();
     *aLineNo = mLineNo;
+    *aColumn = mColumn;
   }
 
-  virtual const nsTArray<JS::Value>& GetArgs()
+  virtual const nsTArray<JS::Value>& GetArgs() override
   {
     return mArgs;
   }
-
-  nsresult Init(nsGlobalWindow *aWindow, bool *aIsInterval,
-                int32_t *aInterval, bool* aAllowEval);
 
   void ReleaseJSObjects();
 
@@ -70,12 +70,13 @@ private:
   // caller of setTimeout()
   nsCString mFileName;
   uint32_t mLineNo;
+  uint32_t mColumn;
   nsTArray<JS::Heap<JS::Value> > mArgs;
 
   // The expression to evaluate or function to call. If mFunction is non-null
   // it should be used, else use mExpr.
   nsString mExpr;
-  nsRefPtr<Function> mFunction;
+  RefPtr<Function> mFunction;
 };
 
 
@@ -109,6 +110,8 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(nsJSScriptTimeoutHandler)
       name.Append(tmp->mFileName);
       name.Append(':');
       name.AppendInt(tmp->mLineNo);
+      name.Append(':');
+      name.AppendInt(tmp->mColumn);
       name.Append(']');
     }
     cb.DescribeRefCountedNode(tmp->mRefCnt.get(), name.get());
@@ -173,11 +176,8 @@ CheckCSPForEval(JSContext* aCx, nsGlobalWindow* aWindow, ErrorResult& aError)
 
     // Get the calling location.
     uint32_t lineNum = 0;
-    const char *fileName;
     nsAutoString fileNameString;
-    if (nsJSUtils::GetCallingLocation(aCx, &fileName, &lineNum)) {
-      AppendUTF8toUTF16(fileName, fileNameString);
-    } else {
+    if (!nsJSUtils::GetCallingLocation(aCx, fileNameString, &lineNum)) {
       fileNameString.AssignLiteral("unknown");
     }
 
@@ -189,17 +189,20 @@ CheckCSPForEval(JSContext* aCx, nsGlobalWindow* aWindow, ErrorResult& aError)
   return allowsEval;
 }
 
-nsJSScriptTimeoutHandler::nsJSScriptTimeoutHandler() :
-  mLineNo(0)
+nsJSScriptTimeoutHandler::nsJSScriptTimeoutHandler()
+  : mLineNo(0)
+  , mColumn(0)
 {
 }
 
-nsJSScriptTimeoutHandler::nsJSScriptTimeoutHandler(nsGlobalWindow *aWindow,
+nsJSScriptTimeoutHandler::nsJSScriptTimeoutHandler(JSContext* aCx,
+                                                   nsGlobalWindow *aWindow,
                                                    Function& aFunction,
                                                    FallibleTArray<JS::Heap<JS::Value> >& aArguments,
-                                                   ErrorResult& aError) :
-  mLineNo(0),
-  mFunction(&aFunction)
+                                                   ErrorResult& aError)
+  : mLineNo(0)
+  , mColumn(0)
+  , mFunction(&aFunction)
 {
   if (!aWindow->GetContextInternal() || !aWindow->FastGetGlobalJSObject()) {
     // This window was already closed, or never properly initialized,
@@ -210,15 +213,19 @@ nsJSScriptTimeoutHandler::nsJSScriptTimeoutHandler(nsGlobalWindow *aWindow,
 
   mozilla::HoldJSObjects(this);
   mArgs.SwapElements(aArguments);
+
+  // Get the calling location.
+  nsJSUtils::GetCallingLocation(aCx, mFileName, &mLineNo, &mColumn);
 }
 
 nsJSScriptTimeoutHandler::nsJSScriptTimeoutHandler(JSContext* aCx,
                                                    nsGlobalWindow *aWindow,
                                                    const nsAString& aExpression,
                                                    bool* aAllowEval,
-                                                   ErrorResult& aError) :
-  mLineNo(0),
-  mExpr(aExpression)
+                                                   ErrorResult& aError)
+  : mLineNo(0)
+  , mColumn(0)
+  , mExpr(aExpression)
 {
   if (!aWindow->GetContextInternal() || !aWindow->FastGetGlobalJSObject()) {
     // This window was already closed, or never properly initialized,
@@ -233,10 +240,7 @@ nsJSScriptTimeoutHandler::nsJSScriptTimeoutHandler(JSContext* aCx,
   }
 
   // Get the calling location.
-  const char *filename;
-  if (nsJSUtils::GetCallingLocation(aCx, &filename, &mLineNo)) {
-    mFileName.Assign(filename);
-  }
+  nsJSUtils::GetCallingLocation(aCx, mFileName, &mLineNo, &mColumn);
 }
 
 nsJSScriptTimeoutHandler::~nsJSScriptTimeoutHandler()
@@ -254,139 +258,6 @@ nsJSScriptTimeoutHandler::ReleaseJSObjects()
   }
 }
 
-nsresult
-nsJSScriptTimeoutHandler::Init(nsGlobalWindow *aWindow, bool *aIsInterval,
-                               int32_t *aInterval, bool *aAllowEval)
-{
-  if (!aWindow->GetContextInternal() || !aWindow->FastGetGlobalJSObject()) {
-    // This window was already closed, or never properly initialized,
-    // don't let a timer be scheduled on such a window.
-
-    return NS_ERROR_NOT_INITIALIZED;
-  }
-
-  nsAXPCNativeCallContext *ncc = nullptr;
-  nsresult rv = nsContentUtils::XPConnect()->
-    GetCurrentNativeCallContext(&ncc);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (!ncc)
-    return NS_ERROR_NOT_AVAILABLE;
-
-  JSContext *cx = nullptr;
-
-  rv = ncc->GetJSContext(&cx);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  uint32_t argc;
-  JS::Value *argv = nullptr;
-
-  ncc->GetArgc(&argc);
-  ncc->GetArgvPtr(&argv);
-
-  JS::Rooted<JSFlatString*> expr(cx);
-  JS::Rooted<JSObject*> funobj(cx);
-
-  if (argc < 1) {
-    ::JS_ReportError(cx, "Function %s requires at least 2 parameter",
-                     *aIsInterval ? kSetIntervalStr : kSetTimeoutStr);
-    return NS_ERROR_DOM_TYPE_ERR;
-  }
-
-  int32_t interval = 0;
-  if (argc > 1) {
-    JS::Rooted<JS::Value> arg(cx, argv[1]);
-
-    if (!JS::ToInt32(cx, arg, &interval)) {
-      ::JS_ReportError(cx,
-                       "Second argument to %s must be a millisecond interval",
-                       aIsInterval ? kSetIntervalStr : kSetTimeoutStr);
-      return NS_ERROR_DOM_TYPE_ERR;
-    }
-  }
-
-  if (argc == 1) {
-    // If no interval was specified, treat this like a timeout, to avoid
-    // setting an interval of 0 milliseconds.
-    *aIsInterval = false;
-  }
-
-  JS::Rooted<JS::Value> arg(cx, argv[0]);
-  switch (::JS_TypeOfValue(cx, arg)) {
-  case JSTYPE_FUNCTION:
-    funobj = &arg.toObject();
-    break;
-
-  case JSTYPE_STRING:
-  case JSTYPE_OBJECT:
-    {
-      JSString *str = JS::ToString(cx, arg);
-      if (!str)
-        return NS_ERROR_OUT_OF_MEMORY;
-
-      expr = ::JS_FlattenString(cx, str);
-      if (!expr)
-          return NS_ERROR_OUT_OF_MEMORY;
-
-      argv[0] = JS::StringValue(str);
-    }
-    break;
-
-  default:
-    ::JS_ReportError(cx, "useless %s call (missing quotes around argument?)",
-                     *aIsInterval ? kSetIntervalStr : kSetTimeoutStr);
-
-    // Return an error that nsGlobalWindow can recognize and turn into NS_OK.
-    return NS_ERROR_DOM_TYPE_ERR;
-  }
-
-  if (expr) {
-    // if CSP is enabled, and setTimeout/setInterval was called with a string,
-    // disable the registration and log an error
-    ErrorResult error;
-    *aAllowEval = CheckCSPForEval(cx, aWindow, error);
-    if (error.Failed() || !*aAllowEval) {
-      return error.ErrorCode();
-    }
-
-    MOZ_ASSERT(mExpr.IsEmpty());
-    AssignJSFlatString(mExpr, expr);
-
-    // Get the calling location.
-    const char *filename;
-    if (nsJSUtils::GetCallingLocation(cx, &filename, &mLineNo)) {
-      mFileName.Assign(filename);
-    }
-  } else if (funobj) {
-    *aAllowEval = true;
-
-    mozilla::HoldJSObjects(this);
-
-    mFunction = new Function(funobj, GetIncumbentGlobal());
-
-    // Create our arg array.  argc is the number of arguments passed
-    // to setTimeout or setInterval; the first two are our callback
-    // and the delay, so only arguments after that need to go in our
-    // array.
-    // std::max(argc - 2, 0) wouldn't work right because argc is unsigned.
-    uint32_t argCount = std::max(argc, 2u) - 2;
-
-    FallibleTArray<JS::Heap<JS::Value> > args;
-    if (!args.SetCapacity(argCount)) {
-      // No need to drop here, since we already have a non-null mFunction
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
-    for (uint32_t idx = 0; idx < argCount; ++idx) {
-      *args.AppendElement() = argv[idx + 2];
-    }
-    args.SwapElements(mArgs);
-  } else {
-    NS_WARNING("No func and no expr - why are we here?");
-  }
-  *aInterval = interval;
-  return NS_OK;
-}
-
 const char16_t *
 nsJSScriptTimeoutHandler::GetHandlerText()
 {
@@ -394,37 +265,20 @@ nsJSScriptTimeoutHandler::GetHandlerText()
   return mExpr.get();
 }
 
-nsresult NS_CreateJSTimeoutHandler(nsGlobalWindow *aWindow,
-                                   bool *aIsInterval,
-                                   int32_t *aInterval,
-                                   nsIScriptTimeoutHandler **aRet)
-{
-  *aRet = nullptr;
-  nsRefPtr<nsJSScriptTimeoutHandler> handler = new nsJSScriptTimeoutHandler();
-  bool allowEval;
-  nsresult rv = handler->Init(aWindow, aIsInterval, aInterval, &allowEval);
-  if (NS_FAILED(rv) || !allowEval) {
-    return rv;
-  }
-
-  handler.forget(aRet);
-
-  return NS_OK;
-}
-
 already_AddRefed<nsIScriptTimeoutHandler>
-NS_CreateJSTimeoutHandler(nsGlobalWindow *aWindow, Function& aFunction,
+NS_CreateJSTimeoutHandler(JSContext *aCx, nsGlobalWindow *aWindow,
+                          Function& aFunction,
                           const Sequence<JS::Value>& aArguments,
                           ErrorResult& aError)
 {
   FallibleTArray<JS::Heap<JS::Value> > args;
-  if (!args.AppendElements(aArguments)) {
+  if (!args.AppendElements(aArguments, fallible)) {
     aError.Throw(NS_ERROR_OUT_OF_MEMORY);
     return nullptr;
   }
 
-  nsRefPtr<nsJSScriptTimeoutHandler> handler =
-    new nsJSScriptTimeoutHandler(aWindow, aFunction, args, aError);
+  RefPtr<nsJSScriptTimeoutHandler> handler =
+    new nsJSScriptTimeoutHandler(aCx, aWindow, aFunction, args, aError);
   return aError.Failed() ? nullptr : handler.forget();
 }
 
@@ -434,7 +288,7 @@ NS_CreateJSTimeoutHandler(JSContext* aCx, nsGlobalWindow *aWindow,
 {
   ErrorResult rv;
   bool allowEval = false;
-  nsRefPtr<nsJSScriptTimeoutHandler> handler =
+  RefPtr<nsJSScriptTimeoutHandler> handler =
     new nsJSScriptTimeoutHandler(aCx, aWindow, aExpression, &allowEval, rv);
   if (rv.Failed() || !allowEval) {
     return nullptr;

@@ -24,7 +24,21 @@ namespace system {
 *
 ***************************************************************************/
 
-class Volume MOZ_FINAL
+class Volume;
+
+#define DEBUG_VOLUME_OBSERVER 0
+
+#if DEBUG_VOLUME_OBSERVER
+class VolumeObserverList : public mozilla::ObserverList<Volume*>
+{
+public:
+  void Broadcast(Volume* const& aVolume);
+};
+#else
+typedef mozilla::ObserverList<Volume*> VolumeObserverList;
+#endif
+
+class Volume final
 {
 public:
   NS_INLINE_DECL_REFCOUNTING(Volume)
@@ -39,6 +53,8 @@ public:
 
   const nsCString& Name() const { return mName; }
   const char* NameStr() const   { return mName.get(); }
+
+  void Dump(const char* aLabel) const;
 
   // The mount point is the name of the directory where the volume is mounted.
   // (i.e. path that leads to the files stored on the volume).
@@ -59,6 +75,10 @@ public:
   bool IsSharing() const              { return mIsSharing; }
   bool IsFormatting() const           { return mIsFormatting; }
   bool IsUnmounting() const           { return mIsUnmounting; }
+  bool IsRemovable() const            { return mIsRemovable; }
+  bool IsHotSwappable() const         { return mIsHotSwappable; }
+
+  void SetFakeVolume(const nsACString& aMountPoint);
 
   void SetSharingEnabled(bool aSharingEnabled);
   void SetFormatRequested(bool aFormatRequested);
@@ -66,11 +86,13 @@ public:
   void SetUnmountRequested(bool aUnmountRequested);
 
   typedef mozilla::Observer<Volume *>     EventObserver;
-  typedef mozilla::ObserverList<Volume *> EventObserverList;
 
   // NOTE: that observers must live in the IOThread.
-  static void RegisterObserver(EventObserver* aObserver);
-  static void UnregisterObserver(EventObserver* aObserver);
+  static void RegisterVolumeObserver(EventObserver* aObserver, const char* aName);
+  static void UnregisterVolumeObserver(EventObserver* aObserver, const char* aName);
+
+protected:
+  ~Volume() {}
 
 private:
   friend class AutoMounter;         // Calls StartXxx
@@ -90,10 +112,17 @@ private:
   void SetIsSharing(bool aIsSharing);
   void SetIsFormatting(bool aIsFormatting);
   void SetIsUnmounting(bool aIsUnmounting);
+  void SetIsRemovable(bool aIsRemovable);
+  void SetIsHotSwappable(bool aIsHotSwappable);
   void SetState(STATE aNewState);
   void SetMediaPresent(bool aMediaPresent);
   void SetMountPoint(const nsCSubstring& aMountPoint);
   void StartCommand(VolumeCommand* aCommand);
+
+  void ResolveAndSetMountPoint(const nsCSubstring& aMountPoint);
+
+  bool BoolConfigValue(const nsCString& aConfigValue, bool& aBoolValue);
+  void SetConfig(const nsCString& aConfigName, const nsCString& aConfigValue);
 
   void HandleVoldResponse(int aResponseCode, nsCWhitespaceTokenizer& aTokenizer);
 
@@ -115,9 +144,11 @@ private:
   bool              mIsSharing;
   bool              mIsFormatting;
   bool              mIsUnmounting;
+  bool              mIsRemovable;
+  bool              mIsHotSwappable;
   uint32_t          mId;                // Unique ID (used by MTP)
 
-  static EventObserverList mEventObserverList;
+  static VolumeObserverList sEventObserverList;
 };
 
 } // system

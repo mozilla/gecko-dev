@@ -315,7 +315,7 @@ nsTypeAheadFind::FindItNow(nsIPresShell *aPresShell, bool aIsLinksOnly,
       return NS_ERROR_FAILURE;
   }
 
-  nsRefPtr<nsPresContext> presContext = presShell->GetPresContext();
+  RefPtr<nsPresContext> presContext = presShell->GetPresContext();
 
   if (!presContext)
     return NS_ERROR_FAILURE;
@@ -720,7 +720,7 @@ nsTypeAheadFind::GetSearchContainers(nsISupports *aContainer,
 
   nsCOMPtr<nsIPresShell> presShell = docShell->GetPresShell();
 
-  nsRefPtr<nsPresContext> presContext;
+  RefPtr<nsPresContext> presContext;
   docShell->GetPresContext(getter_AddRefs(presContext));
 
   if (!presShell || !presContext)
@@ -819,11 +819,8 @@ nsTypeAheadFind::GetSearchContainers(nsISupports *aContainer,
 
   mStartPointRange->Collapse(true); // collapse to start
 
-  *aPresShell = presShell;
-  NS_ADDREF(*aPresShell);
-
-  *aPresContext = presContext;
-  NS_ADDREF(*aPresContext);
+  presShell.forget(aPresShell);
+  presContext.forget(aPresContext);
 
   return NS_OK;
 }
@@ -884,7 +881,7 @@ nsTypeAheadFind::RangeStartsInsideLink(nsIDOMRange *aRange,
     // Keep testing while startContent is equal to something,
     // eventually we'll run out of ancestors
 
-    if (startContent->IsHTML()) {
+    if (startContent->IsHTMLElement()) {
       nsCOMPtr<mozilla::dom::Link> link(do_QueryInterface(startContent));
       if (link) {
         // Check to see if inside HTML link
@@ -1157,7 +1154,7 @@ nsTypeAheadFind::IsRangeVisible(nsIDOMRange *aRange,
 
   // Set up the arguments needed to check if a range is visible.
   nsCOMPtr<nsIPresShell> presShell (docShell->GetPresShell());
-  nsRefPtr<nsPresContext> presContext = presShell->GetPresContext();
+  RefPtr<nsPresContext> presContext = presShell->GetPresContext();
   nsCOMPtr<nsIDOMRange> startPointRange = new nsRange(presShell->GetDocument());
   *aResult = IsRangeVisible(presShell, presContext, aRange,
                             aMustBeInViewPort, false,
@@ -1254,7 +1251,8 @@ nsTypeAheadFind::IsRangeVisible(nsIPresShell *aPresShell,
                             eLeaf,
                             false, // aVisual
                             false, // aLockInScrollView
-                            false     // aFollowOOFs
+                            false, // aFollowOOFs
+                            false  // aSkipPopupChecks
                             );
 
   if (!frameTraversal)

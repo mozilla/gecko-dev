@@ -7,9 +7,6 @@
 #define mozilla_a11y_ImageAccessible_h__
 
 #include "BaseAccessibles.h"
-#include "xpcAccessibleImage.h"
-
-class nsGenericHTMLElement;
 
 namespace mozilla {
 namespace a11y {
@@ -19,24 +16,20 @@ namespace a11y {
  * - gets name, role
  * - support basic state
  */
-class ImageAccessible : public LinkableAccessible,
-                        public xpcAccessibleImage
+class ImageAccessible : public LinkableAccessible
 {
 public:
   ImageAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
-  // nsISupports
-  NS_DECL_ISUPPORTS_INHERITED
-
   // Accessible
-  virtual a11y::role NativeRole() MOZ_OVERRIDE;
-  virtual uint64_t NativeState() MOZ_OVERRIDE;
-  virtual already_AddRefed<nsIPersistentProperties> NativeAttributes() MOZ_OVERRIDE;
+  virtual a11y::role NativeRole() override;
+  virtual uint64_t NativeState() override;
+  virtual already_AddRefed<nsIPersistentProperties> NativeAttributes() override;
 
   // ActionAccessible
-  virtual uint8_t ActionCount() MOZ_OVERRIDE;
-  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) MOZ_OVERRIDE;
-  virtual bool DoAction(uint8_t aIndex) MOZ_OVERRIDE;
+  virtual uint8_t ActionCount() override;
+  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) override;
+  virtual bool DoAction(uint8_t aIndex) override;
 
   // ImageAccessible
   nsIntPoint Position(uint32_t aCoordType);
@@ -46,7 +39,7 @@ protected:
   virtual ~ImageAccessible();
 
   // Accessible
-  virtual ENameValueFlag NativeName(nsString& aName) MOZ_OVERRIDE;
+  virtual ENameValueFlag NativeName(nsString& aName) override;
 
 private:
   /**

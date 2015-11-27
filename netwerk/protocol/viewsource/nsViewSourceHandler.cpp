@@ -70,7 +70,7 @@ nsViewSourceHandler::NewURI(const nsACString &aSpec,
 
     asciiSpec.Insert(VIEW_SOURCE ":", 0);
 
-    // We can't swap() from an nsRefPtr<nsSimpleNestedURI> to an nsIURI**,
+    // We can't swap() from an RefPtr<nsSimpleNestedURI> to an nsIURI**,
     // sadly.
     nsSimpleNestedURI* ourURI = new nsSimpleNestedURI(innerURI);
     nsCOMPtr<nsIURI> uri = ourURI;
@@ -90,7 +90,9 @@ nsViewSourceHandler::NewURI(const nsACString &aSpec,
 }
 
 NS_IMETHODIMP
-nsViewSourceHandler::NewChannel(nsIURI* uri, nsIChannel* *result)
+nsViewSourceHandler::NewChannel2(nsIURI* uri,
+                                 nsILoadInfo* aLoadInfo,
+                                 nsIChannel** result)
 {
     NS_ENSURE_ARG_POINTER(uri);
     nsViewSourceChannel *channel = new nsViewSourceChannel();
@@ -104,27 +106,51 @@ nsViewSourceHandler::NewChannel(nsIURI* uri, nsIChannel* *result)
         return rv;
     }
 
-    *result = static_cast<nsIViewSourceChannel*>(channel);
-    return NS_OK;
-}
-
-nsresult
-nsViewSourceHandler::NewSrcdocChannel(nsIURI* uri, const nsAString &srcdoc,
-                                      nsIURI* baseURI, nsIChannel* *result)
-{
-    NS_ENSURE_ARG_POINTER(uri);
-    nsViewSourceChannel *channel = new nsViewSourceChannel();
-    if (!channel)
-        return NS_ERROR_OUT_OF_MEMORY;
-    NS_ADDREF(channel);
-
-    nsresult rv = channel->InitSrcdoc(uri, srcdoc, baseURI);
+    // set the loadInfo on the new channel
+    rv = channel->SetLoadInfo(aLoadInfo);
     if (NS_FAILED(rv)) {
         NS_RELEASE(channel);
         return rv;
     }
 
     *result = static_cast<nsIViewSourceChannel*>(channel);
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsViewSourceHandler::NewChannel(nsIURI* uri, nsIChannel* *result)
+{
+    return NewChannel2(uri, nullptr, result);
+}
+
+nsresult
+nsViewSourceHandler::NewSrcdocChannel(nsIURI *aURI,
+                                      nsIURI *aBaseURI,
+                                      const nsAString &aSrcdoc,
+                                      nsINode *aLoadingNode,
+                                      nsIPrincipal *aLoadingPrincipal,
+                                      nsIPrincipal *aTriggeringPrincipal,
+                                      nsSecurityFlags aSecurityFlags,
+                                      nsContentPolicyType aContentPolicyType,
+                                      nsIChannel** outChannel)
+{
+    NS_ENSURE_ARG_POINTER(aURI);
+    nsViewSourceChannel *channel = new nsViewSourceChannel();
+    if (!channel) {
+        return NS_ERROR_OUT_OF_MEMORY;
+    }
+    NS_ADDREF(channel);
+
+    nsresult rv = channel->InitSrcdoc(aURI, aBaseURI, aSrcdoc,
+                                      aLoadingNode, aLoadingPrincipal,
+                                      aTriggeringPrincipal, aSecurityFlags,
+                                      aContentPolicyType);
+    if (NS_FAILED(rv)) {
+        NS_RELEASE(channel);
+        return rv;
+    }
+
+    *outChannel = static_cast<nsIViewSourceChannel*>(channel);
     return NS_OK;
 }
 

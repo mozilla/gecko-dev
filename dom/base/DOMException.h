@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -22,6 +23,7 @@
 #include "nsWrapperCache.h"
 #include "xpcexception.h"
 #include "nsString.h"
+#include "mozilla/dom/BindingDeclarations.h"
 
 class nsIStackFrame;
 class nsString;
@@ -35,6 +37,8 @@ namespace mozilla {
 class ErrorResult;
 
 namespace dom {
+
+class GlobalObject;
 
 #define MOZILLA_EXCEPTION_IID \
 { 0x55eda557, 0xeba0, 0x4fe3, \
@@ -60,8 +64,8 @@ public:
   void StowJSVal(JS::Value& aVp);
 
   // WebIDL API
-  virtual JSObject* WrapObject(JSContext* cx)
-    MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* cx, JS::Handle<JSObject*> aGivenProto)
+    override;
 
   nsISupports* GetParentObject() const { return nullptr; }
 
@@ -130,11 +134,17 @@ public:
   NS_DECL_NSIDOMDOMEXCEPTION
 
   // nsIException overrides
-  NS_IMETHOD ToString(nsACString& aReturn) MOZ_OVERRIDE;
+  NS_IMETHOD ToString(nsACString& aReturn) override;
 
   // nsWrapperCache overrides
-  virtual JSObject* WrapObject(JSContext* aCx)
-    MOZ_OVERRIDE;
+  virtual JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
+    override;
+
+  static already_AddRefed<DOMException>
+  Constructor(GlobalObject& /* unused */,
+              const nsAString& aMessage,
+              const Optional<nsAString>& aName,
+              ErrorResult& aError);
 
   uint16_t Code() const {
     return mCode;
@@ -146,6 +156,9 @@ public:
 
   static already_AddRefed<DOMException>
   Create(nsresult aRv);
+
+  static already_AddRefed<DOMException>
+  Create(nsresult aRv, const nsACString& aMessage);
 
 protected:
 

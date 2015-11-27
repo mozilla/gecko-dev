@@ -76,8 +76,15 @@ function makeChan(headerIdx, bodyIdx) {
   var ios = Components.classes["@mozilla.org/network/io-service;1"]
                       .getService(Components.interfaces.nsIIOService);
   var chan =
-    ios.newChannel("http://localhost:" + httpserv.identity.primaryPort +
-                   "/" + headerIdx + "/" + bodyIdx, null, null)
+    ios.newChannel2("http://localhost:" + httpserv.identity.primaryPort +
+                    "/" + headerIdx + "/" + bodyIdx,
+                    null,
+                    null,
+                    null,      // aLoadingNode
+                    Services.scriptSecurityManager.getSystemPrincipal(),
+                    null,      // aTriggeringPrincipal
+                    Ci.nsILoadInfo.SEC_NORMAL,
+                    Ci.nsIContentPolicy.TYPE_OTHER)
        .QueryInterface(Components.interfaces.nsIHttpChannel);
 
   chan.loadFlags |=
@@ -176,7 +183,7 @@ function run_test() {
   // disable on Windows for now, because it seems to leak sockets and die.
   // Silly operating system!
   // This is a really nasty way to detect Windows.  I wish we could do better.
-  if ("@mozilla.org/windows-registry-key;1" in Cc) {
+  if (mozinfo.os == "win") {
     return;
   }
 

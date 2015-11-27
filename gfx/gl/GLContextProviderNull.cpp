@@ -21,20 +21,21 @@ GLContextProviderNull::CreateWrappingExisting(void*, void*)
 }
 
 already_AddRefed<GLContext>
-GLContextProviderNull::CreateOffscreen(const gfxIntSize&,
-                                       const SurfaceCaps&)
+GLContextProviderNull::CreateOffscreen(const gfx::IntSize&,
+                                       const SurfaceCaps&,
+                                       CreateContextFlags)
 {
     return nullptr;
 }
 
 already_AddRefed<GLContext>
-GLContextProviderNull::CreateHeadless()
+GLContextProviderNull::CreateHeadless(CreateContextFlags)
 {
     return nullptr;
 }
 
 GLContext*
-GLContextProviderNull::GetGlobalContext(ContextFlags)
+GLContextProviderNull::GetGlobalContext()
 {
     return nullptr;
 }

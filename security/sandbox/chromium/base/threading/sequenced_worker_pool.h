@@ -69,6 +69,9 @@ class SequencedTaskRunner;
 //
 // Note that SequencedWorkerPool is RefCountedThreadSafe (inherited
 // from TaskRunner).
+//
+// Test-only code should wrap this in a base::SequencedWorkerPoolOwner to avoid
+// memory leaks. See http://crbug.com/273800
 class BASE_EXPORT SequencedWorkerPool : public TaskRunner {
  public:
   // Defines what should happen to a task posted to the worker pool on
@@ -287,10 +290,10 @@ class BASE_EXPORT SequencedWorkerPool : public TaskRunner {
       WorkerShutdown shutdown_behavior);
 
   // TaskRunner implementation. Forwards to PostDelayedWorkerTask().
-  virtual bool PostDelayedTask(const tracked_objects::Location& from_here,
-                               const Closure& task,
-                               TimeDelta delay) OVERRIDE;
-  virtual bool RunsTasksOnCurrentThread() const OVERRIDE;
+  bool PostDelayedTask(const tracked_objects::Location& from_here,
+                       const Closure& task,
+                       TimeDelta delay) override;
+  bool RunsTasksOnCurrentThread() const override;
 
   // Returns true if the current thread is processing a task with the given
   // sequence_token.
@@ -333,9 +336,9 @@ class BASE_EXPORT SequencedWorkerPool : public TaskRunner {
   bool IsShutdownInProgress();
 
  protected:
-  virtual ~SequencedWorkerPool();
+  ~SequencedWorkerPool() override;
 
-  virtual void OnDestruct() const OVERRIDE;
+  void OnDestruct() const override;
 
  private:
   friend class RefCountedThreadSafe<SequencedWorkerPool>;

@@ -5,6 +5,7 @@
 
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/MouseEvents.h"
+#include "mozilla/dom/Selection.h"
 #include "nsAString.h"
 #include "nsCOMPtr.h"
 #include "nsCRT.h"
@@ -21,7 +22,6 @@
 #include "nsIDOMDragEvent.h"
 #include "nsIDOMEvent.h"
 #include "nsIDOMNode.h"
-#include "nsIDOMRange.h"
 #include "nsIDOMUIEvent.h"
 #include "nsIDocument.h"
 #include "nsIDragService.h"
@@ -33,12 +33,12 @@
 #include "nsIPrincipal.h"
 #include "nsIFormControl.h"
 #include "nsIPlaintextEditor.h"
-#include "nsISelection.h"
 #include "nsISupportsPrimitives.h"
 #include "nsITransferable.h"
 #include "nsIVariant.h"
 #include "nsLiteralString.h"
 #include "nsPlaintextEditor.h"
+#include "nsRange.h"
 #include "nsSelectionState.h"
 #include "nsServiceManagerUtils.h"
 #include "nsString.h"
@@ -77,9 +77,8 @@ nsresult nsPlaintextEditor::InsertTextAt(const nsAString &aStringToInsert,
   if (aDestinationNode)
   {
     nsresult res;
-    nsCOMPtr<nsISelection>selection;
-    res = GetSelection(getter_AddRefs(selection));
-    NS_ENSURE_SUCCESS(res, res);
+    RefPtr<Selection> selection = GetSelection();
+    NS_ENSURE_STATE(selection);
 
     nsCOMPtr<nsIDOMNode> targetNode = aDestinationNode;
     int32_t targetOffset = aDestOffset;
@@ -128,8 +127,8 @@ NS_IMETHODIMP nsPlaintextEditor::InsertTextFromTransferable(nsITransferable *aTr
       rv = InsertTextAt(stuffToPaste, aDestinationNode, aDestOffset, aDoDeleteSelection);
     }
   }
-  NS_Free(bestFlavor);
-      
+  free(bestFlavor);
+
   // Try to scroll the selection into view if the paste/drop succeeded
 
   if (NS_SUCCEEDED(rv))
@@ -146,8 +145,8 @@ nsresult nsPlaintextEditor::InsertFromDataTransfer(DataTransfer *aDataTransfer,
                                                    bool aDoDeleteSelection)
 {
   nsCOMPtr<nsIVariant> data;
-  aDataTransfer->MozGetDataAt(NS_LITERAL_STRING("text/plain"), aIndex,
-                              getter_AddRefs(data));
+  DataTransfer::Cast(aDataTransfer)->GetDataAtNoSecurityCheck(NS_LITERAL_STRING("text/plain"), aIndex,
+                                                              getter_AddRefs(data));
   if (data) {
     nsAutoString insertText;
     data->GetAsAString(insertText);
@@ -220,9 +219,7 @@ nsresult nsPlaintextEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
   rv = uiEvent->GetRangeOffset(&newSelectionOffset);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsISelection> selection;
-  rv = GetSelection(getter_AddRefs(selection));
-  NS_ENSURE_SUCCESS(rv, rv);
+  RefPtr<Selection> selection = GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_FAILURE);
 
   bool isCollapsed = selection->Collapsed();
@@ -259,10 +256,11 @@ nsresult nsPlaintextEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
 
     for (int32_t j = 0; j < rangeCount; j++)
     {
-      nsCOMPtr<nsIDOMRange> range;
-      rv = selection->GetRangeAt(j, getter_AddRefs(range));
-      if (NS_FAILED(rv) || !range) 
-        continue;  // don't bail yet, iterate through them all
+      RefPtr<nsRange> range = selection->GetRangeAt(j);
+      if (!range) {
+        // don't bail yet, iterate through them all
+        continue;
+      }
 
       rv = range->IsPointInRange(newSelectionParent, newSelectionOffset, &cursorIsInSelection);
       if (cursorIsInSelection)
@@ -280,7 +278,7 @@ nsresult nsPlaintextEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
       //     note that 4.x does replace if dropped on
       //deleteSelection = true;
     }
-    else 
+    else
     {
       // We are NOT over the selection
       if (srcdomdoc == destdomdoc)
@@ -324,8 +322,9 @@ nsresult nsPlaintextEditor::InsertFromDrop(nsIDOMEvent* aDropEvent)
 
 NS_IMETHODIMP nsPlaintextEditor::Paste(int32_t aSelectionType)
 {
-  if (!FireClipboardEvent(NS_PASTE, aSelectionType))
+  if (!FireClipboardEvent(ePaste, aSelectionType)) {
     return NS_OK;
+  }
 
   // Get Clipboard Service
   nsresult rv;
@@ -338,7 +337,7 @@ NS_IMETHODIMP nsPlaintextEditor::Paste(int32_t aSelectionType)
   rv = PrepareTransferable(getter_AddRefs(trans));
   if (NS_SUCCEEDED(rv) && trans)
   {
-    // Get the Data from the clipboard  
+    // Get the Data from the clipboard
     if (NS_SUCCEEDED(clipboard->GetData(trans, aSelectionType)) && IsModifiable())
     {
       // handle transferable hooks
@@ -357,8 +356,9 @@ NS_IMETHODIMP nsPlaintextEditor::PasteTransferable(nsITransferable *aTransferabl
 {
   // Use an invalid value for the clipboard type as data comes from aTransferable
   // and we don't currently implement a way to put that in the data transfer yet.
-  if (!FireClipboardEvent(NS_PASTE, -1))
+  if (!FireClipboardEvent(ePaste, -1)) {
     return NS_OK;
+  }
 
   if (!IsModifiable())
     return NS_OK;
@@ -383,7 +383,7 @@ NS_IMETHODIMP nsPlaintextEditor::CanPaste(int32_t aSelectionType, bool *aCanPast
   nsresult rv;
   nsCOMPtr<nsIClipboard> clipboard(do_GetService("@mozilla.org/widget/clipboard;1", &rv));
   NS_ENSURE_SUCCESS(rv, rv);
-  
+
   // the flavors that we can deal with
   const char* textEditorFlavors[] = { kUnicodeMime };
 
@@ -392,7 +392,7 @@ NS_IMETHODIMP nsPlaintextEditor::CanPaste(int32_t aSelectionType, bool *aCanPast
                                          ArrayLength(textEditorFlavors),
                                          aSelectionType, &haveFlavors);
   NS_ENSURE_SUCCESS(rv, rv);
-  
+
   *aCanPaste = haveFlavors;
   return NS_OK;
 }
@@ -423,7 +423,7 @@ NS_IMETHODIMP nsPlaintextEditor::CanPasteTransferable(nsITransferable *aTransfer
     *aCanPaste = true;
   else
     *aCanPaste = false;
-  
+
   return NS_OK;
 }
 

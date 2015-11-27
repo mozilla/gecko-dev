@@ -5,12 +5,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#if defined(JS_ARM_SIMULATOR)
+#if defined(JS_SIMULATOR_ARM)
 #include "jit/arm/Assembler-arm.h"
 #include "jit/arm/MoveEmitter-arm.h"
 #include "jit/arm/Simulator-arm.h"
-#include "jit/IonLinker.h"
-#include "jit/IonMacroAssembler.h"
+#include "jit/Linker.h"
+#include "jit/MacroAssembler.h"
 #include "jit/MoveResolver.h"
 
 #include "jsapi-tests/tests.h"
@@ -52,9 +52,11 @@ static MOZ_CONSTEXPR_VAR js::jit::FloatRegister s29(29, js::jit::VFPRegister::Si
 static MOZ_CONSTEXPR_VAR js::jit::FloatRegister s30(30, js::jit::VFPRegister::Single);
 static MOZ_CONSTEXPR_VAR js::jit::FloatRegister s31(31, js::jit::VFPRegister::Single);
 
-static JitCode *
-linkAndAllocate(JSContext *cx, MacroAssembler *masm)
+static js::jit::JitCode*
+linkAndAllocate(JSContext* cx, js::jit::MacroAssembler* masm)
 {
+    using namespace js;
+    using namespace js::jit;
     AutoFlushICache afc("test");
     Linker l(*masm);
     return l.newCode<CanGC>(cx, ION_CODE);
@@ -66,13 +68,13 @@ BEGIN_TEST(testJitMoveEmitterCycles_simple)
     using namespace js::jit;
     LifoAlloc lifo(LIFO_ALLOC_PRIMARY_CHUNK_SIZE);
     TempAllocator alloc(&lifo);
-    IonContext ic(cx, &alloc);
+    JitContext jc(cx, &alloc);
     rt->getJitRuntime(cx);
     MacroAssembler masm;
     MoveEmitter mover(masm);
     MoveResolver mr;
     mr.setAllocator(alloc);
-    Simulator *sim = Simulator::Current();
+    Simulator* sim = Simulator::Current();
     mr.addMove(MoveOperand(d0), MoveOperand(d2), MoveOp::DOUBLE);
     sim->set_d_register_from_double(0, 2);
     mr.addMove(MoveOperand(d3), MoveOperand(d1), MoveOp::DOUBLE);
@@ -90,7 +92,7 @@ BEGIN_TEST(testJitMoveEmitterCycles_simple)
     mover.emit(mr);
     mover.finish();
     masm.abiret();
-    JitCode *code = linkAndAllocate(cx, &masm);
+    JitCode* code = linkAndAllocate(cx, &masm);
     sim->call(code->raw(), 1, 1);
     CHECK(sim->get_double_from_d_register(2) == 2);
     CHECK(int(sim->get_double_from_d_register(1)) == 1);
@@ -107,13 +109,13 @@ BEGIN_TEST(testJitMoveEmitterCycles_autogen)
     using namespace js::jit;
     LifoAlloc lifo(LIFO_ALLOC_PRIMARY_CHUNK_SIZE);
     TempAllocator alloc(&lifo);
-    IonContext ic(cx, &alloc);
+    JitContext jc(cx, &alloc);
     rt->getJitRuntime(cx);
     MacroAssembler masm;
     MoveEmitter mover(masm);
     MoveResolver mr;
     mr.setAllocator(alloc);
-    Simulator *sim = Simulator::Current();
+    Simulator* sim = Simulator::Current();
     mr.addMove(MoveOperand(d9), MoveOperand(d14), MoveOp::DOUBLE);
     sim->set_d_register_from_double(9, 9);
     mr.addMove(MoveOperand(s24), MoveOperand(s25), MoveOp::FLOAT32);
@@ -169,7 +171,7 @@ BEGIN_TEST(testJitMoveEmitterCycles_autogen)
     mover.emit(mr);
     mover.finish();
     masm.abiret();
-    JitCode *code = linkAndAllocate(cx, &masm);
+    JitCode* code = linkAndAllocate(cx, &masm);
     sim->skipCalleeSavedRegsCheck = true;
     sim->call(code->raw(), 1, 1);
     CHECK(int(sim->get_double_from_d_register(14)) == 9);
@@ -207,13 +209,13 @@ BEGIN_TEST(testJitMoveEmitterCycles_autogen2)
     using namespace js::jit;
     LifoAlloc lifo(LIFO_ALLOC_PRIMARY_CHUNK_SIZE);
     TempAllocator alloc(&lifo);
-    IonContext ic(cx, &alloc);
+    JitContext jc(cx, &alloc);
     rt->getJitRuntime(cx);
     MacroAssembler masm;
     MoveEmitter mover(masm);
     MoveResolver mr;
     mr.setAllocator(alloc);
-    Simulator *sim = Simulator::Current();
+    Simulator* sim = Simulator::Current();
     mr.addMove(MoveOperand(d10), MoveOperand(d0), MoveOp::DOUBLE);
     sim->set_d_register_from_double(10, 10);
     mr.addMove(MoveOperand(s15), MoveOperand(s3), MoveOp::FLOAT32);
@@ -277,7 +279,7 @@ BEGIN_TEST(testJitMoveEmitterCycles_autogen2)
     mover.emit(mr);
     mover.finish();
     masm.abiret();
-    JitCode *code = linkAndAllocate(cx, &masm);
+    JitCode* code = linkAndAllocate(cx, &masm);
     sim->skipCalleeSavedRegsCheck = true;
     sim->call(code->raw(), 1, 1);
     CHECK(int(sim->get_double_from_d_register(0)) == 10);
@@ -320,13 +322,13 @@ BEGIN_TEST(testJitMoveEmitterCycles_autogen3)
     using namespace js::jit;
     LifoAlloc lifo(LIFO_ALLOC_PRIMARY_CHUNK_SIZE);
     TempAllocator alloc(&lifo);
-    IonContext ic(cx, &alloc);
+    JitContext jc(cx, &alloc);
     rt->getJitRuntime(cx);
     MacroAssembler masm;
     MoveEmitter mover(masm);
     MoveResolver mr;
     mr.setAllocator(alloc);
-    Simulator *sim = Simulator::Current();
+    Simulator* sim = Simulator::Current();
     mr.addMove(MoveOperand(s0), MoveOperand(s21), MoveOp::FLOAT32);
     sim->set_s_register_from_float(0, 0);
     mr.addMove(MoveOperand(s2), MoveOperand(s26), MoveOp::FLOAT32);
@@ -390,7 +392,7 @@ BEGIN_TEST(testJitMoveEmitterCycles_autogen3)
     mover.emit(mr);
     mover.finish();
     masm.abiret();
-    JitCode *code = linkAndAllocate(cx, &masm);
+    JitCode* code = linkAndAllocate(cx, &masm);
     sim->skipCalleeSavedRegsCheck = true;
     sim->call(code->raw(), 1, 1);
     CHECK(int(sim->get_float_from_s_register(21)) == 0);

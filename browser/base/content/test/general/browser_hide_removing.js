@@ -7,6 +7,12 @@
 function test() {
   waitForExplicitFinish();
 
+  // Ensure TabView has been initialized already. Otherwise it could
+  // activate at an unexpected time and show/hide tabs.
+  TabView._initFrame(runTest);
+}
+
+function runTest() {
   // Add a tab that will get removed and hidden
   let testTab = gBrowser.addTab("about:blank", {skipAnimation: true});
   is(gBrowser.visibleTabs.length, 2, "just added a tab, so 2 tabs");
@@ -24,12 +30,16 @@ function test() {
   gBrowser.removeTab(testTab, {animate: true});
 
   // Make sure the tab gets removed at the end of the animation by polling
-  (function checkRemoved() setTimeout(function() {
-    if (gBrowser.tabs.length != 1)
-      return checkRemoved();
+  (function checkRemoved() {
+    return setTimeout(function() {
+      if (gBrowser.tabs.length != 1) {
+        checkRemoved();
+        return;
+      }
 
-    is(numVisBeforeHide, 1, "animated remove has in 1 tab left");
-    is(numVisAfterHide, 1, "hiding a removing tab is also has 1 tab");
-    finish();
-  }, 50))();
+      is(numVisBeforeHide, 1, "animated remove has in 1 tab left");
+      is(numVisAfterHide, 1, "hiding a removing tab is also has 1 tab");
+      finish();
+    }, 50);
+  })();
 }

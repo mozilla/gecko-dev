@@ -5,16 +5,14 @@
 #include "OGLShaderProgram.h"
 #include <stdint.h>                     // for uint32_t
 #include <sstream>                      // for ostringstream
+#include "gfxEnv.h"
 #include "gfxRect.h"                    // for gfxRect
 #include "mozilla/DebugOnly.h"          // for DebugOnly
 #include "nsAString.h"
 #include "nsAutoPtr.h"                  // for nsRefPtr
 #include "nsString.h"                   // for nsAutoCString
-#include "prenv.h"                      // for PR_GetEnv
 #include "Layers.h"
 #include "GLContext.h"
-
-struct gfxRGBA;
 
 namespace mozilla {
 namespace layers {
@@ -30,6 +28,7 @@ AddUniforms(ProgramProfileOGL& aProfile)
     // This needs to be kept in sync with the KnownUniformName enum
     static const char *sKnownUniformNames[] = {
         "uLayerTransform",
+        "uLayerTransformInverse",
         "uMaskTransform",
         "uLayerRects",
         "uMatrixProj",
@@ -46,6 +45,7 @@ AddUniforms(ProgramProfileOGL& aProfile)
         "uMaskTexture",
         "uRenderColor",
         "uTexCoordMultiplier",
+        "uCbCrTexCoordMultiplier",
         "uTexturePass2",
         "uColorMatrix",
         "uColorMatrixVector",
@@ -53,6 +53,9 @@ AddUniforms(ProgramProfileOGL& aProfile)
         "uBlurOffset",
         "uBlurAlpha",
         "uBlurGaussianKernel",
+        "uSSEdges",
+        "uViewportSize",
+        "uVisibleCenter",
         nullptr
     };
 
@@ -104,6 +107,14 @@ void
 ShaderConfigOGL::SetYCbCr(bool aEnabled)
 {
   SetFeature(ENABLE_TEXTURE_YCBCR, aEnabled);
+  MOZ_ASSERT(!(mFeatures & ENABLE_TEXTURE_NV12));
+}
+
+void
+ShaderConfigOGL::SetNV12(bool aEnabled)
+{
+  SetFeature(ENABLE_TEXTURE_NV12, aEnabled);
+  MOZ_ASSERT(!(mFeatures & ENABLE_TEXTURE_YCBCR));
 }
 
 void
@@ -142,6 +153,12 @@ ShaderConfigOGL::SetPremultiply(bool aEnabled)
   SetFeature(ENABLE_PREMULTIPLY, aEnabled);
 }
 
+void
+ShaderConfigOGL::SetDEAA(bool aEnabled)
+{
+  SetFeature(ENABLE_DEAA, aEnabled);
+}
+
 /* static */ ProgramProfileOGL
 ProgramProfileOGL::GetProfileFor(ShaderConfigOGL aConfig)
 {
@@ -150,11 +167,21 @@ ProgramProfileOGL::GetProfileFor(ShaderConfigOGL aConfig)
 
   AddUniforms(result);
 
+  vs << "#ifdef GL_ES" << endl;
+  vs << "#define EDGE_PRECISION mediump" << endl;
+  vs << "#else" << endl;
+  vs << "#define EDGE_PRECISION" << endl;
+  vs << "#endif" << endl;
   vs << "uniform mat4 uMatrixProj;" << endl;
   vs << "uniform vec4 uLayerRects[4];" << endl;
   vs << "uniform mat4 uLayerTransform;" << endl;
-  vs << "uniform vec4 uRenderTargetOffset;" << endl;
-
+  if (aConfig.mFeatures & ENABLE_DEAA) {
+    vs << "uniform mat4 uLayerTransformInverse;" << endl;
+    vs << "uniform EDGE_PRECISION vec3 uSSEdges[4];" << endl;
+    vs << "uniform vec2 uVisibleCenter;" << endl;
+    vs << "uniform vec2 uViewportSize;" << endl;
+  }
+  vs << "uniform vec2 uRenderTargetOffset;" << endl;
   vs << "attribute vec4 aCoord;" << endl;
 
   if (!(aConfig.mFeatures & ENABLE_RENDER_COLOR)) {
@@ -174,27 +201,78 @@ ProgramProfileOGL::GetProfileFor(ShaderConfigOGL aConfig)
   vs << "  vec4 layerRect = uLayerRects[vertexID];" << endl;
   vs << "  vec4 finalPosition = vec4(aCoord.xy * layerRect.zw + layerRect.xy, 0.0, 1.0);" << endl;
   vs << "  finalPosition = uLayerTransform * finalPosition;" << endl;
-  vs << "  finalPosition.xyz /= finalPosition.w;" << endl;
 
-  if (aConfig.mFeatures & ENABLE_MASK_3D) {
-    vs << "  vMaskCoord.xy = (uMaskTransform * vec4(finalPosition.xyz, 1.0)).xy;" << endl;
-    // correct for perspective correct interpolation, see comment in D3D10 shader
-    vs << "  vMaskCoord.z = 1.0;" << endl;
-    vs << "  vMaskCoord *= finalPosition.w;" << endl;
-  } else if (aConfig.mFeatures & ENABLE_MASK_2D) {
-    vs << "  vMaskCoord.xy = (uMaskTransform * finalPosition).xy;" << endl;
-  }
+  if (aConfig.mFeatures & ENABLE_DEAA) {
+    // XXX kip - The DEAA shader could be made simpler if we switch to
+    //           using dynamic vertex buffers instead of sending everything
+    //           in through uniforms.  This would enable passing information
+    //           about how to dilate each vertex explicitly and eliminate the
+    //           need to extrapolate this with the sub-pixel coverage
+    //           calculation in the vertex shader.
 
-  vs << "  finalPosition = finalPosition - uRenderTargetOffset;" << endl;
-  vs << "  finalPosition.xyz *= finalPosition.w;" << endl;
-  vs << "  finalPosition = uMatrixProj * finalPosition;" << endl;
+    // Calculate the screen space position of this vertex, in screen pixels
+    vs << "  vec4 ssPos = finalPosition;" << endl;
+    vs << "  ssPos.xy -= uRenderTargetOffset * finalPosition.w;" << endl;
+    vs << "  ssPos = uMatrixProj * ssPos;" << endl;
+    vs << "  ssPos.xy = ((ssPos.xy/ssPos.w)*0.5+0.5)*uViewportSize;" << endl;
 
-  if (!(aConfig.mFeatures & ENABLE_RENDER_COLOR)) {
+    if (aConfig.mFeatures & ENABLE_MASK_2D ||
+        aConfig.mFeatures & ENABLE_MASK_3D ||
+        !(aConfig.mFeatures & ENABLE_RENDER_COLOR)) {
+      vs << "  vec4 coordAdjusted;" << endl;
+      vs << "  coordAdjusted.xy = aCoord.xy;" << endl;
+    }
+
+    // It is necessary to dilate edges away from uVisibleCenter to ensure that
+    // fragments with less than 50% sub-pixel coverage will be shaded.
+    // This offset is applied when the sub-pixel coverage of the vertex is
+    // less than 100%.  Expanding by 0.5 pixels in screen space is sufficient
+    // to include these pixels.
+    vs << "  if (dot(uSSEdges[0], vec3(ssPos.xy, 1.0)) < 1.5 ||" << endl;
+    vs << "      dot(uSSEdges[1], vec3(ssPos.xy, 1.0)) < 1.5 ||" << endl;
+    vs << "      dot(uSSEdges[2], vec3(ssPos.xy, 1.0)) < 1.5 ||" << endl;
+    vs << "      dot(uSSEdges[3], vec3(ssPos.xy, 1.0)) < 1.5) {" << endl;
+    // If the shader reaches this branch, then this vertex is on the edge of
+    // the layer's visible rect and should be dilated away from the center of
+    // the visible rect.  We don't want to hit this for inner facing
+    // edges between tiles, as the pixels may be covered twice without clipping
+    // against uSSEdges.  If all edges were dilated, it would result in
+    // artifacts visible within semi-transparent layers with multiple tiles.
+    vs << "    vec4 visibleCenter = uLayerTransform * vec4(uVisibleCenter, 0.0, 1.0);" << endl;
+    vs << "    vec2 dilateDir = finalPosition.xy / finalPosition.w - visibleCenter.xy / visibleCenter.w;" << endl;
+    vs << "    vec2 offset = sign(dilateDir) * 0.5;" << endl;
+    vs << "    finalPosition.xy += offset * finalPosition.w;" << endl;
+    if (!(aConfig.mFeatures & ENABLE_RENDER_COLOR)) {
+      // We must adjust the texture coordinates to compensate for the dilation
+      vs << "    coordAdjusted = uLayerTransformInverse * finalPosition;" << endl;
+      vs << "    coordAdjusted /= coordAdjusted.w;" << endl;
+      vs << "    coordAdjusted.xy -= layerRect.xy;" << endl;
+      vs << "    coordAdjusted.xy /= layerRect.zw;" << endl;
+    }
+    vs << "  }" << endl;
+
+    if (!(aConfig.mFeatures & ENABLE_RENDER_COLOR)) {
+      vs << "  vec4 textureRect = uTextureRects[vertexID];" << endl;
+      vs << "  vec2 texCoord = coordAdjusted.xy * textureRect.zw + textureRect.xy;" << endl;
+      vs << "  vTexCoord = (uTextureTransform * vec4(texCoord, 0.0, 1.0)).xy;" << endl;
+    }
+
+  } else if (!(aConfig.mFeatures & ENABLE_RENDER_COLOR)) {
     vs << "  vec4 textureRect = uTextureRects[vertexID];" << endl;
     vs << "  vec2 texCoord = aCoord.xy * textureRect.zw + textureRect.xy;" << endl;
     vs << "  vTexCoord = (uTextureTransform * vec4(texCoord, 0.0, 1.0)).xy;" << endl;
   }
-
+  if (aConfig.mFeatures & ENABLE_MASK_2D ||
+      aConfig.mFeatures & ENABLE_MASK_3D) {
+    vs << "  vMaskCoord.xy = (uMaskTransform * (finalPosition / finalPosition.w)).xy;" << endl;
+    if (aConfig.mFeatures & ENABLE_MASK_3D) {
+      // correct for perspective correct interpolation, see comment in D3D10 shader
+      vs << "  vMaskCoord.z = 1.0;" << endl;
+      vs << "  vMaskCoord *= finalPosition.w;" << endl;
+    }
+  }
+  vs << "  finalPosition.xy -= uRenderTargetOffset * finalPosition.w;" << endl;
+  vs << "  finalPosition = uMatrixProj * finalPosition;" << endl;
   vs << "  gl_Position = finalPosition;" << endl;
   vs << "}" << endl;
 
@@ -207,8 +285,10 @@ ProgramProfileOGL::GetProfileFor(ShaderConfigOGL aConfig)
   fs << "#ifdef GL_ES" << endl;
   fs << "precision mediump float;" << endl;
   fs << "#define COLOR_PRECISION lowp" << endl;
+  fs << "#define EDGE_PRECISION mediump" << endl;
   fs << "#else" << endl;
   fs << "#define COLOR_PRECISION" << endl;
+  fs << "#define EDGE_PRECISION" << endl;
   fs << "#endif" << endl;
   if (aConfig.mFeatures & ENABLE_RENDER_COLOR) {
     fs << "uniform COLOR_PRECISION vec4 uRenderColor;" << endl;
@@ -235,6 +315,10 @@ ProgramProfileOGL::GetProfileFor(ShaderConfigOGL aConfig)
 
   if (aConfig.mFeatures & ENABLE_TEXTURE_RECT) {
     fs << "uniform vec2 uTexCoordMultiplier;" << endl;
+    if (aConfig.mFeatures & ENABLE_TEXTURE_YCBCR ||
+        aConfig.mFeatures & ENABLE_TEXTURE_NV12) {
+      fs << "uniform vec2 uCbCrTexCoordMultiplier;" << endl;
+    }
     sampler2D = "sampler2DRect";
     texture2D = "texture2DRect";
   }
@@ -247,6 +331,9 @@ ProgramProfileOGL::GetProfileFor(ShaderConfigOGL aConfig)
     fs << "uniform sampler2D uYTexture;" << endl;
     fs << "uniform sampler2D uCbTexture;" << endl;
     fs << "uniform sampler2D uCrTexture;" << endl;
+  } else if (aConfig.mFeatures & ENABLE_TEXTURE_NV12) {
+    fs << "uniform " << sampler2D << " uYTexture;" << endl;
+    fs << "uniform " << sampler2D << " uCbTexture;" << endl;
   } else if (aConfig.mFeatures & ENABLE_TEXTURE_COMPONENT_ALPHA) {
     fs << "uniform sampler2D uBlackTexture;" << endl;
     fs << "uniform sampler2D uWhiteTexture;" << endl;
@@ -261,13 +348,36 @@ ProgramProfileOGL::GetProfileFor(ShaderConfigOGL aConfig)
     fs << "uniform sampler2D uMaskTexture;" << endl;
   }
 
+  if (aConfig.mFeatures & ENABLE_DEAA) {
+    fs << "uniform EDGE_PRECISION vec3 uSSEdges[4];" << endl;
+  }
+
   if (!(aConfig.mFeatures & ENABLE_RENDER_COLOR)) {
     fs << "vec4 sample(vec2 coord) {" << endl;
     fs << "  vec4 color;" << endl;
-    if (aConfig.mFeatures & ENABLE_TEXTURE_YCBCR) {
-      fs << "  COLOR_PRECISION float y = texture2D(uYTexture, coord).r;" << endl;
-      fs << "  COLOR_PRECISION float cb = texture2D(uCbTexture, coord).r;" << endl;
-      fs << "  COLOR_PRECISION float cr = texture2D(uCrTexture, coord).r;" << endl;
+    if (aConfig.mFeatures & ENABLE_TEXTURE_YCBCR ||
+        aConfig.mFeatures & ENABLE_TEXTURE_NV12) {
+      if (aConfig.mFeatures & ENABLE_TEXTURE_YCBCR) {
+        if (aConfig.mFeatures & ENABLE_TEXTURE_RECT) {
+          fs << "  COLOR_PRECISION float y = texture2D(uYTexture, coord * uTexCoordMultiplier).r;" << endl;
+          fs << "  COLOR_PRECISION float cb = texture2D(uCbTexture, coord * uCbCrTexCoordMultiplier).r;" << endl;
+          fs << "  COLOR_PRECISION float cr = texture2D(uCrTexture, coord * uCbCrTexCoordMultiplier).r;" << endl;
+        } else {
+          fs << "  COLOR_PRECISION float y = texture2D(uYTexture, coord).r;" << endl;
+          fs << "  COLOR_PRECISION float cb = texture2D(uCbTexture, coord).r;" << endl;
+          fs << "  COLOR_PRECISION float cr = texture2D(uCrTexture, coord).r;" << endl;
+        }
+      } else {
+        if (aConfig.mFeatures & ENABLE_TEXTURE_RECT) {
+          fs << "  COLOR_PRECISION float y = " << texture2D << "(uYTexture, coord * uTexCoordMultiplier).r;" << endl;
+          fs << "  COLOR_PRECISION float cb = " << texture2D << "(uCbTexture, coord * uCbCrTexCoordMultiplier).r;" << endl;
+          fs << "  COLOR_PRECISION float cr = " << texture2D << "(uCbTexture, coord * uCbCrTexCoordMultiplier).a;" << endl;
+        } else {
+          fs << "  COLOR_PRECISION float y = " << texture2D << "(uYTexture, coord).r;" << endl;
+          fs << "  COLOR_PRECISION float cb = " << texture2D << "(uCbTexture, coord).r;" << endl;
+          fs << "  COLOR_PRECISION float cr = " << texture2D << "(uCbTexture, coord).a;" << endl;
+        }
+      }
 
       /* From Rec601:
 [R]   [1.1643835616438356,  0.0,                 1.5960267857142858]      [ Y -  16]
@@ -295,7 +405,11 @@ For [0,1] instead of [0,255], and to 5 places:
       fs << "  else" << endl;
       fs << "    color = alphas;" << endl;
     } else {
-      fs << "  color = " << texture2D << "(uTexture, coord);" << endl;
+      if (aConfig.mFeatures & ENABLE_TEXTURE_RECT) {
+        fs << "  color = " << texture2D << "(uTexture, coord * uTexCoordMultiplier);" << endl;
+      } else {
+        fs << "  color = " << texture2D << "(uTexture, coord);" << endl;
+      }
     }
     if (aConfig.mFeatures & ENABLE_TEXTURE_RB_SWAP) {
       fs << "  color = color.bgra;" << endl;
@@ -334,11 +448,7 @@ For [0,1] instead of [0,255], and to 5 places:
   if (aConfig.mFeatures & ENABLE_RENDER_COLOR) {
     fs << "  vec4 color = uRenderColor;" << endl;
   } else {
-    if (aConfig.mFeatures & ENABLE_TEXTURE_RECT) {
-      fs << "  vec4 color = sample(vTexCoord * uTexCoordMultiplier);" << endl;
-    } else {
-      fs << "  vec4 color = sample(vTexCoord);" << endl;
-    }
+    fs << "  vec4 color = sample(vTexCoord);" << endl;
     if (aConfig.mFeatures & ENABLE_BLUR) {
       fs << "  color = blur(color, vTexCoord);" << endl;
     }
@@ -352,6 +462,16 @@ For [0,1] instead of [0,255], and to 5 places:
     if (aConfig.mFeatures & ENABLE_PREMULTIPLY) {
       fs << " color.rgb *= color.a;" << endl;
     }
+  }
+  if (aConfig.mFeatures & ENABLE_DEAA) {
+    // Calculate the sub-pixel coverage of the pixel and modulate its opacity
+    // by that amount to perform DEAA.
+    fs << "  vec3 ssPos = vec3(gl_FragCoord.xy, 1.0);" << endl;
+    fs << "  float deaaCoverage = clamp(dot(uSSEdges[0], ssPos), 0.0, 1.0);" << endl;
+    fs << "  deaaCoverage *= clamp(dot(uSSEdges[1], ssPos), 0.0, 1.0);" << endl;
+    fs << "  deaaCoverage *= clamp(dot(uSSEdges[2], ssPos), 0.0, 1.0);" << endl;
+    fs << "  deaaCoverage *= clamp(dot(uSSEdges[3], ssPos), 0.0, 1.0);" << endl;
+    fs << "  color *= deaaCoverage;" << endl;
   }
   if (aConfig.mFeatures & ENABLE_MASK_3D) {
     fs << "  vec2 maskCoords = vMaskCoord.xy / vMaskCoord.z;" << endl;
@@ -375,6 +495,8 @@ For [0,1] instead of [0,255], and to 5 places:
   } else {
     if (aConfig.mFeatures & ENABLE_TEXTURE_YCBCR) {
       result.mTextureCount = 3;
+    } else if (aConfig.mFeatures & ENABLE_TEXTURE_NV12) {
+      result.mTextureCount = 2;
     } else if (aConfig.mFeatures & ENABLE_TEXTURE_COMPONENT_ALPHA) {
       result.mTextureCount = 2;
     } else {
@@ -403,7 +525,7 @@ ShaderProgramOGL::~ShaderProgramOGL()
     return;
   }
 
-  nsRefPtr<GLContext> ctx = mGL->GetSharedContext();
+  RefPtr<GLContext> ctx = mGL->GetSharedContext();
   if (!ctx) {
     ctx = mGL;
   }
@@ -455,7 +577,7 @@ ShaderProgramOGL::CreateShader(GLenum aShaderType, const char *aShaderSource)
    */
   if (!success
 #ifdef DEBUG
-      || (len > 10 && PR_GetEnv("MOZ_DEBUG_SHADERS"))
+      || (len > 10 && gfxEnv::DebugShaders())
 #endif
       )
   {
@@ -508,7 +630,7 @@ ShaderProgramOGL::CreateProgram(const char *aVertexShaderString,
    */
   if (!success
 #ifdef DEBUG
-      || (len > 10 && PR_GetEnv("MOZ_DEBUG_SHADERS"))
+      || (len > 10 && gfxEnv::DebugShaders())
 #endif
       )
   {
@@ -540,17 +662,16 @@ ShaderProgramOGL::CreateProgram(const char *aVertexShaderString,
   return true;
 }
 
-void
-ShaderProgramOGL::Activate()
+GLuint
+ShaderProgramOGL::GetProgram()
 {
   if (mProgramState == STATE_NEW) {
     if (!Initialize()) {
       NS_WARNING("Shader could not be initialised");
-      return;
     }
   }
-  NS_ASSERTION(HasInitialized(), "Attempting to activate a program that's not in use!");
-  mGL->fUseProgram(mProgram);
+  MOZ_ASSERT(HasInitialized(), "Attempting to get a program that's not been initialized!");
+  return mProgram;
 }
 
 void
@@ -573,5 +694,5 @@ ShaderProgramOGL::SetBlurRadius(float aRX, float aRY)
   SetArrayUniform(KnownUniform::BlurGaussianKernel, GAUSSIAN_KERNEL_HALF_WIDTH, gaussianKernel);
 }
 
-} /* layers */
-} /* mozilla */
+} // namespace layers
+} // namespace mozilla

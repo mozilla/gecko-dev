@@ -1,4 +1,3 @@
-
 <!DOCTYPE HTML>
 <html>
 <head>
@@ -117,7 +116,7 @@
     { url: 'http://example.com/carrot#question%3f',
       base: undefined,
       error: false,
-      hash: '#question?'
+      hash: '#question%3f'
     },
     { url: 'https://example.com:4443?',
       base: undefined,
@@ -210,6 +209,14 @@
       error: false,
       protocol: 'foo:',
     },
+
+    { url: 'about:blank',
+      base: undefined,
+      error: false,
+      protocol: 'about:',
+      pathname: 'blank',
+      skip_setters: false,
+    },
   ];
 
   while(tests.length) {
@@ -243,6 +250,11 @@
     if ('pathname' in test) is(url.pathname, test.pathname, "pathname");
     if ('search' in test) is(url.search, test.search, "search");
     if ('hash' in test) is(url.hash, test.hash, "hash");
+
+    if ('skip_setters' in test && test.skip_setters == false) {
+      info("Skip setter methods for URL: " + test);
+      continue;
+    }
 
     url = new URL('https://www.example.net/what#foo?bar');
     ok(url, "Url exists!");
@@ -311,7 +323,7 @@
     url = new URL("http://localhost/");
     url.host = "[2001::1]:30";
     is(url.hostname, "[2001::1]", "IPv6 hostname");
-    is(url.port, 30, "Port");
+    is(url.port, "30", "Port");
     is(url.host, "[2001::1]:30", "IPv6 host");
 
     url = new URL("http://localhost/");
@@ -326,6 +338,28 @@
 
     var u = new URL(url);
     ok(u.origin, 'http://mochi.test:8888', "The URL generated from a blob URI has an origin");
+  </script>
+
+  <script>
+    var blob = new Blob(['a']);
+    var url = URL.createObjectURL(blob);
+
+    var a = document.createElement('A');
+    a.href = url;
+    ok(a.origin, 'http://mochi.test:8888', "The 'a' element has the correct origin");
+  </script>
+
+  <script>
+    var blob = new Blob(['a']);
+    var url = URL.createObjectURL(blob);
+    URL.revokeObjectURL(url);
+    URL.revokeObjectURL(url);
+    ok(true, "Calling revokeObjectURL twice should be ok");
+  </script>
+
+  <script>
+    URL.revokeObjectURL('blob:something');
+    ok(true, "This should not throw.");
   </script>
 </body>
 </html>

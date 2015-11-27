@@ -25,6 +25,7 @@
 #include "ImageContainer.h"
 #include "ImageLayers.h"
 #include "nsContentList.h"
+#include "nsStyleUtil.h"
 #include <algorithm>
 
 using namespace mozilla;
@@ -57,8 +58,8 @@ NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
 nsresult
 nsVideoFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
 {
-  nsNodeInfoManager *nodeInfoManager = GetContent()->GetCurrentDoc()->NodeInfoManager();
-  nsRefPtr<NodeInfo> nodeInfo;
+  nsNodeInfoManager *nodeInfoManager = GetContent()->GetComposedDoc()->NodeInfoManager();
+  RefPtr<NodeInfo> nodeInfo;
   Element *element;
 
   if (HasVideoElement()) {
@@ -152,22 +153,6 @@ nsVideoFrame::IsLeaf() const
   return true;
 }
 
-// Return the largest rectangle that fits in aRect and has the
-// same aspect ratio as aRatio, centered at the center of aRect
-static gfxRect
-CorrectForAspectRatio(const gfxRect& aRect, const nsIntSize& aRatio)
-{
-  NS_ASSERTION(aRatio.width > 0 && aRatio.height > 0 && !aRect.IsEmpty(),
-               "Nothing to draw");
-  // Choose scale factor that scales aRatio to just fit into aRect
-  gfxFloat scale =
-    std::min(aRect.Width()/aRatio.width, aRect.Height()/aRatio.height);
-  gfxSize scaledRatio(scale*aRatio.width, scale*aRatio.height);
-  gfxPoint topLeft((aRect.Width() - scaledRatio.width)/2,
-                   (aRect.Height() - scaledRatio.height)/2);
-  return gfxRect(aRect.TopLeft() + topLeft, scaledRatio);
-}
-
 already_AddRefed<Layer>
 nsVideoFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
                          LayerManager* aManager,
@@ -176,12 +161,14 @@ nsVideoFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
 {
   nsRect area = GetContentRectRelativeToSelf() + aItem->ToReferenceFrame();
   HTMLVideoElement* element = static_cast<HTMLVideoElement*>(GetContent());
-  nsIntSize videoSize;
-  if (NS_FAILED(element->GetVideoSize(&videoSize)) || area.IsEmpty()) {
+
+  nsIntSize videoSizeInPx;
+  if (NS_FAILED(element->GetVideoSize(&videoSizeInPx)) ||
+      area.IsEmpty()) {
     return nullptr;
   }
 
-  nsRefPtr<ImageContainer> container = element->GetImageContainer();
+  RefPtr<ImageContainer> container = element->GetImageContainer();
   if (!container)
     return nullptr;
   
@@ -193,24 +180,30 @@ nsVideoFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
     return nullptr;
   }
 
-  // Compute the rectangle in which to paint the video. We need to use
-  // the largest rectangle that fills our content-box and has the
-  // correct aspect ratio.
-  nsPresContext* presContext = PresContext();
-  gfxRect r = gfxRect(presContext->AppUnitsToGfxUnits(area.x),
-                      presContext->AppUnitsToGfxUnits(area.y),
-                      presContext->AppUnitsToGfxUnits(area.width),
-                      presContext->AppUnitsToGfxUnits(area.height));
-  r = CorrectForAspectRatio(r, videoSize);
-  r.Round();
-  if (r.IsEmpty()) {
+  // Convert video size from pixel units into app units, to get an aspect-ratio
+  // (which has to be represented as a nsSize) and an IntrinsicSize that we
+  // can pass to ComputeObjectRenderRect.
+  nsSize aspectRatio(nsPresContext::CSSPixelsToAppUnits(videoSizeInPx.width),
+                     nsPresContext::CSSPixelsToAppUnits(videoSizeInPx.height));
+  IntrinsicSize intrinsicSize;
+  intrinsicSize.width.SetCoordValue(aspectRatio.width);
+  intrinsicSize.height.SetCoordValue(aspectRatio.height);
+
+  nsRect dest = nsLayoutUtils::ComputeObjectDestRect(area,
+                                                     intrinsicSize,
+                                                     aspectRatio,
+                                                     StylePosition());
+
+  gfxRect destGFXRect = PresContext()->AppUnitsToGfxUnits(dest);
+  destGFXRect.Round();
+  if (destGFXRect.IsEmpty()) {
     return nullptr;
   }
-  IntSize scaleHint(static_cast<int32_t>(r.Width()),
-                    static_cast<int32_t>(r.Height()));
+  IntSize scaleHint(static_cast<int32_t>(destGFXRect.Width()),
+                    static_cast<int32_t>(destGFXRect.Height()));
   container->SetScaleHint(scaleHint);
 
-  nsRefPtr<ImageLayer> layer = static_cast<ImageLayer*>
+  RefPtr<ImageLayer> layer = static_cast<ImageLayer*>
     (aManager->GetLayerBuilder()->GetLeafLayerFor(aBuilder, aItem));
   if (!layer) {
     layer = aManager->CreateImageLayer();
@@ -221,12 +214,11 @@ nsVideoFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
   layer->SetContainer(container);
   layer->SetFilter(nsLayoutUtils::GetGraphicsFilterForFrame(this));
   // Set a transform on the layer to draw the video in the right place
-  gfxPoint p = r.TopLeft() + aContainerParameters.mOffset;
+  gfxPoint p = destGFXRect.TopLeft() + aContainerParameters.mOffset;
   Matrix transform = Matrix::Translation(p.x, p.y);
-  transform.PreScale(r.Width() / frameSize.width,
-                     r.Height() / frameSize.height);
   layer->SetBaseTransform(gfx::Matrix4x4::From2D(transform));
-  nsRefPtr<Layer> result = layer.forget();
+  layer->SetScaleToSize(scaleHint, ScaleMode::STRETCH);
+  RefPtr<Layer> result = layer.forget();
   return result.forget();
 }
 
@@ -235,7 +227,7 @@ class DispatchResizeToControls : public nsRunnable
 public:
   explicit DispatchResizeToControls(nsIContent* aContent)
     : mContent(aContent) {}
-  NS_IMETHOD Run() MOZ_OVERRIDE {
+  NS_IMETHOD Run() override {
     nsContentUtils::DispatchTrustedEvent(mContent->OwnerDoc(), mContent,
                                          NS_LITERAL_STRING("resizevideocontrols"),
                                          false, false);
@@ -250,6 +242,7 @@ nsVideoFrame::Reflow(nsPresContext*           aPresContext,
                      const nsHTMLReflowState& aReflowState,
                      nsReflowStatus&          aStatus)
 {
+  MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("nsVideoFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aMetrics, aStatus);
   NS_FRAME_TRACE(NS_FRAME_TRACE_CALLS,
@@ -271,51 +264,35 @@ nsVideoFrame::Reflow(nsPresContext*           aPresContext,
 
   // Reflow the child frames. We may have up to two, an image frame
   // which is the poster, and a box frame, which is the video controls.
-  for (nsIFrame *child = mFrames.FirstChild();
-       child;
-       child = child->GetNextSibling()) {
+  for (nsIFrame* child : mFrames) {
     if (child->GetContent() == mPosterImage) {
       // Reflow the poster frame.
       nsImageFrame* imageFrame = static_cast<nsImageFrame*>(child);
       nsHTMLReflowMetrics kidDesiredSize(aReflowState);
       WritingMode wm = imageFrame->GetWritingMode();
       LogicalSize availableSize = aReflowState.AvailableSize(wm);
+      LogicalSize cbSize = aMetrics.Size(aMetrics.GetWritingMode()).
+                             ConvertTo(wm, aMetrics.GetWritingMode());
       nsHTMLReflowState kidReflowState(aPresContext,
                                        aReflowState,
                                        imageFrame,
                                        availableSize,
-                                       aMetrics.Width(),
-                                       aMetrics.Height());
+                                       &cbSize);
 
-      uint32_t posterHeight, posterWidth;
-      nsSize scaledPosterSize(0, 0);
-      nsSize computedArea(aReflowState.ComputedWidth(), aReflowState.ComputedHeight());
-      nsPoint posterTopLeft(0, 0);
-
-      nsCOMPtr<nsIDOMHTMLImageElement> posterImage = do_QueryInterface(mPosterImage);
-      if (!posterImage) {
-        return;
+      nsRect posterRenderRect;
+      if (ShouldDisplayPoster()) {
+        posterRenderRect =
+          nsRect(nsPoint(mBorderPadding.left, mBorderPadding.top),
+                 nsSize(aReflowState.ComputedWidth(),
+                        aReflowState.ComputedHeight()));
       }
-      posterImage->GetNaturalHeight(&posterHeight);
-      posterImage->GetNaturalWidth(&posterWidth);
-
-      if (ShouldDisplayPoster() && posterHeight && posterWidth) {
-        gfxFloat scale =
-          std::min(static_cast<float>(computedArea.width)/nsPresContext::CSSPixelsToAppUnits(static_cast<float>(posterWidth)),
-                 static_cast<float>(computedArea.height)/nsPresContext::CSSPixelsToAppUnits(static_cast<float>(posterHeight)));
-        gfxSize scaledRatio = gfxSize(scale*posterWidth, scale*posterHeight);
-        scaledPosterSize.width = nsPresContext::CSSPixelsToAppUnits(static_cast<float>(scaledRatio.width));
-        scaledPosterSize.height = nsPresContext::CSSPixelsToAppUnits(static_cast<int32_t>(scaledRatio.height));
-      }
-      kidReflowState.SetComputedWidth(scaledPosterSize.width);
-      kidReflowState.SetComputedHeight(scaledPosterSize.height);
-      posterTopLeft.x = ((computedArea.width - scaledPosterSize.width) / 2) + mBorderPadding.left;
-      posterTopLeft.y = ((computedArea.height - scaledPosterSize.height) / 2) + mBorderPadding.top;
-
+      kidReflowState.SetComputedWidth(posterRenderRect.width);
+      kidReflowState.SetComputedHeight(posterRenderRect.height);
       ReflowChild(imageFrame, aPresContext, kidDesiredSize, kidReflowState,
-                        posterTopLeft.x, posterTopLeft.y, 0, aStatus);
-      FinishReflowChild(imageFrame, aPresContext, kidDesiredSize, &kidReflowState,
-                        posterTopLeft.x, posterTopLeft.y, 0);
+                  posterRenderRect.x, posterRenderRect.y, 0, aStatus);
+      FinishReflowChild(imageFrame, aPresContext,
+                        kidDesiredSize, &kidReflowState,
+                        posterRenderRect.x, posterRenderRect.y, 0);
     } else if (child->GetContent() == mVideoControls) {
       // Reflow the video controls frame.
       nsBoxLayoutState boxState(PresContext(), aReflowState.rendContext);
@@ -327,7 +304,7 @@ nsVideoFrame::Reflow(nsPresContext*           aPresContext,
                                        aReflowState.ComputedWidth(),
                                        aReflowState.ComputedHeight()));
       if (child->GetSize() != size) {
-        nsRefPtr<nsRunnable> event = new DispatchResizeToControls(child->GetContent());
+        RefPtr<nsRunnable> event = new DispatchResizeToControls(child->GetContent());
         nsContentUtils::AddScriptRunner(event);
       }
     } else if (child->GetContent() == mCaptionDiv) {
@@ -335,12 +312,13 @@ nsVideoFrame::Reflow(nsPresContext*           aPresContext,
       nsHTMLReflowMetrics kidDesiredSize(aReflowState);
       WritingMode wm = child->GetWritingMode();
       LogicalSize availableSize = aReflowState.AvailableSize(wm);
+      LogicalSize cbSize = aMetrics.Size(aMetrics.GetWritingMode()).
+                             ConvertTo(wm, aMetrics.GetWritingMode());
       nsHTMLReflowState kidReflowState(aPresContext,
                                        aReflowState,
                                        child,
                                        availableSize,
-                                       aMetrics.Width(),
-                                       aMetrics.Height());
+                                       &cbSize);
       nsSize size(aReflowState.ComputedWidth(), aReflowState.ComputedHeight());
       size.width -= kidReflowState.ComputedPhysicalBorderPadding().LeftRight();
       size.height -= kidReflowState.ComputedPhysicalBorderPadding().TopBottom();
@@ -388,7 +366,7 @@ public:
   // away completely (e.g. because of a decoder error). The problem would
   // be especially acute if we have off-main-thread rendering.
 
-  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) MOZ_OVERRIDE
+  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) override
   {
     *aSnap = true;
     nsIFrame* f = Frame();
@@ -397,14 +375,14 @@ public:
 
   virtual already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
                                              LayerManager* aManager,
-                                             const ContainerLayerParameters& aContainerParameters) MOZ_OVERRIDE
+                                             const ContainerLayerParameters& aContainerParameters) override
   {
     return static_cast<nsVideoFrame*>(mFrame)->BuildLayer(aBuilder, aManager, this, aContainerParameters);
   }
 
   virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
                                    LayerManager* aManager,
-                                   const ContainerLayerParameters& aParameters) MOZ_OVERRIDE
+                                   const ContainerLayerParameters& aParameters) override
   {
     if (aManager->IsCompositingCheap()) {
       // Since ImageLayers don't require additional memory of the
@@ -433,10 +411,24 @@ nsVideoFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   DisplayBorderBackgroundOutline(aBuilder, aLists);
 
-  DisplayListClipState::AutoClipContainingBlockDescendantsToContentBox
-    clip(aBuilder, this, DisplayListClipState::ASSUME_DRAWING_RESTRICTED_TO_CONTENT_RECT);
+  const bool shouldDisplayPoster = ShouldDisplayPoster();
 
-  if (HasVideoElement() && !ShouldDisplayPoster()) {
+  // NOTE: If we're displaying a poster image (instead of video data), we can
+  // trust the nsImageFrame to constrain its drawing to its content rect
+  // (which happens to be the same as our content rect).
+  uint32_t clipFlags;
+  if (shouldDisplayPoster ||
+      !nsStyleUtil::ObjectPropsMightCauseOverflow(StylePosition())) {
+    clipFlags =
+      DisplayListClipState::ASSUME_DRAWING_RESTRICTED_TO_CONTENT_RECT;
+  } else {
+    clipFlags = 0;
+  }
+
+  DisplayListClipState::AutoClipContainingBlockDescendantsToContentBox
+    clip(aBuilder, this, clipFlags);
+
+  if (HasVideoElement() && !shouldDisplayPoster) {
     aLists.Content()->AppendNewToTop(
       new (aBuilder) nsDisplayVideo(aBuilder, this));
   }
@@ -444,10 +436,8 @@ nsVideoFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   // Add child frames to display list. We expect various children,
   // but only want to draw mPosterImage conditionally. Others we
   // always add to the display list.
-  for (nsIFrame *child = mFrames.FirstChild();
-       child;
-       child = child->GetNextSibling()) {
-    if (child->GetContent() != mPosterImage || ShouldDisplayPoster()) {
+  for (nsIFrame* child : mFrames) {
+    if (child->GetContent() != mPosterImage || shouldDisplayPoster) {
       child->BuildDisplayListForStackingContext(aBuilder,
                                                 aDirtyRect - child->GetOffsetTo(this),
                                                 aLists.Content());
@@ -489,7 +479,7 @@ nsVideoFrame::ComputeSize(nsRenderingContext *aRenderingContext,
                           const LogicalSize& aMargin,
                           const LogicalSize& aBorder,
                           const LogicalSize& aPadding,
-                          uint32_t aFlags)
+                          ComputeSizeFlags aFlags)
 {
   nsSize size = GetVideoIntrinsicSize(aRenderingContext);
 
@@ -512,14 +502,16 @@ nsVideoFrame::ComputeSize(nsRenderingContext *aRenderingContext,
 
 nscoord nsVideoFrame::GetMinISize(nsRenderingContext *aRenderingContext)
 {
-  nscoord result = GetVideoIntrinsicSize(aRenderingContext).width;
+  nsSize size = GetVideoIntrinsicSize(aRenderingContext);
+  nscoord result = GetWritingMode().IsVertical() ? size.height : size.width;
   DISPLAY_MIN_WIDTH(this, result);
   return result;
 }
 
 nscoord nsVideoFrame::GetPrefISize(nsRenderingContext *aRenderingContext)
 {
-  nscoord result = GetVideoIntrinsicSize(aRenderingContext).width;
+  nsSize size = GetVideoIntrinsicSize(aRenderingContext);
+  nscoord result = GetWritingMode().IsVertical() ? size.height : size.width;
   DISPLAY_PREF_WIDTH(this, result);
   return result;
 }

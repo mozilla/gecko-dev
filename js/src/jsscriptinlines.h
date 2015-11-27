@@ -21,13 +21,7 @@
 namespace js {
 
 inline
-Bindings::Bindings()
-    : callObjShape_(nullptr), bindingArrayAndFlag_(TEMPORARY_STORAGE_BIT),
-      numArgs_(0), numBlockScoped_(0), numVars_(0)
-{}
-
-inline
-AliasedFormalIter::AliasedFormalIter(JSScript *script)
+AliasedFormalIter::AliasedFormalIter(JSScript* script)
   : begin_(script->bindingArray()),
     p_(begin_),
     end_(begin_ + (script->funHasAnyAliasedFormal() ? script->numArgs() : 0)),
@@ -36,19 +30,62 @@ AliasedFormalIter::AliasedFormalIter(JSScript *script)
     settle();
 }
 
-inline void
-ScriptCounts::destroy(FreeOp *fop)
+ScriptCounts::ScriptCounts()
+  : pcCounts_(),
+    throwCounts_(),
+    ionCounts_(nullptr)
 {
-    fop->free_(pcCountsVector);
-    fop->delete_(ionCounts);
+}
+
+ScriptCounts::ScriptCounts(PCCountsVector&& jumpTargets)
+  : pcCounts_(Move(jumpTargets)),
+    throwCounts_(),
+    ionCounts_(nullptr)
+{
+}
+
+ScriptCounts::ScriptCounts(ScriptCounts&& src)
+  : pcCounts_(Move(src.pcCounts_)),
+    throwCounts_(Move(src.throwCounts_)),
+    ionCounts_(Move(src.ionCounts_))
+{
+    src.ionCounts_ = nullptr;
+}
+
+ScriptCounts&
+ScriptCounts::operator=(ScriptCounts&& src)
+{
+    pcCounts_ = Move(src.pcCounts_);
+    throwCounts_ = Move(src.throwCounts_);
+    ionCounts_ = Move(src.ionCounts_);
+    src.ionCounts_ = nullptr;
+    return *this;
+}
+
+ScriptCounts::~ScriptCounts()
+{
+    js_delete(ionCounts_);
+}
+
+ScriptAndCounts::ScriptAndCounts(JSScript* script)
+  : script(script),
+    scriptCounts()
+{
+    script->releaseScriptCounts(&scriptCounts);
+}
+
+ScriptAndCounts::ScriptAndCounts(ScriptAndCounts&& sac)
+  : script(Move(sac.script)),
+    scriptCounts(Move(sac.scriptCounts))
+{
 }
 
 void
-SetFrameArgumentsObject(JSContext *cx, AbstractFramePtr frame,
-                        HandleScript script, JSObject *argsobj);
+SetFrameArgumentsObject(JSContext* cx, AbstractFramePtr frame,
+                        HandleScript script, JSObject* argsobj);
 
-inline JSFunction *
-LazyScript::functionDelazifying(JSContext *cx) const
+inline JSFunction*
+LazyScript::functionDelazifying(JSContext* cx) const
 {
     if (function_ && !function_->getOrCreateScript(cx))
         return nullptr;
@@ -57,50 +94,58 @@ LazyScript::functionDelazifying(JSContext *cx) const
 
 } // namespace js
 
-inline JSFunction *
+inline JSFunction*
 JSScript::functionDelazifying() const
 {
     if (function_ && function_->isInterpretedLazy()) {
-        function_->setUnlazifiedScript(const_cast<JSScript *>(this));
+        function_->setUnlazifiedScript(const_cast<JSScript*>(this));
         // If this script has a LazyScript, make sure the LazyScript has a
         // reference to the script when delazifying its canonical function.
         if (lazyScript && !lazyScript->maybeScript())
-            lazyScript->initScript(const_cast<JSScript *>(this));
+            lazyScript->initScript(const_cast<JSScript*>(this));
     }
     return function_;
 }
 
 inline void
-JSScript::setFunction(JSFunction *fun)
+JSScript::setFunction(JSFunction* fun)
 {
-    JS_ASSERT(fun->isTenured());
+    MOZ_ASSERT(!function_ && !module_);
+    MOZ_ASSERT(fun->isTenured());
     function_ = fun;
 }
 
 inline void
-JSScript::ensureNonLazyCanonicalFunction(JSContext *cx)
+JSScript::setModule(js::ModuleObject* module)
+{
+    MOZ_ASSERT(!function_ && !module_);
+    module_ = module;
+}
+
+inline void
+JSScript::ensureNonLazyCanonicalFunction(JSContext* cx)
 {
     // Infallibly delazify the canonical script.
     if (function_ && function_->isInterpretedLazy())
         functionDelazifying();
 }
 
-inline JSFunction *
+inline JSFunction*
 JSScript::getFunction(size_t index)
 {
-    JSFunction *fun = &getObject(index)->as<JSFunction>();
-    JS_ASSERT_IF(fun->isNative(), IsAsmJSModuleNative(fun->native()));
+    JSFunction* fun = &getObject(index)->as<JSFunction>();
+    MOZ_ASSERT_IF(fun->isNative(), IsAsmJSModuleNative(fun->native()));
     return fun;
 }
 
-inline JSFunction *
+inline JSFunction*
 JSScript::getCallerFunction()
 {
-    JS_ASSERT(savedCallerFun());
+    MOZ_ASSERT(savedCallerFun());
     return getFunction(0);
 }
 
-inline JSFunction *
+inline JSFunction*
 JSScript::functionOrCallerFunction()
 {
     if (functionNonDelazifying())
@@ -110,24 +155,24 @@ JSScript::functionOrCallerFunction()
     return nullptr;
 }
 
-inline js::RegExpObject *
+inline js::RegExpObject*
 JSScript::getRegExp(size_t index)
 {
-    js::ObjectArray *arr = regexps();
-    JS_ASSERT(uint32_t(index) < arr->length);
-    JSObject *obj = arr->vector[index];
-    JS_ASSERT(obj->is<js::RegExpObject>());
-    return (js::RegExpObject *) obj;
+    js::ObjectArray* arr = regexps();
+    MOZ_ASSERT(uint32_t(index) < arr->length);
+    JSObject* obj = arr->vector[index];
+    MOZ_ASSERT(obj->is<js::RegExpObject>());
+    return (js::RegExpObject*) obj;
 }
 
-inline js::RegExpObject *
-JSScript::getRegExp(jsbytecode *pc)
+inline js::RegExpObject*
+JSScript::getRegExp(jsbytecode* pc)
 {
-    JS_ASSERT(containsPC(pc) && containsPC(pc + sizeof(uint32_t)));
+    MOZ_ASSERT(containsPC(pc) && containsPC(pc + sizeof(uint32_t)));
     return getRegExp(GET_UINT32_INDEX(pc));
 }
 
-inline js::GlobalObject &
+inline js::GlobalObject&
 JSScript::global() const
 {
     /*
@@ -137,47 +182,35 @@ JSScript::global() const
     return *compartment()->maybeGlobal();
 }
 
-inline JSPrincipals *
+inline JSPrincipals*
 JSScript::principals()
 {
-    return compartment()->principals;
-}
-
-inline JSFunction *
-JSScript::donorFunction() const
-{
-    if (!isCallsiteClone())
-        return nullptr;
-    return &enclosingScopeOrOriginalFunction_->as<JSFunction>();
+    return compartment()->principals();
 }
 
 inline void
-JSScript::setIsCallsiteClone(JSObject *fun)
-{
-    JS_ASSERT(shouldCloneAtCallsite());
-    shouldCloneAtCallsite_ = false;
-    isCallsiteClone_ = true;
-    JS_ASSERT(isCallsiteClone());
-    JS_ASSERT(fun->is<JSFunction>());
-    enclosingScopeOrOriginalFunction_ = fun;
-}
-
-inline void
-JSScript::setBaselineScript(JSContext *maybecx, js::jit::BaselineScript *baselineScript)
+JSScript::setBaselineScript(JSContext* maybecx, js::jit::BaselineScript* baselineScript)
 {
     if (hasBaselineScript())
         js::jit::BaselineScript::writeBarrierPre(zone(), baseline);
     MOZ_ASSERT(!hasIonScript());
     baseline = baselineScript;
+    resetWarmUpResetCounter();
     updateBaselineOrIonRaw(maybecx);
 }
 
 inline bool
-JSScript::ensureHasAnalyzedArgsUsage(JSContext *cx)
+JSScript::ensureHasAnalyzedArgsUsage(JSContext* cx)
 {
     if (analyzedArgsUsage())
         return true;
     return js::jit::AnalyzeArgumentsUsage(cx, this);
+}
+
+inline bool
+JSScript::isDebuggee() const
+{
+    return compartment_->debuggerObservesAllExecution() || hasDebugScript_;
 }
 
 #endif /* jsscriptinlines_h */

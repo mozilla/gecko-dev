@@ -49,16 +49,14 @@
     <implementation implements="nsIDOMXULContainerElement">
       <property name="open" onget="return this.hasAttribute('open');">
         <setter><![CDATA[
-          this.boxObject.QueryInterface(Components.interfaces.nsIMenuBoxObject)
-              .openMenu(val);
+          this.boxObject.openMenu(val);
           return val;
         ]]></setter>
       </property>
 
       <property name="openedWithKey" readonly="true">
         <getter><![CDATA[
-          return this.boxObject.QueryInterface(Components.interfaces.nsIMenuBoxObject)
-              .openedWithKey;
+          return this.boxObject.openedWithKey;
         ]]></getter>
       </property>
 
@@ -189,6 +187,12 @@
     </content>
   </binding>
 
+  <binding id="menucaption" extends="chrome://global/content/bindings/menu.xml#menu-base">
+    <content>
+      <xul:label class="menu-text" xbl:inherits="value=label,crop" crop="right"/>
+    </content>
+  </binding>
+
   <binding id="menu-menubar"
            extends="chrome://global/content/bindings/menu.xml#menu-base">
     <content>
@@ -213,6 +217,7 @@
         <xul:image class="menu-iconic-icon" xbl:inherits="src=image,validate,src"/>
       </xul:hbox>
       <xul:label class="menu-iconic-text" flex="1" xbl:inherits="value=label,accesskey,crop" crop="right"/>
+      <children/>
       <xul:hbox class="menu-accel-container" anonid="accel">
         <xul:label class="menu-iconic-accel" xbl:inherits="value=acceltext"/>
       </xul:hbox>
@@ -226,6 +231,16 @@
         <xul:image class="menu-iconic-icon" xbl:inherits="src=image,validate,src"/>
       </xul:hbox>
       <xul:label class="menu-iconic-text" flex="1" xbl:inherits="value=label,accesskey,crop" crop="right"/>
+    </content>
+  </binding>
+
+  <binding id="menucaption-inmenulist" extends="chrome://global/content/bindings/menu.xml#menucaption">
+    <content>
+      <xul:hbox class="menu-iconic-left" align="center" pack="center"
+                xbl:inherits="selected,disabled,checked">
+        <xul:image class="menu-iconic-icon" xbl:inherits="src=image,validate,src"/>
+      </xul:hbox>
+      <xul:label class="menu-iconic-text" flex="1" xbl:inherits="value=label,crop" crop="right"/>
     </content>
   </binding>
 

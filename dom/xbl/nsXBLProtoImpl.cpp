@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -22,6 +23,7 @@
 #include "js/CharacterEncoding.h"
 
 using namespace mozilla;
+using namespace mozilla::dom;
 using js::GetGlobalForObjectCrossCompartment;
 using js::AssertSameCompartment;
 
@@ -86,6 +88,7 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
     GetGlobalForObjectCrossCompartment(targetClassObject));
   JS::Rooted<JSObject*> scopeObject(cx, xpc::GetScopeForXBLExecution(cx, globalObject, addonId));
   NS_ENSURE_TRUE(scopeObject, NS_ERROR_OUT_OF_MEMORY);
+  MOZ_ASSERT(js::GetGlobalForObjectCrossCompartment(scopeObject) == scopeObject);
   JSAutoCompartment ac(cx, scopeObject);
 
   // Determine the appropriate property holder.
@@ -97,11 +100,11 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
   // end up with a different content prototype, but we'll already have a property
   // holder called |foo| in the XBL scope. Check for that to avoid wasteful and
   // weird property holder duplication.
-  const char* className = aPrototypeBinding->ClassName().get();
+  const char16_t* className = aPrototypeBinding->ClassName().get();
   JS::Rooted<JSObject*> propertyHolder(cx);
   JS::Rooted<JSPropertyDescriptor> existingHolder(cx);
   if (scopeObject != globalObject &&
-      !JS_GetOwnPropertyDescriptor(cx, scopeObject, className, &existingHolder)) {
+      !JS_GetOwnUCPropertyDescriptor(cx, scopeObject, className, &existingHolder)) {
     return NS_ERROR_FAILURE;
   }
   bool propertyHolderIsNew = !existingHolder.object() || !existingHolder.value().isObject();
@@ -111,14 +114,14 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
   } else if (scopeObject != globalObject) {
 
     // This is just a property holder, so it doesn't need any special JSClass.
-    propertyHolder = JS_NewObjectWithGivenProto(cx, nullptr, JS::NullPtr(), scopeObject);
+    propertyHolder = JS_NewObjectWithGivenProto(cx, nullptr, nullptr);
     NS_ENSURE_TRUE(propertyHolder, NS_ERROR_OUT_OF_MEMORY);
 
     // Define it as a property on the scopeObject, using the same name used on
     // the content side.
-    bool ok = JS_DefineProperty(cx, scopeObject, className, propertyHolder,
-                                JSPROP_PERMANENT | JSPROP_READONLY,
-                                JS_PropertyStub, JS_StrictPropertyStub);
+    bool ok = JS_DefineUCProperty(cx, scopeObject, className, -1, propertyHolder,
+                                  JSPROP_PERMANENT | JSPROP_READONLY,
+                                  JS_STUBGETTER, JS_STUBSETTER);
     NS_ENSURE_TRUE(ok, NS_ERROR_UNEXPECTED);
   } else {
     propertyHolder = targetClassObject;
@@ -210,7 +213,7 @@ nsXBLProtoImpl::InitTargetObjects(nsXBLPrototypeBinding* aBinding,
   // Make sure the interface object is created before the prototype object
   // so that XULElement is hidden from content. See bug 909340.
   bool defineOnGlobal = dom::XULElementBinding::ConstructorEnabled(cx, global);
-  dom::XULElementBinding::GetConstructorObject(cx, global, defineOnGlobal);
+  dom::XULElementBinding::GetConstructorObjectHandle(cx, global, defineOnGlobal);
 
   rv = nsContentUtils::WrapNative(cx, aBoundElement, &v,
                                   /* aAllowWrapping = */ false);
@@ -239,11 +242,13 @@ nsXBLProtoImpl::CompilePrototypeMembers(nsXBLPrototypeBinding* aBinding)
   // We want to pre-compile our implementation's members against a "prototype context". Then when we actually 
   // bind the prototype to a real xbl instance, we'll clone the pre-compiled JS into the real instance's 
   // context.
-  AutoSafeJSContext cx;
-  JS::Rooted<JSObject*> compilationGlobal(cx, xpc::CompilationScope());
-  JSAutoCompartment ac(cx, compilationGlobal);
+  AutoJSAPI jsapi;
+  if (NS_WARN_IF(!jsapi.Init(xpc::CompilationScope())))
+    return NS_ERROR_FAILURE;
+  jsapi.TakeOwnershipOfErrorReporting();
+  JSContext* cx = jsapi.cx();
 
-  mPrecompiledMemberHolder = JS_NewObjectWithGivenProto(cx, nullptr, JS::NullPtr(), compilationGlobal);
+  mPrecompiledMemberHolder = JS_NewObjectWithGivenProto(cx, nullptr, nullptr);
   if (!mPrecompiledMemberHolder)
     return NS_ERROR_OUT_OF_MEMORY;
 
@@ -253,7 +258,7 @@ nsXBLProtoImpl::CompilePrototypeMembers(nsXBLPrototypeBinding* aBinding)
   for (nsXBLProtoImplMember* curr = mMembers;
        curr;
        curr = curr->GetNext()) {
-    nsresult rv = curr->CompileMember(mClassName, rootedHolder);
+    nsresult rv = curr->CompileMember(jsapi, mClassName, rootedHolder);
     if (NS_FAILED(rv)) {
       DestroyMembers();
       return rv;
@@ -317,12 +322,9 @@ bool
 nsXBLProtoImpl::ResolveAllFields(JSContext *cx, JS::Handle<JSObject*> obj) const
 {
   for (nsXBLProtoImplField* f = mFields; f; f = f->GetNext()) {
-    // Using OBJ_LOOKUP_PROPERTY is a pain, since what we have is a
-    // char16_t* for the property name.  Let's just use the public API and
-    // all.
     nsDependentString name(f->GetName());
-    JS::Rooted<JS::Value> dummy(cx);
-    if (!::JS_LookupUCProperty(cx, obj, name.get(), name.Length(), &dummy)) {
+    bool dummy;
+    if (!::JS_HasUCProperty(cx, obj, name.get(), name.Length(), &dummy)) {
       return false;
     }
   }
@@ -341,8 +343,8 @@ nsXBLProtoImpl::UndefineFields(JSContext *cx, JS::Handle<JSObject*> obj) const
     bool hasProp;
     if (::JS_AlreadyHasOwnUCProperty(cx, obj, s, name.Length(), &hasProp) &&
         hasProp) {
-      bool dummy;
-      ::JS_DeleteUCProperty2(cx, obj, s, name.Length(), &dummy);
+      JS::ObjectOpResult ignored;
+      ::JS_DeleteUCProperty(cx, obj, s, name.Length(), ignored);
     }
   }
 }
@@ -365,8 +367,7 @@ nsXBLProtoImpl::Read(nsIObjectInputStream* aStream,
   AssertInCompilationScope();
   AutoJSContext cx;
   // Set up a class object first so that deserialization is possible
-  JS::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
-  mPrecompiledMemberHolder = JS_NewObjectWithGivenProto(cx, nullptr, JS::NullPtr(), global);
+  mPrecompiledMemberHolder = JS_NewObjectWithGivenProto(cx, nullptr, nullptr);
   if (!mPrecompiledMemberHolder)
     return NS_ERROR_OUT_OF_MEMORY;
 
@@ -490,7 +491,7 @@ nsXBLProtoImpl::Write(nsIObjectOutputStream* aStream,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  rv = aStream->WriteStringZ(mClassName.get());
+  rv = aStream->WriteUtf8Z(mClassName.get());
   NS_ENSURE_SUCCESS(rv, rv);
 
   for (nsXBLProtoImplField* curr = mFields; curr; curr = curr->GetNext()) {
@@ -519,12 +520,14 @@ NS_NewXBLProtoImpl(nsXBLPrototypeBinding* aBinding,
                    nsXBLProtoImpl** aResult)
 {
   nsXBLProtoImpl* impl = new nsXBLProtoImpl();
-  if (!impl)
-    return NS_ERROR_OUT_OF_MEMORY;
-  if (aClassName)
-    impl->mClassName.AssignWithConversion(aClassName);
-  else
-    aBinding->BindingURI()->GetSpec(impl->mClassName);
+  if (aClassName) {
+    impl->mClassName = aClassName;
+  } else {
+    nsCString spec;
+    aBinding->BindingURI()->GetSpec(spec);
+    impl->mClassName = NS_ConvertUTF8toUTF16(spec);
+  }
+
   aBinding->SetImplementation(impl);
   *aResult = impl;
 

@@ -27,22 +27,20 @@ public:
     mType = eProgressType;
   }
 
-  NS_DECL_ISUPPORTS_INHERITED
-
   // Accessible
-  virtual void Value(nsString& aValue);
-  virtual mozilla::a11y::role NativeRole() MOZ_OVERRIDE;
-  virtual uint64_t NativeState() MOZ_OVERRIDE;
+  virtual void Value(nsString& aValue) override;
+  virtual mozilla::a11y::role NativeRole() override;
+  virtual uint64_t NativeState() override;
 
   // Value
-  virtual double MaxValue() const MOZ_OVERRIDE;
-  virtual double MinValue() const MOZ_OVERRIDE;
-  virtual double CurValue() const MOZ_OVERRIDE;
-  virtual double Step() const MOZ_OVERRIDE;
-  virtual bool SetCurValue(double aValue) MOZ_OVERRIDE;
+  virtual double MaxValue() const override;
+  virtual double MinValue() const override;
+  virtual double CurValue() const override;
+  virtual double Step() const override;
+  virtual bool SetCurValue(double aValue) override;
 
   // Widgets
-  virtual bool IsWidget() const;
+  virtual bool IsWidget() const override;
 
 protected:
   virtual ~ProgressMeterAccessible() {}
@@ -58,17 +56,17 @@ public:
   RadioButtonAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   // Accessible
-  virtual mozilla::a11y::role NativeRole();
+  virtual mozilla::a11y::role NativeRole() override;
 
   // ActionAccessible
-  virtual uint8_t ActionCount() MOZ_OVERRIDE;
-  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) MOZ_OVERRIDE;
-  virtual bool DoAction(uint8_t aIndex) MOZ_OVERRIDE;
+  virtual uint8_t ActionCount() override;
+  virtual void ActionNameAt(uint8_t aIndex, nsAString& aName) override;
+  virtual bool DoAction(uint8_t aIndex) override;
 
   enum { eAction_Click = 0 };
 
   // Widgets
-  virtual bool IsWidget() const;
+  virtual bool IsWidget() const override;
 };
 
 } // namespace a11y

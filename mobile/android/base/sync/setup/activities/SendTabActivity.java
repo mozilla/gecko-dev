@@ -16,6 +16,7 @@ import org.mozilla.gecko.fxa.FirefoxAccounts;
 import org.mozilla.gecko.fxa.FxAccountConstants;
 import org.mozilla.gecko.fxa.activities.FxAccountGetStartedActivity;
 import org.mozilla.gecko.fxa.activities.FxAccountStatusActivity;
+import org.mozilla.gecko.fxa.activities.FxAccountWebFlowActivity;
 import org.mozilla.gecko.fxa.authenticator.AndroidFxAccount;
 import org.mozilla.gecko.fxa.login.State.Action;
 import org.mozilla.gecko.sync.CommandProcessor;
@@ -27,7 +28,7 @@ import org.mozilla.gecko.sync.repositories.NullCursorException;
 import org.mozilla.gecko.sync.repositories.android.ClientsDatabaseAccessor;
 import org.mozilla.gecko.sync.repositories.domain.ClientRecord;
 import org.mozilla.gecko.sync.setup.SyncAccounts;
-import org.mozilla.gecko.LocaleAware.LocaleAwareActivity;
+import org.mozilla.gecko.Locales.LocaleAwareActivity;
 import org.mozilla.gecko.sync.syncadapter.SyncAdapter;
 
 import android.accounts.Account;
@@ -255,7 +256,10 @@ public class SendTabActivity extends LocaleAwareActivity {
     }
 
     // Offer to set up a Firefox Account, and finish this activity.
-    redirectToNewTask(FxAccountGetStartedActivity.class, false);
+    final Intent intent = new Intent(FxAccountConstants.ACTION_FXA_GET_STARTED);
+    intent.setFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+    startActivity(intent);
+    notifyAndFinish(false);
   }
 
   private static void registerDisplayURICommand() {
@@ -314,7 +318,7 @@ public class SendTabActivity extends LocaleAwareActivity {
       @Override
       protected void onPostExecute(final Boolean success) {
         // We're allowed to update the UI from here.
-        notifyAndFinish(success.booleanValue());
+        notifyAndFinish(success);
       }
     }.execute();
   }

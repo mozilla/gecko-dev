@@ -54,6 +54,9 @@ HMAC_EVENT_INTERVAL:                   600000,
 // How long to wait between sync attempts if the Master Password is locked.
 MASTER_PASSWORD_LOCKED_RETRY_INTERVAL: 15 * 60 * 1000,   // 15 minutes
 
+// The default for how long we "block" sync from running when doing a migration.
+DEFAULT_BLOCK_PERIOD:                  2 * 24 * 60 * 60 * 1000, // 2 days
+
 // Separate from the ID fetch batch size to allow tuning for mobile.
 MOBILE_BATCH_SIZE:                     50,
 
@@ -119,7 +122,6 @@ LOGIN_FAILED_NETWORK_ERROR:            "error.login.reason.network",
 LOGIN_FAILED_SERVER_ERROR:             "error.login.reason.server",
 LOGIN_FAILED_INVALID_PASSPHRASE:       "error.login.reason.recoverykey",
 LOGIN_FAILED_LOGIN_REJECTED:           "error.login.reason.account",
-LOGIN_FAILED_NOT_READY:                "error.login.reason.initializing",
 
 // sync failure status codes
 METARECORD_DOWNLOAD_FAIL:              "error.sync.reason.metarecord_download_fail",

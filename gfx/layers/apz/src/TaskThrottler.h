@@ -9,15 +9,18 @@
 
 #include <stdint.h>                     // for uint32_t
 #include "base/task.h"                  // for CancelableTask
-#include "mozilla/TimeStamp.h"          // for TimeDuration, TimeStamp
-#include "mozilla/RollingMean.h"        // for RollingMean
+#include "mozilla/Monitor.h"            // for Monitor
 #include "mozilla/mozalloc.h"           // for operator delete
+#include "mozilla/RollingMean.h"        // for RollingMean
+#include "mozilla/TimeStamp.h"          // for TimeDuration, TimeStamp
 #include "mozilla/UniquePtr.h"          // for UniquePtr
+#include "nsCOMPtr.h"                   // for nsCOMPtr
+#include "nsISupportsImpl.h"            // for NS_INLINE_DECL_THREADSAFE_REFCOUNTING
 #include "nsTArray.h"                   // for nsTArray
 
 namespace tracked_objects {
 class Location;
-}
+} // namespace tracked_objects
 
 namespace mozilla {
 namespace layers {
@@ -45,6 +48,8 @@ class TaskThrottler {
 public:
   TaskThrottler(const TimeStamp& aTimeStamp, const TimeDuration& aMaxWait);
 
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(TaskThrottler)
+
   /** Post a task to be run as soon as there are no outstanding tasks, or
    * post it immediately if it has been more than the max-wait time since
    * the last task was posted.
@@ -65,15 +70,12 @@ public:
    * Calculate the average time between processing the posted task and getting
    * the TaskComplete() call back.
    */
-  TimeDuration AverageDuration()
-  {
-    return mMean.empty() ? TimeDuration() : mMean.mean();
-  }
+  TimeDuration AverageDuration();
 
   /**
-   * return true if Throttler has an outstanding task
+   * Cancel the queued task if there is one.
    */
-  bool IsOutstanding() { return mOutstanding; }
+  void CancelPendingTask();
 
   /**
    * Return the time elapsed since the last request was processed
@@ -83,28 +85,35 @@ public:
   /**
    * Clear average history.
    */
-  void ClearHistory() { mMean.clear(); }
+  void ClearHistory();
 
   /**
    * @param aMaxDurations The maximum number of durations to measure.
    */
 
-  void SetMaxDurations(uint32_t aMaxDurations)
-  {
-    if (aMaxDurations != mMean.maxValues()) {
-      mMean = RollingMean<TimeDuration, TimeDuration>(aMaxDurations);
-    }
-  }
+  void SetMaxDurations(uint32_t aMaxDurations);
 
 private:
+  mutable Monitor mMonitor;
   bool mOutstanding;
   UniquePtr<CancelableTask> mQueuedTask;
   TimeStamp mStartTime;
   TimeDuration mMaxWait;
   RollingMean<TimeDuration, TimeDuration> mMean;
+  CancelableTask* mTimeoutTask;  // not owned because it's posted to a MessageLoop
+                                 // which deletes it
+
+  ~TaskThrottler();
+  void RunQueuedTask(const TimeStamp& aTimeStamp,
+                     const MonitorAutoLock& aProofOfLock);
+  void CancelPendingTask(const MonitorAutoLock& aProofOfLock);
+  TimeDuration TimeSinceLastRequest(const TimeStamp& aTimeStamp,
+                                    const MonitorAutoLock& aProofOfLock);
+  void OnTimeout();
+  void CancelTimeoutTask(const MonitorAutoLock& aProofOfLock);
 };
 
-}
-}
+} // namespace layers
+} // namespace mozilla
 
 #endif // mozilla_dom_TaskThrottler_h

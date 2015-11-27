@@ -10,7 +10,7 @@ browserElementTestHelpers.addPermission();
 
 function runTest() {
   var iframe = document.createElement('iframe');
-  SpecialPowers.wrap(iframe).mozbrowser = true;
+  iframe.setAttribute('mozbrowser', 'true');
   document.body.appendChild(iframe);
 
   // Add a first listener that we'll remove shortly after.
@@ -29,7 +29,7 @@ function runTest() {
     });
 
     // Force the iframe to repaint.
-    SimpleTest.executeSoon(function () iframe.src += '#next');
+    SimpleTest.executeSoon(() => iframe.src += '#next');
   });
 
   // Remove the first listener to make sure it's not called.

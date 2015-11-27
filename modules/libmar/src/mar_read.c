@@ -91,11 +91,16 @@ static int mar_consume_index(MarFile *mar, char **buf, const char *buf_end) {
   name = *buf;
   /* find namelen; must take care not to read beyond buf_end */
   while (**buf) {
-    if (*buf == buf_end)
+    /* buf_end points one byte past the end of buf's allocation */
+    if (*buf == (buf_end - 1))
       return -1;
     ++(*buf);
   }
   namelen = (*buf - name);
+  /* must ensure that namelen is valid */
+  if (namelen < 0) {
+    return -1;
+  }
   /* consume null byte */
   if (*buf == buf_end)
     return -1;
@@ -333,7 +338,7 @@ int get_mar_file_info_fp(FILE *fp,
     }
   }
 
-  if (ftell(fp) == offsetToContent) {
+  if ((int64_t)ftell(fp) == (int64_t)offsetToContent) {
     *hasAdditionalBlocks = 0;
   } else {
     if (numAdditionalBlocks) {

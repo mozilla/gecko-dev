@@ -5,12 +5,12 @@
 // **********
 // Title: ui.js
 
-let Keys = { meta: false };
+var Keys = { meta: false };
 
 // ##########
 // Class: UI
 // Singleton top-level UI manager.
-let UI = {
+var UI = {
   // Variable: _frameInitialized
   // True if the Tab View UI frame has been initialized.
   _frameInitialized: false,
@@ -465,18 +465,13 @@ let UI = {
     });
     this._reorderTabItemsOnShow = [];
 
-#ifdef XP_WIN
-    // Restore the full height when showing TabView
-    gTabViewFrame.style.marginTop = "";
-#endif
     gTabViewDeck.selectedPanel = gTabViewFrame;
     gWindow.TabsInTitlebar.allowedBy("tabview-open", false);
     gTabViewFrame.contentWindow.focus();
 
     gBrowser.updateTitlebar();
-#ifdef XP_MACOSX
-    this.setTitlebarColors(true);
-#endif
+    if (AppConstants.platform == "macosx")
+      this.setTitlebarColors(true);
     let event = document.createEvent("Events");
     event.initEvent("tabviewshown", true, false);
 
@@ -516,6 +511,8 @@ let UI = {
       TabItems.resumePainting();
     }
 
+    this.notifyDeprecation();
+
     if (gTabView.firstUseExperienced)
       gTabView.enableSessionRestore();
   },
@@ -526,6 +523,8 @@ let UI = {
   hideTabView: function UI_hideTabView() {
     if (!this.isTabViewVisible() || this._isChangingVisibility)
       return;
+
+    iQ(".banner").remove();
 
     // another tab might be select if user decides to stay on a page when
     // a onclose confirmation prompts.
@@ -543,21 +542,14 @@ let UI = {
     });
     this._reorderTabsOnHide = [];
 
-#ifdef XP_WIN
-    // Push the top of TabView frame to behind the tabbrowser, so glass can show
-    // XXX bug 586679: avoid shrinking the iframe and squishing iframe contents
-    // as well as avoiding the flash of black as we animate out
-    gTabViewFrame.style.marginTop = gBrowser.boxObject.y + "px";
-#endif
     gTabViewDeck.selectedPanel = gBrowserPanel;
     gWindow.TabsInTitlebar.allowedBy("tabview-open", true);
     gBrowser.selectedBrowser.focus();
 
     gBrowser.updateTitlebar();
     gBrowser.tabContainer.mTabstrip.smoothScroll = this._originalSmoothScroll;
-#ifdef XP_MACOSX
-    this.setTitlebarColors(false);
-#endif
+    if (AppConstants.platform == "macosx")
+      this.setTitlebarColors(false);
     Storage.saveVisibilityData(gWindow, "false");
 
     this._isChangingVisibility = false;
@@ -567,7 +559,6 @@ let UI = {
     dispatchEvent(event);
   },
 
-#ifdef XP_MACOSX
   // ----------
   // Function: setTitlebarColors
   // Used on the Mac to make the title bar match the gradient in the rest of the
@@ -579,19 +570,20 @@ let UI = {
   //         properties to specify directly.
   setTitlebarColors: function UI_setTitlebarColors(colors) {
     // Mac Only
-    var mainWindow = gWindow.document.getElementById("main-window");
-    if (colors === true) {
-      mainWindow.setAttribute("activetitlebarcolor", "#C4C4C4");
-      mainWindow.setAttribute("inactivetitlebarcolor", "#EDEDED");
-    } else if (colors && "active" in colors && "inactive" in colors) {
-      mainWindow.setAttribute("activetitlebarcolor", colors.active);
-      mainWindow.setAttribute("inactivetitlebarcolor", colors.inactive);
-    } else {
-      mainWindow.removeAttribute("activetitlebarcolor");
-      mainWindow.removeAttribute("inactivetitlebarcolor");
+    if (AppConstants.platform == "macosx") {
+      let mainWindow = gWindow.document.getElementById("main-window");
+      if (colors === true) {
+        mainWindow.setAttribute("activetitlebarcolor", "#C4C4C4");
+        mainWindow.setAttribute("inactivetitlebarcolor", "#EDEDED");
+      } else if (colors && "active" in colors && "inactive" in colors) {
+        mainWindow.setAttribute("activetitlebarcolor", colors.active);
+        mainWindow.setAttribute("inactivetitlebarcolor", colors.inactive);
+      } else {
+        mainWindow.removeAttribute("activetitlebarcolor");
+        mainWindow.removeAttribute("inactivetitlebarcolor");
+      }
     }
   },
-#endif
 
   // ----------
   // Function: storageBusy
@@ -797,10 +789,11 @@ let UI = {
         if (this.restoredClosedTab) {
           // when the tab view UI is being displayed, update the thumb for the 
           // restored closed tab after the page load
-          tab.linkedBrowser.addEventListener("load", function onLoad(event) {
-            tab.linkedBrowser.removeEventListener("load", onLoad, true);
+          tab.linkedBrowser.messageManager.addMessageListener("Panorama:documentLoaded", function onLoad() {
+            tab.linkedBrowser.messageManager.removeMessageListener("Panorama:documentLoaded", onLoad);
             TabItems._update(tab);
-          }, true);
+          });
+          tab.linkedBrowser.messageManager.sendAsyncMessage("Panorama:waitForDocumentLoad");
         }
         this._closedLastVisibleTab = false;
         this._closedSelectedTabInTabView = false;
@@ -941,18 +934,17 @@ let UI = {
   _setupBrowserKeys: function UI__setupKeyWhiteList() {
     let keys = {};
 
-    [
-#ifdef XP_UNIX
-      "quitApplication",
-#else
-      "redo",
-#endif
-#ifdef XP_MACOSX
-      "preferencesCmdMac", "minimizeWindow", "hideThisAppCmdMac",
-#endif
-      "newNavigator", "newNavigatorTab", "undo", "cut", "copy", "paste", 
+    let keyArray = [
+      "newNavigator", "newNavigatorTab", "undo", "cut", "copy", "paste",
       "selectAll", "find"
-    ].forEach(function(key) {
+    ];
+    if (AppConstants.platform == "macosx")
+      keyArray.push("preferencesCmdMac", "minimizeWindow", "hideThisAppCmdMac")
+    if (AppConstants.platform == "macosx" || AppConstants.platform == "linux")
+      keyArray.push("quitApplication");
+    else
+      keyArray.push("redo");
+    keyArray.forEach(function(key) {
       let element = gWindow.document.getElementById("key_" + key);
       let code = element.getAttribute("key").toLocaleLowerCase().charCodeAt(0);
       keys[code] = key;
@@ -963,15 +955,14 @@ let UI = {
     // The lower case letters are passed to processBrowserKeys() even with shift 
     // key when stimulating a key press using EventUtils.synthesizeKey() so need 
     // to handle both upper and lower cases here.
-    [
-#ifdef XP_UNIX
-      "redo",
-#endif
-#ifdef XP_MACOSX
-      "fullScreen",
-#endif
+    keyArray = [
       "closeWindow", "tabview", "undoCloseTab", "undoCloseWindow"
-    ].forEach(function(key) {
+    ];
+    if (AppConstants.platform == "macosx" || AppConstants.platform == "linux")
+      keyArray.push("redo");
+    if (AppConstants.platform == "macosx")
+      keyArray.push("fullScreen");
+    keyArray.forEach(function(key) {
       let element = gWindow.document.getElementById("key_" + key);
       let code = element.getAttribute("key").toLocaleLowerCase().charCodeAt(0);
       keys[code] = key;
@@ -1001,11 +992,8 @@ let UI = {
         if (evt.altKey)
           return;
 
-#ifdef XP_MACOSX
-        if (evt.metaKey) {
-#else
-        if (evt.ctrlKey) {
-#endif
+        if ((AppConstants.platform == "macosx" && evt.metaKey) || 
+            (AppConstants.platform != "macosx" && evt.ctrlKey)) {
           let preventDefault = true;
           if (evt.shiftKey) {
             // when a user presses ctrl+shift+key, upper case letter charCode 
@@ -1557,7 +1545,38 @@ let UI = {
     };
 
     banner.animate({opacity: 0.7}, {duration: 1500, complete: onFadeIn});
-  }
+  },
+
+  // Function: notifyDeprecation
+  // Notify the user that tab groups will be deprecated soon.
+  notifyDeprecation() {
+    let brandBundle = gWindow.document.getElementById("bundle_brand");
+    let brandShortName = brandBundle.getString("brandShortName");
+    let browserBundle = gWindow.document.getElementById("bundle_browser");
+    let notificationText = browserBundle.getFormattedString(
+      "tabgroups.deprecationwarning.description", [brandShortName]);
+
+    let learnMoreText = browserBundle.getString("tabgroups.deprecationwarning.learnMore.label");
+
+    let onButtonClick = () => {
+      this.hideTabView();
+      gWindow.openUILinkIn("https://support.mozilla.org/kb/tab-groups-removal", "tab");
+    };
+
+    let button = iQ("<button>")
+      .text(learnMoreText)
+      .css('-moz-margin-start', '10px')
+      .one('click', onButtonClick);
+
+    let banner = iQ("<div>")
+      .text(notificationText)
+      .addClass("banner")
+      .css({background: 'linear-gradient(#ffe13e, #ffc703)', color: 'rgba(0,0,0,0.95)'})
+      .append(button)
+      .appendTo("body");
+
+    banner.animate({opacity: 0.7}, {duration: 1500});
+  },
 };
 
 // ----------

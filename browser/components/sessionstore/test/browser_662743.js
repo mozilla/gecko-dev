@@ -61,18 +61,18 @@ function testTabRestoreData(aFormData, aExpectedValue, aCallback) {
   let testURL =
     getRootDirectory(gTestPath) + "browser_662743_sample.html";
   let tab = gBrowser.addTab(testURL);
-  let tabState = { entries: [{ url: testURL, formdata: aFormData}] };
 
-  whenBrowserLoaded(tab.linkedBrowser, function() {
-    ss.setTabState(tab, JSON.stringify(tabState));
+  aFormData.url = testURL;
+  let tabState = { entries: [{ url: testURL, }], formdata: aFormData };
 
-    whenTabRestored(tab, function() {
+  promiseBrowserLoaded(tab.linkedBrowser).then(() => {
+    promiseTabState(tab, tabState).then(() => {
+      // Flush to make sure we have the latest form data.
+      return TabStateFlusher.flush(tab.linkedBrowser);
+    }).then(() => {
       let doc = tab.linkedBrowser.contentDocument;
       let select = doc.getElementById("select_id");
       let value = select.options[select.selectedIndex].value;
-
-      // Flush to make sure we have the latest form data.
-      TabState.flush(tab.linkedBrowser);
       let restoredTabState = JSON.parse(ss.getTabState(tab));
 
       // If aExpectedValue=null we don't expect any form data to be collected.

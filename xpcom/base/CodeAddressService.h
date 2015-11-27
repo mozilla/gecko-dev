@@ -13,11 +13,7 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Types.h"
 
-#include "nsStackWalk.h"
-
-#ifdef XP_WIN
-#define snprintf _snprintf
-#endif
+#include "mozilla/StackWalk.h"
 
 namespace mozilla {
 
@@ -31,7 +27,7 @@ namespace mozilla {
 // while |free| is used to free strings created by |copy|.
 //
 // |DescribeCodeAddressLock| is needed when the callers may be holding a lock
-// used by NS_DescribeCodeAddress.  |DescribeCodeAddressLock| must implement
+// used by MozDescribeCodeAddress.  |DescribeCodeAddressLock| must implement
 // static methods IsLocked(), Unlock() and Lock().
 template <class StringTable,
           class StringAlloc,
@@ -39,9 +35,9 @@ template <class StringTable,
 class CodeAddressService
 {
   // GetLocation() is the key function in this class.  It's basically a wrapper
-  // around NS_DescribeCodeAddress.
+  // around MozDescribeCodeAddress.
   //
-  // However, NS_DescribeCodeAddress is very slow on some platforms, and we
+  // However, MozDescribeCodeAddress is very slow on some platforms, and we
   // have lots of repeated (i.e. same PC) calls to it.  So we do some caching
   // of results.  Each cached result includes two strings (|mFunction| and
   // |mLibrary|), so we also optimize them for space in the following ways.
@@ -89,12 +85,9 @@ class CodeAddressService
 
       // Convert "" to nullptr.  Otherwise, make a copy of the name.
       StringAlloc::free(mFunction);
-      mFunction =
-        !aFunction[0] ? nullptr : StringAlloc::copy(aFunction);
+      mFunction = !aFunction[0] ? nullptr : StringAlloc::copy(aFunction);
       StringAlloc::free(mFileName);
-      mFileName =
-        !aFileName[0] ? nullptr : StringAlloc::copy(aFileName);
-
+      mFileName = !aFileName[0] ? nullptr : StringAlloc::copy(aFileName);
 
       mLibrary = aLibrary;
       mLOffset = aLOffset;
@@ -113,7 +106,7 @@ class CodeAddressService
     }
   };
 
-  // A direct-mapped cache.  When doing AnalyzeReports just after starting
+  // A direct-mapped cache.  When doing dmd::Analyze() just after starting
   // desktop Firefox (which is similar to analyzing after a longer-running
   // session, thanks to the limit on how many records we print), a cache with
   // 2^24 entries (which approximates an infinite-entry cache) has a ~91% hit
@@ -132,7 +125,8 @@ public:
   {
   }
 
-  void GetLocation(const void* aPc, char* aBuf, size_t aBufLen)
+  void GetLocation(uint32_t aFrameNumber, const void* aPc, char* aBuf,
+                   size_t aBufLen)
   {
     MOZ_ASSERT(DescribeCodeAddressLock::IsLocked());
 
@@ -143,15 +137,15 @@ public:
     if (!entry.mInUse || entry.mPc != aPc) {
       mNumCacheMisses++;
 
-      // NS_DescribeCodeAddress can (on Linux) acquire a lock inside
+      // MozDescribeCodeAddress can (on Linux) acquire a lock inside
       // the shared library loader.  Another thread might call malloc
       // while holding that lock (when loading a shared library).  So
       // we have to exit the lock around this call.  For details, see
       // https://bugzilla.mozilla.org/show_bug.cgi?id=363334#c3
-      nsCodeAddressDetails details;
+      MozCodeAddressDetails details;
       {
         DescribeCodeAddressLock::Unlock();
-        (void)NS_DescribeCodeAddress(const_cast<void*>(aPc), &details);
+        (void)MozDescribeCodeAddress(const_cast<void*>(aPc), &details);
         DescribeCodeAddressLock::Lock();
       }
 
@@ -165,26 +159,9 @@ public:
 
     MOZ_ASSERT(entry.mPc == aPc);
 
-    uintptr_t entryPc = (uintptr_t)(entry.mPc);
-    // Sometimes we get nothing useful.  Just print "???" for the entire entry
-    // so that fix_linux_stack.py doesn't complain about an empty filename.
-    if (!entry.mFunction && !entry.mLibrary[0] && entry.mLOffset == 0) {
-      snprintf(aBuf, aBufLen, "??? 0x%" PRIxPTR, entryPc);
-    } else {
-      // Use "???" for unknown functions.
-      const char* entryFunction = entry.mFunction ? entry.mFunction : "???";
-      if (entry.mFileName) {
-        // On Windows we can get the filename and line number at runtime.
-        snprintf(aBuf, aBufLen, "%s (%s:%u) 0x%" PRIxPTR,
-                 entryFunction, entry.mFileName, entry.mLineNo, entryPc);
-      } else {
-        // On Linux and Mac we cannot get the filename and line number at
-        // runtime, so we print the offset in a form that fix_linux_stack.py and
-        // fix_macosx_stack.py can post-process.
-        snprintf(aBuf, aBufLen, "%s[%s +0x%" PRIXPTR "] 0x%" PRIxPTR,
-                 entryFunction, entry.mLibrary, entry.mLOffset, entryPc);
-      }
-    }
+    MozFormatCodeAddress(aBuf, aBufLen, aFrameNumber, entry.mPc,
+                         entry.mFunction, entry.mLibrary, entry.mLOffset,
+                         entry.mFileName, entry.mLineNo);
   }
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const

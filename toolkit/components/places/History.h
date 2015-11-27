@@ -36,11 +36,11 @@ class ConcurrentStatementsHolder;
 // Max size of History::mRecentlyVisitedURIs
 #define RECENTLY_VISITED_URI_SIZE 8
 
-class History : public IHistory
-              , public nsIDownloadHistory
-              , public mozIAsyncHistory
-              , public nsIObserver
-              , public nsIMemoryReporter
+class History final : public IHistory
+                    , public nsIDownloadHistory
+                    , public mozIAsyncHistory
+                    , public nsIObserver
+                    , public nsIMemoryReporter
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -145,9 +145,9 @@ private:
    * GetDBConn(), so never use it directly, or, if you really need, always
    * invoke GetDBConn() before.
    */
-  nsRefPtr<mozilla::places::Database> mDB;
+  RefPtr<mozilla::places::Database> mDB;
 
-  nsRefPtr<ConcurrentStatementsHolder> mConcurrentStatementsHolder;
+  RefPtr<ConcurrentStatementsHolder> mConcurrentStatementsHolder;
 
   /**
    * Remove any memory references to tasks and do not take on any more.
@@ -181,7 +181,7 @@ private:
     }
     size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
     {
-      return array.SizeOfExcludingThis(aMallocSizeOf);
+      return array.ShallowSizeOfExcludingThis(aMallocSizeOf);
     }
     ObserverArray array;
   };

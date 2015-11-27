@@ -6,24 +6,29 @@
 package org.mozilla.gecko.tabs;
 
 import android.content.Context;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.StateListDrawable;
+import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
+import android.view.TouchDelegate;
 import android.view.View;
-import android.widget.ImageButton;
+import android.view.ViewTreeObserver;
 
+import org.mozilla.gecko.BrowserApp.Refreshable;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.Tab;
 import org.mozilla.gecko.Tabs;
-import org.mozilla.gecko.widget.ThemedLinearLayout;
+import org.mozilla.gecko.util.ColorUtils;
+import org.mozilla.gecko.widget.themed.ThemedImageButton;
+import org.mozilla.gecko.widget.themed.ThemedLinearLayout;
 
-public class TabStrip extends ThemedLinearLayout {
+public class TabStrip extends ThemedLinearLayout
+                      implements Refreshable {
     private static final String LOGTAG = "GeckoTabStrip";
 
-    private static final int IMAGE_LEVEL_NORMAL = 0;
-    private static final int IMAGE_LEVEL_PRIVATE = 1;
-
     private final TabStripView tabStripView;
-    private final ImageButton addTabButton;
+    private final ThemedImageButton addTabButton;
 
     private final TabsListener tabsListener;
 
@@ -35,10 +40,10 @@ public class TabStrip extends ThemedLinearLayout {
         super(context, attrs);
         setOrientation(HORIZONTAL);
 
-        LayoutInflater.from(context).inflate(R.layout.tab_strip, this);
+        LayoutInflater.from(context).inflate(R.layout.tab_strip_inner, this);
         tabStripView = (TabStripView) findViewById(R.id.tab_strip);
 
-        addTabButton = (ImageButton) findViewById(R.id.add_tab);
+        addTabButton = (ThemedImageButton) findViewById(R.id.add_tab);
         addTabButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -50,6 +55,25 @@ public class TabStrip extends ThemedLinearLayout {
                 }
             }
         });
+
+        getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+                @Override
+                public boolean onPreDraw() {
+                    getViewTreeObserver().removeOnPreDrawListener(this);
+
+                    final Rect r = new Rect();
+                    r.left = addTabButton.getRight();
+                    r.right = getWidth();
+                    r.top = 0;
+                    r.bottom = getHeight();
+
+                    // Redirect touch events between the 'new tab' button and the edge
+                    // of the screen to the 'new tab' button.
+                    setTouchDelegate(new TouchDelegate(r, addTabButton));
+
+                    return true;
+                }
+            });
 
         tabsListener = new TabsListener();
     }
@@ -73,7 +97,7 @@ public class TabStrip extends ThemedLinearLayout {
     @Override
     public void setPrivateMode(boolean isPrivate) {
         super.setPrivateMode(isPrivate);
-        addTabButton.setImageLevel(isPrivate ? IMAGE_LEVEL_PRIVATE : IMAGE_LEVEL_NORMAL);
+        addTabButton.setPrivateMode(isPrivate);
     }
 
     private class TabsListener implements Tabs.OnTabsChangedListener {
@@ -81,10 +105,11 @@ public class TabStrip extends ThemedLinearLayout {
         public void onTabChanged(Tab tab, Tabs.TabEvents msg, Object data) {
             switch (msg) {
                 case RESTORED:
+                    tabStripView.restoreTabs();
+                    break;
+
                 case ADDED:
-                    // Refresh the list to make sure the new tab is
-                    // added in the right position.
-                    tabStripView.refreshTabs();
+                    tabStripView.addTab(tab);
                     break;
 
                 case CLOSED:
@@ -100,9 +125,35 @@ public class TabStrip extends ThemedLinearLayout {
                 case TITLE:
                 case FAVICON:
                 case RECORDING_CHANGE:
+                case AUDIO_PLAYING_CHANGE:
                     tabStripView.updateTab(tab);
                     break;
             }
         }
+    }
+
+    @Override
+    public void refresh() {
+        tabStripView.refresh();
+    }
+
+    @Override
+    public void onLightweightThemeChanged() {
+        final Drawable drawable = getTheme().getDrawable(this);
+        if (drawable == null) {
+            return;
+        }
+
+        final StateListDrawable stateList = new StateListDrawable();
+        stateList.addState(PRIVATE_STATE_SET, getColorDrawable(R.color.text_and_tabs_tray_grey));
+        stateList.addState(EMPTY_STATE_SET, drawable);
+
+        setBackgroundDrawable(stateList);
+    }
+
+    @Override
+    public void onLightweightThemeReset() {
+        final int defaultBackgroundColor = ColorUtils.getColor(getContext(), R.color.text_and_tabs_tray_grey);
+        setBackgroundColor(defaultBackgroundColor);
     }
 }

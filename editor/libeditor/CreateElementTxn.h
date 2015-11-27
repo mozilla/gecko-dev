@@ -44,7 +44,7 @@ public:
 
   NS_DECL_EDITTXN
 
-  NS_IMETHOD RedoTransaction();
+  NS_IMETHOD RedoTransaction() override;
 
   already_AddRefed<Element> GetNewNode();
 
@@ -70,7 +70,7 @@ protected:
   nsCOMPtr<nsIContent> mRefNode;
 };
 
-}
-}
+} // namespace dom
+} // namespace mozilla
 
 #endif

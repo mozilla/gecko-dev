@@ -71,14 +71,14 @@ public class DataReportingNotification {
     /**
      * Launch a notification of the data policy, and record notification time and version.
      */
-    private static void notifyDataPolicy(Context context, SharedPreferences sharedPrefs) {
+    public static void notifyDataPolicy(Context context, SharedPreferences sharedPrefs) {
         boolean result = false;
         try {
             // Launch main App to launch Data choices when notification is clicked.
             Intent prefIntent = new Intent(GeckoApp.ACTION_LAUNCH_SETTINGS);
-            prefIntent.setClassName(AppConstants.ANDROID_PACKAGE_NAME, AppConstants.BROWSER_INTENT_CLASS_NAME);
+            prefIntent.setClassName(AppConstants.ANDROID_PACKAGE_NAME, AppConstants.MOZ_ANDROID_BROWSER_INTENT_CLASS);
 
-            GeckoPreferences.setResourceToOpen(prefIntent, "preferences_vendor");
+            GeckoPreferences.setResourceToOpen(prefIntent, "preferences_privacy");
             prefIntent.putExtra(ALERT_NAME_DATAREPORTING_NOTIFICATION, true);
 
             PendingIntent contentIntent = PendingIntent.getActivity(context, 0, prefIntent, PendingIntent.FLAG_UPDATE_CURRENT);

@@ -10,6 +10,7 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/SheetType.h"
 
 #include "nsIPrincipal.h"
 #include "nsIURI.h"
@@ -46,6 +47,18 @@ class CSSStyleSheet;
       type_ *dlm_next = cur->member_;                                          \
       cur->member_ = nullptr;                                                  \
       delete cur;                                                              \
+      cur = dlm_next;                                                          \
+    }                                                                          \
+  }
+// Ditto, but use NS_RELEASE instead of 'delete' (bug 1221902).
+#define NS_CSS_NS_RELEASE_LIST_MEMBER(type_, ptr_, member_)                    \
+  {                                                                            \
+    type_ *cur = (ptr_)->member_;                                              \
+    (ptr_)->member_ = nullptr;                                                 \
+    while (cur) {                                                              \
+      type_ *dlm_next = cur->member_;                                          \
+      cur->member_ = nullptr;                                                  \
+      NS_RELEASE(cur);                                                         \
       cur = dlm_next;                                                          \
     }                                                                          \
   }
@@ -87,7 +100,7 @@ struct URLValue {
            nsIPrincipal* aOriginPrincipal);
 
 protected:
-  ~URLValue();
+  ~URLValue() {};
 
 public:
   bool operator==(const URLValue& aOther) const;
@@ -108,8 +121,7 @@ private:
   // null if the URI is invalid.
   mutable nsCOMPtr<nsIURI> mURI;
 public:
-  nsStringBuffer* mString; // Could use nsRefPtr, but it'd add useless
-                           // null-checks; this is never null.
+  RefPtr<nsStringBuffer> mString;
   nsCOMPtr<nsIURI> mReferrer;
   nsCOMPtr<nsIPrincipal> mOriginPrincipal;
 
@@ -118,8 +130,8 @@ public:
 private:
   mutable bool mURIResolved;
 
-  URLValue(const URLValue& aOther) MOZ_DELETE;
-  URLValue& operator=(const URLValue& aOther) MOZ_DELETE;
+  URLValue(const URLValue& aOther) = delete;
+  URLValue& operator=(const URLValue& aOther) = delete;
 };
 
 struct ImageValue : public URLValue {
@@ -138,8 +150,10 @@ public:
   nsRefPtrHashtable<nsPtrHashKey<nsISupports>, imgRequestProxy> mRequests; 
 
   // Override AddRef and Release to not only log ourselves correctly, but
-  // also so that we delete correctly without a virtual destructor
-  NS_INLINE_DECL_REFCOUNTING(ImageValue)
+  // also so that we delete correctly without a virtual destructor (assuming
+  // callers always call *our* Release method and not our base class's).
+  NS_METHOD_(MozExternalRefCountType) AddRef();
+  NS_METHOD_(MozExternalRefCountType) Release();
 };
 
 struct GridNamedArea {
@@ -150,7 +164,7 @@ struct GridNamedArea {
   uint32_t mRowEnd;
 };
 
-struct GridTemplateAreasValue MOZ_FINAL {
+struct GridTemplateAreasValue final {
   // Parsed value
   nsTArray<GridNamedArea> mNamedAreas;
 
@@ -195,12 +209,12 @@ private:
   {
   }
 
-  GridTemplateAreasValue(const GridTemplateAreasValue& aOther) MOZ_DELETE;
+  GridTemplateAreasValue(const GridTemplateAreasValue& aOther) = delete;
   GridTemplateAreasValue&
-  operator=(const GridTemplateAreasValue& aOther) MOZ_DELETE;
+  operator=(const GridTemplateAreasValue& aOther) = delete;
 };
 
-class FontFamilyListRefCnt MOZ_FINAL : public FontFamilyList {
+class FontFamilyListRefCnt final : public FontFamilyList {
 public:
     FontFamilyListRefCnt()
         : FontFamilyList()
@@ -235,8 +249,8 @@ private:
     }
 };
 
-}
-}
+} // namespace css
+} // namespace mozilla
 
 enum nsCSSUnit {
   eCSSUnit_Null         = 0,      // (n/a) null unit, value is not specified
@@ -265,7 +279,8 @@ enum nsCSSUnit {
   eCSSUnit_Counters     = 22,     // (nsCSSValue::Array*) a counters(string,string[,string]) value
   eCSSUnit_Cubic_Bezier = 23,     // (nsCSSValue::Array*) a list of float values
   eCSSUnit_Steps        = 24,     // (nsCSSValue::Array*) a list of (integer, enumerated)
-  eCSSUnit_Function     = 25,     // (nsCSSValue::Array*) a function with
+  eCSSUnit_Symbols      = 25,     // (nsCSSValue::Array*) a symbols(enumerated, symbols) value
+  eCSSUnit_Function     = 26,     // (nsCSSValue::Array*) a function with
                                   //  parameters.  First elem of array is name,
                                   //  an nsCSSKeyword as eCSSUnit_Enumerated,
                                   //  the rest of the values are arguments.
@@ -394,7 +409,7 @@ public:
   explicit nsCSSValue(nsCSSUnit aUnit = eCSSUnit_Null)
     : mUnit(aUnit)
   {
-    NS_ABORT_IF_FALSE(aUnit <= eCSSUnit_DummyInherit, "not a valueless unit");
+    MOZ_ASSERT(aUnit <= eCSSUnit_DummyInherit, "not a valueless unit");
   }
 
   nsCSSValue(int32_t aValue, nsCSSUnit aUnit);
@@ -499,36 +514,36 @@ public:
 
   int32_t GetIntValue() const
   {
-    NS_ABORT_IF_FALSE(mUnit == eCSSUnit_Integer ||
-                      mUnit == eCSSUnit_Enumerated ||
-                      mUnit == eCSSUnit_EnumColor,
-                      "not an int value");
+    MOZ_ASSERT(mUnit == eCSSUnit_Integer ||
+               mUnit == eCSSUnit_Enumerated ||
+               mUnit == eCSSUnit_EnumColor,
+               "not an int value");
     return mValue.mInt;
   }
 
   nsCSSKeyword GetKeywordValue() const
   {
-    NS_ABORT_IF_FALSE(mUnit == eCSSUnit_Enumerated, "not a keyword value");
+    MOZ_ASSERT(mUnit == eCSSUnit_Enumerated, "not a keyword value");
     return static_cast<nsCSSKeyword>(mValue.mInt);
   }
 
   float GetPercentValue() const
   {
-    NS_ABORT_IF_FALSE(mUnit == eCSSUnit_Percent, "not a percent value");
+    MOZ_ASSERT(mUnit == eCSSUnit_Percent, "not a percent value");
     return mValue.mFloat;
   }
 
   float GetFloatValue() const
   {
-    NS_ABORT_IF_FALSE(eCSSUnit_Number <= mUnit, "not a float value");
+    MOZ_ASSERT(eCSSUnit_Number <= mUnit, "not a float value");
     MOZ_ASSERT(!mozilla::IsNaN(mValue.mFloat));
     return mValue.mFloat;
   }
 
   float GetAngleValue() const
   {
-    NS_ABORT_IF_FALSE(eCSSUnit_Degree <= mUnit &&
-                 mUnit <= eCSSUnit_Turn, "not an angle value");
+    MOZ_ASSERT(eCSSUnit_Degree <= mUnit && mUnit <= eCSSUnit_Turn,
+               "not an angle value");
     return mValue.mFloat;
   }
 
@@ -537,7 +552,7 @@ public:
 
   nsAString& GetStringValue(nsAString& aBuffer) const
   {
-    NS_ABORT_IF_FALSE(UnitHasStringValue(), "not a string value");
+    MOZ_ASSERT(UnitHasStringValue(), "not a string value");
     aBuffer.Truncate();
     uint32_t len = NS_strlen(GetBufferValue(mValue.mString));
     mValue.mString->ToString(len, aBuffer);
@@ -546,7 +561,7 @@ public:
 
   const char16_t* GetStringBufferValue() const
   {
-    NS_ABORT_IF_FALSE(UnitHasStringValue(), "not a string value");
+    MOZ_ASSERT(UnitHasStringValue(), "not a string value");
     return GetBufferValue(mValue.mString);
   }
 
@@ -555,40 +570,40 @@ public:
 
   Array* GetArrayValue() const
   {
-    NS_ABORT_IF_FALSE(UnitHasArrayValue(), "not an array value");
+    MOZ_ASSERT(UnitHasArrayValue(), "not an array value");
     return mValue.mArray;
   }
 
   nsIURI* GetURLValue() const
   {
-    NS_ABORT_IF_FALSE(mUnit == eCSSUnit_URL || mUnit == eCSSUnit_Image,
-                 "not a URL value");
+    MOZ_ASSERT(mUnit == eCSSUnit_URL || mUnit == eCSSUnit_Image,
+               "not a URL value");
     return mUnit == eCSSUnit_URL ?
       mValue.mURL->GetURI() : mValue.mImage->GetURI();
   }
 
   nsCSSValueGradient* GetGradientValue() const
   {
-    NS_ABORT_IF_FALSE(mUnit == eCSSUnit_Gradient, "not a gradient value");
+    MOZ_ASSERT(mUnit == eCSSUnit_Gradient, "not a gradient value");
     return mValue.mGradient;
   }
 
   nsCSSValueTokenStream* GetTokenStreamValue() const
   {
-    NS_ABORT_IF_FALSE(mUnit == eCSSUnit_TokenStream, "not a token stream value");
+    MOZ_ASSERT(mUnit == eCSSUnit_TokenStream, "not a token stream value");
     return mValue.mTokenStream;
   }
 
   nsCSSValueSharedList* GetSharedListValue() const
   {
-    NS_ABORT_IF_FALSE(mUnit == eCSSUnit_SharedList, "not a shared list value");
+    MOZ_ASSERT(mUnit == eCSSUnit_SharedList, "not a shared list value");
     return mValue.mSharedList;
   }
 
   mozilla::FontFamilyList* GetFontFamilyListValue() const
   {
-    NS_ABORT_IF_FALSE(mUnit == eCSSUnit_FontFamilyList,
-                      "not a font family list value");
+    MOZ_ASSERT(mUnit == eCSSUnit_FontFamilyList,
+               "not a font family list value");
     NS_ASSERTION(mValue.mFontFamilyList != nullptr,
                  "font family list value should never be null");
     return mValue.mFontFamilyList;
@@ -615,27 +630,27 @@ public:
   {
     // Not allowing this for Image values, because if the caller takes
     // a ref to them they won't be able to delete them properly.
-    NS_ABORT_IF_FALSE(mUnit == eCSSUnit_URL, "not a URL value");
+    MOZ_ASSERT(mUnit == eCSSUnit_URL, "not a URL value");
     return mValue.mURL;
   }
 
   mozilla::css::ImageValue* GetImageStructValue() const
   {
-    NS_ABORT_IF_FALSE(mUnit == eCSSUnit_Image, "not an Image value");
+    MOZ_ASSERT(mUnit == eCSSUnit_Image, "not an Image value");
     return mValue.mImage;
   }
 
   mozilla::css::GridTemplateAreasValue* GetGridTemplateAreas() const
   {
-    NS_ABORT_IF_FALSE(mUnit == eCSSUnit_GridTemplateAreas,
-                      "not a grid-template-areas value");
+    MOZ_ASSERT(mUnit == eCSSUnit_GridTemplateAreas,
+               "not a grid-template-areas value");
     return mValue.mGridTemplateAreas;
   }
 
   const char16_t* GetOriginalURLValue() const
   {
-    NS_ABORT_IF_FALSE(mUnit == eCSSUnit_URL || mUnit == eCSSUnit_Image,
-                      "not a URL value");
+    MOZ_ASSERT(mUnit == eCSSUnit_URL || mUnit == eCSSUnit_Image,
+               "not a URL value");
     return GetBufferValue(mUnit == eCSSUnit_URL ?
                             mValue.mURL->mString :
                             mValue.mImage->mString);
@@ -713,11 +728,36 @@ public:
 
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
+  static void
+  AppendSidesShorthandToString(const nsCSSProperty aProperties[],
+                               const nsCSSValue* aValues[],
+                               nsAString& aString,
+                               Serialization aSerialization);
+  static void
+  AppendBasicShapeRadiusToString(const nsCSSProperty aProperties[],
+                                 const nsCSSValue* aValues[],
+                                 nsAString& aResult,
+                                 Serialization aValueSerialization);
+  static void
+  AppendAlignJustifyValueToString(int32_t aValue, nsAString& aResult);
+
 private:
   static const char16_t* GetBufferValue(nsStringBuffer* aBuffer) {
     return static_cast<char16_t*>(aBuffer->Data());
   }
 
+  void AppendPolygonToString(nsCSSProperty aProperty, nsAString& aResult,
+                             Serialization aValueSerialization) const;
+  void AppendPositionCoordinateToString(const nsCSSValue& aValue,
+                                        nsCSSProperty aProperty,
+                                        nsAString& aResult,
+                                        Serialization aSerialization) const;
+  void AppendCircleOrEllipseToString(
+           nsCSSKeyword aFunctionId,
+           nsCSSProperty aProperty, nsAString& aResult,
+           Serialization aValueSerialization) const;
+  void AppendInsetToString(nsCSSProperty aProperty, nsAString& aResult,
+                           Serialization aValueSerialization) const;
 protected:
   nsCSSUnit mUnit;
   union {
@@ -725,28 +765,28 @@ protected:
     float      mFloat;
     // Note: the capacity of the buffer may exceed the length of the string.
     // If we're of a string type, mString is not null.
-    nsStringBuffer* mString;
+    nsStringBuffer* MOZ_OWNING_REF mString;
     nscolor    mColor;
-    Array*     mArray;
-    mozilla::css::URLValue* mURL;
-    mozilla::css::ImageValue* mImage;
-    mozilla::css::GridTemplateAreasValue* mGridTemplateAreas;
-    nsCSSValueGradient* mGradient;
-    nsCSSValueTokenStream* mTokenStream;
-    nsCSSValuePair_heap* mPair;
-    nsCSSRect_heap* mRect;
-    nsCSSValueTriplet_heap* mTriplet;
-    nsCSSValueList_heap* mList;
+    Array* MOZ_OWNING_REF mArray;
+    mozilla::css::URLValue* MOZ_OWNING_REF mURL;
+    mozilla::css::ImageValue* MOZ_OWNING_REF mImage;
+    mozilla::css::GridTemplateAreasValue* MOZ_OWNING_REF mGridTemplateAreas;
+    nsCSSValueGradient* MOZ_OWNING_REF mGradient;
+    nsCSSValueTokenStream* MOZ_OWNING_REF mTokenStream;
+    nsCSSValuePair_heap* MOZ_OWNING_REF mPair;
+    nsCSSRect_heap* MOZ_OWNING_REF mRect;
+    nsCSSValueTriplet_heap* MOZ_OWNING_REF mTriplet;
+    nsCSSValueList_heap* MOZ_OWNING_REF mList;
     nsCSSValueList* mListDependent;
-    nsCSSValueSharedList* mSharedList;
-    nsCSSValuePairList_heap* mPairList;
+    nsCSSValueSharedList* MOZ_OWNING_REF mSharedList;
+    nsCSSValuePairList_heap* MOZ_OWNING_REF mPairList;
     nsCSSValuePairList* mPairListDependent;
-    nsCSSValueFloatColor* mFloatColor;
-    mozilla::css::FontFamilyListRefCnt* mFontFamilyList;
+    nsCSSValueFloatColor* MOZ_OWNING_REF mFloatColor;
+    mozilla::css::FontFamilyListRefCnt* MOZ_OWNING_REF mFontFamilyList;
   } mValue;
 };
 
-struct nsCSSValue::Array MOZ_FINAL {
+struct nsCSSValue::Array final {
 
   // return |Array| with reference count of zero
   static Array* Create(size_t aItemCount) {
@@ -754,12 +794,12 @@ struct nsCSSValue::Array MOZ_FINAL {
   }
 
   nsCSSValue& operator[](size_t aIndex) {
-    NS_ABORT_IF_FALSE(aIndex < mCount, "out of range");
+    MOZ_ASSERT(aIndex < mCount, "out of range");
     return mArray[aIndex];
   }
 
   const nsCSSValue& operator[](size_t aIndex) const {
-    NS_ABORT_IF_FALSE(aIndex < mCount, "out of range");
+    MOZ_ASSERT(aIndex < mCount, "out of range");
     return mArray[aIndex];
   }
 
@@ -767,6 +807,11 @@ struct nsCSSValue::Array MOZ_FINAL {
   const nsCSSValue& Item(size_t aIndex) const { return (*this)[aIndex]; }
 
   size_t Count() const { return mCount; }
+
+  // callers depend on the items being contiguous
+  nsCSSValue* ItemStorage() {
+    return this->First();
+  }
 
   bool operator==(const Array& aOther) const
   {
@@ -809,7 +854,7 @@ private:
   nsCSSValue mArray[1];
 
   void* operator new(size_t aSelfSize, size_t aItemCount) CPP_THROW_NEW {
-    NS_ABORT_IF_FALSE(aItemCount > 0, "cannot have a 0 item count");
+    MOZ_ASSERT(aItemCount > 0, "cannot have a 0 item count");
     return ::operator new(aSelfSize + sizeof(nsCSSValue) * (aItemCount - 1));
   }
 
@@ -846,8 +891,8 @@ private:
 #undef CSSVALUE_LIST_FOR_EXTRA_VALUES
 
 private:
-  Array(const Array& aOther) MOZ_DELETE;
-  Array& operator=(const Array& aOther) MOZ_DELETE;
+  Array(const Array& aOther) = delete;
+  Array& operator=(const Array& aOther) = delete;
 };
 
 // Prefer nsCSSValue::Array for lists of fixed size.
@@ -860,9 +905,8 @@ struct nsCSSValueList {
   void AppendToString(nsCSSProperty aProperty, nsAString& aResult,
                       nsCSSValue::Serialization aValueSerialization) const;
 
-  bool operator==(nsCSSValueList const& aOther) const;
-  bool operator!=(const nsCSSValueList& aOther) const
-  { return !(*this == aOther); }
+  static bool Equal(const nsCSSValueList* aList1,
+                    const nsCSSValueList* aList2);
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
@@ -875,12 +919,18 @@ private:
   {
     MOZ_COUNT_CTOR(nsCSSValueList);
   }
+
+  // We don't want operator== or operator!= because they wouldn't be
+  // null-safe, which is generally what we need.  Use |Equal| method
+  // above instead.
+  bool operator==(nsCSSValueList const& aOther) const = delete;
+  bool operator!=(const nsCSSValueList& aOther) const = delete;
 };
 
 // nsCSSValueList_heap differs from nsCSSValueList only in being
 // refcounted.  It should not be necessary to use this class directly;
 // it's an implementation detail of nsCSSValue.
-struct nsCSSValueList_heap MOZ_FINAL : public nsCSSValueList {
+struct nsCSSValueList_heap final : public nsCSSValueList {
   NS_INLINE_DECL_REFCOUNTING(nsCSSValueList_heap)
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
@@ -896,7 +946,7 @@ private:
 // a wrapper for the reference count and a pointer to the head of the
 // list, whereas the other list types (such as nsCSSValueList) do
 // not have such a wrapper.
-struct nsCSSValueSharedList MOZ_FINAL {
+struct nsCSSValueSharedList final {
   nsCSSValueSharedList()
     : mHead(nullptr)
   {
@@ -937,7 +987,7 @@ nsCSSValue::GetListValue()
   if (mUnit == eCSSUnit_List)
     return mValue.mList;
   else {
-    NS_ABORT_IF_FALSE(mUnit == eCSSUnit_ListDep, "not a pairlist value");
+    MOZ_ASSERT(mUnit == eCSSUnit_ListDep, "not a pairlist value");
     return mValue.mListDependent;
   }
 }
@@ -948,7 +998,7 @@ nsCSSValue::GetListValue() const
   if (mUnit == eCSSUnit_List)
     return mValue.mList;
   else {
-    NS_ABORT_IF_FALSE(mUnit == eCSSUnit_ListDep, "not a pairlist value");
+    MOZ_ASSERT(mUnit == eCSSUnit_ListDep, "not a pairlist value");
     return mValue.mListDependent;
   }
 }
@@ -1011,7 +1061,7 @@ struct nsCSSRect {
 // nsCSSRect_heap differs from nsCSSRect only in being
 // refcounted.  It should not be necessary to use this class directly;
 // it's an implementation detail of nsCSSValue.
-struct nsCSSRect_heap MOZ_FINAL : public nsCSSRect {
+struct nsCSSRect_heap final : public nsCSSRect {
   NS_INLINE_DECL_REFCOUNTING(nsCSSRect_heap)
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
@@ -1028,14 +1078,14 @@ private:
 inline nsCSSRect&
 nsCSSValue::GetRectValue()
 {
-  NS_ABORT_IF_FALSE(mUnit == eCSSUnit_Rect, "not a rect value");
+  MOZ_ASSERT(mUnit == eCSSUnit_Rect, "not a rect value");
   return *mValue.mRect;
 }
 
 inline const nsCSSRect&
 nsCSSValue::GetRectValue() const
 {
-  NS_ABORT_IF_FALSE(mUnit == eCSSUnit_Rect, "not a rect value");
+  MOZ_ASSERT(mUnit == eCSSUnit_Rect, "not a rect value");
   return *mValue.mRect;
 }
 
@@ -1106,7 +1156,7 @@ struct nsCSSValuePair {
 // nsCSSValuePair_heap differs from nsCSSValuePair only in being
 // refcounted.  It should not be necessary to use this class directly;
 // it's an implementation detail of nsCSSValue.
-struct nsCSSValuePair_heap MOZ_FINAL : public nsCSSValuePair {
+struct nsCSSValuePair_heap final : public nsCSSValuePair {
   // forward constructor
   nsCSSValuePair_heap(const nsCSSValue& aXValue, const nsCSSValue& aYValue)
       : nsCSSValuePair(aXValue, aYValue)
@@ -1197,7 +1247,7 @@ struct nsCSSValueTriplet {
 // nsCSSValueTriplet_heap differs from nsCSSValueTriplet only in being
 // refcounted.  It should not be necessary to use this class directly;
 // it's an implementation detail of nsCSSValue.
-struct nsCSSValueTriplet_heap MOZ_FINAL : public nsCSSValueTriplet {
+struct nsCSSValueTriplet_heap final : public nsCSSValueTriplet {
   // forward constructor
   nsCSSValueTriplet_heap(const nsCSSValue& aXValue, const nsCSSValue& aYValue, const nsCSSValue& aZValue)
     : nsCSSValueTriplet(aXValue, aYValue, aZValue)
@@ -1219,28 +1269,28 @@ private:
 inline nsCSSValuePair&
 nsCSSValue::GetPairValue()
 {
-  NS_ABORT_IF_FALSE(mUnit == eCSSUnit_Pair, "not a pair value");
+  MOZ_ASSERT(mUnit == eCSSUnit_Pair, "not a pair value");
   return *mValue.mPair;
 }
 
 inline const nsCSSValuePair&
 nsCSSValue::GetPairValue() const
 {
-  NS_ABORT_IF_FALSE(mUnit == eCSSUnit_Pair, "not a pair value");
+  MOZ_ASSERT(mUnit == eCSSUnit_Pair, "not a pair value");
   return *mValue.mPair;
 }
 
 inline nsCSSValueTriplet&
 nsCSSValue::GetTripletValue()
 {
-    NS_ABORT_IF_FALSE(mUnit == eCSSUnit_Triplet, "not a triplet value");
+    MOZ_ASSERT(mUnit == eCSSUnit_Triplet, "not a triplet value");
     return *mValue.mTriplet;
 }
 
 inline const nsCSSValueTriplet&
 nsCSSValue::GetTripletValue() const
 {
-    NS_ABORT_IF_FALSE(mUnit == eCSSUnit_Triplet, "not a triplet value");
+    MOZ_ASSERT(mUnit == eCSSUnit_Triplet, "not a triplet value");
     return *mValue.mTriplet;
 }
 
@@ -1253,9 +1303,8 @@ struct nsCSSValuePairList {
   void AppendToString(nsCSSProperty aProperty, nsAString& aResult,
                       nsCSSValue::Serialization aValueSerialization) const;
 
-  bool operator==(const nsCSSValuePairList& aOther) const;
-  bool operator!=(const nsCSSValuePairList& aOther) const
-  { return !(*this == aOther); }
+  static bool Equal(const nsCSSValuePairList* aList1,
+                    const nsCSSValuePairList* aList2);
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
@@ -1269,12 +1318,18 @@ private:
   {
     MOZ_COUNT_CTOR(nsCSSValuePairList);
   }
+
+  // We don't want operator== or operator!= because they wouldn't be
+  // null-safe, which is generally what we need.  Use |Equal| method
+  // above instead.
+  bool operator==(const nsCSSValuePairList& aOther) const = delete;
+  bool operator!=(const nsCSSValuePairList& aOther) const = delete;
 };
 
 // nsCSSValuePairList_heap differs from nsCSSValuePairList only in being
 // refcounted.  It should not be necessary to use this class directly;
 // it's an implementation detail of nsCSSValue.
-struct nsCSSValuePairList_heap MOZ_FINAL : public nsCSSValuePairList {
+struct nsCSSValuePairList_heap final : public nsCSSValuePairList {
   NS_INLINE_DECL_REFCOUNTING(nsCSSValuePairList_heap)
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
@@ -1294,7 +1349,7 @@ nsCSSValue::GetPairListValue()
   if (mUnit == eCSSUnit_PairList)
     return mValue.mPairList;
   else {
-    NS_ABORT_IF_FALSE (mUnit == eCSSUnit_PairListDep, "not a pairlist value");
+    MOZ_ASSERT (mUnit == eCSSUnit_PairListDep, "not a pairlist value");
     return mValue.mPairListDependent;
   }
 }
@@ -1305,7 +1360,7 @@ nsCSSValue::GetPairListValue() const
   if (mUnit == eCSSUnit_PairList)
     return mValue.mPairList;
   else {
-    NS_ABORT_IF_FALSE (mUnit == eCSSUnit_PairListDep, "not a pairlist value");
+    MOZ_ASSERT (mUnit == eCSSUnit_PairListDep, "not a pairlist value");
     return mValue.mPairListDependent;
   }
 }
@@ -1320,11 +1375,15 @@ public:
 
   nsCSSValue mLocation;
   nsCSSValue mColor;
+  // If mIsInterpolationHint is true, there is no color, just
+  // a location.
+  bool mIsInterpolationHint;
 
   bool operator==(const nsCSSValueGradientStop& aOther) const
   {
     return (mLocation == aOther.mLocation &&
-            mColor == aOther.mColor);
+            mIsInterpolationHint == aOther.mIsInterpolationHint &&
+            (mIsInterpolationHint || mColor == aOther.mColor));
   }
 
   bool operator!=(const nsCSSValueGradientStop& aOther) const
@@ -1335,7 +1394,7 @@ public:
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 };
 
-struct nsCSSValueGradient MOZ_FINAL {
+struct nsCSSValueGradient final {
   nsCSSValueGradient(bool aIsRadial, bool aIsRepeating);
 
   // true if gradient is radial, false if it is linear
@@ -1432,11 +1491,11 @@ private:
   {
   }
 
-  nsCSSValueGradient(const nsCSSValueGradient& aOther) MOZ_DELETE;
-  nsCSSValueGradient& operator=(const nsCSSValueGradient& aOther) MOZ_DELETE;
+  nsCSSValueGradient(const nsCSSValueGradient& aOther) = delete;
+  nsCSSValueGradient& operator=(const nsCSSValueGradient& aOther) = delete;
 };
 
-struct nsCSSValueTokenStream MOZ_FINAL {
+struct nsCSSValueTokenStream final {
   nsCSSValueTokenStream();
 
 private:
@@ -1450,6 +1509,7 @@ public:
     return mPropertyID == aOther.mPropertyID &&
            mShorthandPropertyID == aOther.mShorthandPropertyID &&
            mTokenStream.Equals(aOther.mTokenStream) &&
+           mLevel == aOther.mLevel &&
            (mBaseURI == aOther.mBaseURI ||
             (mBaseURI && aOther.mBaseURI &&
              NS_SUCCEEDED(mBaseURI->Equals(aOther.mBaseURI, &eq)) &&
@@ -1494,28 +1554,18 @@ public:
   nsCOMPtr<nsIURI> mBaseURI;
   nsCOMPtr<nsIURI> mSheetURI;
   nsCOMPtr<nsIPrincipal> mSheetPrincipal;
-  mozilla::CSSStyleSheet* mSheet;
+  // XXX Should store sheet here (see Bug 952338)
+  // mozilla::CSSStyleSheet* mSheet;
   uint32_t mLineNumber;
   uint32_t mLineOffset;
-
-  // This table is used to hold a reference on to any ImageValue that results
-  // from re-parsing this token stream at computed value time.  When properties
-  // like background-image contain a normal url(), the Declaration's data block
-  // will hold a reference to the ImageValue.  When a token stream is used,
-  // the Declaration only holds on to this nsCSSValueTokenStream object, and
-  // the ImageValue would only exist for the duration of
-  // nsRuleNode::WalkRuleTree, in the AutoCSSValueArray.  So instead when
-  // we re-parse a token stream and get an ImageValue, we record it in this
-  // table so that the Declaration can be the object that keeps holding
-  // a reference to it.
-  nsTHashtable<nsRefPtrHashKey<mozilla::css::ImageValue> > mImageValues;
+  mozilla::SheetType mLevel;
 
 private:
-  nsCSSValueTokenStream(const nsCSSValueTokenStream& aOther) MOZ_DELETE;
-  nsCSSValueTokenStream& operator=(const nsCSSValueTokenStream& aOther) MOZ_DELETE;
+  nsCSSValueTokenStream(const nsCSSValueTokenStream& aOther) = delete;
+  nsCSSValueTokenStream& operator=(const nsCSSValueTokenStream& aOther) = delete;
 };
 
-class nsCSSValueFloatColor MOZ_FINAL {
+class nsCSSValueFloatColor final {
 public:
   nsCSSValueFloatColor(float aComponent1, float aComponent2, float aComponent3,
                        float aAlpha)
@@ -1553,9 +1603,9 @@ private:
   float mComponent3;  // 0..1
   float mAlpha;       // 0..1
 
-  nsCSSValueFloatColor(const nsCSSValueFloatColor& aOther) MOZ_DELETE;
+  nsCSSValueFloatColor(const nsCSSValueFloatColor& aOther) = delete;
   nsCSSValueFloatColor& operator=(const nsCSSValueFloatColor& aOther)
-                                                                   MOZ_DELETE;
+                                                                   = delete;
 };
 
 struct nsCSSCornerSizes {

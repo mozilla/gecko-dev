@@ -32,7 +32,12 @@ run_for_effects := $(shell if test ! -d $(DIST); then $(NSINSTALL) -D $(DIST); f
 # This makefile uses variable overrides from the libs-% target to
 # build non-default locales to non-default dist/ locations. Be aware!
 
-AB = $(firstword $(subst -, ,$(AB_CD)))
+LPROJ_ROOT = $(firstword $(subst -, ,$(AB_CD)))
+ifeq (cocoa,$(MOZ_WIDGET_TOOLKIT))
+ifeq (zh-TW,$(AB_CD))
+LPROJ_ROOT := $(subst -,_,$(AB_CD))
+endif
+endif
 
 # These are defaulted to be compatible with the files the wget-en-US target
 # pulls. You may override them if you provide your own files. You _must_
@@ -44,7 +49,7 @@ WIN32_INSTALLER_IN ?= $(_ABS_DIST)/$(PKG_INST_PATH)$(PKG_INST_BASENAME).exe
 # Allows overriding the final destination of the repackaged file
 ZIP_OUT ?= $(_ABS_DIST)/$(PACKAGE)
 
-DEFINES += \
+ACDEFINES += \
 	-DAB_CD=$(AB_CD) \
 	-DMOZ_LANGPACK_EID=$(MOZ_LANGPACK_EID) \
 	-DMOZ_APP_VERSION=$(MOZ_APP_VERSION) \
@@ -62,7 +67,7 @@ clobber-%:
 PACKAGER_NO_LIBS = 1
 
 ifeq (cocoa,$(MOZ_WIDGET_TOOLKIT))
-STAGEDIST = $(_ABS_DIST)/l10n-stage/$(MOZ_PKG_DIR)/$(_APPNAME)/Contents/MacOS
+STAGEDIST = $(_ABS_DIST)/l10n-stage/$(MOZ_PKG_DIR)/$(_APPNAME)/Contents/Resources
 else
 STAGEDIST = $(_ABS_DIST)/l10n-stage/$(MOZ_PKG_DIR)
 endif
@@ -112,25 +117,35 @@ ifdef MOZ_STUB_INSTALLER
 	$(STUB_HOOK)
 endif
 	$(PYTHON) $(MOZILLA_DIR)/toolkit/mozapps/installer/l10n-repack.py $(STAGEDIST) $(DIST)/xpi-stage/locale-$(AB_CD) \
+		$(MOZ_PKG_EXTRAL10N) \
 		$(if $(filter omni,$(MOZ_PACKAGER_FORMAT)),$(if $(NON_OMNIJAR_FILES),--non-resource $(NON_OMNIJAR_FILES)))
-ifneq (en,$(AB))
+
 ifeq (cocoa,$(MOZ_WIDGET_TOOLKIT))
-	mv $(_ABS_DIST)/l10n-stage/$(MOZ_PKG_DIR)/$(_APPNAME)/Contents/Resources/en.lproj $(_ABS_DIST)/l10n-stage/$(MOZ_PKG_DIR)/$(_APPNAME)/Contents/Resources/$(AB).lproj
+ifneq (en,$(LPROJ_ROOT))
+	mv $(STAGEDIST)/en.lproj $(STAGEDIST)/$(LPROJ_ROOT).lproj
+endif
+ifdef MOZ_CRASHREPORTER
+# On Mac OS X, the crashreporter.ini file needs to be moved from under the
+# application bundle's Resources directory where all other l10n files are
+# located to the crash reporter bundle's Resources directory.
+	mv $(STAGEDIST)/crashreporter.app/Contents/Resources/crashreporter.ini \
+	  $(STAGEDIST)/../MacOS/crashreporter.app/Contents/Resources/crashreporter.ini
+	$(RM) -rf $(STAGEDIST)/crashreporter.app
 endif
 endif
+
 	$(NSINSTALL) -D $(DIST)/l10n-stage/$(PKG_PATH)
 	cd $(DIST)/l10n-stage; \
 	  $(MAKE_PACKAGE)
 ifdef MAKE_COMPLETE_MAR
 	$(MAKE) -C $(MOZDEPTH)/tools/update-packaging full-update AB_CD=$(AB_CD) \
 	  MOZ_PKG_PRETTYNAMES=$(MOZ_PKG_PRETTYNAMES) \
-	  PACKAGE_BASE_DIR='$(_ABS_DIST)/l10n-stage' \
-	  DIST='$(_ABS_DIST)'
+	  PACKAGE_BASE_DIR='$(_ABS_DIST)/l10n-stage'
 endif
 # packaging done, undo l10n stuff
-ifneq (en,$(AB))
+ifneq (en,$(LPROJ_ROOT))
 ifeq (cocoa,$(MOZ_WIDGET_TOOLKIT))
-	mv $(_ABS_DIST)/l10n-stage/$(MOZ_PKG_DIR)/$(_APPNAME)/Contents/Resources/$(AB).lproj $(_ABS_DIST)/l10n-stage/$(MOZ_PKG_DIR)/$(_APPNAME)/Contents/Resources/en.lproj
+	mv $(STAGEDIST)/$(LPROJ_ROOT).lproj $(STAGEDIST)/en.lproj
 endif
 endif
 	$(NSINSTALL) -D $(DIST)/$(PKG_PATH)
@@ -160,8 +175,7 @@ langpack-%: libs-%
 	$(NSINSTALL) -D $(DIST)/$(PKG_LANGPACK_PATH)
 	$(call py_action,preprocessor,$(DEFINES) $(ACDEFINES) \
 	  -I$(TK_DEFINES) -I$(APP_DEFINES) $(srcdir)/generic/install.rdf -o $(DIST)/xpi-stage/$(XPI_NAME)/install.rdf)
-	cd $(DIST)/xpi-stage/locale-$(AB_CD) && \
-	  $(ZIP) -r9D $(LANGPACK_FILE) install.rdf $(PKG_ZIP_DIRS) chrome.manifest
+	$(call py_action,zip,-C $(DIST)/xpi-stage/locale-$(AB_CD) $(LANGPACK_FILE) install.rdf $(PKG_ZIP_DIRS) chrome.manifest)
 
 # This variable is to allow the wget-en-US target to know which ftp server to download from
 ifndef EN_US_BINARY_URL 

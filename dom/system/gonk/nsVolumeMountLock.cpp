@@ -14,6 +14,7 @@
 #include "nsString.h"
 #include "nsXULAppAPI.h"
 
+#undef VOLUME_MANAGER_LOG_TAG
 #define VOLUME_MANAGER_LOG_TAG  "nsVolumeMountLock"
 #include "VolumeManagerLog.h"
 #include "nsServiceManagerUtils.h"
@@ -34,7 +35,7 @@ nsVolumeMountLock::Create(const nsAString& aVolumeName)
 {
   DBG("nsVolumeMountLock::Create called");
 
-  nsRefPtr<nsVolumeMountLock> mountLock = new nsVolumeMountLock(aVolumeName);
+  RefPtr<nsVolumeMountLock> mountLock = new nsVolumeMountLock(aVolumeName);
   nsresult rv = mountLock->Init();
   NS_ENSURE_SUCCESS(rv, nullptr);
 
@@ -80,7 +81,6 @@ nsresult nsVolumeMountLock::Init()
   return Lock(vol);
 }
 
-/* void unlock (); */
 NS_IMETHODIMP nsVolumeMountLock::Unlock()
 {
   LOG("nsVolumeMountLock released for '%s'",
@@ -149,7 +149,7 @@ NS_IMETHODIMP nsVolumeMountLock::Observe(nsISupports* aSubject, const char* aTop
 nsresult
 nsVolumeMountLock::Lock(nsIVolume* aVolume)
 {
-  nsRefPtr<power::PowerManagerService> pmService =
+  RefPtr<power::PowerManagerService> pmService =
     power::PowerManagerService::GetInstance();
   NS_ENSURE_TRUE(pmService, NS_ERROR_FAILURE);
 
@@ -159,7 +159,7 @@ nsVolumeMountLock::Lock(nsIVolume* aVolume)
   ErrorResult err;
   mWakeLock = pmService->NewWakeLock(mountLockName, nullptr, err);
   if (err.Failed()) {
-    return err.ErrorCode();
+    return err.StealNSResult();
   }
 
   LOG("nsVolumeMountLock acquired for '%s' gen %d",

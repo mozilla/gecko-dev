@@ -124,7 +124,7 @@ AudioRunnable::Run()
 {
   PR_SetCurrentThreadName("Android Audio");
 
-  JNIEnv* jenv = GetJNIForThread();
+  JNIEnv* const jenv = mozilla::jni::GetEnvForThread();
 
   mozilla::AutoLocalJNIFrame autoFrame(jenv, 2);
 
@@ -207,7 +207,7 @@ anp_audio_newTrack(uint32_t sampleRate,    // sampling rate in Hz
     return nullptr;
   }
 
-  JNIEnv *jenv = GetJNIForThread();
+  JNIEnv* const jenv = mozilla::jni::GetEnvForThread();
 
   s->at_class = init_jni_bindings(jenv);
   s->rate = sampleRate;
@@ -260,7 +260,7 @@ anp_audio_newTrack(uint32_t sampleRate,    // sampling rate in Hz
 
   if (autoFrame.CheckForException() || obj == nullptr) {
     jenv->DeleteGlobalRef(s->at_class);
-    free(s);
+    delete s;
     return nullptr;
   }
 
@@ -268,7 +268,7 @@ anp_audio_newTrack(uint32_t sampleRate,    // sampling rate in Hz
 
   if (autoFrame.CheckForException() || state == STATE_UNINITIALIZED) {
     jenv->DeleteGlobalRef(s->at_class);
-    free(s);
+    delete s;
     return nullptr;
   }
 
@@ -303,14 +303,14 @@ anp_audio_start(ANPAudioTrack* s)
     return;
   }
 
-  JNIEnv *jenv = GetJNIForThread();
+  JNIEnv* const jenv = mozilla::jni::GetEnvForThread();
 
   mozilla::AutoLocalJNIFrame autoFrame(jenv, 0);
   jenv->CallVoidMethod(s->output_unit, at.play);
 
   if (autoFrame.CheckForException()) {
     jenv->DeleteGlobalRef(s->at_class);
-    free(s);
+    delete s;
     return;
   }
 
@@ -318,7 +318,7 @@ anp_audio_start(ANPAudioTrack* s)
   s->keepGoing = true;
 
   // AudioRunnable now owns the ANPAudioTrack
-  nsRefPtr<AudioRunnable> runnable = new AudioRunnable(s);
+  RefPtr<AudioRunnable> runnable = new AudioRunnable(s);
 
   nsCOMPtr<nsIThread> thread;
   NS_NewThread(getter_AddRefs(thread), runnable);
@@ -331,7 +331,7 @@ anp_audio_pause(ANPAudioTrack* s)
     return;
   }
 
-  JNIEnv *jenv = GetJNIForThread();
+  JNIEnv* const jenv = mozilla::jni::GetEnvForThread();
 
   mozilla::AutoLocalJNIFrame autoFrame(jenv, 0);
   jenv->CallVoidMethod(s->output_unit, at.pause);
@@ -345,7 +345,7 @@ anp_audio_stop(ANPAudioTrack* s)
   }
 
   s->isStopped = true;
-  JNIEnv *jenv = GetJNIForThread();
+  JNIEnv* const jenv = mozilla::jni::GetEnvForThread();
 
   mozilla::AutoLocalJNIFrame autoFrame(jenv, 0);
   jenv->CallVoidMethod(s->output_unit, at.stop);

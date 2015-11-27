@@ -19,3 +19,9 @@ EXTRA_JS_MODULES += [
 ]
 
 FINAL_LIBRARY = 'xul'
+
+with Files('**'):
+    BUG_COMPONENT = ('Core', 'js-ctypes')
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wshadow']

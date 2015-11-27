@@ -3,11 +3,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include <mozilla/Hal.h>
+#include "Hal.h"
+#include "HalLog.h"
 #include <dbus/dbus-glib.h>
 #include <dbus/dbus-glib-lowlevel.h>
 #include <mozilla/dom/battery/Constants.h>
 #include "nsAutoRef.h"
+#include <cmath>
 
 /*
  * Helper that manages the destruction of glib objects as soon as they leave
@@ -186,7 +188,7 @@ UPowerClient::BeginListening()
   mDBusConnection = dbus_g_bus_get(DBUS_BUS_SYSTEM, &error);
 
   if (!mDBusConnection) {
-    g_printerr("Failed to open connection to bus: %s\n", error->message);
+    HAL_LOG("Failed to open connection to bus: %s\n", error->message);
     g_error_free(error);
     return;
   }
@@ -277,7 +279,7 @@ UPowerClient::UpdateTrackedDeviceSync()
   // If that fails, that likely means upower isn't installed.
   if (!dbus_g_proxy_call(mUPowerProxy, "EnumerateDevices", &error, G_TYPE_INVALID,
                          typeGPtrArray, &devices, G_TYPE_INVALID)) {
-    g_printerr ("Error: %s\n", error->message);
+    HAL_LOG("Error: %s\n", error->message);
     g_error_free(error);
     return;
   }
@@ -350,7 +352,7 @@ UPowerClient::GetDevicePropertiesSync(DBusGProxy* aProxy)
   if (!dbus_g_proxy_call(aProxy, "GetAll", &error, G_TYPE_STRING,
                          "org.freedesktop.UPower.Device", G_TYPE_INVALID,
                          typeGHashTable, &hashTable, G_TYPE_INVALID)) {
-    g_printerr("Error: %s\n", error->message);
+    HAL_LOG("Error: %s\n", error->message);
     g_error_free(error);
     return nullptr;
   }
@@ -368,7 +370,7 @@ UPowerClient::GetDevicePropertiesCallback(DBusGProxy* aProxy,
                                              G_TYPE_VALUE);
   if (!dbus_g_proxy_end_call(aProxy, aCall, &error, typeGHashTable,
                              &hashTable, G_TYPE_INVALID)) {
-    g_printerr("Error: %s\n", error->message);
+    HAL_LOG("Error: %s\n", error->message);
     g_error_free(error);
   } else {
     sInstance->UpdateSavedInfo(hashTable);
@@ -427,14 +429,14 @@ UPowerClient::UpdateSavedInfo(GHashTable* aHashTable)
   }
 
   /*
-   * The battery level might be very close to 100% (like 99.xxxx%) without
+   * The battery level might be very close to 100% (like 99%) without
    * increasing. It seems that upower sets the battery state as 'full' in that
    * case so we should trust it and not even try to get the value.
    */
   if (isFull) {
     mLevel = 1.0;
   } else {
-    mLevel = g_value_get_double(static_cast<const GValue*>(g_hash_table_lookup(aHashTable, "Percentage")))*0.01;
+    mLevel = round(g_value_get_double(static_cast<const GValue*>(g_hash_table_lookup(aHashTable, "Percentage"))))*0.01;
   }
 
   if (isFull) {

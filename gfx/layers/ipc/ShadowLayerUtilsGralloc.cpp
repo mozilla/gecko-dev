@@ -33,9 +33,10 @@
 #include "MainThreadUtils.h"
 
 using namespace android;
-using namespace base;
 using namespace mozilla::layers;
 using namespace mozilla::gl;
+
+using base::FileDescriptor;
 
 namespace IPC {
 
@@ -110,6 +111,10 @@ bool
 ParamTraits<MagicGrallocBufferHandle>::Read(const Message* aMsg,
                                             void** aIter, paramType* aResult)
 {
+  MOZ_ASSERT(!aResult->mGraphicBuffer.get());
+  MOZ_ASSERT(aResult->mRef.mOwner == 0);
+  MOZ_ASSERT(aResult->mRef.mKey == -1);
+
   size_t nbytes;
   const char* data;
   int owner;
@@ -125,7 +130,7 @@ ParamTraits<MagicGrallocBufferHandle>::Read(const Message* aMsg,
 
   size_t nfds = aMsg->num_fds();
   int fds[nfds];
-  bool sameProcess = (XRE_GetProcessType() == GeckoProcessType_Default);
+
   for (size_t n = 0; n < nfds; ++n) {
     FileDescriptor fd;
     if (!aMsg->ReadFileDescriptor(aIter, &fd)) {
@@ -143,14 +148,11 @@ ParamTraits<MagicGrallocBufferHandle>::Read(const Message* aMsg,
 
   aResult->mRef.mOwner = owner;
   aResult->mRef.mKey = index;
-  if (sameProcess) {
+  if (XRE_IsParentProcess()) {
+    // If we are in chrome process, we can just get GraphicBuffer directly from
+    // SharedBufferManagerParent.
     aResult->mGraphicBuffer = SharedBufferManagerParent::GetGraphicBuffer(aResult->mRef);
   } else {
-    if (SharedBufferManagerChild::GetSingleton()->IsValidKey(index)) {
-      aResult->mGraphicBuffer = SharedBufferManagerChild::GetSingleton()->GetGraphicBuffer(index);
-    }
-    MOZ_ASSERT(!aResult->mGraphicBuffer.get());
-
     // Deserialize GraphicBuffer
 #if ANDROID_VERSION >= 19
     sp<GraphicBuffer> buffer(new GraphicBuffer());
@@ -166,7 +168,7 @@ ParamTraits<MagicGrallocBufferHandle>::Read(const Message* aMsg,
       buffer = nullptr;
     }
 #endif
-    if(buffer.get() && !aResult->mGraphicBuffer.get()) {
+    if (buffer.get()) {
       aResult->mGraphicBuffer = buffer;
     }
   }
@@ -193,41 +195,6 @@ MagicGrallocBufferHandle::MagicGrallocBufferHandle(const sp<GraphicBuffer>& aGra
 //-----------------------------------------------------------------------------
 // Parent process
 
-static gfxImageFormat
-ImageFormatForPixelFormat(android::PixelFormat aFormat)
-{
-  switch (aFormat) {
-  case PIXEL_FORMAT_RGBA_8888:
-    return gfxImageFormat::ARGB32;
-  case PIXEL_FORMAT_RGBX_8888:
-    return gfxImageFormat::RGB24;
-  case PIXEL_FORMAT_RGB_565:
-    return gfxImageFormat::RGB16_565;
-  default:
-    MOZ_CRASH("Unknown gralloc pixel format");
-  }
-  return gfxImageFormat::ARGB32;
-}
-
-static android::PixelFormat
-PixelFormatForImageFormat(gfxImageFormat aFormat)
-{
-  switch (aFormat) {
-  case gfxImageFormat::ARGB32:
-    return android::PIXEL_FORMAT_RGBA_8888;
-  case gfxImageFormat::RGB24:
-    return android::PIXEL_FORMAT_RGBX_8888;
-  case gfxImageFormat::RGB16_565:
-    return android::PIXEL_FORMAT_RGB_565;
-  case gfxImageFormat::A8:
-    NS_WARNING("gralloc does not support gfxImageFormat::A8");
-    return android::PIXEL_FORMAT_UNKNOWN;
-  default:
-    MOZ_CRASH("Unknown gralloc pixel format");
-  }
-  return android::PIXEL_FORMAT_RGBA_8888;
-}
-
 /*static*/ bool
 LayerManagerComposite::SupportsDirectTexturing()
 {
@@ -248,7 +215,7 @@ GetGraphicBufferFrom(MaybeMagicGrallocBufferHandle aHandle)
 {
   if (aHandle.type() != MaybeMagicGrallocBufferHandle::TMagicGrallocBufferHandle) {
     if (aHandle.type() == MaybeMagicGrallocBufferHandle::TGrallocBufferRef) {
-      if (XRE_GetProcessType() == GeckoProcessType_Default) {
+      if (XRE_IsParentProcess()) {
         return SharedBufferManagerParent::GetGraphicBuffer(aHandle.get_GrallocBufferRef());
       }
       return SharedBufferManagerChild::GetSingleton()->GetGraphicBuffer(aHandle.get_GrallocBufferRef().mKey);

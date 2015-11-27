@@ -5,12 +5,14 @@
 
 #include "mozilla/layers/YCbCrImageDataSerializer.h"
 #include <string.h>                     // for memcpy
-#include "gfx2DGlue.h"                  // for ToIntSize
 #include "mozilla/gfx/2D.h"             // for DataSourceSurface, Factory
 #include "mozilla/gfx/BaseSize.h"       // for BaseSize
+#include "mozilla/gfx/Logging.h"        // for gfxDebug
 #include "mozilla/gfx/Types.h"
 #include "mozilla/mozalloc.h"           // for operator delete
+#include "nsDebug.h"                    // for NS_WARN_IF
 #include "yuv_convert.h"                // for ConvertYCbCrToRGB32, etc
+#include "nsDebug.h"
 
 #define MOZ_ALIGN_WORD(x) (((x) + 3) & ~3)
 
@@ -73,7 +75,7 @@ void YCbCrImageDataDeserializerBase::Validate()
                           info->mYStride,
                           IntSize(info->mCbCrWidth, info->mCbCrHeight),
                           info->mCbCrStride);
-  mIsValid = requiredSize <= mDataSize;
+  mIsValid = requiredSize && requiredSize <= mDataSize;
 
 }
 
@@ -140,10 +142,22 @@ static size_t ComputeOffset(uint32_t aHeight, uint32_t aStride)
 // Minimum required shmem size in bytes
 size_t
 YCbCrImageDataDeserializerBase::ComputeMinBufferSize(const gfx::IntSize& aYSize,
-                                                   uint32_t aYStride,
-                                                   const gfx::IntSize& aCbCrSize,
-                                                   uint32_t aCbCrStride)
+                                                     uint32_t aYStride,
+                                                     const gfx::IntSize& aCbCrSize,
+                                                     uint32_t aCbCrStride)
 {
+  MOZ_ASSERT(aYSize.height >= 0 && aYSize.width >= 0);
+  if (aYSize.height <= 0 || aYSize.width <= 0 || aCbCrSize.height <= 0 || aCbCrSize.width <= 0) {
+    gfxDebug() << "Non-positive YCbCr buffer size request " << aYSize.height << "x" << aYSize.width << ", " << aCbCrSize.height << "x" << aCbCrSize.width;
+    return 0;
+  }
+
+  if (!gfx::Factory::AllowedSurfaceSize(aYSize) ||
+      aCbCrSize.width > aYSize.width ||
+      aCbCrSize.height > aYSize.height) {
+    return 0;
+  }
+
   return ComputeOffset(aYSize.height, aYStride)
          + 2 * ComputeOffset(aCbCrSize.height, aCbCrStride)
          + MOZ_ALIGN_WORD(sizeof(YCbCrBufferInfo));
@@ -271,7 +285,7 @@ YCbCrImageDataSerializer::CopyData(const uint8_t* aYData,
   return true;
 }
 
-TemporaryRef<DataSourceSurface>
+already_AddRefed<DataSourceSurface>
 YCbCrImageDataDeserializer::ToDataSourceSurface()
 {
   RefPtr<DataSourceSurface> result =
@@ -281,19 +295,22 @@ YCbCrImageDataDeserializer::ToDataSourceSurface()
   }
 
   DataSourceSurface::MappedSurface map;
-  result->Map(DataSourceSurface::MapType::WRITE, &map);
+  if (NS_WARN_IF(!result->Map(DataSourceSurface::MapType::WRITE, &map))) {
+    return nullptr;
+  }
 
+  gfx::YUVType type = TypeFromSize(GetYSize().width, GetYSize().height,
+                                   GetCbCrSize().width, GetCbCrSize().height);
   gfx::ConvertYCbCrToRGB32(GetYData(), GetCbData(), GetCrData(),
                            map.mData,
                            0, 0, //pic x and y
                            GetYSize().width, GetYSize().height,
                            GetYStride(), GetCbCrStride(),
-                           map.mStride,
-                           gfx::YV12);
+                           map.mStride, type);
   result->Unmap();
   return result.forget();
 }
 
 
-} // namespace
-} // namespace
+} // namespace layers
+} // namespace mozilla

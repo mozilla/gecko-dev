@@ -27,7 +27,7 @@
 
     <content align="center">
       <xul:hbox class="datetimepicker-input-box" align="center"
-                xbl:inherits="context">
+                xbl:inherits="context,disabled,readonly">
         <xul:hbox class="textbox-input-box datetimepicker-input-subbox" align="center">
           <html:input class="datetimepicker-input textbox-input" anonid="input-one"
                       size="2" maxlength="2"
@@ -833,18 +833,18 @@
                   oncommand="document.getBindingParent(this)._increaseOrDecreaseMonth(-1);"/>
           <spacer flex="1"/>
           <deck anonid="monthlabeldeck">
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
-            <label class="datepicker-gridlabel"/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
+            <label class="datepicker-gridlabel" value=""/>
           </deck>
           <label anonid="yearlabel" class="datepicker-gridlabel"/>
           <spacer flex="1"/>
@@ -1215,7 +1215,7 @@
            extends="chrome://global/content/bindings/datetimepicker.xml#datepicker">
     <content align="center">
       <xul:hbox class="textbox-input-box datetimepicker-input-box" align="center"
-                allowevents="true" xbl:inherits="context">
+                allowevents="true" xbl:inherits="context,disabled,readonly">
         <xul:hbox class="datetimepicker-input-subbox" align="baseline">
           <html:input class="datetimepicker-input textbox-input" anonid="input-one"
                       size="2" maxlength="2"
@@ -1258,7 +1258,7 @@
       <property name="open" onget="return this.hasAttribute('open');">
         <setter>
           <![CDATA[
-            if (this.boxObject instanceof Components.interfaces.nsIMenuBoxObject)
+            if (this.boxObject instanceof MenuBoxObject)
               this.boxObject.openMenu(val);
             return val;
           ]]>

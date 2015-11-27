@@ -6,7 +6,7 @@
 
 const NOW = Date.now() * 1000;
 
-let observer = {
+var observer = {
   bookmarks: [],
   observedBookmarks: 0,
   observedVisitId: 0,
@@ -33,7 +33,7 @@ let observer = {
   onItemChanged: function(aItemId, aProperty, aIsAnnotation, aNewValue,
                           aLastModified, aItemType)
   {
-    do_log_info("Check that we got the correct change information.");
+    do_print("Check that we got the correct change information.");
     do_check_neq(this.bookmarks.indexOf(aItemId), -1);
     if (aProperty == "favicon") {
       do_check_false(aIsAnnotation);
@@ -57,7 +57,7 @@ let observer = {
   },
   onItemVisited: function(aItemId, aVisitId, aTime)
   {
-    do_log_info("Check that we got the correct visit information.");
+    do_print("Check that we got the correct visit information.");
     do_check_neq(this.bookmarks.indexOf(aItemId), -1);
     this.observedVisitId = aVisitId;
     do_check_eq(aTime, NOW);
@@ -72,7 +72,7 @@ let observer = {
 };
 PlacesUtils.bookmarks.addObserver(observer, false);
 
-add_task(function test_add_visit()
+add_task(function* test_add_visit()
 {
   let observerPromise = observer.setupCompletionPromise();
 
@@ -102,16 +102,18 @@ add_task(function test_add_visit()
   do_check_eq(observer.observedVisitId, visitId);
 });
 
-add_task(function test_add_icon()
+add_task(function* test_add_icon()
 {
   let observerPromise = observer.setupCompletionPromise();
   PlacesUtils.favicons.setAndFetchFaviconForPage(NetUtil.newURI("http://book.ma.rk/"),
-                                                   SMALLPNG_DATA_URI, true,
-                                                   PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE);
+                                                 SMALLPNG_DATA_URI, true,
+                                                 PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE,
+                                                 null,
+                                                 Services.scriptSecurityManager.getSystemPrincipal());
   yield observerPromise;
 });
 
-add_task(function test_remove_page()
+add_task(function* test_remove_page()
 {
   let observerPromise = observer.setupCompletionPromise();
   PlacesUtils.history.removePage(NetUtil.newURI("http://book.ma.rk/"));
@@ -123,7 +125,7 @@ add_task(function cleanup()
   PlacesUtils.bookmarks.removeObserver(observer, false);
 });
 
-add_task(function shutdown()
+add_task(function* shutdown()
 {
   // Check that async observers don't try to create async statements after
   // shutdown.  That would cause assertions, since the async thread is gone

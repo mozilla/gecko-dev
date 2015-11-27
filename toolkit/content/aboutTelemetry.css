@@ -27,12 +27,33 @@ h2 {
   padding: 10px;
 }
 
-#description-enabled > span {
+#settings {
+  border: 1px solid lightgrey;
+  padding: 5px;
+}
+
+.description-enabled,
+.description-disabled {
+  margin: 0px;
+}
+
+.description-enabled > span {
   color: green;
 }
 
-#description-disabled > span {
+.description-disabled > span {
   color: red;
+}
+
+#ping-picker {
+  margin-top: 10px;
+  border: 1px solid lightgrey;
+  padding: 5px;
+}
+
+#ping-source-picker {
+  margin-left: 5px;
+  margin-bottom: 10px;
 }
 
 .data-section {
@@ -117,6 +138,24 @@ body[dir="rtl"] .histogram {
   overflow: hidden;
 }
 
+.keyed-histogram {
+  white-space: nowrap;
+  padding: 15px;
+  position: relative; /* required for position:absolute of the contained .copy-node */
+  display: block;
+  overflow: hidden;
+}
+
+.keyed-histogram-title {
+  text-overflow: ellipsis;
+  width: 100%;
+  margin: 10px;
+  font-weight: bold;
+  font-size: 120%;
+  white-space: nowrap;
+}
+
+
 .bar {
   width: 2em;
   margin: 2px;
@@ -187,4 +226,26 @@ body[dir="rtl"] .copy-node {
 
 .filter-blocked {
   display: none;
+}
+
+#raw-ping-data-section {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0px;
+  left: 0px;
+  background-color:-moz-Dialog;
+}
+
+#raw-ping-data {
+  background-color:white;
+  margin: 0px;
+}
+
+#hide-raw-ping {
+  float: right;
+  cursor: pointer;
+  font-size: 20px;
+  background-color:#d8d8d8;
+  padding: 5px 10px;
 }

@@ -4,12 +4,20 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+with Files('mach/**'):
+    BUG_COMPONENT = ('Core', 'mach')
+
+with Files('mozbuild/**'):
+    BUG_COMPONENT = ('Core', 'Build Config')
+
 SPHINX_PYTHON_PACKAGE_DIRS += [
-    'codegen',
+    'mach',
     'mozbuild/mozbuild',
     'mozbuild/mozpack',
     'mozversioncontrol/mozversioncontrol',
 ]
+
+SPHINX_TREES['mach'] = 'mach/docs'
 
 PYTHON_UNIT_TESTS += [
     'mach/mach/test/__init__.py',
@@ -23,6 +31,7 @@ PYTHON_UNIT_TESTS += [
     'mozbuild/dumbmake/test/test_dumbmake.py',
     'mozbuild/mozbuild/test/__init__.py',
     'mozbuild/mozbuild/test/action/test_buildlist.py',
+    'mozbuild/mozbuild/test/action/test_generate_browsersearch.py',
     'mozbuild/mozbuild/test/backend/__init__.py',
     'mozbuild/mozbuild/test/backend/common.py',
     'mozbuild/mozbuild/test/backend/test_android_eclipse.py',
@@ -43,6 +52,7 @@ PYTHON_UNIT_TESTS += [
     'mozbuild/mozbuild/test/frontend/test_sandbox.py',
     'mozbuild/mozbuild/test/test_base.py',
     'mozbuild/mozbuild/test/test_containers.py',
+    'mozbuild/mozbuild/test/test_dotproperties.py',
     'mozbuild/mozbuild/test/test_expression.py',
     'mozbuild/mozbuild/test/test_jarmaker.py',
     'mozbuild/mozbuild/test/test_line_endings.py',
@@ -64,6 +74,7 @@ PYTHON_UNIT_TESTS += [
     'mozbuild/mozpack/test/test_packager.py',
     'mozbuild/mozpack/test/test_packager_formats.py',
     'mozbuild/mozpack/test/test_packager_l10n.py',
+    'mozbuild/mozpack/test/test_packager_unpack.py',
     'mozbuild/mozpack/test/test_path.py',
     'mozbuild/mozpack/test/test_unify.py',
 ]

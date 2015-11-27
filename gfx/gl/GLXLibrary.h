@@ -21,6 +21,7 @@ typedef XID GLXContextID;
 typedef XID GLXWindow;
 typedef XID GLXPbuffer;
 // end of stuff from glx.h
+#include "prenv.h"
 
 struct PRLibrary;
 class gfxASurface;
@@ -33,7 +34,8 @@ class GLXLibrary
 public:
     GLXLibrary() : mInitialized(false), mTriedInitializing(false),
                    mUseTextureFromPixmap(false), mDebug(false),
-                   mHasRobustness(false), mIsATI(false), mIsNVIDIA(false),
+                   mHasRobustness(false), mHasCreateContextAttribs(false),
+                   mIsATI(false), mIsNVIDIA(false),
                    mClientIsMesa(false), mGLXMajorVersion(0),
                    mGLXMinorVersion(0),
                    mOGLLibrary(nullptr) {}
@@ -105,9 +107,16 @@ public:
 
     bool UseTextureFromPixmap() { return mUseTextureFromPixmap; }
     bool HasRobustness() { return mHasRobustness; }
+    bool HasCreateContextAttribs() { return mHasCreateContextAttribs; }
     bool SupportsTextureFromPixmap(gfxASurface* aSurface);
     bool IsATI() { return mIsATI; }
     bool GLXVersionCheck(int aMajor, int aMinor);
+    bool UseSurfaceSharing() {
+      // Disable surface sharing due to issues with compatible FBConfigs on
+      // NVIDIA drivers as described in bug 1193015.
+      static bool useSharing = PR_GetEnv("MOZ_GLX_USE_SURFACE_SHARING");
+      return mUseTextureFromPixmap && useSharing;
+    }
 
 private:
     
@@ -209,6 +218,7 @@ private:
     bool mUseTextureFromPixmap;
     bool mDebug;
     bool mHasRobustness;
+    bool mHasCreateContextAttribs;
     bool mIsATI;
     bool mIsNVIDIA;
     bool mClientIsMesa;

@@ -6,10 +6,7 @@
 #include "mozilla/DebugOnly.h"
 #include <algorithm>
 
-#ifdef MOZ_LOGGING
-#define FORCE_PR_LOG /* Allow logging in the release build */
-#endif
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
 #include "gfxGDIFontList.h"
 #include "gfxWindowsPlatform.h"
@@ -43,18 +40,15 @@ using namespace mozilla;
 #define CLEARTYPE_QUALITY 5
 #endif
 
-#ifdef PR_LOGGING
-#define LOG_FONTLIST(args) PR_LOG(gfxPlatform::GetLog(eGfxLog_fontlist), \
-                               PR_LOG_DEBUG, args)
-#define LOG_FONTLIST_ENABLED() PR_LOG_TEST( \
+#define LOG_FONTLIST(args) MOZ_LOG(gfxPlatform::GetLog(eGfxLog_fontlist), \
+                               LogLevel::Debug, args)
+#define LOG_FONTLIST_ENABLED() MOZ_LOG_TEST( \
                                    gfxPlatform::GetLog(eGfxLog_fontlist), \
-                                   PR_LOG_DEBUG)
+                                   LogLevel::Debug)
 
-#define LOG_CMAPDATA_ENABLED() PR_LOG_TEST( \
+#define LOG_CMAPDATA_ENABLED() MOZ_LOG_TEST( \
                                    gfxPlatform::GetLog(eGfxLog_cmapdata), \
-                                   PR_LOG_DEBUG)
-
-#endif // PR_LOGGING
+                                   LogLevel::Debug)
 
 static __inline void
 BuildKeyNameFromFontName(nsAString &aName)
@@ -124,7 +118,8 @@ FontTypeToOutPrecision(uint8_t fontType)
 
 GDIFontEntry::GDIFontEntry(const nsAString& aFaceName,
                            gfxWindowsFontType aFontType,
-                           bool aItalic, uint16_t aWeight, int16_t aStretch,
+                           uint8_t aStyle, uint16_t aWeight,
+                           int16_t aStretch,
                            gfxUserFontData *aUserFontData,
                            bool aFamilyHasItalicFace)
     : gfxFontEntry(aFaceName),
@@ -135,7 +130,7 @@ GDIFontEntry::GDIFontEntry(const nsAString& aFaceName,
       mCharset(), mUnicodeRanges()
 {
     mUserFontData = aUserFontData;
-    mItalic = aItalic;
+    mStyle = aStyle;
     mWeight = aWeight;
     mStretch = aStretch;
     if (IsType1())
@@ -163,7 +158,7 @@ GDIFontEntry::ReadCMAP(FontInfoData *aFontInfoData)
         return NS_ERROR_FAILURE;
     }
 
-    nsRefPtr<gfxCharacterMap> charmap;
+    RefPtr<gfxCharacterMap> charmap;
     nsresult rv;
     bool unicodeFont = false, symbolFont = false;
 
@@ -198,7 +193,6 @@ GDIFontEntry::ReadCMAP(FontInfoData *aFontInfoData)
         mCharacterMap->mBuildOnTheFly = true;
     }
 
-#ifdef PR_LOGGING
     LOG_FONTLIST(("(fontlist-cmap) name: %s, size: %d hash: %8.8x%s\n",
                   NS_ConvertUTF16toUTF8(mName).get(),
                   charmap->SizeOfIncludingThis(moz_malloc_size_of),
@@ -209,7 +203,6 @@ GDIFontEntry::ReadCMAP(FontInfoData *aFontInfoData)
                 NS_ConvertUTF16toUTF8(mName).get());
         charmap->Dump(prefix, eGfxLog_cmapdata);
     }
-#endif
 
     return rv;
 }
@@ -253,7 +246,7 @@ GDIFontEntry::CopyFontTable(uint32_t aTableTag,
                           NativeEndian::swapToBigEndian(aTableTag),
                           0, nullptr, 0);
         if (tableSize != GDI_ERROR) {
-            if (aBuffer.SetLength(tableSize)) {
+            if (aBuffer.SetLength(tableSize, fallible)) {
                 ::GetFontData(dc.GetDC(),
                               NativeEndian::swapToBigEndian(aTableTag), 0,
                               aBuffer.Elements(), tableSize);
@@ -314,12 +307,13 @@ GDIFontEntry::TestCharacterMap(uint32_t aCh)
             return false;
 
         // previous code was using the group style
-        gfxFontStyle fakeStyle;  
-        if (mItalic)
+        gfxFontStyle fakeStyle;
+        if (!IsUpright()) {
             fakeStyle.style = NS_FONT_STYLE_ITALIC;
+        }
         fakeStyle.weight = mWeight * 100;
 
-        nsRefPtr<gfxFont> tempFont = FindOrMakeFont(&fakeStyle, false);
+        RefPtr<gfxFont> tempFont = FindOrMakeFont(&fakeStyle, false);
         if (!tempFont || !tempFont->Valid())
             return false;
         gfxGDIFont *font = static_cast<gfxGDIFont*>(tempFont.get());
@@ -395,7 +389,7 @@ GDIFontEntry::InitLogFont(const nsAString& aName,
     // do its best to give us an italic font entry, but if no face exists
     // it may give us a regular one based on weight.  Windows should
     // do fake italic for us in that case.
-    mLogFont.lfItalic         = mItalic;
+    mLogFont.lfItalic         = !IsUpright();
     mLogFont.lfWeight         = mWeight;
 
     int len = std::min<int>(aName.Length(), LF_FACESIZE - 1);
@@ -405,14 +399,15 @@ GDIFontEntry::InitLogFont(const nsAString& aName,
 
 GDIFontEntry* 
 GDIFontEntry::CreateFontEntry(const nsAString& aName,
-                              gfxWindowsFontType aFontType, bool aItalic,
+                              gfxWindowsFontType aFontType,
+                              uint8_t aStyle,
                               uint16_t aWeight, int16_t aStretch,
                               gfxUserFontData* aUserFontData,
                               bool aFamilyHasItalicFace)
 {
     // jtdfix - need to set charset, unicode ranges, pitch/family
 
-    GDIFontEntry *fe = new GDIFontEntry(aName, aFontType, aItalic,
+    GDIFontEntry *fe = new GDIFontEntry(aName, aFontType, aStyle,
                                         aWeight, aStretch, aUserFontData,
                                         aFamilyHasItalicFace);
 
@@ -464,7 +459,7 @@ GDIFontFamily::FamilyAddStylesProc(const ENUMLOGFONTEXW *lpelfe,
         fe = static_cast<GDIFontEntry*>(ff->mAvailableFonts[i].get());
         // check if we already know about this face
         if (fe->mWeight == logFont.lfWeight &&
-            fe->mItalic == (logFont.lfItalic == 0xFF)) {
+            fe->IsItalic() == (logFont.lfItalic == 0xFF)) {
             // update the charset bit here since this could be different
             fe->mCharset.set(metrics.tmCharSet);
             return 1; 
@@ -474,8 +469,10 @@ GDIFontFamily::FamilyAddStylesProc(const ENUMLOGFONTEXW *lpelfe,
     // We can't set the hasItalicFace flag correctly here,
     // because we might not have seen the family's italic face(s) yet.
     // So we'll set that flag for all members after loading all the faces.
+    uint8_t italicStyle = (logFont.lfItalic == 0xFF ?
+                           NS_FONT_STYLE_ITALIC : NS_FONT_STYLE_NORMAL);
     fe = GDIFontEntry::CreateFontEntry(nsDependentString(lpelfe->elfFullName),
-                                       feType, (logFont.lfItalic == 0xFF),
+                                       feType, italicStyle,
                                        (uint16_t) (logFont.lfWeight), 0,
                                        nullptr, false);
     if (!fe)
@@ -504,7 +501,6 @@ GDIFontFamily::FamilyAddStylesProc(const ENUMLOGFONTEXW *lpelfe,
         }
     }
 
-#ifdef PR_LOGGING
     if (LOG_FONTLIST_ENABLED()) {
         LOG_FONTLIST(("(fontlist) added (%s) to family (%s)"
              " with style: %s weight: %d stretch: %d",
@@ -513,7 +509,6 @@ GDIFontFamily::FamilyAddStylesProc(const ENUMLOGFONTEXW *lpelfe,
              (logFont.lfItalic == 0xff) ? "italic" : "normal",
              logFont.lfWeight, fe->Stretch()));
     }
-#endif
     return 1;
 }
 
@@ -537,12 +532,10 @@ GDIFontFamily::FindStyleVariations(FontInfoData *aFontInfoData)
     EnumFontFamiliesExW(hdc, &logFont,
                         (FONTENUMPROCW)GDIFontFamily::FamilyAddStylesProc,
                         (LPARAM)this, 0);
-#ifdef PR_LOGGING
     if (LOG_FONTLIST_ENABLED() && mAvailableFonts.Length() == 0) {
         LOG_FONTLIST(("(fontlist) no styles available in family \"%s\"",
                       NS_ConvertUTF16toUTF8(mName).get()));
     }
-#endif
 
     ReleaseDC(nullptr, hdc);
 
@@ -659,9 +652,6 @@ nsresult
 gfxGDIFontList::InitFontList()
 {
     Telemetry::AutoTimer<Telemetry::GDI_INITFONTLIST_TOTAL> timer;
-    gfxFontCache *fc = gfxFontCache::GetCache();
-    if (fc)
-        fc->AgeAllGenerations();
 
     // reset font lists
     gfxPlatformFontList::InitFontList();
@@ -705,7 +695,7 @@ gfxGDIFontList::EnumFontFamExProc(ENUMLOGFONTEXW *lpelfe,
 
     if (!fontList->mFontFamilies.GetWeak(name)) {
         nsDependentString faceName(lf.lfFaceName);
-        nsRefPtr<gfxFontFamily> family = new GDIFontFamily(faceName);
+        RefPtr<gfxFontFamily> family = new GDIFontFamily(faceName);
         fontList->mFontFamilies.Put(name, family);
 
         // if locale is such that CJK font names are the default coming from
@@ -727,7 +717,7 @@ gfxFontEntry*
 gfxGDIFontList::LookupLocalFont(const nsAString& aFontName,
                                 uint16_t aWeight,
                                 int16_t aStretch,
-                                bool aItalic)
+                                uint8_t aStyle)
 {
     gfxFontEntry *lookup;
 
@@ -744,10 +734,9 @@ gfxGDIFontList::LookupLocalFont(const nsAString& aFontName,
     // 'Arial Vet' which can be used as a key in GDI font lookups).
     GDIFontEntry *fe = GDIFontEntry::CreateFontEntry(lookup->Name(), 
         gfxWindowsFontType(isCFF ? GFX_FONT_TYPE_PS_OPENTYPE : GFX_FONT_TYPE_TRUETYPE) /*type*/, 
-        lookup->mItalic ? NS_FONT_STYLE_ITALIC : NS_FONT_STYLE_NORMAL,
-        lookup->mWeight, aStretch, nullptr,
+        lookup->mStyle, lookup->mWeight, aStretch, nullptr,
         static_cast<GDIFontEntry*>(lookup)->mFamilyHasItalicFace);
-        
+
     if (!fe)
         return nullptr;
 
@@ -755,7 +744,7 @@ gfxGDIFontList::LookupLocalFont(const nsAString& aFontName,
 
     // make the new font entry match the userfont entry style characteristics
     fe->mWeight = (aWeight == 0 ? 400 : aWeight);
-    fe->mItalic = aItalic;
+    fe->mStyle = aStyle;
 
     return fe;
 }
@@ -764,17 +753,17 @@ gfxFontEntry*
 gfxGDIFontList::MakePlatformFont(const nsAString& aFontName,
                                  uint16_t aWeight,
                                  int16_t aStretch,
-                                 bool aItalic,
+                                 uint8_t aStyle,
                                  const uint8_t* aFontData,
                                  uint32_t aLength)
 {
-    // MakePlatformFont is responsible for deleting the font data with NS_Free
+    // MakePlatformFont is responsible for deleting the font data with free
     // so we set up a stack object to ensure it is freed even if we take an
     // early exit
     struct FontDataDeleter {
         FontDataDeleter(const uint8_t* aFontData)
             : mFontData(aFontData) { }
-        ~FontDataDeleter() { NS_Free((void*)mFontData); }
+        ~FontDataDeleter() { free((void*)mFontData); }
         const uint8_t *mFontData;
     };
     FontDataDeleter autoDelete(aFontData);
@@ -823,17 +812,16 @@ gfxGDIFontList::MakePlatformFont(const nsAString& aFontName,
     WinUserFontData *winUserFontData = new WinUserFontData(fontRef);
     uint16_t w = (aWeight == 0 ? 400 : aWeight);
 
-    GDIFontEntry *fe = GDIFontEntry::CreateFontEntry(uniqueName, 
-        gfxWindowsFontType(isCFF ? GFX_FONT_TYPE_PS_OPENTYPE : GFX_FONT_TYPE_TRUETYPE) /*type*/, 
-        uint32_t(aItalic ? NS_FONT_STYLE_ITALIC : NS_FONT_STYLE_NORMAL),
-        w, aStretch, winUserFontData, false);
+    GDIFontEntry *fe = GDIFontEntry::CreateFontEntry(uniqueName,
+        gfxWindowsFontType(isCFF ? GFX_FONT_TYPE_PS_OPENTYPE : GFX_FONT_TYPE_TRUETYPE) /*type*/,
+        aStyle, w, aStretch, winUserFontData, false);
 
     if (!fe)
         return fe;
 
     fe->mIsDataUserFont = true;
 
-    // Uniscribe doesn't place CFF fonts loaded privately 
+    // Uniscribe doesn't place CFF fonts loaded privately
     // via AddFontMemResourceEx on XP/Vista
     if (isCFF && !IsWin7OrLater()) {
         fe->mForceGDI = true;
@@ -843,7 +831,8 @@ gfxGDIFontList::MakePlatformFont(const nsAString& aFontName,
 }
 
 gfxFontFamily*
-gfxGDIFontList::FindFamily(const nsAString& aFamily, bool aUseSystemFonts)
+gfxGDIFontList::FindFamily(const nsAString& aFamily, gfxFontStyle* aStyle,
+                           gfxFloat aDevToCssSize)
 {
     nsAutoString keyName(aFamily);
     BuildKeyNameFromFontName(keyName);
@@ -866,22 +855,22 @@ gfxGDIFontList::GetDefaultFont(const gfxFontStyle* aStyle)
     gfxFontFamily *ff = nullptr;
 
     // this really shouldn't fail to find a font....
-    HGDIOBJ hGDI = ::GetStockObject(DEFAULT_GUI_FONT);
-    LOGFONTW logFont;
-    if (hGDI && ::GetObjectW(hGDI, sizeof(logFont), &logFont)) {
-        ff = FindFamily(nsDependentString(logFont.lfFaceName));
-        if (ff) {
-            return ff;
-        }
-    }
-
-    // ...but just in case, try another approach as well
     NONCLIENTMETRICSW ncm;
     ncm.cbSize = sizeof(ncm);
     BOOL status = ::SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, 
                                           sizeof(ncm), &ncm, 0);
     if (status) {
         ff = FindFamily(nsDependentString(ncm.lfMessageFont.lfFaceName));
+        if (ff) {
+            return ff;
+        }
+    }
+
+    // ...but just in case, try another (long-deprecated) approach as well
+    HGDIOBJ hGDI = ::GetStockObject(DEFAULT_GUI_FONT);
+    LOGFONTW logFont;
+    if (hGDI && ::GetObjectW(hGDI, sizeof(logFont), &logFont)) {
+        ff = FindFamily(nsDependentString(logFont.lfFaceName));
     }
 
     return ff;
@@ -893,10 +882,9 @@ gfxGDIFontList::AddSizeOfExcludingThis(MallocSizeOf aMallocSizeOf,
 {
     gfxPlatformFontList::AddSizeOfExcludingThis(aMallocSizeOf, aSizes);
     aSizes->mFontListSize +=
-        mFontSubstitutes.SizeOfExcludingThis(SizeOfFamilyNameEntryExcludingThis,
-                                             aMallocSizeOf);
+        SizeOfFontFamilyTableExcludingThis(mFontSubstitutes, aMallocSizeOf);
     aSizes->mFontListSize +=
-        mNonExistingFonts.SizeOfExcludingThis(aMallocSizeOf);
+        mNonExistingFonts.ShallowSizeOfExcludingThis(aMallocSizeOf);
     for (uint32_t i = 0; i < mNonExistingFonts.Length(); ++i) {
         aSizes->mFontListSize +=
             mNonExistingFonts[i].SizeOfExcludingThisIfUnshared(aMallocSizeOf);
@@ -989,7 +977,7 @@ int CALLBACK GDIFontInfo::EnumerateFontsForFamily(
         nameSize = ::GetFontData(hdc, kNAME, 0, nullptr, 0);
         if (nameSize != GDI_ERROR &&
             nameSize > 0 &&
-            nameData.SetLength(nameSize)) {
+            nameData.SetLength(nameSize, fallible)) {
             ::GetFontData(hdc, kNAME, 0, nameData.Elements(), nameSize);
 
             // face names
@@ -1032,11 +1020,11 @@ int CALLBACK GDIFontInfo::EnumerateFontsForFamily(
         cmapSize = ::GetFontData(hdc, kCMAP, 0, nullptr, 0);
         if (cmapSize != GDI_ERROR &&
             cmapSize > 0 &&
-            cmapData.SetLength(cmapSize)) {
+            cmapData.SetLength(cmapSize, fallible)) {
             ::GetFontData(hdc, kCMAP, 0, cmapData.Elements(), cmapSize);
             bool cmapLoaded = false;
             bool unicodeFont = false, symbolFont = false;
-            nsRefPtr<gfxCharacterMap> charmap = new gfxCharacterMap();
+            RefPtr<gfxCharacterMap> charmap = new gfxCharacterMap();
             uint32_t offset;
 
             if (NS_SUCCEEDED(gfxFontUtils::ReadCMAP(cmapData.Elements(),
@@ -1089,7 +1077,7 @@ gfxGDIFontList::CreateFontInfoData()
     bool loadCmaps = !UsesSystemFallback() ||
         gfxPlatform::GetPlatform()->UseCmapsDuringSystemFallback();
 
-    nsRefPtr<GDIFontInfo> fi =
+    RefPtr<GDIFontInfo> fi =
         new GDIFontInfo(true, NeedFullnamePostscriptNames(), loadCmaps);
 
     return fi.forget();

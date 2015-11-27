@@ -8,7 +8,6 @@
 
 #include <stdint.h>                     // for uint8_t, uint16_t
 #include <sys/types.h>                  // for int16_t
-#include "gfxCore.h"                    // for NS_GFX
 #include "gfxFontFamilyList.h"
 #include "gfxFontFeatures.h"
 #include "nsAutoPtr.h"                  // for nsRefPtr
@@ -40,7 +39,7 @@ const uint8_t kGenericFont_cursive      = 0x10;
 const uint8_t kGenericFont_fantasy      = 0x20;
 
 // Font structure.
-struct NS_GFX nsFont {
+struct nsFont {
 
   // list of font families, either named or generic
   mozilla::FontFamilyList fontlist;
@@ -92,15 +91,15 @@ struct NS_GFX nsFont {
 
   // The aspect-value (ie., the ratio actualsize:actualxheight) that any
   // actual physical font created from this font structure must have when
-  // rendering or measuring a string. A value of 0 means no adjustment
-  // needs to be done.
+  // rendering or measuring a string. A value of -1.0 means no adjustment
+  // needs to be done; otherwise the value must be nonnegative.
   float sizeAdjust;
 
   // -- list of value tags for font-specific alternate features
   nsTArray<gfxAlternateValue> alternateValues;
 
   // -- object used to look these up once the font is matched
-  nsRefPtr<gfxFontFeatureValueSet> featureValueLookup;
+  RefPtr<gfxFontFeatureValueSet> featureValueLookup;
 
   // Font features from CSS font-feature-settings
   nsTArray<gfxFontFeature> fontFeatureSettings;

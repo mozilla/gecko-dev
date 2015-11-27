@@ -4,11 +4,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "GLContext.h"                  // for GLContext, etc
-#include "SurfaceStream.h"
 #include "mozilla/Assertions.h"         // for MOZ_ASSERT, etc
 #include "mozilla/layers/ISurfaceAllocator.h"
 #include "mozilla/layers/TextureClientOGL.h"
-#include "nsSize.h"                     // for nsIntSize
+#include "mozilla/gfx/Point.h"          // for IntSize
+#include "GLLibraryEGL.h"
 
 using namespace mozilla::gl;
 
@@ -20,29 +20,23 @@ class CompositableForwarder;
 ////////////////////////////////////////////////////////////////////////
 // EGLImageTextureClient
 
-EGLImageTextureClient::EGLImageTextureClient(TextureFlags aFlags,
-                                             EGLImage aImage,
-                                             gfx::IntSize aSize,
-                                             bool aInverted)
-  : TextureClient(aFlags)
+EGLImageTextureClient::EGLImageTextureClient(ISurfaceAllocator* aAllocator,
+                                             TextureFlags aFlags,
+                                             EGLImageImage* aImage,
+                                             gfx::IntSize aSize)
+  : TextureClient(aAllocator, aFlags)
   , mImage(aImage)
   , mSize(aSize)
   , mIsLocked(false)
 {
-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default,
+  MOZ_ASSERT(XRE_IsParentProcess(),
              "Can't pass an `EGLImage` between processes.");
-  
-  // Our data is always owned externally.
+
   AddFlags(TextureFlags::DEALLOCATE_CLIENT);
-  
-  if (aInverted) {
-    AddFlags(TextureFlags::NEEDS_Y_FLIP);
+
+  if (aImage->GetOriginPos() == gl::OriginPos::BottomLeft) {
+    AddFlags(TextureFlags::ORIGIN_BOTTOM_LEFT);
   }
-}
-  
-EGLImageTextureClient::~EGLImageTextureClient()
-{
-  // Our data is always owned externally.
 }
 
 bool
@@ -51,7 +45,11 @@ EGLImageTextureClient::ToSurfaceDescriptor(SurfaceDescriptor& aOutDescriptor)
   MOZ_ASSERT(IsValid());
   MOZ_ASSERT(IsAllocated());
 
-  aOutDescriptor = EGLImageDescriptor((uintptr_t)mImage, mSize);
+  const bool hasAlpha = true;
+  aOutDescriptor =
+    EGLImageDescriptor((uintptr_t)mImage->GetImage(),
+                       (uintptr_t)mImage->GetSync(),
+                       mImage->GetSize(), hasAlpha);
   return true;
 }
 
@@ -65,39 +63,40 @@ EGLImageTextureClient::Lock(OpenMode mode)
     mIsLocked = true;
     return true;
   }
-  
+
 void
 EGLImageTextureClient::Unlock()
 {
   MOZ_ASSERT(mIsLocked);
   mIsLocked = false;
 }
-  
+
 ////////////////////////////////////////////////////////////////////////
 // SurfaceTextureClient
 
 #ifdef MOZ_WIDGET_ANDROID
 
-SurfaceTextureClient::SurfaceTextureClient(TextureFlags aFlags,
-                                           nsSurfaceTexture* aSurfTex,
+SurfaceTextureClient::SurfaceTextureClient(ISurfaceAllocator* aAllocator,
+                                           TextureFlags aFlags,
+                                           AndroidSurfaceTexture* aSurfTex,
                                            gfx::IntSize aSize,
-                                           bool aInverted)
-  : TextureClient(aFlags)
+                                           gl::OriginPos aOriginPos)
+  : TextureClient(aAllocator, aFlags)
   , mSurfTex(aSurfTex)
   , mSize(aSize)
   , mIsLocked(false)
 {
-  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default,
+  MOZ_ASSERT(XRE_IsParentProcess(),
              "Can't pass pointers between processes.");
 
   // Our data is always owned externally.
   AddFlags(TextureFlags::DEALLOCATE_CLIENT);
 
-  if (aInverted) {
-    AddFlags(TextureFlags::NEEDS_Y_FLIP);
+  if (aOriginPos == gl::OriginPos::BottomLeft) {
+    AddFlags(TextureFlags::ORIGIN_BOTTOM_LEFT);
   }
 }
-  
+
 SurfaceTextureClient::~SurfaceTextureClient()
 {
   // Our data is always owned externally.
@@ -134,5 +133,5 @@ SurfaceTextureClient::Unlock()
 
 #endif // MOZ_WIDGET_ANDROID
 
-} // namespace
-} // namespace
+} // namespace layers
+} // namespace mozilla

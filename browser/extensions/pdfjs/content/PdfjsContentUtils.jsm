@@ -12,6 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/* jshint esnext:true */
+/* globals Components, Services, XPCOMUtils */
 
 'use strict';
 
@@ -25,7 +27,7 @@ const Cu = Components.utils;
 Cu.import('resource://gre/modules/XPCOMUtils.jsm');
 Cu.import('resource://gre/modules/Services.jsm');
 
-let PdfjsContentUtils = {
+var PdfjsContentUtils = {
   _mm: null,
 
   /*
@@ -33,23 +35,25 @@ let PdfjsContentUtils = {
    */
 
   get isRemote() {
-    return Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_CONTENT;
+    return (Services.appinfo.processType ===
+            Services.appinfo.PROCESS_TYPE_CONTENT);
   },
 
   init: function () {
     // child *process* mm, or when loaded into the parent for in-content
     // support the psuedo child process mm 'child PPMM'.
     if (!this._mm) {
-      this._mm = Cc["@mozilla.org/childprocessmessagemanager;1"].getService(Ci.nsISyncMessageSender);
-      this._mm.addMessageListener("PDFJS:Child:refreshSettings", this);
-      Services.obs.addObserver(this, "quit-application", false);
+      this._mm = Cc['@mozilla.org/childprocessmessagemanager;1'].
+        getService(Ci.nsISyncMessageSender);
+      this._mm.addMessageListener('PDFJS:Child:refreshSettings', this);
+      Services.obs.addObserver(this, 'quit-application', false);
     }
   },
 
   uninit: function () {
     if (this._mm) {
-      this._mm.removeMessageListener("PDFJS:Child:refreshSettings", this);
-      Services.obs.removeObserver(this, "quit-application");
+      this._mm.removeMessageListener('PDFJS:Child:refreshSettings', this);
+      Services.obs.removeObserver(this, 'quit-application');
     }
     this._mm = null;
   },
@@ -61,34 +65,34 @@ let PdfjsContentUtils = {
    */
 
   clearUserPref: function (aPrefName) {
-    this._mm.sendSyncMessage("PDFJS:Parent:clearUserPref", {
+    this._mm.sendSyncMessage('PDFJS:Parent:clearUserPref', {
       name: aPrefName
     });
   },
 
   setIntPref: function (aPrefName, aPrefValue) {
-    this._mm.sendSyncMessage("PDFJS:Parent:setIntPref", {
+    this._mm.sendSyncMessage('PDFJS:Parent:setIntPref', {
       name: aPrefName,
       value: aPrefValue
     });
   },
 
   setBoolPref: function (aPrefName, aPrefValue) {
-    this._mm.sendSyncMessage("PDFJS:Parent:setBoolPref", {
+    this._mm.sendSyncMessage('PDFJS:Parent:setBoolPref', {
       name: aPrefName,
       value: aPrefValue
     });
   },
 
   setCharPref: function (aPrefName, aPrefValue) {
-    this._mm.sendSyncMessage("PDFJS:Parent:setCharPref", {
+    this._mm.sendSyncMessage('PDFJS:Parent:setCharPref', {
       name: aPrefName,
       value: aPrefValue
     });
   },
 
   setStringPref: function (aPrefName, aPrefValue) {
-    this._mm.sendSyncMessage("PDFJS:Parent:setStringPref", {
+    this._mm.sendSyncMessage('PDFJS:Parent:setStringPref', {
       name: aPrefName,
       value: aPrefValue
     });
@@ -99,25 +103,23 @@ let PdfjsContentUtils = {
    * handler app settings only available in the parent process.
    */
   isDefaultHandlerApp: function () {
-    return this._mm.sendSyncMessage("PDFJS:Parent:isDefaultHandlerApp")[0];
+    return this._mm.sendSyncMessage('PDFJS:Parent:isDefaultHandlerApp')[0];
   },
 
   /*
    * Request the display of a notification warning in the associated window
    * when the renderer isn't sure a pdf displayed correctly.
    */
-  displayWarning: function (aWindow, aMessage, aCallback, aLabel, accessKey) {
+  displayWarning: function (aWindow, aMessage, aLabel, accessKey) {
     // the child's dom frame mm associated with the window.
     let winmm = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                        .getInterface(Ci.nsIDocShell)
                        .QueryInterface(Ci.nsIInterfaceRequestor)
                        .getInterface(Ci.nsIContentFrameMessageManager);
-    winmm.sendAsyncMessage("PDFJS:Parent:displayWarning", {
+    winmm.sendAsyncMessage('PDFJS:Parent:displayWarning', {
       message: aMessage,
       label: aLabel,
       accessKey: accessKey
-    }, {
-      callback: aCallback
     });
   },
 
@@ -126,68 +128,23 @@ let PdfjsContentUtils = {
    */
 
   observe: function(aSubject, aTopic, aData) {
-    if (aTopic == "quit-application") {
+    if (aTopic === 'quit-application') {
       this.uninit();
     }
   },
 
   receiveMessage: function (aMsg) {
     switch (aMsg.name) {
-      case "PDFJS:Child:refreshSettings":
+      case 'PDFJS:Child:refreshSettings':
         // Only react to this if we are remote.
-        if (Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_CONTENT) {
-          let jsm = "resource://pdf.js/PdfJs.jsm";
+        if (Services.appinfo.processType ===
+            Services.appinfo.PROCESS_TYPE_CONTENT) {
+          let jsm = 'resource://pdf.js/PdfJs.jsm';
           let pdfjs = Components.utils.import(jsm, {}).PdfJs;
           pdfjs.updateRegistration();
         }
         break;
     }
-  },
-
-  /*
-   * CPOWs
-   */
-
-  getChromeWindow: function (aWindow) {
-    let winmm = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                        .getInterface(Ci.nsIDocShell)
-                        .sameTypeRootTreeItem
-                        .QueryInterface(Ci.nsIDocShell)
-                        .QueryInterface(Ci.nsIInterfaceRequestor)
-                        .getInterface(Ci.nsIContentFrameMessageManager);
-    // Sync calls don't support cpow wrapping of returned results, so we
-    // send over a small container for the object we want.
-    let suitcase = {
-      _window: null,
-      setChromeWindow: function (aObj) { this._window = aObj; }
-    }
-    if (!winmm.sendSyncMessage("PDFJS:Parent:getChromeWindow", {},
-                               { suitcase: suitcase })[0]) {
-      Cu.reportError("A request for a CPOW wrapped chrome window " +
-                     "failed for unknown reasons.");
-      return null;
-    }
-    return suitcase._window;
-  },
-
-  getFindBar: function (aWindow) {
-    let winmm = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                        .getInterface(Ci.nsIDocShell)
-                        .sameTypeRootTreeItem
-                        .QueryInterface(Ci.nsIDocShell)
-                        .QueryInterface(Ci.nsIInterfaceRequestor)
-                        .getInterface(Ci.nsIContentFrameMessageManager);
-    let suitcase = {
-      _findbar: null,
-      setFindBar: function (aObj) { this._findbar = aObj; }
-    }
-    if (!winmm.sendSyncMessage("PDFJS:Parent:getFindBar", {},
-                               { suitcase: suitcase })[0]) {
-      Cu.reportError("A request for a CPOW wrapped findbar " +
-                     "failed for unknown reasons.");
-      return null;
-    }
-    return suitcase._findbar;
   }
 };
 

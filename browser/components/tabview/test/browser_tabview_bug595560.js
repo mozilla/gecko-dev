@@ -1,15 +1,15 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-let win;
-let cw;
+var win;
+var cw;
 
 function test() {
   waitForExplicitFinish();
 
   let onLoad = function (tvwin) {
     win = tvwin;
-    registerCleanupFunction(function () win.close());
+    registerCleanupFunction(() => win.close());
     win.gBrowser.loadOneTab("http://mochi.test:8888/", {inBackground: true});
   };
 

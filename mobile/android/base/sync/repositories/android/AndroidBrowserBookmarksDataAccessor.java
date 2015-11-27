@@ -37,7 +37,6 @@ public class AndroidBrowserBookmarksDataAccessor extends AndroidBrowserRepositor
   private static final String GUID_SHOULD_TRACK = BrowserContract.SyncColumns.GUID + " NOT IN ('" +
                                                   BrowserContract.Bookmarks.TAGS_FOLDER_GUID + "', '" +
                                                   BrowserContract.Bookmarks.PLACES_FOLDER_GUID + "', '" +
-                                                  BrowserContract.Bookmarks.READING_LIST_FOLDER_GUID + "', '" +
                                                   BrowserContract.Bookmarks.PINNED_FOLDER_GUID + "')";
 
   private static final String EXCLUDE_SPECIAL_GUIDS_WHERE_CLAUSE;
@@ -87,7 +86,7 @@ public class AndroidBrowserBookmarksDataAccessor extends AndroidBrowserRepositor
     context.getContentResolver().delete(uri, EXCLUDE_SPECIAL_GUIDS_WHERE_CLAUSE, null);
   }
 
-  private String[] GUID_AND_ID = new String[] { BrowserContract.Bookmarks.GUID,
+  private final String[] GUID_AND_ID = new String[] { BrowserContract.Bookmarks.GUID,
                                                 BrowserContract.Bookmarks._ID };
 
   protected Cursor getGuidsIDsForFolders() throws NullCursorException {

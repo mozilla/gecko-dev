@@ -7,8 +7,8 @@ package org.mozilla.gecko.home;
 
 import java.util.EnumSet;
 
+import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.gecko.Telemetry;
-import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.db.BrowserDB.FilterFlags;
 
 import android.content.Context;
@@ -18,7 +18,6 @@ import android.os.SystemClock;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.app.LoaderManager.LoaderCallbacks;
 import android.support.v4.content.Loader;
-import android.util.Log;
 
 /**
  * Encapsulates the implementation of the search cursor loader.
@@ -79,28 +78,30 @@ class SearchLoader {
     public static class SearchCursorLoader extends SimpleCursorLoader {
         private static final String TELEMETRY_HISTOGRAM_LOAD_CURSOR = "FENNEC_SEARCH_LOADER_TIME_MS";
 
-        // Max number of search results
+        // Max number of search results.
         private static final int SEARCH_LIMIT = 100;
 
-        // The target search term associated with the loader
+        // The target search term associated with the loader.
         private final String mSearchTerm;
 
-        // The filter flags associated with the loader
+        // The filter flags associated with the loader.
         private final EnumSet<FilterFlags> mFlags;
+        private final GeckoProfile mProfile;
 
         public SearchCursorLoader(Context context, String searchTerm, EnumSet<FilterFlags> flags) {
             super(context);
             mSearchTerm = searchTerm;
             mFlags = flags;
+            mProfile = GeckoProfile.get(context);
         }
 
         @Override
         public Cursor loadCursor() {
             final long start = SystemClock.uptimeMillis();
-            final Cursor cursor = BrowserDB.filter(getContext().getContentResolver(), mSearchTerm, SEARCH_LIMIT, mFlags);
+            final Cursor cursor = mProfile.getDB().filter(getContext().getContentResolver(), mSearchTerm, SEARCH_LIMIT, mFlags);
             final long end = SystemClock.uptimeMillis();
             final long took = end - start;
-            Telemetry.HistogramAdd(TELEMETRY_HISTOGRAM_LOAD_CURSOR, (int) Math.min(took, Integer.MAX_VALUE));
+            Telemetry.addToHistogram(TELEMETRY_HISTOGRAM_LOAD_CURSOR, (int) Math.min(took, Integer.MAX_VALUE));
             return cursor;
         }
 

@@ -4,24 +4,22 @@
 
 "use strict";
 
-let Cu = Components.utils;
-let Ci = Components.interfaces;
+var Cu = Components.utils;
+var Ci = Components.interfaces;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/PageThumbs.jsm");
 Cu.import("resource://gre/modules/BackgroundPageThumbs.jsm");
-Cu.import("resource://gre/modules/DirectoryLinksProvider.jsm");
+Cu.import("resource:///modules/DirectoryLinksProvider.jsm");
 Cu.import("resource://gre/modules/NewTabUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "Rect",
   "resource://gre/modules/Geometry.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
   "resource://gre/modules/PrivateBrowsingUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "UpdateChannel",
-  "resource://gre/modules/UpdateChannel.jsm");
 
-let {
+var {
   links: gLinks,
   allPages: gAllPages,
   linkChecker: gLinkChecker,
@@ -44,7 +42,7 @@ function newTabString(name, args) {
 }
 
 function inPrivateBrowsingMode() {
-  return PrivateBrowsingUtils.isWindowPrivate(window);
+  return PrivateBrowsingUtils.isContentWindowPrivate(window);
 }
 
 const HTML_NAMESPACE = "http://www.w3.org/1999/xhtml";

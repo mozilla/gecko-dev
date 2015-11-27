@@ -1,31 +1,29 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-MARIONETTE_TIMEOUT = 30000;
+MARIONETTE_TIMEOUT = 60000;
 MARIONETTE_HEAD_JS = 'head.js';
 
-let tnf = NDEF.TNF_WELL_KNOWN;
-let type = "U";
-let id = "";
-let payload = "https://www.example.com";
+var tnf = NDEF.TNF_WELL_KNOWN;
+var type = "U";
+var id = "";
+var payload = "https://www.example.com";
 
-let ndef = null;
+var ndef = null;
 
 function handleSnep(msg) {
   ok(msg.records != null, "msg.records should have values");
-  isnot(msg.techList.indexOf("NDEF"), -1, "check for correct tech type");
   // validate received NDEF message against reference
   let ndef = [new MozNDEFRecord({tnf: tnf,
                                  type: NfcUtils.fromUTF8(type),
                                  payload: NfcUtils.fromUTF8(payload)})];
   NDEF.compare(ndef, msg.records);
-  toggleNFC(false).then(runNextTest);
+  deactivateAndWaitForTechLost().then(() => toggleNFC(false)).then(runNextTest);
 }
 
 function handleTechnologyDiscoveredRE0(msg) {
   log("Received 'nfc-manager-tech-discovered'");
-  is(msg.type, "techDiscovered", "check for correct message type");
-  is(msg.techList[0], "P2P", "check for correct tech type");
+  ok(msg.peer, "check for correct tech type");
 
   sysMsgHelper.waitForTechDiscovered(handleSnep);
   SNEP.put(SNEP.SAP_NDEF, SNEP.SAP_NDEF, 0, tnf, btoa(type), btoa(id), btoa(payload));
@@ -37,7 +35,7 @@ function testReceiveNDEF() {
   toggleNFC(true).then(() => NCI.activateRE(emulator.P2P_RE_INDEX_0));
 }
 
-let tests = [
+var tests = [
   testReceiveNDEF
 ];
 

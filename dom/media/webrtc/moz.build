@@ -1,0 +1,96 @@
+# -*- Mode: python; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+with Files('*'):
+    BUG_COMPONENT = ('Core', 'WebRTC: Audio/Video')
+
+with Files('PeerIdentity.*'):
+    BUG_COMPONENT = ('Core', 'WebRTC: Signaling')
+
+XPIDL_MODULE = 'content_webrtc'
+
+EXPORTS += [
+    'MediaEngine.h',
+    'MediaEngineCameraVideoSource.h',
+    'MediaEngineDefault.h',
+    'MediaTrackConstraints.h',
+]
+
+if CONFIG['MOZ_WEBRTC']:
+    if CONFIG['OS_TARGET'] == 'WINNT':
+        DEFINES['WEBRTC_WIN'] = True
+    else:
+        DEFINES['WEBRTC_POSIX'] = True
+    EXPORTS += ['AudioOutputObserver.h',
+                'MediaEngineRemoteVideoSource.h',
+                'MediaEngineWebRTC.h']
+    EXPORTS.mozilla.dom += [ 'RTCIdentityProviderRegistrar.h' ]
+    UNIFIED_SOURCES += [
+        'MediaEngineCameraVideoSource.cpp',
+        'MediaEngineRemoteVideoSource.cpp',
+        'MediaEngineTabVideoSource.cpp',
+        'MediaEngineWebRTCAudio.cpp',
+        'MediaTrackConstraints.cpp',
+        'RTCCertificate.cpp',
+        'RTCIdentityProviderRegistrar.cpp',
+    ]
+    # MediaEngineWebRTC.cpp needs to be built separately.
+    SOURCES += [
+        'MediaEngineWebRTC.cpp',
+    ]
+    LOCAL_INCLUDES += [
+        '/dom/base',
+        '/dom/camera',
+        '/media/libyuv/include',
+        '/media/webrtc/signaling/src/common',
+        '/media/webrtc/signaling/src/common/browser_logging',
+        '/media/webrtc/trunk',
+    ]
+    # Gonk camera source.
+    if CONFIG['MOZ_B2G_CAMERA'] and CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
+        EXPORTS += [
+            'GonkCameraImage.h',
+            'MediaEngineGonkVideoSource.h',
+        ]
+        UNIFIED_SOURCES += [
+            'GonkCameraImage.cpp',
+            'MediaEngineGonkVideoSource.cpp',
+        ]
+
+XPIDL_SOURCES += [
+    'nsITabSource.idl'
+]
+
+UNIFIED_SOURCES += [
+    'MediaEngineDefault.cpp',
+    'PeerIdentity.cpp',
+]
+
+EXPORTS.mozilla += [
+    'PeerIdentity.h',
+]
+EXPORTS.mozilla.dom += [
+    'RTCCertificate.h',
+]
+
+include('/ipc/chromium/chromium-config.mozbuild')
+
+# Suppress some GCC/clang warnings being treated as errors:
+#  - about attributes on forward declarations for types that are already
+#    defined, which complains about important MOZ_EXPORT attributes for
+#    android API types
+if CONFIG['GNU_CC'] or CONFIG['CLANG_CL']:
+    CXXFLAGS += [
+        '-Wno-error=attributes'
+    ]
+
+FINAL_LIBRARY = 'xul'
+
+if CONFIG['_MSC_VER']:
+    CXXFLAGS += [
+        '-wd4275', # non dll-interface class used as base for dll-interface class
+    ]
+    DEFINES['__PRETTY_FUNCTION__'] = '__FUNCSIG__'

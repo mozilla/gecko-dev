@@ -1,4 +1,4 @@
-const Cu = Components.utils;
+var Cu = Components.utils;
 const READWRITE = "readwrite";
 const UNKNOWN = "foobar";
 
@@ -18,12 +18,6 @@ var gData = [
              "settings-api-read", "settings-api-write",
              "indexedDB-chrome-settings-read",
              "indexedDB-chrome-settings-write"]
-},
-// test substitute
-{
-  permission: "storage",
-  expected: ["indexedDB-unlimited",
-             "default-persistent-storage"]
 },
 // test unknown access
 {

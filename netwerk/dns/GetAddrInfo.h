@@ -10,7 +10,7 @@
 #include "nsError.h"
 #include "nscore.h"
 
-#if defined(XP_WIN) && !defined(RELEASE_BUILD)
+#if defined(XP_WIN)
 #define DNSQUERY_AVAILABLE 1
 #define TTL_AVAILABLE 1
 #else
@@ -40,7 +40,7 @@ class AddrInfo;
  */
 nsresult
 GetAddrInfo(const char* aHost, uint16_t aAddressFamily, uint16_t aFlags,
-            AddrInfo** aAddrInfo, bool aGetTtl);
+            const char* aNetworkInterface, AddrInfo** aAddrInfo, bool aGetTtl);
 
 /**
  * Initialize the GetAddrInfo module.

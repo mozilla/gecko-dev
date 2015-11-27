@@ -12,6 +12,7 @@
 #include "nsError.h"
 #include "nsDebug.h"
 #include "nsISupportsImpl.h"
+#include "mozilla/RefPtr.h"
 #include "mozilla/TypeTraits.h"
 
 /**
@@ -31,11 +32,6 @@
   AddRef()
 
 
-extern "C++" {
-// ...because some one is accidentally including this file inside
-// an |extern "C"|
-
-
 // Making this a |inline| |template| allows |aExpr| to be evaluated only once,
 // yet still denies you the ability to |AddRef()| an |nsCOMPtr|.
 template<class T>
@@ -46,8 +42,6 @@ ns_if_addref(T aExpr)
     aExpr->AddRef();
   }
 }
-
-} /* extern "C++" */
 
 /**
  * Macro for adding a reference to an interface that checks for nullptr.
@@ -139,6 +133,13 @@ CallQueryInterface(T* aSource, DestinationType** aDestination)
 
   return aSource->QueryInterface(NS_GET_TEMPLATE_IID(DestinationType),
                                  reinterpret_cast<void**>(aDestination));
+}
+
+template <class SourceType, class DestinationType>
+inline nsresult
+CallQueryInterface(RefPtr<SourceType>& aSourcePtr, DestinationType** aDestPtr)
+{
+  return CallQueryInterface(aSourcePtr.get(), aDestPtr);
 }
 
 #endif /* __nsISupportsUtils_h */

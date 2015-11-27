@@ -1,3 +1,8 @@
+/*
+ * Note, please see l10n-gaia-upstream.txt for a list of changes
+ * that will need to be reapplied if this file is updated.
+ */
+
 (function(window, undefined) {
   'use strict';
 
@@ -1241,11 +1246,19 @@
     // Getting ready
 
     function negotiate(available, requested, defaultLocale) {
-      if (available.indexOf(requested[0]) === -1 ||
-          requested[0] === defaultLocale) {
+      var supportedLocale;
+      for (var i = 0; i < requested.length; ++i) {
+        var locale = requested[i];
+        if (available.indexOf(locale) !== -1) {
+          supportedLocale = locale;
+          break;
+        }
+      }
+      if (!supportedLocale ||
+          supportedLocale === defaultLocale) {
         return [defaultLocale];
       } else {
-        return [requested[0], defaultLocale];
+        return [supportedLocale, defaultLocale];
       }
     }
 
@@ -1459,7 +1472,7 @@
     // XXX always pretranslate if data-no-complete-bug is set;  this is
     // a workaround for a netError page not firing some onreadystatechange
     // events;  see https://bugzil.la/444165
-    var pretranslate = document.documentElement.dataset.noCompleteBug ?
+    var pretranslate = document.documentElement.getAttribute("data-noCompleteBug") ?
       true : !isPretranslated;
     waitFor('interactive', init.bind(navigator.mozL10n, pretranslate));
   }
@@ -1484,7 +1497,7 @@
   }
 
   function inlineLocalization() {
-    var locale = this.ctx.getLocale(navigator.language);
+    var locale = this.ctx.getLocale(navigator.language || navigator.browserLanguage);
     var scriptLoc = locale.isPseudo ? this.ctx.defaultLocale : locale.id;
     var script = document.documentElement
                          .querySelector('script[type="application/l10n"]' +

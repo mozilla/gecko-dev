@@ -4,6 +4,7 @@
 
 package org.mozilla.gecko;
 
+import org.mozilla.gecko.animation.ViewHelper;
 import org.mozilla.gecko.gfx.ImmutableViewportMetrics;
 import org.mozilla.gecko.gfx.LayerView;
 
@@ -11,6 +12,7 @@ import org.json.JSONObject;
 
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.Point;
 import android.graphics.PointF;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -19,10 +21,30 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
+/**
+ * Text selection handles enable a user to change position of selected text in
+ * Gecko's DOM structure.
+ *
+ * A text "Selection" or nsISelection object, has start and end positions,
+ * referred to as Anchor and Focus objects.
+ *
+ * If the Anchor and Focus objects are at the same point, it represents a text
+ * selection Caret, commonly diplayed as a blinking, vertical |.
+ *
+ * Anchor and Focus objects each represent a DOM node, and character offset
+ * from the start of the node. The Anchor always refers to the start of the
+ * Selection, and the Focus refers to its end.
+ *
+ * In LTR languages such as English, the Anchor is to the left of the Focus.
+ * In RTL languages such as Hebrew, the Anchor is to the right of the Focus.
+ *
+ * For multi-line Selections, in both LTR and RTL languages, the Anchor starts
+ * above the Focus.
+ */
 class TextSelectionHandle extends ImageView implements View.OnTouchListener {
     private static final String LOGTAG = "GeckoTextSelectionHandle";
 
-    private enum HandleType { START, MIDDLE, END }; 
+    public enum HandleType { ANCHOR, CARET, FOCUS };
 
     private final HandleType mHandleType;
     private final int mWidth;
@@ -33,10 +55,7 @@ class TextSelectionHandle extends ImageView implements View.OnTouchListener {
     private float mTop;
     private boolean mIsRTL; 
     private PointF mGeckoPoint;
-    private float mTouchStartX;
-    private float mTouchStartY;
-    private int mLayerViewX;
-    private int mLayerViewY;
+    private PointF mTouchStart;
 
     private RelativeLayout.LayoutParams mLayoutParams;
 
@@ -49,37 +68,43 @@ class TextSelectionHandle extends ImageView implements View.OnTouchListener {
 
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.TextSelectionHandle);
         int handleType = a.getInt(R.styleable.TextSelectionHandle_handleType, 0x01);
+        a.recycle();
 
         if (handleType == 0x01)
-            mHandleType = HandleType.START;
+            mHandleType = HandleType.ANCHOR;
         else if (handleType == 0x02)
-            mHandleType = HandleType.MIDDLE;
+            mHandleType = HandleType.CARET;
         else
-            mHandleType = HandleType.END;
+            mHandleType = HandleType.FOCUS;
 
         mGeckoPoint = new PointF(0.0f, 0.0f);
+        mTouchStart = new PointF(0.0f, 0.0f);
 
         mWidth = getResources().getDimensionPixelSize(R.dimen.text_selection_handle_width);
         mHeight = getResources().getDimensionPixelSize(R.dimen.text_selection_handle_height);
         mShadow = getResources().getDimensionPixelSize(R.dimen.text_selection_handle_shadow);
     }
 
+    private int getStatusBarHeight() {
+        int result = 0;
+        int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
+        if (resourceId > 0) {
+            result = getResources().getDimensionPixelSize(resourceId);
+        }
+        return result;
+    }
+
     @Override
     public boolean onTouch(View v, MotionEvent event) {
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN: {
-                mTouchStartX = event.getX();
-                mTouchStartY = event.getY();
-
-                int[] rect = new int[2];
-                GeckoAppShell.getLayerView().getLocationOnScreen(rect);
-                mLayerViewX = rect[0];
-                mLayerViewY = rect[1];
+                mTouchStart.x = event.getX();
+                mTouchStart.y = event.getY();
                 break;
             }
             case MotionEvent.ACTION_UP: {
-                mTouchStartX = 0;
-                mTouchStartY = 0;
+                mTouchStart.x = 0;
+                mTouchStart.y = 0;
 
                 // Reposition handles to line up with ends of selection
                 JSONObject args = new JSONObject();
@@ -100,22 +125,26 @@ class TextSelectionHandle extends ImageView implements View.OnTouchListener {
     }
 
     private void move(float newX, float newY) {
-        // newX and newY are absolute coordinates, so we need to adjust them to
-        // account for other views on the screen (such as the URL bar). We also
-        // need to include the offset amount of the touch location relative to
-        // the top left of the handle (mTouchStartX and mTouchStartY).
-        mLeft = newX - mLayerViewX - mTouchStartX;
-        mTop = newY - mLayerViewY - mTouchStartY;
-
         LayerView layerView = GeckoAppShell.getLayerView();
-        if (layerView == null) {
-            Log.e(LOGTAG, "Can't move selection because layerView is null");
-            return;
-        }
-        // Send x coordinate on the right side of the start handle, left side of the end handle.
-        float left = mLeft + adjustLeftForHandle();
 
-        PointF geckoPoint = new PointF(left, mTop);
+        // newX and newY are in screen coordinates, but mLeft/mTop are relative
+        // to the ancestor (which is what LayerView is relative to also). So,
+        // we need to adjust newX/newY. The |ancestorOrigin| variable computed
+        // below is the origin of the ancestor relative to the screen coordinates,
+        // so subtracting that from newY puts newY into the desired coordinate
+        // space. We also need to include the offset amount of the touch location
+        // relative to the top left of the handle (mTouchStart).
+        int[] layerViewPosition = new int[2];
+        layerView.getLocationOnScreen(layerViewPosition);
+        float ancestorOrigin = layerViewPosition[1];
+
+        mLeft = newX - mTouchStart.x;
+        mTop = newY - mTouchStart.y - ancestorOrigin;
+
+        // Send x coordinate on the right side of the start handle, left side of the end handle.
+        float layerViewTranslation = layerView.getSurfaceTranslation();
+        PointF geckoPoint = new PointF(mLeft + adjustLeftForHandle(),
+                                       mTop - layerViewTranslation);
         geckoPoint = layerView.convertViewPointToLayerPoint(geckoPoint);
 
         JSONObject args = new JSONObject();
@@ -132,7 +161,7 @@ class TextSelectionHandle extends ImageView implements View.OnTouchListener {
         // will tell us the position of the caret, so we set the handle
         // position then. This allows us to lock the handle to wherever the
         // caret appears.
-        if (!mHandleType.equals(HandleType.MIDDLE)) {
+        if (mHandleType != HandleType.CARET) {
             setLayoutPosition();
         }
     }
@@ -151,27 +180,26 @@ class TextSelectionHandle extends ImageView implements View.OnTouchListener {
         }
 
         ImmutableViewportMetrics metrics = layerView.getViewportMetrics();
-        PointF offset = metrics.getMarginOffset();
-        repositionWithViewport(metrics.viewportRectLeft - offset.x, metrics.viewportRectTop - offset.y, metrics.zoomFactor);
+        repositionWithViewport(metrics.viewportRectLeft, metrics.viewportRectTop, metrics.zoomFactor);
     }
 
     void repositionWithViewport(float x, float y, float zoom) {
         PointF viewPoint = new PointF((mGeckoPoint.x * zoom) - x,
                                       (mGeckoPoint.y * zoom) - y);
-
         mLeft = viewPoint.x - adjustLeftForHandle();
-        mTop = viewPoint.y;
+        mTop = viewPoint.y + GeckoAppShell.getLayerView().getSurfaceTranslation();
 
         setLayoutPosition();
     }
 
     private float adjustLeftForHandle() {
-        if (mHandleType.equals(HandleType.START))
+        if (mHandleType == HandleType.ANCHOR) {
             return mIsRTL ? mShadow : mWidth - mShadow;
-        else if (mHandleType.equals(HandleType.MIDDLE))
+        } else if (mHandleType == HandleType.CARET) {
             return mWidth / 2;
-        else
+        } else {
             return mIsRTL ? mWidth - mShadow : mShadow;
+        }
     }
 
     private void setLayoutPosition() {

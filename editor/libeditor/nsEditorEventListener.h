@@ -14,12 +14,14 @@
 #include "nscore.h"
 
 class nsCaret;
+class nsIContent;
 class nsIDOMDragEvent;
 class nsIDOMEvent;
 class nsIDOMKeyEvent;
 class nsIDOMMouseEvent;
 class nsIPresShell;
 class nsEditor;
+class nsPresContext;
 
 // X.h defines KeyPress
 #ifdef KeyPress
@@ -83,7 +85,7 @@ protected:
   nsresult HandleMiddleClickPaste(nsIDOMMouseEvent* aMouseEvent);
 
   nsEditor* mEditor; // weak
-  nsRefPtr<nsCaret> mCaret;
+  RefPtr<nsCaret> mCaret;
   bool mCommitText;
   bool mInTransaction;
   bool mMouseDownOrUpConsumedByIME;

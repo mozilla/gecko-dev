@@ -50,9 +50,9 @@ public:
   NS_DECL_CHANGEOBSERVER
 
   // nsMenuObjectX
-  void*             NativeData()     {return (void*)mNativeMenu;}
-  nsMenuObjectTypeX MenuObjectType() {return eSubmenuObjectType;}
-  void              IconUpdated() MOZ_OVERRIDE { mParent->IconUpdated(); }
+  void*             NativeData() override {return (void*)mNativeMenu;}
+  nsMenuObjectTypeX MenuObjectType() override {return eSubmenuObjectType;}
+  void              IconUpdated() override { mParent->IconUpdated(); }
 
   // nsMenuX
   nsresult       Create(nsMenuObjectX* aParent, nsMenuGroupOwnerX* aMenuGroupOwner, nsIContent* aNode);
@@ -88,7 +88,7 @@ protected:
   nsMenuObjectX*            mParent; // [weak]
   nsMenuGroupOwnerX*        mMenuGroupOwner; // [weak]
   // The icon object should never outlive its creating nsMenuX object.
-  nsRefPtr<nsMenuItemIconX> mIcon;
+  RefPtr<nsMenuItemIconX> mIcon;
   GeckoNSMenu*              mNativeMenu; // [strong]
   MenuDelegate*             mMenuDelegate; // [strong]
   // nsMenuX objects should always have a valid native menu item.

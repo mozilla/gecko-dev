@@ -16,7 +16,7 @@ interface nsIURI;
  * location, stop or restart an in process load, or determine where the object
  * has previously gone.
  */
-[scriptable, uuid(b7568a50-4c50-442c-a6be-3a340a48d89a)]
+[scriptable, uuid(3ade79d4-8cb9-4952-b18d-4f9b63ca0d31)]
 interface nsIWebNavigation : nsISupports
 {
   /**
@@ -185,6 +185,12 @@ interface nsIWebNavigation : nsISupports
   const unsigned long LOAD_FLAGS_DISALLOW_INHERIT_OWNER = 0x40000;
 
   /**
+   * Overwrite the returned error code with a specific result code
+   * when an error page is displayed.
+   */
+  const unsigned long LOAD_FLAGS_ERROR_LOAD_CHANGES_RV = 0x80000;
+
+  /**
    * This flag specifies that the URI may be submitted to a third-party
    * server for correction. This should only be applied to non-sensitive
    * URIs entered by users.  This flag must not be passed to Reload.
@@ -195,8 +201,6 @@ interface nsIWebNavigation : nsISupports
    * This flag specifies that common scheme typos should be corrected.
    */
   const unsigned long LOAD_FLAGS_FIXUP_SCHEME_TYPOS = 0x200000;
-
-  /* Note that flag 0x80000 is available. */
 
   /**
    * Loads a given URI.  This will give priority to loading the requested URI
@@ -240,11 +244,8 @@ interface nsIWebNavigation : nsISupports
    * in the object implementing this interface.  If it can't be loaded here
    * however, the URI dispatcher will go through its normal process of content
    * loading.
-   * Behaves like loadURI, except an additional parameter is provided to supply
-   * a base URI to be used in specific situations where one cannot be inferred
-   * by other means, for example when this is called to view selection source.
-   * Outside of these situations, the behaviour of this function is no
-   * different to loadURI.
+   *
+   * Behaves like loadURI, but allows passing of additional parameters.
    *
    * @param aURI
    *        The URI string to load.  For HTTP and FTP URLs and possibly others,
@@ -258,6 +259,9 @@ interface nsIWebNavigation : nsISupports
    * @param aReferrer
    *        The referring URI.  If this argument is null, then the referring
    *        URI will be inferred internally.
+   * @param aReferrerPolicy
+   *        One of the REFERRER_POLICY_* constants from nsIHttpChannel.
+   *        Normal case is REFERRER_POLICY_DEFAULT.
    * @param aPostData
    *        If the URI corresponds to a HTTP request, then this stream is
    *        appended directly to the HTTP request headers.  It may be prefixed
@@ -276,12 +280,13 @@ interface nsIWebNavigation : nsISupports
    *        and cannot be used to resolve aURI.
    *        This parameter is optional and may be null.
    */
-  void loadURIWithBase(in wstring        aURI,
-                       in unsigned long  aLoadFlags,
-                       in nsIURI         aReferrer,
-                       in nsIInputStream aPostData,
-                       in nsIInputStream aHeaders,
-                       in nsIURI         aBaseURI);
+  void loadURIWithOptions(in wstring        aURI,
+                          in unsigned long  aLoadFlags,
+                          in nsIURI         aReferrer,
+                          in unsigned long  aReferrerPolicy,
+                          in nsIInputStream aPostData,
+                          in nsIInputStream aHeaders,
+                          in nsIURI         aBaseURI);
 
   /**
    * Tells the Object to reload the current page.  There may be cases where the

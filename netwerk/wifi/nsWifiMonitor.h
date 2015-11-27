@@ -13,8 +13,9 @@
 #include "nsIRunnable.h"
 #include "nsCOMArray.h"
 #include "nsIWifiListener.h"
+#include "mozilla/Atomics.h"
 #include "mozilla/ReentrantMonitor.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "nsIObserver.h"
 #include "nsTArray.h"
 #include "nsITimer.h"
@@ -25,10 +26,8 @@
 #include "win_wifiScanner.h"
 #endif
 
-#if defined(PR_LOGGING)
-extern PRLogModuleInfo *gWifiMonitorLog;
-#endif
-#define LOG(args)     PR_LOG(gWifiMonitorLog, PR_LOG_DEBUG, args)
+extern mozilla::LazyLogModule gWifiMonitorLog;
+#define LOG(args)     MOZ_LOG(gWifiMonitorLog, mozilla::LogLevel::Debug, args)
 
 class nsWifiAccessPoint;
 
@@ -50,7 +49,7 @@ class nsWifiListener
 };
 
 #ifndef MOZ_WIDGET_GONK
-class nsWifiMonitor MOZ_FINAL : nsIRunnable, nsIWifiMonitor, nsIObserver
+class nsWifiMonitor final : nsIRunnable, nsIWifiMonitor, nsIObserver
 {
  public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -68,7 +67,8 @@ class nsWifiMonitor MOZ_FINAL : nsIRunnable, nsIWifiMonitor, nsIObserver
   nsresult CallWifiListeners(const nsCOMArray<nsWifiAccessPoint> &aAccessPoints,
                              bool aAccessPointsChanged);
 
-  bool mKeepGoing;
+  mozilla::Atomic<bool> mKeepGoing;
+  mozilla::Atomic<bool> mThreadComplete;
   nsCOMPtr<nsIThread> mThread;
 
   nsTArray<nsWifiListener> mListeners;
@@ -76,12 +76,12 @@ class nsWifiMonitor MOZ_FINAL : nsIRunnable, nsIWifiMonitor, nsIObserver
   mozilla::ReentrantMonitor mReentrantMonitor;
 
 #ifdef XP_WIN
-  nsAutoPtr<WinWifiScanner> mWinWifiScanner;
+  nsAutoPtr<WindowsWifiScannerInterface> mWinWifiScanner;
 #endif
 };
 #else
 #include "nsIWifi.h"
-class nsWifiMonitor MOZ_FINAL : nsIWifiMonitor, nsIWifiScanResultsReady, nsIObserver
+class nsWifiMonitor final : nsIWifiMonitor, nsIWifiScanResultsReady, nsIObserver
 {
  public:
   NS_DECL_ISUPPORTS

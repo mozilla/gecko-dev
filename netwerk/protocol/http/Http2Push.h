@@ -6,6 +6,9 @@
 #ifndef mozilla_net_Http2Push_Internal_h
 #define mozilla_net_Http2Push_Internal_h
 
+// HTTP/2 - RFC 7540
+// https://www.rfc-editor.org/rfc/rfc7540.txt
+
 #include "Http2Session.h"
 #include "Http2Stream.h"
 
@@ -13,6 +16,7 @@
 #include "mozilla/TimeStamp.h"
 #include "nsHttpRequestHead.h"
 #include "nsILoadGroup.h"
+#include "nsISchedulingContext.h"
 #include "nsString.h"
 #include "PSpdyPush.h"
 
@@ -21,7 +25,7 @@ namespace net {
 
 class Http2PushTransactionBuffer;
 
-class Http2PushedStream MOZ_FINAL : public Http2Stream
+class Http2PushedStream final : public Http2Stream
 {
 public:
   Http2PushedStream(Http2PushTransactionBuffer *aTransaction,
@@ -31,33 +35,43 @@ public:
   virtual ~Http2PushedStream() {}
 
   bool GetPushComplete();
-  Http2Stream *GetConsumerStream() { return mConsumerStream; };
-  void SetConsumerStream(Http2Stream *aStream) { mConsumerStream = aStream; }
+
+  // The consumer stream is the synthetic pull stream hooked up to this push
+  virtual Http2Stream *GetConsumerStream() override { return mConsumerStream; };
+
+  void SetConsumerStream(Http2Stream *aStream);
   bool GetHashKey(nsCString &key);
 
   // override of Http2Stream
-  nsresult ReadSegments(nsAHttpSegmentReader *,  uint32_t, uint32_t *);
-  nsresult WriteSegments(nsAHttpSegmentWriter *, uint32_t, uint32_t *);
+  nsresult ReadSegments(nsAHttpSegmentReader *,  uint32_t, uint32_t *) override;
+  nsresult WriteSegments(nsAHttpSegmentWriter *, uint32_t, uint32_t *) override;
 
-  nsILoadGroupConnectionInfo *LoadGroupConnectionInfo() { return mLoadGroupCI; };
+  nsISchedulingContext *SchedulingContext() override { return mSchedulingContext; };
   void ConnectPushedStream(Http2Stream *consumer);
 
-  bool DeferCleanupOnSuccess() { return mDeferCleanupOnSuccess; }
+  bool TryOnPush();
+
+  virtual bool DeferCleanup(nsresult status) override;
   void SetDeferCleanupOnSuccess(bool val) { mDeferCleanupOnSuccess = val; }
 
   bool IsOrphaned(TimeStamp now);
+  void OnPushFailed() { mDeferCleanupOnPush = false; mOnPushFailed = true; }
 
   nsresult GetBufferedData(char *buf, uint32_t count, uint32_t *countWritten);
 
   // overload of Http2Stream
-  virtual bool HasSink() { return !!mConsumerStream; }
+  virtual bool HasSink() override { return !!mConsumerStream; }
+
+  nsCString &GetRequestString() { return mRequestString; }
 
 private:
 
   Http2Stream *mConsumerStream; // paired request stream that consumes from
                                 // real http/2 one.. null until a match is made.
 
-  nsCOMPtr<nsILoadGroupConnectionInfo> mLoadGroupCI;
+  nsCOMPtr<nsISchedulingContext> mSchedulingContext;
+
+  nsAHttpTransaction *mAssociatedTransaction;
 
   Http2PushTransactionBuffer *mBufferedPush;
   mozilla::TimeStamp mLastRead;
@@ -66,9 +80,20 @@ private:
   nsresult mStatus;
   bool mPushCompleted; // server push FIN received
   bool mDeferCleanupOnSuccess;
+
+  // mDeferCleanupOnPush prevents Http2Session::CleanupStream() from
+  // destroying the push stream on an error code during the period between
+  // when we need to do OnPush() on another thread and the time it takes
+  // for that event to create a synthetic pull stream attached to this
+  // object. That synthetic pull will become mConsuemerStream.
+  // Ths is essentially a delete protecting reference.
+  bool mDeferCleanupOnPush;
+  bool mOnPushFailed;
+  nsCString mRequestString;
+
 };
 
-class Http2PushTransactionBuffer MOZ_FINAL : public nsAHttpTransaction
+class Http2PushTransactionBuffer final : public nsAHttpTransaction
 {
 public:
   NS_DECL_ISUPPORTS
@@ -95,7 +120,7 @@ private:
   uint32_t mBufferedHTTP1Consumed;
 };
 
-} // namespace mozilla::net
+} // namespace net
 } // namespace mozilla
 
 #endif // mozilla_net_Http2Push_Internal_h

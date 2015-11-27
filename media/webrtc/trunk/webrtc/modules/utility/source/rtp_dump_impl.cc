@@ -12,9 +12,10 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <limits>
 
 #include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
-#include "webrtc/system_wrappers/interface/trace.h"
+#include "webrtc/system_wrappers/interface/logging.h"
 
 #if defined(_WIN32)
 #include <Windows.h>
@@ -54,7 +55,7 @@ typedef struct
     uint16_t plen;
     // Milliseconds since the start of recording.
     uint32_t offset;
-} rtpDumpPktHdr_t;
+} RtpDumpPacketHeader;
 
 RtpDump* RtpDump::CreateRtpDump()
 {
@@ -71,7 +72,6 @@ RtpDumpImpl::RtpDumpImpl()
       _file(*FileWrapper::Create()),
       _startTime(0)
 {
-    WEBRTC_TRACE(kTraceMemory, kTraceUtility, -1, "%s created", __FUNCTION__);
 }
 
 RtpDump::~RtpDump()
@@ -84,7 +84,6 @@ RtpDumpImpl::~RtpDumpImpl()
     _file.CloseFile();
     delete &_file;
     delete _critSect;
-    WEBRTC_TRACE(kTraceMemory, kTraceUtility, -1, "%s deleted", __FUNCTION__);
 }
 
 int32_t RtpDumpImpl::Start(const char* fileNameUTF8)
@@ -100,8 +99,7 @@ int32_t RtpDumpImpl::Start(const char* fileNameUTF8)
     _file.CloseFile();
     if (_file.OpenFile(fileNameUTF8, false, false, false) == -1)
     {
-        WEBRTC_TRACE(kTraceError, kTraceUtility, -1,
-                     "failed to open the specified file");
+        LOG(LS_ERROR) << "Failed to open file.";
         return -1;
     }
 
@@ -113,8 +111,7 @@ int32_t RtpDumpImpl::Start(const char* fileNameUTF8)
     sprintf(magic, "#!rtpplay%s \n", RTPFILE_VERSION);
     if (_file.WriteText(magic) == -1)
     {
-        WEBRTC_TRACE(kTraceError, kTraceUtility, -1,
-                     "error writing to file");
+        LOG(LS_ERROR) << "Error writing to file.";
         return -1;
     }
 
@@ -129,8 +126,7 @@ int32_t RtpDumpImpl::Start(const char* fileNameUTF8)
     memset(dummyHdr, 0, 16);
     if (!_file.Write(dummyHdr, sizeof(dummyHdr)))
     {
-        WEBRTC_TRACE(kTraceError, kTraceUtility, -1,
-                     "error writing to file");
+        LOG(LS_ERROR) << "Error writing to file.";
         return -1;
     }
     return 0;
@@ -150,7 +146,7 @@ bool RtpDumpImpl::IsActive() const
     return _file.Open();
 }
 
-int32_t RtpDumpImpl::DumpPacket(const uint8_t* packet, uint16_t packetLength)
+int32_t RtpDumpImpl::DumpPacket(const uint8_t* packet, size_t packetLength)
 {
     CriticalSectionScoped lock(_critSect);
     if (!IsActive())
@@ -163,7 +159,9 @@ int32_t RtpDumpImpl::DumpPacket(const uint8_t* packet, uint16_t packetLength)
         return -1;
     }
 
-    if (packetLength < 1)
+    RtpDumpPacketHeader hdr;
+    size_t total_size = packetLength + sizeof hdr;
+    if (packetLength < 1 || total_size > std::numeric_limits<uint16_t>::max())
     {
         return -1;
     }
@@ -172,11 +170,8 @@ int32_t RtpDumpImpl::DumpPacket(const uint8_t* packet, uint16_t packetLength)
     // considered RTP (without further verification).
     bool isRTCP = RTCP(packet);
 
-    rtpDumpPktHdr_t hdr;
-    uint32_t offset;
-
     // Offset is relative to when recording was started.
-    offset = GetTimeInMS();
+    uint32_t offset = GetTimeInMS();
     if (offset < _startTime)
     {
         // Compensate for wraparound.
@@ -186,7 +181,7 @@ int32_t RtpDumpImpl::DumpPacket(const uint8_t* packet, uint16_t packetLength)
     }
     hdr.offset = RtpDumpHtonl(offset);
 
-    hdr.length = RtpDumpHtons((uint16_t)(packetLength + sizeof(hdr)));
+    hdr.length = RtpDumpHtons((uint16_t)(total_size));
     if (isRTCP)
     {
         hdr.plen = 0;
@@ -198,14 +193,12 @@ int32_t RtpDumpImpl::DumpPacket(const uint8_t* packet, uint16_t packetLength)
 
     if (!_file.Write(&hdr, sizeof(hdr)))
     {
-        WEBRTC_TRACE(kTraceError, kTraceUtility, -1,
-                     "error writing to file");
+        LOG(LS_ERROR) << "Error writing to file.";
         return -1;
     }
     if (!_file.Write(packet, packetLength))
     {
-        WEBRTC_TRACE(kTraceError, kTraceUtility, -1,
-                     "error writing to file");
+        LOG(LS_ERROR) << "Error writing to file.";
         return -1;
     }
 
@@ -214,22 +207,9 @@ int32_t RtpDumpImpl::DumpPacket(const uint8_t* packet, uint16_t packetLength)
 
 bool RtpDumpImpl::RTCP(const uint8_t* packet) const
 {
-    const uint8_t payloadType = packet[1];
-    bool is_rtcp = false;
-
-    switch(payloadType)
-    {
-    case 192:
-        is_rtcp = true;
-        break;
-    case 193: case 195:
-        break;
-    case 200: case 201: case 202: case 203:
-    case 204: case 205: case 206: case 207:
-        is_rtcp = true;
-        break;
-    }
-    return is_rtcp;
+    return packet[1] == 192 || packet[1] == 200 || packet[1] == 201 ||
+        packet[1] == 202 || packet[1] == 203 || packet[1] == 204 ||
+        packet[1] == 205 || packet[1] == 206 || packet[1] == 207;
 }
 
 // TODO (hellner): why is TickUtil not used here?

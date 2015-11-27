@@ -17,16 +17,18 @@ KeyError are machine parseable. This machine-friendly data is used to present
 user-friendly error messages in the case of errors.
 """
 
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
 
-import copy
 import os
 import sys
-
-from contextlib import contextmanager
+import weakref
 
 from mozbuild.util import ReadOnlyDict
-from context import Context
+from .context import Context
+from mozpack.files import FileFinder
+
+
+default_finder = FileFinder('/', find_executables=False)
 
 
 def alphabetical_sorted(iterable, cmp=None, key=lambda x: x.lower(),
@@ -107,7 +109,7 @@ class Sandbox(dict):
         'int': int,
     })
 
-    def __init__(self, context, builtins=None):
+    def __init__(self, context, builtins=None, finder=default_finder):
         """Initialize a Sandbox ready for execution.
         """
         self._builtins = builtins or self.BUILTINS
@@ -116,12 +118,26 @@ class Sandbox(dict):
         assert isinstance(self._builtins, ReadOnlyDict)
         assert isinstance(context, Context)
 
-        self._context = context
-        self._execution_stack = []
+        # Contexts are modeled as a stack because multiple context managers
+        # may be active.
+        self._active_contexts = [context]
+
+        # Seen sub-contexts. Will be populated with other Context instances
+        # that were related to execution of this instance.
+        self.subcontexts = []
 
         # We need to record this because it gets swallowed as part of
         # evaluation.
         self._last_name_error = None
+
+        # Current literal source being executed.
+        self._current_source = None
+
+        self._finder = finder
+
+    @property
+    def _context(self):
+        return self._active_contexts[-1]
 
     def exec_file(self, path):
         """Execute code at a path in the sandbox.
@@ -130,13 +146,10 @@ class Sandbox(dict):
         """
         assert os.path.isabs(path)
 
-        source = None
-
         try:
-            with open(path, 'rt') as fd:
-                source = fd.read()
+            source = self._finder.get(path).read()
         except Exception as e:
-            raise SandboxLoadError(list(self._execution_stack),
+            raise SandboxLoadError(self._context.source_stack,
                 sys.exc_info()[2], read_error=path)
 
         self.exec_source(source, path)
@@ -151,23 +164,44 @@ class Sandbox(dict):
         does not perform extra path normalization. This can cause relative
         paths to behave weirdly.
         """
-        self._execution_stack.append(path)
-
-        if path:
-            self._context.add_source(path)
-
-        # We don't have to worry about bytecode generation here because we are
-        # too low-level for that. However, we could add bytecode generation via
-        # the marshall module if parsing performance were ever an issue.
-
-        try:
+        def execute():
             # compile() inherits the __future__ from the module by default. We
             # do want Unicode literals.
             code = compile(source, path, 'exec')
             # We use ourself as the global namespace for the execution. There
             # is no need for a separate local namespace as moz.build execution
             # is flat, namespace-wise.
-            exec(code, self)
+            old_source = self._current_source
+            self._current_source = source
+            try:
+                # Ideally, we'd use exec(code, self), but that yield the
+                # following error:
+                # SyntaxError: unqualified exec is not allowed in function
+                # 'execute' it is a nested function.
+                exec code in self
+            finally:
+                self._current_source = old_source
+
+        self.exec_function(execute, path=path)
+
+    def exec_function(self, func, args=(), kwargs={}, path='',
+                      becomes_current_path=True):
+        """Execute function with the given arguments in the sandbox.
+        """
+        if path and becomes_current_path:
+            self._context.push_source(path)
+
+        old_sandbox = self._context._sandbox
+        self._context._sandbox = weakref.ref(self)
+
+        # We don't have to worry about bytecode generation here because we are
+        # too low-level for that. However, we could add bytecode generation via
+        # the marshall module if parsing performance were ever an issue.
+
+        old_source = self._current_source
+        self._current_source = None
+        try:
+            func(*args, **kwargs)
         except SandboxError as e:
             raise e
         except NameError as e:
@@ -182,18 +216,50 @@ class Sandbox(dict):
 
             if self._last_name_error is not None:
                 actual = self._last_name_error
-
-            raise SandboxExecutionError(list(self._execution_stack),
-                type(actual), actual, sys.exc_info()[2])
+            source_stack = self._context.source_stack
+            if not becomes_current_path:
+                # Add current file to the stack because it wasn't added before
+                # sandbox execution.
+                source_stack.append(path)
+            raise SandboxExecutionError(source_stack, type(actual), actual,
+                                        sys.exc_info()[2])
 
         except Exception as e:
             # Need to copy the stack otherwise we get a reference and that is
             # mutated during the finally.
             exc = sys.exc_info()
-            raise SandboxExecutionError(list(self._execution_stack), exc[0],
-                exc[1], exc[2])
+            source_stack = self._context.source_stack
+            if not becomes_current_path:
+                # Add current file to the stack because it wasn't added before
+                # sandbox execution.
+                source_stack.append(path)
+            raise SandboxExecutionError(source_stack, exc[0], exc[1], exc[2])
         finally:
-            self._execution_stack.pop()
+            self._current_source = old_source
+            self._context._sandbox = old_sandbox
+            if path and becomes_current_path:
+                self._context.pop_source()
+
+    def push_subcontext(self, context):
+        """Push a SubContext onto the execution stack.
+
+        When called, the active context will be set to the specified context,
+        meaning all variable accesses will go through it. We also record this
+        SubContext as having been executed as part of this sandbox.
+        """
+        self._active_contexts.append(context)
+        if context not in self.subcontexts:
+            self.subcontexts.append(context)
+
+    def pop_subcontext(self, context):
+        """Pop a SubContext off the execution stack.
+
+        SubContexts must be pushed and popped in opposite order. This is
+        validated as part of the function call to ensure proper consumer API
+        use.
+        """
+        popped = self._active_contexts.pop()
+        assert popped == context
 
     def __getitem__(self, key):
         if key.isupper():
@@ -234,4 +300,6 @@ class Sandbox(dict):
         raise NotImplementedError('Not supported')
 
     def __contains__(self, key):
-        raise NotImplementedError('Not supported')
+        if key.isupper():
+            return key in self._context
+        return dict.__contains__(self, key)

@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -7,26 +8,21 @@
 #include "SmsIPCService.h"
 #include "nsXULAppAPI.h"
 #include "mozilla/dom/mobilemessage/SmsChild.h"
-#include "SmsMessage.h"
 #include "nsJSUtils.h"
 #include "mozilla/dom/MozMobileMessageManagerBinding.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/Preferences.h"
 #include "nsString.h"
+#include "mozilla/dom/ipc/BlobChild.h"
+#include "mozilla/unused.h"
 
 using namespace mozilla::dom;
 using namespace mozilla::dom::mobilemessage;
 
 namespace {
 
-const char* kPrefRilNumRadioInterfaces = "ril.numRadioInterfaces";
 #define kPrefMmsDefaultServiceId "dom.mms.defaultServiceId"
 #define kPrefSmsDefaultServiceId "dom.sms.defaultServiceId"
-const char* kObservedPrefs[] = {
-  kPrefMmsDefaultServiceId,
-  kPrefSmsDefaultServiceId,
-  nullptr
-};
 
 // TODO: Bug 767082 - WebSMS: sSmsChild leaks at shutdown
 PSmsChild* gSmsChild;
@@ -70,12 +66,13 @@ SendCursorRequest(const IPCMobileMessageCursor& aRequest,
   PSmsChild* smsChild = GetSmsChild();
   NS_ENSURE_TRUE(smsChild, NS_ERROR_FAILURE);
 
-  nsRefPtr<MobileMessageCursorChild> actor =
+  RefPtr<MobileMessageCursorChild> actor =
     new MobileMessageCursorChild(aRequestReply);
 
   // Add an extra ref for IPDL. Will be released in
   // SmsChild::DeallocPMobileMessageCursor().
-  actor->AddRef();
+  RefPtr<MobileMessageCursorChild> actorCopy(actor);
+  mozilla::Unused << actorCopy.forget().take();
 
   smsChild->SendPMobileMessageCursorConstructor(actor, aRequest);
 
@@ -86,6 +83,7 @@ SendCursorRequest(const IPCMobileMessageCursor& aRequest,
 uint32_t
 getDefaultServiceId(const char* aPrefKey)
 {
+  static const char* kPrefRilNumRadioInterfaces = "ril.numRadioInterfaces";
   int32_t id = mozilla::Preferences::GetInt(aPrefKey, 0);
   int32_t numRil = mozilla::Preferences::GetInt(kPrefRilNumRadioInterfaces, 1);
 
@@ -96,7 +94,7 @@ getDefaultServiceId(const char* aPrefKey)
   return id;
 }
 
-} // anonymous namespace
+} // namespace
 
 NS_IMPL_ISUPPORTS(SmsIPCService,
                   nsISmsService,
@@ -113,12 +111,17 @@ SmsIPCService::GetSingleton()
     sSingleton = new SmsIPCService();
   }
 
-  nsRefPtr<SmsIPCService> service = sSingleton;
+  RefPtr<SmsIPCService> service = sSingleton;
   return service.forget();
 }
 
 SmsIPCService::SmsIPCService()
 {
+  static const char* kObservedPrefs[] = {
+    kPrefMmsDefaultServiceId,
+    kPrefSmsDefaultServiceId,
+    nullptr
+  };
   Preferences::AddStrongObservers(this, kObservedPrefs);
   mMmsDefaultServiceId = getDefaultServiceId(kPrefMmsDefaultServiceId);
   mSmsDefaultServiceId = getDefaultServiceId(kPrefSmsDefaultServiceId);
@@ -178,6 +181,21 @@ SmsIPCService::GetSmscAddress(uint32_t aServiceId,
   return SendRequest(GetSmscAddressRequest(aServiceId), aRequest);
 }
 
+
+NS_IMETHODIMP
+SmsIPCService::SetSmscAddress(uint32_t aServiceId,
+                              const nsAString& aNumber,
+                              uint32_t aTypeOfNumber,
+                              uint32_t aNumberPlanIdentification,
+                              nsIMobileMessageCallback* aRequest)
+{
+  return SendRequest(SetSmscAddressRequest(aServiceId,
+                                           nsString(aNumber),
+                                           aTypeOfNumber,
+                                           aNumberPlanIdentification),
+                     aRequest);
+}
+
 NS_IMETHODIMP
 SmsIPCService::Send(uint32_t aServiceId,
                     const nsAString& aNumber,
@@ -190,14 +208,6 @@ SmsIPCService::Send(uint32_t aServiceId,
                                                               nsString(aMessage),
                                                               aSilent)),
                      aRequest);
-}
-
-NS_IMETHODIMP
-SmsIPCService::IsSilentNumber(const nsAString& aNumber,
-                              bool*            aIsSilent)
-{
-  NS_ERROR("We should not be here!");
-  return NS_ERROR_FAILURE;
 }
 
 NS_IMETHODIMP
@@ -249,6 +259,7 @@ SmsIPCService::CreateMessageCursor(bool aHasStartDate,
                                    const nsAString& aDelivery,
                                    bool aHasRead,
                                    bool aRead,
+                                   bool aHasThreadId,
                                    uint64_t aThreadId,
                                    bool aReverse,
                                    nsIMobileMessageCursorCallback* aCursorCallback,
@@ -273,6 +284,7 @@ SmsIPCService::CreateMessageCursor(bool aHasStartDate,
   data.delivery() = aDelivery;
   data.hasRead() = aHasRead;
   data.read() = aRead;
+  data.hasThreadId() = aHasThreadId;
   data.threadId() = aThreadId;
 
   return SendCursorRequest(CreateMessageCursorRequest(data, aReverse),

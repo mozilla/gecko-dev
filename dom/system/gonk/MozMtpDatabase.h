@@ -24,13 +24,12 @@ class RefCountedMtpServer;
 
 using namespace android;
 
-class MozMtpDatabase MOZ_FINAL : public MtpDatabase
+class MozMtpDatabase final : public MtpDatabase
 {
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MozMtpDatabase)
 
   MozMtpDatabase();
-  virtual ~MozMtpDatabase();
 
   // called from SendObjectInfo to reserve a database entry for the incoming file
   virtual MtpObjectHandle beginSendObject(const char* aPath,
@@ -116,13 +115,16 @@ public:
   void AddStorage(MtpStorageID aStorageID, const char* aPath, const char *aName);
   void RemoveStorage(MtpStorageID aStorageID);
 
-  void FileWatcherUpdate(RefCountedMtpServer* aMtpServer,
-                         DeviceStorageFile* aFile,
-                         const nsACString& aEventType);
+  void MtpWatcherUpdate(RefCountedMtpServer* aMtpServer,
+                        DeviceStorageFile* aFile,
+                        const nsACString& aEventType);
+
+protected:
+  virtual ~MozMtpDatabase();
 
 private:
 
-  struct DbEntry
+  struct DbEntry final
   {
     DbEntry()
       : mHandle(0),
@@ -131,7 +133,8 @@ private:
         mParent(0),
         mObjectSize(0),
         mDateCreated(0),
-        mDateModified(0) {}
+        mDateModified(0),
+        mDateAdded(0) {}
 
     NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DbEntry)
 
@@ -143,8 +146,12 @@ private:
     uint64_t        mObjectSize;
     nsCString       mDisplayName;
     nsCString       mPath;
-    PRTime          mDateCreated;
-    PRTime          mDateModified;
+    time_t          mDateCreated;
+    time_t          mDateModified;
+    time_t          mDateAdded;
+
+  protected:
+    ~DbEntry() {}
   };
 
   template<class T>
@@ -203,18 +210,21 @@ private:
   private:
     mozilla::Mutex& mMutex;
   };
-  typedef nsTArray<mozilla::RefPtr<DbEntry> > UnprotectedDbArray;
-  typedef ProtectedTArray<mozilla::RefPtr<DbEntry> > ProtectedDbArray;
+  typedef nsTArray<RefPtr<DbEntry> > UnprotectedDbArray;
+  typedef ProtectedTArray<RefPtr<DbEntry> > ProtectedDbArray;
 
-  struct StorageEntry
+  struct StorageEntry final
   {
     NS_INLINE_DECL_THREADSAFE_REFCOUNTING(StorageEntry)
 
     MtpStorageID  mStorageID;
     nsCString     mStoragePath;
     nsCString     mStorageName;
+
+  protected:
+    ~StorageEntry() {}
   };
-  typedef ProtectedTArray<mozilla::RefPtr<StorageEntry> > StorageArray;
+  typedef ProtectedTArray<RefPtr<StorageEntry> > StorageArray;
 
   enum MatchType
   {
@@ -226,11 +236,21 @@ private:
     MatchParentFormat,
   };
 
+  bool IsValidHandle(MtpObjectHandle aHandle)
+  {
+    return aHandle > 0 && aHandle < mDb.Length();
+  }
+
   void AddEntry(DbEntry* aEntry);
+  void AddEntryAndNotify(DbEntry* aEntr, RefCountedMtpServer* aMtpServer);
   void DumpEntries(const char* aLabel);
   MtpObjectHandle FindEntryByPath(const nsACString& aPath);
-  mozilla::TemporaryRef<DbEntry> GetEntry(MtpObjectHandle aHandle);
+  already_AddRefed<DbEntry> GetEntry(MtpObjectHandle aHandle);
   void RemoveEntry(MtpObjectHandle aHandle);
+  void RemoveEntryAndNotify(MtpObjectHandle aHandle, RefCountedMtpServer* aMtpServer);
+  void UpdateEntry(MtpObjectHandle aHandle, DeviceStorageFile* aFile);
+  void UpdateEntryAndNotify(MtpObjectHandle aHandle, DeviceStorageFile* aFile,
+                            RefCountedMtpServer* aMtpServer);
   void QueryEntries(MatchType aMatchType, uint32_t aMatchField1,
                     uint32_t aMatchField2, UnprotectedDbArray& aResult);
 
@@ -244,11 +264,13 @@ private:
 
   void AddDirectory(MtpStorageID aStorageID, const char *aPath, MtpObjectHandle aParent);
 
-  MtpObjectHandle CreateEntryForFile(const nsACString& aPath, DeviceStorageFile* aFile);
+  void CreateEntryForFileAndNotify(const nsACString& aPath,
+                                   DeviceStorageFile* aFile,
+                                   RefCountedMtpServer* aMtpServer);
 
   StorageArray::index_type FindStorage(MtpStorageID aStorageID);
   MtpStorageID FindStorageIDFor(const nsACString& aPath, nsCSubstring& aRemainder);
-  void FileWatcherNotify(DbEntry* aEntry, const char* aEventType);
+  void MtpWatcherNotify(DbEntry* aEntry, const char* aEventType);
 
   // We need a mutex to protext mDb and mStorage. The MTP server runs on a
   // dedicated thread, and it updates/accesses mDb. When files are updated

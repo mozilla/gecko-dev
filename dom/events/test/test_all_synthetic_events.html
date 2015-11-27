@@ -32,7 +32,15 @@ const kEventConstructors = {
                                                          return new AnimationEvent(aName, aProps);
                                                        },
                                              },
+  AnimationPlaybackEvent:                    { create: function (aName, aProps) {
+                                                         return new AnimationPlaybackEvent(aName, aProps);
+                                                       },
+                                             },
   AudioProcessingEvent:                      { create: null, // Cannot create untrusted event from JS.
+                                             },
+  BeforeAfterKeyboardEvent:                  { create: function (aName, aProps) {
+                                                         return new BeforeAfterKeyboardEvent(aName, aProps);
+                                                       },
                                              },
   BeforeUnloadEvent:                         { create: function (aName, aProps) {
                                                          var e = document.createEvent("beforeunloadevent");
@@ -56,16 +64,64 @@ const kEventConstructors = {
                                                           return new BluetoothDeviceEvent(aName, aProps);
                                                        },
                                              },
-  BluetoothDiscoveryStateChangedEvent:       { create: function (aName, aProps) {
-                                                          return new BluetoothDiscoveryStateChangedEvent(aName, aProps);
+  BluetoothGattAttributeEvent:               { create: function (aName, aProps) {
+                                                          return new BluetoothGattAttributeEvent(aName, aProps);
+                                                       },
+                                             },
+  BluetoothGattCharacteristicEvent:          { create: function (aName, aProps) {
+                                                          return new BluetoothGattCharacteristicEvent(aName, aProps);
+                                                       },
+                                             },
+  BluetoothLeDeviceEvent:                    { create: function (aName, aProps) {
+                                                          return new BluetoothLeDeviceEvent(aName, aProps);
+                                                       },
+                                             },
+  BluetoothObexAuthEvent:                    { create: function (aName, aProps) {
+                                                          return new BluetoothObexAuthEvent(aName, aProps);
                                                        },
                                              },
   BluetoothPairingEvent:                     { create: function (aName, aProps) {
                                                           return new BluetoothPairingEvent(aName, aProps);
                                                        },
                                              },
+  BluetoothMapFolderListingEvent:            { create: function (aName, aProps) {
+                                                          return new BluetoothMapFolderListingEvent(aName, aProps);
+                                                       },
+                                             },
+  BluetoothMapGetMessageEvent:               { create: function (aName, aProps) {
+                                                          return new BluetoothMapGetMessageEvent(aName, aProps);
+                                                       },
+                                             },
+  BluetoothMapMessagesListingEvent:          { create: function (aName, aProps) {
+                                                          return new BluetoothMapMessagesListingEvent(aName, aProps);
+                                                       },
+                                             },
+  BluetoothMapMessageUpdateEvent:            { create: function (aName, aProps) {
+                                                          return new BluetoothMapMessageUpdateEvent(aName, aProps);
+                                                       },
+                                             },
+  BluetoothMapSendMessageEvent:              { create: function (aName, aProps) {
+                                                          return new BluetoothMapSendMessageEvent(aName, aProps);
+                                                       },
+                                             },
+  BluetoothMapSetMessageStatusEvent:         { create: function (aName, aProps) {
+                                                          return new BluetoothMapSetMessageStatusEvent(aName, aProps);
+                                                       },
+                                             },
+  BluetoothPhonebookPullingEvent:            { create: function (aName, aProps) {
+                                                          return new BluetoothPhonebookPullingEvent(aName, aProps);
+                                                       },
+                                             },
   BluetoothStatusChangedEvent:               { create: function (aName, aProps) {
                                                           return new BluetoothStatusChangedEvent(aName, aProps);
+                                                       },
+                                             },
+  BluetoothVCardListingEvent:                { create: function (aName, aProps) {
+                                                          return new BluetoothVCardListingEvent(aName, aProps);
+                                                       },
+                                             },
+  BluetoothVCardPullingEvent:                { create: function (aName, aProps) {
+                                                          return new BluetoothVCardPullingEvent(aName, aProps);
                                                        },
                                              },
   CallEvent:                                 { create: function (aName, aProps) {
@@ -74,6 +130,22 @@ const kEventConstructors = {
                                              },
   CallGroupErrorEvent:                       { create: function (aName, aProps) {
                                                           return new CallGroupErrorEvent(aName, aProps);
+                                                       },
+                                             },
+  CameraClosedEvent:                        { create: function (aName, aProps) {
+                                                          return new CameraClosedEvent(aName, aProps);
+                                                       },
+                                             },
+  CameraConfigurationEvent:                  { create: function (aName, aProps) {
+                                                          return new CameraConfigurationEvent(aName, aProps);
+                                                       },
+                                             },
+  CameraFacesDetectedEvent:                  { create: function (aName, aProps) {
+                                                          return new CameraFacesDetectedEvent(aName, aProps);
+                                                       },
+                                             },
+  CameraStateChangeEvent:                    { create: function (aName, aProps) {
+                                                          return new CameraStateChangeEvent(aName, aProps);
                                                        },
                                              },
   CFStateChangeEvent:                        { create: function (aName, aProps) {
@@ -140,6 +212,10 @@ const kEventConstructors = {
                                                          return new DeviceProximityEvent(aName, aProps);
                                                        },
                                              },
+  DeviceStorageAreaChangedEvent:             { create: function (aName, aProps) {
+                                                         return new DeviceStorageAreaChangedEvent(aName, aProps);
+                                                       },
+                                             },
   DeviceStorageChangeEvent:                  { create: function (aName, aProps) {
                                                          return new DeviceStorageChangeEvent(aName, aProps);
                                                        },
@@ -169,6 +245,10 @@ const kEventConstructors = {
   },
   FocusEvent:                                { create: function (aName, aProps) {
                                                          return new FocusEvent(aName, aProps);
+                                                       },
+                                             },
+  FontFaceSetLoadEvent:                      { create: function (aName, aProps) {
+                                                         return new FontFaceSetLoadEvent(aName, aProps);
                                                        },
                                              },
   GamepadEvent:                              { create: function (aName, aProps) {
@@ -281,6 +361,10 @@ const kEventConstructors = {
                                                          return new MozNFCPeerEvent(aName, aProps);
                                                        },
                                              },
+  MozNFCTagEvent:                            { create: function (aName, aProps) {
+                                                         return new MozNFCTagEvent(aName, aProps);
+                                                       },
+                                             },
   MozOtaStatusEvent:                         { create: function (aName, aProps) {
                                                           return new MozOtaStatusEvent(aName, aProps);
                                                        },
@@ -365,20 +449,19 @@ const kEventConstructors = {
                                                          return new RTCPeerConnectionIceEvent(aName, aProps);
                                                        },
                                              },
-  RTCPeerConnectionIdentityEvent:            { create: function (aName, aProps) {
-                                                         return new RTCPeerConnectionIdentityEvent(aName, aProps);
-                                                       },
-                                             },
-  RTCPeerConnectionIdentityErrorEvent:       { create: function (aName, aProps) {
-                                                         return new RTCPeerConnectionIdentityErrorEvent(aName, aProps);
-                                                       },
-                                             },
   ScrollAreaEvent:                           { create: function (aName, aProps) {
                                                          var e = document.createEvent("scrollareaevent");
                                                          e.initScrollAreaEvent(aName, aProps.bubbles, aProps.cancelable,
                                                                                aProps.view, aProps.details,
                                                                                aProps.x || 0.0, aProps.y || 0.0,
                                                                                aProps.width || 0.0, aProps.height || 0.0);
+                                                         return e;
+                                                       },
+                                             },
+  ServiceWorkerMessageEvent:                 { create: function (aName, aProps) {
+                                                         var e = new ServiceWorkerMessageEvent("serviceworkermessageevent", { bubbles: aProps.bubbles,
+                                                             cancelable: aProps.cancelable, data: aProps.data, origin: aProps.origin,
+                                                             lastEventId: aProps.lastEventId, source: aProps.source });
                                                          return e;
                                                        },
                                              },
@@ -395,11 +478,22 @@ const kEventConstructors = {
                                                          return e;
                                                        },
                                              },
+  SpeechRecognitionError:                    { create: function (aName, aProps) {
+                                                         return new SpeechRecognitionError(aName, aProps);
+                                                       },
+                                             },
   SpeechRecognitionEvent:                    { create: function (aName, aProps) {
                                                          return new SpeechRecognitionEvent(aName, aProps);
                                                        },
                                              },
+  SpeechSynthesisErrorEvent:                 { create: function (aName, aProps) {
+                                                         aProps.error = "synthesis-unavailable";
+                                                         aProps.utterance = new SpeechSynthesisUtterance("Hello World");
+                                                         return new SpeechSynthesisErrorEvent(aName, aProps);
+                                                       },
+                                             },
   SpeechSynthesisEvent:                      { create: function (aName, aProps) {
+                                                         aProps.utterance = new SpeechSynthesisUtterance("Hello World");
                                                          return new SpeechSynthesisEvent(aName, aProps);
                                                        },
                                              },
@@ -429,6 +523,18 @@ const kEventConstructors = {
                                                          return e;
                                                        },
                                              },
+  TCPSocketErrorEvent:                       { create: function(aName, aProps) {
+                                                         return new TCPSocketErrorEvent(aName, aProps);
+                                                       },
+                                             },
+  TCPSocketEvent:                            { create: function(aName, aProps) {
+                                                         return new TCPSocketEvent(aName, aProps);
+                                                       },
+                                             },
+  TCPServerSocketEvent:                      { create: function(aName, aProps) {
+                                                         return new TCPServerSocketEvent(aName, aProps);
+                                                       },
+                                             },
   TimeEvent:                                 { create: function (aName, aProps) {
                                                          var e = document.createEvent("timeevent");
                                                          e.initTimeEvent(aName, aProps.view, aProps.detail);
@@ -450,6 +556,38 @@ const kEventConstructors = {
                                              },
   TransitionEvent:                           { create: function (aName, aProps) {
                                                          return new TransitionEvent(aName, aProps);
+                                                       },
+                                             },
+  TVCurrentChannelChangedEvent:              { create: function (aName, aProps) {
+                                                         return new TVCurrentChannelChangedEvent(aName, aProps);
+                                                       },
+                                             },
+  TVCurrentProgramChangedEvent:              { create: function (aName, aProps) {
+                                                         return new TVCurrentProgramChangedEvent(aName, aProps);
+                                                       },
+                                             },
+  TVCurrentSourceChangedEvent:               { create: function (aName, aProps) {
+                                                         return new TVCurrentSourceChangedEvent(aName, aProps);
+                                                       },
+                                             },
+  TVEITBroadcastedEvent:                     { create: function (aName, aProps) {
+                                                         return new TVEITBroadcastedEvent(aName, aProps);
+                                                       },
+                                             },
+  TVParentalControlChangedEvent:             { create: function (aName, aProps) {
+                                                         return new TVParentalControlChangedEvent(aName, aProps);
+                                                       },
+                                             },
+  TVProtectionStateChangedEvent:             { create: function (aName, aProps) {
+                                                         return new TVProtectionStateChangedEvent(aName, aProps);
+                                                       },
+                                             },
+  TVScanningStateChangedEvent:               { create: function (aName, aProps) {
+                                                         return new TVScanningStateChangedEvent(aName, aProps);
+                                                       },
+                                             },
+  TVTunerChangedEvent:                       { create: function (aName, aProps) {
+                                                         return new TVTunerChangedEvent(aName, aProps);
                                                        },
                                              },
   UIEvent:                                   { create: function (aName, aProps) {
@@ -501,7 +639,7 @@ for (var i = 0; i < props.length; i++) {
     continue;
   }
   if (typeof(event.getModifierState) == "function") {
-    const kModifiers = [ "Shift", "Control", "Alt", "AltGr", "Meta", "CapsLock", "ScrollLock", "NumLock", "OS", "Fn", "SymbolLock" ];
+    const kModifiers = [ "Shift", "Control", "Alt", "AltGr", "Meta", "CapsLock", "ScrollLock", "NumLock", "OS", "Fn", "FnLock", "Symbol", "SymbolLock" ];
     for (var j = 0; j < kModifiers.length; j++) {
       ok(true, "Calling " + props[i] + ".getModifierState(" + kModifiers[j] + ")...");
       var modifierState = event.getModifierState(kModifiers[j]);

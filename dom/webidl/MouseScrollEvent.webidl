@@ -4,8 +4,6 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-interface WindowProxy;
-
 interface MouseScrollEvent : MouseEvent
 {
   const long HORIZONTAL_AXIS = 1;
@@ -13,11 +11,10 @@ interface MouseScrollEvent : MouseEvent
 
   readonly attribute long axis;
 
-  [Throws]
   void initMouseScrollEvent(DOMString type,
                             boolean canBubble,
                             boolean cancelable,
-                            WindowProxy? view,
+                            Window? view,
                             long detail,
                             long screenX,
                             long screenY,

@@ -9,6 +9,7 @@ xul|caption {
 }
 
 xul|button,
+html|button,
 xul|colorpicker[type="button"],
 xul|menulist {
   margin: 2px 4px;
@@ -23,10 +24,31 @@ xul|checkbox {
   -moz-padding-start: 0;
 }
 
+@media not all and (-moz-windows-default-theme) {
+  xul|*.checkbox-check {
+    background-image: none !important;
+  }
+
+  xul|*.checkbox-check[checked] {
+    list-style-image: url("chrome://global/skin/in-content/check.svg#check-native");
+    background-color: -moz-dialog;
+  }
+}
+
 xul|radio {
   -moz-binding: url("chrome://global/content/bindings/radio.xml#radio");
-  -moz-margin-start: 0;
   -moz-padding-start: 0;
+}
+
+@media not all and (-moz-windows-default-theme) {
+  xul|*.radio-check {
+    background-image: none;
+  }
+
+  xul|*.radio-check[selected] {
+    list-style-image: url("chrome://global/skin/in-content/radio.svg#radio-native");
+    background-color: -moz-dialog;
+  }
 }
 
 xul|*.radio-icon,
@@ -34,8 +56,27 @@ xul|*.checkbox-icon {
   -moz-margin-end: 0;
 }
 
-html|a:-moz-focusring,
-xul|*.text-link:-moz-focusring,
-xul|*.inline-link:-moz-focusring {
-  border: 1px dotted -moz-DialogText;
+/* Never draw a border for the focusring, use outline instead */
+xul|*.button-box,
+xul|*.menulist-label-box,
+xul|*.radio-label-box,
+xul|*.checkbox-label-box {
+  border-style: none;
+}
+
+xul|*.inline-link:-moz-focusring,
+xul|button:-moz-focusring > xul|*.button-box,
+xul|menulist:-moz-focusring > xul|*.menulist-label-box,
+xul|radio[focused="true"] > xul|*.radio-label-box,
+xul|checkbox:-moz-focusring > xul|*.checkbox-label-box {
+  outline: 1px dotted;
+}
+
+/* Use a 2px border so that selected row highlight is still visible behind
+    an existing high-contrast border that uses the background color */
+@media not all and (-moz-windows-default-theme) {
+  xul|treechildren::-moz-tree-row(selected),
+  xul|listbox xul|listitem[selected="true"] {
+     border: 2px dotted Highlight;
+  }
 }

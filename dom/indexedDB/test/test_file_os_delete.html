@@ -83,6 +83,9 @@
     scheduleGC();
     yield undefined;
 
+    // Flush pending file deletions before checking usage.
+    flushPendingFileDeletions();
+
     getUsage(grabFileUsageAndContinueHandler);
     let endUsage = yield undefined;
 

@@ -6,6 +6,7 @@
 
 /* static functions */
 const DEBUG = false;
+const REQUEST_CPU_LOCK_TIMEOUT = 10 * 1000; // 10 seconds.
 
 function debug(aStr) {
   if (DEBUG)
@@ -18,8 +19,15 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/DOMRequestHelper.jsm");
 
+XPCOMUtils.defineLazyServiceGetter(this, "gPowerManagerService",
+                                   "@mozilla.org/power/powermanagerservice;1",
+                                   "nsIPowerManagerService");
+
 function AlarmsManager() {
   debug("Constructor");
+
+  // A <requestId, {cpuLock, timer}> map.
+  this._cpuLockDict = new Map();
 }
 
 AlarmsManager.prototype = {
@@ -61,18 +69,23 @@ AlarmsManager.prototype = {
         break;
     }
 
-    // Run JSON.stringify() in the sand box with the principal of the calling
-    // web page to ensure no cross-origin object is involved. A "Permission
-    // Denied" error will be thrown in case of privilege violation.
-    let sandbox = new Cu.Sandbox(Cu.getWebIDLCallerPrincipal());
-    sandbox.data = aData;
-    let data = Cu.evalInSandbox("JSON.stringify(data)", sandbox);
+    let data = aData;
+    if (aData) {
+      // Run JSON.stringify() in the sand box with the principal of the calling
+      // web page to ensure no cross-origin object is involved. A "Permission
+      // Denied" error will be thrown in case of privilege violation.
+      let sandbox = new Cu.Sandbox(Cu.getWebIDLCallerPrincipal());
+      sandbox.data = aData;
+      data = JSON.parse(Cu.evalInSandbox("JSON.stringify(data)", sandbox));
+    }
     let request = this.createRequest();
+    let requestId = this.getRequestId(request);
+    this._lockCpuForRequest(requestId);
     this._cpmm.sendAsyncMessage("AlarmsManager:Add",
-                                { requestId: this.getRequestId(request),
+                                { requestId: requestId,
                                   date: aDate,
                                   ignoreTimezone: isIgnoreTimezone,
-                                  data: JSON.parse(data),
+                                  data: data,
                                   pageURL: this._pageURL,
                                   manifestURL: this._manifestURL });
     return request;
@@ -108,6 +121,7 @@ AlarmsManager.prototype = {
 
     switch (aMessage.name) {
       case "AlarmsManager:Add:Return:OK":
+        this._unlockCpuForRequest(json.requestId);
         Services.DOMRequest.fireSuccess(request, json.id);
         break;
 
@@ -128,6 +142,7 @@ AlarmsManager.prototype = {
         break;
 
       case "AlarmsManager:Add:Return:KO":
+        this._unlockCpuForRequest(json.requestId);
         Services.DOMRequest.fireError(request, json.errorMsg);
         break;
 
@@ -169,6 +184,44 @@ AlarmsManager.prototype = {
   uninit: function uninit() {
     debug("uninit()");
   },
+
+  _lockCpuForRequest: function (aRequestId) {
+    if (this._cpuLockDict.has(aRequestId)) {
+      debug('Cpu wakelock for request ' + aRequestId + ' has been acquired. ' +
+            'You may call this function repeatedly or requestId is collision.');
+      return;
+    }
+
+    // Acquire a lock for given request and save for lookup lately.
+    debug('Acquire cpu lock for request ' + aRequestId);
+    let cpuLockInfo = {
+      cpuLock: gPowerManagerService.newWakeLock("cpu"),
+      timer: Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer)
+    };
+    this._cpuLockDict.set(aRequestId, cpuLockInfo);
+
+    // Start a timer to prevent from non-responding request.
+    cpuLockInfo.timer.initWithCallback(() => {
+      debug('Request timeout! Release the cpu lock');
+      this._unlockCpuForRequest(aRequestId);
+    }, REQUEST_CPU_LOCK_TIMEOUT, Ci.nsITimer.TYPE_ONE_SHOT);
+  },
+
+  _unlockCpuForRequest: function(aRequestId) {
+    let cpuLockInfo = this._cpuLockDict.get(aRequestId);
+    if (!cpuLockInfo) {
+      debug('The cpu lock for requestId ' + aRequestId + ' is either invalid ' +
+            'or has been released.');
+      return;
+    }
+
+    // Release the cpu lock and cancel the timer.
+    debug('Release the cpu lock for ' + aRequestId);
+    cpuLockInfo.cpuLock.unlock();
+    cpuLockInfo.timer.cancel();
+    this._cpuLockDict.delete(aRequestId);
+  },
+
 }
 
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory([AlarmsManager])

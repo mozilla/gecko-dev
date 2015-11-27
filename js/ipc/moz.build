@@ -5,6 +5,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 UNIFIED_SOURCES += [
+    'CPOWTimer.cpp',
     'JavaScriptChild.cpp',
     'JavaScriptParent.cpp',
     'JavaScriptShared.cpp',
@@ -17,18 +18,21 @@ IPDL_SOURCES += [
     'PJavaScript.ipdl',
 ]
 
-FAIL_ON_WARNINGS = True
-
 include('/ipc/chromium/chromium-config.mozbuild')
 
 FINAL_LIBRARY = 'xul'
 
 DEFINES['BIN_SUFFIX'] = '"%s"' % CONFIG['BIN_SUFFIX']
 
+EXPORTS.mozilla.jsipc = [
+    'CpowHolder.h',
+    'CrossProcessObjectWrappers.h',
+]
+
 LOCAL_INCLUDES += [
     '/dom/base',
     '/js/ipc',
-    '/js/public',
+    '/js/src',
     '/js/xpconnect/src',
     '/js/xpconnect/wrappers',
 ]

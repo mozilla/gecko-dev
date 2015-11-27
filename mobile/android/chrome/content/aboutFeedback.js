@@ -7,13 +7,22 @@
 // input.mozilla.org expects "Firefox for Android" as the product.
 const FEEDBACK_PRODUCT_STRING = "Firefox for Android";
 
-let Cc = Components.classes;
-let Ci = Components.interfaces;
-let Cu = Components.utils;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
+const HEARTY_ICON_MDPI = "chrome://browser/skin/images/icon_heart_mdpi.png";
+const HEARTY_ICON_HDPI = "chrome://browser/skin/images/icon_heart_hdpi.png";
+const HEARTY_ICON_XHDPI = "chrome://browser/skin/images/icon_heart_xhdpi.png";
+const HEARTY_ICON_XXHDPI = "chrome://browser/skin/images/icon_heart_xxhdpi.png";
+
+const FLOATY_ICON_MDPI = "chrome://browser/skin/images/icon_floaty_mdpi.png";
+const FLOATY_ICON_HDPI = "chrome://browser/skin/images/icon_floaty_hdpi.png";
+const FLOATY_ICON_XHDPI = "chrome://browser/skin/images/icon_floaty_xhdpi.png";
+const FLOATY_ICON_XXHDPI = "chrome://browser/skin/images/icon_floaty_xxhdpi.png";
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/Messaging.jsm");
-Cu.import("resource://gre/modules/UpdateChannel.jsm");
+Cu.import("resource://gre/modules/UpdateUtils.jsm");
 document.addEventListener("DOMContentLoaded", init, false);
 
 function dump(a) {
@@ -32,7 +41,22 @@ function init() {
     switchSection("sad");
   }, false);
 
-  window.addEventListener("unload", uninit, false);
+  let helpSectionIcon = FLOATY_ICON_XXHDPI;
+  let sadThanksIcon = HEARTY_ICON_XXHDPI;
+
+  if (window.devicePixelRatio <= 1) {
+    helpSectionIcon = FLOATY_ICON_MDPI;
+    sadThanksIcon = HEARTY_ICON_MDPI;
+  } else if (window.devicePixelRatio <= 1.5) {
+    helpSectionIcon = FLOATY_ICON_HDPI;
+    sadThanksIcon = HEARTY_ICON_HDPI;
+  } else if (window.devicePixelRatio <= 2) {
+    helpSectionIcon = FLOATY_ICON_XHDPI;
+    sadThanksIcon = HEARTY_ICON_XHDPI;
+  }
+
+  document.getElementById("sumo-icon").src = helpSectionIcon;
+  document.getElementById("sad-thanks-icon").src = sadThanksIcon;
 
   document.getElementById("open-play-store").addEventListener("click", openPlayStore, false);
   document.forms[0].addEventListener("submit", sendFeedback, false);
@@ -41,22 +65,23 @@ function init() {
   }
 
   let sumoLink = Services.urlFormatter.formatURLPref("app.support.baseURL");
-  document.getElementById("sumo-link").href = sumoLink;
+  document.getElementById("help-section").addEventListener("click", function() {
+    window.open(sumoLink, "_blank");
+  }, false);
 
   window.addEventListener("popstate", function (aEvent) {
 	updateActiveSection(aEvent.state ? aEvent.state.section : "intro")
   }, false);
 
   // Fill "Last visited site" input with most recent history entry URL.
-  Services.obs.addObserver(function observer(aSubject, aTopic, aData) {
-	document.getElementById("last-url").value = aData;
-  }, "Feedback:LastUrl", false);
-
-  Messaging.sendRequest({ type: "Feedback:LastUrl" });
-}
-
-function uninit() {
-  Services.obs.removeObserver(this, "Feedback:LastUrl");
+  Messaging.sendRequestForResult({ type: "Feedback:LastUrl" }).then(function(aData) {
+    aData = aData.substring(0, 200);
+    document.getElementById("last-url").value = aData;
+    // Enable the parent div iff the URL is valid.
+    if (aData.length != 0) {
+      document.getElementById("last-url-div").style.display="block";
+    }
+  });
 }
 
 function switchSection(aSection) {
@@ -96,24 +121,15 @@ function sendFeedback(aEvent) {
   let sectionElement = document.getElementById(section);
   let descriptionElement = sectionElement.querySelector(".description");
 
-  // Bail if the description value isn't valid. HTML5 form validation will take care
-  // of showing an error message for us.
-  if (!descriptionElement.validity.valid)
-	return;
-
   let data = {};
   data["happy"] = false;
   data["description"] = descriptionElement.value;
   data["product"] = FEEDBACK_PRODUCT_STRING;
 
+  let urlCheckBox = document.getElementById("last-checkbox");
   let urlElement = document.getElementById("last-url");
-  // Bail if the URL value isn't valid. HTML5 form validation will take care
-  // of showing an error message for us.
-  if (!urlElement.validity.valid)
-	return;
-
   // Only send a URL string if the user provided one.
-  if (urlElement.value) {
+  if (urlCheckBox.checked) {
     data["url"] = urlElement.value;
   }
 
@@ -122,7 +138,16 @@ function sendFeedback(aEvent) {
   data["platform"] = Services.appinfo.OS;
   data["version"] = Services.appinfo.version;
   data["locale"] = Services.locale.getSystemLocale().getCategory("NSILOCALE_CTYPE");
-  data["channel"] = UpdateChannel.get();
+  data["channel"] = UpdateUtils.UpdateChannel;
+
+  // Source field is added only when Fennec prompts the user.
+  let getParam = window.location.href.split("?");
+  if (getParam.length > 1) {
+    let urlParam = new URLSearchParams(getParam[1]);
+    if(urlParam.get("source")) {
+      data["source"] = urlParam.get("source");
+    }
+  }
 
   let req = new XMLHttpRequest();
   req.addEventListener("error", function() {

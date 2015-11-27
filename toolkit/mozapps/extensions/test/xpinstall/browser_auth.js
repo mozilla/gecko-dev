@@ -8,6 +8,10 @@ function test() {
   Harness.installsCompletedCallback = finish_test;
   Harness.setup();
 
+  var prefs = Cc["@mozilla.org/preferences-service;1"].
+                        getService(Ci.nsIPrefBranch);
+  prefs.setIntPref("network.auth.subresource-http-auth-allow", 2);
+
   var pm = Services.perms;
   pm.add(makeURI("http://example.com/"), "install", pm.ALLOW_ACTION);
 
@@ -36,7 +40,7 @@ function finish_test(count) {
                           .getService(Components.interfaces.nsIHttpAuthManager);
   authMgr.clearAll();
 
-  Services.perms.remove("example.com", "install");
+  Services.perms.remove(makeURI("http://example.com"), "install");
 
   gBrowser.removeCurrentTab();
   Harness.finish();

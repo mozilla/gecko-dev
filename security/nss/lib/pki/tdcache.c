@@ -329,7 +329,7 @@ nssTrustDomain_RemoveCertFromCacheLOCKED (
     nssList *subjectList;
     cache_entry *ce;
     NSSArena *arena;
-    NSSUTF8 *nickname;
+    NSSUTF8 *nickname = NULL;
 
 #ifdef DEBUG_CACHE
     log_cert_ref("attempt to remove cert", cert);
@@ -391,6 +391,7 @@ remove_token_certs(const void *k, void *v, void *a)
     nssPKIObject *object = &c->object;
     struct token_cert_dtor *dtor = a;
     PRUint32 i;
+    nssPKIObject_AddRef(object);
     nssPKIObject_Lock(object);
     for (i=0; i<object->numInstances; i++) {
 	if (object->instances[i]->token == dtor->token) {
@@ -409,6 +410,7 @@ remove_token_certs(const void *k, void *v, void *a)
 	}
     }
     nssPKIObject_Unlock(object);
+    nssPKIObject_Destroy(object);
     return;
 }
 
@@ -435,17 +437,21 @@ nssTrustDomain_RemoveTokenCertsFromCache (
     dtor.numCerts = 0;
     dtor.arrSize = arrSize;
     PZ_Lock(td->cache->lock);
-    nssHash_Iterate(td->cache->issuerAndSN, remove_token_certs, (void *)&dtor);
+    nssHash_Iterate(td->cache->issuerAndSN, remove_token_certs, &dtor);
     for (i=0; i<dtor.numCerts; i++) {
 	if (dtor.certs[i]->object.numInstances == 0) {
 	    nssTrustDomain_RemoveCertFromCacheLOCKED(td, dtor.certs[i]);
 	    dtor.certs[i] = NULL;  /* skip this cert in the second for loop */
+	} else {
+	    /* make sure it doesn't disappear on us before we finish */
+	    nssCertificate_AddRef(dtor.certs[i]);
 	}
     }
     PZ_Unlock(td->cache->lock);
     for (i=0; i<dtor.numCerts; i++) {
 	if (dtor.certs[i]) {
 	    STAN_ForceCERTCertificateUpdate(dtor.certs[i]);
+	    nssCertificate_Destroy(dtor.certs[i]);
 	}
     }
     nss_ZFreeIf(dtor.certs);
@@ -770,14 +776,18 @@ add_cert_to_cache (
     added++;
     /* If a new subject entry was created, also need nickname and/or email */
     if (subjectList != NULL) {
+#ifdef nodef
 	PRBool handle = PR_FALSE;
+#endif
 	if (certNickname) {
 	    nssrv = add_nickname_entry(arena, td->cache, 
 						certNickname, subjectList);
 	    if (nssrv != PR_SUCCESS) {
 		goto loser;
 	    }
+#ifdef nodef
 	    handle = PR_TRUE;
+#endif
 	    added++;
 	}
 	if (cert->email) {
@@ -785,7 +795,9 @@ add_cert_to_cache (
 	    if (nssrv != PR_SUCCESS) {
 		goto loser;
 	    }
+#ifdef nodef
 	    handle = PR_TRUE;
+#endif
 	    added += 2;
 	}
 #ifdef nodef
@@ -1046,32 +1058,6 @@ nssTrustDomain_GetCertForIssuerAndSNFromCache (
     return rvCert;
 }
 
-static PRStatus
-issuer_and_serial_from_encoding (
-  NSSBER *encoding, 
-  NSSDER *issuer, 
-  NSSDER *serial
-)
-{
-    SECItem derCert, derIssuer, derSerial;
-    SECStatus secrv;
-    derCert.data = (unsigned char *)encoding->data;
-    derCert.len = encoding->size;
-    secrv = CERT_IssuerNameFromDERCert(&derCert, &derIssuer);
-    if (secrv != SECSuccess) {
-	return PR_FAILURE;
-    }
-    secrv = CERT_SerialNumberFromDERCert(&derCert, &derSerial);
-    if (secrv != SECSuccess) {
-	return PR_FAILURE;
-    }
-    issuer->data = derIssuer.data;
-    issuer->size = derIssuer.len;
-    serial->data = derSerial.data;
-    serial->size = derSerial.len;
-    return PR_SUCCESS;
-}
-
 /*
  * Look for a specific cert in the cache
  */
@@ -1084,7 +1070,7 @@ nssTrustDomain_GetCertByDERFromCache (
     PRStatus nssrv = PR_FAILURE;
     NSSDER issuer, serial;
     NSSCertificate *rvCert;
-    nssrv = issuer_and_serial_from_encoding(der, &issuer, &serial);
+    nssrv = nssPKIX509_GetIssuerAndSerialFromDER(der, &issuer, &serial);
     if (nssrv != PR_SUCCESS) {
 	return NULL;
     }

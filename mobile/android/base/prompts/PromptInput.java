@@ -17,6 +17,7 @@ import org.mozilla.gecko.widget.FloatingHintEditText;
 
 import android.content.Context;
 import android.content.res.Configuration;
+import android.support.v7.widget.AppCompatCheckBox;
 import android.text.Html;
 import android.text.InputType;
 import android.text.TextUtils;
@@ -39,6 +40,8 @@ public class PromptInput {
     protected final String mType;
     protected final String mId;
     protected final String mValue;
+    protected final String mMinValue;
+    protected final String mMaxValue;
     protected OnChangeListener mListener;
     protected View mView;
     public static final String LOGTAG = "GeckoPromptInput";
@@ -62,6 +65,7 @@ public class PromptInput {
             mAutofocus = object.optBoolean("autofocus");
         }
 
+        @Override
         public View getView(final Context context) throws UnsupportedOperationException {
             EditText input = new FloatingHintEditText(context);
             input.setInputType(InputType.TYPE_CLASS_TEXT);
@@ -100,6 +104,7 @@ public class PromptInput {
             super(obj);
         }
 
+        @Override
         public View getView(final Context context) throws UnsupportedOperationException {
             EditText input = (EditText) super.getView(context);
             input.setRawInputType(Configuration.KEYBOARD_12KEY);
@@ -115,6 +120,7 @@ public class PromptInput {
             super(obj);
         }
 
+        @Override
         public View getView(Context context) throws UnsupportedOperationException {
             EditText input = (EditText) super.getView(context);
             input.setInputType(InputType.TYPE_CLASS_TEXT |
@@ -132,15 +138,16 @@ public class PromptInput {
 
     public static class CheckboxInput extends PromptInput {
         public static final String INPUT_TYPE = "checkbox";
-        private boolean mChecked;
+        private final boolean mChecked;
 
         public CheckboxInput(JSONObject obj) {
             super(obj);
             mChecked = obj.optBoolean("checked");
         }
 
+        @Override
         public View getView(Context context) throws UnsupportedOperationException {
-            CheckBox checkbox = new CheckBox(context);
+            final CheckBox checkbox = new AppCompatCheckBox(context);
             checkbox.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
             checkbox.setText(mLabel);
             checkbox.setChecked(mChecked);
@@ -169,11 +176,12 @@ public class PromptInput {
             super(obj);
         }
 
+        @Override
         public View getView(Context context) throws UnsupportedOperationException {
             if (mType.equals("date")) {
                 try {
                     DateTimePicker input = new DateTimePicker(context, "yyyy-MM-dd", mValue,
-                                                              DateTimePicker.PickersState.DATE);
+                                                              DateTimePicker.PickersState.DATE, mMinValue, mMaxValue);
                     input.toggleCalendar(true);
                     mView = (View)input;
                 } catch (UnsupportedOperationException ex) {
@@ -195,7 +203,7 @@ public class PromptInput {
                 }
             } else if (mType.equals("week")) {
                 DateTimePicker input = new DateTimePicker(context, "yyyy-'W'ww", mValue,
-                                                          DateTimePicker.PickersState.WEEK);
+                                                          DateTimePicker.PickersState.WEEK, mMinValue, mMaxValue);
                 mView = (View)input;
             } else if (mType.equals("time")) {
                 TimePicker input = new TimePicker(context);
@@ -211,13 +219,14 @@ public class PromptInput {
                 input.setCurrentMinute(calendar.get(GregorianCalendar.MINUTE));
                 mView = (View)input;
             } else if (mType.equals("datetime-local") || mType.equals("datetime")) {
-                DateTimePicker input = new DateTimePicker(context, "yyyy-MM-dd HH:mm", mValue,
-                                                          DateTimePicker.PickersState.DATETIME);
+                DateTimePicker input = new DateTimePicker(context, "yyyy-MM-dd HH:mm", mValue.replace("T"," ").replace("Z", ""),
+                                                          DateTimePicker.PickersState.DATETIME, 
+                                                          mMinValue.replace("T"," ").replace("Z",""), mMaxValue.replace("T"," ").replace("Z", ""));
                 input.toggleCalendar(true);
                 mView = (View)input;
             } else if (mType.equals("month")) {
                 DateTimePicker input = new DateTimePicker(context, "yyyy-MM", mValue,
-                                                          DateTimePicker.PickersState.MONTH);
+                                                          DateTimePicker.PickersState.MONTH, mMinValue, mMaxValue);
                 mView = (View)input;
             }
             return mView;
@@ -250,11 +259,11 @@ public class PromptInput {
                 } else if (mType.equals("week")) {
                     return formatDateString("yyyy-'W'ww",calendar);
                 } else if (mType.equals("datetime-local")) {
-                    return formatDateString("yyyy-MM-dd HH:mm",calendar);
+                    return formatDateString("yyyy-MM-dd'T'HH:mm",calendar);
                 } else if (mType.equals("datetime")) {
                     calendar.set(GregorianCalendar.ZONE_OFFSET,0);
                     calendar.setTimeInMillis(dp.getTimeInMillis());
-                    return formatDateString("yyyy-MM-dd HH:mm",calendar);
+                    return formatDateString("yyyy-MM-dd'T'HH:mm'Z'",calendar);
                 } else if (mType.equals("month")) {
                     return formatDateString("yyyy-MM",calendar);
                 }
@@ -277,6 +286,7 @@ public class PromptInput {
             mSelected = obj.optInt("selected");
         }
 
+        @Override
         public View getView(final Context context) throws UnsupportedOperationException {
             if (Versions.preHC) {
                 spinner = new Spinner(context);
@@ -311,7 +321,7 @@ public class PromptInput {
 
         @Override
         public Object getValue() {
-            return new Integer(spinner.getSelectedItemPosition());
+            return spinner.getSelectedItemPosition();
         }
     }
 
@@ -321,6 +331,7 @@ public class PromptInput {
             super(obj);
         }
 
+        @Override
         public View getView(Context context) throws UnsupportedOperationException {
             // not really an input, but a way to add labels and such to the dialog
             TextView view = new TextView(context);
@@ -336,35 +347,41 @@ public class PromptInput {
         String id = obj.optString("id");
         mId = TextUtils.isEmpty(id) ? mType : id;
         mValue = obj.optString("value");
+        mMaxValue = obj.optString("max");
+        mMinValue = obj.optString("min");
     }
 
     public static PromptInput getInput(JSONObject obj) {
         String type = obj.optString("type");
-        if (EditInput.INPUT_TYPE.equals(type)) {
-            return new EditInput(obj);
-        } else if (NumberInput.INPUT_TYPE.equals(type)) {
-            return new NumberInput(obj);
-        } else if (PasswordInput.INPUT_TYPE.equals(type)) {
-            return new PasswordInput(obj);
-        } else if (CheckboxInput.INPUT_TYPE.equals(type)) {
-            return new CheckboxInput(obj);
-        } else if (MenulistInput.INPUT_TYPE.equals(type)) {
-            return new MenulistInput(obj);
-        } else if (LabelInput.INPUT_TYPE.equals(type)) {
-            return new LabelInput(obj);
-        } else if (IconGridInput.INPUT_TYPE.equals(type)) {
-            return new IconGridInput(obj);
-        } else if (ColorPickerInput.INPUT_TYPE.equals(type)) {
-            return new ColorPickerInput(obj);
-        } else if (TabInput.INPUT_TYPE.equals(type)) {
-            return new TabInput(obj);
-        } else {
-            for (String dtType : DateTimeInput.INPUT_TYPES) {
-                if (dtType.equals(type)) {
-                    return new DateTimeInput(obj);
+        switch (type) {
+            case EditInput.INPUT_TYPE:
+                return new EditInput(obj);
+            case NumberInput.INPUT_TYPE:
+                return new NumberInput(obj);
+            case PasswordInput.INPUT_TYPE:
+                return new PasswordInput(obj);
+            case CheckboxInput.INPUT_TYPE:
+                return new CheckboxInput(obj);
+            case MenulistInput.INPUT_TYPE:
+                return new MenulistInput(obj);
+            case LabelInput.INPUT_TYPE:
+                return new LabelInput(obj);
+            case IconGridInput.INPUT_TYPE:
+                return new IconGridInput(obj);
+            case ColorPickerInput.INPUT_TYPE:
+                return new ColorPickerInput(obj);
+            case TabInput.INPUT_TYPE:
+                return new TabInput(obj);
+            default:
+                for (String dtType : DateTimeInput.INPUT_TYPES) {
+                    if (dtType.equals(type)) {
+                        return new DateTimeInput(obj);
+                    }
                 }
-            }
+
+                break;
         }
+
         return null;
     }
 

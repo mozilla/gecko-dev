@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -16,13 +17,13 @@
 
 class nsIContent;
 class nsIDOMEvent;
-class nsIScriptGlobalObject;
 class nsPresContext;
 
 template<class E> class nsCOMArray;
 
 namespace mozilla {
 namespace dom {
+class Event;
 class EventTarget;
 } // namespace dom
 
@@ -245,8 +246,8 @@ public:
    * Neither aTarget nor aEvent is allowed to be nullptr.
    *
    * If aTargets is non-null, event target chain will be created, but
-   * event won't be handled. In this case aEvent->message should be
-   * NS_EVENT_NULL.
+   * event won't be handled. In this case aEvent->mMessage should be
+   * eVoidEvent.
    * @note Use this method when dispatching a WidgetEvent.
    */
   static nsresult Dispatch(nsISupports* aTarget,
@@ -255,7 +256,7 @@ public:
                            nsIDOMEvent* aDOMEvent = nullptr,
                            nsEventStatus* aEventStatus = nullptr,
                            EventDispatchingCallback* aCallback = nullptr,
-                           nsCOMArray<dom::EventTarget>* aTargets = nullptr);
+                           nsTArray<dom::EventTarget*>* aTargets = nullptr);
 
   /**
    * Dispatches an event.
@@ -272,13 +273,12 @@ public:
                                    nsEventStatus* aEventStatus);
 
   /**
-   * Creates a DOM Event.
+   * Creates a DOM Event.  Returns null if the event type is unsupported.
    */
-  static nsresult CreateEvent(dom::EventTarget* aOwner,
-                              nsPresContext* aPresContext,
-                              WidgetEvent* aEvent,
-                              const nsAString& aEventType,
-                              nsIDOMEvent** aDOMEvent);
+  static already_AddRefed<dom::Event> CreateEvent(dom::EventTarget* aOwner,
+                                                  nsPresContext* aPresContext,
+                                                  WidgetEvent* aEvent,
+                                                  const nsAString& aEventType);
 
   /**
    * Called at shutting down.

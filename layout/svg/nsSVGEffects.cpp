@@ -21,9 +21,6 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 
-// nsSVGRenderingObserver impl
-NS_IMPL_ISUPPORTS(nsSVGRenderingObserver, nsIMutationObserver)
-
 void
 nsSVGRenderingObserver::StartListening()
 {
@@ -115,7 +112,8 @@ nsSVGRenderingObserver::AttributeChanged(nsIDocument* aDocument,
                                          dom::Element* aElement,
                                          int32_t aNameSpaceID,
                                          nsIAtom* aAttribute,
-                                         int32_t aModType)
+                                         int32_t aModType,
+                                         const nsAttrValue* aOldValue)
 {
   // An attribute belonging to the element that we are observing *or one of its
   // descendants* has changed.
@@ -181,7 +179,7 @@ nsSVGRenderingObserver::ContentRemoved(nsIDocument *aDocument,
 nsSVGIDRenderingObserver::nsSVGIDRenderingObserver(nsIURI* aURI,
                                                    nsIContent* aObservingContent,
                                                    bool aReferenceImage)
-  : mElement(MOZ_THIS_IN_INITIALIZER_LIST())
+  : mElement(this)
 {
   // Start watching the target element
   mElement.Reset(aObservingContent, aURI, true, aReferenceImage);
@@ -219,6 +217,8 @@ nsSVGFrameReferenceFromProperty::Get()
   return mFrame;
 }
 
+NS_IMPL_ISUPPORTS(nsSVGRenderingObserverProperty, nsIMutationObserver)
+
 void
 nsSVGRenderingObserverProperty::DoUpdate()
 {
@@ -228,7 +228,9 @@ nsSVGRenderingObserverProperty::DoUpdate()
   if (frame && frame->IsFrameOfType(nsIFrame::eSVG)) {
     // Changes should propagate out to things that might be observing
     // the referencing frame or its ancestors.
-    nsSVGEffects::InvalidateRenderingObservers(frame);
+    nsLayoutUtils::PostRestyleEvent(
+      frame->GetContent()->AsElement(), nsRestyleHint(0),
+      nsChangeHint_InvalidateRenderingObservers);
   }
 }
 
@@ -276,7 +278,7 @@ nsSVGFilterChainObserver::nsSVGFilterChainObserver(const nsTArray<nsStyleFilter>
     if (aFilters[i].GetType() != NS_STYLE_FILTER_URL)
       continue;
 
-    nsRefPtr<nsSVGFilterReference> reference =
+    RefPtr<nsSVGFilterReference> reference =
       new nsSVGFilterReference(aFilters[i].GetURL(), aFilteredElement, this);
     mReferences.AppendElement(reference);
   }
@@ -316,15 +318,15 @@ nsSVGFilterProperty::DoUpdate()
   if (!frame)
     return;
 
-  if (frame && frame->IsFrameOfType(nsIFrame::eSVG)) {
-    // Changes should propagate out to things that might be observing
-    // the referencing frame or its ancestors.
-    nsSVGEffects::InvalidateRenderingObservers(frame);
-  }
-
   // Repaint asynchronously in case the filter frame is being torn down
   nsChangeHint changeHint =
     nsChangeHint(nsChangeHint_RepaintFrame);
+
+  if (frame && frame->IsFrameOfType(nsIFrame::eSVG)) {
+    // Changes should propagate out to things that might be observing
+    // the referencing frame or its ancestors.
+    NS_UpdateHint(changeHint, nsChangeHint_InvalidateRenderingObservers);
+  }
 
   // Don't need to request UpdateOverflow if we're being reflowed.
   if (!(frame->GetStateBits() & NS_FRAME_IN_REFLOW)) {
@@ -351,9 +353,9 @@ nsSVGMarkerProperty::DoUpdate()
 
   // Don't need to request ReflowFrame if we're being reflowed.
   if (!(frame->GetStateBits() & NS_FRAME_IN_REFLOW)) {
+    NS_UpdateHint(changeHint, nsChangeHint_InvalidateRenderingObservers);
     // XXXjwatt: We need to unify SVG into standard reflow so we can just use
     // nsChangeHint_NeedReflow | nsChangeHint_NeedDirtyReflow here.
-    nsSVGEffects::InvalidateRenderingObservers(frame);
     // XXXSDL KILL THIS!!!
     nsSVGUtils::ScheduleReflowSVG(frame);
   }
@@ -365,7 +367,7 @@ bool
 nsSVGTextPathProperty::TargetIsValid()
 {
   Element* target = GetTarget();
-  return target && target->IsSVG(nsGkAtoms::path);
+  return target && target->IsSVGElement(nsGkAtoms::path);
 }
 
 void
@@ -423,7 +425,9 @@ nsSVGPaintingProperty::DoUpdate()
     return;
 
   if (frame->GetStateBits() & NS_FRAME_SVG_LAYOUT) {
-    nsSVGEffects::InvalidateRenderingObservers(frame);
+    nsLayoutUtils::PostRestyleEvent(
+      frame->GetContent()->AsElement(), nsRestyleHint(0),
+      nsChangeHint_InvalidateRenderingObservers);
     frame->InvalidateFrameSubtree();
   } else {
     InvalidateAllContinuations(frame);
@@ -487,9 +491,9 @@ nsSVGMarkerProperty *
 nsSVGEffects::GetMarkerProperty(nsIURI *aURI, nsIFrame *aFrame,
                                 const FramePropertyDescriptor *aProp)
 {
-  NS_ABORT_IF_FALSE(aFrame->GetType() == nsGkAtoms::svgPathGeometryFrame &&
-                      static_cast<nsSVGPathGeometryElement*>(aFrame->GetContent())->IsMarkable(),
-                    "Bad frame");
+  MOZ_ASSERT(aFrame->GetType() == nsGkAtoms::svgPathGeometryFrame &&
+               static_cast<nsSVGPathGeometryElement*>(aFrame->GetContent())->IsMarkable(),
+             "Bad frame");
   return static_cast<nsSVGMarkerProperty*>(
           GetEffectProperty(aURI, aFrame, aProp, CreateMarkerProperty));
 }
@@ -551,8 +555,12 @@ nsSVGEffects::GetEffectProperties(nsIFrame *aFrame)
   EffectProperties result;
   const nsStyleSVGReset *style = aFrame->StyleSVGReset();
   result.mFilter = GetOrCreateFilterProperty(aFrame);
-  result.mClipPath =
-    GetPaintingProperty(style->mClipPath, aFrame, ClipPathProperty());
+  if (style->mClipPath.GetType() == NS_STYLE_CLIP_PATH_URL) {
+    result.mClipPath =
+      GetPaintingProperty(style->mClipPath.GetURL(), aFrame, ClipPathProperty());
+  } else {
+    result.mClipPath = nullptr;
+  }
   result.mMask =
     GetPaintingProperty(style->mMask, aFrame, MaskProperty());
   return result;
@@ -565,8 +573,18 @@ nsSVGEffects::GetPaintServer(nsIFrame *aTargetFrame, const nsStyleSVGPaint *aPai
   if (aPaint->mType != eStyleSVGPaintType_Server)
     return nullptr;
 
-  nsIFrame *frame = aTargetFrame->GetContent()->IsNodeOfType(nsINode::eTEXT) ?
-                      aTargetFrame->GetParent() : aTargetFrame;
+  // If we're looking at a frame within SVG text, then we need to look up
+  // to find the right frame to get the painting property off.  We should at
+  // least look up past a text frame, and if the text frame's parent is the
+  // anonymous block frame, then we look up to its parent (the SVGTextFrame).
+  nsIFrame* frame = aTargetFrame;
+  if (frame->GetContent()->IsNodeOfType(nsINode::eTEXT)) {
+    frame = frame->GetParent();
+    nsIFrame* grandparent = frame->GetParent();
+    if (grandparent && grandparent->GetType() == nsGkAtoms::svgTextFrame) {
+      frame = grandparent;
+    }
+  }
   nsSVGPaintingProperty *property =
     nsSVGEffects::GetPaintingProperty(aPaint->mPaint.mPaintServer, frame, aType);
   if (!property)
@@ -652,30 +670,6 @@ nsSVGEffects::GetFilterProperty(nsIFrame *aFrame)
     (aFrame->Properties().Get(FilterProperty()));
 }
 
-static PLDHashOperator
-GatherEnumerator(nsPtrHashKey<nsSVGRenderingObserver>* aEntry, void* aArg)
-{
-  nsTArray<nsSVGRenderingObserver*>* array =
-    static_cast<nsTArray<nsSVGRenderingObserver*>*>(aArg);
-  array->AppendElement(aEntry->GetKey());
-
-  return PL_DHASH_REMOVE;
-}
-
-static PLDHashOperator
-GatherEnumeratorForReflow(nsPtrHashKey<nsSVGRenderingObserver>* aEntry, void* aArg)
-{
-  if (!aEntry->GetKey()->ObservesReflow()) {
-    return PL_DHASH_NEXT;
-  }
-
-  nsTArray<nsSVGRenderingObserver*>* array =
-    static_cast<nsTArray<nsSVGRenderingObserver*>*>(aArg);
-  array->AppendElement(aEntry->GetKey());
-
-  return PL_DHASH_REMOVE;
-}
-
 void
 nsSVGRenderingObserverList::InvalidateAll()
 {
@@ -684,8 +678,10 @@ nsSVGRenderingObserverList::InvalidateAll()
 
   nsAutoTArray<nsSVGRenderingObserver*,10> observers;
 
-  // The PL_DHASH_REMOVE in GatherEnumerator drops all our observers here:
-  mObservers.EnumerateEntries(GatherEnumerator, &observers);
+  for (auto it = mObservers.Iter(); !it.Done(); it.Next()) {
+    observers.AppendElement(it.Get()->GetKey());
+  }
+  mObservers.Clear();
 
   for (uint32_t i = 0; i < observers.Length(); ++i) {
     observers[i]->InvalidateViaReferencedElement();
@@ -700,8 +696,13 @@ nsSVGRenderingObserverList::InvalidateAllForReflow()
 
   nsAutoTArray<nsSVGRenderingObserver*,10> observers;
 
-  // The PL_DHASH_REMOVE in GatherEnumerator drops all our observers here:
-  mObservers.EnumerateEntries(GatherEnumeratorForReflow, &observers);
+  for (auto it = mObservers.Iter(); !it.Done(); it.Next()) {
+    nsSVGRenderingObserver* obs = it.Get()->GetKey();
+    if (obs->ObservesReflow()) {
+      observers.AppendElement(obs);
+      it.Remove();
+    }
+  }
 
   for (uint32_t i = 0; i < observers.Length(); ++i) {
     observers[i]->InvalidateViaReferencedElement();
@@ -713,8 +714,10 @@ nsSVGRenderingObserverList::RemoveAll()
 {
   nsAutoTArray<nsSVGRenderingObserver*,10> observers;
 
-  // The PL_DHASH_REMOVE in GatherEnumerator drops all our observers here:
-  mObservers.EnumerateEntries(GatherEnumerator, &observers);
+  for (auto it = mObservers.Iter(); !it.Done(); it.Next()) {
+    observers.AppendElement(it.Get()->GetKey());
+  }
+  mObservers.Clear();
 
   // Our list is now cleared.  We need to notify the observers we've removed,
   // so they can update their state & remove themselves as mutation-observers.
@@ -770,6 +773,9 @@ nsSVGEffects::InvalidateRenderingObservers(nsIFrame *aFrame)
   if (!aFrame->GetContent()->IsElement())
     return;
 
+  // If the rendering has changed, the bounds may well have changed too:
+  aFrame->Properties().Delete(nsSVGUtils::ObjectBoundingBoxProperty());
+
   nsSVGRenderingObserverList *observerList =
     GetObserverList(aFrame->GetContent()->AsElement());
   if (observerList) {
@@ -794,6 +800,12 @@ nsSVGEffects::InvalidateRenderingObservers(nsIFrame *aFrame)
 void
 nsSVGEffects::InvalidateDirectRenderingObservers(Element *aElement, uint32_t aFlags /* = 0 */)
 {
+  nsIFrame* frame = aElement->GetPrimaryFrame();
+  if (frame) {
+    // If the rendering has changed, the bounds may well have changed too:
+    frame->Properties().Delete(nsSVGUtils::ObjectBoundingBoxProperty());
+  }
+
   if (aElement->HasRenderingObservers()) {
     nsSVGRenderingObserverList *observerList = GetObserverList(aElement);
     if (observerList) {

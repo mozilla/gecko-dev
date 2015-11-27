@@ -20,7 +20,6 @@ function test()
   printBugNumber(BUGNUMBER);
   printStatus (summary);
 
-  expect = 'SyntaxError: invalid for/in left-hand side';
   try
   {
     eval('(function() { const x = 1; for (x in null); })();');

@@ -12,7 +12,7 @@ Cu.import("resource://testing-common/services/sync/utils.js");
 const MORE_THAN_CLIENTS_TTL_REFRESH = 691200; // 8 days
 const LESS_THAN_CLIENTS_TTL_REFRESH = 86400;  // 1 day
 
-let engine = Service.clientsEngine;
+var engine = Service.clientsEngine;
 
 /**
  * Unpack the record with this ID, and verify that it has the same version that
@@ -328,7 +328,7 @@ add_test(function test_command_validation() {
     ["__UNKNOWN__", [],       false]
   ];
 
-  for each (let [action, args, expectedResult] in testCommands) {
+  for (let [action, args, expectedResult] of testCommands) {
     let remoteId = Utils.makeGUID();
     let rec = new ClientsRec("clients", remoteId);
 
@@ -575,6 +575,32 @@ add_test(function test_receive_display_uri() {
   Svc.Obs.add(ev, handler);
 
   do_check_true(engine.processIncomingCommands());
+});
+
+add_test(function test_optional_client_fields() {
+  _("Ensure that we produce records with the fields added in Bug 1097222.");
+
+  const SUPPORTED_PROTOCOL_VERSIONS = ["1.1", "1.5"];
+  let local = engine._store.createRecord(engine.localID, "clients");
+  do_check_eq(local.name, engine.localName);
+  do_check_eq(local.type, engine.localType);
+  do_check_eq(local.version, Services.appinfo.version);
+  do_check_array_eq(local.protocols, SUPPORTED_PROTOCOL_VERSIONS);
+
+  // Optional fields.
+  // Make sure they're what they ought to be...
+  do_check_eq(local.os, Services.appinfo.OS);
+  do_check_eq(local.appPackage, Services.appinfo.ID);
+
+  // ... and also that they're non-empty.
+  do_check_true(!!local.os);
+  do_check_true(!!local.appPackage);
+  do_check_true(!!local.application);
+
+  // We don't currently populate device or formfactor.
+  // See Bug 1100722, Bug 1100723.
+
+  run_next_test();
 });
 
 function run_test() {

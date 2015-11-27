@@ -3,7 +3,7 @@
 
 const DUMMY_PAGE_URL = "http://example.com/";
 
-let state = {
+var state = {
   windows: [{
     tabs: [{
       entries: [{ url: DUMMY_PAGE_URL }],
@@ -52,7 +52,7 @@ function test() {
   waitForExplicitFinish();
 
   newWindowWithState(state, function (win) {
-    registerCleanupFunction(function () win.close());
+    registerCleanupFunction(() => win.close());
 
     showTabView(function() {
       let cw = win.TabView.getContentWindow();

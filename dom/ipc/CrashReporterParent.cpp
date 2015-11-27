@@ -4,9 +4,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "CrashReporterParent.h"
+#include "mozilla/Snprintf.h"
 #include "mozilla/dom/ContentParent.h"
 #include "nsXULAppAPI.h"
 #include <time.h>
+
+#include "mozilla/Telemetry.h"
 
 #ifdef MOZ_CRASHREPORTER
 #include "nsExceptionHandler.h"
@@ -14,8 +17,6 @@
 #include "mozilla/SyncRunnable.h"
 #include "nsThreadUtils.h"
 #endif
-
-using namespace base;
 
 namespace mozilla {
 namespace dom {
@@ -110,6 +111,11 @@ CrashReporterParent::GenerateChildData(const AnnotationTable* processNotes)
 {
     MOZ_ASSERT(mInitialized);
 
+    if (mChildDumpID.IsEmpty()) {
+      NS_WARNING("problem with GenerateChildData: no child dump id yet!");
+      return false;
+    }
+
     nsAutoCString type;
     switch (mProcessType) {
         case GeckoProcessType_Content:
@@ -126,17 +132,38 @@ CrashReporterParent::GenerateChildData(const AnnotationTable* processNotes)
     mNotes.Put(NS_LITERAL_CSTRING("ProcessType"), type);
 
     char startTime[32];
-    sprintf(startTime, "%lld", static_cast<long long>(mStartTime));
+    snprintf_literal(startTime, "%lld", static_cast<long long>(mStartTime));
     mNotes.Put(NS_LITERAL_CSTRING("StartupTime"), nsDependentCString(startTime));
 
-    if (!mAppNotes.IsEmpty())
+    if (!mAppNotes.IsEmpty()) {
         mNotes.Put(NS_LITERAL_CSTRING("Notes"), mAppNotes);
+    }
 
+    // Append these notes to the end of the extra file based on the current
+    // dump id we obtained from CreatePairedMinidumps.
     bool ret = CrashReporter::AppendExtraData(mChildDumpID, mNotes);
-    if (ret && processNotes)
+    if (ret && processNotes) {
         ret = CrashReporter::AppendExtraData(mChildDumpID, *processNotes);
-    if (!ret)
+    }
+
+    if (!ret) {
         NS_WARNING("problem appending child data to .extra");
+    }
+
+    FinalizeChildData();
+    return ret;
+}
+
+void
+CrashReporterParent::FinalizeChildData()
+{
+    MOZ_ASSERT(mInitialized);
+
+    if (NS_IsMainThread()) {
+        // Inline, this is the main thread. Get this done.
+        NotifyCrashService();
+        return;
+    }
 
     nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
     class NotifyOnMainThread : public nsRunnable
@@ -154,13 +181,13 @@ CrashReporterParent::GenerateChildData(const AnnotationTable* processNotes)
         CrashReporterParent* mCR;
     };
     SyncRunnable::DispatchToThread(mainThread, new NotifyOnMainThread(this));
-    return ret;
 }
 
 void
 CrashReporterParent::NotifyCrashService()
 {
     MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(!mChildDumpID.IsEmpty());
 
     nsCOMPtr<nsICrashService> crashService =
         do_GetService("@mozilla.org/crashservice;1");
@@ -171,21 +198,27 @@ CrashReporterParent::NotifyCrashService()
     int32_t processType;
     int32_t crashType = nsICrashService::CRASH_TYPE_CRASH;
 
+    nsCString telemetryKey;
+
     switch (mProcessType) {
         case GeckoProcessType_Content:
             processType = nsICrashService::PROCESS_TYPE_CONTENT;
+            telemetryKey.AssignLiteral("content");
             break;
         case GeckoProcessType_Plugin: {
             processType = nsICrashService::PROCESS_TYPE_PLUGIN;
+            telemetryKey.AssignLiteral("plugin");
             nsAutoCString val;
             if (mNotes.Get(NS_LITERAL_CSTRING("PluginHang"), &val) &&
                 val.Equals(NS_LITERAL_CSTRING("1"))) {
                 crashType = nsICrashService::CRASH_TYPE_HANG;
+                telemetryKey.AssignLiteral("pluginhang");
             }
             break;
         }
         case GeckoProcessType_GMPlugin:
             processType = nsICrashService::PROCESS_TYPE_GMPLUGIN;
+            telemetryKey.AssignLiteral("gmplugin");
             break;
         default:
             NS_ERROR("unknown process type");
@@ -193,6 +226,8 @@ CrashReporterParent::NotifyCrashService()
     }
 
     crashService->AddCrash(processType, crashType, mChildDumpID);
+    Telemetry::Accumulate(Telemetry::SUBPROCESS_CRASHES_WITH_DUMP, telemetryKey, 1);
+    mNotes.Clear();
 }
 #endif
 

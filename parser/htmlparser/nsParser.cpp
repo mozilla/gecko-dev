@@ -28,7 +28,6 @@
 #include "nsIFragmentContentSink.h"
 #include "nsStreamUtils.h"
 #include "nsHTMLTokenizer.h"
-#include "nsNetUtil.h"
 #include "nsScriptLoader.h"
 #include "nsDataHashtable.h"
 #include "nsXPCOMCIDInternal.h"
@@ -112,7 +111,7 @@ For more details @see bugzilla bug 76722
 class nsParserContinueEvent : public nsRunnable
 {
 public:
-  nsRefPtr<nsParser> mParser;
+  RefPtr<nsParser> mParser;
 
   explicit nsParserContinueEvent(nsParser* aParser)
     : mParser(aParser)
@@ -643,7 +642,7 @@ namespace {
 struct PublicIdComparator
 {
   const nsAutoCString& mPublicId;
-  PublicIdComparator(const nsAutoCString& aPublicId)
+  explicit PublicIdComparator(const nsAutoCString& aPublicId)
     : mPublicId(aPublicId) {}
   int operator()(const PubIDInfo& aInfo) const {
     return nsCRT::strcmp(mPublicId.get(), aInfo.name);
@@ -752,8 +751,9 @@ FindSuitableDTD(CParserContext& aParserContext)
   aParserContext.mAutoDetectStatus = ePrimaryDetect;
 
   // Quick check for view source.
-  NS_ABORT_IF_FALSE(aParserContext.mParserCommand != eViewSource,
-    "The old parser is not supposed to be used for View Source anymore.");
+  MOZ_ASSERT(aParserContext.mParserCommand != eViewSource,
+             "The old parser is not supposed to be used for View Source "
+             "anymore.");
 
   // Now see if we're parsing HTML (which, as far as we're concerned, simply
   // means "not XML").

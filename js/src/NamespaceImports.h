@@ -13,6 +13,7 @@
 // These includes are needed these for some typedefs (e.g. HandleValue) and
 // functions (e.g. NullValue())...
 #include "js/CallNonGenericMethod.h"
+#include "js/TraceableVector.h"
 #include "js/TypeDecls.h"
 #include "js/Value.h"
 
@@ -24,25 +25,31 @@ class Latin1Chars;
 class Latin1CharsZ;
 class ConstTwoByteChars;
 class TwoByteChars;
+class TwoByteCharsZ;
+class UTF8Chars;
+class UTF8CharsZ;
 
-class AutoFunctionVector;
-class AutoIdVector;
-class AutoObjectVector;
-class AutoScriptVector;
-class AutoValueVector;
+template <typename T>
+class AutoVectorRooter;
+typedef AutoVectorRooter<Value> AutoValueVector;
+typedef AutoVectorRooter<jsid> AutoIdVector;
+typedef AutoVectorRooter<JSObject*> AutoObjectVector;
+typedef AutoVectorRooter<JSScript*> AutoVector;
 
-class AutoIdArray;
+using ValueVector = js::TraceableVector<JS::Value>;
+using IdVector = js::TraceableVector<jsid>;
+using ScriptVector = js::TraceableVector<JSScript*>;
 
 template <typename T> class AutoVectorRooter;
 template<typename K, typename V> class AutoHashMapRooter;
 template<typename T> class AutoHashSetRooter;
-template<typename T> class RootedGeneric;
 
 class MOZ_STACK_CLASS SourceBufferHolder;
 
 class HandleValueArray;
 
-}
+class ObjectOpResult;
+} // namespace JS
 
 // Do the importing.
 namespace js {
@@ -52,7 +59,6 @@ using JS::BooleanValue;
 using JS::DoubleValue;
 using JS::Float32Value;
 using JS::Int32Value;
-using JS::IsPoisonedValue;
 using JS::MagicValue;
 using JS::NullValue;
 using JS::NumberValue;
@@ -63,26 +69,26 @@ using JS::PrivateValue;
 using JS::StringValue;
 using JS::UndefinedValue;
 
-using JS::IsPoisonedPtr;
-
 using JS::Latin1Char;
 using JS::Latin1Chars;
 using JS::Latin1CharsZ;
 using JS::ConstTwoByteChars;
 using JS::TwoByteChars;
+using JS::TwoByteCharsZ;
+using JS::UTF8Chars;
+using JS::UTF8CharsZ;
 
-using JS::AutoFunctionVector;
-using JS::AutoIdVector;
-using JS::AutoObjectVector;
-using JS::AutoScriptVector;
-using JS::AutoValueVector;
+using JS::AutoVectorRooter;
+typedef AutoVectorRooter<Value> AutoValueVector;
+typedef AutoVectorRooter<jsid> AutoIdVector;
+typedef AutoVectorRooter<JSObject*> AutoObjectVector;
 
-using JS::AutoIdArray;
+using JS::ValueVector;
+using JS::IdVector;
+using JS::ScriptVector;
 
 using JS::AutoHashMapRooter;
 using JS::AutoHashSetRooter;
-using JS::AutoVectorRooter;
-using JS::RootedGeneric;
 
 using JS::CallArgs;
 using JS::CallNonGenericMethod;
@@ -93,6 +99,7 @@ using JS::NativeImpl;
 using JS::OwningCompileOptions;
 using JS::ReadOnlyCompileOptions;
 using JS::SourceBufferHolder;
+using JS::TransitiveCompileOptions;
 
 using JS::Rooted;
 using JS::RootedFunction;
@@ -132,8 +139,12 @@ using JS::MutableHandleValue;
 
 using JS::NullHandleValue;
 using JS::UndefinedHandleValue;
+using JS::TrueHandleValue;
+using JS::FalseHandleValue;
 
 using JS::HandleValueArray;
+
+using JS::ObjectOpResult;
 
 using JS::Zone;
 

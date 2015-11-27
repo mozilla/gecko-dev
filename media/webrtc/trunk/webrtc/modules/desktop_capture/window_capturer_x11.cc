@@ -10,6 +10,7 @@
 
 #include "webrtc/modules/desktop_capture/window_capturer.h"
 
+#include <assert.h>
 #include <string.h>
 #include <X11/Xatom.h>
 #include <X11/extensions/Xcomposite.h>
@@ -17,15 +18,14 @@
 #include <X11/Xutil.h>
 
 #include <algorithm>
-#include <cassert>
 
+#include "webrtc/base/scoped_ptr.h"
 #include "webrtc/modules/desktop_capture/desktop_capture_options.h"
 #include "webrtc/modules/desktop_capture/desktop_frame.h"
 #include "webrtc/modules/desktop_capture/x11/shared_x_display.h"
 #include "webrtc/modules/desktop_capture/x11/x_error_trap.h"
 #include "webrtc/modules/desktop_capture/x11/x_server_pixel_buffer.h"
 #include "webrtc/system_wrappers/interface/logging.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 #include "webrtc/system_wrappers/interface/scoped_refptr.h"
 #include "webrtc/modules/desktop_capture/x11/shared_x_util.h"
 
@@ -40,16 +40,16 @@ class WindowCapturerLinux : public WindowCapturer,
   virtual ~WindowCapturerLinux();
 
   // WindowCapturer interface.
-  virtual bool GetWindowList(WindowList* windows) OVERRIDE;
-  virtual bool SelectWindow(WindowId id) OVERRIDE;
-  virtual bool BringSelectedWindowToFront() OVERRIDE;
+  bool GetWindowList(WindowList* windows) override;
+  bool SelectWindow(WindowId id) override;
+  bool BringSelectedWindowToFront() override;
 
   // DesktopCapturer interface.
-  virtual void Start(Callback* callback) OVERRIDE;
-  virtual void Capture(const DesktopRegion& region) OVERRIDE;
+  void Start(Callback* callback) override;
+  void Capture(const DesktopRegion& region) override;
 
   // SharedXDisplay::XEventHandler interface.
-  virtual bool HandleXEvent(const XEvent& event) OVERRIDE;
+  bool HandleXEvent(const XEvent& event) override;
 
  private:
   Display* display() { return x_display_->display(); }
@@ -228,6 +228,12 @@ void WindowCapturerLinux::Start(Callback* callback) {
 void WindowCapturerLinux::Capture(const DesktopRegion& region) {
   x_display_->ProcessPendingXEvents();
 
+  if (!x_server_pixel_buffer_.IsWindowValid()) {
+    LOG(LS_INFO) << "The window is no longer valid.";
+    callback_->OnCaptureCompleted(NULL);
+    return;
+  }
+
   if (!has_composite_extension_) {
     // Without the Xcomposite extension we capture when the whole window is
     // visible on screen and not covered by any other window. This is not
@@ -243,6 +249,9 @@ void WindowCapturerLinux::Capture(const DesktopRegion& region) {
   x_server_pixel_buffer_.Synchronize();
   x_server_pixel_buffer_.CaptureRect(DesktopRect::MakeSize(frame->size()),
                                      frame);
+
+  frame->mutable_updated_region()->SetRect(
+      DesktopRect::MakeSize(frame->size()));
 
   callback_->OnCaptureCompleted(frame);
 }

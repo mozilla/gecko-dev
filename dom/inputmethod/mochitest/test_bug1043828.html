@@ -15,6 +15,8 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1043828
 <pre id="test">
 <script class="testbody" type="application/javascript;version=1.7">
 
+SimpleTest.requestFlakyTimeout("untriaged");
+
 inputmethod_setup(function() {
   runTest();
 });
@@ -30,7 +32,7 @@ function kbFrameScript() {
       }, function(e){
         sendAsyncMessage('test:InputMethod:getText:Reject');
       });
-    }else{
+    } else {
       dump("Could not get inputcontext") ;
     }
   }
@@ -82,12 +84,17 @@ function runTest() {
     document.body.appendChild(keyboardB);
 
     // simulate two different keyboard apps
-    let imeUrl = basePath + '/file_inputmethod_1043828.html';
+    let imeUrl = basePath + '/file_blank.html';
 
     SpecialPowers.pushPermissions([{
       type: 'input',
       allow: true,
-      context: imeUrl
+      context: {
+        url: imeUrl,
+        originAttributes: {
+          inBrowser: true
+        }
+      }
     }], function() {
       keyboardA.src = imeUrl;
       keyboardB.src = imeUrl;
@@ -101,7 +108,7 @@ function runTest() {
           mmKeyboardB.loadFrameScript('data:,(' + kbFrameScript.toString() + ')();', false);
 
           mmKeyboardB.addMessageListener('test:InputMethod:getText:Resolve', function() {
-            ok(true, 'getText() was resolved');
+            info('getText() was resolved');
             inputmethod_cleanup();
           });
 
@@ -122,6 +129,7 @@ function runTest() {
 
   // STEP 2: Set keyboard A active
   function step2() {
+    info('step2');
     let req = keyboardA.setInputMethodActive(true);
 
     req.onsuccess = function(){
@@ -138,6 +146,7 @@ function runTest() {
 
   // STEP 3: Set keyboard B active
   function step3() {
+    info('step3');
     let req = keyboardB.setInputMethodActive(true);
 
     req.onsuccess = function(){
@@ -154,6 +163,7 @@ function runTest() {
 
   // STEP 4: Set keyboard A inactive
   function step4() {
+    info('step4');
     let req = keyboardA.setInputMethodActive(false);
 
     req.onsuccess = function(){
@@ -170,6 +180,7 @@ function runTest() {
 
   // STEP 5: getText
   function step5() {
+    info('step5');
     mmKeyboardB.sendAsyncMessage('test:InputMethod:getText:Do');
   }
 

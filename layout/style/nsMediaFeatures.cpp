@@ -20,16 +20,16 @@
 
 using namespace mozilla;
 
-static const nsCSSProps::KTableValue kOrientationKeywords[] = {
-  eCSSKeyword_portrait,                 NS_STYLE_ORIENTATION_PORTRAIT,
-  eCSSKeyword_landscape,                NS_STYLE_ORIENTATION_LANDSCAPE,
-  eCSSKeyword_UNKNOWN,                  -1
+static const nsCSSProps::KTableEntry kOrientationKeywords[] = {
+  { eCSSKeyword_portrait,                 NS_STYLE_ORIENTATION_PORTRAIT },
+  { eCSSKeyword_landscape,                NS_STYLE_ORIENTATION_LANDSCAPE },
+  { eCSSKeyword_UNKNOWN,                  -1 }
 };
 
-static const nsCSSProps::KTableValue kScanKeywords[] = {
-  eCSSKeyword_progressive,              NS_STYLE_SCAN_PROGRESSIVE,
-  eCSSKeyword_interlace,                NS_STYLE_SCAN_INTERLACE,
-  eCSSKeyword_UNKNOWN,                  -1
+static const nsCSSProps::KTableEntry kScanKeywords[] = {
+  { eCSSKeyword_progressive,              NS_STYLE_SCAN_PROGRESSIVE },
+  { eCSSKeyword_interlace,                NS_STYLE_SCAN_INTERLACE },
+  { eCSSKeyword_UNKNOWN,                  -1 }
 };
 
 #ifdef XP_WIN
@@ -61,6 +61,7 @@ const OperatingSystemVersionInfo osVersionStrings[] = {
     { LookAndFeel::eOperatingSystemVersion_WindowsVista,  L"windows-vista" },
     { LookAndFeel::eOperatingSystemVersion_Windows7,      L"windows-win7" },
     { LookAndFeel::eOperatingSystemVersion_Windows8,      L"windows-win8" },
+    { LookAndFeel::eOperatingSystemVersion_Windows10,     L"windows-win10" }
 };
 #endif
 
@@ -108,13 +109,19 @@ GetDeviceContextFor(nsPresContext* aPresContext)
   return aPresContext->DeviceContext();
 }
 
+static bool
+ShouldResistFingerprinting(nsPresContext* aPresContext)
+{
+    return nsContentUtils::ShouldResistFingerprinting(aPresContext->GetDocShell());
+}
+
 // A helper for three features below.
 static nsSize
 GetDeviceSize(nsPresContext* aPresContext)
 {
     nsSize size;
 
-    if (aPresContext->IsDeviceSizePageSize()) {
+    if (ShouldResistFingerprinting(aPresContext) || aPresContext->IsDeviceSizePageSize()) {
         size = GetSize(aPresContext);
     } else if (aPresContext->IsRootPaginatedDocument()) {
         // We want the page size, including unprintable areas and margins.
@@ -195,7 +202,7 @@ GetIsResourceDocument(nsPresContext* aPresContext, const nsMediaFeature*,
 static nsresult
 MakeArray(const nsSize& aSize, nsCSSValue& aResult)
 {
-    nsRefPtr<nsCSSValue::Array> a = nsCSSValue::Array::Create(2);
+    RefPtr<nsCSSValue::Array> a = nsCSSValue::Array::Create(2);
 
     a->Item(0).SetIntValue(aSize.width, eCSSUnit_Integer);
     a->Item(1).SetIntValue(aSize.height, eCSSUnit_Integer);
@@ -222,13 +229,17 @@ static nsresult
 GetColor(nsPresContext* aPresContext, const nsMediaFeature*,
          nsCSSValue& aResult)
 {
-    // FIXME:  This implementation is bogus.  nsDeviceContext
-    // doesn't provide reliable information (should be fixed in bug
-    // 424386).
-    // FIXME: On a monochrome device, return 0!
-    nsDeviceContext *dx = GetDeviceContextFor(aPresContext);
-    uint32_t depth;
-    dx->GetDepth(depth);
+    uint32_t depth = 24; // Use depth of 24 when resisting fingerprinting.
+
+    if (!ShouldResistFingerprinting(aPresContext)) {
+        // FIXME:  This implementation is bogus.  nsDeviceContext
+        // doesn't provide reliable information (should be fixed in bug
+        // 424386).
+        // FIXME: On a monochrome device, return 0!
+        nsDeviceContext *dx = GetDeviceContextFor(aPresContext);
+        dx->GetDepth(depth);
+    }
+
     // The spec says to use bits *per color component*, so divide by 3,
     // and round down, since the spec says to use the smallest when the
     // color components differ.
@@ -266,10 +277,15 @@ static nsresult
 GetResolution(nsPresContext* aPresContext, const nsMediaFeature*,
               nsCSSValue& aResult)
 {
-    // Resolution measures device pixels per CSS (inch/cm/pixel).  We
-    // return it in device pixels per CSS inches.
-    float dpi = float(nsPresContext::AppUnitsPerCSSInch()) /
-                float(aPresContext->AppUnitsPerDevPixel());
+    float dpi = 96; // Use 96 when resisting fingerprinting.
+
+    if (!ShouldResistFingerprinting(aPresContext)) {
+      // Resolution measures device pixels per CSS (inch/cm/pixel).  We
+      // return it in device pixels per CSS inches.
+      dpi = float(nsPresContext::AppUnitsPerCSSInch()) /
+            float(aPresContext->AppUnitsPerDevPixel());
+    }
+
     aResult.SetFloatValue(dpi, eCSSUnit_Inch);
     return NS_OK;
 }
@@ -298,17 +314,28 @@ static nsresult
 GetDevicePixelRatio(nsPresContext* aPresContext, const nsMediaFeature*,
                     nsCSSValue& aResult)
 {
-  float ratio = aPresContext->CSSPixelsToDevPixels(1.0f);
-  aResult.SetFloatValue(ratio, eCSSUnit_Number);
-  return NS_OK;
+    if (!ShouldResistFingerprinting(aPresContext)) {
+        float ratio = aPresContext->CSSPixelsToDevPixels(1.0f);
+        aResult.SetFloatValue(ratio, eCSSUnit_Number);
+    } else {
+        aResult.SetFloatValue(1.0, eCSSUnit_Number);
+    }
+    return NS_OK;
 }
 
 static nsresult
 GetSystemMetric(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
                 nsCSSValue& aResult)
 {
-    NS_ABORT_IF_FALSE(aFeature->mValueType == nsMediaFeature::eBoolInteger,
-                      "unexpected type");
+    aResult.Reset();
+    if (ShouldResistFingerprinting(aPresContext)) {
+        // If "privacy.resistFingerprinting" is enabled, then we simply don't
+        // return any system-backed media feature values. (No spoofed values returned.)
+        return NS_OK;
+    }
+
+    MOZ_ASSERT(aFeature->mValueType == nsMediaFeature::eBoolInteger,
+               "unexpected type");
     nsIAtom *metricAtom = *aFeature->mData.mMetric;
     bool hasMetric = nsCSSRuleProcessor::HasSystemMetric(metricAtom);
     aResult.SetIntValue(hasMetric ? 1 : 0, eCSSUnit_Integer);
@@ -320,6 +347,10 @@ GetWindowsTheme(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
                 nsCSSValue& aResult)
 {
     aResult.Reset();
+    if (ShouldResistFingerprinting(aPresContext)) {
+        return NS_OK;
+    }
+
 #ifdef XP_WIN
     uint8_t windowsThemeId =
         nsCSSRuleProcessor::GetWindowsThemeIdentifier();
@@ -345,6 +376,10 @@ GetOperatinSystemVersion(nsPresContext* aPresContext, const nsMediaFeature* aFea
                          nsCSSValue& aResult)
 {
     aResult.Reset();
+    if (ShouldResistFingerprinting(aPresContext)) {
+        return NS_OK;
+    }
+
 #ifdef XP_WIN
     int32_t metricResult;
     if (NS_SUCCEEDED(
@@ -385,6 +420,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::width,
         nsMediaFeature::eMinMaxAllowed,
         nsMediaFeature::eLength,
+        nsMediaFeature::eNoRequirements,
         { nullptr },
         GetWidth
     },
@@ -392,6 +428,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::height,
         nsMediaFeature::eMinMaxAllowed,
         nsMediaFeature::eLength,
+        nsMediaFeature::eNoRequirements,
         { nullptr },
         GetHeight
     },
@@ -399,6 +436,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::deviceWidth,
         nsMediaFeature::eMinMaxAllowed,
         nsMediaFeature::eLength,
+        nsMediaFeature::eNoRequirements,
         { nullptr },
         GetDeviceWidth
     },
@@ -406,6 +444,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::deviceHeight,
         nsMediaFeature::eMinMaxAllowed,
         nsMediaFeature::eLength,
+        nsMediaFeature::eNoRequirements,
         { nullptr },
         GetDeviceHeight
     },
@@ -413,6 +452,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::orientation,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eEnumerated,
+        nsMediaFeature::eNoRequirements,
         { kOrientationKeywords },
         GetOrientation
     },
@@ -420,6 +460,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::aspectRatio,
         nsMediaFeature::eMinMaxAllowed,
         nsMediaFeature::eIntRatio,
+        nsMediaFeature::eNoRequirements,
         { nullptr },
         GetAspectRatio
     },
@@ -427,6 +468,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::deviceAspectRatio,
         nsMediaFeature::eMinMaxAllowed,
         nsMediaFeature::eIntRatio,
+        nsMediaFeature::eNoRequirements,
         { nullptr },
         GetDeviceAspectRatio
     },
@@ -434,6 +476,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::color,
         nsMediaFeature::eMinMaxAllowed,
         nsMediaFeature::eInteger,
+        nsMediaFeature::eNoRequirements,
         { nullptr },
         GetColor
     },
@@ -441,6 +484,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::colorIndex,
         nsMediaFeature::eMinMaxAllowed,
         nsMediaFeature::eInteger,
+        nsMediaFeature::eNoRequirements,
         { nullptr },
         GetColorIndex
     },
@@ -448,6 +492,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::monochrome,
         nsMediaFeature::eMinMaxAllowed,
         nsMediaFeature::eInteger,
+        nsMediaFeature::eNoRequirements,
         { nullptr },
         GetMonochrome
     },
@@ -455,6 +500,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::resolution,
         nsMediaFeature::eMinMaxAllowed,
         nsMediaFeature::eResolution,
+        nsMediaFeature::eNoRequirements,
         { nullptr },
         GetResolution
     },
@@ -462,6 +508,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::scan,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eEnumerated,
+        nsMediaFeature::eNoRequirements,
         { kScanKeywords },
         GetScan
     },
@@ -469,8 +516,20 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::grid,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eBoolInteger,
+        nsMediaFeature::eNoRequirements,
         { nullptr },
         GetGrid
+    },
+
+    // Webkit extensions that we support for de-facto web compatibility
+    // -webkit-{min|max}-device-pixel-ratio:
+    {
+        &nsGkAtoms::devicePixelRatio,
+        nsMediaFeature::eMinMaxAllowed,
+        nsMediaFeature::eFloat,
+        nsMediaFeature::eHasWebkitPrefix,
+        { nullptr },
+        GetDevicePixelRatio
     },
 
     // Mozilla extensions
@@ -478,6 +537,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_device_pixel_ratio,
         nsMediaFeature::eMinMaxAllowed,
         nsMediaFeature::eFloat,
+        nsMediaFeature::eNoRequirements,
         { nullptr },
         GetDevicePixelRatio
     },
@@ -485,6 +545,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_device_orientation,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eEnumerated,
+        nsMediaFeature::eNoRequirements,
         { kOrientationKeywords },
         GetDeviceOrientation
     },
@@ -492,6 +553,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_is_resource_document,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eBoolInteger,
+        nsMediaFeature::eNoRequirements,
         { nullptr },
         GetIsResourceDocument
     },
@@ -499,6 +561,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_color_picker_available,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eBoolInteger,
+        nsMediaFeature::eNoRequirements,
         { &nsGkAtoms::color_picker_available },
         GetSystemMetric
     },
@@ -506,6 +569,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_scrollbar_start_backward,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eBoolInteger,
+        nsMediaFeature::eNoRequirements,
         { &nsGkAtoms::scrollbar_start_backward },
         GetSystemMetric
     },
@@ -513,6 +577,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_scrollbar_start_forward,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eBoolInteger,
+        nsMediaFeature::eNoRequirements,
         { &nsGkAtoms::scrollbar_start_forward },
         GetSystemMetric
     },
@@ -520,6 +585,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_scrollbar_end_backward,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eBoolInteger,
+        nsMediaFeature::eNoRequirements,
         { &nsGkAtoms::scrollbar_end_backward },
         GetSystemMetric
     },
@@ -527,6 +593,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_scrollbar_end_forward,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eBoolInteger,
+        nsMediaFeature::eNoRequirements,
         { &nsGkAtoms::scrollbar_end_forward },
         GetSystemMetric
     },
@@ -534,6 +601,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_scrollbar_thumb_proportional,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eBoolInteger,
+        nsMediaFeature::eNoRequirements,
         { &nsGkAtoms::scrollbar_thumb_proportional },
         GetSystemMetric
     },
@@ -541,6 +609,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_images_in_menus,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eBoolInteger,
+        nsMediaFeature::eNoRequirements,
         { &nsGkAtoms::images_in_menus },
         GetSystemMetric
     },
@@ -548,6 +617,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_images_in_buttons,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eBoolInteger,
+        nsMediaFeature::eNoRequirements,
         { &nsGkAtoms::images_in_buttons },
         GetSystemMetric
     },
@@ -555,6 +625,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_overlay_scrollbars,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eBoolInteger,
+        nsMediaFeature::eNoRequirements,
         { &nsGkAtoms::overlay_scrollbars },
         GetSystemMetric
     },
@@ -562,6 +633,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_windows_default_theme,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eBoolInteger,
+        nsMediaFeature::eNoRequirements,
         { &nsGkAtoms::windows_default_theme },
         GetSystemMetric
     },
@@ -569,6 +641,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_mac_graphite_theme,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eBoolInteger,
+        nsMediaFeature::eNoRequirements,
         { &nsGkAtoms::mac_graphite_theme },
         GetSystemMetric
     },
@@ -576,6 +649,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_mac_lion_theme,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eBoolInteger,
+        nsMediaFeature::eNoRequirements,
         { &nsGkAtoms::mac_lion_theme },
         GetSystemMetric
     },
@@ -583,6 +657,7 @@ nsMediaFeatures::features[] = {
       &nsGkAtoms::_moz_mac_yosemite_theme,
       nsMediaFeature::eMinMaxNotAllowed,
       nsMediaFeature::eBoolInteger,
+      nsMediaFeature::eNoRequirements,
       { &nsGkAtoms::mac_yosemite_theme },
       GetSystemMetric
     },
@@ -590,6 +665,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_windows_compositor,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eBoolInteger,
+        nsMediaFeature::eNoRequirements,
         { &nsGkAtoms::windows_compositor },
         GetSystemMetric
     },
@@ -597,6 +673,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_windows_classic,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eBoolInteger,
+        nsMediaFeature::eNoRequirements,
         { &nsGkAtoms::windows_classic },
         GetSystemMetric
     },
@@ -604,6 +681,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_windows_glass,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eBoolInteger,
+        nsMediaFeature::eNoRequirements,
         { &nsGkAtoms::windows_glass },
         GetSystemMetric
     },
@@ -611,6 +689,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_touch_enabled,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eBoolInteger,
+        nsMediaFeature::eNoRequirements,
         { &nsGkAtoms::touch_enabled },
         GetSystemMetric
     },
@@ -618,6 +697,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_menubar_drag,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eBoolInteger,
+        nsMediaFeature::eNoRequirements,
         { &nsGkAtoms::menubar_drag },
         GetSystemMetric
     },
@@ -625,6 +705,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_windows_theme,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eIdent,
+        nsMediaFeature::eNoRequirements,
         { nullptr },
         GetWindowsTheme
     },
@@ -632,6 +713,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_os_version,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eIdent,
+        nsMediaFeature::eNoRequirements,
         { nullptr },
         GetOperatinSystemVersion
     },
@@ -640,6 +722,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_swipe_animation_enabled,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eBoolInteger,
+        nsMediaFeature::eNoRequirements,
         { &nsGkAtoms::swipe_animation_enabled },
         GetSystemMetric
     },
@@ -648,6 +731,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_physical_home_button,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eBoolInteger,
+        nsMediaFeature::eNoRequirements,
         { &nsGkAtoms::physical_home_button },
         GetSystemMetric
     },
@@ -659,6 +743,7 @@ nsMediaFeatures::features[] = {
         &nsGkAtoms::_moz_is_glyph,
         nsMediaFeature::eMinMaxNotAllowed,
         nsMediaFeature::eBoolInteger,
+        nsMediaFeature::eNoRequirements,
         { nullptr },
         GetIsGlyph
     },
@@ -667,6 +752,7 @@ nsMediaFeatures::features[] = {
         nullptr,
         nsMediaFeature::eMinMaxAllowed,
         nsMediaFeature::eInteger,
+        nsMediaFeature::eNoRequirements,
         { nullptr },
         nullptr
     },

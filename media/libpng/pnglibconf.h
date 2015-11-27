@@ -13,22 +13,23 @@
 #define PNG_API_RULE 0
 #define PNG_COST_SHIFT 3
 #define PNG_GAMMA_THRESHOLD_FIXED 5000
+#define PNG_IDAT_READ_SIZE PNG_ZBUF_SIZE
+#define PNG_INFLATE_BUF_SIZE 1024
+#define PNG_LINKAGE_API extern
+#define PNG_LINKAGE_CALLBACK extern
+#define PNG_LINKAGE_DATA extern
+#define PNG_LINKAGE_FUNCTION extern
 #define PNG_MAX_GAMMA_8 11
+#define PNG_sRGB_PROFILE_CHECKS -1
 #define PNG_USER_CHUNK_CACHE_MAX 128
 #define PNG_USER_CHUNK_MALLOC_MAX 4000000L
 #define PNG_USER_HEIGHT_MAX MOZ_PNG_MAX_DIMENSION
 #define PNG_USER_WIDTH_MAX MOZ_PNG_MAX_DIMENSION
 #define PNG_WEIGHT_SHIFT 8
 #define PNG_ZBUF_SIZE 8192
-#define PNG_IDAT_READ_SIZE PNG_ZBUF_SIZE
-#define PNG_INFLATE_BUF_SIZE 1024
 #define PNG_Z_DEFAULT_COMPRESSION (-1)
 #define PNG_Z_DEFAULT_NOFILTER_STRATEGY 0
 #define PNG_Z_DEFAULT_STRATEGY 1
-#define PNG_sRGB_PROFILE_CHECKS -1
-
-/* This can be deleted when libpng-1.6.14 lands. */
-#define PNG_SET_OPTION_SUPPORTED
 
 #ifdef _MSC_VER
 /* The PNG_PEDANTIC_WARNINGS (attributes) fail to build with some MSC
@@ -86,10 +87,12 @@
 
 /* necessary for boot animation code (Gonk) */
 #ifdef MOZ_WIDGET_GONK
+#define PNG_bKGD_SUPPORTED
 #define PNG_UNKNOWN_CHUNKS_SUPPORTED
 #define PNG_SET_UNKNOWN_CHUNKS_SUPPORTED
 #define PNG_HANDLE_AS_UNKNOWN_SUPPORTED
 #define PNG_EASY_ACCESS_SUPPORTED
+#define PNG_READ_bKGD_SUPPORTED
 #define PNG_READ_BGR_SUPPORTED
 #define PNG_READ_GRAY_TO_RGB_SUPPORTED
 #define PNG_READ_STRIP_ALPHA_SUPPORTED
@@ -98,7 +101,6 @@
 #define PNG_WRITE_SUPPORTED
 #define PNG_WRITE_APNG_SUPPORTED
 #define PNG_WRITE_tRNS_SUPPORTED
-#define PNG_WRITE_16BIT_SUPPORTED
 #define PNG_WRITE_ANCILLARY_CHUNKS_SUPPORTED
 #define PNG_WRITE_FLUSH_SUPPORTED
 #define PNG_WRITE_OPTIMIZE_CMF_SUPPORTED
@@ -116,18 +118,15 @@
 #define PNG_sRGB_SUPPORTED
 #define PNG_tRNS_SUPPORTED
 #define PNG_16BIT_SUPPORTED
-#define PNG_CHECK_cHRM_SUPPORTED
 #define PNG_FLOATING_ARITHMETIC_SUPPORTED
 #define PNG_FLOATING_POINT_SUPPORTED
 #define PNG_POINTER_INDEXING_SUPPORTED
 #define PNG_SETJMP_SUPPORTED
 #define PNG_STDIO_SUPPORTED
-#define PNG_TEXT_SUPPORTED
 
-#ifdef PR_LOGGING
+#define PNG_CHECK_cHRM_SUPPORTED
 #define PNG_ERROR_TEXT_SUPPORTED
 #define PNG_WARNINGS_SUPPORTED
-#endif
 
 /* Mangle names of exported libpng functions so different libpng versions
    can coexist. It is recommended that if you do this, you give your
@@ -324,8 +323,6 @@
 #define png_process_some_data           MOZ_PNG_proc_some_data
 #define png_progressive_combine_row     MOZ_PNG_progressive_combine_row
 #define png_push_check_crc              MOZ_PNG_push_check_crc
-#define png_push_crc_finish             MOZ_PNG_push_crc_finish
-#define png_push_crc_skip               MOZ_PNG_push_crc_skip
 #define png_push_fill_buffer            MOZ_PNG_push_fill_buffer
 #define png_push_handle_iTXt            MOZ_PNG_push_handle_iTXt
 #define png_push_handle_tEXt            MOZ_PNG_push_handle_tEXt
@@ -398,10 +395,6 @@
 #define png_set_keep_unknown_chunks     MOZ_PNG_set_keep_unknown_chunks
 #define png_set_mem_fn                  MOZ_PNG_set_mem_fn
 #define png_set_oFFs                    MOZ_PNG_set_oFFs
-
-/* This can be deleted when libpng-1.6.14 lands. */
-#define png_set_option                  MOZ_PNG_set_option
-
 #define png_set_packing                 MOZ_PNG_set_packing
 #define png_set_packswap                MOZ_PNG_set_packswap
 #define png_set_palette_to_rgb          MOZ_PNG_set_palette_to_rgb
@@ -666,7 +659,6 @@
 #define png_realloc_array                         MOZ_PNG_realloc_array
 #define png_zstream_error                         MOZ_PNG_zstream_error
 
-#if defined(PR_LOGGING)
 #ifndef png_warning
 #  define png_warning                     MOZ_PNG_warning
 #endif
@@ -681,7 +673,6 @@
 #define png_warning_parameter           MOZ_PNG_warn_param
 #define png_warning_parameter_signed    MOZ_PNG_warn_param_signed
 #define png_warning_parameter_unsigned  MOZ_PNG_warn_param_unsigned
-#endif
 
 #if defined(PNG_READ_PACK_SUPPORTED) || defined(PNG_WRITE_PACK_SUPPORTED)
 #define png_set_packing  MOZ_PNG_set_packing

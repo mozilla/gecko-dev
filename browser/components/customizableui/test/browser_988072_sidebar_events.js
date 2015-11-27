@@ -4,10 +4,10 @@
 
 "use strict";
 
-let gSidebarMenu = document.getElementById("viewSidebarMenu");
-let gTestSidebarItem = null;
+var gSidebarMenu = document.getElementById("viewSidebarMenu");
+var gTestSidebarItem = null;
 
-let EVENTS = {
+var EVENTS = {
   click: 0, command: 0,
   onclick: 0, oncommand: 0
 };
@@ -22,7 +22,7 @@ registerCleanupFunction(() => {
 
   // Ensure sidebar is hidden after each test:
   if (!document.getElementById("sidebar-box").hidden) {
-    toggleSidebar("", false);
+    SidebarUI.hide();
   }
 });
 
@@ -53,9 +53,13 @@ function removeWidget() {
 
 // Filters out the trailing menuseparators from the sidebar list
 function getSidebarList() {
-  let sidebars = [...gSidebarMenu.children];
-  while (sidebars[sidebars.length - 1].localName == "menuseparator")
-    sidebars.pop();
+  let sidebars = [...gSidebarMenu.children].filter(sidebar => {
+    if (sidebar.localName == "menuseparator")
+      return false;
+    if (sidebar.getAttribute("hidden") == "true")
+      return false;
+    return true;
+  });
   return sidebars;
 }
 
@@ -74,14 +78,13 @@ function compareList(original, displayed) {
   }
 }
 
-let showSidebarPopup = Task.async(function*() {
+var showSidebarPopup = Task.async(function*() {
   let button = document.getElementById("sidebar-button");
   let subview = document.getElementById("PanelUI-sidebar");
 
   let subviewShownPromise = subviewShown(subview);
   EventUtils.synthesizeMouseAtCenter(button, {});
-  yield subviewShownPromise;
-  return waitForCondition(() => !subview.panelMultiView.hasAttribute("transitioning"));
+  return subviewShownPromise;
 });
 
 // Check the sidebar widget shows the default items

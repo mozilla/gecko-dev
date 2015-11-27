@@ -6,20 +6,19 @@
 
 @template
 def Libxul(name):
-    MSVC_ENABLE_PGO = True
-
-    if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
+    if CONFIG['MOZ_WIDGET_TOOLKIT'] in ('cocoa', 'uikit'):
         # This is going to be a framework named "XUL", not an ordinary library named
         # "libxul.dylib"
-        Framework(name)
+        GeckoFramework(name, linkage=None)
         SHARED_LIBRARY_NAME = 'XUL'
     else:
-        SharedLibrary(name)
+        GeckoSharedLibrary(name, linkage=None)
         SHARED_LIBRARY_NAME = 'xul'
 
     DELAYLOAD_DLLS += [
         'comdlg32.dll',
         'dbghelp.dll',
+        'PowrProf.dll',
         'psapi.dll',
         'rasapi32.dll',
         'rasdlg.dll',
@@ -28,18 +27,17 @@ def Libxul(name):
         'winspool.drv'
     ]
 
-    if CONFIG['MOZ_METRO']:
-        DELAYLOAD_DLLS += [
-            'API-MS-WIN-CORE-WINRT-L' + CONFIG['CRTEXPDLLVERSION'] + '.DLL',
-            'API-MS-WIN-CORE-WINRT-STRING-L' + CONFIG['CRTEXPDLLVERSION'] + '.DLL',
-            'uiautomationcore.dll'
-        ]
-
     if CONFIG['ACCESSIBILITY']:
         DELAYLOAD_DLLS += ['oleacc.dll']
 
     if CONFIG['MOZ_WEBRTC']:
         DELAYLOAD_DLLS += ['msdmo.dll']
+
+    if CONFIG['OS_ARCH'] == 'WINNT':
+        DELAYLOAD_DLLS += [
+            'api-ms-win-core-winrt-l1-1-0.dll',
+            'api-ms-win-core-winrt-string-l1-1-0.dll',
+        ]
 
     if CONFIG['OS_ARCH'] == 'WINNT' and not CONFIG['GNU_CC']:
         LOCAL_INCLUDES += [
@@ -70,8 +68,6 @@ SOURCES += [
     'StaticXULComponentsStart.cpp',
 ]
 
-MSVC_ENABLE_PGO = True
-
 # This, combined with the fact the file is first, makes the start pointer
 # it contains first in Windows PGO builds.
 SOURCES['StaticXULComponentsStart.cpp'].no_pgo = True
@@ -96,8 +92,6 @@ if CONFIG['OS_ARCH'] == 'WINNT' and not CONFIG['GNU_CC']:
         '/xpcom/base',
     ]
 
-FAIL_ON_WARNINGS = True
-
 DIRS += ['gtest']
 
 # js needs to come after xul for now, because it is an archive and its content
@@ -111,21 +105,16 @@ if CONFIG['MOZ_SANDBOX'] and CONFIG['OS_ARCH'] == 'WINNT':
         'sandboxbroker',
     ]
 
-if CONFIG['MOZ_DMD']:
-    USE_LIBS += [
-        'dmd',
-    ]
-
 USE_LIBS += [
     'gkmedias',
-    'mozalloc',
+    'lgpllibs',
     'nspr',
     'nss',
     'sqlite',
     'zlib',
 ]
 
-if CONFIG['ENABLE_INTL_API']:
+if CONFIG['USE_ICU']:
     USE_LIBS += [
         'icu',
     ]
@@ -171,6 +160,7 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
         '-framework IOKit',
         '-F%s' % CONFIG['MACOS_PRIVATE_FRAMEWORKS_DIR'],
         '-framework CoreUI',
+        '-framework CoreSymbolication',
         'cups',
     ]
 
@@ -207,7 +197,7 @@ if CONFIG['MOZ_B2G_BT_BLUEZ'] and CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
         'dbus',
     ]
 
-if CONFIG['MOZ_B2G_CAMERA']:
+if CONFIG['MOZ_B2G_CAMERA'] and CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
     OS_LIBS += [
         'stagefright',
         'stagefright_omx',
@@ -269,6 +259,16 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
         'mtp',
     ]
 
+    if int(CONFIG['ANDROID_VERSION']) >= 17:
+        OS_LIBS += [
+            'sync',
+        ]
+
+    if CONFIG['ANDROID_VERSION'] >= '16':
+        OS_LIBS += [
+            'mdnssd',
+        ]
+
 if 'rtsp' in CONFIG['NECKO_PROTOCOLS']:
     OS_LIBS += [
         'stagefright_foundation',
@@ -276,7 +276,7 @@ if 'rtsp' in CONFIG['NECKO_PROTOCOLS']:
 
 OS_LIBS += CONFIG['ICONV_LIBS']
 
-if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'cocoa':
+if CONFIG['MOZ_WIDGET_TOOLKIT'] in ('cocoa', 'uikit'):
     OS_LIBS += CONFIG['TK_LIBS']
 
 if CONFIG['OS_ARCH'] == 'OpenBSD':
@@ -355,15 +355,12 @@ if CONFIG['OS_ARCH'] == 'WINNT':
         'wbemuuid',
         'wintrust',
         'wtsapi32',
+        'locationapi',
+        'sapi',
     ]
     if CONFIG['ACCESSIBILITY']:
         OS_LIBS += [
             'oleacc',
-        ]
-    if CONFIG['MOZ_METRO']:
-        OS_LIBS += [
-            'uiautomationcore',
-            'runtimeobject',
         ]
 
 if CONFIG['MOZ_ENABLE_QT']:

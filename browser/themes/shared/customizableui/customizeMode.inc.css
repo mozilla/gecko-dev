@@ -130,6 +130,15 @@
   -moz-appearance: none;
 }
 
+#customization-titlebar-visibility-button[checked],
+#customization-devedition-theme-button[checked] {
+  background-color: rgb(218, 218, 218);
+  border-color: rgb(168, 168, 168);
+  text-shadow: 0 1px rgb(236, 236, 236);
+  box-shadow: 0 1px rgba(255, 255, 255, 0.5),
+              inset 0 1px rgb(196, 196, 196);
+}
+
 .customizationmode-button[disabled="true"] {
   opacity: .5;
 }
@@ -142,12 +151,24 @@
 #customization-titlebar-visibility-button {
   list-style-image: url("chrome://browser/skin/customizableui/customize-titleBar-toggle.png");
   -moz-image-region: rect(0, 24px, 24px, 0);
+}
+
+#customization-lwtheme-button,
+#customization-titlebar-visibility-button  {
   padding: 2px 7px;
 }
 
+#customization-lwtheme-button > .box-inherit > .box-inherit > .button-text,
 #customization-titlebar-visibility-button > .button-box > .button-text {
   /* Sadly, button.css thinks its margins are perfect for everyone. */
   -moz-margin-start: 6px !important;
+}
+
+#customization-lwtheme-button > .box-inherit > .box-inherit > .button-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 2px;
+  background-size: contain;
 }
 
 #customization-titlebar-visibility-button > .button-box > .button-icon {
@@ -156,11 +177,17 @@
 
 #customization-titlebar-visibility-button[checked] {
   -moz-image-region: rect(0, 48px, 24px, 24px);
-  background-color: rgb(218, 218, 218);
-  border-color: rgb(168, 168, 168);
-  text-shadow: 0 1px rgb(236, 236, 236);
-  box-shadow: 0 1px rgba(255, 255, 255, 0.5),
-              inset 0 1px rgb(196, 196, 196);
+}
+
+@media (min-resolution: 1.1dppx) {
+  #customization-titlebar-visibility-button {
+    list-style-image: url("chrome://browser/skin/customizableui/customize-titleBar-toggle@2x.png");
+    -moz-image-region: rect(0, 48px, 48px, 0);
+  }
+
+  #customization-titlebar-visibility-button[checked] {
+    -moz-image-region: rect(0, 96px, 48px, 48px);
+  }
 }
 
 #main-window[customize-entered] #customization-panel-container {
@@ -206,14 +233,14 @@ toolbarpaletteitem[notransition][place="panel"] {
 }
 
 toolbarpaletteitem > toolbarbutton > .toolbarbutton-icon,
-toolbarpaletteitem > toolbarbutton > .toolbarbutton-badge-container > .toolbarbutton-icon,
+toolbarpaletteitem > toolbarbutton > .toolbarbutton-badge-stack > .toolbarbutton-icon,
 toolbarpaletteitem > toolbaritem.panel-wide-item,
 toolbarpaletteitem > toolbarbutton[type="menu-button"] {
   transition: transform .3s cubic-bezier(.6, 2, .75, 1.5) !important;
 }
 
 toolbarpaletteitem[mousedown] > toolbarbutton > .toolbarbutton-icon,
-toolbarpaletteitem[mousedown] > toolbarbutton > .toolbarbutton-badge-container > .toolbarbutton-icon {
+toolbarpaletteitem[mousedown] > toolbarbutton > .toolbarbutton-badge-stack > .toolbarbutton-icon {
   transform: scale(1.3);
 }
 
@@ -271,6 +298,10 @@ toolbarpaletteitem[place="toolbar"] {
   min-height: 48px;
 }
 
+#personal-bookmarks[cui-areatype="toolbar"]:not([overflowedItem=true]) > #bookmarks-toolbar-placeholder > .toolbarbutton-icon {
+  -moz-margin-end: 5px;
+}
+
 #customization-palette > toolbarpaletteitem > label {
   text-align: center;
   margin-left: 0;
@@ -297,6 +328,10 @@ toolbarpaletteitem[place="toolbar"] {
   -moz-padding-end: 5px;
   padding-bottom: 0;
   -moz-padding-start: 0;
+}
+
+.customization-lwtheme-menu-theme[defaulttheme] {
+  list-style-image: url(chrome://browser/skin/theme-switcher-icon.png);
 }
 
 .customization-lwtheme-menu-theme[active="true"],
@@ -344,6 +379,7 @@ toolbarpaletteitem[place="toolbar"] {
 }
 
 #customization-lwtheme-menu-footer {
+  background: linear-gradient(hsla(210,4%,10%,.05) 60%, transparent) border-box;
   border-top: 1px solid hsla(210,4%,10%,.05);
   margin-bottom: -10px;
 }
@@ -352,22 +388,18 @@ toolbarpaletteitem[place="toolbar"] {
   -moz-appearance: none;
   -moz-box-flex: 1;
   color: hsl(0,0%,50%);
-  border: 1px solid transparent;
+  border-style: none;
   padding: 10px;
   margin-left: 0;
   margin-right: 0;
 }
 
 .customization-lwtheme-menu-footeritem:hover {
-  background-color: hsla(210,4%,10%,.15);
+  background: linear-gradient(hsla(210,4%,10%,.08) 40%, transparent) padding-box;
 }
 
-#customization-lwtheme-menu-footer:not(:hover) > .customization-lwtheme-menu-footeritem:first-child {
+.customization-lwtheme-menu-footeritem:first-child {
   -moz-border-end: 1px solid hsla(210,4%,10%,.15);
-}
-
-#customization-lwtheme-menu-footer:hover > .customization-lwtheme-menu-footeritem:first-child {
-  -moz-border-end-color: transparent;
 }
 
 %include customizeTip.inc.css

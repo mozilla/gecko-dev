@@ -6,7 +6,7 @@ function run_test() {
   runAsyncTests(tests);
 }
 
-let tests = [
+var tests = [
 
   function nonexistent() {
     getCachedOK(["a.com", "foo"], false, undefined);
@@ -71,16 +71,12 @@ let tests = [
   },
 
   function erroneous() {
-    do_check_throws(function ()
-                    cps.getCachedByDomainAndName(null, "foo", null));
-    do_check_throws(function ()
-                    cps.getCachedByDomainAndName("", "foo", null));
-    do_check_throws(function ()
-                    cps.getCachedByDomainAndName("a.com", "", null));
-    do_check_throws(function ()
-                    cps.getCachedByDomainAndName("a.com", null, null));
-    do_check_throws(function () cps.getCachedGlobal("", null));
-    do_check_throws(function () cps.getCachedGlobal(null, null));
+    do_check_throws(() => cps.getCachedByDomainAndName(null, "foo", null));
+    do_check_throws(() => cps.getCachedByDomainAndName("", "foo", null));
+    do_check_throws(() => cps.getCachedByDomainAndName("a.com", "", null));
+    do_check_throws(() => cps.getCachedByDomainAndName("a.com", null, null));
+    do_check_throws(() => cps.getCachedGlobal("", null));
+    do_check_throws(() => cps.getCachedGlobal(null, null));
     yield true;
   },
 

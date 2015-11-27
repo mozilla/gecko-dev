@@ -386,8 +386,19 @@ public:
 #ifdef CharT_is_PRUnichar
   void ReplaceChar(const char16_t* aSet, char16_t aNewChar);
 #endif
+  /**
+   * Replace all occurrences of aTarget with aNewValue.
+   * The complexity of this function is O(n+m), n being the length of the string
+   * and m being the length of aNewValue.
+   */
   void ReplaceSubstring(const self_type& aTarget, const self_type& aNewValue);
   void ReplaceSubstring(const char_type* aTarget, const char_type* aNewValue);
+  MOZ_WARN_UNUSED_RESULT bool ReplaceSubstring(const self_type& aTarget,
+                                               const self_type& aNewValue,
+                                               const fallible_t&);
+  MOZ_WARN_UNUSED_RESULT bool ReplaceSubstring(const char_type* aTarget,
+                                               const char_type* aNewValue,
+                                               const fallible_t&);
 
 
   /**
@@ -435,7 +446,7 @@ public:
   /**
    * verify restrictions for dependent strings
    */
-  void AssertValidDepedentString()
+  void AssertValidDependentString()
   {
     NS_ASSERTION(mData, "nsTDependentString must wrap a non-NULL buffer");
     NS_ASSERTION(mLength != size_type(-1), "nsTDependentString has bogus length");
@@ -458,6 +469,14 @@ protected:
     : substring_type(aData, aLength, aFlags)
   {
   }
+
+  struct Segment {
+    uint32_t mBegin, mLength;
+    Segment(uint32_t aBegin, uint32_t aLength)
+      : mBegin(aBegin)
+      , mLength(aLength)
+    {}
+  };
 };
 
 
@@ -541,7 +560,7 @@ protected:
  *   nsAutoString for wide characters
  *   nsAutoCString for narrow characters
  */
-class nsTAutoString_CharT : public nsTFixedString_CharT
+class MOZ_NON_MEMMOVABLE nsTAutoString_CharT : public nsTFixedString_CharT
 {
 public:
 
@@ -681,7 +700,7 @@ public:
  *   (1) mData can be null
  *   (2) objects of this type can be automatically cast to |const CharT*|
  *   (3) getter_Copies method is supported to adopt data allocated with
- *       NS_Alloc, such as "out string" parameters in XPIDL.
+ *       moz_xmalloc, such as "out string" parameters in XPIDL.
  *
  * NAMES:
  *   nsXPIDLString for wide characters
@@ -856,7 +875,7 @@ public:
   self_type& operator=(const self_type& aStr);
 
 private:
-  self_type& operator=(const char_type* aData) MOZ_DELETE;
-  self_type& operator=(char_type* aData) MOZ_DELETE;
+  self_type& operator=(const char_type* aData) = delete;
+  self_type& operator=(char_type* aData) = delete;
 };
 

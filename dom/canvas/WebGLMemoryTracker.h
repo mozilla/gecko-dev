@@ -3,21 +3,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef WEBGLMEMORYTRACKER_H_
-#define WEBGLMEMORYTRACKER_H_
+#ifndef WEBGL_MEMORY_TRACKER_H_
+#define WEBGL_MEMORY_TRACKER_H_
 
-#include "WebGLContext.h"
-#include "WebGLBuffer.h"
-#include "WebGLVertexAttribData.h"
-#include "WebGLShader.h"
-#include "WebGLProgram.h"
-#include "WebGLUniformLocation.h"
-#include "WebGLTexture.h"
-#include "WebGLRenderbuffer.h"
 #include "mozilla/StaticPtr.h"
 #include "nsIMemoryReporter.h"
 
 namespace mozilla {
+
+class WebGLContext;
 
 class WebGLMemoryTracker : public nsIMemoryReporter
 {
@@ -37,7 +31,7 @@ class WebGLMemoryTracker : public nsIMemoryReporter
 
     static WebGLMemoryTracker* UniqueInstance();
 
-    static ContextsArrayType & Contexts() { return UniqueInstance()->mContexts; }
+    static ContextsArrayType& Contexts() { return UniqueInstance()->mContexts; }
 
     friend class WebGLContext;
 
@@ -58,114 +52,29 @@ class WebGLMemoryTracker : public nsIMemoryReporter
   private:
     virtual ~WebGLMemoryTracker();
 
-    static int64_t GetTextureMemoryUsed() {
-        const ContextsArrayType & contexts = Contexts();
-        int64_t result = 0;
-        for(size_t i = 0; i < contexts.Length(); ++i) {
-            for (const WebGLTexture *texture = contexts[i]->mTextures.getFirst();
-                 texture;
-                 texture = texture->getNext())
-            {
-                result += texture->MemoryUsage();
-            }
-        }
-        return result;
-    }
+    static int64_t GetTextureMemoryUsed();
 
-    static int64_t GetTextureCount() {
-        const ContextsArrayType & contexts = Contexts();
-        int64_t result = 0;
-        for(size_t i = 0; i < contexts.Length(); ++i) {
-            for (const WebGLTexture *texture = contexts[i]->mTextures.getFirst();
-                 texture;
-                 texture = texture->getNext())
-            {
-                result++;
-            }
-        }
-        return result;
-    }
+    static int64_t GetTextureCount();
 
-    static int64_t GetBufferMemoryUsed() {
-        const ContextsArrayType & contexts = Contexts();
-        int64_t result = 0;
-        for(size_t i = 0; i < contexts.Length(); ++i) {
-            for (const WebGLBuffer *buffer = contexts[i]->mBuffers.getFirst();
-                 buffer;
-                 buffer = buffer->getNext())
-            {
-                result += buffer->ByteLength();
-            }
-        }
-        return result;
-    }
+    static int64_t GetBufferMemoryUsed();
 
     static int64_t GetBufferCacheMemoryUsed();
 
-    static int64_t GetBufferCount() {
-        const ContextsArrayType & contexts = Contexts();
-        int64_t result = 0;
-        for(size_t i = 0; i < contexts.Length(); ++i) {
-            for (const WebGLBuffer *buffer = contexts[i]->mBuffers.getFirst();
-                 buffer;
-                 buffer = buffer->getNext())
-            {
-                result++;
-            }
-        }
-        return result;
-    }
+    static int64_t GetBufferCount();
 
-    static int64_t GetRenderbufferMemoryUsed() {
-        const ContextsArrayType & contexts = Contexts();
-        int64_t result = 0;
-        for(size_t i = 0; i < contexts.Length(); ++i) {
-            for (const WebGLRenderbuffer *rb = contexts[i]->mRenderbuffers.getFirst();
-                 rb;
-                 rb = rb->getNext())
-            {
-                result += rb->MemoryUsage();
-            }
-        }
-        return result;
-    }
+    static int64_t GetRenderbufferMemoryUsed();
 
-    static int64_t GetRenderbufferCount() {
-        const ContextsArrayType & contexts = Contexts();
-        int64_t result = 0;
-        for(size_t i = 0; i < contexts.Length(); ++i) {
-            for (const WebGLRenderbuffer *rb = contexts[i]->mRenderbuffers.getFirst();
-                 rb;
-                 rb = rb->getNext())
-            {
-                result++;
-            }
-        }
-        return result;
-    }
+    static int64_t GetRenderbufferCount();
 
     static int64_t GetShaderSize();
 
-    static int64_t GetShaderCount() {
-        const ContextsArrayType & contexts = Contexts();
-        int64_t result = 0;
-        for(size_t i = 0; i < contexts.Length(); ++i) {
-            for (const WebGLShader *shader = contexts[i]->mShaders.getFirst();
-                 shader;
-                 shader = shader->getNext())
-            {
-                result++;
-            }
-        }
-        return result;
-    }
+    static int64_t GetShaderCount();
 
     static int64_t GetContextCount() {
         return Contexts().Length();
     }
 };
 
-
 } // namespace mozilla
 
-#endif
+#endif // WEBGL_MEMORY_TRACKER_H_

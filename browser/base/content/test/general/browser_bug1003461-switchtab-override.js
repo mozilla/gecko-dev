@@ -3,6 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 add_task(function* test_switchtab_override() {
+  // This test is only relevant if UnifiedComplete is enabled.
+  let ucpref = Services.prefs.getBoolPref("browser.urlbar.unifiedcomplete");
+  Services.prefs.setBoolPref("browser.urlbar.unifiedcomplete", true);
+  registerCleanupFunction(() => {
+    Services.prefs.setBoolPref("browser.urlbar.unifiedcomplete", ucpref);
+  });
+
   let testURL = "http://example.org/browser/browser/base/content/test/general/dummy_page.html";
 
   info("Opening first tab");
@@ -31,13 +38,13 @@ add_task(function* test_switchtab_override() {
     onSearchComplete.apply(gURLBar);
     deferred.resolve();
   }
-  
+
   gURLBar.focus();
   gURLBar.value = "dummy_pag";
   EventUtils.synthesizeKey("e" , {});
   yield deferred.promise;
 
-  info("Select first autocomplete popup entry");
+  info("Select second autocomplete popup entry");
   EventUtils.synthesizeKey("VK_DOWN" , {});
   ok(/moz-action:switchtab/.test(gURLBar.value), "switch to tab entry found");
 
@@ -56,8 +63,9 @@ add_task(function* test_switchtab_override() {
 
   EventUtils.synthesizeKey("VK_SHIFT" , { type: "keydown" });
   EventUtils.synthesizeKey("VK_RETURN" , { });
+  info(`gURLBar.value = ${gURLBar.value}`);
   EventUtils.synthesizeKey("VK_SHIFT" , { type: "keyup" });
   yield deferred.promise;
 
-  yield promiseClearHistory();
+  yield PlacesTestUtils.clearHistory();
 });

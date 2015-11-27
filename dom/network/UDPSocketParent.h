@@ -11,39 +11,47 @@
 #include "nsCOMPtr.h"
 #include "nsIUDPSocket.h"
 #include "nsIUDPSocketFilter.h"
+#include "mozilla/net/OfflineObserver.h"
+#include "mozilla/dom/PermissionMessageUtils.h"
 
 namespace mozilla {
+namespace net {
+class PNeckoParent;
+} // namespace net
+
 namespace dom {
 
 class UDPSocketParent : public mozilla::net::PUDPSocketParent
                       , public nsIUDPSocketListener
+                      , public mozilla::net::DisconnectableParent
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIUDPSOCKETLISTENER
 
-  UDPSocketParent() :
-    mIPCOpen(true) {}
+  explicit UDPSocketParent(PBackgroundParent* aManager);
+  explicit UDPSocketParent(PNeckoParent* aManager);
 
-  bool Init(const nsACString& aFilter);
+  bool Init(const IPC::Principal& aPrincipal, const nsACString& aFilter);
 
   virtual bool RecvBind(const UDPAddressInfo& aAddressInfo,
-                        const bool& aAddressReuse, const bool& aLoopback) MOZ_OVERRIDE;
+                        const bool& aAddressReuse, const bool& aLoopback) override;
 
-  virtual bool RecvOutgoingData(const UDPData& aData, const UDPSocketAddr& aAddr) MOZ_OVERRIDE;
+  virtual bool RecvOutgoingData(const UDPData& aData, const UDPSocketAddr& aAddr) override;
 
-  virtual bool RecvClose() MOZ_OVERRIDE;
-
-  virtual bool RecvRequestDelete() MOZ_OVERRIDE;
+  virtual bool RecvClose() override;
+  virtual bool RecvRequestDelete() override;
   virtual bool RecvJoinMulticast(const nsCString& aMulticastAddress,
-                                 const nsCString& aInterface) MOZ_OVERRIDE;
+                                 const nsCString& aInterface) override;
   virtual bool RecvLeaveMulticast(const nsCString& aMulticastAddress,
-                                  const nsCString& aInterface) MOZ_OVERRIDE;
+                                  const nsCString& aInterface) override;
+  virtual nsresult OfflineNotification(nsISupports *) override;
+  virtual uint32_t GetAppId() override;
 
 private:
   virtual ~UDPSocketParent();
 
-  virtual void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
+  virtual void ActorDestroy(ActorDestroyReason why) override;
   void Send(const InfallibleTArray<uint8_t>& aData, const UDPSocketAddr& aAddr);
   void Send(const InputStreamParams& aStream, const UDPSocketAddr& aAddr);
   nsresult BindInternal(const nsCString& aHost, const uint16_t& aPort,
@@ -51,9 +59,15 @@ private:
 
   void FireInternalError(uint32_t aLineNo);
 
+  // One of these will be null and the other non-null.
+  PBackgroundParent* mBackgroundManager;
+  PNeckoParent* mNeckoManager;
+
   bool mIPCOpen;
   nsCOMPtr<nsIUDPSocket> mSocket;
   nsCOMPtr<nsIUDPSocketFilter> mFilter;
+  RefPtr<mozilla::net::OfflineObserver> mObserver;
+  nsCOMPtr<nsIPrincipal> mPrincipal;
 };
 
 } // namespace dom

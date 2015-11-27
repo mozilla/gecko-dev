@@ -95,7 +95,7 @@ var view = {
         pref = gPrefView[index];
 
       var old = document.getElementById(gSortedColumn);
-      old.setAttribute("sortDirection", "");
+      old.removeAttribute("sortDirection");
       gPrefArray.sort(gSortFunction = gSortFunctions[col.id]);
       if (gPrefView != gPrefArray)
         gPrefView.sort(gSortFunction);
@@ -535,17 +535,17 @@ function updateContextMenu()
 function copyPref()
 {
   var pref = gPrefView[view.selection.currentIndex];
-  gClipboardHelper.copyString(pref.prefCol + ';' + pref.valueCol, document);
+  gClipboardHelper.copyString(pref.prefCol + ';' + pref.valueCol);
 }
 
 function copyName()
 {
-  gClipboardHelper.copyString(gPrefView[view.selection.currentIndex].prefCol, document);
+  gClipboardHelper.copyString(gPrefView[view.selection.currentIndex].prefCol);
 }
 
 function copyValue()
 {
-  gClipboardHelper.copyString(gPrefView[view.selection.currentIndex].valueCol, document);
+  gClipboardHelper.copyString(gPrefView[view.selection.currentIndex].valueCol);
 }
 
 function ModifySelected()

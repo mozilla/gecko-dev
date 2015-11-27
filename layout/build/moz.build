@@ -21,10 +21,6 @@ if CONFIG['MOZ_NFC']:
         '/dom/nfc'
     ]
 
-FAIL_ON_WARNINGS = True
-
-MSVC_ENABLE_PGO = True
-
 include('/ipc/chromium/chromium-config.mozbuild')
 
 LOCAL_INCLUDES += [
@@ -37,13 +33,6 @@ LOCAL_INCLUDES += [
     '../tables',
     '../xul',
     '/caps',
-    '/content/base/src',
-    '/content/html/content/src',
-    '/content/html/document/src',
-    '/content/svg/content/src',
-    '/content/xul/content/src',
-    '/content/xul/document/src',
-    '/content/xul/templates/src',
     '/docshell/base',
     '/dom/audiochannel',
     '/dom/base',
@@ -51,18 +40,22 @@ LOCAL_INCLUDES += [
     '/dom/canvas',
     '/dom/filesystem',
     '/dom/geolocation',
+    '/dom/html',
     '/dom/json',
     '/dom/jsurl',
     '/dom/media',
     '/dom/offline',
     '/dom/speakermanager',
     '/dom/storage',
+    '/dom/svg',
     '/dom/telephony',
     '/dom/xbl',
     '/dom/xslt/base',
     '/dom/xslt/xml',
     '/dom/xslt/xpath',
     '/dom/xslt/xslt',
+    '/dom/xul',
+    '/dom/xul/templates',
     '/editor/composer',
     '/editor/libeditor',
     '/editor/txmgr',
@@ -70,7 +63,7 @@ LOCAL_INCLUDES += [
     '/extensions/cookie',
     '/js/xpconnect/loader',
     '/js/xpconnect/src',
-    '/netwerk/base/src',
+    '/netwerk/base',
     '/netwerk/cookie',
     '/view',
 ]
@@ -92,17 +85,18 @@ elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk':
     LOCAL_INCLUDES += [
         '/dom/system/gonk',
     ]
-    CXXFLAGS += [
-        '-I%s/%s' % (CONFIG['ANDROID_SOURCE'], d) for d in [
-            'dalvik/libnativehelper/include/nativehelper',
-            'frameworks/base/include',
-            'frameworks/base/include/binder',
-            'frameworks/base/include/utils',
-            'frameworks/base/include/media',
-            'frameworks/base/include/media/stagefright/openmax',
-            'frameworks/base/media/libstagefright/include',
+    if CONFIG['ANDROID_VERSION'] == '15':
+        LOCAL_INCLUDES += [
+            '%' + '%s/%s' % (CONFIG['ANDROID_SOURCE'], d) for d in [
+                'dalvik/libnativehelper/include/nativehelper',
+                'frameworks/base/include',
+                'frameworks/base/include/binder',
+                'frameworks/base/include/media',
+                'frameworks/base/include/media/stagefright/openmax',
+                'frameworks/base/include/utils',
+                'frameworks/base/media/libstagefright/include',
+            ]
         ]
-    ]
 
 if CONFIG['MOZ_B2G_FM']:
     LOCAL_INCLUDES += [
@@ -111,15 +105,28 @@ if CONFIG['MOZ_B2G_FM']:
 
 if CONFIG['MOZ_B2G_BT']:
     LOCAL_INCLUDES += [
-        '/dom/bluetooth',
+        '/dom/bluetooth/common',
     ]
 
 if CONFIG['MOZ_WEBSPEECH']:
     LOCAL_INCLUDES += [
-        '/content/media/webspeech/synth',
+        '/dom/media/webspeech/recognition',
+        '/dom/media/webspeech/synth',
     ]
+
+if CONFIG['MOZ_WEBSPEECH_POCKETSPHINX']:
+    LOCAL_INCLUDES += [
+        '/media/pocketsphinx',
+        '/media/sphinxbase',
+    ]
+
 
 if CONFIG['MOZ_GSTREAMER']:
     CXXFLAGS += CONFIG['GSTREAMER_CFLAGS']
+
+if CONFIG['MOZ_SECUREELEMENT']:
+    LOCAL_INCLUDES += [
+        '/dom/secureelement',
+    ]
 
 FINAL_LIBRARY = 'xul'

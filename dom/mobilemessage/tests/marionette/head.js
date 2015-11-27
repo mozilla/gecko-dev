@@ -3,7 +3,15 @@
 
 const {Cc: Cc, Ci: Ci, Cr: Cr, Cu: Cu} = SpecialPowers;
 
-let Promise = Cu.import("resource://gre/modules/Promise.jsm").Promise;
+// Emulate Promise.jsm semantics.
+Promise.defer = function() { return new Deferred(); }
+function Deferred()  {
+  this.promise = new Promise(function(resolve, reject) {
+    this.resolve = resolve;
+    this.reject = reject;
+  }.bind(this));
+  Object.freeze(this);
+}
 
 /**
  * Push a list of preference settings. Never reject.
@@ -40,7 +48,7 @@ function pushPrefEnv(aPrefs) {
  *
  * @return A deferred promise.
  */
-let manager;
+var manager;
 function ensureMobileMessage() {
   let deferred = Promise.defer();
 
@@ -67,6 +75,49 @@ function ensureMobileMessage() {
   });
 
   return deferred.promise;
+}
+
+/**
+ * Push required permissions and test if |navigator.mozMobileConnections| exists.
+ * Resolve if it does, reject otherwise.
+ *
+ * Fulfill params:
+ *   manager -- an reference to navigator.mozMobileConnections.
+ *
+ * Reject params: (none)
+ *
+ * @param aServiceId [optional]
+ *        A numeric DSDS service id. Default: 0.
+ *
+ * @return A deferred promise.
+ */
+var mobileConnection;
+function ensureMobileConnection(aServiceId) {
+  return new Promise(function(resolve, reject) {
+    let permissions = [{
+      "type": "mobileconnection",
+      "allow": 1,
+      "context": document,
+    }];
+    SpecialPowers.pushPermissions(permissions, function() {
+      ok(true, "permissions pushed: " + JSON.stringify(permissions));
+
+      let serviceId = aServiceId || 0;
+      mobileConnection = window.navigator.mozMobileConnections[serviceId];
+      if (mobileConnection) {
+        log("navigator.mozMobileConnections[" + serviceId + "] is instance of " +
+            mobileConnection.constructor);
+      } else {
+        log("navigator.mozMobileConnections[" + serviceId + "] is undefined");
+      }
+
+      if (mobileConnection instanceof MozMobileConnection) {
+        resolve(mobileConnection);
+      } else {
+        reject();
+      }
+    });
+  });
 }
 
 /**
@@ -103,33 +154,6 @@ function waitForManagerEvent(aEventName, aMatchFunc) {
 }
 
 /**
- * Wrap DOMRequest onsuccess/onerror events to Promise resolve/reject.
- *
- * Fulfill params: A DOMEvent.
- * Reject params: A DOMEvent.
- *
- * @param aRequest
- *        A DOMRequest instance.
- *
- * @return A deferred promise.
- */
-function wrapDomRequestAsPromise(aRequest) {
-  let deferred = Promise.defer();
-
-  ok(aRequest instanceof DOMRequest,
-     "aRequest is instanceof " + aRequest.constructor);
-
-  aRequest.addEventListener("success", function(aEvent) {
-    deferred.resolve(aEvent);
-  });
-  aRequest.addEventListener("error", function(aEvent) {
-    deferred.reject(aEvent);
-  });
-
-  return deferred.promise;
-}
-
-/**
  * Send a SMS message to a single receiver.  Resolve if it succeeds, reject
  * otherwise.
  *
@@ -145,10 +169,7 @@ function wrapDomRequestAsPromise(aRequest) {
  * @return A deferred promise.
  */
 function sendSmsWithSuccess(aReceiver, aText) {
-  let request = manager.send(aReceiver, aText);
-  return wrapDomRequestAsPromise(request)
-    .then((aEvent) => { return aEvent.target.result; },
-          (aEvent) => { throw aEvent.target.error; });
+  return manager.send(aReceiver, aText);
 }
 
 /**
@@ -172,11 +193,9 @@ function sendSmsWithFailure(aReceiver, aText) {
   let promises = [];
   promises.push(waitForManagerEvent("failed")
     .then((aEvent) => { return aEvent.message; }));
-
-  let request = manager.send(aReceiver, aText);
-  promises.push(wrapDomRequestAsPromise(request)
-    .then((aEvent) => { throw aEvent; },
-          (aEvent) => { return aEvent.target.error; }));
+  promises.push(manager.send(aReceiver, aText)
+    .then((aResult) => { throw aResult; },
+          (aError) => { return aError; }));
 
   return Promise.all(promises)
     .then((aResults) => { return { message: aResults[0],
@@ -205,11 +224,9 @@ function sendMmsWithFailure(aMmsParameters, aSendParameters) {
   let promises = [];
   promises.push(waitForManagerEvent("failed")
     .then((aEvent) => { return aEvent.message; }));
-
-  let request = manager.sendMMS(aMmsParameters, aSendParameters);
-  promises.push(wrapDomRequestAsPromise(request)
-    .then((aEvent) => { throw aEvent; },
-          (aEvent) => { return aEvent.target.error; }));
+  promises.push(manager.sendMMS(aMmsParameters, aSendParameters)
+    .then((aResult) => { throw aResult; },
+          (aError) => { return aError; }));
 
   return Promise.all(promises)
     .then((aResults) => { return { message: aResults[0],
@@ -219,7 +236,7 @@ function sendMmsWithFailure(aMmsParameters, aSendParameters) {
 /**
  * Retrieve message by message id.
  *
- * Fulfill params: MozSmsMessage
+ * Fulfill params: SmsMessage
  * Reject params:
  *   event -- a DOMEvent
  *
@@ -229,9 +246,7 @@ function sendMmsWithFailure(aMmsParameters, aSendParameters) {
  * @return A deferred promise.
  */
 function getMessage(aId) {
-  let request = manager.getMessage(aId);
-  return wrapDomRequestAsPromise(request)
-    .then((aEvent) => { return aEvent.target.result; });
+  return manager.getMessage(aId);
 }
 
 /**
@@ -363,14 +378,12 @@ function deleteMessagesById(aMessageIds) {
 
   let promises = [];
   promises.push(waitForManagerEvent("deleted"));
-
-  let request = manager.delete(aMessageIds);
-  promises.push(wrapDomRequestAsPromise(request));
+  promises.push(manager.delete(aMessageIds));
 
   return Promise.all(promises)
     .then((aResults) => {
       return { deletedInfo: aResults[0],
-               deletedFlags: aResults[1].target.result };
+               deletedFlags: aResults[1] };
     });
 }
 
@@ -409,7 +422,7 @@ function deleteAllMessages() {
   return getAllMessages().then(deleteMessages);
 }
 
-let pendingEmulatorCmdCount = 0;
+var pendingEmulatorCmdCount = 0;
 
 /**
  * Send emulator command with safe guard.
@@ -468,7 +481,7 @@ function sendTextSmsToEmulator(aFrom, aText) {
 /**
  * Send simple text SMS to emulator and wait for a received event.
  *
- * Fulfill params: MozSmsMessage
+ * Fulfill params: SmsMessage
  * Reject params: (none)
  *
  * @param aFrom
@@ -528,6 +541,28 @@ function sendMultipleRawSmsToEmulatorAndWait(aPdus) {
     promises.push(sendRawSmsToEmulator(pdu));
   }
 
+  return Promise.all(promises);
+}
+
+/**
+ * Set voice state and wait for state change.
+ *
+ * @param aState
+ *        "unregistered", "searching", "denied", "roaming", or "home".
+ *
+ * @return A deferred promise.
+ */
+function setEmulatorVoiceStateAndWait(aState) {
+  let promises = [];
+  promises.push(new Promise(function(resolve, reject) {
+    mobileConnection.addEventListener("voicechange", function onevent(aEvent) {
+      log("voicechange: connected=" + mobileConnection.voice.connected);
+      mobileConnection.removeEventListener("voicechange", onevent);
+      resolve(aEvent);
+    })
+  }));
+
+  promises.push(runEmulatorCmdSafe("gsm voice " + aState));
   return Promise.all(promises);
 }
 

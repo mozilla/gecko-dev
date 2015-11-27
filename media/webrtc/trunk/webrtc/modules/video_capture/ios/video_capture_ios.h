@@ -13,7 +13,7 @@
 
 #include "webrtc/modules/video_capture/video_capture_impl.h"
 
-@class VideoCaptureIosObjC;
+@class RTCVideoCaptureIosObjC;
 
 namespace webrtc {
 namespace videocapturemodule {
@@ -26,14 +26,13 @@ class VideoCaptureIos : public VideoCaptureImpl {
                                     const char* device_unique_id_utf8);
 
   // Implementation of VideoCaptureImpl.
-  virtual int32_t StartCapture(
-      const VideoCaptureCapability& capability) OVERRIDE;
-  virtual int32_t StopCapture() OVERRIDE;
-  virtual bool CaptureStarted() OVERRIDE;
-  virtual int32_t CaptureSettings(VideoCaptureCapability& settings) OVERRIDE;
+  int32_t StartCapture(const VideoCaptureCapability& capability) override;
+  int32_t StopCapture() override;
+  bool CaptureStarted() override;
+  int32_t CaptureSettings(VideoCaptureCapability& settings) override;
 
  private:
-  VideoCaptureIosObjC* capture_device_;
+  RTCVideoCaptureIosObjC* capture_device_;
   bool is_capturing_;
   int32_t id_;
   VideoCaptureCapability capability_;

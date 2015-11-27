@@ -9,7 +9,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.mozilla.gecko.mozglue.RobocopTarget;
+import org.mozilla.gecko.annotation.RobocopTarget;
 import org.mozilla.gecko.util.INIParser;
 import org.mozilla.gecko.util.INISection;
 
@@ -58,7 +58,7 @@ public class GeckoProfileDirectories {
     /**
      * Returns true if the supplied profile entry represents the default profile.
      */
-    private static INISectionPredicate sectionIsDefault = new INISectionPredicate() {
+    private static final INISectionPredicate sectionIsDefault = new INISectionPredicate() {
         @Override
         public boolean matches(INISection section) {
             return section.getIntProperty("Default") == 1;
@@ -68,7 +68,7 @@ public class GeckoProfileDirectories {
     /**
      * Returns true if the supplied profile entry has a 'Name' field.
      */
-    private static INISectionPredicate sectionHasName = new INISectionPredicate() {
+    private static final INISectionPredicate sectionHasName = new INISectionPredicate() {
         @Override
         public boolean matches(INISection section) {
             final String name = section.getStringProperty("Name");

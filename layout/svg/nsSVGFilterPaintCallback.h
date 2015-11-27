@@ -6,10 +6,10 @@
 #ifndef __NS_SVGFILTERPAINTCALLBACK_H__
 #define __NS_SVGFILTERPAINTCALLBACK_H__
 
-class nsIFrame;
-class nsRenderingContext;
+#include "nsRect.h"
 
-struct nsIntRect;
+class nsIFrame;
+class gfxContext;
 
 class nsSVGFilterPaintCallback {
 public:
@@ -25,7 +25,7 @@ public:
    * @param aTransformRoot the outermost frame whose transform should be taken
    *                       into account when painting an SVG glyph
    */
-  virtual void Paint(nsRenderingContext *aContext, nsIFrame *aTarget,
+  virtual void Paint(gfxContext& aContext, nsIFrame *aTarget,
                      const gfxMatrix& aTransform,
                      const nsIntRect *aDirtyRect) = 0;
 };

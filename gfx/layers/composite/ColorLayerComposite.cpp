@@ -4,7 +4,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ColorLayerComposite.h"
-#include "gfxColor.h"                   // for gfxRGBA
 #include "mozilla/RefPtr.h"             // for RefPtr
 #include "mozilla/gfx/Matrix.h"         // for Matrix4x4
 #include "mozilla/gfx/Point.h"          // for Point
@@ -14,37 +13,26 @@
 #include "mozilla/layers/CompositorTypes.h"  // for DiagnosticFlags::COLOR
 #include "mozilla/layers/Effects.h"     // for Effect, EffectChain, etc
 #include "mozilla/mozalloc.h"           // for operator delete, etc
-#include "nsPoint.h"                    // for nsIntPoint
-#include "nsRect.h"                     // for nsIntRect
 
 namespace mozilla {
 namespace layers {
 
+using namespace mozilla::gfx;
+
 void
-ColorLayerComposite::RenderLayer(const nsIntRect& aClipRect)
+ColorLayerComposite::RenderLayer(const IntRect& aClipRect)
 {
-  EffectChain effects(this);
+  Rect rect(GetBounds());
+  const Matrix4x4& transform = GetEffectiveTransform();
 
-  GenEffectChain(effects);
+  RenderWithAllMasks(this, mCompositor, aClipRect,
+                     [&](EffectChain& effectChain, const Rect& clipRect) {
+    GenEffectChain(effectChain);
+    mCompositor->DrawQuad(rect, clipRect, effectChain, GetEffectiveOpacity(),
+                          transform);
+  });
 
-  nsIntRect boundRect = GetBounds();
-
-  LayerManagerComposite::AutoAddMaskEffect autoMaskEffect(GetMaskLayer(),
-                                                          effects);
-
-  gfx::Rect rect(boundRect.x, boundRect.y,
-                 boundRect.width, boundRect.height);
-  gfx::Rect clipRect(aClipRect.x, aClipRect.y,
-                     aClipRect.width, aClipRect.height);
-
-  float opacity = GetEffectiveOpacity();
-
-  AddBlendModeEffect(effects);
-
-  const gfx::Matrix4x4& transform = GetEffectiveTransform();
-  mCompositor->DrawQuad(rect, clipRect, effects, opacity, transform);
-  mCompositor->DrawDiagnostics(DiagnosticFlags::COLOR,
-                               rect, clipRect,
+  mCompositor->DrawDiagnostics(DiagnosticFlags::COLOR, rect, Rect(aClipRect),
                                transform);
 }
 
@@ -52,12 +40,8 @@ void
 ColorLayerComposite::GenEffectChain(EffectChain& aEffect)
 {
   aEffect.mLayerRef = this;
-  gfxRGBA color(GetColor());
-  aEffect.mPrimaryEffect = new EffectSolidColor(gfx::Color(color.r,
-                                                           color.g,
-                                                           color.b,
-                                                           color.a));
+  aEffect.mPrimaryEffect = new EffectSolidColor(GetColor());
 }
 
-} /* layers */
-} /* mozilla */
+} // namespace layers
+} // namespace mozilla

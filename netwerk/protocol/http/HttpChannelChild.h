@@ -30,20 +30,26 @@
 #include "nsIDivertableChannel.h"
 #include "mozilla/net/DNS.h"
 
+class nsInputStreamPump;
+
 namespace mozilla {
 namespace net {
 
-class HttpChannelChild MOZ_FINAL : public PHttpChannelChild
-                                 , public HttpBaseChannel
-                                 , public HttpAsyncAborter<HttpChannelChild>
-                                 , public nsICacheInfoChannel
-                                 , public nsIProxiedChannel
-                                 , public nsIApplicationCacheChannel
-                                 , public nsIAsyncVerifyRedirectCallback
-                                 , public nsIAssociatedContentSecurity
-                                 , public nsIChildChannel
-                                 , public nsIHttpChannelChild
-                                 , public nsIDivertableChannel
+class InterceptedChannelContent;
+class InterceptStreamListener;
+class OverrideRunnable;
+
+class HttpChannelChild final : public PHttpChannelChild
+                             , public HttpBaseChannel
+                             , public HttpAsyncAborter<HttpChannelChild>
+                             , public nsICacheInfoChannel
+                             , public nsIProxiedChannel
+                             , public nsIApplicationCacheChannel
+                             , public nsIAsyncVerifyRedirectCallback
+                             , public nsIAssociatedContentSecurity
+                             , public nsIChildChannel
+                             , public nsIHttpChannelChild
+                             , public nsIDivertableChannel
 {
   virtual ~HttpChannelChild();
 public:
@@ -63,27 +69,36 @@ public:
   // Methods HttpBaseChannel didn't implement for us or that we override.
   //
   // nsIRequest
-  NS_IMETHOD Cancel(nsresult status);
-  NS_IMETHOD Suspend();
-  NS_IMETHOD Resume();
+  NS_IMETHOD Cancel(nsresult status) override;
+  NS_IMETHOD Suspend() override;
+  NS_IMETHOD Resume() override;
   // nsIChannel
-  NS_IMETHOD GetSecurityInfo(nsISupports **aSecurityInfo);
-  NS_IMETHOD AsyncOpen(nsIStreamListener *listener, nsISupports *aContext);
+  NS_IMETHOD GetSecurityInfo(nsISupports **aSecurityInfo) override;
+  NS_IMETHOD AsyncOpen(nsIStreamListener *listener, nsISupports *aContext) override;
+  NS_IMETHOD AsyncOpen2(nsIStreamListener *aListener) override;
+
   // HttpBaseChannel::nsIHttpChannel
   NS_IMETHOD SetRequestHeader(const nsACString& aHeader,
                               const nsACString& aValue,
-                              bool aMerge);
-  NS_IMETHOD RedirectTo(nsIURI *newURI);
+                              bool aMerge) override;
+  NS_IMETHOD SetEmptyRequestHeader(const nsACString& aHeader) override;
+  NS_IMETHOD RedirectTo(nsIURI *newURI) override;
+  NS_IMETHOD GetProtocolVersion(nsACString& aProtocolVersion) override;
   // nsIHttpChannelInternal
-  NS_IMETHOD SetupFallbackChannel(const char *aFallbackKey);
-  NS_IMETHOD GetLocalAddress(nsACString& addr);
-  NS_IMETHOD GetLocalPort(int32_t* port);
-  NS_IMETHOD GetRemoteAddress(nsACString& addr);
-  NS_IMETHOD GetRemotePort(int32_t* port);
+  NS_IMETHOD SetupFallbackChannel(const char *aFallbackKey) override;
+  NS_IMETHOD GetLocalAddress(nsACString& addr) override;
+  NS_IMETHOD GetLocalPort(int32_t* port) override;
+  NS_IMETHOD GetRemoteAddress(nsACString& addr) override;
+  NS_IMETHOD GetRemotePort(int32_t* port) override;
+  NS_IMETHOD ForceIntercepted(uint64_t aInterceptionID) override;
   // nsISupportsPriority
-  NS_IMETHOD SetPriority(int32_t value);
+  NS_IMETHOD SetPriority(int32_t value) override;
+  // nsIClassOfService
+  NS_IMETHOD SetClassFlags(uint32_t inFlags) override;
+  NS_IMETHOD AddClassFlags(uint32_t inFlags) override;
+  NS_IMETHOD ClearClassFlags(uint32_t inFlags) override;
   // nsIResumableChannel
-  NS_IMETHOD ResumeAt(uint64_t startPos, const nsACString& entityID);
+  NS_IMETHOD ResumeAt(uint64_t startPos, const nsACString& entityID) override;
 
   // IPDL holds a reference while the PHttpChannel protocol is live (starting at
   // AsyncOpen, and ending at either OnStopRequest or any IPDL error, either of
@@ -93,6 +108,7 @@ public:
 
   bool IsSuspended();
 
+  bool RecvNotifyTrackingProtectionDisabled() override;
   void FlushedForDiversion();
 
 protected:
@@ -107,48 +123,92 @@ protected:
                           const nsCString& securityInfoSerialization,
                           const NetAddr& selfAddr,
                           const NetAddr& peerAddr,
-                          const int16_t& redirectCount) MOZ_OVERRIDE;
+                          const int16_t& redirectCount,
+                          const uint32_t& cacheKey) override;
   bool RecvOnTransportAndData(const nsresult& channelStatus,
                               const nsresult& status,
                               const uint64_t& progress,
                               const uint64_t& progressMax,
                               const nsCString& data,
                               const uint64_t& offset,
-                              const uint32_t& count) MOZ_OVERRIDE;
-  bool RecvOnStopRequest(const nsresult& statusCode);
-  bool RecvOnProgress(const uint64_t& progress, const uint64_t& progressMax) MOZ_OVERRIDE;
-  bool RecvOnStatus(const nsresult& status) MOZ_OVERRIDE;
-  bool RecvFailedAsyncOpen(const nsresult& status) MOZ_OVERRIDE;
+                              const uint32_t& count) override;
+  bool RecvOnStopRequest(const nsresult& statusCode, const ResourceTimingStruct& timing) override;
+  bool RecvOnProgress(const int64_t& progress, const int64_t& progressMax) override;
+  bool RecvOnStatus(const nsresult& status) override;
+  bool RecvFailedAsyncOpen(const nsresult& status) override;
   bool RecvRedirect1Begin(const uint32_t& newChannel,
                           const URIParams& newURI,
                           const uint32_t& redirectFlags,
-                          const nsHttpResponseHead& responseHead) MOZ_OVERRIDE;
-  bool RecvRedirect3Complete() MOZ_OVERRIDE;
+                          const nsHttpResponseHead& responseHead,
+                          const nsCString& securityInfoSerialization) override;
+  bool RecvRedirect3Complete() override;
   bool RecvAssociateApplicationCache(const nsCString& groupID,
-                                     const nsCString& clientID) MOZ_OVERRIDE;
-  bool RecvFlushedForDiversion() MOZ_OVERRIDE;
-  bool RecvDivertMessages() MOZ_OVERRIDE;
-  bool RecvDeleteSelf() MOZ_OVERRIDE;
+                                     const nsCString& clientID) override;
+  bool RecvFlushedForDiversion() override;
+  bool RecvDivertMessages() override;
+  bool RecvDeleteSelf() override;
+
+  bool RecvReportSecurityMessage(const nsString& messageTag,
+                                 const nsString& messageCategory) override;
+
+  bool RecvIssueDeprecationWarning(const uint32_t& warning,
+                                   const bool& asError) override;
 
   bool GetAssociatedContentSecurity(nsIAssociatedContentSecurity** res = nullptr);
-  virtual void DoNotifyListenerCleanup();
+  virtual void DoNotifyListenerCleanup() override;
+
+  NS_IMETHOD GetResponseSynthesized(bool* aSynthesized) override;
 
 private:
+  nsresult ContinueAsyncOpen();
+
+  void DoOnStartRequest(nsIRequest* aRequest, nsISupports* aContext);
+  void DoOnStatus(nsIRequest* aRequest, nsresult status);
+  void DoOnProgress(nsIRequest* aRequest, int64_t progress, int64_t progressMax);
+  void DoOnDataAvailable(nsIRequest* aRequest, nsISupports* aContext, nsIInputStream* aStream,
+                         uint64_t offset, uint32_t count);
+  void DoPreOnStopRequest(nsresult aStatus);
+  void DoOnStopRequest(nsIRequest* aRequest, nsISupports* aContext);
+
+  // Discard the prior interception and continue with the original network request.
+  void ResetInterception();
+
+  // Override this channel's pending response with a synthesized one. The content will be
+  // asynchronously read from the pump.
+  void OverrideWithSynthesizedResponse(nsAutoPtr<nsHttpResponseHead>& aResponseHead,
+                                       nsIInputStream* aSynthesizedInput,
+                                       InterceptStreamListener* aStreamListener);
+
+  void ForceIntercepted(nsIInputStream* aSynthesizedInput);
+
   RequestHeaderTuples mClientSetRequestHeaders;
   nsCOMPtr<nsIChildChannel> mRedirectChannelChild;
-  nsCOMPtr<nsISupports> mSecurityInfo;
+  RefPtr<InterceptStreamListener> mInterceptListener;
+  RefPtr<nsInputStreamPump> mSynthesizedResponsePump;
+  nsAutoPtr<nsHttpResponseHead> mSynthesizedResponseHead;
+  nsCOMPtr<nsIInputStream> mSynthesizedInput;
+  int64_t mSynthesizedStreamLength;
 
   bool mIsFromCache;
   bool mCacheEntryAvailable;
   uint32_t     mCacheExpirationTime;
   nsCString    mCachedCharset;
+  nsCOMPtr<nsISupports> mCacheKey;
+
+  nsCString mProtocolVersion;
 
   // If ResumeAt is called before AsyncOpen, we need to send extra data upstream
   bool mSendResumeAt;
 
   bool mIPCOpen;
   bool mKeptAlive;            // IPC kept open, but only for security info
-  nsRefPtr<ChannelEventQueue> mEventQ;
+  RefPtr<ChannelEventQueue> mEventQ;
+
+  // If nsUnknownDecoder is involved OnStartRequest call will be delayed and
+  // this queue keeps OnDataAvailable data until OnStartRequest is finally
+  // called.
+  nsTArray<nsAutoPtr<ChannelEvent>> mUnknownDecoderEventQ;
+  bool mUnknownDecoderInvolved;
 
   // Once set, OnData and possibly OnStop will be diverted to the parent.
   bool mDivertingToParent;
@@ -158,6 +218,21 @@ private:
   // Set if SendSuspend is called. Determines if SendResume is needed when
   // diverting callbacks to parent.
   bool mSuspendSent;
+
+  // Set if a response was synthesized, indicating that any forthcoming redirects
+  // should be intercepted.
+  bool mSynthesizedResponse;
+
+  // Set if a synthesized response should cause us to explictly allows intercepting
+  // an expected forthcoming redirect.
+  bool mShouldInterceptSubsequentRedirect;
+  // Set if a redirection is being initiated to facilitate providing a synthesized
+  // response to a channel using a different principal than the current one.
+  bool mRedirectingForSubsequentSynthesizedResponse;
+
+  // Set if the corresponding parent channel should force an interception to occur
+  // before the network transaction is initiated.
+  bool mShouldParentIntercept;
 
   // true after successful AsyncOpen until OnStopRequest completes.
   bool RemoteChannelExists() { return mIPCOpen && !mKeptAlive; }
@@ -174,7 +249,11 @@ private:
                       const nsCString& cachedCharset,
                       const nsCString& securityInfoSerialization,
                       const NetAddr& selfAddr,
-                      const NetAddr& peerAddr);
+                      const NetAddr& peerAddr,
+                      const uint32_t& cacheKey);
+  void MaybeDivertOnData(const nsCString& data,
+                         const uint64_t& offset,
+                         const uint32_t& count);
   void OnTransportAndData(const nsresult& channelStatus,
                           const nsresult& status,
                           const uint64_t progress,
@@ -182,22 +261,37 @@ private:
                           const nsCString& data,
                           const uint64_t& offset,
                           const uint32_t& count);
-  void OnStopRequest(const nsresult& channelStatus);
-  void OnProgress(const uint64_t& progress, const uint64_t& progressMax);
+  void OnStopRequest(const nsresult& channelStatus, const ResourceTimingStruct& timing);
+  void MaybeDivertOnStop(const nsresult& aChannelStatus);
+  void OnProgress(const int64_t& progress, const int64_t& progressMax);
   void OnStatus(const nsresult& status);
   void FailedAsyncOpen(const nsresult& status);
   void HandleAsyncAbort();
   void Redirect1Begin(const uint32_t& newChannelId,
                       const URIParams& newUri,
                       const uint32_t& redirectFlags,
-                      const nsHttpResponseHead& responseHead);
+                      const nsHttpResponseHead& responseHead,
+                      const nsACString& securityInfoSerialization);
   void Redirect3Complete();
   void DeleteSelf();
+
+  // Create a a new channel to be used in a redirection, based on the provided
+  // response headers.
+  nsresult SetupRedirect(nsIURI* uri,
+                         const nsHttpResponseHead* responseHead,
+                         const uint32_t& redirectFlags,
+                         nsIChannel** outChannel);
+
+  // Perform a redirection without communicating with the parent process at all.
+  void BeginNonIPCRedirect(nsIURI* responseURI,
+                           const nsHttpResponseHead* responseHead);
 
   friend class AssociateApplicationCacheEvent;
   friend class StartRequestEvent;
   friend class StopRequestEvent;
   friend class TransportAndDataEvent;
+  friend class MaybeDivertOnDataHttpEvent;
+  friend class MaybeDivertOnStopHttpEvent;
   friend class ProgressEvent;
   friend class StatusEvent;
   friend class FailedAsyncOpenEvent;
@@ -205,6 +299,9 @@ private:
   friend class Redirect3Event;
   friend class DeleteSelfEvent;
   friend class HttpAsyncAborter<HttpChannelChild>;
+  friend class InterceptStreamListener;
+  friend class InterceptedChannelContent;
+  friend class OverrideRunnable;
 };
 
 //-----------------------------------------------------------------------------

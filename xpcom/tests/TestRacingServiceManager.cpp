@@ -85,7 +85,7 @@ private:
   ReentrantMonitor** mReentrantMonitorPtr;
 };
 
-class Factory MOZ_FINAL : public nsIFactory
+class Factory final : public nsIFactory
 {
   ~Factory() {}
 
@@ -96,9 +96,9 @@ public:
 
   NS_IMETHOD CreateInstance(nsISupports* aDelegate,
                             const nsIID& aIID,
-                            void** aResult);
+                            void** aResult) override;
 
-  NS_IMETHOD LockFactory(bool aLock) {
+  NS_IMETHOD LockFactory(bool aLock) override {
     return NS_OK;
   }
 
@@ -107,7 +107,7 @@ public:
 
 NS_IMPL_ISUPPORTS(Factory, nsIFactory)
 
-class Component1 MOZ_FINAL : public nsISupports
+class Component1 final : public nsISupports
 {
   ~Component1() {}
 
@@ -128,7 +128,7 @@ NS_INTERFACE_MAP_BEGIN(Component1)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-class Component2 MOZ_FINAL : public nsISupports
+class Component2 final : public nsISupports
 {
   ~Component2() {}
 
@@ -259,9 +259,9 @@ int main(int argc, char** argv)
   ScopedXPCOM xpcom("RacingServiceManager");
   NS_ENSURE_FALSE(xpcom.failed(), 1);
 
-  AutoCreateAndDestroyReentrantMonitor mon(&gReentrantMonitor);
+  AutoCreateAndDestroyReentrantMonitor mon1(&gReentrantMonitor);
 
-  nsRefPtr<Runnable> runnable = new Runnable();
+  RefPtr<Runnable> runnable = new Runnable();
   NS_ENSURE_TRUE(runnable, 1);
 
   // Run the classID test
@@ -270,13 +270,13 @@ int main(int argc, char** argv)
   NS_ENSURE_SUCCESS(rv, 1);
 
   {
-    ReentrantMonitorAutoEnter mon(*gReentrantMonitor);
+    ReentrantMonitorAutoEnter mon2(*gReentrantMonitor);
 
     gMainThreadWaiting = true;
-    mon.Notify();
+    mon2.Notify();
 
     while (!gCreateInstanceCalled) {
-      mon.Wait();
+      mon2.Wait();
     }
   }
 
@@ -292,13 +292,13 @@ int main(int argc, char** argv)
   NS_ENSURE_SUCCESS(rv, 1);
 
   {
-    ReentrantMonitorAutoEnter mon(*gReentrantMonitor);
+    ReentrantMonitorAutoEnter mon3(*gReentrantMonitor);
 
     gMainThreadWaiting = true;
-    mon.Notify();
+    mon3.Notify();
 
     while (!gCreateInstanceCalled) {
-      mon.Wait();
+      mon3.Wait();
     }
   }
 

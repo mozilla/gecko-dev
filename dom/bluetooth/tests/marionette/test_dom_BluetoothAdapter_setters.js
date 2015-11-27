@@ -7,77 +7,105 @@
 //   To verify that all setters of BluetoothAdapter (except for pairing related
 //   APIs) can change properties correctly.
 //
+// Test Procedure:
+//   [0] Set Bluetooth permission and enable default adapter.
+//   [1] Verify the functionality of 'setName'.
+//   [2] Verify the functionality of 'setDiscoverable'.
+//   [3] Disable Bluetooth and collect changed attributes.
+//   [4] Verify the changes of attributes when BT is disabled.
+//   [5] Set properties when Bluetooth is disabled.
+//   [6] Enable Bluetooth and collect changed attributes.
+//   [7] Verify the changes of attributes when BT is enabled.
+//   [8] Restore the original 'adapter.name'.
+//   [9] Check the validity of setting properties to their present value.
+//
 // Test Coverage:
 //   - BluetoothAdapter.setName()
 //   - BluetoothAdapter.setDiscoverable()
-//   - BluetoothAdapter.setDiscoverableTimeout()
+//   - BluetoothAdapter.onattributechanged()
+//   - BluetoothAdapter.state
+//   - BluetoothAdapter.name
+//   - BluetoothAdapter.discoverable
 //
 ///////////////////////////////////////////////////////////////////////////////
 
 MARIONETTE_TIMEOUT = 60000;
 MARIONETTE_HEAD_JS = 'head.js';
 
-const BT_DEVICE_NAME = "User friendly name of local BT device";
-
-function setName(aAdapter, aName) {
-  let deferred = Promise.defer();
-
-  let request = aAdapter.setName(aName);
-  request.onsuccess = function () {
-    log("  setName succeed: " + aName);
-    is(aAdapter.name, aName, "aAdapter.name");
-    deferred.resolve();
-  }
-  request.onerror = function () {
-    ok(false, "setName failed")
-    deferred.reject();
-  }
-
-  return deferred.promise;
-}
-
-function setDiscoverable(aAdapter, aIsDiscoverable) {
-  let deferred = Promise.defer();
-
-  let request = aAdapter.setDiscoverable(aIsDiscoverable);
-  request.onsuccess = function () {
-    log("  setDiscoverable succeed: " + aIsDiscoverable);
-    is(aAdapter.discoverable, aIsDiscoverable, "aAdapter.discoverable");
-    deferred.resolve();
-  }
-  request.onerror = function () {
-    ok(false, "setDiscoverable failed")
-    deferred.reject();
-  }
-
-  return deferred.promise;
-}
-
-function setDiscoverableTimeout(aAdapter, aTimeout) {
-  let deferred = Promise.defer();
-
-  let request = aAdapter.setDiscoverableTimeout(aTimeout);
-  request.onsuccess = function () {
-    log("  setDiscoverableTimeout succeed: " + aTimeout);
-    is(aAdapter.discoverableTimeout, aTimeout, "aAdapter.discoverableTimeout");
-    deferred.resolve();
-  }
-  request.onerror = function () {
-    ok(false, "setDiscoverableTimeout failed")
-    deferred.reject();
-  }
-
-  return deferred.promise;
-}
-
 startBluetoothTest(true, function testCaseMain(aAdapter) {
-  log("Testing BluetoothAdapter setters ...");
+  log("Checking adapter attributes ...");
 
+  is(aAdapter.state, "enabled", "adapter.state");
+  isnot(aAdapter.address, "", "adapter.address");
+
+  // Since adapter has just been re-enabled, these properties should be 'false'.
+  is(aAdapter.discovering, false, "adapter.discovering");
+  is(aAdapter.discoverable, false, "adapter.discoverable at step [0]");
+
+  log("adapter.address: " + aAdapter.address);
+  log("adapter.name: " + aAdapter.name);
+
+  let originalName = aAdapter.name;
   return Promise.resolve()
-    .then( () => setName(aAdapter, BT_DEVICE_NAME) )
-    .then( () => setDiscoverableTimeout(aAdapter, 180) )
-    .then( () => setDiscoverable(aAdapter, true) )
-    .then( () => setName(aAdapter, EMULATOR_NAME) )
-    .then( () => setDiscoverable(aAdapter, false) )
-    .then( () => setDiscoverableTimeout(aAdapter, 120) );
+    .then(function() {
+      log("[1] Set 'name' ... ");
+      let promises = [];
+      promises.push(waitForAdapterAttributeChanged(aAdapter, "name", originalName + "_modified"));
+      promises.push(aAdapter.setName(originalName + "_modified"));
+      return Promise.all(promises);
+    })
+    .then(function() {
+      log("[2] Set 'discoverable' ... ");
+      let promises = [];
+      promises.push(waitForAdapterAttributeChanged(aAdapter, "discoverable", !aAdapter.discoverable));
+      promises.push(aAdapter.setDiscoverable(!aAdapter.discoverable));
+      return Promise.all(promises);
+    })
+    .then(function() {
+      log("[3] Disable Bluetooth ...");
+      let promises = [];
+      promises.push(waitForAdapterStateChanged(aAdapter, ["disabling", "disabled"]));
+      promises.push(aAdapter.disable());
+      return Promise.all(promises);
+    })
+    .then(function(aResults) {
+      log("[4] Verify the changes of attributes ...");
+      isnot(aResults[0].indexOf("name"), -1, "Indicator of 'name' changed event");
+      isnot(aResults[0].indexOf("discoverable"), -1, "Indicator of 'discoverable' changed event");
+      is(aAdapter.name, "", "adapter.name");
+      is(aAdapter.discoverable, false, "adapter.discoverable at step [4]");
+    })
+    .then(() => log("[5] Set properties when Bluetooth is disabled ..."))
+    .then(() => aAdapter.setName(originalName))
+    .then(() => ok(false, "Failed to handle 'setName' when BT is disabled."),
+          () => aAdapter.setDiscoverable(true))
+    .then(() => ok(false, "Failed to handle 'setDiscoverable' when BT is disabled."),
+          () => null)
+    .then(function() {
+      log("[6] Enable Bluetooth ...");
+      let promises = [];
+      promises.push(waitForAdapterStateChanged(aAdapter, ["enabling", "enabled"]));
+      promises.push(aAdapter.enable());
+      return Promise.all(promises);
+    })
+    .then(function(aResults) {
+      log("[7] Verify the changes of attributes ...");
+      isnot(aResults[0].indexOf("name"), -1, "Indicator of 'name' changed event");
+      is(aAdapter.name, originalName + "_modified", "adapter.name");
+      is(aAdapter.discoverable, false, "adapter.discoverable at step [7]");
+    })
+    .then(function() {
+      log("[8] Restore the original 'name' ...");
+      let promises = [];
+      promises.push(waitForAdapterAttributeChanged(aAdapter, "name", originalName));
+      promises.push(aAdapter.setName(originalName));
+      return Promise.all(promises);
+    })
+    .then(function() {
+      log("[9] Check the validity of setting properties to their present value ...");
+      let promises = [];
+      promises.push(aAdapter.setName(aAdapter.name));
+      promises.push(aAdapter.setDiscoverable(aAdapter.discoverable));
+      return Promise.all(promises);
+    });
 });

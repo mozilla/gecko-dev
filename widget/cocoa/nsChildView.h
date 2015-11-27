@@ -16,8 +16,6 @@
 #include "nsAutoPtr.h"
 #include "nsISupports.h"
 #include "nsBaseWidget.h"
-#include "nsIPluginInstanceOwner.h"
-#include "nsIPluginWidget.h"
 #include "nsWeakPtr.h"
 #include "TextInputHandler.h"
 #include "nsCocoaUtils.h"
@@ -31,75 +29,29 @@
 #include "nsString.h"
 #include "nsIDragService.h"
 
-#include "npapi.h"
-
 #import <Carbon/Carbon.h>
 #import <Cocoa/Cocoa.h>
 #import <AppKit/NSOpenGL.h>
 
-// The header files QuickdrawAPI.h and QDOffscreen.h are missing on OS X 10.7
-// and up (though the QuickDraw APIs defined in them are still present) -- so
-// we need to supply the relevant parts of their contents here.  It's likely
-// that Apple will eventually remove the APIs themselves (probably in OS X
-// 10.8), so we need to make them weak imports, and test for their presence
-// before using them.
-#ifdef __cplusplus
-extern "C" {
-#endif
-  #if !defined(__QUICKDRAWAPI__)
-
-  extern void SetPort(GrafPtr port)
-    __attribute__((weak_import));
-  extern void SetOrigin(short h, short v)
-    __attribute__((weak_import));
-  extern RgnHandle NewRgn(void)
-    __attribute__((weak_import));
-  extern void DisposeRgn(RgnHandle rgn)
-    __attribute__((weak_import));
-  extern void RectRgn(RgnHandle rgn, const Rect * r)
-    __attribute__((weak_import));
-  extern GDHandle GetMainDevice(void)
-    __attribute__((weak_import));
-  extern Boolean IsPortOffscreen(CGrafPtr port)
-    __attribute__((weak_import));
-  extern void SetPortVisibleRegion(CGrafPtr port, RgnHandle visRgn)
-    __attribute__((weak_import));
-  extern void SetPortClipRegion(CGrafPtr port, RgnHandle clipRgn)
-    __attribute__((weak_import));
-  extern CGrafPtr GetQDGlobalsThePort(void)
-    __attribute__((weak_import));
-
-  #endif /* __QUICKDRAWAPI__ */
-
-  #if !defined(__QDOFFSCREEN__)
-
-  extern void GetGWorld(CGrafPtr *  port, GDHandle *  gdh)
-    __attribute__((weak_import));
-  extern void SetGWorld(CGrafPtr port, GDHandle gdh)
-    __attribute__((weak_import));
-
-  #endif /* __QDOFFSCREEN__ */
-#ifdef __cplusplus
-}
-#endif
-
-class gfxASurface;
 class nsChildView;
 class nsCocoaWindow;
-union nsPluginPort;
 
 namespace {
 class GLPresenter;
 class RectTextureImage;
-}
+} // namespace
 
 namespace mozilla {
+class InputData;
+class PanGestureInput;
+class SwipeTracker;
+struct SwipeEventQueue;
 class VibrancyManager;
 namespace layers {
 class GLManager;
 class APZCTreeManager;
-}
-}
+} // namespace layers
+} // namespace mozilla
 
 @interface NSEvent (Undocumented)
 
@@ -140,6 +92,15 @@ class APZCTreeManager;
 // marked as needing redisplay.  This method has been present in the same
 // format since at least OS X 10.5.
 - (void)_tileTitlebarAndRedisplay:(BOOL)redisplay;
+
+// The following undocumented methods are used to work around bug 1069658,
+// which is an Apple bug or design flaw that effects Yosemite.  None of them
+// were present prior to Yosemite (OS X 10.10).
+- (NSView *)titlebarView; // Method of NSThemeFrame
+- (NSView *)titlebarContainerView; // Method of NSThemeFrame
+- (BOOL)transparent; // Method of NSTitlebarView and NSTitlebarContainerView
+- (void)setTransparent:(BOOL)transparent; // Method of NSTitlebarView and
+                                          // NSTitlebarContainerView
 
 @end
 
@@ -206,7 +167,7 @@ typedef NSInteger NSEventGestureAxis;
 #ifdef ACCESSIBILITY
                               mozAccessible,
 #endif
-                              mozView, NSTextInput, NSTextInputClient>
+                              mozView, NSTextInputClient>
 {
 @private
   // the nsChildView that created the view. It retains this NSView, so
@@ -222,12 +183,11 @@ typedef NSInteger NSEventGestureAxis;
   // cleared by [mozView uninstallTextInputHandler].
   mozilla::widget::TextInputHandler* mTextInputHandler;  // [WEAK]
 
-  BOOL mIsPluginView;
-  NPEventModel mPluginEventModel;
-  NPDrawingModel mPluginDrawingModel;
-
   // when mouseDown: is called, we store its event here (strong)
   NSEvent* mLastMouseDownEvent;
+
+  // Needed for IME support in e10s mode.  Strong.
+  NSEvent* mLastKeyDownEvent;
 
   // Whether the last mouse down event was blocked from Gecko.
   BOOL mBlockedLastMouseDown;
@@ -283,7 +243,6 @@ typedef NSInteger NSEventGestureAxis;
 #ifdef __LP64__
   // Support for fluid swipe tracking.
   BOOL* mCancelSwipeAnimation;
-  uint32_t mCurrentSwipeDir;
 #endif
 
   // Whether this uses off-main-thread compositing.
@@ -306,7 +265,7 @@ typedef NSInteger NSEventGestureAxis;
 // Stop NSView hierarchy being changed during [ChildView drawRect:]
 - (void)delayedTearDown;
 
-- (void)sendFocusEvent:(uint32_t)eventType;
+- (void)sendFocusEvent:(mozilla::EventMessage)eventMessage;
 
 - (void)handleMouseMoved:(NSEvent*)aEvent;
 
@@ -317,17 +276,17 @@ typedef NSInteger NSEventGestureAxis;
 - (void)updateGLContext;
 - (void)_surfaceNeedsUpdate:(NSNotification*)notification;
 
-- (BOOL)isPluginView;
-
-// Are we processing an NSLeftMouseDown event that will fail to click through?
-// If so, we shouldn't focus or unfocus a plugin.
-- (BOOL)isInFailingLeftClickThrough;
-
 - (void)setGLContext:(NSOpenGLContext *)aGLContext;
 - (bool)preRender:(NSOpenGLContext *)aGLContext;
 - (void)postRender:(NSOpenGLContext *)aGLContext;
 
 - (BOOL)isCoveringTitlebar;
+
+- (void)viewWillStartLiveResize;
+- (void)viewDidEndLiveResize;
+
+- (NSColor*)vibrancyFillColorForThemeGeometryType:(nsITheme::ThemeGeometryType)aThemeGeometryType;
+- (NSColor*)vibrancyFontSmoothingBackgroundColorForThemeGeometryType:(nsITheme::ThemeGeometryType)aThemeGeometryType;
 
 // Simple gestures support
 //
@@ -352,15 +311,9 @@ typedef NSInteger NSEventGestureAxis;
 // Helper function for Lion smart magnify events
 + (BOOL)isLionSmartMagnifyEvent:(NSEvent*)anEvent;
 
-// Support for fluid swipe tracking.
-#ifdef __LP64__
-- (void)maybeTrackScrollEventAsSwipe:(NSEvent *)anEvent
-                     scrollOverflowX:(double)anOverflowX
-                     scrollOverflowY:(double)anOverflowY
-              viewPortIsOverscrolled:(BOOL)aViewPortIsOverscrolled;
-#endif
-
 - (void)setUsingOMTCompositor:(BOOL)aUseOMTC;
+
+- (NSEvent*)lastKeyDownEvent;
 @end
 
 class ChildViewMouseTracker {
@@ -378,11 +331,6 @@ public:
   static void ReEvaluateMouseEnterState(NSEvent* aEvent = nil, ChildView* aOldView = nil);
   static void ResendLastMouseMoveEvent();
   static ChildView* ViewForEvent(NSEvent* aEvent);
-  static void AttachPluginEvent(mozilla::WidgetMouseEventBase& aMouseEvent,
-                                ChildView* aView,
-                                NSEvent* aNativeMouseEvent,
-                                int aPluginEventType,
-                                void* aPluginEventHolder);
 
   static ChildView* sLastMouseEventView;
   static NSEvent* sLastMouseMoveEvent;
@@ -396,8 +344,7 @@ public:
 //
 //-------------------------------------------------------------------------
 
-class nsChildView : public nsBaseWidget,
-                    public nsIPluginWidget
+class nsChildView : public nsBaseWidget
 {
 private:
   typedef nsBaseWidget Inherited;
@@ -406,37 +353,34 @@ private:
 public:
   nsChildView();
 
-  NS_DECL_ISUPPORTS_INHERITED
-
   // nsIWidget interface
   NS_IMETHOD              Create(nsIWidget *aParent,
                                  nsNativeWidget aNativeParent,
                                  const nsIntRect &aRect,
-                                 nsDeviceContext *aContext,
-                                 nsWidgetInitData *aInitData = nullptr);
+                                 nsWidgetInitData *aInitData = nullptr) override;
 
-  NS_IMETHOD              Destroy();
+  NS_IMETHOD              Destroy() override;
 
-  NS_IMETHOD              Show(bool aState);
-  virtual bool            IsVisible() const;
+  NS_IMETHOD              Show(bool aState) override;
+  virtual bool            IsVisible() const override;
 
-  NS_IMETHOD              SetParent(nsIWidget* aNewParent);
-  virtual nsIWidget*      GetParent(void);
-  virtual float           GetDPI();
+  NS_IMETHOD              SetParent(nsIWidget* aNewParent) override;
+  virtual nsIWidget*      GetParent(void) override;
+  virtual float           GetDPI() override;
 
   NS_IMETHOD              ConstrainPosition(bool aAllowSlop,
-                                            int32_t *aX, int32_t *aY);
-  NS_IMETHOD              Move(double aX, double aY);
-  NS_IMETHOD              Resize(double aWidth, double aHeight, bool aRepaint);
+                                            int32_t *aX, int32_t *aY) override;
+  NS_IMETHOD              Move(double aX, double aY) override;
+  NS_IMETHOD              Resize(double aWidth, double aHeight, bool aRepaint) override;
   NS_IMETHOD              Resize(double aX, double aY,
-                                 double aWidth, double aHeight, bool aRepaint);
+                                 double aWidth, double aHeight, bool aRepaint) override;
 
-  NS_IMETHOD              Enable(bool aState);
-  virtual bool            IsEnabled() const;
-  NS_IMETHOD              SetFocus(bool aRaise);
-  NS_IMETHOD              GetBounds(nsIntRect &aRect);
-  NS_IMETHOD              GetClientBounds(nsIntRect &aRect);
-  NS_IMETHOD              GetScreenBounds(nsIntRect &aRect);
+  NS_IMETHOD              Enable(bool aState) override;
+  virtual bool            IsEnabled() const override;
+  NS_IMETHOD              SetFocus(bool aRaise) override;
+  NS_IMETHOD              GetBounds(LayoutDeviceIntRect& aRect) override;
+  NS_IMETHOD              GetClientBounds(LayoutDeviceIntRect& aRect) override;
+  NS_IMETHOD              GetScreenBounds(LayoutDeviceIntRect& aRect) override;
 
   // Returns the "backing scale factor" of the view's window, which is the
   // ratio of pixels in the window's backing store to Cocoa points. Prior to
@@ -450,80 +394,82 @@ public:
   // between HiDPI and non-HiDPI screens
   void                    BackingScaleFactorChanged();
 
-  virtual double          GetDefaultScaleInternal();
+  virtual double          GetDefaultScaleInternal() override;
 
-  virtual int32_t         RoundsWidgetCoordinatesTo() MOZ_OVERRIDE;
+  virtual int32_t         RoundsWidgetCoordinatesTo() override;
 
-  NS_IMETHOD              Invalidate(const nsIntRect &aRect);
+  NS_IMETHOD              Invalidate(const nsIntRect &aRect) override;
 
-  virtual void*           GetNativeData(uint32_t aDataType);
-  virtual nsresult        ConfigureChildren(const nsTArray<Configuration>& aConfigurations);
-  virtual nsIntPoint      WidgetToScreenOffset();
-  virtual bool            ShowsResizeIndicator(nsIntRect* aResizerRect);
+  virtual void*           GetNativeData(uint32_t aDataType) override;
+  virtual nsresult        ConfigureChildren(const nsTArray<Configuration>& aConfigurations) override;
+  virtual LayoutDeviceIntPoint WidgetToScreenOffset() override;
+  virtual bool            ShowsResizeIndicator(LayoutDeviceIntRect* aResizerRect) override;
 
   static  bool            ConvertStatus(nsEventStatus aStatus)
                           { return aStatus == nsEventStatus_eConsumeNoDefault; }
   NS_IMETHOD              DispatchEvent(mozilla::WidgetGUIEvent* aEvent,
-                                        nsEventStatus& aStatus);
+                                        nsEventStatus& aStatus) override;
 
-  virtual bool            ComputeShouldAccelerate(bool aDefault);
-  virtual bool            ShouldUseOffMainThreadCompositing() MOZ_OVERRIDE;
+  virtual bool            ComputeShouldAccelerate() override;
+  virtual bool            ShouldUseOffMainThreadCompositing() override;
 
-  NS_IMETHOD        SetCursor(nsCursor aCursor);
-  NS_IMETHOD        SetCursor(imgIContainer* aCursor, uint32_t aHotspotX, uint32_t aHotspotY);
+  NS_IMETHOD        SetCursor(nsCursor aCursor) override;
+  NS_IMETHOD        SetCursor(imgIContainer* aCursor, uint32_t aHotspotX, uint32_t aHotspotY) override;
 
-  NS_IMETHOD        CaptureRollupEvents(nsIRollupListener * aListener, bool aDoCapture);
-  NS_IMETHOD        SetTitle(const nsAString& title);
+  NS_IMETHOD        CaptureRollupEvents(nsIRollupListener * aListener, bool aDoCapture) override;
+  NS_IMETHOD        SetTitle(const nsAString& title) override;
 
-  NS_IMETHOD        GetAttention(int32_t aCycleCount);
+  NS_IMETHOD        GetAttention(int32_t aCycleCount) override;
 
-  virtual bool HasPendingInputEvent();
+  virtual bool HasPendingInputEvent() override;
 
-  NS_IMETHOD        ActivateNativeMenuItemAt(const nsAString& indexString);
-  NS_IMETHOD        ForceUpdateNativeMenuAt(const nsAString& indexString);
+  NS_IMETHOD        ActivateNativeMenuItemAt(const nsAString& indexString) override;
+  NS_IMETHOD        ForceUpdateNativeMenuAt(const nsAString& indexString) override;
 
-  NS_IMETHOD        NotifyIME(const IMENotification& aIMENotification) MOZ_OVERRIDE;
   NS_IMETHOD_(void) SetInputContext(const InputContext& aContext,
-                                    const InputContextAction& aAction);
-  NS_IMETHOD_(InputContext) GetInputContext();
-  NS_IMETHOD        AttachNativeKeyEvent(mozilla::WidgetKeyboardEvent& aEvent);
+                                    const InputContextAction& aAction) override;
+  NS_IMETHOD_(InputContext) GetInputContext() override;
+  NS_IMETHOD        AttachNativeKeyEvent(mozilla::WidgetKeyboardEvent& aEvent) override;
   NS_IMETHOD_(bool) ExecuteNativeKeyBinding(
                       NativeKeyBindingsType aType,
                       const mozilla::WidgetKeyboardEvent& aEvent,
                       DoCommandCallback aCallback,
-                      void* aCallbackData) MOZ_OVERRIDE;
-  virtual nsIMEUpdatePreference GetIMEUpdatePreference() MOZ_OVERRIDE;
-  NS_IMETHOD        GetToggledKeyState(uint32_t aKeyCode,
-                                       bool* aLEDState);
+                      void* aCallbackData) override;
+  bool ExecuteNativeKeyBindingRemapped(
+                      NativeKeyBindingsType aType,
+                      const mozilla::WidgetKeyboardEvent& aEvent,
+                      DoCommandCallback aCallback,
+                      void* aCallbackData,
+                      uint32_t aGeckoKeyCode,
+                      uint32_t aCocoaKeyCode);
+  virtual nsIMEUpdatePreference GetIMEUpdatePreference() override;
 
-  // nsIPluginWidget
-  // outClipRect and outOrigin are in display pixels (not device pixels)
-  NS_IMETHOD        GetPluginClipRect(nsIntRect& outClipRect, nsIntPoint& outOrigin, bool& outWidgetVisible);
-  NS_IMETHOD        StartDrawPlugin();
-  NS_IMETHOD        EndDrawPlugin();
-  NS_IMETHOD        SetPluginInstanceOwner(nsIPluginInstanceOwner* aInstanceOwner);
-
-  NS_IMETHOD        SetPluginEventModel(int inEventModel);
-  NS_IMETHOD        GetPluginEventModel(int* outEventModel);
-  NS_IMETHOD        SetPluginDrawingModel(int inDrawingModel);
-
-  NS_IMETHOD        StartComplexTextInputForCurrentEvent();
-
-  virtual nsTransparencyMode GetTransparencyMode();
-  virtual void                SetTransparencyMode(nsTransparencyMode aMode);
+  virtual nsTransparencyMode GetTransparencyMode() override;
+  virtual void                SetTransparencyMode(nsTransparencyMode aMode) override;
 
   virtual nsresult SynthesizeNativeKeyEvent(int32_t aNativeKeyboardLayout,
                                             int32_t aNativeKeyCode,
                                             uint32_t aModifierFlags,
                                             const nsAString& aCharacters,
-                                            const nsAString& aUnmodifiedCharacters);
+                                            const nsAString& aUnmodifiedCharacters,
+                                            nsIObserver* aObserver) override;
 
-  virtual nsresult SynthesizeNativeMouseEvent(nsIntPoint aPoint,
+  virtual nsresult SynthesizeNativeMouseEvent(LayoutDeviceIntPoint aPoint,
                                               uint32_t aNativeMessage,
-                                              uint32_t aModifierFlags);
+                                              uint32_t aModifierFlags,
+                                              nsIObserver* aObserver) override;
 
-  virtual nsresult SynthesizeNativeMouseMove(nsIntPoint aPoint)
-  { return SynthesizeNativeMouseEvent(aPoint, NSMouseMoved, 0); }
+  virtual nsresult SynthesizeNativeMouseMove(LayoutDeviceIntPoint aPoint,
+                                             nsIObserver* aObserver) override
+  { return SynthesizeNativeMouseEvent(aPoint, NSMouseMoved, 0, aObserver); }
+  virtual nsresult SynthesizeNativeMouseScrollEvent(LayoutDeviceIntPoint aPoint,
+                                                    uint32_t aNativeMessage,
+                                                    double aDeltaX,
+                                                    double aDeltaY,
+                                                    double aDeltaZ,
+                                                    uint32_t aModifierFlags,
+                                                    uint32_t aAdditionalFlags,
+                                                    nsIObserver* aObserver) override;
 
   // Mac specific methods
   
@@ -536,21 +482,20 @@ public:
   already_AddRefed<mozilla::a11y::Accessible> GetDocumentAccessible();
 #endif
 
-  virtual CompositorParent* NewCompositorParent(int aSurfaceWidth, int aSurfaceHeight);
-  virtual void CreateCompositor();
-  virtual void PrepareWindowEffects() MOZ_OVERRIDE;
-  virtual void CleanupWindowEffects() MOZ_OVERRIDE;
-  virtual bool PreRender(LayerManagerComposite* aManager) MOZ_OVERRIDE;
-  virtual void PostRender(LayerManagerComposite* aManager) MOZ_OVERRIDE;
-  virtual void DrawWindowOverlay(LayerManagerComposite* aManager, nsIntRect aRect) MOZ_OVERRIDE;
+  virtual void CreateCompositor() override;
+  virtual void PrepareWindowEffects() override;
+  virtual void CleanupWindowEffects() override;
+  virtual bool PreRender(LayerManagerComposite* aManager) override;
+  virtual void PostRender(LayerManagerComposite* aManager) override;
+  virtual void DrawWindowOverlay(LayerManagerComposite* aManager,
+                                 LayoutDeviceIntRect aRect) override;
 
-  virtual void UpdateThemeGeometries(const nsTArray<ThemeGeometry>& aThemeGeometries);
+  virtual void UpdateThemeGeometries(const nsTArray<ThemeGeometry>& aThemeGeometries) override;
 
-  virtual void UpdateWindowDraggingRegion(const nsIntRegion& aRegion) MOZ_OVERRIDE;
-  const nsIntRegion& GetDraggableRegion() { return mDraggableRegion; }
+  virtual void UpdateWindowDraggingRegion(const nsIntRegion& aRegion) override;
+  const LayoutDeviceIntRegion& GetDraggableRegion() { return mDraggableRegion; }
 
-  void              HidePlugin();
-  void              UpdatePluginPort();
+  virtual void ReportSwipeStarted(uint64_t aInputBlockId, bool aStartSwipe) override;
 
   void              ResetParent();
 
@@ -560,19 +505,18 @@ public:
 
   NSView<mozView>* GetEditorView();
 
-  bool IsPluginView() { return (mWindowType == eWindowType_plugin); }
-
   nsCocoaWindow*    GetXULWindowWidget();
 
-  NS_IMETHOD        ReparentNativeWidget(nsIWidget* aNewParent);
+  NS_IMETHOD        ReparentNativeWidget(nsIWidget* aNewParent) override;
 
   mozilla::widget::TextInputHandler* GetTextInputHandler()
   {
     return mTextInputHandler;
   }
 
-  void              NotifyDirtyRegion(const nsIntRegion& aDirtyRegion);
   void              ClearVibrantAreas();
+  NSColor*          VibrancyFillColorForThemeGeometryType(nsITheme::ThemeGeometryType aThemeGeometryType);
+  NSColor*          VibrancyFontSmoothingBackgroundColorForThemeGeometryType(nsITheme::ThemeGeometryType aThemeGeometryType);
 
   // unit conversion convenience functions
   int32_t           CocoaPointsToDevPixels(CGFloat aPts) const {
@@ -581,21 +525,41 @@ public:
   nsIntPoint        CocoaPointsToDevPixels(const NSPoint& aPt) const {
     return nsCocoaUtils::CocoaPointsToDevPixels(aPt, BackingScaleFactor());
   }
-  nsIntRect         CocoaPointsToDevPixels(const NSRect& aRect) const {
+  LayoutDeviceIntRect CocoaPointsToDevPixels(const NSRect& aRect) const {
     return nsCocoaUtils::CocoaPointsToDevPixels(aRect, BackingScaleFactor());
   }
   CGFloat           DevPixelsToCocoaPoints(int32_t aPixels) const {
     return nsCocoaUtils::DevPixelsToCocoaPoints(aPixels, BackingScaleFactor());
   }
-  NSRect            DevPixelsToCocoaPoints(const nsIntRect& aRect) const {
+  // XXX: all calls to this function should eventually be replaced with calls
+  // to DevPixelsToCocoaPoints().
+  NSRect            UntypedDevPixelsToCocoaPoints(const nsIntRect& aRect) const {
+    return nsCocoaUtils::UntypedDevPixelsToCocoaPoints(aRect, BackingScaleFactor());
+  }
+  NSRect            DevPixelsToCocoaPoints(const LayoutDeviceIntRect& aRect) const {
     return nsCocoaUtils::DevPixelsToCocoaPoints(aRect, BackingScaleFactor());
   }
 
-  mozilla::TemporaryRef<mozilla::gfx::DrawTarget> StartRemoteDrawing() MOZ_OVERRIDE;
-  void EndRemoteDrawing() MOZ_OVERRIDE;
-  void CleanupRemoteDrawing() MOZ_OVERRIDE;
+  already_AddRefed<mozilla::gfx::DrawTarget> StartRemoteDrawing() override;
+  void EndRemoteDrawing() override;
+  void CleanupRemoteDrawing() override;
+  bool InitCompositor(mozilla::layers::Compositor* aCompositor) override;
 
-  APZCTreeManager* APZCTM() { return mAPZCTreeManager; }
+  APZCTreeManager* APZCTM() { return mAPZC ; }
+
+  NS_IMETHOD StartPluginIME(const mozilla::WidgetKeyboardEvent& aKeyboardEvent,
+                            int32_t aPanelX, int32_t aPanelY,
+                            nsString& aCommitted) override;
+
+  NS_IMETHOD SetPluginFocused(bool& aFocused) override;
+
+  bool IsPluginFocused() { return mPluginFocused; }
+
+  virtual LayoutDeviceIntPoint GetClientOffset() override;
+
+  void DispatchAPZWheelInputEvent(mozilla::InputData& aEvent, bool aCanTriggerSwipe);
+
+  void SwipeFinished();
 
 protected:
   virtual ~nsChildView();
@@ -609,35 +573,50 @@ protected:
   void              TearDownView();
 
   virtual already_AddRefed<nsIWidget>
-  AllocateChildPopupWidget()
+  AllocateChildPopupWidget() override
   {
     static NS_DEFINE_IID(kCPopUpCID, NS_POPUP_CID);
     nsCOMPtr<nsIWidget> widget = do_CreateInstance(kCPopUpCID);
     return widget.forget();
   }
 
-  void DoRemoteComposition(const nsIntRect& aRenderRect);
+  void ConfigureAPZCTreeManager() override;
+  void ConfigureAPZControllerThread() override;
+
+  void DoRemoteComposition(const LayoutDeviceIntRect& aRenderRect);
 
   // Overlay drawing functions for OpenGL drawing
-  void DrawWindowOverlay(mozilla::layers::GLManager* aManager, nsIntRect aRect);
-  void MaybeDrawResizeIndicator(mozilla::layers::GLManager* aManager, const nsIntRect& aRect);
-  void MaybeDrawRoundedCorners(mozilla::layers::GLManager* aManager, const nsIntRect& aRect);
-  void MaybeDrawTitlebar(mozilla::layers::GLManager* aManager, const nsIntRect& aRect);
+  void DrawWindowOverlay(mozilla::layers::GLManager* aManager, LayoutDeviceIntRect aRect);
+  void MaybeDrawResizeIndicator(mozilla::layers::GLManager* aManager);
+  void MaybeDrawRoundedCorners(mozilla::layers::GLManager* aManager, const LayoutDeviceIntRect& aRect);
+  void MaybeDrawTitlebar(mozilla::layers::GLManager* aManager);
 
   // Redraw the contents of mTitlebarCGContext on the main thread, as
   // determined by mDirtyTitlebarRegion.
   void UpdateTitlebarCGContext();
 
-  nsIntRect RectContainingTitlebarControls();
+  LayoutDeviceIntRect RectContainingTitlebarControls();
   void UpdateVibrancy(const nsTArray<ThemeGeometry>& aThemeGeometries);
   mozilla::VibrancyManager& EnsureVibrancyManager();
 
   nsIWidget* GetWidgetForListenerEvents();
 
+  virtual nsresult NotifyIMEInternal(
+                     const IMENotification& aIMENotification) override;
+
+  struct SwipeInfo {
+    bool wantsSwipe;
+    uint32_t allowedDirections;
+  };
+
+  SwipeInfo SendMayStartSwipe(const mozilla::PanGestureInput& aSwipeStartEvent);
+  void TrackScrollEventAsSwipe(const mozilla::PanGestureInput& aSwipeStartEvent,
+                               uint32_t aAllowedDirections);
+
 protected:
 
   NSView<mozView>*      mView;      // my parallel cocoa view (ChildView or NativeScrollbarView), [STRONG]
-  nsRefPtr<mozilla::widget::TextInputHandler> mTextInputHandler;
+  RefPtr<mozilla::widget::TextInputHandler> mTextInputHandler;
   InputContext          mInputContext;
 
   NSView<mozView>*      mParentView;
@@ -658,16 +637,16 @@ protected:
   // May be accessed from any thread, protected
   // by mEffectsLock.
   bool mShowsResizeIndicator;
-  nsIntRect mResizeIndicatorRect;
+  LayoutDeviceIntRect mResizeIndicatorRect;
   bool mHasRoundedBottomCorners;
   int mDevPixelCornerRadius;
   bool mIsCoveringTitlebar;
   bool mIsFullscreen;
-  nsIntRect mTitlebarRect;
+  LayoutDeviceIntRect mTitlebarRect;
 
   // The area of mTitlebarCGContext that needs to be redrawn during the next
   // transaction. Accessed from any thread, protected by mEffectsLock.
-  nsIntRegion mUpdatedTitlebarRegion;
+  LayoutDeviceIntRegion mUpdatedTitlebarRegion;
   CGContextRef mTitlebarCGContext;
 
   // Compositor thread only
@@ -680,7 +659,7 @@ protected:
   // uploaded to to mTitlebarImage. Main thread only.
   nsIntRegion           mDirtyTitlebarRegion;
 
-  nsIntRegion           mDraggableRegion;
+  LayoutDeviceIntRegion mDraggableRegion;
 
   // Cached value of [mView backingScaleFactor], to avoid sending two obj-c
   // messages (respondsToSelector, backingScaleFactor) every time we need to
@@ -690,26 +669,29 @@ protected:
 
   bool                  mVisible;
   bool                  mDrawing;
-  bool                  mPluginDrawing;
   bool                  mIsDispatchPaint; // Is a paint event being dispatched
 
-  NP_CGContext          mPluginCGContext;
-  nsIPluginInstanceOwner* mPluginInstanceOwner; // [WEAK]
+  bool mPluginFocused;
 
   // Used in OMTC BasicLayers mode. Presents the BasicCompositor result
   // surface to the screen using an OpenGL context.
   nsAutoPtr<GLPresenter> mGLPresenter;
 
-  nsRefPtr<APZCTreeManager> mAPZCTreeManager;
-
   mozilla::UniquePtr<mozilla::VibrancyManager> mVibrancyManager;
+  RefPtr<mozilla::SwipeTracker> mSwipeTracker;
+  mozilla::UniquePtr<mozilla::SwipeEventQueue> mSwipeEventQueue;
+
+  // This flag is only used when APZ is off. It indicates that the current pan
+  // gesture was processed as a swipe. Sometimes the swipe animation can finish
+  // before momentum events of the pan gesture have stopped firing, so this
+  // flag tells us that we shouldn't allow the remaining events to cause
+  // scrolling. It is reset to false once a new gesture starts (as indicated by
+  // a PANGESTURE_(MAY)START event).
+  bool mCurrentPanGestureBelongsToSwipe;
 
   static uint32_t sLastInputEventCount;
 
   void ReleaseTitlebarCGContext();
 };
-
-void NS_InstallPluginKeyEventsHandler();
-void NS_RemovePluginKeyEventsHandler();
 
 #endif // nsChildView_h_

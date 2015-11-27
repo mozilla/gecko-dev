@@ -1,0 +1,42 @@
+# This task is the base for most tests in gecko.
+task:
+  created: '{{now}}'
+  deadline: '{{#from_now}}24 hours{{/from_now}}'
+  metadata:
+    source: http://todo.com/soon
+    owner: mozilla-taskcluster-maintenance@mozilla.com
+  tags:
+    createdForUser: {{owner}}
+  workerType: b2gtest
+  provisionerId: aws-provisioner-v1
+  schedulerId: task-graph-scheduler
+
+  scopes:
+    - 'queue:define-task:aws-provisioner-v1/test-c4-2xlarge'
+    - 'queue:create-task:aws-provisioner-v1/test-c4-2xlarge'
+
+  payload:
+    image: '{{#docker_image}}tester{{/docker_image}}'
+    maxRunTime: 3600
+    env:
+      MOZILLA_BUILD_URL: '{{build_url}}'
+      MOZHARNESS_URL: '{{mozharness_url}}'
+
+    # All builds share a common artifact directory for ease of uploading.
+    artifacts:
+      'public/logs/':
+        type: directory
+        path: '/home/worker/build/upload/logs/'
+        expires: '{{#from_now}}1 year{{/from_now}}'
+      'public/test_info/':
+        type: directory
+        path: '/home/worker/build/blobber_upload_dir/'
+        expires: '{{#from_now}}1 year{{/from_now}}'
+
+  extra:
+    chunks:
+      total: 1
+      current: {{chunk}}
+    treeherder:
+      groupSymbol: tc
+      groupName: Submitted by taskcluster

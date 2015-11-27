@@ -1,10 +1,12 @@
-// -*- indent-tabs-mode: nil; js-indent-level: 2 -*-
-
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /*** =================== INITIALISATION CODE =================== ***/
+
+var { classes: Cc, interfaces: Ci, results: Cr, utils: Cu } = Components;
+
+Components.utils.import("resource://gre/modules/Services.jsm");
 
 var kObserverService;
 
@@ -158,6 +160,20 @@ function GetTreeSelections(tree) {
     }
   }
   return selections;
+}
+
+function HandleTreeColumnClick(sortFunction, event) {
+  if (event.target.nodeName != "treecol" || event.button != 0) {
+    return;
+  }
+
+  let sortField = event.target.getAttribute("data-field-name");
+  if (!sortField) {
+    return;
+  }
+
+  sortFunction(sortField);
+  Services.telemetry.getKeyedHistogramById("PWMGR_MANAGE_SORTED").add(sortField);
 }
 
 function SortTree(tree, view, table, column, lastSortColumn, lastSortAscending, updateSelection) {

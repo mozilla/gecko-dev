@@ -21,27 +21,9 @@ const char probes::anonymousName[] = "(anonymous)";
 
 bool probes::ProfilingActive = true;
 
-probes::JITReportGranularity
-probes::JITGranularityRequested(JSContext *cx)
-{
-    if (cx->runtime()->spsProfiler.enabled())
-        return JITREPORT_GRANULARITY_LINE;
-    return JITREPORT_GRANULARITY_NONE;
-}
-
-/* ICs are unregistered in a batch */
-void
-probes::DiscardExecutableRegion(void *start, size_t size)
-{
-    /*
-     * Not needed for SPS because ICs are disposed of when the normal JITChunk
-     * is disposed of
-     */
-}
-
 #ifdef INCLUDE_MOZILLA_DTRACE
-static const char *
-ScriptFilename(const JSScript *script)
+static const char*
+ScriptFilename(const JSScript* script)
 {
     if (!script)
         return probes::nullName;
@@ -50,8 +32,8 @@ ScriptFilename(const JSScript *script)
     return script->filename();
 }
 
-static const char *
-FunctionName(JSContext *cx, JSFunction *fun, JSAutoByteString* bytes)
+static const char*
+FunctionName(JSContext* cx, JSFunction* fun, JSAutoByteString* bytes)
 {
     if (!fun)
         return probes::nullName;
@@ -68,7 +50,7 @@ FunctionName(JSContext *cx, JSFunction *fun, JSAutoByteString* bytes)
  * a number of usually unused lines of code would cause.
  */
 void
-probes::DTraceEnterJSFun(JSContext *cx, JSFunction *fun, JSScript *script)
+probes::DTraceEnterJSFun(JSContext* cx, JSFunction* fun, JSScript* script)
 {
     JSAutoByteString funNameBytes;
     JAVASCRIPT_FUNCTION_ENTRY(ScriptFilename(script), probes::nullName,
@@ -76,7 +58,7 @@ probes::DTraceEnterJSFun(JSContext *cx, JSFunction *fun, JSScript *script)
 }
 
 void
-probes::DTraceExitJSFun(JSContext *cx, JSFunction *fun, JSScript *script)
+probes::DTraceExitJSFun(JSContext* cx, JSFunction* fun, JSScript* script)
 {
     JSAutoByteString funNameBytes;
     JAVASCRIPT_FUNCTION_RETURN(ScriptFilename(script), probes::nullName,

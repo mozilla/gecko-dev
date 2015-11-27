@@ -2,8 +2,8 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-const AM_Cc = Components.classes;
-const AM_Ci = Components.interfaces;
+var AM_Cc = Components.classes;
+var AM_Ci = Components.interfaces;
 
 const XULAPPINFO_CONTRACTID = "@mozilla.org/xre/app-info;1";
 const XULAPPINFO_CID = Components.ID("{c763b610-9d49-455a-bbd2-ede71682a1ac}");
@@ -14,6 +14,7 @@ const PREF_EM_MIN_COMPAT_APP_VERSION      = "extensions.minCompatibleAppVersion"
 const PREF_EM_MIN_COMPAT_PLATFORM_VERSION = "extensions.minCompatiblePlatformVersion";
 const PREF_GETADDONS_BYIDS               = "extensions.getAddons.get.url";
 const PREF_GETADDONS_BYIDS_PERFORMANCE   = "extensions.getAddons.getWithPerformance.url";
+const PREF_XPI_SIGNATURES_REQUIRED    = "xpinstall.signatures.required";
 
 // Forcibly end the test if it runs longer than 15 minutes
 const TIMEOUT_MS = 900000;
@@ -26,41 +27,33 @@ Components.utils.import("resource://gre/modules/NetUtil.jsm");
 Components.utils.import("resource://gre/modules/Promise.jsm");
 Components.utils.import("resource://gre/modules/Task.jsm");
 Components.utils.import("resource://gre/modules/osfile.jsm");
+Components.utils.import("resource://gre/modules/AsyncShutdown.jsm");
+Components.utils.import("resource://testing-common/MockRegistrar.jsm");
 
-Services.prefs.setBoolPref("toolkit.osfile.log", true);
+XPCOMUtils.defineLazyModuleGetter(this, "Extension",
+                                  "resource://gre/modules/Extension.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "HttpServer",
+                                  "resource://testing-common/httpd.js");
 
 // We need some internal bits of AddonManager
-let AMscope = Components.utils.import("resource://gre/modules/AddonManager.jsm");
-let AddonManager = AMscope.AddonManager;
-let AddonManagerInternal = AMscope.AddonManagerInternal;
+var AMscope = Components.utils.import("resource://gre/modules/AddonManager.jsm");
+var AddonManager = AMscope.AddonManager;
+var AddonManagerInternal = AMscope.AddonManagerInternal;
 // Mock out AddonManager's reference to the AsyncShutdown module so we can shut
 // down AddonManager from the test
-let MockAsyncShutdown = {
+var MockAsyncShutdown = {
   hook: null,
+  status: null,
   profileBeforeChange: {
-    addBlocker: function(aName, aBlocker) {
+    addBlocker: function(aName, aBlocker, aOptions) {
       do_print("Mock profileBeforeChange blocker for '" + aName + "'");
       MockAsyncShutdown.hook = aBlocker;
+      MockAsyncShutdown.status = aOptions.fetchState;
     }
   },
-  Barrier: function (name) {
-    this.name = name;
-    this.client.addBlocker = (name, blocker) => {
-      do_print("Mock Barrier blocker for '" + name + "' for barrier '" + this.name + "'");
-      this.blockers.push({name: name, blocker: blocker});
-    };
-  },
+  // We can use the real Barrier
+  Barrier: AsyncShutdown.Barrier
 };
-
-MockAsyncShutdown.Barrier.prototype = Object.freeze({
-  blockers: [],
-  client: {},
-  wait: Task.async(function* () {
-    for (let b of this.blockers) {
-      yield b.blocker();
-    }
-  }),
-});
 
 AMscope.AsyncShutdown = MockAsyncShutdown;
 
@@ -72,6 +65,123 @@ var gPort = null;
 var gUrlToFileMap = {};
 
 var TEST_UNPACKED = false;
+
+// Map resource://xpcshell-data/ to the data directory
+var resHandler = Services.io.getProtocolHandler("resource")
+                         .QueryInterface(AM_Ci.nsISubstitutingProtocolHandler);
+// Allow non-existent files because of bug 1207735
+var dataURI = NetUtil.newURI(do_get_file("data", true));
+resHandler.setSubstitution("xpcshell-data", dataURI);
+
+// Listens to messages from bootstrap.js telling us what add-ons were started
+// and stopped etc. and performs some sanity checks that only installed add-ons
+// are started etc.
+this.BootstrapMonitor = {
+  // Contain the current state of add-ons in the system
+  installed: new Map(),
+  started: new Map(),
+
+  // Contain the last state of shutdown and uninstall calls for an add-on
+  stopped: new Map(),
+  uninstalled: new Map(),
+
+  startupPromises: [],
+  installPromises: [],
+
+  init() {
+    Services.obs.addObserver(this, "bootstrapmonitor-event", false);
+  },
+
+  clear(id) {
+    this.installed.delete(id);
+    this.started.delete(id);
+    this.stopped.delete(id);
+    this.uninstalled.delete(id);
+  },
+
+  promiseAddonStartup(id) {
+    return new Promise(resolve => {
+      this.startupPromises.push(resolve);
+    });
+  },
+
+  promiseAddonInstall(id) {
+    return new Promise(resolve => {
+      this.installPromises.push(resolve);
+    });
+  },
+
+  checkMatches(cached, current) {
+    do_check_neq(cached, undefined);
+    do_check_eq(current.data.version, cached.data.version);
+    do_check_eq(current.data.installPath, cached.data.installPath);
+    do_check_eq(current.data.resourceURI, cached.data.resourceURI);
+  },
+
+  checkAddonStarted(id, version = undefined) {
+    let started = this.started.get(id);
+    do_check_neq(started, undefined);
+    if (version != undefined)
+      do_check_eq(started.data.version, version);
+  },
+
+  checkAddonNotStarted(id) {
+    do_check_false(this.started.has(id));
+  },
+
+  checkAddonInstalled(id, version = undefined) {
+    let installed = this.installed.get(id);
+    do_check_neq(installed, undefined);
+    if (version != undefined)
+      do_check_eq(installed.data.version, version);
+  },
+
+  checkAddonNotInstalled(id) {
+    do_check_false(this.installed.has(id));
+  },
+
+  observe(subject, topic, data) {
+    let info = JSON.parse(data);
+    let id = info.data.id;
+
+    // If this is the install event the add-ons shouldn't already be installed
+    if (info.event == "install") {
+      this.checkAddonNotInstalled(id);
+
+      this.installed.set(id, info);
+
+      for (let resolve of this.installPromises)
+        resolve();
+      this.installPromises = [];
+    }
+    else {
+      this.checkMatches(this.installed.get(id), info);
+    }
+
+    // If this is the shutdown event than the add-on should already be started
+    if (info.event == "shutdown") {
+      this.checkMatches(this.started.get(id), info);
+
+      this.started.delete(id);
+      this.stopped.set(id, info);
+    }
+    else {
+      this.checkAddonNotStarted(id);
+    }
+
+    if (info.event == "uninstall") {
+      this.installed.delete(id);
+      this.uninstalled.set(id, info)
+    }
+    else if (info.event == "startup") {
+      this.started.set(id, info);
+
+      for (let resolve of this.startupPromises)
+        resolve();
+      this.startupPromises = [];
+    }
+  }
+}
 
 function isNightlyChannel() {
   var channel = "default";
@@ -186,22 +296,24 @@ function do_get_addon(aName) {
 }
 
 function do_get_addon_hash(aName, aAlgorithm) {
+  let file = do_get_addon(aName);
+  return do_get_file_hash(file);
+}
+
+function do_get_file_hash(aFile, aAlgorithm) {
   if (!aAlgorithm)
     aAlgorithm = "sha1";
-
-  let file = do_get_addon(aName);
 
   let crypto = AM_Cc["@mozilla.org/security/hash;1"].
                createInstance(AM_Ci.nsICryptoHash);
   crypto.initWithString(aAlgorithm);
   let fis = AM_Cc["@mozilla.org/network/file-input-stream;1"].
             createInstance(AM_Ci.nsIFileInputStream);
-  fis.init(file, -1, -1, false);
-  crypto.updateFromStream(fis, file.fileSize);
+  fis.init(aFile, -1, -1, false);
+  crypto.updateFromStream(fis, aFile.fileSize);
 
   // return the two-digit hexadecimal code for a byte
-  function toHexString(charCode)
-    ("0" + charCode.toString(16)).slice(-2);
+  let toHexString = charCode => ("0" + charCode.toString(16)).slice(-2);
 
   let binary = crypto.finish(false);
   return aAlgorithm + ":" + [toHexString(binary.charCodeAt(i)) for (i in binary)].join("")
@@ -387,7 +499,7 @@ function do_check_icons(aActual, aExpected) {
 
 // Record the error (if any) from trying to save the XPI
 // database at shutdown time
-let gXPISaveError = null;
+var gXPISaveError = null;
 
 /**
  * Starts up the add-on manager as if it was started by the application.
@@ -520,7 +632,8 @@ function loadAddonsList() {
 
   gAddonsList = {
     extensions: [],
-    themes: []
+    themes: [],
+    mpIncompatible: new Set()
   };
 
   if (!gExtensionsINI.exists())
@@ -531,6 +644,11 @@ function loadAddonsList() {
   var parser = factory.createINIParser(gExtensionsINI);
   gAddonsList.extensions = readDirectories("ExtensionDirs");
   gAddonsList.themes = readDirectories("ThemeDirs");
+  var keys = parser.getKeys("MultiprocessIncompatibleExtensions");
+  while (keys.hasMore()) {
+    let id = parser.getString("MultiprocessIncompatibleExtensions", keys.getNext());
+    gAddonsList.mpIncompatible.add(id);
+  }
 }
 
 function isItemInAddonsList(aType, aDir, aId) {
@@ -550,6 +668,10 @@ function isItemInAddonsList(aType, aDir, aId) {
   return false;
 }
 
+function isItemMarkedMPIncompatible(aId) {
+  return gAddonsList.mpIncompatible.has(aId);
+}
+
 function isThemeInAddonsList(aDir, aId) {
   return isItemInAddonsList("themes", aDir, aId);
 }
@@ -562,7 +684,7 @@ function check_startup_changes(aType, aIds) {
   var ids = aIds.slice(0);
   ids.sort();
   var changes = AddonManager.getStartupChanges(aType);
-  changes = changes.filter(function(aEl) /@tests.mozilla.org$/.test(aEl));
+  changes = changes.filter(aEl => /@tests.mozilla.org$/.test(aEl));
   changes.sort();
 
   do_check_eq(JSON.stringify(ids), JSON.stringify(changes));
@@ -600,6 +722,54 @@ function writeLocaleStrings(aData) {
   return rdf;
 }
 
+/**
+ * Creates an update.rdf structure as a string using for the update data passed.
+ *
+ * @param   aData
+ *          The update data as a JS object. Each property name is an add-on ID,
+ *          the property value is an array of each version of the add-on. Each
+ *          array value is a JS object containing the data for the version, at
+ *          minimum a "version" and "targetApplications" property should be
+ *          included to create a functional update manifest.
+ * @return  the update.rdf structure as a string.
+ */
+function createUpdateRDF(aData) {
+  var rdf = '<?xml version="1.0"?>\n';
+  rdf += '<RDF xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"\n' +
+         '     xmlns:em="http://www.mozilla.org/2004/em-rdf#">\n';
+
+  for (let addon in aData) {
+    rdf += '  <Description about="urn:mozilla:extension:' + escapeXML(addon) + '"><em:updates><Seq>\n';
+
+    for (let versionData of aData[addon]) {
+      rdf += '    <li><Description>\n';
+
+      for (let prop of ["version", "multiprocessCompatible"]) {
+        if (prop in versionData)
+          rdf += "      <em:" + prop + ">" + escapeXML(versionData[prop]) + "</em:" + prop + ">\n";
+      }
+
+      if ("targetApplications" in versionData) {
+        for (let app of versionData.targetApplications) {
+          rdf += "      <em:targetApplication><Description>\n";
+          for (let prop of ["id", "minVersion", "maxVersion", "updateLink", "updateHash"]) {
+            if (prop in app)
+              rdf += "        <em:" + prop + ">" + escapeXML(app[prop]) + "</em:" + prop + ">\n";
+          }
+          rdf += "      </Description></em:targetApplication>\n";
+        }
+      }
+
+      rdf += '    </Description></li>\n';
+    }
+
+    rdf += '  </Seq></em:updates></Description>\n'
+  }
+  rdf += "</RDF>\n";
+
+  return rdf;
+}
+
 function createInstallRDF(aData) {
   var rdf = '<?xml version="1.0"?>\n';
   rdf += '<RDF xmlns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"\n' +
@@ -608,7 +778,7 @@ function createInstallRDF(aData) {
 
   ["id", "version", "type", "internalName", "updateURL", "updateKey",
    "optionsURL", "optionsType", "aboutURL", "iconURL", "icon64URL",
-   "skinnable", "bootstrap", "strictCompatibility"].forEach(function(aProp) {
+   "skinnable", "bootstrap", "strictCompatibility", "multiprocessCompatible"].forEach(function(aProp) {
     if (aProp in aData)
       rdf += "<em:" + aProp + ">" + escapeXML(aData[aProp]) + "</em:" + aProp + ">\n";
   });
@@ -721,6 +891,62 @@ function writeInstallRDFForExtension(aData, aDir, aId, aExtraFile) {
 }
 
 /**
+ * Writes a manifest.json manifest into an extension using the properties passed
+ * in a JS object.
+ *
+ * @param   aManifest
+ *          The data to write
+ * @param   aDir
+ *          The install directory to add the extension to
+ * @param   aId
+ *          An optional string to override the default installation aId
+ * @return  A file pointing to where the extension was installed
+ */
+function writeWebManifestForExtension(aData, aDir, aId = undefined) {
+  if (!aId)
+    aId = aData.applications.gecko.id;
+
+  if (TEST_UNPACKED) {
+    let dir = aDir.clone();
+    dir.append(aId);
+    if (!dir.exists())
+      dir.create(AM_Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
+
+    let file = dir.clone();
+    file.append("manifest.json");
+    if (file.exists())
+      file.remove(true);
+
+    let data = JSON.stringify(aData);
+    let fos = AM_Cc["@mozilla.org/network/file-output-stream;1"].
+              createInstance(AM_Ci.nsIFileOutputStream);
+    fos.init(file,
+             FileUtils.MODE_WRONLY | FileUtils.MODE_CREATE | FileUtils.MODE_TRUNCATE,
+             FileUtils.PERMS_FILE, 0);
+    fos.write(data, data.length);
+    fos.close();
+
+    return dir;
+  }
+  else {
+    let file = aDir.clone();
+    file.append(aId + ".xpi");
+
+    let stream = AM_Cc["@mozilla.org/io/string-input-stream;1"].
+                 createInstance(AM_Ci.nsIStringInputStream);
+    stream.setData(JSON.stringify(aData), -1);
+    let zipW = AM_Cc["@mozilla.org/zipwriter;1"].
+               createInstance(AM_Ci.nsIZipWriter);
+    zipW.open(file, FileUtils.MODE_WRONLY | FileUtils.MODE_CREATE | FileUtils.MODE_TRUNCATE);
+    zipW.addEntryStream("manifest.json", 0, AM_Ci.nsIZipWriter.COMPRESSION_NONE,
+                        stream, false);
+    zipW.close();
+
+    return file;
+  }
+}
+
+/**
  * Writes an install.rdf manifest into a packed extension using the properties passed
  * in a JS object. The objects should contain a property for each property to
  * appear in the RDF. The object may contain an array of objects with id,
@@ -740,25 +966,85 @@ function writeInstallRDFForExtension(aData, aDir, aId, aExtraFile) {
 function writeInstallRDFToXPI(aData, aDir, aId, aExtraFile) {
   var id = aId ? aId : aData.id
 
-  var dir = aDir.clone();
+  if (!aDir.exists())
+    aDir.create(AM_Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
 
-  if (!dir.exists())
-    dir.create(AM_Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
-  dir.append(id + ".xpi");
+  var file = aDir.clone();
+  file.append(id + ".xpi");
+  writeInstallRDFToXPIFile(aData, file, aExtraFile);
+
+  return file;
+}
+
+/**
+ * Writes an install.rdf manifest into an XPI file using the properties passed
+ * in a JS object. The objects should contain a property for each property to
+ * appear in the RDF. The object may contain an array of objects with id,
+ * minVersion and maxVersion in the targetApplications property to give target
+ * application compatibility.
+ *
+ * @param   aData
+ *          The object holding data about the add-on
+ * @param   aFile
+ *          The XPI file to write to. Any existing file will be overwritten
+ * @param   aExtraFile
+ *          An optional dummy file to create in the extension
+ */
+function writeInstallRDFToXPIFile(aData, aFile, aExtraFile) {
   var rdf = createInstallRDF(aData);
   var stream = AM_Cc["@mozilla.org/io/string-input-stream;1"].
                createInstance(AM_Ci.nsIStringInputStream);
   stream.setData(rdf, -1);
   var zipW = AM_Cc["@mozilla.org/zipwriter;1"].
              createInstance(AM_Ci.nsIZipWriter);
-  zipW.open(dir, FileUtils.MODE_WRONLY | FileUtils.MODE_CREATE | FileUtils.MODE_TRUNCATE);
+  zipW.open(aFile, FileUtils.MODE_WRONLY | FileUtils.MODE_CREATE | FileUtils.MODE_TRUNCATE);
   zipW.addEntryStream("install.rdf", 0, AM_Ci.nsIZipWriter.COMPRESSION_NONE,
                       stream, false);
   if (aExtraFile)
     zipW.addEntryStream(aExtraFile, 0, AM_Ci.nsIZipWriter.COMPRESSION_NONE,
                         stream, false);
   zipW.close();
-  return dir;
+}
+
+var temp_xpis = [];
+/**
+ * Creates an XPI file for some manifest data in the temporary directory and
+ * returns the nsIFile for it. The file will be deleted when the test completes.
+ *
+ * @param   aData
+ *          The object holding data about the add-on
+ * @return  A file pointing to the created XPI file
+ */
+function createTempXPIFile(aData) {
+  var file = gTmpD.clone();
+  file.append("foo.xpi");
+  do {
+    file.leafName = Math.floor(Math.random() * 1000000) + ".xpi";
+  } while (file.exists());
+
+  temp_xpis.push(file);
+  writeInstallRDFToXPIFile(aData, file);
+  return file;
+}
+
+/**
+ * Creates an XPI file for some WebExtension data in the temporary directory and
+ * returns the nsIFile for it. The file will be deleted when the test completes.
+ *
+ * @param   aData
+ *          The object holding data about the add-on, as expected by
+ *          |Extension.generateXPI|.
+ * @return  A file pointing to the created XPI file
+ */
+function createTempWebExtensionFile(aData) {
+  if (!aData.id) {
+    const uuidGenerator = AM_Cc["@mozilla.org/uuid-generator;1"].getService(AM_Ci.nsIUUIDGenerator);
+    aData.id = uuidGenerator.generateUUID().number;
+  }
+
+  let file = Extension.generateXPI(aData.id, aData);
+  temp_xpis.push(file);
+  return file;
 }
 
 /**
@@ -881,7 +1167,7 @@ function getFileForAddon(aDir, aId) {
 function registerDirectory(aKey, aDir) {
   var dirProvider = {
     getFile: function(aProp, aPersistent) {
-      aPersistent.value = true;
+      aPersistent.value = false;
       if (aProp == aKey)
         return aDir.clone();
       return null;
@@ -923,6 +1209,7 @@ function getExpectedInstall(aAddon) {
 
 const AddonListener = {
   onPropertyChanged: function(aAddon, aProperties) {
+    do_print(`Got onPropertyChanged event for ${aAddon.id}`);
     let [event, properties] = getExpectedEvent(aAddon.id);
     do_check_eq("onPropertyChanged", event);
     do_check_eq(aProperties.length, properties.length);
@@ -936,6 +1223,7 @@ const AddonListener = {
   },
 
   onEnabling: function(aAddon, aRequiresRestart) {
+    do_print(`Got onEnabling event for ${aAddon.id}`);
     let [event, expectedRestart] = getExpectedEvent(aAddon.id);
     do_check_eq("onEnabling", event);
     do_check_eq(aRequiresRestart, expectedRestart);
@@ -946,6 +1234,7 @@ const AddonListener = {
   },
 
   onEnabled: function(aAddon) {
+    do_print(`Got onEnabled event for ${aAddon.id}`);
     let [event, expectedRestart] = getExpectedEvent(aAddon.id);
     do_check_eq("onEnabled", event);
     do_check_false(hasFlag(aAddon.permissions, AddonManager.PERM_CAN_ENABLE));
@@ -953,6 +1242,7 @@ const AddonListener = {
   },
 
   onDisabling: function(aAddon, aRequiresRestart) {
+    do_print(`Got onDisabling event for ${aAddon.id}`);
     let [event, expectedRestart] = getExpectedEvent(aAddon.id);
     do_check_eq("onDisabling", event);
     do_check_eq(aRequiresRestart, expectedRestart);
@@ -963,6 +1253,7 @@ const AddonListener = {
   },
 
   onDisabled: function(aAddon) {
+    do_print(`Got onDisabled event for ${aAddon.id}`);
     let [event, expectedRestart] = getExpectedEvent(aAddon.id);
     do_check_eq("onDisabled", event);
     do_check_false(hasFlag(aAddon.permissions, AddonManager.PERM_CAN_DISABLE));
@@ -970,6 +1261,7 @@ const AddonListener = {
   },
 
   onInstalling: function(aAddon, aRequiresRestart) {
+    do_print(`Got onInstalling event for ${aAddon.id}`);
     let [event, expectedRestart] = getExpectedEvent(aAddon.id);
     do_check_eq("onInstalling", event);
     do_check_eq(aRequiresRestart, expectedRestart);
@@ -979,12 +1271,14 @@ const AddonListener = {
   },
 
   onInstalled: function(aAddon) {
+    do_print(`Got onInstalled event for ${aAddon.id}`);
     let [event, expectedRestart] = getExpectedEvent(aAddon.id);
     do_check_eq("onInstalled", event);
     return check_test_completed(arguments);
   },
 
   onUninstalling: function(aAddon, aRequiresRestart) {
+    do_print(`Got onUninstalling event for ${aAddon.id}`);
     let [event, expectedRestart] = getExpectedEvent(aAddon.id);
     do_check_eq("onUninstalling", event);
     do_check_eq(aRequiresRestart, expectedRestart);
@@ -994,12 +1288,14 @@ const AddonListener = {
   },
 
   onUninstalled: function(aAddon) {
+    do_print(`Got onUninstalled event for ${aAddon.id}`);
     let [event, expectedRestart] = getExpectedEvent(aAddon.id);
     do_check_eq("onUninstalled", event);
     return check_test_completed(arguments);
   },
 
   onOperationCancelled: function(aAddon) {
+    do_print(`Got onOperationCancelled event for ${aAddon.id}`);
     let [event, expectedRestart] = getExpectedEvent(aAddon.id);
     do_check_eq("onOperationCancelled", event);
     return check_test_completed(arguments);
@@ -1009,9 +1305,13 @@ const AddonListener = {
 const InstallListener = {
   onNewInstall: function(install) {
     if (install.state != AddonManager.STATE_DOWNLOADED &&
+        install.state != AddonManager.STATE_DOWNLOAD_FAILED &&
         install.state != AddonManager.STATE_AVAILABLE)
       do_throw("Bad install state " + install.state);
-    do_check_eq(install.error, 0);
+    if (install.state != AddonManager.STATE_DOWNLOAD_FAILED)
+      do_check_eq(install.error, 0);
+    else
+      do_check_neq(install.error, 0);
     do_check_eq("onNewInstall", getExpectedInstall());
     return check_test_completed(arguments);
   },
@@ -1103,7 +1403,9 @@ function check_test_completed(aArgs) {
   if (gExpectedInstalls instanceof Array &&
       gExpectedInstalls.length > 0)
     return undefined;
-  else for each (let installList in gExpectedInstalls) {
+
+  for (let id in gExpectedInstalls) {
+    let installList = gExpectedInstalls[id];
     if (installList.length > 0)
       return undefined;
   }
@@ -1125,6 +1427,23 @@ function ensure_test_completed() {
   gExpectedEvents = {};
   if (gExpectedInstalls)
     do_check_eq(gExpectedInstalls.length, 0);
+}
+
+/**
+ * Returns a promise that resolves when the given add-on event is fired. The
+ * resolved value is an array of arguments passed for the event.
+ */
+function promiseAddonEvent(event) {
+  return new Promise(resolve => {
+    let listener = {
+      [event]: function(...args) {
+        AddonManager.removeAddonListener(listener);
+        resolve(args);
+      }
+    }
+
+    AddonManager.addAddonListener(listener);
+  });
 }
 
 /**
@@ -1162,6 +1481,12 @@ function completeAllInstalls(aInstalls, aCallback) {
   aInstalls.forEach(function(aInstall) {
     aInstall.addListener(listener);
     aInstall.install();
+  });
+}
+
+function promiseCompleteAllInstalls(aInstalls) {
+  return new Promise(resolve => {
+    completeAllInstalls(aInstalls, resolve);
   });
 }
 
@@ -1259,7 +1584,7 @@ if ("nsIWindowsRegKey" in AM_Ci) {
    * This is a mock nsIWindowsRegistry implementation. It only implements the
    * methods that the extension manager requires.
    */
-  function MockWindowsRegKey() {
+  var MockWindowsRegKey = function MockWindowsRegKey() {
   }
 
   MockWindowsRegKey.prototype = {
@@ -1302,31 +1627,18 @@ if ("nsIWindowsRegKey" in AM_Ci) {
     }
   };
 
-  var WinRegFactory = {
-    createInstance: function(aOuter, aIid) {
-      if (aOuter != null)
-        throw Components.results.NS_ERROR_NO_AGGREGATION;
-
-      var key = new MockWindowsRegKey();
-      return key.QueryInterface(aIid);
-    }
-  };
-
-  var registrar = Components.manager.QueryInterface(AM_Ci.nsIComponentRegistrar);
-  registrar.registerFactory(Components.ID("{0478de5b-0f38-4edb-851d-4c99f1ed8eba}"),
-                            "Mock Windows Registry Implementation",
-                            "@mozilla.org/windows-registry-key;1", WinRegFactory);
+  MockRegistrar.register("@mozilla.org/windows-registry-key;1", MockWindowsRegKey);
 }
 
 // Get the profile directory for tests to use.
 const gProfD = do_get_profile();
 
 const EXTENSIONS_DB = "extensions.json";
-let gExtensionsJSON = gProfD.clone();
+var gExtensionsJSON = gProfD.clone();
 gExtensionsJSON.append(EXTENSIONS_DB);
 
 const EXTENSIONS_INI = "extensions.ini";
-let gExtensionsINI = gProfD.clone();
+var gExtensionsINI = gProfD.clone();
 gExtensionsINI.append(EXTENSIONS_INI);
 
 // Enable more extensive EM logging
@@ -1362,11 +1674,20 @@ Services.prefs.setCharPref("extensions.hotfix.id", "");
 Services.prefs.setCharPref(PREF_EM_MIN_COMPAT_APP_VERSION, "0");
 Services.prefs.setCharPref(PREF_EM_MIN_COMPAT_PLATFORM_VERSION, "0");
 
+// Disable signature checks for most tests
+Services.prefs.setBoolPref(PREF_XPI_SIGNATURES_REQUIRED, false);
+
 // Register a temporary directory for the tests.
 const gTmpD = gProfD.clone();
 gTmpD.append("temp");
 gTmpD.create(AM_Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
 registerDirectory("TmpD", gTmpD);
+
+// Create a replacement app directory for the tests.
+const gAppDirForAddons = gProfD.clone();
+gAppDirForAddons.append("appdir-addons");
+gAppDirForAddons.create(AM_Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
+registerDirectory("XREAddonAppDir", gAppDirForAddons);
 
 // Write out an empty blocklist.xml file to the profile to ensure nothing
 // is blocklisted by default
@@ -1417,6 +1738,11 @@ do_register_cleanup(function addon_cleanup() {
   if (timer)
     timer.cancel();
 
+  for (let file of temp_xpis) {
+    if (file.exists())
+      file.remove(false);
+  }
+
   // Check that the temporary directory is empty
   var dirEntries = gTmpD.directoryEntries
                         .QueryInterface(AM_Ci.nsIDirectoryEnumerator);
@@ -1426,15 +1752,16 @@ do_register_cleanup(function addon_cleanup() {
   }
   dirEntries.close();
 
+  try {
+    gAppDirForAddons.remove(true);
+  } catch (ex) { do_print("Got exception removing addon app dir, " + ex); }
+
   var testDir = gProfD.clone();
   testDir.append("extensions");
   testDir.append("trash");
   pathShouldntExist(testDir);
 
   testDir.leafName = "staged";
-  pathShouldntExist(testDir);
-
-  testDir.leafName = "staged-xpis";
   pathShouldntExist(testDir);
 
   shutdownManager();
@@ -1447,6 +1774,30 @@ do_register_cleanup(function addon_cleanup() {
     Services.prefs.clearUserPref(PREF_EM_STRICT_COMPATIBILITY);
   } catch (e) {}
 });
+
+/**
+ * Creates a new HttpServer for testing, and begins listening on the
+ * specified port. Automatically shuts down the server when the test
+ * unit ends.
+ *
+ * @param port
+ *        The port to listen on. If omitted, listen on a random
+ *        port. The latter is the preferred behavior.
+ *
+ * @return HttpServer
+ */
+function createHttpServer(port = -1) {
+  let server = new HttpServer();
+  server.start(port);
+
+  do_register_cleanup(() => {
+    return new Promise(resolve => {
+      server.stop(resolve);
+    });
+  });
+
+  return server;
+}
 
 /**
  * Handler function that responds with the interpolated
@@ -1465,19 +1816,18 @@ function interpolateAndServeFile(request, response) {
     fstream.init(file, -1, 0, 0);
     cstream.init(fstream, "UTF-8", 0, 0);
 
-    let (str = {}) {
-      let read = 0;
-      do {
-        // read as much as we can and put it in str.value
-        read = cstream.readString(0xffffffff, str);
-        data += str.value;
-      } while (read != 0);
-    }
+    let str = {};
+    let read = 0;
+    do {
+      // read as much as we can and put it in str.value
+      read = cstream.readString(0xffffffff, str);
+      data += str.value;
+    } while (read != 0);
     data = data.replace(/%PORT%/g, gPort);
 
     response.write(data);
   } catch (e) {
-    do_throw("Exception while serving interpolated file.");
+    do_throw(`Exception while serving interpolated file: ${e}\n${e.stack}`);
   } finally {
     cstream.close(); // this closes fstream as well
   }
@@ -1544,13 +1894,12 @@ function loadFile(aFile) {
           createInstance(Components.interfaces.nsIConverterInputStream);
   fstream.init(aFile, -1, 0, 0);
   cstream.init(fstream, "UTF-8", 0, 0);
-  let (str = {}) {
-    let read = 0;
-    do {
-      read = cstream.readString(0xffffffff, str); // read as much as we can and put it in str.value
-      data += str.value;
-    } while (read != 0);
-  }
+  let str = {};
+  let read = 0;
+  do {
+    read = cstream.readString(0xffffffff, str); // read as much as we can and put it in str.value
+    data += str.value;
+  } while (read != 0);
   cstream.close();
   return data;
 }
@@ -1615,3 +1964,97 @@ function promiseAddonsByIDs(list) {
 function promiseAddonByID(aId) {
   return new Promise((resolve, reject) => AddonManager.getAddonByID(aId, resolve));
 }
+
+/**
+ * Returns a promise that will be resolved when an add-on update check is
+ * complete. The value resolved will be an AddonInstall if a new version was
+ * found.
+ */
+function promiseFindAddonUpdates(addon, reason = AddonManager.UPDATE_WHEN_PERIODIC_UPDATE) {
+  return new Promise((resolve, reject) => {
+    let result = {};
+    addon.findUpdates({
+      onNoCompatibilityUpdateAvailable: function(addon2) {
+        if ("compatibilityUpdate" in result) {
+          do_throw("Saw multiple compatibility update events");
+        }
+        equal(addon, addon2, "onNoCompatibilityUpdateAvailable");
+        result.compatibilityUpdate = false;
+      },
+
+      onCompatibilityUpdateAvailable: function(addon2) {
+        if ("compatibilityUpdate" in result) {
+          do_throw("Saw multiple compatibility update events");
+        }
+        equal(addon, addon2, "onCompatibilityUpdateAvailable");
+        result.compatibilityUpdate = true;
+      },
+
+      onNoUpdateAvailable: function(addon2) {
+        if ("updateAvailable" in result) {
+          do_throw("Saw multiple update available events");
+        }
+        equal(addon, addon2, "onNoUpdateAvailable");
+        result.updateAvailable = false;
+      },
+
+      onUpdateAvailable: function(addon2, install) {
+        if ("updateAvailable" in result) {
+          do_throw("Saw multiple update available events");
+        }
+        equal(addon, addon2, "onUpdateAvailable");
+        result.updateAvailable = install;
+      },
+
+      onUpdateFinished: function(addon2, error) {
+        equal(addon, addon2, "onUpdateFinished");
+        if (error == AddonManager.UPDATE_STATUS_NO_ERROR) {
+          resolve(result);
+        } else {
+          result.error = error;
+          reject(result);
+        }
+      }
+    }, reason);
+  });
+}
+
+/**
+ * Monitors console output for the duration of a task, and returns a promise
+ * which resolves to a tuple containing a list of all console messages
+ * generated during the task's execution, and the result of the task itself.
+ *
+ * @param {function} aTask
+ *                   The task to run while monitoring console output. May be
+ *                   either a generator function, per Task.jsm, or an ordinary
+ *                   function which returns promose.
+ * @return {Promise<[Array<nsIConsoleMessage>, *]>}
+ */
+var promiseConsoleOutput = Task.async(function*(aTask) {
+  const DONE = "=== xpcshell test console listener done ===";
+
+  let listener, messages = [];
+  let awaitListener = new Promise(resolve => {
+    listener = msg => {
+      if (msg == DONE) {
+        resolve();
+      } else {
+        msg instanceof Components.interfaces.nsIScriptError;
+        messages.push(msg);
+      }
+    }
+  });
+
+  Services.console.registerListener(listener);
+  try {
+    let result = yield aTask();
+
+    Services.console.logStringMessage(DONE);
+    yield awaitListener;
+
+    return { messages, result };
+  }
+  finally {
+    Services.console.unregisterListener(listener);
+  }
+});

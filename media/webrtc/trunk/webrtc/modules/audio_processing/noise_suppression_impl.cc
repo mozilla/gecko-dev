@@ -12,15 +12,14 @@
 
 #include <assert.h>
 
-#include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
+#include "webrtc/modules/audio_processing/audio_buffer.h"
 #if defined(WEBRTC_NS_FLOAT)
 #include "webrtc/modules/audio_processing/ns/include/noise_suppression.h"
 #elif defined(WEBRTC_NS_FIXED)
 #include "webrtc/modules/audio_processing/ns/include/noise_suppression_x.h"
 #endif
+#include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
 
-#include "webrtc/modules/audio_processing/audio_buffer.h"
-#include "webrtc/modules/audio_processing/audio_processing_impl.h"
 
 namespace webrtc {
 
@@ -47,48 +46,58 @@ int MapSetting(NoiseSuppression::Level level) {
 }
 }  // namespace
 
-NoiseSuppressionImpl::NoiseSuppressionImpl(const AudioProcessingImpl* apm)
-  : ProcessingComponent(apm),
+NoiseSuppressionImpl::NoiseSuppressionImpl(const AudioProcessing* apm,
+                                           CriticalSectionWrapper* crit)
+  : ProcessingComponent(),
     apm_(apm),
+    crit_(crit),
     level_(kModerate) {}
 
 NoiseSuppressionImpl::~NoiseSuppressionImpl() {}
 
-int NoiseSuppressionImpl::ProcessCaptureAudio(AudioBuffer* audio) {
-  int err = apm_->kNoError;
-
+int NoiseSuppressionImpl::AnalyzeCaptureAudio(AudioBuffer* audio) {
+#if defined(WEBRTC_NS_FLOAT)
   if (!is_component_enabled()) {
     return apm_->kNoError;
   }
-  assert(audio->samples_per_split_channel() <= 160);
+  assert(audio->num_frames_per_band() <= 160);
   assert(audio->num_channels() == num_handles());
 
-  for (int i = 0; i < num_handles(); i++) {
+  for (int i = 0; i < num_handles(); ++i) {
+    Handle* my_handle = static_cast<Handle*>(handle(i));
+
+    WebRtcNs_Analyze(my_handle, audio->split_bands_const_f(i)[kBand0To8kHz]);
+  }
+#endif
+  return apm_->kNoError;
+}
+
+int NoiseSuppressionImpl::ProcessCaptureAudio(AudioBuffer* audio) {
+  if (!is_component_enabled()) {
+    return apm_->kNoError;
+  }
+  assert(audio->num_frames_per_band() <= 160);
+  assert(audio->num_channels() == num_handles());
+
+  for (int i = 0; i < num_handles(); ++i) {
     Handle* my_handle = static_cast<Handle*>(handle(i));
 #if defined(WEBRTC_NS_FLOAT)
-    err = WebRtcNs_Process(static_cast<Handle*>(handle(i)),
-                           audio->low_pass_split_data(i),
-                           audio->high_pass_split_data(i),
-                           audio->low_pass_split_data(i),
-                           audio->high_pass_split_data(i));
+    WebRtcNs_Process(my_handle,
+                     audio->split_bands_const_f(i),
+                     audio->num_bands(),
+                     audio->split_bands_f(i));
 #elif defined(WEBRTC_NS_FIXED)
-    err = WebRtcNsx_Process(static_cast<Handle*>(handle(i)),
-                            audio->low_pass_split_data(i),
-                            audio->high_pass_split_data(i),
-                            audio->low_pass_split_data(i),
-                            audio->high_pass_split_data(i));
+    WebRtcNsx_Process(my_handle,
+                      audio->split_bands_const(i),
+                      audio->num_bands(),
+                      audio->split_bands(i));
 #endif
-
-    if (err != apm_->kNoError) {
-      return GetHandleError(my_handle);
-    }
   }
-
   return apm_->kNoError;
 }
 
 int NoiseSuppressionImpl::Enable(bool enable) {
-  CriticalSectionScoped crit_scoped(apm_->crit());
+  CriticalSectionScoped crit_scoped(crit_);
   return EnableComponent(enable);
 }
 
@@ -97,7 +106,7 @@ bool NoiseSuppressionImpl::is_enabled() const {
 }
 
 int NoiseSuppressionImpl::set_level(Level level) {
-  CriticalSectionScoped crit_scoped(apm_->crit());
+  CriticalSectionScoped crit_scoped(crit_);
   if (MapSetting(level) == -1) {
     return apm_->kBadParameterError;
   }
@@ -140,19 +149,21 @@ void* NoiseSuppressionImpl::CreateHandle() const {
   return handle;
 }
 
-int NoiseSuppressionImpl::DestroyHandle(void* handle) const {
+void NoiseSuppressionImpl::DestroyHandle(void* handle) const {
 #if defined(WEBRTC_NS_FLOAT)
-  return WebRtcNs_Free(static_cast<Handle*>(handle));
+  WebRtcNs_Free(static_cast<Handle*>(handle));
 #elif defined(WEBRTC_NS_FIXED)
-  return WebRtcNsx_Free(static_cast<Handle*>(handle));
+  WebRtcNsx_Free(static_cast<Handle*>(handle));
 #endif
 }
 
 int NoiseSuppressionImpl::InitializeHandle(void* handle) const {
 #if defined(WEBRTC_NS_FLOAT)
-  return WebRtcNs_Init(static_cast<Handle*>(handle), apm_->sample_rate_hz());
+  return WebRtcNs_Init(static_cast<Handle*>(handle),
+                       apm_->proc_sample_rate_hz());
 #elif defined(WEBRTC_NS_FIXED)
-  return WebRtcNsx_Init(static_cast<Handle*>(handle), apm_->sample_rate_hz());
+  return WebRtcNsx_Init(static_cast<Handle*>(handle),
+                        apm_->proc_sample_rate_hz());
 #endif
 }
 

@@ -7,13 +7,33 @@
 #include "GLContext.h"
 #include "mozilla/dom/WebGLRenderingContextBinding.h"
 #include "WebGLContext.h"
+#include "WebGLFormats.h"
 
-using namespace mozilla;
+#ifdef FOO
+#error FOO is already defined! We use FOO() macros to keep things succinct in this file.
+#endif
 
-WebGLExtensionColorBufferFloat::WebGLExtensionColorBufferFloat(WebGLContext* context)
-    : WebGLExtensionBase(context)
+namespace mozilla {
+
+WebGLExtensionColorBufferFloat::WebGLExtensionColorBufferFloat(WebGLContext* webgl)
+    : WebGLExtensionBase(webgl)
 {
-    MOZ_ASSERT(IsSupported(context));
+    MOZ_ASSERT(IsSupported(webgl), "Don't construct extension if unsupported.");
+
+    auto& fua = webgl->mFormatUsage;
+
+    auto fnUpdateUsage = [&fua](GLenum sizedFormat, webgl::EffectiveFormat effFormat) {
+        auto usage = fua->EditUsage(effFormat);
+        usage->isRenderable = true;
+        fua->AllowRBFormat(sizedFormat, usage);
+    };
+
+#define FOO(x) fnUpdateUsage(LOCAL_GL_ ## x, webgl::EffectiveFormat::x)
+
+    // The extension doesn't actually add RGB32F; only RGBA32F.
+    FOO(RGBA32F);
+
+#undef FOO
 }
 
 WebGLExtensionColorBufferFloat::~WebGLExtensionColorBufferFloat()
@@ -21,10 +41,17 @@ WebGLExtensionColorBufferFloat::~WebGLExtensionColorBufferFloat()
 }
 
 bool
-WebGLExtensionColorBufferFloat::IsSupported(const WebGLContext* context)
+WebGLExtensionColorBufferFloat::IsSupported(const WebGLContext* webgl)
 {
-    return context->GL()->IsSupported(gl::GLFeature::renderbuffer_color_float) &&
-           context->GL()->IsSupported(gl::GLFeature::frag_color_float);
+    gl::GLContext* gl = webgl->GL();
+
+    // ANGLE supports this, but doesn't have a way to advertize its support,
+    // since it's compliant with WEBGL_color_buffer_float's clamping, but not
+    // EXT_color_buffer_float.
+    return gl->IsSupported(gl::GLFeature::renderbuffer_color_float) ||
+           gl->IsANGLE();
 }
 
-IMPL_WEBGL_EXTENSION_GOOP(WebGLExtensionColorBufferFloat)
+IMPL_WEBGL_EXTENSION_GOOP(WebGLExtensionColorBufferFloat, WEBGL_color_buffer_float)
+
+} // namespace mozilla

@@ -6,28 +6,47 @@
 
 """Routines common to all posix systems."""
 
-import os
 import errno
-import psutil
+import glob
+import os
 import sys
 import time
-import glob
 
-from psutil._error import TimeoutExpired
-from psutil._common import nt_diskinfo, usage_percent, memoize
+from ._common import sdiskusage, usage_percent, memoize
+from ._compat import PY3, unicode
+
+
+class TimeoutExpired(Exception):
+    pass
 
 
 def pid_exists(pid):
     """Check whether pid exists in the current process table."""
-    if pid < 0:
-        return False
+    if pid == 0:
+        # According to "man 2 kill" PID 0 has a special meaning:
+        # it refers to <<every process in the process group of the
+        # calling process>> so we don't want to go any further.
+        # If we get here it means this UNIX platform *does* have
+        # a process with id 0.
+        return True
     try:
         os.kill(pid, 0)
-    except OSError:
-        e = sys.exc_info()[1]
-        return e.errno == errno.EPERM
+    except OSError as err:
+        if err.errno == errno.ESRCH:
+            # ESRCH == No such process
+            return False
+        elif err.errno == errno.EPERM:
+            # EPERM clearly means there's a process to deny access to
+            return True
+        else:
+            # According to "man 2 kill" possible error values are
+            # (EINVAL, EPERM, ESRCH) therefore we should never get
+            # here. If we do let's be explicit in considering this
+            # an error.
+            raise err
     else:
         return True
+
 
 def wait_pid(pid, timeout=None):
     """Wait for process with pid 'pid' to terminate and return its
@@ -43,23 +62,24 @@ def wait_pid(pid, timeout=None):
     def check_timeout(delay):
         if timeout is not None:
             if timer() >= stop_at:
-                raise TimeoutExpired(pid)
+                raise TimeoutExpired()
         time.sleep(delay)
         return min(delay * 2, 0.04)
 
     timer = getattr(time, 'monotonic', time.time)
     if timeout is not None:
-        waitcall = lambda: os.waitpid(pid, os.WNOHANG)
+        def waitcall():
+            return os.waitpid(pid, os.WNOHANG)
         stop_at = timer() + timeout
     else:
-        waitcall = lambda: os.waitpid(pid, 0)
+        def waitcall():
+            return os.waitpid(pid, 0)
 
     delay = 0.0001
-    while 1:
+    while True:
         try:
             retpid, status = waitcall()
-        except OSError:
-            err = sys.exc_info()[1]
+        except OSError as err:
             if err.errno == errno.EINTR:
                 delay = check_timeout(delay)
                 continue
@@ -70,7 +90,7 @@ def wait_pid(pid, timeout=None):
                 # - pid never existed in the first place
                 # In both cases we'll eventually return None as we
                 # can't determine its exit status code.
-                while 1:
+                while True:
                     if pid_exists(pid):
                         delay = check_timeout(delay)
                     else:
@@ -94,9 +114,24 @@ def wait_pid(pid, timeout=None):
                 # should never happen
                 raise RuntimeError("unknown process exit status")
 
-def get_disk_usage(path):
+
+def disk_usage(path):
     """Return disk usage associated with path."""
-    st = os.statvfs(path)
+    try:
+        st = os.statvfs(path)
+    except UnicodeEncodeError:
+        if not PY3 and isinstance(path, unicode):
+            # this is a bug with os.statvfs() and unicode on
+            # Python 2, see:
+            # - https://github.com/giampaolo/psutil/issues/416
+            # - http://bugs.python.org/issue18695
+            try:
+                path = path.encode(sys.getfilesystemencoding())
+            except UnicodeEncodeError:
+                pass
+            st = os.statvfs(path)
+        else:
+            raise
     free = (st.f_bavail * st.f_frsize)
     total = (st.f_blocks * st.f_frsize)
     used = (st.f_blocks - st.f_bfree) * st.f_frsize
@@ -104,7 +139,8 @@ def get_disk_usage(path):
     # NB: the percentage is -5% than what shown by df due to
     # reserved blocks that we are currently not considering:
     # http://goo.gl/sWGbH
-    return nt_diskinfo(total, used, free, percent)
+    return sdiskusage(total, used, free, percent)
+
 
 @memoize
 def _get_terminal_map():
@@ -114,8 +150,7 @@ def _get_terminal_map():
         assert name not in ret
         try:
             ret[os.stat(name).st_rdev] = name
-        except OSError:
-            err = sys.exc_info()[1]
+        except OSError as err:
             if err.errno != errno.ENOENT:
                 raise
     return ret

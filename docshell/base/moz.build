@@ -4,6 +4,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+DIRS += [
+    'timeline',
+]
+
 XPIDL_SOURCES += [
     'nsCDefaultURIFixup.idl',
     'nsIClipboardCommands.idl',
@@ -20,7 +24,6 @@ XPIDL_SOURCES += [
     'nsIDownloadHistory.idl',
     'nsIGlobalHistory2.idl',
     'nsILoadContext.idl',
-    'nsILoadInfo.idl',
     'nsIPrivacyTransitionObserver.idl',
     'nsIReflowObserver.idl',
     'nsIRefreshURI.idl',
@@ -45,14 +48,13 @@ EXPORTS += [
 EXPORTS.mozilla += [
     'IHistory.h',
     'LoadContext.h',
-    'LoadInfo.h',
 ]
 
 UNIFIED_SOURCES += [
     'LoadContext.cpp',
-    'LoadInfo.cpp',
     'nsAboutRedirector.cpp',
     'nsDefaultURIFixup.cpp',
+    'nsDocShell.cpp',
     'nsDocShellEditorData.cpp',
     'nsDocShellEnumerator.cpp',
     'nsDocShellLoadInfo.cpp',
@@ -63,21 +65,11 @@ UNIFIED_SOURCES += [
     'SerializedLoadContext.cpp',
 ]
 
-# nsDocShell.cpp cannot be built in unified mode because it forces NSPR logging.
-SOURCES += [
-    'nsDocShell.cpp',
-]
-
-FAIL_ON_WARNINGS = True
-
-MSVC_ENABLE_PGO = True
-
 include('/ipc/chromium/chromium-config.mozbuild')
 
 FINAL_LIBRARY = 'xul'
 LOCAL_INCLUDES += [
-    '../shistory/src',
-    '/content/base/src',
+    '/docshell/shistory',
     '/dom/base',
     '/layout/base',
     '/layout/generic',

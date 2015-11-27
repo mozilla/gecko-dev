@@ -7,7 +7,6 @@
 namespace mozilla {
 namespace net {
 
-#if defined(PR_LOGGING)
 // Log module for cache2 (2013) cache implementation logging...
 //
 // To enable logging (see prlog.h for full details):
@@ -15,16 +14,9 @@ namespace net {
 //    set NSPR_LOG_MODULES=cache2:5
 //    set NSPR_LOG_FILE=nspr.log
 //
-// this enables PR_LOG_DEBUG level information and places all output in
+// this enables LogLevel::Debug level information and places all output in
 // the file nspr.log
-PRLogModuleInfo* GetCache2Log()
-{
-  static PRLogModuleInfo *sLog;
-  if (!sLog)
-    sLog = PR_NewLogModule("cache2");
-  return sLog;
-}
-#endif
+LazyLogModule gCache2Log("cache2");
 
-} // net
-} // mozilla
+} // namespace net
+} // namespace mozilla

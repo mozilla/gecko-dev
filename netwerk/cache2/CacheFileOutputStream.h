@@ -30,11 +30,11 @@ class CacheFileOutputStream : public nsIAsyncOutputStream
 public:
   CacheFileOutputStream(CacheFile *aFile, CacheOutputCloseListener *aCloseListener);
 
-  NS_IMETHOD OnChunkRead(nsresult aResult, CacheFileChunk *aChunk);
-  NS_IMETHOD OnChunkWritten(nsresult aResult, CacheFileChunk *aChunk);
+  NS_IMETHOD OnChunkRead(nsresult aResult, CacheFileChunk *aChunk) override;
+  NS_IMETHOD OnChunkWritten(nsresult aResult, CacheFileChunk *aChunk) override;
   NS_IMETHOD OnChunkAvailable(nsresult aResult, uint32_t aChunkIdx,
-                              CacheFileChunk *aChunk);
-  NS_IMETHOD OnChunkUpdated(CacheFileChunk *aChunk);
+                              CacheFileChunk *aChunk) override;
+  NS_IMETHOD OnChunkUpdated(CacheFileChunk *aChunk) override;
 
   void NotifyCloseListener();
 
@@ -50,9 +50,9 @@ private:
   void FillHole();
   void NotifyListener();
 
-  nsRefPtr<CacheFile>      mFile;
-  nsRefPtr<CacheFileChunk> mChunk;
-  nsRefPtr<CacheOutputCloseListener> mCloseListener;
+  RefPtr<CacheFile>        mFile;
+  RefPtr<CacheFileChunk> mChunk;
+  RefPtr<CacheOutputCloseListener> mCloseListener;
   int64_t                  mPos;
   bool                     mClosed;
   nsresult                 mStatus;
@@ -63,7 +63,7 @@ private:
 };
 
 
-} // net
-} // mozilla
+} // namespace net
+} // namespace mozilla
 
 #endif

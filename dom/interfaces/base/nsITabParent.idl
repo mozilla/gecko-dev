@@ -5,7 +5,7 @@
 
 #include "domstubs.idl"
 
-[scriptable, uuid(33e8571d-5e5d-4000-81cf-e01f5f85d424)]
+[scriptable, uuid(7615408c-1fb3-4128-8dd5-a3e2f3fa8842)]
 interface nsITabParent : nsISupports
 {
   void injectTouchEvent(in AString aType,
@@ -19,7 +19,44 @@ interface nsITabParent : nsISupports
                         in uint32_t count,
                         in long aModifiers);
 
+  void getChildProcessOffset(out int32_t aCssX, out int32_t aCssY);
+
   readonly attribute boolean useAsyncPanZoom;
 
-  void setIsDocShellActive(in bool aIsActive);
+  /**
+    * Manages the docshell active state of the remote browser.
+    */
+  attribute boolean docShellIsActive;
+
+  /**
+    * As an optimisation, setting the docshell's active state to
+    * inactive also triggers a layer invalidation to free up some
+    * potentially unhelpful memory usage. This attribute should be
+    * used where callers would like to set the docshell's state
+    * without losing any layer data.
+    *
+    * Otherwise, this does the same as setting the attribute above.
+    */
+  void setDocShellIsActiveAndForeground(in boolean aIsActive);
+
+  /**
+   * During interactions where painting performance
+   * is more important than scrolling, we may temporarily
+   * suppress the displayport. Each enable called must be matched
+   * with a disable call.
+   */
+  void suppressDisplayport(in bool aEnabled);
+
+  readonly attribute uint64_t tabId;
+
+  /**
+   * Navigate by key. If aForDocumentNavigation is true, navigate by document.
+   * If aForDocumentNavigation is false, navigate by element.
+   *
+   * If aForward is true, navigate to the first focusable element or document.
+   * If aForward is false, navigate to the last focusable element or document.
+   */
+  void navigateByKey(in bool aForward, in bool aForDocumentNavigation);
+
+  readonly attribute boolean hasContentOpener;
 };

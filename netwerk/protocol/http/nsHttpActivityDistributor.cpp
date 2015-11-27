@@ -82,7 +82,7 @@ nsHttpActivityDistributor::ObserveActivity(nsISupports *aHttpChannel,
                                            uint64_t aExtraSizeData,
                                            const nsACString & aExtraStringData)
 {
-    nsRefPtr<nsIRunnable> event;
+    nsCOMPtr<nsIRunnable> event;
     {
         MutexAutoLock lock(mLock);
 
@@ -130,5 +130,6 @@ nsHttpActivityDistributor::RemoveObserver(nsIHttpActivityObserver *aObserver)
 
     return NS_OK;
 }
-} // namespace mozilla::net
+
+} // namespace net
 } // namespace mozilla

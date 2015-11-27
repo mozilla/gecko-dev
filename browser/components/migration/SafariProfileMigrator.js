@@ -4,15 +4,18 @@
 
 "use strict";
 
-let Cc = Components.classes;
-let Ci = Components.interfaces;
-let Cu = Components.utils;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource:///modules/MigrationUtils.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "Downloads",
+                                  "resource://gre/modules/Downloads.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PropertyListUtils",
                                   "resource://gre/modules/PropertyListUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
@@ -29,23 +32,21 @@ Bookmarks.prototype = {
   type: MigrationUtils.resourceTypes.BOOKMARKS,
 
   migrate: function B_migrate(aCallback) {
-    PropertyListUtils.read(this._file,
-      MigrationUtils.wrapMigrateFunction(function migrateBookmarks(aDict) {
-        if (!aDict)
-          throw new Error("Could not read Bookmarks.plist");
+    return Task.spawn(function* () {
+      let dict = yield new Promise(resolve =>
+        PropertyListUtils.read(this._file, resolve)
+      );
+      if (!dict)
+        throw new Error("Could not read Bookmarks.plist");
+      let children = dict.get("Children");
+      if (!children)
+        throw new Error("Invalid Bookmarks.plist format");
 
-        let children = aDict.get("Children");;
-        if (!children)
-          throw new Error("Invalid Bookmarks.plist format");
-
-        PlacesUtils.bookmarks.runInBatchMode({
-          runBatched: function() {
-            let collection = aDict.get("Title") == "com.apple.ReadingList" ?
-              this.READING_LIST_COLLECTION : this.ROOT_COLLECTION;
-            this._migrateCollection(children, collection);
-          }.bind(this)
-        }, null);
-      }.bind(this), aCallback));
+      let collection = dict.get("Title") == "com.apple.ReadingList" ?
+        this.READING_LIST_COLLECTION : this.ROOT_COLLECTION;
+      yield this._migrateCollection(children, collection);
+    }.bind(this)).then(() => aCallback(true),
+                        e => { Cu.reportError(e); aCallback(false) });
   },
 
   // Bookmarks collections in Safari.  Constants for migrateCollection.
@@ -62,7 +63,7 @@ Bookmarks.prototype = {
    * @param aCollection
    *        one of the values above.
    */
-  _migrateCollection: function B__migrateCollection(aEntries, aCollection) {
+  _migrateCollection: Task.async(function* (aEntries, aCollection) {
     // A collection of bookmarks in Safari resembles places roots.  In the
     // property list files (Bookmarks.plist, ReadingList.plist) they are
     // stored as regular bookmarks folders, and thus can only be distinguished
@@ -76,11 +77,11 @@ Bookmarks.prototype = {
           let title = entry.get("Title");
           let children = entry.get("Children");
           if (title == "BookmarksBar")
-            this._migrateCollection(children, this.TOOLBAR_COLLECTION);
+            yield this._migrateCollection(children, this.TOOLBAR_COLLECTION);
           else if (title == "BookmarksMenu")
-            this._migrateCollection(children, this.MENU_COLLECTION);
+            yield this._migrateCollection(children, this.MENU_COLLECTION);
           else if (title == "com.apple.ReadingList")
-            this._migrateCollection(children, this.READING_LIST_COLLECTION);
+            yield this._migrateCollection(children, this.READING_LIST_COLLECTION);
           else if (entry.get("ShouldOmitFromUI") !== true)
             entriesFiltered.push(entry);
         }
@@ -96,7 +97,7 @@ Bookmarks.prototype = {
     if (entriesFiltered.length == 0)
       return;
 
-    let folder = -1;
+    let folderGuid = -1;
     switch (aCollection) {
       case this.ROOT_COLLECTION: {
         // In Safari, it is possible (though quite cumbersome) to move
@@ -105,22 +106,22 @@ Bookmarks.prototype = {
         // both the places root and the unfiled-bookmarks root. 
         // Because the former is only an implementation detail in our UI,
         // the unfiled root seems to be the best choice.
-        folder = PlacesUtils.unfiledBookmarksFolderId;
+        folderGuid = PlacesUtils.bookmarks.unfiledGuid;
         break;
       }
       case this.MENU_COLLECTION: {
-        folder = PlacesUtils.bookmarksMenuFolderId;
+        folderGuid = PlacesUtils.bookmarks.menuGuid;
         if (!MigrationUtils.isStartupMigration) {
-          folder = MigrationUtils.createImportedBookmarksFolder("Safari",
-                                                                folder);
+          folderGuid =
+            yield MigrationUtils.createImportedBookmarksFolder("Safari", folderGuid);
         }
         break;
       }
       case this.TOOLBAR_COLLECTION: {
-        folder = PlacesUtils.toolbarFolderId;
+        folderGuid = PlacesUtils.bookmarks.toolbarGuid;
         if (!MigrationUtils.isStartupMigration) {
-          folder = MigrationUtils.createImportedBookmarksFolder("Safari",
-                                                                folder);
+          folderGuid =
+            yield MigrationUtils.createImportedBookmarksFolder("Safari", folderGuid);
         }
         break;
       }
@@ -128,51 +129,52 @@ Bookmarks.prototype = {
         // Reading list items are imported as regular bookmarks.
         // They are imported under their own folder, created either under the
         // bookmarks menu (in the case of startup migration).
-        folder = PlacesUtils.bookmarks.createFolder(
-            PlacesUtils.bookmarksMenuFolderId,
-            MigrationUtils.getLocalizedString("importedSafariReadingList"),
-            PlacesUtils.bookmarks.DEFAULT_INDEX);
+        folderGuid = (yield PlacesUtils.bookmarks.insert({
+            parentGuid: PlacesUtils.bookmarks.menuGuid,
+            type: PlacesUtils.bookmarks.TYPE_FOLDER,
+            title: MigrationUtils.getLocalizedString("importedSafariReadingList"),
+          })).guid;
         break;
       }
       default:
         throw new Error("Unexpected value for aCollection!");
     }
+    if (folderGuid == -1)
+      throw new Error("Invalid folder GUID");
 
-    this._migrateEntries(entriesFiltered, folder);
-  },
+    yield this._migrateEntries(entriesFiltered, folderGuid);
+  }),
 
   // migrate the given array of safari bookmarks to the given places
   // folder.
-  _migrateEntries: function B__migrateEntries(aEntries, aFolderId) {
-    for (let entry of aEntries) {
+  _migrateEntries: Task.async(function* (entries, parentGuid) {
+    for (let entry of entries) {
       let type = entry.get("WebBookmarkType");
       if (type == "WebBookmarkTypeList" && entry.has("Children")) {
         let title = entry.get("Title");
-        let folderId = PlacesUtils.bookmarks.createFolder(
-           aFolderId, title, PlacesUtils.bookmarks.DEFAULT_INDEX);
+        let newFolderGuid = (yield PlacesUtils.bookmarks.insert({
+          parentGuid, type: PlacesUtils.bookmarks.TYPE_FOLDER, title
+        })).guid;
 
         // Empty folders may not have a children array.
         if (entry.has("Children"))
-          this._migrateEntries(entry.get("Children"), folderId, false);
+          yield this._migrateEntries(entry.get("Children"), newFolderGuid, false);
       }
       else if (type == "WebBookmarkTypeLeaf" && entry.has("URLString")) {
-        let title, uri;
+        let title;
         if (entry.has("URIDictionary"))
           title = entry.get("URIDictionary").get("title");
 
         try {
-          uri = NetUtil.newURI(entry.get("URLString"));
-        }
-        catch(ex) {
-          Cu.reportError("Invalid uri set for Safari bookmark: " + entry.get("URLString"));
-        }
-        if (uri) {
-          PlacesUtils.bookmarks.insertBookmark(aFolderId, uri,
-            PlacesUtils.bookmarks.DEFAULT_INDEX, title);
+          yield PlacesUtils.bookmarks.insert({
+            parentGuid, url: entry.get("URLString"), title
+          });
+        } catch(ex) {
+          Cu.reportError("Invalid Safari bookmark: " + ex);
         }
       }
     }
-  }
+  })
 };
 
 function History(aHistoryFile) {
@@ -316,14 +318,14 @@ Preferences.prototype = {
   type: MigrationUtils.resourceTypes.SETTINGS,
 
   migrate: function MPR_migrate(aCallback) {
-    this._mainPreferencesPropertyList.read(
-      MigrationUtils.wrapMigrateFunction(function migratePrefs(aDict) {
+    this._mainPreferencesPropertyList.read(aDict => {
+      Task.spawn(function* () {
         if (!aDict)
           throw new Error("Could not read preferences file");
 
         this._dict = aDict;
 
-        let invert = function(webkitVal) !webkitVal;
+        let invert = webkitVal => !webkitVal;
         this._set("AutoFillPasswords", "signon.rememberSignons");
         this._set("OpenNewTabsInFront", "browser.tabs.loadInBackground", invert);
         this._set("WebKitJavaScriptCanOpenWindowsAutomatically",
@@ -340,7 +342,7 @@ Preferences.prototype = {
         // Allowed                          TRUE      1
         // Allowed, originating site only   --        3
         this._set("WebKitDisplayImagesKey", "permissions.default.image",
-                  function(webkitVal) webkitVal ? 1 : 2);
+                  webkitVal => webkitVal ? 1 : 2);
 
 #ifdef XP_WIN
         // Cookie-accept policy.
@@ -351,12 +353,17 @@ Preferences.prototype = {
         // Never Accept               1               2
         this._set("WebKitCookieStorageAcceptPolicy",
           "network.cookie.cookieBehavior",
-          function(webkitVal) webkitVal == 0 ? 0 : webkitVal == 1 ? 2 : 1);
+          webkitVal => webkitVal == 0 ? 0 : webkitVal == 1 ? 2 : 1);
 #endif
 
         this._migrateFontSettings();
-        this._migrateDownloadsFolder();
-    }.bind(this), aCallback));
+        yield this._migrateDownloadsFolder();
+
+      }.bind(this)).then(() => aCallback(true), ex => {
+        Cu.reportError(ex);
+        aCallback(false);
+      }).catch(Cu.reportError);
+    });
   },
 
   /**
@@ -479,7 +486,7 @@ Preferences.prototype = {
     return localeLangGroup;
   },
 
-  _migrateDownloadsFolder: function MPR__migrateDownloadsFolder() {
+  _migrateDownloadsFolder: Task.async(function* () {
     // Windows Safari uses DownloadPath while Mac uses DownloadsPath.
     // Check both for future compatibility.
     let key;
@@ -500,15 +507,15 @@ Preferences.prototype = {
       folderListVal = 0;
     }
     else {
-      let dnldMgr = Cc["@mozilla.org/download-manager;1"].
-                    getService(Ci.nsIDownloadManager);
-      if (downloadsFolder.equals(dnldMgr.defaultDownloadsDirectory))
+      let systemDownloadsPath = yield Downloads.getSystemDownloadsDirectory();
+      let systemDownloadsFolder = FileUtils.File(systemDownloadsPath);
+      if (downloadsFolder.equals(systemDownloadsFolder))
         folderListVal = 1;
     }
     Services.prefs.setIntPref("browser.download.folderList", folderListVal);
     Services.prefs.setComplexValue("browser.download.dir", Ci.nsILocalFile,
                                    downloadsFolder);
-  }
+  }),
 };
 
 function SearchStrings(aMainPreferencesPropertyListInstance) {

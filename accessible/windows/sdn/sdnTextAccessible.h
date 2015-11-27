@@ -18,7 +18,7 @@ struct nsPoint;
 namespace mozilla {
 namespace a11y {
  
-class sdnTextAccessible MOZ_FINAL : public ISimpleDOMText
+class sdnTextAccessible final : public ISimpleDOMText
 {
 public:
   sdnTextAccessible(AccessibleWrap* aAccessible) : mAccessible(aAccessible) {};
@@ -62,7 +62,7 @@ private:
                                int32_t aOffset, bool aPreferNext,
                                nsPoint& aOutPoint);
 
-  nsRefPtr<AccessibleWrap> mAccessible;
+  RefPtr<AccessibleWrap> mAccessible;
 };
 
 } // namespace a11y

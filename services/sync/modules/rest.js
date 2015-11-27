@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
+var {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://services-common/rest.js");
@@ -86,5 +86,21 @@ SyncStorageRequest.prototype = {
       Svc.Obs.notify("weave:service:quota:remaining",
                      parseInt(headers["x-weave-quota-remaining"], 10));
     }
+  },
+
+  onStopRequest: function onStopRequest(channel, context, statusCode) {
+    if (this.status != this.ABORTED) {
+      let resp = this.response;
+      let contentLength = resp.headers ? resp.headers["content-length"] : "";
+
+      if (resp.success && contentLength &&
+          contentLength != resp.body.length) {
+        this._log.warn("The response body's length of: " + resp.body.length +
+                       " doesn't match the header's content-length of: " +
+                       contentLength + ".");
+      }
+    }
+
+    RESTRequest.prototype.onStopRequest.apply(this, arguments);
   }
 };

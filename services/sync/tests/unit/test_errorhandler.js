@@ -12,10 +12,18 @@ Cu.import("resource://services-sync/util.js");
 Cu.import("resource://testing-common/services/sync/utils.js");
 Cu.import("resource://gre/modules/FileUtils.jsm");
 
-const FAKE_SERVER_URL = "http://dummy:9000/";
+var fakeServer = new SyncServer();
+fakeServer.start();
+
+do_register_cleanup(function() {
+  return new Promise(resolve => {
+    fakeServer.stop(resolve);
+  });
+});
+
+var fakeServerUrl = "http://localhost:" + fakeServer.port;
+
 const logsdir = FileUtils.getDir("ProfD", ["weave", "logs"], true);
-const LOG_PREFIX_SUCCESS = "success-";
-const LOG_PREFIX_ERROR   = "error-";
 
 const PROLONGED_ERROR_DURATION =
   (Svc.Prefs.get('errorhandler.networkFailureReportTimeout') * 2) * 1000;
@@ -42,12 +50,12 @@ CatapultEngine.prototype = {
   }
 };
 
-let engineManager = Service.engineManager;
+var engineManager = Service.engineManager;
 engineManager.register(CatapultEngine);
 
 // This relies on Service/ErrorHandler being a singleton. Fixing this will take
 // a lot of work.
-let errorHandler = Service.errorHandler;
+var errorHandler = Service.errorHandler;
 
 function run_test() {
   initTestLogging("Trace");
@@ -173,7 +181,13 @@ add_identity_test(this, function test_401_logout() {
       _("Got weave:service:login:error in second sync.");
       Svc.Obs.remove("weave:service:login:error", onLoginError);
 
-      do_check_eq(Status.login, LOGIN_FAILED_LOGIN_REJECTED);
+      let errorCount = sumHistogram("WEAVE_STORAGE_AUTH_ERRORS", { key: "info/collections" });
+      do_check_eq(errorCount, 2);
+
+      let expected = isConfiguredWithLegacyIdentity() ?
+                     LOGIN_FAILED_LOGIN_REJECTED : LOGIN_FAILED_NETWORK_ERROR;
+
+      do_check_eq(Status.login, expected);
       do_check_false(Service.isLoggedIn);
 
       // Clean up.
@@ -238,8 +252,8 @@ add_identity_test(this, function test_shouldReportError() {
 
   // Give ourselves a clusterURL so that the temporary 401 no-error situation
   // doesn't come into play.
-  Service.serverURL  = FAKE_SERVER_URL;
-  Service.clusterURL = FAKE_SERVER_URL;
+  Service.serverURL  = fakeServerUrl;
+  Service.clusterURL = fakeServerUrl;
 
   // Test dontIgnoreErrors, non-network, non-prolonged, login error reported
   Status.resetSync();
@@ -470,6 +484,24 @@ add_identity_test(this, function test_shouldReportError_master_password() {
   yield deferred.promise;
 });
 
+// Test that even if we don't have a cluster URL, a login failure due to
+// authentication errors is always reported.
+add_identity_test(this, function test_shouldReportLoginFailureWithNoCluster() {
+  // Ensure no clusterURL - any error not specific to login should not be reported.
+  Service.serverURL  = "";
+  Service.clusterURL = "";
+
+  // Test explicit "login rejected" state.
+  Status.resetSync();
+  // If we have a LOGIN_REJECTED state, we always report the error.
+  Status.login = LOGIN_FAILED_LOGIN_REJECTED;
+  do_check_true(errorHandler.shouldReportError());
+  // But any other status with a missing clusterURL is treated as a mid-sync
+  // 401 (ie, should be treated as a node reassignment)
+  Status.login = LOGIN_SUCCEEDED;
+  do_check_false(errorHandler.shouldReportError());
+});
+
 // XXX - how to arrange for 'Service.identity.basicPassword = null;' in
 // an fxaccounts environment?
 add_task(function test_login_syncAndReportErrors_non_network_error() {
@@ -573,8 +605,8 @@ add_identity_test(this, function test_sync_syncAndReportErrors_prolonged_non_net
 add_identity_test(this, function test_login_syncAndReportErrors_network_error() {
   // Test network errors are reported when calling syncAndReportErrors.
   yield configureIdentity({username: "broken.wipe"});
-  Service.serverURL  = FAKE_SERVER_URL;
-  Service.clusterURL = FAKE_SERVER_URL;
+  Service.serverURL  = fakeServerUrl;
+  Service.clusterURL = fakeServerUrl;
 
   let deferred = Promise.defer();
   Svc.Obs.add("weave:ui:login:error", function onSyncError() {
@@ -613,8 +645,8 @@ add_identity_test(this, function test_login_syncAndReportErrors_prolonged_networ
   // when calling syncAndReportErrors.
   yield configureIdentity({username: "johndoe"});
 
-  Service.serverURL  = FAKE_SERVER_URL;
-  Service.clusterURL = FAKE_SERVER_URL;
+  Service.serverURL  = fakeServerUrl;
+  Service.clusterURL = fakeServerUrl;
 
   let deferred = Promise.defer();
   Svc.Obs.add("weave:ui:login:error", function onSyncError() {
@@ -699,8 +731,8 @@ add_task(function test_sync_prolonged_non_network_error() {
 add_identity_test(this, function test_login_prolonged_network_error() {
   // Test prolonged, network errors are reported
   yield configureIdentity({username: "johndoe"});
-  Service.serverURL  = FAKE_SERVER_URL;
-  Service.clusterURL = FAKE_SERVER_URL;
+  Service.serverURL  = fakeServerUrl;
+  Service.clusterURL = fakeServerUrl;
 
   let deferred = Promise.defer();
   Svc.Obs.add("weave:ui:login:error", function onSyncError() {
@@ -785,8 +817,8 @@ add_task(function test_sync_non_network_error() {
 
 add_identity_test(this, function test_login_network_error() {
   yield configureIdentity({username: "johndoe"});
-  Service.serverURL  = FAKE_SERVER_URL;
-  Service.clusterURL = FAKE_SERVER_URL;
+  Service.serverURL  = fakeServerUrl;
+  Service.clusterURL = fakeServerUrl;
 
   let deferred = Promise.defer();
   // Test network errors are not reported.
@@ -1772,10 +1804,13 @@ add_task(function test_sync_engine_generic_fail() {
       let entries = logsdir.directoryEntries;
       do_check_true(entries.hasMoreElements());
       let logfile = entries.getNext().QueryInterface(Ci.nsILocalFile);
-      do_check_eq(logfile.leafName.slice(0, LOG_PREFIX_ERROR.length),
-                  LOG_PREFIX_ERROR);
+      do_check_true(logfile.leafName.startsWith("error-sync-"), logfile.leafName);
 
       clean();
+
+      let syncErrors = sumHistogram("WEAVE_ENGINE_SYNC_ERRORS", { key: "catapult" });
+      do_check_true(syncErrors, 1);
+
       server.stop(deferred.resolve);
     });
   });
@@ -1804,8 +1839,7 @@ add_test(function test_logs_on_sync_error_despite_shouldReportError() {
     let entries = logsdir.directoryEntries;
     do_check_true(entries.hasMoreElements());
     let logfile = entries.getNext().QueryInterface(Ci.nsILocalFile);
-    do_check_eq(logfile.leafName.slice(0, LOG_PREFIX_ERROR.length),
-                LOG_PREFIX_ERROR);
+    do_check_true(logfile.leafName.startsWith("error-sync-"), logfile.leafName);
 
     clean();
     run_next_test();
@@ -1832,8 +1866,7 @@ add_test(function test_logs_on_login_error_despite_shouldReportError() {
     let entries = logsdir.directoryEntries;
     do_check_true(entries.hasMoreElements());
     let logfile = entries.getNext().QueryInterface(Ci.nsILocalFile);
-    do_check_eq(logfile.leafName.slice(0, LOG_PREFIX_ERROR.length),
-                LOG_PREFIX_ERROR);
+    do_check_true(logfile.leafName.startsWith("error-sync-"), logfile.leafName);
 
     clean();
     run_next_test();
@@ -1867,8 +1900,7 @@ add_task(function test_engine_applyFailed() {
     let entries = logsdir.directoryEntries;
     do_check_true(entries.hasMoreElements());
     let logfile = entries.getNext().QueryInterface(Ci.nsILocalFile);
-    do_check_eq(logfile.leafName.slice(0, LOG_PREFIX_ERROR.length),
-                LOG_PREFIX_ERROR);
+    do_check_true(logfile.leafName.startsWith("error-sync-"), logfile.leafName);
 
     clean();
     server.stop(deferred.resolve);

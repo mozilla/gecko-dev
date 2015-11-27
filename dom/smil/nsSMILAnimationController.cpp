@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -14,6 +15,7 @@
 #include "nsSMILTimedElement.h"
 #include <algorithm>
 #include "mozilla/AutoRestore.h"
+#include "RestyleTracker.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -30,9 +32,10 @@ nsSMILAnimationController::nsSMILAnimationController(nsIDocument* aDoc)
     mDeferredStartSampling(false),
     mRunningSample(false),
     mRegisteredWithRefreshDriver(false),
+    mMightHavePendingStyleUpdates(false),
     mDocument(aDoc)
 {
-  NS_ABORT_IF_FALSE(aDoc, "need a non-null document");
+  MOZ_ASSERT(aDoc, "need a non-null document");
 
   nsRefreshDriver* refreshDriver = GetRefreshDriver();
   if (refreshDriver) {
@@ -57,9 +60,9 @@ nsSMILAnimationController::~nsSMILAnimationController()
 void
 nsSMILAnimationController::Disconnect()
 {
-  NS_ABORT_IF_FALSE(mDocument, "disconnecting when we weren't connected...?");
-  NS_ABORT_IF_FALSE(mRefCnt.get() == 1,
-                    "Expecting to disconnect when doc is sole remaining owner");
+  MOZ_ASSERT(mDocument, "disconnecting when we weren't connected...?");
+  MOZ_ASSERT(mRefCnt.get() == 1,
+             "Expecting to disconnect when doc is sole remaining owner");
   NS_ASSERTION(mPauseState & nsSMILTimeContainer::PAUSE_PAGEHIDE,
                "Expecting to be paused for pagehide before disconnect");
 
@@ -170,9 +173,9 @@ nsSMILAnimationController::RegisterAnimationElement(
     mDeferredStartSampling = false;
     if (mChildContainerTable.Count()) {
       // mAnimationElementTable was empty, but now we've added its 1st element
-      NS_ABORT_IF_FALSE(mAnimationElementTable.Count() == 1,
-                        "we shouldn't have deferred sampling if we already had "
-                        "animations registered");
+      MOZ_ASSERT(mAnimationElementTable.Count() == 1,
+                 "we shouldn't have deferred sampling if we already had "
+                 "animations registered");
       StartSampling(GetRefreshDriver());
       Sample(); // Run the first sample manually
     } // else, don't sample until a time container is registered (via AddChild)
@@ -210,20 +213,11 @@ nsSMILAnimationController::Traverse(
 {
   // Traverse last compositor table
   if (mLastCompositorTable) {
-    mLastCompositorTable->EnumerateEntries(CompositorTableEntryTraverse,
-                                           aCallback);
+    for (auto iter = mLastCompositorTable->Iter(); !iter.Done(); iter.Next()) {
+      nsSMILCompositor* compositor = iter.Get();
+      compositor->Traverse(aCallback);
+    }
   }
-}
-
-/*static*/ PLDHashOperator
-nsSMILAnimationController::CompositorTableEntryTraverse(
-                                      nsSMILCompositor* aCompositor,
-                                      void* aArg)
-{
-  nsCycleCollectionTraversalCallback* cb =
-    static_cast<nsCycleCollectionTraversalCallback*>(aArg);
-  aCompositor->Traverse(cb);
-  return PL_DHASH_NEXT;
 }
 
 void
@@ -265,9 +259,8 @@ nsSMILAnimationController::StartSampling(nsRefreshDriver* aRefreshDriver)
   if (aRefreshDriver) {
     MOZ_ASSERT(!mRegisteredWithRefreshDriver,
                "Redundantly registering with refresh driver");
-    NS_ABORT_IF_FALSE(!GetRefreshDriver() ||
-                      aRefreshDriver == GetRefreshDriver(),
-                      "Starting sampling with wrong refresh driver");
+    MOZ_ASSERT(!GetRefreshDriver() || aRefreshDriver == GetRefreshDriver(),
+               "Starting sampling with wrong refresh driver");
     // We're effectively resuming from a pause so update our current sample time
     // or else it will confuse our "average time between samples" calculations.
     mCurrentSampleTime = mozilla::TimeStamp::Now();
@@ -282,9 +275,8 @@ nsSMILAnimationController::StopSampling(nsRefreshDriver* aRefreshDriver)
   if (aRefreshDriver && mRegisteredWithRefreshDriver) {
     // NOTE: The document might already have been detached from its PresContext
     // (and RefreshDriver), which would make GetRefreshDriver() return null.
-    NS_ABORT_IF_FALSE(!GetRefreshDriver() ||
-                      aRefreshDriver == GetRefreshDriver(),
-                      "Stopping sampling with wrong refresh driver");
+    MOZ_ASSERT(!GetRefreshDriver() || aRefreshDriver == GetRefreshDriver(),
+               "Stopping sampling with wrong refresh driver");
     aRefreshDriver->RemoveRefreshObserver(this, Flush_Style);
     mRegisteredWithRefreshDriver = false;
   }
@@ -308,48 +300,6 @@ nsSMILAnimationController::MaybeStartSampling(nsRefreshDriver* aRefreshDriver)
 
 //----------------------------------------------------------------------
 // Sample-related methods and callbacks
-
-PLDHashOperator
-TransferCachedBaseValue(nsSMILCompositor* aCompositor,
-                        void* aData)
-{
-  nsSMILCompositorTable* lastCompositorTable =
-    static_cast<nsSMILCompositorTable*>(aData);
-  nsSMILCompositor* lastCompositor =
-    lastCompositorTable->GetEntry(aCompositor->GetKey());
-
-  if (lastCompositor) {
-    aCompositor->StealCachedBaseValue(lastCompositor);
-  }
-
-  return PL_DHASH_NEXT;  
-}
-
-PLDHashOperator
-RemoveCompositorFromTable(nsSMILCompositor* aCompositor,
-                          void* aData)
-{
-  nsSMILCompositorTable* lastCompositorTable =
-    static_cast<nsSMILCompositorTable*>(aData);
-  lastCompositorTable->RemoveEntry(aCompositor->GetKey());
-  return PL_DHASH_NEXT;
-}
-
-PLDHashOperator
-DoClearAnimationEffects(nsSMILCompositor* aCompositor,
-                        void* /*aData*/)
-{
-  aCompositor->ClearAnimationEffects();
-  return PL_DHASH_NEXT;
-}
-
-PLDHashOperator
-DoComposeAttribute(nsSMILCompositor* aCompositor,
-                   void* /*aData*/)
-{
-  aCompositor->ComposeAttribute();
-  return PL_DHASH_NEXT;
-}
 
 void
 nsSMILAnimationController::DoSample()
@@ -386,9 +336,20 @@ nsSMILAnimationController::DoSample(bool aSkipUnchangedContainers)
   // When we sample the child time containers they will simply record the sample
   // time in document time.
   TimeContainerHashtable activeContainers(mChildContainerTable.Count());
-  SampleTimeContainerParams tcParams = { &activeContainers,
-                                         aSkipUnchangedContainers };
-  mChildContainerTable.EnumerateEntries(SampleTimeContainer, &tcParams);
+  for (auto iter = mChildContainerTable.Iter(); !iter.Done(); iter.Next()) {
+    nsSMILTimeContainer* container = iter.Get()->GetKey();
+    if (!container) {
+      continue;
+    }
+
+    if (!container->IsPausedByType(nsSMILTimeContainer::PAUSE_BEGIN) &&
+        (container->NeedsSample() || !aSkipUnchangedContainers)) {
+      container->ClearMilestones();
+      container->Sample();
+      container->MarkSeekFinished();
+      activeContainers.PutEntry(container);
+    }
+  }
 
   // STEP 3: (i)  Sample the timed elements AND
   //         (ii) Create a table of compositors
@@ -414,29 +375,44 @@ nsSMILAnimationController::DoSample(bool aSkipUnchangedContainers)
   nsAutoPtr<nsSMILCompositorTable>
     currentCompositorTable(new nsSMILCompositorTable(0));
 
-  SampleAnimationParams saParams = { &activeContainers,
-                                     currentCompositorTable };
-  mAnimationElementTable.EnumerateEntries(SampleAnimation,
-                                          &saParams);
+  for (auto iter = mAnimationElementTable.Iter(); !iter.Done(); iter.Next()) {
+    SVGAnimationElement* animElem = iter.Get()->GetKey();
+    SampleTimedElement(animElem, &activeContainers);
+    AddAnimationToCompositorTable(animElem, currentCompositorTable);
+  }
   activeContainers.Clear();
 
   // STEP 4: Compare previous sample's compositors against this sample's.
-  // (Transfer cached base values across, & remove animation effects from 
+  // (Transfer cached base values across, & remove animation effects from
   // no-longer-animated targets.)
   if (mLastCompositorTable) {
     // * Transfer over cached base values, from last sample's compositors
-    currentCompositorTable->EnumerateEntries(TransferCachedBaseValue,
-                                             mLastCompositorTable);
+    for (auto iter = currentCompositorTable->Iter();
+         !iter.Done();
+         iter.Next()) {
+      nsSMILCompositor* compositor = iter.Get();
+      nsSMILCompositor* lastCompositor =
+        mLastCompositorTable->GetEntry(compositor->GetKey());
+
+      if (lastCompositor) {
+        compositor->StealCachedBaseValue(lastCompositor);
+      }
+    }
 
     // * For each compositor in current sample's hash table, remove entry from
     // prev sample's hash table -- we don't need to clear animation
     // effects of those compositors, since they're still being animated.
-    currentCompositorTable->EnumerateEntries(RemoveCompositorFromTable,
-                                             mLastCompositorTable);
+    for (auto iter = currentCompositorTable->Iter();
+         !iter.Done();
+         iter.Next()) {
+      mLastCompositorTable->RemoveEntry(iter.Get()->GetKey());
+    }
 
     // * For each entry that remains in prev sample's hash table (i.e. for
     // every target that's no longer animated), clear animation effects.
-    mLastCompositorTable->EnumerateEntries(DoClearAnimationEffects, nullptr);
+    for (auto iter = mLastCompositorTable->Iter(); !iter.Done(); iter.Next()) {
+      iter.Get()->ClearAnimationEffects();
+    }
   }
 
   // return early if there are no active animations to avoid a style flush
@@ -458,10 +434,13 @@ nsSMILAnimationController::DoSample(bool aSkipUnchangedContainers)
   // random order. For animation from/to 'inherit' values to work correctly
   // when the inherited value is *also* being animated, we really should be
   // traversing our animated nodes in an ancestors-first order (bug 501183)
-  currentCompositorTable->EnumerateEntries(DoComposeAttribute, nullptr);
+  for (auto iter = currentCompositorTable->Iter(); !iter.Done(); iter.Next()) {
+    iter.Get()->ComposeAttribute();
+  }
 
   // Update last compositor table
   mLastCompositorTable = currentCompositorTable.forget();
+  mMightHavePendingStyleUpdates = true;
 
   NS_ASSERTION(!mResampleNeeded, "Resample dirty flag set during sample!");
 }
@@ -470,50 +449,28 @@ void
 nsSMILAnimationController::RewindElements()
 {
   bool rewindNeeded = false;
-  mChildContainerTable.EnumerateEntries(RewindNeeded, &rewindNeeded);
+  for (auto iter = mChildContainerTable.Iter(); !iter.Done(); iter.Next()) {
+    nsSMILTimeContainer* container = iter.Get()->GetKey();
+    if (container->NeedsRewind()) {
+      rewindNeeded = true;
+      break;
+    }
+  }
+
   if (!rewindNeeded)
     return;
 
-  mAnimationElementTable.EnumerateEntries(RewindAnimation, nullptr);
-  mChildContainerTable.EnumerateEntries(ClearRewindNeeded, nullptr);
-}
-
-/*static*/ PLDHashOperator
-nsSMILAnimationController::RewindNeeded(TimeContainerPtrKey* aKey,
-                                        void* aData)
-{
-  NS_ABORT_IF_FALSE(aData,
-      "Null data pointer during time container enumeration");
-  bool* rewindNeeded = static_cast<bool*>(aData);
-
-  nsSMILTimeContainer* container = aKey->GetKey();
-  if (container->NeedsRewind()) {
-    *rewindNeeded = true;
-    return PL_DHASH_STOP;
+  for (auto iter = mAnimationElementTable.Iter(); !iter.Done(); iter.Next()) {
+    SVGAnimationElement* animElem = iter.Get()->GetKey();
+    nsSMILTimeContainer* timeContainer = animElem->GetTimeContainer();
+    if (timeContainer && timeContainer->NeedsRewind()) {
+      animElem->TimedElement().Rewind();
+    }
   }
 
-  return PL_DHASH_NEXT;
-}
-
-/*static*/ PLDHashOperator
-nsSMILAnimationController::RewindAnimation(AnimationElementPtrKey* aKey,
-                                           void* aData)
-{
-  SVGAnimationElement* animElem = aKey->GetKey();
-  nsSMILTimeContainer* timeContainer = animElem->GetTimeContainer();
-  if (timeContainer && timeContainer->NeedsRewind()) {
-    animElem->TimedElement().Rewind();
+  for (auto iter = mChildContainerTable.Iter(); !iter.Done(); iter.Next()) {
+    iter.Get()->GetKey()->ClearNeedsRewind();
   }
-
-  return PL_DHASH_NEXT;
-}
-
-/*static*/ PLDHashOperator
-nsSMILAnimationController::ClearRewindNeeded(TimeContainerPtrKey* aKey,
-                                             void* aData)
-{
-  aKey->GetKey()->ClearNeedsRewind();
-  return PL_DHASH_NEXT;
 }
 
 void
@@ -545,16 +502,33 @@ nsSMILAnimationController::DoMilestoneSamples()
     // before that. Any other milestones will be dealt with in a subsequent
     // sample.
     nsSMILMilestone nextMilestone(GetCurrentTime() + 1, true);
-    mChildContainerTable.EnumerateEntries(GetNextMilestone, &nextMilestone);
+    for (auto iter = mChildContainerTable.Iter(); !iter.Done(); iter.Next()) {
+      nsSMILTimeContainer* container = iter.Get()->GetKey();
+      if (container->IsPausedByType(nsSMILTimeContainer::PAUSE_BEGIN)) {
+        continue;
+      }
+      nsSMILMilestone thisMilestone;
+      bool didGetMilestone =
+        container->GetNextMilestoneInParentTime(thisMilestone);
+      if (didGetMilestone && thisMilestone < nextMilestone) {
+        nextMilestone = thisMilestone;
+      }
+    }
 
     if (nextMilestone.mTime > GetCurrentTime()) {
       break;
     }
 
-    GetMilestoneElementsParams params;
-    params.mMilestone = nextMilestone;
-    mChildContainerTable.EnumerateEntries(GetMilestoneElements, &params);
-    uint32_t length = params.mElements.Length();
+    nsTArray<RefPtr<mozilla::dom::SVGAnimationElement>> elements;
+    for (auto iter = mChildContainerTable.Iter(); !iter.Done(); iter.Next()) {
+      nsSMILTimeContainer* container = iter.Get()->GetKey();
+      if (container->IsPausedByType(nsSMILTimeContainer::PAUSE_BEGIN)) {
+        continue;
+      }
+      container->PopMilestoneElementsAtMilestone(nextMilestone, elements);
+    }
+
+    uint32_t length = elements.Length();
 
     // During the course of a sampling we don't want to actually go backwards.
     // Due to negative offsets, early ends and the like, a timed element might
@@ -568,8 +542,8 @@ nsSMILAnimationController::DoMilestoneSamples()
     sampleTime = std::max(nextMilestone.mTime, sampleTime);
 
     for (uint32_t i = 0; i < length; ++i) {
-      SVGAnimationElement* elem = params.mElements[i].get();
-      NS_ABORT_IF_FALSE(elem, "nullptr animation element in list");
+      SVGAnimationElement* elem = elements[i].get();
+      MOZ_ASSERT(elem, "nullptr animation element in list");
       nsSMILTimeContainer* container = elem->GetTimeContainer();
       if (!container)
         // The container may be nullptr if the element has been detached from its
@@ -591,93 +565,6 @@ nsSMILAnimationController::DoMilestoneSamples()
       }
     }
   }
-}
-
-/*static*/ PLDHashOperator
-nsSMILAnimationController::GetNextMilestone(TimeContainerPtrKey* aKey,
-                                            void* aData)
-{
-  NS_ABORT_IF_FALSE(aKey, "Null hash key for time container hash table");
-  NS_ABORT_IF_FALSE(aKey->GetKey(), "Null time container key in hash table");
-  NS_ABORT_IF_FALSE(aData,
-      "Null data pointer during time container enumeration");
-
-  nsSMILMilestone* nextMilestone = static_cast<nsSMILMilestone*>(aData);
-
-  nsSMILTimeContainer* container = aKey->GetKey();
-  if (container->IsPausedByType(nsSMILTimeContainer::PAUSE_BEGIN))
-    return PL_DHASH_NEXT;
-
-  nsSMILMilestone thisMilestone;
-  bool didGetMilestone =
-    container->GetNextMilestoneInParentTime(thisMilestone);
-  if (didGetMilestone && thisMilestone < *nextMilestone) {
-    *nextMilestone = thisMilestone;
-  }
-
-  return PL_DHASH_NEXT;
-}
-
-/*static*/ PLDHashOperator
-nsSMILAnimationController::GetMilestoneElements(TimeContainerPtrKey* aKey,
-                                                void* aData)
-{
-  NS_ABORT_IF_FALSE(aKey, "Null hash key for time container hash table");
-  NS_ABORT_IF_FALSE(aKey->GetKey(), "Null time container key in hash table");
-  NS_ABORT_IF_FALSE(aData,
-      "Null data pointer during time container enumeration");
-
-  GetMilestoneElementsParams* params =
-    static_cast<GetMilestoneElementsParams*>(aData);
-
-  nsSMILTimeContainer* container = aKey->GetKey();
-  if (container->IsPausedByType(nsSMILTimeContainer::PAUSE_BEGIN))
-    return PL_DHASH_NEXT;
-
-  container->PopMilestoneElementsAtMilestone(params->mMilestone,
-                                             params->mElements);
-
-  return PL_DHASH_NEXT;
-}
-
-/*static*/ PLDHashOperator
-nsSMILAnimationController::SampleTimeContainer(TimeContainerPtrKey* aKey,
-                                               void* aData)
-{
-  NS_ENSURE_TRUE(aKey, PL_DHASH_NEXT);
-  NS_ENSURE_TRUE(aKey->GetKey(), PL_DHASH_NEXT);
-  NS_ENSURE_TRUE(aData, PL_DHASH_NEXT);
-
-  SampleTimeContainerParams* params =
-    static_cast<SampleTimeContainerParams*>(aData);
-
-  nsSMILTimeContainer* container = aKey->GetKey();
-  if (!container->IsPausedByType(nsSMILTimeContainer::PAUSE_BEGIN) &&
-      (container->NeedsSample() || !params->mSkipUnchangedContainers)) {
-    container->ClearMilestones();
-    container->Sample();
-    container->MarkSeekFinished();
-    params->mActiveContainers->PutEntry(container);
-  }
-
-  return PL_DHASH_NEXT;
-}
-
-/*static*/ PLDHashOperator
-nsSMILAnimationController::SampleAnimation(AnimationElementPtrKey* aKey,
-                                           void* aData)
-{
-  NS_ENSURE_TRUE(aKey, PL_DHASH_NEXT);
-  NS_ENSURE_TRUE(aKey->GetKey(), PL_DHASH_NEXT);
-  NS_ENSURE_TRUE(aData, PL_DHASH_NEXT);
-
-  SVGAnimationElement* animElem = aKey->GetKey();
-  SampleAnimationParams* params = static_cast<SampleAnimationParams*>(aData);
-
-  SampleTimedElement(animElem, params->mActiveContainers);
-  AddAnimationToCompositorTable(animElem, params->mCompositorTable);
-
-  return PL_DHASH_NEXT;
 }
 
 /*static*/ void
@@ -702,8 +589,8 @@ nsSMILAnimationController::SampleTimedElement(
 
   nsSMILTime containerTime = timeContainer->GetCurrentTime();
 
-  NS_ABORT_IF_FALSE(!timeContainer->IsSeeking(),
-      "Doing a regular sample but the time container is still seeking");
+  MOZ_ASSERT(!timeContainer->IsSeeking(),
+             "Doing a regular sample but the time container is still seeking");
   aElement->TimedElement().SampleAt(containerTime);
 }
 
@@ -779,7 +666,7 @@ nsSMILAnimationController::GetTargetIdentifierForAnimation(
   // animateTransform can only animate transforms, conversely transforms
   // can only be animated by animateTransform
   if (IsTransformAttribute(attributeNamespaceID, attributeName) !=
-      (aAnimElem->Tag() == nsGkAtoms::animateTransform))
+      (aAnimElem->IsSVGElement(nsGkAtoms::animateTransform)))
     return false;
 
   // Look up target (animated) attribute-type
@@ -814,6 +701,33 @@ nsSMILAnimationController::GetTargetIdentifierForAnimation(
   aResult.mIsCSS = isCSS;
 
   return true;
+}
+
+void
+nsSMILAnimationController::AddStyleUpdatesTo(RestyleTracker& aTracker)
+{
+  MOZ_ASSERT(mMightHavePendingStyleUpdates,
+             "Should only add style updates when we think we might have some");
+
+  for (auto iter = mAnimationElementTable.Iter(); !iter.Done(); iter.Next()) {
+    SVGAnimationElement* animElement = iter.Get()->GetKey();
+
+    nsSMILTargetIdentifier key;
+    if (!GetTargetIdentifierForAnimation(animElement, key)) {
+      // Something's wrong/missing about animation's target; skip this animation
+      continue;
+    }
+
+    // mIsCSS true means that the rules are the ones returned from
+    // Element::GetSMILOverrideStyleDeclaration (via nsSMILCSSProperty objects),
+    // and mIsCSS false means the rules are nsSMILMappedAttribute objects
+    // returned from nsSVGElement::GetAnimatedContentStyleRule.
+    nsRestyleHint rshint = key.mIsCSS ? eRestyle_StyleAttribute_Animations
+                                      : eRestyle_SVGAttrAnimations;
+    aTracker.AddPendingRestyle(key.mElement, rshint, nsChangeHint(0));
+  }
+
+  mMightHavePendingStyleUpdates = false;
 }
 
 //----------------------------------------------------------------------

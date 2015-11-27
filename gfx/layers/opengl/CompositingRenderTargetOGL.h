@@ -9,8 +9,8 @@
 #include "GLContextTypes.h"             // for GLContext
 #include "GLDefs.h"                     // for GLenum, LOCAL_GL_FRAMEBUFFER, etc
 #include "mozilla/Assertions.h"         // for MOZ_ASSERT, etc
-#include "mozilla/Attributes.h"         // for MOZ_OVERRIDE
-#include "mozilla/RefPtr.h"             // for RefPtr, TemporaryRef
+#include "mozilla/Attributes.h"         // for override
+#include "mozilla/RefPtr.h"             // for RefPtr, already_AddRefed
 #include "mozilla/gfx/Point.h"          // for IntSize, IntSizeTyped
 #include "mozilla/gfx/Types.h"          // for SurfaceFormat, etc
 #include "mozilla/layers/Compositor.h"  // for SurfaceInitMode, etc
@@ -26,10 +26,10 @@
 namespace mozilla {
 namespace gl {
   class BindableTexture;
-}
+} // namespace gl
 namespace gfx {
   class DataSourceSurface;
-}
+} // namespace gfx
 
 namespace layers {
 
@@ -38,6 +38,8 @@ class TextureSource;
 class CompositingRenderTargetOGL : public CompositingRenderTarget
 {
   typedef mozilla::gl::GLContext GLContext;
+
+  friend class CompositorOGL;
 
   // For lazy initialisation of the GL stuff
   struct InitParams
@@ -79,12 +81,12 @@ public:
    * Create a render target around the default FBO, for rendering straight to
    * the window.
    */
-  static TemporaryRef<CompositingRenderTargetOGL>
+  static already_AddRefed<CompositingRenderTargetOGL>
   RenderTargetForWindow(CompositorOGL* aCompositor,
                         const gfx::IntSize& aSize)
   {
     RefPtr<CompositingRenderTargetOGL> result
-      = new CompositingRenderTargetOGL(aCompositor, gfx::IntPoint(0, 0), 0, 0);
+      = new CompositingRenderTargetOGL(aCompositor, gfx::IntPoint(), 0, 0);
     result->mInitParams = InitParams(aSize, 0, INIT_MODE_NONE);
     result->mInitParams.mStatus = InitParams::INITIALIZED;
     return result.forget();
@@ -112,6 +114,8 @@ public:
    */
   void BindRenderTarget();
 
+  bool IsWindow() { return GetFBO() == 0; }
+
   GLuint GetFBO() const
   {
     MOZ_ASSERT(mInitParams.mStatus == InitParams::INITIALIZED);
@@ -125,18 +129,18 @@ public:
   }
 
   // TextureSourceOGL
-  TextureSourceOGL* AsSourceOGL() MOZ_OVERRIDE
+  TextureSourceOGL* AsSourceOGL() override
   {
     // XXX - Bug 900770
     MOZ_ASSERT(false, "CompositingRenderTargetOGL should not be used as a TextureSource");
     return nullptr;
   }
-  gfx::IntSize GetSize() const MOZ_OVERRIDE
+  gfx::IntSize GetSize() const override
   {
     return mInitParams.mSize;
   }
 
-  gfx::SurfaceFormat GetFormat() const MOZ_OVERRIDE
+  gfx::SurfaceFormat GetFormat() const override
   {
     // XXX - Should it be implemented ? is the above assert true ?
     MOZ_ASSERT(false, "Not implemented");
@@ -144,8 +148,12 @@ public:
   }
 
 #ifdef MOZ_DUMP_PAINTING
-  virtual TemporaryRef<gfx::DataSourceSurface> Dump(Compositor* aCompositor);
+  virtual already_AddRefed<gfx::DataSourceSurface> Dump(Compositor* aCompositor) override;
 #endif
+
+  const gfx::IntSize& GetInitSize() const {
+    return mInitParams.mSize;
+  }
 
 private:
   /**
@@ -155,13 +163,18 @@ private:
   void InitializeImpl();
 
   InitParams mInitParams;
-  CompositorOGL* mCompositor;
+  /**
+   * There is temporary a cycle between the compositor and the render target,
+   * each having a strong ref to the other. The compositor's reference to
+   * the target is always cleared at the end of a frame.
+   */
+  RefPtr<CompositorOGL> mCompositor;
   GLContext* mGL;
   GLuint mTextureHandle;
   GLuint mFBO;
 };
 
-}
-}
+} // namespace layers
+} // namespace mozilla
 
 #endif /* MOZILLA_GFX_SURFACEOGL_H */

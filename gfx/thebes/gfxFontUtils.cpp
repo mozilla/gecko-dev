@@ -3,16 +3,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifdef MOZ_LOGGING
-#define FORCE_PR_LOG /* Allow logging in the release build */
-#include "prlog.h"
-#endif
-
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/BinarySearch.h"
 
 #include "gfxFontUtils.h"
-#include "gfxColor.h"
 
 #include "nsServiceManagerUtils.h"
 
@@ -20,6 +14,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
 #include "mozilla/BinarySearch.h"
+#include "mozilla/Snprintf.h"
 
 #include "nsCOMPtr.h"
 #include "nsIUUIDGenerator.h"
@@ -28,14 +23,10 @@
 #include "harfbuzz/hb.h"
 
 #include "plbase64.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
-#ifdef PR_LOGGING
-
-#define LOG(log, args) PR_LOG(gfxPlatform::GetLog(log), \
-                               PR_LOG_DEBUG, args)
-
-#endif // PR_LOGGING
+#define LOG(log, args) MOZ_LOG(gfxPlatform::GetLog(log), \
+                               LogLevel::Debug, args)
 
 #define UNICODE_BMP_LIMIT 0x10000
 
@@ -68,7 +59,6 @@ typedef struct {
 
 #pragma pack()
 
-#if PR_LOGGING
 void
 gfxSparseBitSet::Dump(const char* aPrefix, eGfxLog aWhichLog) const
 {
@@ -78,9 +68,10 @@ gfxSparseBitSet::Dump(const char* aPrefix, eGfxLog aWhichLog) const
     for (b = 0; b < numBlocks; b++) {
         Block *block = mBlocks[b];
         if (!block) continue;
-        char outStr[256];
+        const int BUFSIZE = 256;
+        char outStr[BUFSIZE];
         int index = 0;
-        index += sprintf(&outStr[index], "%s u+%6.6x [", aPrefix, (b << BLOCK_INDEX_SHIFT));
+        index += snprintf(&outStr[index], BUFSIZE - index, "%s u+%6.6x [", aPrefix, (b << BLOCK_INDEX_SHIFT));
         for (int i = 0; i < 32; i += 4) {
             for (int j = i; j < i + 4; j++) {
                 uint8_t bits = block->mBits[j];
@@ -88,15 +79,14 @@ gfxSparseBitSet::Dump(const char* aPrefix, eGfxLog aWhichLog) const
                 uint8_t flip2 = ((flip1 & 0xcc) >> 2) | ((flip1 & 0x33) << 2);
                 uint8_t flipped = ((flip2 & 0xf0) >> 4) | ((flip2 & 0x0f) << 4);
 
-                index += sprintf(&outStr[index], "%2.2x", flipped);
+                index += snprintf(&outStr[index], BUFSIZE - index, "%2.2x", flipped);
             }
-            if (i + 4 != 32) index += sprintf(&outStr[index], " ");
+            if (i + 4 != 32) index += snprintf(&outStr[index], BUFSIZE - index, " ");
         }
-        index += sprintf(&outStr[index], "]");
+        index += snprintf(&outStr[index], BUFSIZE - index, "]");
         LOG(aWhichLog, ("%s", outStr));
     }
 }
-#endif
 
 nsresult
 gfxFontUtils::ReadCMAPTableFormat10(const uint8_t *aBuf, uint32_t aLength,
@@ -299,7 +289,7 @@ gfxFontUtils::ReadCMAPTableFormat4(const uint8_t *aBuf, uint32_t aLength,
 
 nsresult
 gfxFontUtils::ReadCMAPTableFormat14(const uint8_t *aBuf, uint32_t aLength,
-                                    uint8_t*& aTable)
+                                    UniquePtr<uint8_t[]>& aTable)
 {
     enum {
         OffsetFormat = 0,
@@ -381,8 +371,8 @@ gfxFontUtils::ReadCMAPTableFormat14(const uint8_t *aBuf, uint32_t aLength,
         }
     }
 
-    aTable = new uint8_t[tablelen];
-    memcpy(aTable, aBuf, tablelen);
+    aTable = MakeUnique<uint8_t[]>(tablelen);
+    memcpy(aTable.get(), aBuf, tablelen);
 
     return NS_OK;
 }
@@ -711,7 +701,7 @@ namespace {
 struct Format14CmapWrapper
 {
     const Format14Cmap& mCmap14;
-    Format14CmapWrapper(const Format14Cmap& cmap14) : mCmap14(cmap14) {}
+    explicit Format14CmapWrapper(const Format14Cmap& cmap14) : mCmap14(cmap14) {}
     uint32_t operator[](size_t index) const {
         return mCmap14.varSelectorRecords[index].varSelector;
     }
@@ -720,7 +710,7 @@ struct Format14CmapWrapper
 struct NonDefUVSTableWrapper
 {
     const NonDefUVSTable& mTable;
-    NonDefUVSTableWrapper(const NonDefUVSTable& table) : mTable(table) {}
+    explicit NonDefUVSTableWrapper(const NonDefUVSTable& table) : mTable(table) {}
     uint32_t operator[](size_t index) const {
         return mTable.uvsMappings[index].unicodeValue;
     }
@@ -955,6 +945,10 @@ gfxFontUtils::DetermineFontDataType(const uint8_t *aFontData, uint32_t aFontData
         if (uint32_t(*version) == TRUETYPE_TAG('w','O','F','F')) {
             return GFX_USERFONT_WOFF;
         }
+        if (Preferences::GetBool(GFX_PREF_WOFF2_ENABLED) &&
+            uint32_t(*version) == TRUETYPE_TAG('w','O','F','2')) {
+            return GFX_USERFONT_WOFF2;
+        }
     }
     
     // tests for other formats here
@@ -997,7 +991,7 @@ gfxFontUtils::RenameFont(const nsAString& aName, const uint8_t *aFontData,
     uint32_t adjFontDataSize = paddedFontDataSize + nameTableSize;
 
     // create new buffer: old font data plus new name table
-    if (!aNewFont->AppendElements(adjFontDataSize))
+    if (!aNewFont->AppendElements(adjFontDataSize, fallible))
         return NS_ERROR_OUT_OF_MEMORY;
 
     // copy the old font data
@@ -1308,8 +1302,8 @@ const gfxFontUtils::MacFontNameCharsetMapping gfxFontUtils::gMacFontNameCharsets
     { ENCODING_ID_MAC_DEVANAGARI,   ANY,                      "x-mac-devanagari"},
     { ENCODING_ID_MAC_GURMUKHI,     ANY,                      "x-mac-gurmukhi"  },
     { ENCODING_ID_MAC_GUJARATI,     ANY,                      "x-mac-gujarati"  },
-    { ENCODING_ID_MAC_SIMP_CHINESE, LANG_ID_MAC_SIMP_CHINESE, "GB2312"          },
-    { ENCODING_ID_MAC_SIMP_CHINESE, ANY,                      "GB2312"          }
+    { ENCODING_ID_MAC_SIMP_CHINESE, LANG_ID_MAC_SIMP_CHINESE, "gb18030"         },
+    { ENCODING_ID_MAC_SIMP_CHINESE, ANY,                      "gb18030"         }
 };
 
 const char* gfxFontUtils::gISOFontNameCharsets[] = 
@@ -1338,7 +1332,7 @@ struct MacCharsetMappingComparator
 {
     typedef gfxFontUtils::MacFontNameCharsetMapping MacFontNameCharsetMapping;
     const MacFontNameCharsetMapping& mSearchValue;
-    MacCharsetMappingComparator(const MacFontNameCharsetMapping& aSearchValue)
+    explicit MacCharsetMappingComparator(const MacFontNameCharsetMapping& aSearchValue)
       : mSearchValue(aSearchValue) {}
     int operator()(const MacFontNameCharsetMapping& aEntry) const {
         if (mSearchValue < aEntry) {
@@ -1417,8 +1411,8 @@ gfxFontUtils::DecodeFontName(const char *aNameData, int32_t aByteLen,
         char warnBuf[128];
         if (aByteLen > 64)
             aByteLen = 64;
-        sprintf(warnBuf, "skipping font name, unknown charset %d:%d:%d for <%.*s>",
-                aPlatformCode, aScriptCode, aLangCode, aByteLen, aNameData);
+        snprintf_literal(warnBuf, "skipping font name, unknown charset %d:%d:%d for <%.*s>",
+                         aPlatformCode, aScriptCode, aLangCode, aByteLen, aNameData);
         NS_WARNING(warnBuf);
 #endif
         return false;

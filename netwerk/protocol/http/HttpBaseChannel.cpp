@@ -12,11 +12,15 @@
 
 #include "nsHttpHandler.h"
 #include "nsMimeTypes.h"
+#include "nsNetCID.h"
 #include "nsNetUtil.h"
 
 #include "nsICachingChannel.h"
+#include "nsIDOMDocument.h"
 #include "nsIPrincipal.h"
+#include "nsIScriptError.h"
 #include "nsISeekableStream.h"
+#include "nsIStorageStream.h"
 #include "nsITimedChannel.h"
 #include "nsIEncodedChannel.h"
 #include "nsIApplicationCacheChannel.h"
@@ -31,6 +35,17 @@
 #include "nsContentUtils.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsIObserverService.h"
+#include "nsProxyRelease.h"
+#include "nsPIDOMWindow.h"
+#include "nsPerformance.h"
+#include "nsINetworkInterceptController.h"
+#include "mozIThirdPartyUtil.h"
+#include "nsStreamUtils.h"
+#include "nsContentSecurityManager.h"
+#include "nsIChannelEventSink.h"
+#include "nsILoadGroupChild.h"
+#include "mozilla/ConsoleReportCollector.h"
+#include "LoadInfo.h"
 
 #include <algorithm>
 
@@ -42,6 +57,7 @@ HttpBaseChannel::HttpBaseChannel()
   , mStatus(NS_OK)
   , mLoadFlags(LOAD_NORMAL)
   , mCaps(0)
+  , mClassOfService(0)
   , mPriority(PRIORITY_NORMAL)
   , mRedirectionLimit(gHttpHandler->RedirectionLimit())
   , mApplyConversion(true)
@@ -52,7 +68,7 @@ HttpBaseChannel::HttpBaseChannel()
   , mResponseHeadersModified(false)
   , mAllowPipelining(true)
   , mAllowSTS(true)
-  , mForceAllowThirdPartyCookie(false)
+  , mThirdPartyFlags(0)
   , mUploadStreamHasHeaders(false)
   , mInheritApplicationCache(true)
   , mChooseApplicationCache(false)
@@ -61,28 +77,51 @@ HttpBaseChannel::HttpBaseChannel()
   , mTracingEnabled(true)
   , mTimingEnabled(false)
   , mAllowSpdy(true)
-  , mLoadAsBlocking(false)
-  , mLoadUnblocked(false)
+  , mAllowAltSvc(true)
   , mResponseTimeoutEnabled(true)
   , mAllRedirectsSameOrigin(true)
   , mAllRedirectsPassTimingAllowCheck(true)
+  , mResponseCouldBeSynthesized(false)
   , mSuspendCount(0)
+  , mInitialRwin(0)
   , mProxyResolveFlags(0)
+  , mProxyURI(nullptr)
   , mContentDispositionHint(UINT32_MAX)
   , mHttpHandler(gHttpHandler)
+  , mReferrerPolicy(REFERRER_POLICY_NO_REFERRER_WHEN_DOWNGRADE)
   , mRedirectCount(0)
   , mForcePending(false)
+  , mCorsIncludeCredentials(false)
+  , mCorsMode(nsIHttpChannelInternal::CORS_MODE_NO_CORS)
+  , mRedirectMode(nsIHttpChannelInternal::REDIRECT_MODE_FOLLOW)
+  , mOnStartRequestCalled(false)
+  , mTransferSize(0)
+  , mDecodedBodySize(0)
+  , mEncodedBodySize(0)
+  , mRequireCORSPreflight(false)
+  , mWithCredentials(false)
+  , mReportCollector(new ConsoleReportCollector())
+  , mForceMainDocumentChannel(false)
 {
   LOG(("Creating HttpBaseChannel @%x\n", this));
 
-  // Subfields of unions cannot be targeted in an initializer list
+  // Subfields of unions cannot be targeted in an initializer list.
+#ifdef MOZ_VALGRIND
+  // Zero the entire unions so that Valgrind doesn't complain when we send them
+  // to another process.
+  memset(&mSelfAddr, 0, sizeof(NetAddr));
+  memset(&mPeerAddr, 0, sizeof(NetAddr));
+#endif
   mSelfAddr.raw.family = PR_AF_UNSPEC;
   mPeerAddr.raw.family = PR_AF_UNSPEC;
+  mSchedulingContextID.Clear();
 }
 
 HttpBaseChannel::~HttpBaseChannel()
 {
   LOG(("Destroying HttpBaseChannel @%x\n", this));
+
+  NS_ReleaseOnMainThread(mLoadInfo);
 
   // Make sure we don't leak
   CleanRedirectCacheChainIfNecessary();
@@ -109,9 +148,9 @@ HttpBaseChannel::Init(nsIURI *aURI,
   // Construct connection info object
   nsAutoCString host;
   int32_t port = -1;
-  bool usingSSL = false;
+  bool isHTTPS = false;
 
-  nsresult rv = mURI->SchemeIs("https", &usingSSL);
+  nsresult rv = mURI->SchemeIs("https", &isHTTPS);
   if (NS_FAILED(rv)) return rv;
 
   rv = mURI->GetAsciiHost(host);
@@ -141,7 +180,7 @@ HttpBaseChannel::Init(nsIURI *aURI,
   rv = mRequestHead.SetHeader(nsHttp::Host, hostLine);
   if (NS_FAILED(rv)) return rv;
 
-  rv = gHttpHandler->AddStandardRequestHeaders(&mRequestHead.Headers());
+  rv = gHttpHandler->AddStandardRequestHeaders(&mRequestHead.Headers(), isHTTPS);
   if (NS_FAILED(rv)) return rv;
 
   nsAutoCString type;
@@ -166,13 +205,13 @@ NS_INTERFACE_MAP_BEGIN(HttpBaseChannel)
   NS_INTERFACE_MAP_ENTRY(nsIHttpChannel)
   NS_INTERFACE_MAP_ENTRY(nsIHttpChannelInternal)
   NS_INTERFACE_MAP_ENTRY(nsIForcePendingChannel)
-  NS_INTERFACE_MAP_ENTRY(nsIRedirectHistory)
   NS_INTERFACE_MAP_ENTRY(nsIUploadChannel)
   NS_INTERFACE_MAP_ENTRY(nsIUploadChannel2)
   NS_INTERFACE_MAP_ENTRY(nsISupportsPriority)
   NS_INTERFACE_MAP_ENTRY(nsITraceableChannel)
   NS_INTERFACE_MAP_ENTRY(nsIPrivateBrowsingChannel)
   NS_INTERFACE_MAP_ENTRY(nsITimedChannel)
+  NS_INTERFACE_MAP_ENTRY(nsIConsoleReportCollector)
 NS_INTERFACE_MAP_END_INHERITING(nsHashPropertyBag)
 
 //-----------------------------------------------------------------------------
@@ -237,7 +276,23 @@ HttpBaseChannel::GetLoadFlags(nsLoadFlags *aLoadFlags)
 NS_IMETHODIMP
 HttpBaseChannel::SetLoadFlags(nsLoadFlags aLoadFlags)
 {
+  bool synthesized = false;
+  nsresult rv = GetResponseSynthesized(&synthesized);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // If this channel is marked as awaiting a synthesized response,
+  // modifying certain load flags can interfere with the implementation
+  // of the network interception logic. This takes care of a couple
+  // known cases that attempt to mark channels as anonymous due
+  // to cross-origin redirects; since the response is entirely synthesized
+  // this is an unnecessary precaution.
+  // This should be removed when bug 1201683 is fixed.
+  if (synthesized && aLoadFlags != mLoadFlags) {
+    aLoadFlags &= ~LOAD_ANONYMOUS;
+  }
+
   mLoadFlags = aLoadFlags;
+  mForceMainDocumentChannel = (aLoadFlags & LOAD_DOCUMENT_URI);
   return NS_OK;
 }
 
@@ -489,6 +544,15 @@ HttpBaseChannel::Open(nsIInputStream **aResult)
   return NS_ImplementChannelOpen(this, aResult);
 }
 
+NS_IMETHODIMP
+HttpBaseChannel::Open2(nsIInputStream** aStream)
+{
+  nsCOMPtr<nsIStreamListener> listener;
+  nsresult rv = nsContentSecurityManager::doContentSecurityCheck(this, listener);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return Open(aStream);
+}
+
 //-----------------------------------------------------------------------------
 // HttpBaseChannel::nsIUploadChannel
 //-----------------------------------------------------------------------------
@@ -536,6 +600,120 @@ HttpBaseChannel::SetUploadStream(nsIInputStream *stream,
   mUploadStream = stream;
   return NS_OK;
 }
+
+namespace {
+
+void
+CopyComplete(void* aClosure, nsresult aStatus) {
+  // Called on the STS thread by NS_AsyncCopy
+  auto channel = static_cast<HttpBaseChannel*>(aClosure);
+  nsCOMPtr<nsIRunnable> runnable = NS_NewRunnableMethodWithArg<nsresult>(
+    channel, &HttpBaseChannel::EnsureUploadStreamIsCloneableComplete, aStatus);
+  NS_DispatchToMainThread(runnable.forget());
+}
+
+} // anonymous namespace
+
+NS_IMETHODIMP
+HttpBaseChannel::EnsureUploadStreamIsCloneable(nsIRunnable* aCallback)
+{
+  MOZ_ASSERT(NS_IsMainThread(), "Should only be called on the main thread.");
+  NS_ENSURE_ARG_POINTER(aCallback);
+
+  // We could in theory allow multiple callers to use this method,
+  // but the complexity does not seem worth it yet.  Just fail if
+  // this is called more than once simultaneously.
+  NS_ENSURE_FALSE(mUploadCloneableCallback, NS_ERROR_UNEXPECTED);
+
+  // If the CloneUploadStream() will succeed, then synchronously invoke
+  // the callback to indicate we're already cloneable.
+  if (!mUploadStream || NS_InputStreamIsCloneable(mUploadStream)) {
+    aCallback->Run();
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIStorageStream> storageStream;
+  nsresult rv = NS_NewStorageStream(4096, UINT32_MAX,
+                                    getter_AddRefs(storageStream));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIInputStream> newUploadStream;
+  rv = storageStream->NewInputStream(0, getter_AddRefs(newUploadStream));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIOutputStream> sink;
+  rv = storageStream->GetOutputStream(0, getter_AddRefs(sink));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIInputStream> source;
+  if (NS_InputStreamIsBuffered(mUploadStream)) {
+    source = mUploadStream;
+  } else {
+    rv = NS_NewBufferedInputStream(getter_AddRefs(source), mUploadStream, 4096);
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  nsCOMPtr<nsIEventTarget> target =
+    do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID);
+
+  mUploadCloneableCallback = aCallback;
+
+  rv = NS_AsyncCopy(source, sink, target, NS_ASYNCCOPY_VIA_READSEGMENTS,
+                    4096, // copy segment size
+                    CopyComplete, this);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    mUploadCloneableCallback = nullptr;
+    return rv;
+  }
+
+  // Since we're consuming the old stream, replace it with the new
+  // stream immediately.
+  mUploadStream = newUploadStream;
+
+  // Explicity hold the stream alive until copying is complete.  This will
+  // be released in EnsureUploadStreamIsCloneableComplete().
+  AddRef();
+
+  return NS_OK;
+}
+
+void
+HttpBaseChannel::EnsureUploadStreamIsCloneableComplete(nsresult aStatus)
+{
+  MOZ_ASSERT(NS_IsMainThread(), "Should only be called on the main thread.");
+  MOZ_ASSERT(mUploadCloneableCallback);
+
+  if (NS_SUCCEEDED(mStatus)) {
+    mStatus = aStatus;
+  }
+
+  mUploadCloneableCallback->Run();
+  mUploadCloneableCallback = nullptr;
+
+  // Release the reference we grabbed in EnsureUploadStreamIsCloneable() now
+  // that the copying is complete.
+  Release();
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::CloneUploadStream(nsIInputStream** aClonedStream)
+{
+  NS_ENSURE_ARG_POINTER(aClonedStream);
+  *aClonedStream = nullptr;
+
+  if (!mUploadStream) {
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIInputStream> clonedStream;
+  nsresult rv = NS_CloneInputStream(mUploadStream, getter_AddRefs(clonedStream));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  clonedStream.forget(aClonedStream);
+
+  return NS_OK;
+}
+
 
 //-----------------------------------------------------------------------------
 // HttpBaseChannel::nsIUploadChannel2
@@ -605,6 +783,61 @@ HttpBaseChannel::SetApplyConversion(bool value)
   return NS_OK;
 }
 
+nsresult
+HttpBaseChannel::DoApplyContentConversions(nsIStreamListener* aNextListener,
+                                           nsIStreamListener** aNewNextListener)
+{
+  return DoApplyContentConversions(aNextListener,
+                                   aNewNextListener,
+                                   mListenerContext);
+}
+
+// create a listener chain that looks like this
+// http-channel -> decompressor (n times) -> InterceptFailedOnSTop -> channel-creator-listener
+//
+// we need to do this because not every decompressor has fully streamed output so
+// may need a call to OnStopRequest to identify its completion state.. and if it
+// creates an error there the channel status code needs to be updated before calling
+// the terminal listener. Having the decompress do it via cancel() means channels cannot
+// effectively be used in two contexts (specifically this one and a peek context for
+// sniffing)
+//
+class InterceptFailedOnStop : public nsIStreamListener
+{
+  virtual ~InterceptFailedOnStop() {}
+  nsCOMPtr<nsIStreamListener> mNext;
+  HttpBaseChannel *mChannel;
+
+public:
+  InterceptFailedOnStop(nsIStreamListener *arg, HttpBaseChannel *chan)
+  : mNext(arg)
+  , mChannel(chan) {}
+  NS_DECL_ISUPPORTS
+
+  NS_IMETHODIMP OnStartRequest(nsIRequest *aRequest, nsISupports *aContext) override
+  {
+    return mNext->OnStartRequest(aRequest, aContext);
+  }
+
+  NS_IMETHODIMP OnStopRequest(nsIRequest *aRequest, nsISupports *aContext, nsresult aStatusCode) override
+  {
+    if (NS_FAILED(aStatusCode) && NS_SUCCEEDED(mChannel->mStatus)) {
+      LOG(("HttpBaseChannel::InterceptFailedOnStop %p seting status %x", mChannel, aStatusCode));
+      mChannel->mStatus = aStatusCode;
+    }
+    return mNext->OnStopRequest(aRequest, aContext, aStatusCode);
+  }
+
+  NS_IMETHODIMP OnDataAvailable(nsIRequest *aRequest, nsISupports *aContext,
+                           nsIInputStream *aInputStream, uint64_t aOffset,
+                           uint32_t aCount) override
+  {
+    return mNext->OnDataAvailable(aRequest, aContext, aInputStream, aOffset, aCount);
+  }
+};
+
+NS_IMPL_ISUPPORTS(InterceptFailedOnStop, nsIStreamListener, nsIRequestObserver)
+
 NS_IMETHODIMP
 HttpBaseChannel::DoApplyContentConversions(nsIStreamListener* aNextListener,
                                            nsIStreamListener** aNewNextListener,
@@ -615,8 +848,6 @@ HttpBaseChannel::DoApplyContentConversions(nsIStreamListener* aNextListener,
     return NS_OK;
   }
 
-  nsCOMPtr<nsIStreamListener> nextListener = aNextListener;
-
   LOG(("HttpBaseChannel::DoApplyContentConversions [this=%p]\n", this));
 
   if (!mApplyConversion) {
@@ -625,12 +856,11 @@ HttpBaseChannel::DoApplyContentConversions(nsIStreamListener* aNextListener,
   }
 
   nsAutoCString contentEncoding;
-  char *cePtr, *val;
-  nsresult rv;
-
-  rv = mResponseHead->GetHeader(nsHttp::Content_Encoding, contentEncoding);
+  nsresult rv = mResponseHead->GetHeader(nsHttp::Content_Encoding, contentEncoding);
   if (NS_FAILED(rv) || contentEncoding.IsEmpty())
     return NS_OK;
+
+  nsCOMPtr<nsIStreamListener> nextListener = new InterceptFailedOnStop(aNextListener, this);
 
   // The encodings are listed in the order they were applied
   // (see rfc 2616 section 14.11), so they need to removed in reverse
@@ -638,9 +868,9 @@ HttpBaseChannel::DoApplyContentConversions(nsIStreamListener* aNextListener,
   // being a stack with the last converter created being the first one
   // to accept the raw network data.
 
-  cePtr = contentEncoding.BeginWriting();
+  char* cePtr = contentEncoding.BeginWriting();
   uint32_t count = 0;
-  while ((val = nsCRT::strtok(cePtr, HTTP_LWS ",", &cePtr))) {
+  while (char* val = nsCRT::strtok(cePtr, HTTP_LWS ",", &cePtr)) {
     if (++count > 16) {
       // That's ridiculous. We only understand 2 different ones :)
       // but for compatibility with old code, we will just carry on without
@@ -649,7 +879,9 @@ HttpBaseChannel::DoApplyContentConversions(nsIStreamListener* aNextListener,
       break;
     }
 
-    if (gHttpHandler->IsAcceptableEncoding(val)) {
+    bool isHTTPS = false;
+    mURI->SchemeIs("https", &isHTTPS);
+    if (gHttpHandler->IsAcceptableEncoding(val, isHTTPS)) {
       nsCOMPtr<nsIStreamConverterService> serv;
       rv = gHttpHandler->GetStreamConverterService(getter_AddRefs(serv));
 
@@ -675,6 +907,17 @@ HttpBaseChannel::DoApplyContentConversions(nsIStreamListener* aNextListener,
       }
 
       LOG(("converter removed '%s' content-encoding\n", val));
+      if (gHttpHandler->IsTelemetryEnabled()) {
+        int mode = 0;
+        if (from.Equals("gzip") || from.Equals("x-gzip")) {
+          mode = 1;
+        } else if (from.Equals("deflate") || from.Equals("x-deflate")) {
+          mode = 2;
+        } else if (from.Equals("br")) {
+          mode = 3;
+        }
+        Telemetry::Accumulate(Telemetry::HTTP_CONTENT_ENCODING, mode);
+      }
       nextListener = converter;
     }
     else {
@@ -779,6 +1022,14 @@ HttpBaseChannel::nsContentEncodings::GetNext(nsACString& aNextEncoding)
     }
   }
 
+  if (!haveType) {
+    encoding.BeginReading(start);
+    if (CaseInsensitiveFindInReadable(NS_LITERAL_CSTRING("br"), start, end)) {
+      aNextEncoding.AssignLiteral(APPLICATION_BROTLI);
+      haveType = true;
+    }
+  }
+
   // Prepare to fetch the next encoding
   mCurEnd = mCurStart;
   mReady = false;
@@ -845,6 +1096,27 @@ HttpBaseChannel::nsContentEncodings::PrepareForNext(void)
 //-----------------------------------------------------------------------------
 
 NS_IMETHODIMP
+HttpBaseChannel::GetTransferSize(uint64_t *aTransferSize)
+{
+  *aTransferSize = mTransferSize;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetDecodedBodySize(uint64_t *aDecodedBodySize)
+{
+  *aDecodedBodySize = mDecodedBodySize;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetEncodedBodySize(uint64_t *aEncodedBodySize)
+{
+  *aEncodedBodySize = mEncodedBodySize;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 HttpBaseChannel::GetRequestMethod(nsACString& aMethod)
 {
   aMethod = mRequestHead.Method();
@@ -867,6 +1139,21 @@ HttpBaseChannel::SetRequestMethod(const nsACString& aMethod)
 }
 
 NS_IMETHODIMP
+HttpBaseChannel::GetNetworkInterfaceId(nsACString& aNetworkInterfaceId)
+{
+  aNetworkInterfaceId = mNetworkInterfaceId;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetNetworkInterfaceId(const nsACString& aNetworkInterfaceId)
+{
+  ENSURE_CALLED_BEFORE_CONNECT();
+  mNetworkInterfaceId = aNetworkInterfaceId;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 HttpBaseChannel::GetReferrer(nsIURI **referrer)
 {
   NS_ENSURE_ARG_POINTER(referrer);
@@ -878,14 +1165,37 @@ HttpBaseChannel::GetReferrer(nsIURI **referrer)
 NS_IMETHODIMP
 HttpBaseChannel::SetReferrer(nsIURI *referrer)
 {
+  return SetReferrerWithPolicy(referrer, REFERRER_POLICY_NO_REFERRER_WHEN_DOWNGRADE);
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetReferrerPolicy(uint32_t *referrerPolicy)
+{
+  NS_ENSURE_ARG_POINTER(referrerPolicy);
+  *referrerPolicy = mReferrerPolicy;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetReferrerWithPolicy(nsIURI *referrer,
+                                       uint32_t referrerPolicy)
+{
   ENSURE_CALLED_BEFORE_CONNECT();
 
   // clear existing referrer, if any
   mReferrer = nullptr;
   mRequestHead.ClearHeader(nsHttp::Referer);
+  mReferrerPolicy = REFERRER_POLICY_NO_REFERRER_WHEN_DOWNGRADE;
 
-  if (!referrer)
-      return NS_OK;
+  if (!referrer) {
+    return NS_OK;
+  }
+
+  // Don't send referrer at all when the meta referrer setting is "no-referrer"
+  if (referrerPolicy == REFERRER_POLICY_NO_REFERRER) {
+    mReferrerPolicy = REFERRER_POLICY_NO_REFERRER;
+    return NS_OK;
+  }
 
   // 0: never send referer
   // 1: send referer for direct user action
@@ -908,12 +1218,14 @@ HttpBaseChannel::SetReferrer(nsIURI *referrer)
 
   // check referrer blocking pref
   uint32_t referrerLevel;
-  if (mLoadFlags & LOAD_INITIAL_DOCUMENT_URI)
+  if (mLoadFlags & LOAD_INITIAL_DOCUMENT_URI) {
     referrerLevel = 1; // user action
-  else
+  } else {
     referrerLevel = 2; // inline content
-  if (userReferrerLevel < referrerLevel)
+  }
+  if (userReferrerLevel < referrerLevel) {
     return NS_OK;
+  }
 
   nsCOMPtr<nsIURI> referrerGrip;
   nsresult rv;
@@ -971,8 +1283,7 @@ HttpBaseChannel::SetReferrer(nsIURI *referrer)
     rv = referrer->SchemeIs(*scheme, &match);
     if (NS_FAILED(rv)) return rv;
   }
-  if (!match)
-    return NS_OK; // kick out....
+  if (!match) return NS_OK; // kick out....
 
   //
   // Handle secure referrals.
@@ -982,26 +1293,58 @@ HttpBaseChannel::SetReferrer(nsIURI *referrer)
   //
   rv = referrer->SchemeIs("https", &match);
   if (NS_FAILED(rv)) return rv;
+
   if (match) {
     rv = mURI->SchemeIs("https", &match);
     if (NS_FAILED(rv)) return rv;
-    if (!match)
-      return NS_OK;
 
-    if (!gHttpHandler->SendSecureXSiteReferrer()) {
-      nsAutoCString referrerHost;
-      nsAutoCString host;
+    // It's ok to send referrer for https-to-http scenarios if the referrer
+    // policy is "unsafe-url", "origin", or "origin-when-cross-origin".
+    if (referrerPolicy != REFERRER_POLICY_UNSAFE_URL &&
+	referrerPolicy != REFERRER_POLICY_ORIGIN_WHEN_XORIGIN &&
+        referrerPolicy != REFERRER_POLICY_ORIGIN) {
 
-      rv = referrer->GetAsciiHost(referrerHost);
-      if (NS_FAILED(rv)) return rv;
+      // in other referrer policies, https->http is not allowed...
+      if (!match) return NS_OK;
 
-      rv = mURI->GetAsciiHost(host);
-      if (NS_FAILED(rv)) return rv;
+      // ...and https->https is possibly only allowed if the hosts match.
+      if (!gHttpHandler->SendSecureXSiteReferrer()) {
+        nsAutoCString referrerHost;
+        nsAutoCString host;
 
-      // GetAsciiHost returns lowercase hostname.
-      if (!referrerHost.Equals(host))
-        return NS_OK;
+        rv = referrer->GetAsciiHost(referrerHost);
+        if (NS_FAILED(rv)) return rv;
+
+        rv = mURI->GetAsciiHost(host);
+        if (NS_FAILED(rv)) return rv;
+
+        // GetAsciiHost returns lowercase hostname.
+        if (!referrerHost.Equals(host))
+          return NS_OK;
+      }
     }
+  }
+
+  // for cross-origin-based referrer changes (not just host-based), figure out
+  // if the referrer is being sent cross-origin.
+  nsCOMPtr<nsIURI> triggeringURI;
+  bool isCrossOrigin = true;
+  if (mLoadInfo) {
+    mLoadInfo->TriggeringPrincipal()->GetURI(getter_AddRefs(triggeringURI));
+  }
+  if (triggeringURI) {
+    if (LOG_ENABLED()) {
+      nsAutoCString triggeringURISpec;
+      rv = triggeringURI->GetAsciiSpec(triggeringURISpec);
+      if (!NS_FAILED(rv)) {
+        LOG(("triggeringURI=%s\n", triggeringURISpec.get()));
+      }
+    }
+    nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
+    rv = ssm->CheckSameOriginURI(triggeringURI, mURI, false);
+    isCrossOrigin = NS_FAILED(rv);
+  } else {
+    NS_WARNING("no triggering principal available via loadInfo, assuming load is cross-origin");
   }
 
   nsCOMPtr<nsIURI> clone;
@@ -1011,6 +1354,7 @@ HttpBaseChannel::SetReferrer(nsIURI *referrer)
   //  (2) keep a reference to it after returning from this function
   //
   // Use CloneIgnoringRef to strip away any fragment per RFC 2616 section 14.36
+  // and Referrer Policy section 6.3.5.
   rv = referrer->CloneIgnoringRef(getter_AddRefs(clone));
   if (NS_FAILED(rv)) return rv;
 
@@ -1056,10 +1400,21 @@ HttpBaseChannel::SetReferrer(nsIURI *referrer)
   }
 
   // strip away any userpass; we don't want to be giving out passwords ;-)
+  // This is required by Referrer Policy stripping algorithm.
   rv = clone->SetUserPass(EmptyCString());
   if (NS_FAILED(rv)) return rv;
 
   nsAutoCString spec;
+
+  // site-specified referrer trimming may affect the trim level
+  // "unsafe-url" behaves like "origin" (send referrer in the same situations) but
+  // "unsafe-url" sends the whole referrer and origin removes the path.
+  // "origin-when-cross-origin" trims the referrer only when the request is
+  // cross-origin.
+  if (referrerPolicy == REFERRER_POLICY_ORIGIN ||
+      (isCrossOrigin && referrerPolicy == REFERRER_POLICY_ORIGIN_WHEN_XORIGIN)) {
+    userReferrerTrimmingPolicy = 2;
+  }
 
   // check how much referer to send
   switch (userReferrerTrimmingPolicy) {
@@ -1096,8 +1451,22 @@ HttpBaseChannel::SetReferrer(nsIURI *referrer)
   }
 
   // finally, remember the referrer URI and set the Referer header.
+  rv = SetRequestHeader(NS_LITERAL_CSTRING("Referer"), spec, false);
+  if (NS_FAILED(rv)) return rv;
+
   mReferrer = clone;
-  mRequestHead.SetHeader(nsHttp::Referer, spec);
+  mReferrerPolicy = referrerPolicy;
+  return NS_OK;
+}
+
+// Return the channel's proxy URI, or if it doesn't exist, the
+// channel's main URI.
+NS_IMETHODIMP
+HttpBaseChannel::GetProxyURI(nsIURI **aOut)
+{
+  NS_ENSURE_ARG_POINTER(aOut);
+  nsCOMPtr<nsIURI> result(mProxyURI);
+  result.forget(aOut);
   return NS_OK;
 }
 
@@ -1105,6 +1474,8 @@ NS_IMETHODIMP
 HttpBaseChannel::GetRequestHeader(const nsACString& aHeader,
                                   nsACString& aValue)
 {
+  aValue.Truncate();
+
   // XXX might be better to search the header list directly instead of
   // hitting the http atom hash table.
   nsHttpAtom atom = nsHttp::ResolveAtom(aHeader);
@@ -1142,14 +1513,46 @@ HttpBaseChannel::SetRequestHeader(const nsACString& aHeader,
 }
 
 NS_IMETHODIMP
+HttpBaseChannel::SetEmptyRequestHeader(const nsACString& aHeader)
+{
+  const nsCString &flatHeader = PromiseFlatCString(aHeader);
+
+  LOG(("HttpBaseChannel::SetEmptyRequestHeader [this=%p header=\"%s\"]\n",
+      this, flatHeader.get()));
+
+  // Verify header names are valid HTTP tokens and header values are reasonably
+  // close to whats allowed in RFC 2616.
+  if (!nsHttp::IsValidToken(flatHeader)) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  nsHttpAtom atom = nsHttp::ResolveAtom(flatHeader.get());
+  if (!atom) {
+    NS_WARNING("failed to resolve atom");
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  return mRequestHead.SetEmptyHeader(atom);
+}
+
+NS_IMETHODIMP
 HttpBaseChannel::VisitRequestHeaders(nsIHttpHeaderVisitor *visitor)
 {
   return mRequestHead.Headers().VisitHeaders(visitor);
 }
 
 NS_IMETHODIMP
+HttpBaseChannel::VisitNonDefaultRequestHeaders(nsIHttpHeaderVisitor *visitor)
+{
+  return mRequestHead.Headers().VisitHeaders(
+      visitor, nsHttpHeaderArray::eFilterSkipDefault);
+}
+
+NS_IMETHODIMP
 HttpBaseChannel::GetResponseHeader(const nsACString &header, nsACString &value)
 {
+  value.Truncate();
+
   if (!mResponseHead)
     return NS_ERROR_NOT_AVAILABLE;
 
@@ -1247,6 +1650,32 @@ HttpBaseChannel::SetRedirectionLimit(uint32_t value)
   return NS_OK;
 }
 
+nsresult
+HttpBaseChannel::OverrideSecurityInfo(nsISupports* aSecurityInfo)
+{
+  MOZ_ASSERT(!mSecurityInfo,
+             "This can only be called when we don't have a security info object already");
+  MOZ_RELEASE_ASSERT(aSecurityInfo,
+                     "This can only be called with a valid security info object");
+  MOZ_ASSERT(!BypassServiceWorker(),
+             "This can only be called on channels that are not bypassing interception");
+  MOZ_ASSERT(mResponseCouldBeSynthesized,
+             "This can only be called on channels that can be intercepted");
+  if (mSecurityInfo) {
+    LOG(("HttpBaseChannel::OverrideSecurityInfo mSecurityInfo is null! "
+         "[this=%p]\n", this));
+    return NS_ERROR_UNEXPECTED;
+  }
+  if (!mResponseCouldBeSynthesized) {
+    LOG(("HttpBaseChannel::OverrideSecurityInfo channel cannot be intercepted! "
+         "[this=%p]\n", this));
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  mSecurityInfo = aSecurityInfo;
+  return NS_OK;
+}
+
 NS_IMETHODIMP
 HttpBaseChannel::IsNoStoreResponse(bool *value)
 {
@@ -1264,6 +1693,15 @@ HttpBaseChannel::IsNoCacheResponse(bool *value)
   *value = mResponseHead->NoCache();
   if (!*value)
     *value = mResponseHead->ExpiresInPast();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::IsPrivateResponse(bool *value)
+{
+  if (!mResponseHead)
+    return NS_ERROR_NOT_AVAILABLE;
+  *value = mResponseHead->Private();
   return NS_OK;
 }
 
@@ -1307,9 +1745,93 @@ HttpBaseChannel::RedirectTo(nsIURI *newURI)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+HttpBaseChannel::GetSchedulingContextID(nsID *aSCID)
+{
+  NS_ENSURE_ARG_POINTER(aSCID);
+  *aSCID = mSchedulingContextID;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetSchedulingContextID(const nsID aSCID)
+{
+  mSchedulingContextID = aSCID;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetIsMainDocumentChannel(bool* aValue)
+{
+  NS_ENSURE_ARG_POINTER(aValue);
+  *aValue = mForceMainDocumentChannel || (mLoadFlags & LOAD_DOCUMENT_URI);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetIsMainDocumentChannel(bool aValue)
+{
+  mForceMainDocumentChannel = aValue;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetProtocolVersion(nsACString& aProtocolVersion)
+{
+  nsresult rv;
+  nsCOMPtr<nsISSLSocketControl> ssl = do_QueryInterface(mSecurityInfo, &rv);
+  nsAutoCString protocol;
+  if (NS_SUCCEEDED(rv) && ssl &&
+      NS_SUCCEEDED(ssl->GetNegotiatedNPN(protocol)) &&
+      !protocol.IsEmpty()) {
+    // The negotiated protocol was not empty so we can use it.
+    aProtocolVersion = protocol;
+    return NS_OK;
+  }
+
+  if (mResponseHead) {
+    uint32_t version = mResponseHead->Version();
+    aProtocolVersion.Assign(nsHttp::GetProtocolVersion(version));
+    return NS_OK;
+  }
+
+  return NS_ERROR_NOT_AVAILABLE;
+}
+
+
 //-----------------------------------------------------------------------------
 // HttpBaseChannel::nsIHttpChannelInternal
 //-----------------------------------------------------------------------------
+
+NS_IMETHODIMP
+HttpBaseChannel::GetTopWindowURI(nsIURI **aTopWindowURI)
+{
+  nsresult rv = NS_OK;
+  nsCOMPtr<mozIThirdPartyUtil> util;
+  // Only compute the top window URI once. In e10s, this must be computed in the
+  // child. The parent gets the top window URI through HttpChannelOpenArgs.
+  if (!mTopWindowURI) {
+    util = do_GetService(THIRDPARTYUTIL_CONTRACTID);
+    if (!util) {
+      return NS_ERROR_NOT_AVAILABLE;
+    }
+    nsCOMPtr<nsIDOMWindow> win;
+    nsresult rv = util->GetTopWindowForChannel(this, getter_AddRefs(win));
+    if (NS_SUCCEEDED(rv)) {
+      rv = util->GetURIFromWindow(win, getter_AddRefs(mTopWindowURI));
+#if DEBUG
+      if (mTopWindowURI) {
+        nsCString spec;
+        rv = mTopWindowURI->GetSpec(spec);
+        LOG(("HttpChannelBase::Setting topwindow URI spec %s [this=%p]\n",
+             spec.get(), this));
+      }
+#endif
+    }
+  }
+  NS_IF_ADDREF(*aTopWindowURI = mTopWindowURI);
+  return rv;
+}
 
 NS_IMETHODIMP
 HttpBaseChannel::GetDocumentURI(nsIURI **aDocumentURI)
@@ -1378,11 +1900,11 @@ public:
   }
 
 private:
-  nsRefPtr<HttpBaseChannel> mChannel;
+  RefPtr<HttpBaseChannel> mChannel;
   NS_ConvertASCIItoUTF16 mCookie;
 };
 
-} // anonymous namespace
+} // namespace
 
 NS_IMETHODIMP
 HttpBaseChannel::SetCookie(const char *aCookieHeader)
@@ -1401,7 +1923,7 @@ HttpBaseChannel::SetCookie(const char *aCookieHeader)
     cs->SetCookieStringFromHttp(mURI, nullptr, nullptr, aCookieHeader,
                                 mResponseHead->PeekHeader(nsHttp::Date), this);
   if (NS_SUCCEEDED(rv)) {
-    nsRefPtr<CookieNotifierRunnable> r =
+    RefPtr<CookieNotifierRunnable> r =
       new CookieNotifierRunnable(this, aCookieHeader);
     NS_DispatchToMainThread(r);
   }
@@ -1409,9 +1931,25 @@ HttpBaseChannel::SetCookie(const char *aCookieHeader)
 }
 
 NS_IMETHODIMP
+HttpBaseChannel::GetThirdPartyFlags(uint32_t  *aFlags)
+{
+  *aFlags = mThirdPartyFlags;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetThirdPartyFlags(uint32_t aFlags)
+{
+  ENSURE_CALLED_BEFORE_ASYNC_OPEN();
+
+  mThirdPartyFlags = aFlags;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 HttpBaseChannel::GetForceAllowThirdPartyCookie(bool *aForce)
 {
-  *aForce = mForceAllowThirdPartyCookie;
+  *aForce = !!(mThirdPartyFlags & nsIHttpChannelInternal::THIRD_PARTY_FORCE_ALLOW);
   return NS_OK;
 }
 
@@ -1420,7 +1958,11 @@ HttpBaseChannel::SetForceAllowThirdPartyCookie(bool aForce)
 {
   ENSURE_CALLED_BEFORE_ASYNC_OPEN();
 
-  mForceAllowThirdPartyCookie = aForce;
+  if (aForce)
+    mThirdPartyFlags |= nsIHttpChannelInternal::THIRD_PARTY_FORCE_ALLOW;
+  else
+    mThirdPartyFlags &= ~nsIHttpChannelInternal::THIRD_PARTY_FORCE_ALLOW;
+
   return NS_OK;
 }
 
@@ -1483,7 +2025,7 @@ HttpBaseChannel::TakeAllSecurityMessages(
  * More information can be found here:
  * https://bugzilla.mozilla.org/show_bug.cgi?id=846918
  */
-NS_IMETHODIMP
+nsresult
 HttpBaseChannel::AddSecurityMessage(const nsAString &aMessageTag,
     const nsAString &aMessageCategory)
 {
@@ -1494,6 +2036,39 @@ HttpBaseChannel::AddSecurityMessage(const nsAString &aMessageTag,
   message->SetTag(aMessageTag);
   message->SetCategory(aMessageCategory);
   mSecurityConsoleMessages.AppendElement(message);
+
+  nsCOMPtr<nsIConsoleService> console(do_GetService(NS_CONSOLESERVICE_CONTRACTID));
+  if (!console) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsCOMPtr<nsILoadInfo> loadInfo;
+  GetLoadInfo(getter_AddRefs(loadInfo));
+  if (!loadInfo) {
+    return NS_ERROR_FAILURE;
+  }
+
+  uint32_t innerWindowID = loadInfo->GetInnerWindowID();
+
+  nsXPIDLString errorText;
+  rv = nsContentUtils::GetLocalizedString(
+          nsContentUtils::eSECURITY_PROPERTIES,
+          NS_ConvertUTF16toUTF8(aMessageTag).get(),
+          errorText);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsAutoCString spec;
+  if (mURI) {
+    mURI->GetSpec(spec);
+  }
+
+  nsCOMPtr<nsIScriptError> error(do_CreateInstance(NS_SCRIPTERROR_CONTRACTID));
+  error->InitWithWindowID(errorText, NS_ConvertUTF8toUTF16(spec),
+                          EmptyString(), 0, 0, nsIScriptError::warningFlag,
+                          NS_ConvertUTF16toUTF8(aMessageCategory),
+                          innerWindowID);
+  console->LogMessage(error);
+
   return NS_OK;
 }
 
@@ -1573,32 +2148,18 @@ HttpBaseChannel::SetAllowSpdy(bool aAllowSpdy)
 }
 
 NS_IMETHODIMP
-HttpBaseChannel::GetLoadAsBlocking(bool *aLoadAsBlocking)
+HttpBaseChannel::GetAllowAltSvc(bool *aAllowAltSvc)
 {
-  NS_ENSURE_ARG_POINTER(aLoadAsBlocking);
-  *aLoadAsBlocking = mLoadAsBlocking;
+  NS_ENSURE_ARG_POINTER(aAllowAltSvc);
+
+  *aAllowAltSvc = mAllowAltSvc;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-HttpBaseChannel::SetLoadAsBlocking(bool aLoadAsBlocking)
+HttpBaseChannel::SetAllowAltSvc(bool aAllowAltSvc)
 {
-  mLoadAsBlocking = aLoadAsBlocking;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-HttpBaseChannel::GetLoadUnblocked(bool *aLoadUnblocked)
-{
-  NS_ENSURE_ARG_POINTER(aLoadUnblocked);
-  *aLoadUnblocked = mLoadUnblocked;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-HttpBaseChannel::SetLoadUnblocked(bool aLoadUnblocked)
-{
-  mLoadUnblocked = aLoadUnblocked;
+  mAllowAltSvc = aAllowAltSvc;
   return NS_OK;
 }
 
@@ -1628,9 +2189,20 @@ HttpBaseChannel::SetResponseTimeoutEnabled(bool aEnable)
 }
 
 NS_IMETHODIMP
-HttpBaseChannel::AddRedirect(nsIPrincipal *aRedirect)
+HttpBaseChannel::GetInitialRwin(uint32_t *aRwin)
 {
-  mRedirects.AppendObject(aRedirect);
+  if (NS_WARN_IF(!aRwin)) {
+    return NS_ERROR_NULL_POINTER;
+  }
+  *aRwin = mInitialRwin;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetInitialRwin(uint32_t aRwin)
+{
+  ENSURE_CALLED_BEFORE_CONNECT();
+  mInitialRwin = aRwin;
   return NS_OK;
 }
 
@@ -1652,6 +2224,47 @@ HttpBaseChannel::GetLastModifiedTime(PRTime* lastModifiedTime)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+HttpBaseChannel::GetCorsIncludeCredentials(bool* aInclude)
+{
+  *aInclude = mCorsIncludeCredentials;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetCorsIncludeCredentials(bool aInclude)
+{
+  mCorsIncludeCredentials = aInclude;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetCorsMode(uint32_t* aMode)
+{
+  *aMode = mCorsMode;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetCorsMode(uint32_t aMode)
+{
+  mCorsMode = aMode;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetRedirectMode(uint32_t* aMode)
+{
+  *aMode = mRedirectMode;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetRedirectMode(uint32_t aMode)
+{
+  mRedirectMode = aMode;
+  return NS_OK;
+}
 
 //-----------------------------------------------------------------------------
 // HttpBaseChannel::nsISupportsPriority
@@ -1719,14 +2332,41 @@ HttpBaseChannel::GetEntityID(nsACString& aEntityID)
   return NS_OK;
 }
 
+//-----------------------------------------------------------------------------
+// HttpBaseChannel::nsIConsoleReportCollector
+//-----------------------------------------------------------------------------
+
+void
+HttpBaseChannel::AddConsoleReport(uint32_t aErrorFlags,
+                                  const nsACString& aCategory,
+                                  nsContentUtils::PropertiesFile aPropertiesFile,
+                                  const nsACString& aSourceFileURI,
+                                  uint32_t aLineNumber, uint32_t aColumnNumber,
+                                  const nsACString& aMessageName,
+                                  const nsTArray<nsString>& aStringParams)
+{
+  mReportCollector->AddConsoleReport(aErrorFlags, aCategory, aPropertiesFile,
+                                     aSourceFileURI, aLineNumber,
+                                     aColumnNumber, aMessageName,
+                                     aStringParams);
+}
+
+void
+HttpBaseChannel::FlushConsoleReports(nsIDocument* aDocument)
+{
+  mReportCollector->FlushConsoleReports(aDocument);
+}
+
+void
+HttpBaseChannel::FlushConsoleReports(nsIConsoleReportCollector* aCollector)
+{
+  mReportCollector->FlushConsoleReports(aCollector);
+}
+
 nsIPrincipal *
-HttpBaseChannel::GetPrincipal(bool requireAppId)
+HttpBaseChannel::GetURIPrincipal()
 {
   if (mPrincipal) {
-      if (requireAppId && mPrincipal->GetUnknownAppId()) {
-        LOG(("HttpBaseChannel::GetPrincipal: No app id [this=%p]", this));
-        return nullptr;
-      }
       return mPrincipal;
   }
 
@@ -1734,43 +2374,48 @@ HttpBaseChannel::GetPrincipal(bool requireAppId)
       nsContentUtils::GetSecurityManager();
 
   if (!securityManager) {
-      LOG(("HttpBaseChannel::GetPrincipal: No security manager [this=%p]",
+      LOG(("HttpBaseChannel::GetURIPrincipal: No security manager [this=%p]",
            this));
       return nullptr;
   }
 
-  securityManager->GetChannelResultPrincipal(this, getter_AddRefs(mPrincipal));
+  securityManager->GetChannelURIPrincipal(this, getter_AddRefs(mPrincipal));
   if (!mPrincipal) {
-      LOG(("HttpBaseChannel::GetPrincipal: No channel principal [this=%p]",
+      LOG(("HttpBaseChannel::GetURIPrincipal: No channel principal [this=%p]",
            this));
-      return nullptr;
-  }
-
-  // principals with unknown app ids do not work with the permission manager
-  if (requireAppId && mPrincipal->GetUnknownAppId()) {
-      LOG(("HttpBaseChannel::GetPrincipal: No app id [this=%p]", this));
       return nullptr;
   }
 
   return mPrincipal;
 }
 
-// nsIRedirectHistory
-NS_IMETHODIMP
-HttpBaseChannel::GetRedirects(nsIArray * *aRedirects)
+bool
+HttpBaseChannel::IsNavigation()
 {
-  nsresult rv;
-  nsCOMPtr<nsIMutableArray> redirects =
-    do_CreateInstance(NS_ARRAY_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
+  return mForceMainDocumentChannel;
+}
 
-  for (int i = 0; i < mRedirects.Count(); ++i) {
-    rv = redirects->AppendElement(mRedirects[i], false);
-    NS_ENSURE_SUCCESS(rv, rv);
+bool
+HttpBaseChannel::BypassServiceWorker() const
+{
+  return mLoadFlags & LOAD_BYPASS_SERVICE_WORKER;
+}
+
+bool
+HttpBaseChannel::ShouldIntercept()
+{
+  nsCOMPtr<nsINetworkInterceptController> controller;
+  GetCallback(controller);
+  bool shouldIntercept = false;
+  if (controller && !BypassServiceWorker() && mLoadInfo) {
+    nsresult rv = controller->ShouldPrepareForIntercept(mURI,
+                                                        nsContentUtils::IsNonSubresourceRequest(this),
+                                                        &shouldIntercept);
+    if (NS_FAILED(rv)) {
+      return false;
+    }
   }
-  *aRedirects = redirects;
-  NS_IF_ADDREF(*aRedirects);
-  return NS_OK;
+  return shouldIntercept;
 }
 
 //-----------------------------------------------------------------------------
@@ -1805,26 +2450,49 @@ HttpBaseChannel::ReleaseListeners()
   mListenerContext = nullptr;
   mCallbacks = nullptr;
   mProgressSink = nullptr;
+  mCompressListener = nullptr;
 }
 
 void
 HttpBaseChannel::DoNotifyListener()
 {
+  if (mListener) {
+    MOZ_ASSERT(!mOnStartRequestCalled,
+               "We should not call OnStartRequest twice");
+
+    nsCOMPtr<nsIStreamListener> listener = mListener;
+    listener->OnStartRequest(this, mListenerContext);
+
+    mOnStartRequestCalled = true;
+  }
+
   // Make sure mIsPending is set to false. At this moment we are done from
   // the point of view of our consumer and we have to report our self
   // as not-pending.
+  mIsPending = false;
+
   if (mListener) {
-    mListener->OnStartRequest(this, mListenerContext);
-    mIsPending = false;
-    mListener->OnStopRequest(this, mListenerContext, mStatus);
-  } else {
-    mIsPending = false;
+    nsCOMPtr<nsIStreamListener> listener = mListener;
+    listener->OnStopRequest(this, mListenerContext, mStatus);
   }
+
   // We have to make sure to drop the references to listeners and callbacks
   // no longer  needed
   ReleaseListeners();
 
   DoNotifyListenerCleanup();
+
+  // If this is a navigation, then we must let the docshell flush the reports
+  // to the console later.  The LoadDocument() is pointing at the detached
+  // document that started the navigation.  We want to show the reports on the
+  // new document.  Otherwise the console is wiped and the user never sees
+  // the information.
+  if (!IsNavigation() && mLoadInfo) {
+    nsCOMPtr<nsIDOMDocument> dommyDoc;
+    mLoadInfo->GetLoadingDocument(getter_AddRefs(dommyDoc));
+    nsCOMPtr<nsIDocument> doc = do_QueryInterface(dommyDoc);
+    FlushConsoleReports(doc);
+  }
 }
 
 void
@@ -1835,7 +2503,7 @@ HttpBaseChannel::AddCookiesToRequest()
   }
 
   bool useCookieService =
-    (XRE_GetProcessType() == GeckoProcessType_Default);
+    (XRE_IsParentProcess());
   nsXPIDLCString cookie;
   if (useCookieService) {
     nsICookieService *cs = gHttpHandler->GetCookieService();
@@ -1890,11 +2558,13 @@ HttpBaseChannel::ShouldRewriteRedirectToGET(uint32_t httpStatus,
 nsresult
 HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
                                          nsIChannel   *newChannel,
-                                         bool          preserveMethod)
+                                         bool          preserveMethod,
+                                         uint32_t      redirectFlags)
 {
   LOG(("HttpBaseChannel::SetupReplacementChannel "
      "[this=%p newChannel=%p preserveMethod=%d]",
      this, newChannel, preserveMethod));
+
   uint32_t newLoadFlags = mLoadFlags | LOAD_REPLACE;
   // if the original channel was using SSL and this channel is not using
   // SSL, then no need to inhibit persistent caching.  however, if the
@@ -1923,12 +2593,36 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
     }
   }
 
-  // Propagate our loadinfo if needed.
-  newChannel->SetLoadInfo(mLoadInfo);
+  // make a copy of the loadinfo, append to the redirectchain
+  // and set it on the new channel
+  if (mLoadInfo) {
+    nsCOMPtr<nsILoadInfo> newLoadInfo =
+      static_cast<mozilla::LoadInfo*>(mLoadInfo.get())->Clone();
+    bool isInternalRedirect =
+      (redirectFlags & (nsIChannelEventSink::REDIRECT_INTERNAL |
+                        nsIChannelEventSink::REDIRECT_STS_UPGRADE));
+    newLoadInfo->AppendRedirectedPrincipal(GetURIPrincipal(), isInternalRedirect);
+    newChannel->SetLoadInfo(newLoadInfo);
+  }
+  else {
+    // the newChannel was created with a dummy loadInfo, we should clear
+    // it in case the original channel does not have a loadInfo
+    newChannel->SetLoadInfo(nullptr);
+  }
 
   nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(newChannel);
   if (!httpChannel)
     return NS_OK; // no other options to set
+
+  // Preserve the CORS preflight information.
+  nsCOMPtr<nsIHttpChannelInternal> httpInternal = do_QueryInterface(newChannel);
+  if (mRequireCORSPreflight && httpInternal) {
+    rv = httpInternal->SetCorsPreflightParameters(mUnsafeHeaders, mWithCredentials,
+                                                  mPreflightPrincipal);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      return rv;
+    }
+  }
 
   if (preserveMethod) {
     nsCOMPtr<nsIUploadChannel> uploadChannel =
@@ -1981,7 +2675,7 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
   }
   // convey the referrer if one was used for this channel to the next one
   if (mReferrer)
-    httpChannel->SetReferrer(mReferrer);
+    httpChannel->SetReferrerWithPolicy(mReferrer, mReferrerPolicy);
   // convey the mAllowPipelining and mAllowSTS flags
   httpChannel->SetAllowPipelining(mAllowPipelining);
   httpChannel->SetAllowSTS(mAllowSTS);
@@ -1999,12 +2693,11 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
     }
   }
 
-  nsCOMPtr<nsIHttpChannelInternal> httpInternal = do_QueryInterface(newChannel);
   if (httpInternal) {
-    // convey the mForceAllowThirdPartyCookie flag
-    httpInternal->SetForceAllowThirdPartyCookie(mForceAllowThirdPartyCookie);
-    // convey the spdy flag
+    // Convey third party cookie and spdy flags.
+    httpInternal->SetThirdPartyFlags(mThirdPartyFlags);
     httpInternal->SetAllowSpdy(mAllowSpdy);
+    httpInternal->SetAllowAltSvc(mAllowAltSvc);
 
     // update the DocumentURI indicator since we are being redirected.
     // if this was a top-level document channel, then the new channel
@@ -2022,25 +2715,12 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
              "[this=%p] transferring chain of redirect cache-keys", this));
         httpInternal->SetCacheKeysRedirectChain(mRedirectedCachekeys.forget());
     }
-    // Transfer existing redirect information. Add all of our existing
-    // redirects to the new channel.
-    for (int32_t i = 0; i < mRedirects.Count(); ++i) {
-#ifdef PR_LOGGING
-      nsCOMPtr<nsIURI> uri;
-      mRedirects[i]->GetURI(getter_AddRefs(uri));
-      nsCString spec;
-      uri->GetSpec(spec);
-      LOG(("HttpBaseChannel::SetupReplacementChannel adding redirect %s "
-           "[this=%p]", spec.get(), this));
-#endif
-      httpInternal->AddRedirect(mRedirects[i]);
-    }
 
-    // Add our own principal to the redirect information on the new channel. If
-    // the redirect is vetoed, then newChannel->AsyncOpen won't be called.
-    // However, the new channel's redirect chain will still be complete.
-    nsCOMPtr<nsIPrincipal> principal = GetPrincipal(false);
-    httpInternal->AddRedirect(principal);
+    // Preserve CORS mode flag.
+    httpInternal->SetCorsMode(mCorsMode);
+
+    // Preserve Redirect mode flag.
+    httpInternal->SetRedirectMode(mRedirectMode);
   }
 
   // transfer application cache information
@@ -2360,9 +3040,91 @@ IMPL_TIMING_ATTR(RedirectEnd)
 
 #undef IMPL_TIMING_ATTR
 
+nsPerformance*
+HttpBaseChannel::GetPerformance()
+{
+    // If performance timing is disabled, there is no need for the nsPerformance
+    // object anymore.
+    if (!mTimingEnabled) {
+        return nullptr;
+    }
+    nsCOMPtr<nsILoadContext> loadContext;
+    NS_QueryNotificationCallbacks(this, loadContext);
+    if (!loadContext) {
+        return nullptr;
+    }
+    nsCOMPtr<nsIDOMWindow> domWindow;
+    loadContext->GetAssociatedWindow(getter_AddRefs(domWindow));
+    if (!domWindow) {
+        return nullptr;
+    }
+    nsCOMPtr<nsPIDOMWindow> pDomWindow = do_QueryInterface(domWindow);
+    if (!pDomWindow) {
+        return nullptr;
+    }
+    if (!pDomWindow->IsInnerWindow()) {
+        pDomWindow = pDomWindow->GetCurrentInnerWindow();
+        if (!pDomWindow) {
+            return nullptr;
+        }
+    }
+
+    nsPerformance* docPerformance = pDomWindow->GetPerformance();
+    if (!docPerformance) {
+      return nullptr;
+    }
+    // iframes should be added to the parent's entries list.
+    if (mLoadFlags & LOAD_DOCUMENT_URI) {
+      return docPerformance->GetParentPerformance();
+    }
+    return docPerformance;
+}
 
 //------------------------------------------------------------------------------
 
-}  // namespace net
-}  // namespace mozilla
+bool
+HttpBaseChannel::EnsureSchedulingContextID()
+{
+    nsID nullID;
+    nullID.Clear();
+    if (!mSchedulingContextID.Equals(nullID)) {
+        // Already have a scheduling context ID, no need to do the rest of this work
+        return true;
+    }
+
+    // Find the loadgroup at the end of the chain in order
+    // to make sure all channels derived from the load group
+    // use the same connection scope.
+    nsCOMPtr<nsILoadGroupChild> childLoadGroup = do_QueryInterface(mLoadGroup);
+    if (!childLoadGroup) {
+        return false;
+    }
+
+    nsCOMPtr<nsILoadGroup> rootLoadGroup;
+    childLoadGroup->GetRootLoadGroup(getter_AddRefs(rootLoadGroup));
+    if (!rootLoadGroup) {
+        return false;
+    }
+
+    // Set the load group connection scope on the transaction
+    rootLoadGroup->GetSchedulingContextID(&mSchedulingContextID);
+    return true;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetCorsPreflightParameters(const nsTArray<nsCString>& aUnsafeHeaders,
+                                            bool aWithCredentials,
+                                            nsIPrincipal* aPrincipal)
+{
+  ENSURE_CALLED_BEFORE_CONNECT();
+
+  mRequireCORSPreflight = true;
+  mUnsafeHeaders = aUnsafeHeaders;
+  mWithCredentials = aWithCredentials;
+  mPreflightPrincipal = aPrincipal;
+  return NS_OK;
+}
+
+} // namespace net
+} // namespace mozilla
 

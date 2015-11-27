@@ -16,13 +16,14 @@ const { setTimeout } = require("sdk/timers");
 const self = require('sdk/self');
 const { open, close, focus, ready } = require('sdk/window/helpers');
 const { isPrivate } = require('sdk/private-browsing');
-const { isWindowPBSupported, isGlobalPBSupported } = require('sdk/private-browsing/utils');
+const { isWindowPBSupported } = require('sdk/private-browsing/utils');
 const { defer, all } = require('sdk/core/promise');
 const { getMostRecentBrowserWindow } = require('sdk/window/utils');
-const { getWindow } = require('sdk/panel/window');
-const { pb } = require('./private-browsing/helper');
 const { URL } = require('sdk/url');
 const { wait } = require('./event/helpers');
+const packaging = require('@loader/options');
+const { cleanUI, after, isTravisCI } = require("sdk/test/utils");
+const { platform } = require('sdk/system');
 
 const fixtures = require('./fixtures')
 
@@ -51,7 +52,7 @@ exports["test Panel"] = function(assert, done) {
 
   let panel = Panel({
     contentURL: "about:buildconfig",
-    contentScript: "self.postMessage(1); self.on('message', function() self.postMessage(2));",
+    contentScript: "self.postMessage(1); self.on('message', () => self.postMessage(2));",
     onMessage: function (message) {
       assert.equal(this, panel, "The 'this' object is the panel.");
       switch(message) {
@@ -76,7 +77,7 @@ exports["test Panel Emit"] = function(assert, done) {
     contentURL: "about:buildconfig",
     contentScript: "self.port.emit('loaded');" +
                    "self.port.on('addon-to-content', " +
-                   "             function() self.port.emit('received'));",
+                   "             () => self.port.emit('received'));",
   });
   panel.port.on("loaded", function () {
     assert.pass("The panel was loaded and sent a first event.");
@@ -95,7 +96,7 @@ exports["test Panel Emit Early"] = function(assert, done) {
   let panel = Panel({
     contentURL: "about:buildconfig",
     contentScript: "self.port.on('addon-to-content', " +
-                   "             function() self.port.emit('received'));",
+                   "             () => self.port.emit('received'));",
   });
   panel.port.on("received", function () {
     assert.pass("The panel posted a message early and received a response.");
@@ -147,7 +148,7 @@ exports["test Document Reload"] = function(assert, done) {
     contentURL: URL("data:text/html;charset=utf-8," + encodeURIComponent(content)),
     contentScript: "self.postMessage(window.location.href);" +
                    // initiate change to url2
-                   "self.port.once('move', function() document.defaultView.postMessage('move', '*'));",
+                   "self.port.once('move', () => document.defaultView.postMessage('move', '*'));",
     onMessage: function (message) {
       messageCount++;
       assert.notEqual(message, "about:blank", "about:blank is not a message " + messageCount);
@@ -282,17 +283,28 @@ exports["test Hide Before Show"] = function(assert, done) {
   const { Panel } = require('sdk/panel');
 
   let showCalled = false;
-  let panel = Panel({
+  let hideCalled = false;
+  let panel1 = Panel({
     onShow: function () {
       showCalled = true;
     },
     onHide: function () {
-      assert.ok(!showCalled, 'must not emit show if was hidden before');
-      done();
+      hideCalled = true;
     }
   });
-  panel.show();
-  panel.hide();
+  panel1.show();
+  panel1.hide();
+
+  let panel2 = Panel({
+    onShow: function () {
+      assert.ok(!showCalled, 'should not emit show');
+      assert.ok(!hideCalled, 'should not emit hide');
+      panel1.destroy();
+      panel2.destroy();
+      done();
+    },
+  });
+  panel2.show();
 };
 
 exports["test Several Show Hides"] = function(assert, done) {
@@ -325,65 +337,27 @@ exports["test Anchor And Arrow"] = function(assert, done) {
   let { Panel } = loader.require('sdk/panel');
 
   let count = 0;
-  let queue = [];
-  let tab;
+  let url = 'data:text/html;charset=utf-8,' +
+    '<html><head><title>foo</title></head><body>' +
+    '</body></html>';
 
-  function newPanel(anchor) {
+  let panel = yield new Promise(resolve => {
+    let browserWindow = getMostRecentBrowserWindow();
+    let anchor = browserWindow.document.getElementById("identity-box");
     let panel = Panel({
       contentURL: "data:text/html;charset=utf-8,<html><body style='padding: 0; margin: 0; " +
                   "background: gray; text-align: center;'>Anchor: " +
                   anchor.id + "</body></html>",
       width: 200,
       height: 100,
-      onShow: function () {
-        panel.destroy();
-        next();
-      }
+      onShow: () => resolve(panel)
     });
-    queue.push({ panel: panel, anchor: anchor });
-  }
-
-  function next () {
-    if (!queue.length) {
-      assert.pass("All anchored panel test displayed");
-      tab.close(function () {
-        done();
-      });
-      return;
-    }
-    let { panel, anchor } = queue.shift();
     panel.show(null, anchor);
-  }
-
-  let tabs= require("sdk/tabs");
-  let url = 'data:text/html;charset=utf-8,' +
-    '<html><head><title>foo</title></head><body>' +
-    '<style>div {background: gray; position: absolute; width: 300px; ' +
-           'border: 2px solid black;}</style>' +
-    '<div id="tl" style="top: 0px; left: 0px;">Top Left</div>' +
-    '<div id="tr" style="top: 0px; right: 0px;">Top Right</div>' +
-    '<div id="bl" style="bottom: 0px; left: 0px;">Bottom Left</div>' +
-    '<div id="br" style="bottom: 0px; right: 0px;">Bottom right</div>' +
-    '</body></html>';
-
-  tabs.open({
-    url: url,
-    onReady: function(_tab) {
-      tab = _tab;
-      let browserWindow = Cc["@mozilla.org/appshell/window-mediator;1"].
-                      getService(Ci.nsIWindowMediator).
-                      getMostRecentWindow("navigator:browser");
-      let window = browserWindow.content;
-      newPanel(window.document.getElementById('tl'));
-      newPanel(window.document.getElementById('tr'));
-      newPanel(window.document.getElementById('bl'));
-      newPanel(window.document.getElementById('br'));
-      let anchor = browserWindow.document.getElementById("identity-box");
-      newPanel(anchor);
-
-      next();
-    }
   });
+  assert.pass("All anchored panel test displayed");
+
+  panel.destroy();
+  assert.pass("panel was destroyed.");
 };
 
 exports["test Panel Focus True"] = function(assert, done) {
@@ -559,7 +533,7 @@ exports["test Automatic Destroy"] = function(assert) {
   let panel = loader.require("sdk/panel").Panel({
     contentURL: "about:buildconfig",
     contentScript:
-      "self.port.on('event', function() self.port.emit('event-back'));"
+      "self.port.on('event', () => self.port.emit('event-back'));"
   });
 
   loader.unload();
@@ -577,6 +551,10 @@ exports["test Show Then Destroy"] = makeEventOrderTest({
   }
 });
 
+
+// TODO: Re-enable and fix this intermittent test
+// See Bug 1111695 https://bugzilla.mozilla.org/show_bug.cgi?id=1111695
+/*
 exports["test Show Then Hide Then Destroy"] = makeEventOrderTest({
   test: function(assert, done, expect, panel) {
     panel.show();
@@ -584,30 +562,30 @@ exports["test Show Then Hide Then Destroy"] = makeEventOrderTest({
       then('hide', function() { panel.destroy(); done(); });
   }
 });
+*/
 
 exports["test Content URL Option"] = function(assert) {
   const { Panel } = require('sdk/panel');
 
   const URL_STRING = "about:buildconfig";
   const HTML_CONTENT = "<html><title>Test</title><p>This is a test.</p></html>";
-
-  let (panel = Panel({ contentURL: URL_STRING })) {
-    assert.pass("contentURL accepts a string URL.");
-    assert.equal(panel.contentURL, URL_STRING,
-                "contentURL is the string to which it was set.");
-  }
-
   let dataURL = "data:text/html;charset=utf-8," + encodeURIComponent(HTML_CONTENT);
-  let (panel = Panel({ contentURL: dataURL })) {
-    assert.pass("contentURL accepts a data: URL.");
-  }
 
-  let (panel = Panel({})) {
-    assert.ok(panel.contentURL == null,
-                "contentURL is undefined.");
-  }
+  let panel = Panel({ contentURL: URL_STRING });
+  assert.pass("contentURL accepts a string URL.");
+  assert.equal(panel.contentURL, URL_STRING,
+              "contentURL is the string to which it was set.");
+  panel.destroy();
 
-  assert.throws(function () Panel({ contentURL: "foo" }),
+  panel = Panel({ contentURL: dataURL });
+  assert.pass("contentURL accepts a data: URL.");
+  panel.destroy();
+
+  panel = Panel({});
+  assert.ok(panel.contentURL == null, "contentURL is undefined.");
+  panel.destroy();
+
+  assert.throws(() => Panel({ contentURL: "foo" }),
                     /The `contentURL` option must be a valid URL./,
                     "Panel throws an exception if contentURL is not a URL.");
 };
@@ -665,7 +643,7 @@ exports["test console.log in Panel"] = function(assert, done) {
   }
 };
 
-if (isWindowPBSupported) {
+/*if (isWindowPBSupported) {
   exports.testPanelDoesNotShowInPrivateWindowNoAnchor = function(assert, done) {
     let { loader } = LoaderWithHookedConsole(module, ignorePassingDOMNodeWarning);
     let { Panel } = loader.require("sdk/panel");
@@ -773,7 +751,7 @@ if (isWindowPBSupported) {
       then(testShowPanel.bind(null, assert, panel)).
       then(done, assert.fail.bind(assert));
   }
-}
+}*/
 
 function testShowPanel(assert, panel) {
   let { promise, resolve } = defer();
@@ -879,34 +857,34 @@ exports['test passing DOM node as first argument'] = function (assert, done) {
 
   let { loader } = LoaderWithHookedConsole(module, onMessage);
   let { Panel } = loader.require('sdk/panel');
-  let { Widget } = loader.require('sdk/widget');
+  let { ActionButton } = loader.require('sdk/ui/button/action');
+  let { getNodeView } = loader.require('sdk/view/core');
   let { document } = getMostRecentBrowserWindow();
-  let widgetId = 'widget:' + self.id + '-panel-widget';
 
   let panel = Panel({
     onShow: function() {
       let panelNode = document.getElementById('mainPopupSet').lastChild;
 
-      assert.equal(panelNode.anchorNode, widgetNode,
-        'the panel is properly anchored to the widget');
+      assert.equal(panelNode.anchorNode, buttonNode,
+        'the panel is properly anchored to the button');
 
       shown.resolve();
     }
   });
 
-  let widget = Widget({
-    id: 'panel-widget',
-    label: 'panel widget',
-    content: '<i></i>',
+  let button = ActionButton({
+    id: 'panel-button',
+    label: 'panel button',
+    icon: './icon.png'
   });
 
-  let widgetNode = document.getElementById(widgetId);
+  let buttonNode = getNodeView(button);
 
   all([warned.promise, shown.promise]).
     then(loader.unload).
     then(done, assert.fail)
 
-  panel.show(widgetNode);
+  panel.show(buttonNode);
 };
 
 // This test is checking that `onpupshowing` events emitted by panel's children
@@ -1006,7 +984,7 @@ exports['test panel CSS'] = function(assert, done) {
 
       assert.equal(div.clientHeight, 100,
         "Panel contentStyle worked");
-   
+
       assert.equal(div.offsetHeight, 120,
         "Panel contentStyleFile worked");
 
@@ -1044,7 +1022,7 @@ exports['test panel contentScriptFile'] = function(assert, done) {
 
   let panel = Panel({
     contentURL: './test.html',
-    contentScriptFile: "./test-contentScriptFile.js", 
+    contentScriptFile: "./test-contentScriptFile.js",
     onMessage: (message) => {
       assert.equal(message, "msg from contentScriptFile",
         "Panel contentScriptFile with relative path worked");
@@ -1155,7 +1133,7 @@ exports['test panel contextmenu validation'] = function(assert) {
 
   assert.equal(panel.contextMenu, false,
     'contextMenu option accepts boolean values');
-  
+
   assert.throws(() =>
     Panel({contextMenu: 1}),
     /The option "contextMenu" must be one of the following types: boolean, undefined, null/,
@@ -1235,7 +1213,7 @@ exports['test panel contextmenu disabled'] = function*(assert) {
 
   assert.equal(contextmenu.state, 'closed',
     'contextmenu must be closed');
-  
+
   sendMouseEvent('contextmenu', 20, 20, 2, 1, 0);
 
   contextmenu.addEventListener('popupshown', listener);
@@ -1247,7 +1225,7 @@ exports['test panel contextmenu disabled'] = function*(assert) {
   assert.equal(contextmenu.state, 'closed',
     'contextmenu was never open');
 
-  loader.unload();  
+  loader.unload();
 }
 
 exports["test panel addon global object"] = function*(assert) {
@@ -1274,49 +1252,168 @@ exports["test panel addon global object"] = function*(assert) {
   panel.port.emit('addon-to-document', 'ok');
 
   yield wait(panel.port, "document-to-addon");
- 
+
   assert.pass("Received an event from the document");
 
   loader.unload();
 }
 
-if (isWindowPBSupported) {
-  exports.testGetWindow = function(assert, done) {
-    let activeWindow = getMostRecentBrowserWindow();
-    open(null, { features: {
-      toolbar: true,
-      chrome: true,
-      private: true
-    } }).then(window => {
-      assert.ok(isPrivate(window), 'window is private');
-      assert.equal(getWindow(window.gBrowser), null, 'private window elements returns null');
-      assert.equal(getWindow(activeWindow.gBrowser), activeWindow, 'non-private window elements returns window');
-      return window;
-    }).then(close).then(done).then(null, assert.fail);
-  }
+exports["test panel load doesn't show"] = function*(assert) {
+  let loader = Loader(module);
+
+  let panel = loader.require("sdk/panel").Panel({
+    contentScript: "addEventListener('load', function(event) { self.postMessage('load'); });",
+    contentScriptWhen: "start",
+    contentURL: "data:text/html;charset=utf-8,",
+  });
+
+  let shown = defer();
+  let messaged = defer();
+
+  panel.once("show", function() {
+    shown.resolve();
+  });
+
+  panel.once("message", function() {
+    messaged.resolve();
+  });
+
+  panel.show();
+  yield all([shown.promise, messaged.promise]);
+  assert.ok(true, "Saw panel display");
+
+  panel.on("show", function() {
+    assert.fail("Should not have seen another show event")
+  });
+
+  messaged = defer();
+  panel.once("message", function() {
+    assert.ok(true, "Saw panel reload");
+    messaged.resolve();
+  });
+
+  panel.contentURL = "data:text/html;charset=utf-8,<html/>";
+
+  yield messaged.promise;
+  loader.unload();
 }
-else if (isGlobalPBSupported) {
-  exports.testGetWindow = function(assert, done) {
-    let activeWindow = getMostRecentBrowserWindow();
 
-    assert.equal(getWindow(activeWindow.gBrowser), activeWindow, 'non-private window elements returns window');
-    pb.once('start', function() {
-      assert.ok(isPrivate(activeWindow), 'window is private');
-      assert.equal(getWindow(activeWindow.gBrowser), activeWindow, 'private window elements returns window');
-      open(null, { features: {
-        toolbar: true,
-        chrome: true
-      } }).then(window => {
-        assert.ok(isPrivate(window), 'window is private');
-        assert.equal(getWindow(window.gBrowser), window, 'private window elements returns window');
-        assert.equal(getWindow(activeWindow.gBrowser), activeWindow, 'active window elements returns window');
+exports["test Panel without contentURL and contentScriptWhen=start should show"] = function*(assert) {
+  let loader = Loader(module);
 
-        pb.once('stop', done);
-        pb.deactivate();
-      })
-    });
-    pb.activate();
-  }
+  let panel = loader.require("sdk/panel").Panel({
+    contentScriptWhen: "start",
+    // No contentURL, the bug only shows up when contentURL is not explicitly set.
+  });
+
+  yield new Promise(resolve => {
+    panel.once("show", resolve);
+    panel.show();
+  });
+
+  assert.pass("Received show event");
+
+  loader.unload();
 }
 
-require("test").run(exports);
+exports["test Panel links"] = function*(assert) {
+  const loader = Loader(module);
+
+  const { Panel } = loader.require('sdk/panel');
+  const { getActiveView } = loader.require('sdk/view/core');
+  const tabs = loader.require('sdk/tabs');
+
+  const synthesizeClick = (panel, options) => {
+    let { contentWindow } = getActiveView(panel).querySelector('iframe');
+    let event = new contentWindow.MouseEvent('click', options);
+
+    contentWindow.document.querySelector('a').dispatchEvent(event);
+  }
+
+  const linkURL = 'data:text/html;charset=utf-8,' +
+                  encodeURIComponent('<html><a href="#">foo</a></html>');
+
+  const contentURL = 'data:text/html;charset=utf-8,' +
+          encodeURIComponent(`<html><a href="${linkURL}">page</a></html>`);
+
+  let panel = Panel({
+    contentURL,
+    contentScript: Isolate(() => self.postMessage(document.URL))
+  });
+
+  panel.show();
+
+  let url = yield wait(panel, 'message');
+
+  assert.equal(url, contentURL,
+    'content URL loaded');
+
+  synthesizeClick(panel, { bubbles: true });
+
+  url = yield wait(panel, 'message');
+
+  assert.equal(url, linkURL,
+    'link URL loaded in the panel after click');
+
+  synthesizeClick(panel, {
+    bubbles: true,
+    [platform === 'darwin' ? 'metaKey' : 'ctrlKey']: true
+  });
+
+  let tab = yield wait(tabs, 'ready');
+
+  assert.equal(tab.url, linkURL + '#',
+      'link URL loaded in a new tab after click + accel');
+
+  loader.unload();
+}
+
+exports["test Panel script allow property"] = function*(assert) {
+  const loader = Loader(module);
+  const { Panel } = loader.require('sdk/panel');
+  const { getActiveView } = loader.require('sdk/view/core');
+
+  const contentURL = 'data:text/html;charset=utf-8,' +
+    encodeURIComponent(`<body onclick='postMessage("got script click", "*")'>
+        <script>
+        document.body.appendChild(document.createElement('unwanted'))
+        </script>
+        </body>`);
+  let panel = Panel({
+    contentURL,
+    allow: {script: false},
+  });
+
+  panel.show();
+
+  yield wait(panel, 'show');
+
+  let { contentWindow } = getActiveView(panel).querySelector('iframe');
+
+  assert.equal(contentWindow.document.body.lastElementChild.localName, "script",
+               "Script should not have executed");
+
+  panel.allow.script = true;
+
+  let p = wait(contentWindow, "message");
+  let event = new contentWindow.MouseEvent('click', {});
+  contentWindow.document.body.dispatchEvent(event);
+
+  let msg = yield p;
+  assert.equal(msg.data, "got script click", "Should have seen script click");
+
+  loader.unload();
+};
+
+after(exports, function*(name, assert) {
+  yield cleanUI();
+  assert.pass("ui was cleaned.");
+});
+
+if (isTravisCI) {
+  module.exports = {
+    "test skip on jpm": (assert) => assert.pass("skipping this file with jpm")
+  };
+}
+
+require("sdk/test").run(exports);

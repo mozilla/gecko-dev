@@ -45,7 +45,7 @@ public class HomePager extends ViewPager {
     private final OnAddPanelListener mAddPanelListener;
 
     private final HomeConfig mConfig;
-    private ConfigLoaderCallbacks mConfigLoaderCallbacks;
+    private final ConfigLoaderCallbacks mConfigLoaderCallbacks;
 
     private String mInitialPanelId;
 
@@ -81,8 +81,25 @@ public class HomePager extends ViewPager {
         public void onUrlOpen(String url, EnumSet<Flags> flags);
     }
 
-    public interface OnNewTabsListener {
-        public void onNewTabs(List<String> urls);
+    /**
+     * Interface for requesting a new tab be opened in the background.
+     * <p>
+     * This is the <code>HomeFragment</code> equivalent of opening a new tab by
+     * long clicking a link and selecting the "Open new [private] tab" context
+     * menu option.
+     */
+    public interface OnUrlOpenInBackgroundListener {
+        public enum Flags {
+            PRIVATE,
+        }
+
+        /**
+         * Open a new tab with the given URL
+         *
+         * @param url to open.
+         * @param flags to open new tab with.
+         */
+        public void onUrlOpenInBackground(String url, EnumSet<Flags> flags);
     }
 
     /**
@@ -97,19 +114,15 @@ public class HomePager extends ViewPager {
         public void onPanelSelected(String panelId);
     }
 
-    interface OnTitleClickListener {
-        public void onTitleClicked(int index);
-    }
-
     /**
      * Special type of child views that could be added as pager decorations by default.
      */
-    interface Decor {
-        public void onAddPagerView(String title);
-        public void removeAllPagerViews();
-        public void onPageSelected(int position);
-        public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels);
-        public void setOnTitleClickListener(OnTitleClickListener onTitleClickListener);
+    public interface Decor {
+        void onAddPagerView(String title);
+        void removeAllPagerViews();
+        void onPageSelected(int position);
+        void onPageScrolled(int position, float positionOffset, int positionOffsetPixels);
+        void setOnTitleClickListener(TabMenuStrip.OnTitleClickListener onTitleClickListener);
     }
 
     /**
@@ -168,14 +181,12 @@ public class HomePager extends ViewPager {
             mDecor = (Decor) child;
             mTabStrip = child;
 
-            mDecor.setOnTitleClickListener(new OnTitleClickListener() {
+            mDecor.setOnTitleClickListener(new TabMenuStrip.OnTitleClickListener() {
                 @Override
                 public void onTitleClicked(int index) {
                     setCurrentItem(index, true);
                 }
             });
-        } else if (child instanceof HomePagerTabStrip) {
-            mTabStrip = child;
         }
 
         super.addView(child, index, params);
@@ -202,7 +213,7 @@ public class HomePager extends ViewPager {
 
         final HomeAdapter adapter = new HomeAdapter(mContext, fm);
         adapter.setOnAddPanelListener(mAddPanelListener);
-        adapter.setCanLoadHint(!shouldAnimate);
+        adapter.setCanLoadHint(true);
         setAdapter(adapter);
 
         // Don't show the tabs strip until we have the
@@ -222,7 +233,6 @@ public class HomePager extends ViewPager {
                 @Override
                 public void onPropertyAnimationEnd() {
                     setLayerType(View.LAYER_TYPE_NONE, null);
-                    adapter.setCanLoadHint(true);
                 }
             });
 
@@ -352,9 +362,7 @@ public class HomePager extends ViewPager {
         final HomeAdapter adapter = (HomeAdapter) getAdapter();
 
         // Disable any fragment loading until we have the initial
-        // panel selection done. Store previous value to restore
-        // it if necessary once the UI is fully updated.
-        final boolean canLoadHint = adapter.getCanLoadHint();
+        // panel selection done.
         adapter.setCanLoadHint(false);
 
         // Destroy any existing panels currently loaded
@@ -415,19 +423,15 @@ public class HomePager extends ViewPager {
             }
         }
 
-        // If the load hint was originally true, this means the pager
-        // is not animating and it's fine to restore the load hint back.
-        if (canLoadHint) {
-            // The selection is updated asynchronously so we need to post to
-            // UI thread to give the pager time to commit the new page selection
-            // internally and load the right initial panel.
-            ThreadUtils.getUiHandler().post(new Runnable() {
-                @Override
-                public void run() {
-                    adapter.setCanLoadHint(true);
-                }
-            });
-        }
+        // The selection is updated asynchronously so we need to post to
+        // UI thread to give the pager time to commit the new page selection
+        // internally and load the right initial panel.
+        ThreadUtils.getUiHandler().post(new Runnable() {
+            @Override
+            public void run() {
+                adapter.setCanLoadHint(true);
+            }
+        });
     }
 
     public void setOnPanelChangeListener(OnPanelChangeListener listener) {

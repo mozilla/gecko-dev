@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "RtspChannelParent.h"
+#include "nsContentSecurityManager.h"
 
 using namespace mozilla::ipc;
 
@@ -50,9 +51,8 @@ RtspChannelParent::Init(const RtspChannelConnectArgs& aArgs)
 bool
 RtspChannelParent::ConnectChannel(const uint32_t& channelId)
 {
-  nsresult rv;
   nsCOMPtr<nsIChannel> channel;
-  rv = NS_LinkRedirectChannels(channelId, this, getter_AddRefs(channel));
+  NS_LinkRedirectChannels(channelId, this, getter_AddRefs(channel));
 
   return true;
 }
@@ -69,6 +69,12 @@ RtspChannelParent::GetContentType(nsACString& aContentType)
 
 NS_IMETHODIMP
 RtspChannelParent::AsyncOpen(nsIStreamListener *aListener, nsISupports *aContext)
+{
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+RtspChannelParent::AsyncOpen2(nsIStreamListener *aListener)
 {
   return NS_OK;
 }
@@ -147,6 +153,13 @@ RtspChannelParent::OpenContentStream(bool aAsync,
 NS_IMETHODIMP
 RtspChannelParent::SetParentListener(HttpChannelParentListener *aListener)
 {
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+RtspChannelParent::NotifyTrackingProtectionDisabled()
+{
+  // One day, this should probably be filled in.
   return NS_OK;
 }
 

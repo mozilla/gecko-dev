@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import
+
 import os
 import stat
 
@@ -10,7 +12,7 @@ from mozpack.files import (
     BaseFile,
     Dest,
 )
-import mozpack.path
+import mozpack.path as mozpath
 import errno
 from collections import (
     Counter,
@@ -33,17 +35,23 @@ class FileRegistry(object):
     def __init__(self):
         self._files = OrderedDict()
         self._required_directories = Counter()
+        self._partial_paths_cache = {}
 
     def _partial_paths(self, path):
         '''
         Turn "foo/bar/baz/zot" into ["foo/bar/baz", "foo/bar", "foo"].
         '''
-        partial_paths = []
-        partial_path = path
-        while partial_path:
-            partial_path = mozpack.path.dirname(partial_path)
-            if partial_path:
-                partial_paths.append(partial_path)
+        dir_name = path.rpartition('/')[0]
+        if not dir_name:
+            return []
+
+        partial_paths = self._partial_paths_cache.get(dir_name)
+        if partial_paths:
+            return partial_paths
+
+        partial_paths = [dir_name] + self._partial_paths(dir_name)
+
+        self._partial_paths_cache[dir_name] = partial_paths
         return partial_paths
 
     def add(self, path, content):
@@ -73,13 +81,13 @@ class FileRegistry(object):
         '''
         if '*' in pattern:
             return [p for p in self.paths()
-                    if mozpack.path.match(p, pattern)]
+                    if mozpath.match(p, pattern)]
         if pattern == '':
             return self.paths()
         if pattern in self._files:
             return [pattern]
         return [p for p in self.paths()
-                if mozpack.path.basedir(p, [pattern]) == pattern]
+                if mozpath.basedir(p, [pattern]) == pattern]
 
     def remove(self, pattern):
         '''
@@ -142,6 +150,52 @@ class FileRegistry(object):
         directory).
         '''
         return set(k for k, v in self._required_directories.items() if v > 0)
+
+
+class FileRegistrySubtree(object):
+    '''A proxy class to give access to a subtree of an existing FileRegistry.
+
+    Note this doesn't implement the whole FileRegistry interface.'''
+    def __new__(cls, base, registry):
+        if not base:
+            return registry
+        return object.__new__(cls)
+
+    def __init__(self, base, registry):
+        self._base = base
+        self._registry = registry
+
+    def _get_path(self, path):
+        # mozpath.join will return a trailing slash if path is empty, and we
+        # don't want that.
+        return mozpath.join(self._base, path) if path else self._base
+
+    def add(self, path, content):
+        return self._registry.add(self._get_path(path), content)
+
+    def match(self, pattern):
+        return [mozpath.relpath(p, self._base)
+                for p in self._registry.match(self._get_path(pattern))]
+
+    def remove(self, pattern):
+        return self._registry.remove(self._get_path(pattern))
+
+    def paths(self):
+        return [p for p, f in self]
+
+    def __len__(self):
+        return len(self.paths())
+
+    def contains(self, pattern):
+        return self._registry.contains(self._get_path(pattern))
+
+    def __getitem__(self, path):
+        return self._registry[self._get_path(path)]
+
+    def __iter__(self):
+        for p, f in self._registry:
+            if mozpath.basedir(p, [self._base]):
+                yield mozpath.relpath(p, self._base), f
 
 
 class FileCopyResult(object):
@@ -315,6 +369,14 @@ class FileCopier(FileRegistry):
 
         # Now we reconcile the state of the world against what we want.
 
+        # Install files.
+        for p, f in self:
+            destfile = os.path.normpath(os.path.join(destination, p))
+            if f.copy(destfile, skip_if_older):
+                result.updated_files.add(destfile)
+            else:
+                result.existing_files.add(destfile)
+
         # Remove files no longer accounted for.
         if remove_unaccounted:
             for f in existing_files - dest_files:
@@ -326,14 +388,6 @@ class FileCopier(FileRegistry):
 
                 os.remove(f)
                 result.removed_files.add(f)
-
-        # Install files.
-        for p, f in self:
-            destfile = os.path.normpath(os.path.join(destination, p))
-            if f.copy(destfile, skip_if_older):
-                result.updated_files.add(destfile)
-            else:
-                result.existing_files.add(destfile)
 
         if not remove_empty_directories:
             return result

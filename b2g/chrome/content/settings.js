@@ -6,13 +6,21 @@
 
 "use strict";
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
-const Cr = Components.results;
+window.performance.mark('gecko-settings-loadstart');
 
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
+var Cr = Components.results;
+
+// The load order is important here SettingsRequestManager _must_ be loaded
+// prior to using SettingsListener otherwise there is a race in acquiring the
+// lock and fulfilling it. If we ever move SettingsListener or this file down in
+// the load order of shell.html things will likely break.
+Cu.import('resource://gre/modules/SettingsRequestManager.jsm');
 Cu.import('resource://gre/modules/XPCOMUtils.jsm');
 Cu.import('resource://gre/modules/Services.jsm');
+Cu.import('resource://gre/modules/AppConstants.jsm');
 
 #ifdef MOZ_WIDGET_GONK
 XPCOMUtils.defineLazyGetter(this, "libcutils", function () {
@@ -24,6 +32,10 @@ XPCOMUtils.defineLazyGetter(this, "libcutils", function () {
 XPCOMUtils.defineLazyServiceGetter(this, "uuidgen",
                                    "@mozilla.org/uuid-generator;1",
                                    "nsIUUIDGenerator");
+
+XPCOMUtils.defineLazyServiceGetter(this, "gPACGenerator",
+                                   "@mozilla.org/pac-generator;1",
+                                   "nsIPACGenerator");
 
 // Once Bug 731746 - Allow chrome JS object to implement nsIDOMEventTarget
 // is resolved this helper could be removed.
@@ -66,11 +78,21 @@ var SettingsListener = {
 
 SettingsListener.init();
 
+// =================== Mono Audio ======================
+
+SettingsListener.observe('accessibility.monoaudio.enable', false, function(value) {
+  Services.prefs.setBoolPref('accessibility.monoaudio.enable', value);
+});
+
 // =================== Console ======================
 
 SettingsListener.observe('debug.console.enabled', true, function(value) {
   Services.prefs.setBoolPref('consoleservice.enabled', value);
   Services.prefs.setBoolPref('layout.css.report_errors', value);
+});
+
+SettingsListener.observe('homescreen.manifestURL', 'Sentinel Value' , function(value) {
+  Services.prefs.setCharPref('dom.mozApps.homescreenURL', value);
 });
 
 // =================== Languages ====================
@@ -99,27 +121,20 @@ SettingsListener.observe('language.current', 'en-US', function(value) {
   Services.prefs.setCharPref(prefName, value);
 
   if (shell.hasStarted() == false) {
-    shell.start();
+    // On b2gdroid at first run we need to synchronize our wallpaper with
+    // Android one's before bootstrapping.
+    if (AppConstants.MOZ_B2GDROID) {
+      Cc["@mozilla.org/b2g/b2gdroid-setup;1"]
+        .getService().wrappedJSObject.setWallpaper()
+        .then(() => { shell.bootstrap(); });
+    } else {
+      shell.bootstrap();
+    }
   }
 });
 
 // =================== RIL ====================
 (function RILSettingsToPrefs() {
-  let strPrefs = ['ril.mms.mmsc', 'ril.mms.mmsproxy'];
-  strPrefs.forEach(function(key) {
-    SettingsListener.observe(key, "", function(value) {
-      Services.prefs.setCharPref(key, value);
-    });
-  });
-
-  ['ril.mms.mmsport'].forEach(function(key) {
-    SettingsListener.observe(key, null, function(value) {
-      if (value != null) {
-        Services.prefs.setIntPref(key, value);
-      }
-    });
-  });
-
   // DSDS default service IDs
   ['mms', 'sms', 'telephony', 'voicemail'].forEach(function(key) {
     SettingsListener.observe('ril.' + key + '.defaultServiceId', 0,
@@ -148,11 +163,17 @@ Components.utils.import('resource://gre/modules/ctypes.jsm');
   // Get the hardware info and firmware revision from device properties.
   let hardware_info = null;
   let firmware_revision = null;
+  let product_manufacturer = null;
   let product_model = null;
+  let product_device = null;
+  let build_number = null;
 #ifdef MOZ_WIDGET_GONK
     hardware_info = libcutils.property_get('ro.hardware');
     firmware_revision = libcutils.property_get('ro.firmware_revision');
+    product_manufacturer = libcutils.property_get('ro.product.manufacturer');
     product_model = libcutils.property_get('ro.product.model');
+    product_device = libcutils.property_get('ro.product.device');
+    build_number = libcutils.property_get('ro.build.version.incremental');
 #endif
 
   // Populate deviceinfo settings,
@@ -163,6 +184,7 @@ Components.utils.import('resource://gre/modules/ctypes.jsm');
     let previous_os = req.result && req.result['deviceinfo.os'] || '';
     let software = os_name + ' ' + os_version;
     let setting = {
+      'deviceinfo.build_number': build_number,
       'deviceinfo.os': os_version,
       'deviceinfo.previous_os': previous_os,
       'deviceinfo.software': software,
@@ -170,15 +192,17 @@ Components.utils.import('resource://gre/modules/ctypes.jsm');
       'deviceinfo.platform_build_id': appInfo.platformBuildID,
       'deviceinfo.hardware': hardware_info,
       'deviceinfo.firmware_revision': firmware_revision,
-      'deviceinfo.product_model': product_model
+      'deviceinfo.product_manufacturer': product_manufacturer,
+      'deviceinfo.product_model': product_model,
+      'deviceinfo.product_device': product_device
     }
     lock.set(setting);
   }
 })();
 
-// =================== DevTools HUD ====================
+// =================== DevTools ====================
 
-let developerHUD;
+var developerHUD;
 SettingsListener.observe('devtools.overlay', false, (value) => {
   if (value) {
     if (!developerHUD) {
@@ -195,19 +219,28 @@ SettingsListener.observe('devtools.overlay', false, (value) => {
 });
 
 #ifdef MOZ_WIDGET_GONK
-let LogShake;
-SettingsListener.observe('devtools.logshake', false, (value) => {
+
+var LogShake;
+(function() {
+  let scope = {};
+  Cu.import('resource://gre/modules/LogShake.jsm', scope);
+  LogShake = scope.LogShake;
+  LogShake.init();
+})();
+
+SettingsListener.observe('devtools.logshake.enabled', false, value => {
   if (value) {
-    if (!LogShake) {
-      let scope = {};
-      Cu.import('resource://gre/modules/LogShake.jsm', scope);
-      LogShake = scope.LogShake;
-    }
-    LogShake.init();
+    LogShake.enableDeviceMotionListener();
   } else {
-    if (LogShake) {
-      LogShake.uninit();
-    }
+    LogShake.disableDeviceMotionListener();
+  }
+});
+
+SettingsListener.observe('devtools.logshake.qa_enabled', false, value => {
+  if (value) {
+    LogShake.enableQAMode();
+  } else {
+    LogShake.disableQAMode();
   }
 });
 #endif
@@ -282,6 +315,55 @@ function setUpdateTrackingId() {
 }
 setUpdateTrackingId();
 
+(function syncUpdatePrefs() {
+  // The update service reads the prefs from the default branch. This is by
+  // design, as explained in bug 302721 comment 43. If we are to successfully
+  // modify them, that's where we need to make our changes.
+  let defaultBranch = Services.prefs.getDefaultBranch(null);
+
+  function syncPrefDefault(prefName) {
+    // The pref value at boot-time will serve as default for the setting.
+    let defaultValue = defaultBranch.getCharPref(prefName);
+    let defaultSetting = {};
+    defaultSetting[prefName] = defaultValue;
+
+    // We back up that value in order to detect pref changes across reboots.
+    // Such a change can happen e.g. when the user installs an OTA update that
+    // changes the update URL format.
+    let backupName = prefName + '.old';
+    try {
+      // Everything relies on the comparison below: When pushing a new Gecko
+      // that changes app.update.url or app.update.channel, we overwrite any
+      // existing setting with the new pref value.
+      let backupValue = Services.prefs.getCharPref(backupName);
+      if (defaultValue !== backupValue) {
+        // If the pref has changed since our last backup, overwrite the setting.
+        navigator.mozSettings.createLock().set(defaultSetting);
+      }
+    } catch(e) {
+      // There was no backup: Overwrite the setting and create a backup below.
+      navigator.mozSettings.createLock().set(defaultSetting);
+    }
+
+    // Initialize or update the backup value.
+    Services.prefs.setCharPref(backupName, defaultValue);
+
+    // Propagate setting changes to the pref.
+    SettingsListener.observe(prefName, defaultValue, value => {
+      if (!value) {
+        // If the setting value is invalid, reset it to its default.
+        navigator.mozSettings.createLock().set(defaultSetting);
+        return;
+      }
+      // Here we will overwrite the pref with the setting value.
+      defaultBranch.setCharPref(prefName, value);
+    });
+  }
+
+  syncPrefDefault(AppConstants.MOZ_B2GDROID ? 'app.update.url.android'
+                                            : 'app.update.url');
+  syncPrefDefault('app.update.channel');
+})();
 
 // ================ Debug ================
 (function Composer2DSettingToPref() {
@@ -455,19 +537,95 @@ SettingsListener.observe("theme.selected",
   }
 });
 
+// =================== Proxy server ======================
+(function setupBrowsingProxySettings() {
+  function setPAC() {
+    let usePAC;
+    try {
+      usePAC = Services.prefs.getBoolPref('network.proxy.pac_generator');
+    } catch (ex) {}
+
+    if (usePAC) {
+      Services.prefs.setCharPref('network.proxy.autoconfig_url',
+                                 gPACGenerator.generate());
+      Services.prefs.setIntPref('network.proxy.type',
+                                Ci.nsIProtocolProxyService.PROXYCONFIG_PAC);
+    }
+  }
+
+  SettingsListener.observe('browser.proxy.enabled', false, function(value) {
+    Services.prefs.setBoolPref('network.proxy.browsing.enabled', value);
+    setPAC();
+  });
+
+  SettingsListener.observe('browser.proxy.host', '', function(value) {
+    Services.prefs.setCharPref('network.proxy.browsing.host', value);
+    setPAC();
+  });
+
+  SettingsListener.observe('browser.proxy.port', 0, function(value) {
+    Services.prefs.setIntPref('network.proxy.browsing.port', value);
+    setPAC();
+  });
+
+  setPAC();
+})();
+
+#ifdef MOZ_B2G_RIL
+XPCOMUtils.defineLazyModuleGetter(this, "AppsUtils",
+                                  "resource://gre/modules/AppsUtils.jsm");
+
+// ======================= Dogfooders FOTA ==========================
+SettingsListener.observe('debug.performance_data.dogfooding', false,
+  isDogfooder => {
+    if (!isDogfooder) {
+      dump('AUS:Settings: Not a dogfooder!\n');
+      return;
+    }
+
+    if (!('mozTelephony' in navigator)) {
+      dump('AUS:Settings: There is no mozTelephony!\n');
+      return;
+    }
+
+    if (!('mozMobileConnections' in navigator)) {
+      dump('AUS:Settings: There is no mozMobileConnections!\n');
+      return;
+    }
+
+    let conn = navigator.mozMobileConnections[0];
+    conn.addEventListener('radiostatechange', function onradiostatechange() {
+      if (conn.radioState !== 'enabled') {
+        return;
+      }
+
+      conn.removeEventListener('radiostatechange', onradiostatechange);
+      navigator.mozTelephony.dial('*#06#').then(call => {
+        return call.result.then(res => {
+          if (res.success && res.statusMessage
+              && (res.serviceCode === 'scImei')) {
+            Services.prefs.setCharPref("app.update.imei_hash",
+                                       AppsUtils.computeHash(res.statusMessage, "SHA512"));
+          }
+        });
+      });
+    });
+  });
+#endif
+
 // =================== Various simple mapping  ======================
-let settingsToObserve = {
-  'app.update.channel': {
-    resetToPref: true
+var settingsToObserve = {
+  'accessibility.screenreader_quicknav_modes': {
+    prefName: 'accessibility.accessfu.quicknav_modes',
+    resetToPref: true,
+    defaultValue: ''
+  },
+  'accessibility.screenreader_quicknav_index': {
+    prefName: 'accessibility.accessfu.quicknav_index',
+    resetToPref: true,
+    defaultValue: 0
   },
   'app.update.interval': 86400,
-  'app.update.url': {
-    resetToPref: true
-  },
-  'apz.force-enable': {
-    prefName: 'dom.browser_frames.useAsyncPanZoom',
-    defaultValue: false
-  },
   'apz.overscroll.enabled': true,
   'debug.fps.enabled': {
     prefName: 'layers.acceleration.draw-fps',
@@ -481,20 +639,48 @@ let settingsToObserve = {
     prefName: 'nglayout.debug.paint_flashing',
     defaultValue: false
   },
+  // FIXME: Bug 1185806 - Provide a common device name setting.
+  // Borrow device name from developer's menu to avoid multiple name settings.
+  'devtools.discovery.device': {
+    prefName: 'dom.presentation.device.name',
+    defaultValue: 'Firefox OS'
+  },
   'devtools.eventlooplag.threshold': 100,
   'devtools.remote.wifi.visible': {
     resetToPref: true
   },
+  'devtools.telemetry.supported_performance_marks': {
+    resetToPref: true
+  },
+
   'dom.mozApps.use_reviewer_certs': false,
+  'dom.mozApps.signed_apps_installable_from': 'https://marketplace.firefox.com',
+  'dom.presentation.discovery.enabled': false,
+  'dom.presentation.discoverable': false,
+  'dom.serviceWorkers.interception.enabled': true,
+  'dom.serviceWorkers.testing.enabled': false,
+  'gfx.layerscope.enabled': false,
   'layers.draw-borders': false,
   'layers.draw-tile-borders': false,
   'layers.dump': false,
+#ifdef XP_WIN
+  'layers.enable-tiles': false,
+#else
   'layers.enable-tiles': true,
-  'layers.simple-tiles': false,
+#endif
   'layers.effect.invert': false,
   'layers.effect.grayscale': false,
-  'layers.effect.contrast': "0.0",
+  'layers.effect.contrast': '0.0',
+#ifdef MOZ_GRAPHENE
+  // Restart required
+  'layers.async-pan-zoom.enabled': false,
+#endif
+  'layout.display-list.dump': false,
+  'mms.debugging.enabled': false,
+  'network.debugging.enabled': false,
   'privacy.donottrackheader.enabled': false,
+  'privacy.trackingprotection.enabled': false,
+  'ril.debugging.enabled': false,
   'ril.radio.disabled': false,
   'ril.mms.requestReadReport.enabled': {
     prefName: 'dom.mms.requestReadReport',
@@ -520,6 +706,10 @@ let settingsToObserve = {
     prefName: 'dom.sms.maxReadAheadEntries',
     defaultValue: 7
   },
+  'services.sync.enabled': {
+    defaultValue: false,
+    notifyChange: true
+  },
   'ui.touch.radius.leftmm': {
     resetToPref: true
   },
@@ -532,9 +722,24 @@ let settingsToObserve = {
   'ui.touch.radius.bottommm': {
     resetToPref: true
   },
+  'ui.click_hold_context_menus.delay': {
+    resetToPref: true
+  },
   'wap.UAProf.tagname': 'x-wap-profile',
   'wap.UAProf.url': ''
 };
+
+function settingObserver(setPref, prefName, setting) {
+  return value => {
+    setPref(prefName, value);
+    if (setting.notifyChange) {
+      SystemAppProxy._sendCustomEvent('mozPrefChromeEvent', {
+        prefName: prefName,
+        value: value
+      });
+    }
+  };
+}
 
 for (let key in settingsToObserve) {
   let setting = settingsToObserve[key];
@@ -585,8 +790,6 @@ for (let key in settingsToObserve) {
       break;
   }
 
-  SettingsListener.observe(key, defaultValue, function(value) {
-    setPref(prefName, value);
-  });
+  SettingsListener.observe(key, defaultValue,
+                           settingObserver(setPref, prefName, setting));
 };
-

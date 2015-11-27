@@ -10,6 +10,7 @@
 #include "nsCSSProps.h"
 #include "nsRuleNode.h"
 #include "nsROCSSPrimitiveValue.h"
+#include "nsStyleStruct.h"
 #include "nsIContentPolicy.h"
 #include "nsIContentSecurityPolicy.h"
 #include "nsIURI.h"
@@ -62,7 +63,7 @@ void nsStyleUtil::AppendEscapedCSSString(const nsAString& aString,
   for (; in != end; in++) {
     if (*in < 0x20 || (*in >= 0x7F && *in < 0xA0)) {
       // Escape U+0000 through U+001F and U+007F through U+009F numerically.
-      aReturn.AppendPrintf("\\%hX ", *in);
+      aReturn.AppendPrintf("\\%hx ", *in);
     } else {
       if (*in == '"' || *in == '\'' || *in == '\\') {
         // Escape backslash and quote characters symbolically.
@@ -116,7 +117,7 @@ nsStyleUtil::AppendEscapedCSSIdent(const nsAString& aIdent, nsAString& aReturn)
   // numerically.  If we didn't escape it numerically, it would get
   // interpreted as a numeric escape for the wrong character.
   if (in != end && ('0' <= *in && *in <= '9')) {
-    aReturn.AppendPrintf("\\%hX ", *in);
+    aReturn.AppendPrintf("\\%hx ", *in);
     ++in;
   }
 
@@ -127,7 +128,7 @@ nsStyleUtil::AppendEscapedCSSIdent(const nsAString& aIdent, nsAString& aReturn)
     }
     if (ch < 0x20 || (0x7F <= ch && ch < 0xA0)) {
       // Escape U+0000 through U+001F and U+007F through U+009F numerically.
-      aReturn.AppendPrintf("\\%hX ", *in);
+      aReturn.AppendPrintf("\\%hx ", *in);
     } else {
       // Escape ASCII non-identifier printables as a backslash plus
       // the character.
@@ -215,7 +216,7 @@ nsStyleUtil::AppendBitmaskCSSValue(nsCSSProperty aProperty,
       }
     }
   }
-  NS_ABORT_IF_FALSE(aMaskedValue == 0, "unexpected bit remaining in bitfield");
+  MOZ_ASSERT(aMaskedValue == 0, "unexpected bit remaining in bitfield");
 }
 
 /* static */ void
@@ -462,11 +463,10 @@ nsStyleUtil::ComputeFunctionalAlternates(const nsCSSValueList* aList,
   }
 }
 
-// print all characters with at least four hex digits
 static void
 AppendSerializedUnicodePoint(uint32_t aCode, nsACString& aBuf)
 {
-  aBuf.Append(nsPrintfCString("%04X", aCode));
+  aBuf.Append(nsPrintfCString("%0X", aCode));
 }
 
 // A unicode-range: descriptor is represented as an array of integers,
@@ -486,8 +486,8 @@ nsStyleUtil::AppendUnicodeRange(const nsCSSValue& aValue, nsAString& aResult)
   nsCSSValue::Array const & sources = *aValue.GetArrayValue();
   nsAutoCString buf;
 
-  NS_ABORT_IF_FALSE(sources.Count() % 2 == 0,
-                    "odd number of entries in a unicode-range: array");
+  MOZ_ASSERT(sources.Count() % 2 == 0,
+             "odd number of entries in a unicode-range: array");
 
   for (uint32_t i = 0; i < sources.Count(); i += 2) {
     uint32_t min = sources[i].GetIntValue();
@@ -562,6 +562,84 @@ nsStyleUtil::AppendSerializedFontSrc(const nsCSSValue& aValue,
   aResult.Truncate(aResult.Length() - 2); // remove the last comma-space
 }
 
+/* static */ void
+nsStyleUtil::AppendStepsTimingFunction(nsTimingFunction::Type aType,
+                                       uint32_t aSteps,
+                                       nsTimingFunction::StepSyntax aSyntax,
+                                       nsAString& aResult)
+{
+  MOZ_ASSERT(aType == nsTimingFunction::Type::StepStart ||
+             aType == nsTimingFunction::Type::StepEnd);
+
+  if (aSyntax == nsTimingFunction::StepSyntax::Keyword) {
+    if (aType == nsTimingFunction::Type::StepStart) {
+      aResult.AppendLiteral("step-start");
+    } else {
+      aResult.AppendLiteral("step-end");
+    }
+    return;
+  }
+
+  aResult.AppendLiteral("steps(");
+  aResult.AppendInt(aSteps);
+  switch (aSyntax) {
+    case nsTimingFunction::StepSyntax::Keyword:
+      // handled above
+      break;
+    case nsTimingFunction::StepSyntax::FunctionalWithStartKeyword:
+      aResult.AppendLiteral(", start)");
+      break;
+    case nsTimingFunction::StepSyntax::FunctionalWithEndKeyword:
+      aResult.AppendLiteral(", end)");
+      break;
+    case nsTimingFunction::StepSyntax::FunctionalWithoutKeyword:
+      aResult.Append(')');
+      break;
+  }
+}
+
+/* static */ void
+nsStyleUtil::AppendCubicBezierTimingFunction(float aX1, float aY1,
+                                             float aX2, float aY2,
+                                             nsAString& aResult)
+{
+  // set the value from the cubic-bezier control points
+  // (We could try to regenerate the keywords if we want.)
+  aResult.AppendLiteral("cubic-bezier(");
+  aResult.AppendFloat(aX1);
+  aResult.AppendLiteral(", ");
+  aResult.AppendFloat(aY1);
+  aResult.AppendLiteral(", ");
+  aResult.AppendFloat(aX2);
+  aResult.AppendLiteral(", ");
+  aResult.AppendFloat(aY2);
+  aResult.Append(')');
+}
+
+/* static */ void
+nsStyleUtil::AppendCubicBezierKeywordTimingFunction(
+    nsTimingFunction::Type aType,
+    nsAString& aResult)
+{
+  switch (aType) {
+    case nsTimingFunction::Type::Ease:
+    case nsTimingFunction::Type::Linear:
+    case nsTimingFunction::Type::EaseIn:
+    case nsTimingFunction::Type::EaseOut:
+    case nsTimingFunction::Type::EaseInOut: {
+      nsCSSKeyword keyword = nsCSSProps::ValueToKeywordEnum(
+          static_cast<int32_t>(aType),
+          nsCSSProps::kTransitionTimingFunctionKTable);
+      AppendASCIItoUTF16(nsCSSKeywords::GetStringValue(keyword),
+                         aResult);
+      break;
+    }
+    default:
+      MOZ_ASSERT_UNREACHABLE("unexpected aType");
+      break;
+  }
+}
+
 /* static */ float
 nsStyleUtil::ColorComponentToFloat(uint8_t aAlpha)
 {
@@ -596,28 +674,56 @@ nsStyleUtil::IsSignificantChild(nsIContent* aChild, bool aTextIsSignificant,
           !aChild->TextIsOnlyWhitespace());
 }
 
-/* static */ bool
-nsStyleUtil::IsFlexBasisMainSize(const nsStyleCoord& aFlexBasis,
-                                 bool aIsMainAxisHorizontal)
+// For a replaced element whose concrete object size is no larger than the
+// element's content-box, this method checks whether the given
+// "object-position" coordinate might cause overflow in its dimension.
+typedef nsStyleBackground::Position::PositionCoord PositionCoord;
+static bool
+ObjectPositionCoordMightCauseOverflow(const PositionCoord& aCoord)
 {
-  // "main-size" is stored as an enumerated value; so if we're not enumerated,
-  // we're not "main-size".
-  if (aFlexBasis.GetUnit() != eStyleUnit_Enumerated) {
-    return false;
-  }
-
-  if (!aIsMainAxisHorizontal) {
-    // Special case for vertical flex items: We don't support any enumerated
-    // values (e.g. "-moz-max-content") for "height"-flavored properties
-    // yet. So, if our computed flex-basis is *any* enumerated value, we'll
-    // just behave as if it were "main-size" (the initial value of flex-basis).
-    // NOTE: Once we support intrinsic sizing keywords for "height",
-    // we can remove this special-case.
+  // Any nonzero length in "object-position" can push us to overflow
+  // (particularly if our concrete object size is exactly the same size as the
+  // replaced element's content-box).
+  if (aCoord.mLength != 0) {
     return true;
   }
 
-  return aFlexBasis.GetIntValue() == NS_STYLE_FLEX_BASIS_MAIN_SIZE;
+  // Percentages are interpreted as a fraction of the extra space. So,
+  // percentages in the 0-100% range are safe, but values outside of that
+  // range could cause overflow.
+  if (aCoord.mHasPercent &&
+      (aCoord.mPercent < 0.0f || aCoord.mPercent > 1.0f)) {
+    return true;
+  }
+  return false;
 }
+
+
+/* static */ bool
+nsStyleUtil::ObjectPropsMightCauseOverflow(const nsStylePosition* aStylePos)
+{
+  auto objectFit = aStylePos->mObjectFit;
+
+  // "object-fit: cover" & "object-fit: none" can give us a render rect that's
+  // larger than our container element's content-box.
+  if (objectFit == NS_STYLE_OBJECT_FIT_COVER ||
+      objectFit == NS_STYLE_OBJECT_FIT_NONE) {
+    return true;
+  }
+  // (All other object-fit values produce a concrete object size that's no larger
+  // than the constraint region.)
+
+  // Check each of our "object-position" coords to see if it could cause
+  // overflow in its dimension:
+  const nsStyleBackground::Position& objectPosistion = aStylePos->mObjectPosition;
+  if (ObjectPositionCoordMightCauseOverflow(objectPosistion.mXPosition) ||
+      ObjectPositionCoordMightCauseOverflow(objectPosistion.mYPosition)) {
+    return true;
+  }
+
+  return false;
+}
+
 
 /* static */ bool
 nsStyleUtil::CSPAllowsInlineStyle(nsIContent* aContent,
@@ -633,7 +739,7 @@ nsStyleUtil::CSPAllowsInlineStyle(nsIContent* aContent,
     *aRv = NS_OK;
   }
 
-  MOZ_ASSERT(!aContent || aContent->Tag() == nsGkAtoms::style,
+  MOZ_ASSERT(!aContent || aContent->NodeInfo()->NameAtom() == nsGkAtoms::style,
       "aContent passed to CSPAllowsInlineStyle "
       "for an element that is not <style>");
 
@@ -651,106 +757,17 @@ nsStyleUtil::CSPAllowsInlineStyle(nsIContent* aContent,
     return true;
   }
 
-  // An inline style can be allowed because all inline styles are allowed,
-  // or else because it is whitelisted by a nonce-source or hash-source. This
-  // is a logical OR between whitelisting methods, so the allowInlineStyle
-  // outparam can be reused for each check as long as we stop checking as soon
-  // as it is set to true. This also optimizes performance by avoiding the
-  // overhead of unnecessary checks.
-  bool allowInlineStyle = true;
-  nsAutoTArray<unsigned short, 3> violations;
-
-  bool reportInlineViolation;
-  rv = csp->GetAllowsInlineStyle(&reportInlineViolation, &allowInlineStyle);
-  if (NS_FAILED(rv)) {
-    if (aRv)
-      *aRv = rv;
-    return false;
-  }
-  if (reportInlineViolation) {
-    violations.AppendElement(static_cast<unsigned short>(
-          nsIContentSecurityPolicy::VIOLATION_TYPE_INLINE_STYLE));
-  }
-
+  // query the nonce
   nsAutoString nonce;
-  if (!allowInlineStyle) {
-    // We can only find a nonce if aContent is provided
-    bool foundNonce = !!aContent &&
-      aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::nonce, nonce);
-    if (foundNonce) {
-      bool reportNonceViolation;
-      rv = csp->GetAllowsNonce(nonce, nsIContentPolicy::TYPE_STYLESHEET,
-                               &reportNonceViolation, &allowInlineStyle);
-      if (NS_FAILED(rv)) {
-        if (aRv)
-          *aRv = rv;
-        return false;
-      }
-
-      if (reportNonceViolation) {
-        violations.AppendElement(static_cast<unsigned short>(
-              nsIContentSecurityPolicy::VIOLATION_TYPE_NONCE_STYLE));
-      }
-    }
+  if (aContent) {
+    aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::nonce, nonce);
   }
 
-  if (!allowInlineStyle) {
-    bool reportHashViolation;
-    rv = csp->GetAllowsHash(aStyleText, nsIContentPolicy::TYPE_STYLESHEET,
-                            &reportHashViolation, &allowInlineStyle);
-    if (NS_FAILED(rv)) {
-      if (aRv)
-        *aRv = rv;
-      return false;
-    }
-    if (reportHashViolation) {
-      violations.AppendElement(static_cast<unsigned short>(
-            nsIContentSecurityPolicy::VIOLATION_TYPE_HASH_STYLE));
-    }
-  }
+  bool allowInlineStyle = true;
+  rv = csp->GetAllowsInline(nsIContentPolicy::TYPE_STYLESHEET,
+                            nonce, aStyleText, aLineNumber,
+                            &allowInlineStyle);
+  NS_ENSURE_SUCCESS(rv, false);
 
-  // What violation(s) should be reported?
-  //
-  // 1. If the style tag has a nonce attribute, and the nonce does not match
-  // the policy, report VIOLATION_TYPE_NONCE_STYLE.
-  // 2. If the policy has at least one hash-source, and the hashed contents of
-  // the style tag did not match any of them, report VIOLATION_TYPE_HASH_STYLE
-  // 3. Otherwise, report VIOLATION_TYPE_INLINE_STYLE if appropriate.
-  //
-  // 1 and 2 may occur together, 3 should only occur by itself. Naturally,
-  // every VIOLATION_TYPE_NONCE_STYLE and VIOLATION_TYPE_HASH_STYLE are also
-  // VIOLATION_TYPE_INLINE_STYLE, but reporting the
-  // VIOLATION_TYPE_INLINE_STYLE is redundant and does not help the developer.
-  if (!violations.IsEmpty()) {
-    MOZ_ASSERT(violations[0] == nsIContentSecurityPolicy::VIOLATION_TYPE_INLINE_STYLE,
-               "How did we get any violations without an initial inline style violation?");
-    // This inline style is not allowed by CSP, so report the violation
-    nsAutoCString asciiSpec;
-    aSourceURI->GetAsciiSpec(asciiSpec);
-    nsAutoString styleSample(aStyleText);
-
-    // cap the length of the style sample at 40 chars.
-    if (styleSample.Length() > 40) {
-      styleSample.Truncate(40);
-      styleSample.AppendLiteral("...");
-    }
-
-    for (uint32_t i = 0; i < violations.Length(); i++) {
-      // Skip reporting the redundant inline style violation if there are
-      // other (nonce and/or hash violations) as well.
-      if (i > 0 || violations.Length() == 1) {
-        csp->LogViolationDetails(violations[i], NS_ConvertUTF8toUTF16(asciiSpec),
-                                 styleSample, aLineNumber, nonce, aStyleText);
-      }
-    }
-  }
-
-  if (!allowInlineStyle) {
-    NS_ASSERTION(!violations.IsEmpty(),
-        "CSP blocked inline style but is not reporting a violation");
-    // The inline style should be blocked.
-    return false;
-  }
-  // CSP allows inline styles.
-  return true;
+  return allowInlineStyle;
 }

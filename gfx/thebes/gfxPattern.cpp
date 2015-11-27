@@ -3,8 +3,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "gfxTypes.h"
 #include "gfxPattern.h"
+
+#include "gfxUtils.h"
+#include "gfxTypes.h"
 #include "gfxASurface.h"
 #include "gfxPlatform.h"
 #include "gfx2DGlue.h"
@@ -17,72 +19,50 @@
 
 using namespace mozilla::gfx;
 
-gfxPattern::gfxPattern(const gfxRGBA& aColor)
-  : mExtend(EXTEND_NONE)
+gfxPattern::gfxPattern(const Color& aColor)
+  : mExtend(ExtendMode::CLAMP)
 {
-  mGfxPattern =
-    new (mColorPattern.addr()) ColorPattern(Color(aColor.r, aColor.g, aColor.b, aColor.a));
+  mGfxPattern.InitColorPattern(ToDeviceColor(aColor));
 }
 
 // linear
 gfxPattern::gfxPattern(gfxFloat x0, gfxFloat y0, gfxFloat x1, gfxFloat y1)
-  : mExtend(EXTEND_NONE)
+  : mExtend(ExtendMode::CLAMP)
 {
-  mGfxPattern =
-    new (mLinearGradientPattern.addr()) LinearGradientPattern(Point(x0, y0),
-                                                              Point(x1, y1),
-                                                              nullptr);
+  mGfxPattern.InitLinearGradientPattern(Point(x0, y0), Point(x1, y1), nullptr);
 }
 
 // radial
 gfxPattern::gfxPattern(gfxFloat cx0, gfxFloat cy0, gfxFloat radius0,
                        gfxFloat cx1, gfxFloat cy1, gfxFloat radius1)
-  : mExtend(EXTEND_NONE)
+  : mExtend(ExtendMode::CLAMP)
 {
-  mGfxPattern =
-    new (mRadialGradientPattern.addr()) RadialGradientPattern(Point(cx0, cy0),
-                                                              Point(cx1, cy1),
-                                                              radius0, radius1,
-                                                              nullptr);
+  mGfxPattern.InitRadialGradientPattern(Point(cx0, cy0), Point(cx1, cy1),
+                                        radius0, radius1, nullptr);
 }
 
 // Azure
 gfxPattern::gfxPattern(SourceSurface *aSurface, const Matrix &aPatternToUserSpace)
   : mPatternToUserSpace(aPatternToUserSpace)
-  , mExtend(EXTEND_NONE)
+  , mExtend(ExtendMode::CLAMP)
 {
-  mGfxPattern = new (mSurfacePattern.addr())
-    SurfacePattern(aSurface, ToExtendMode(mExtend), Matrix(), // matrix is overridden in GetPattern()
-                   mozilla::gfx::Filter::GOOD);
-}
-
-gfxPattern::~gfxPattern()
-{
-  if (mGfxPattern) {
-    mGfxPattern->~Pattern();
-  }
+  mGfxPattern.InitSurfacePattern(aSurface, mExtend, Matrix(), // matrix is overridden in GetPattern()
+                                 mozilla::gfx::Filter::GOOD);
 }
 
 void
-gfxPattern::AddColorStop(gfxFloat offset, const gfxRGBA& c)
+gfxPattern::AddColorStop(gfxFloat offset, const Color& c)
 {
-  if (mGfxPattern->GetType() != PatternType::LINEAR_GRADIENT &&
-      mGfxPattern->GetType() != PatternType::RADIAL_GRADIENT) {
+  if (mGfxPattern.GetPattern()->GetType() != PatternType::LINEAR_GRADIENT &&
+      mGfxPattern.GetPattern()->GetType() != PatternType::RADIAL_GRADIENT) {
     return;
   }
 
   mStops = nullptr;
-  gfxRGBA color = c;
-  if (gfxPlatform::GetCMSMode() == eCMSMode_All) {
-    qcms_transform *transform = gfxPlatform::GetCMSRGBTransform();
-    if (transform) {
-      gfxPlatform::TransformPixel(color, color, transform);
-    }
-  }
 
   GradientStop stop;
   stop.offset = offset;
-  stop.color = ToColor(color);
+  stop.color = ToDeviceColor(c);
   mStopsList.AppendElement(stop);
 }
 
@@ -93,10 +73,9 @@ gfxPattern::SetColorStops(GradientStops* aStops)
 }
 
 void
-gfxPattern::CacheColorStops(DrawTarget *aDT)
+gfxPattern::CacheColorStops(const DrawTarget *aDT)
 {
-  mStops = gfxGradientCache::GetOrCreateGradientStops(aDT, mStopsList,
-                                                      ToExtendMode(mExtend));
+  mStops = gfxGradientCache::GetOrCreateGradientStops(aDT, mStopsList, mExtend);
 }
 
 void
@@ -126,7 +105,7 @@ gfxPattern::GetInverseMatrix() const
 }
 
 Pattern*
-gfxPattern::GetPattern(DrawTarget *aTarget,
+gfxPattern::GetPattern(const DrawTarget *aTarget,
                        Matrix *aOriginalUserToDevice)
 {
   Matrix patternToUser = mPatternToUserSpace;
@@ -152,91 +131,84 @@ gfxPattern::GetPattern(DrawTarget *aTarget,
   if (!mStops &&
       !mStopsList.IsEmpty()) {
     mStops = aTarget->CreateGradientStops(mStopsList.Elements(),
-                                          mStopsList.Length(),
-                                          ToExtendMode(mExtend));
+                                          mStopsList.Length(), mExtend);
   }
 
-  switch (mGfxPattern->GetType()) {
-  case PatternType::SURFACE:
-    mSurfacePattern.addr()->mMatrix = patternToUser;
-    mSurfacePattern.addr()->mExtendMode = ToExtendMode(mExtend);
+  switch (mGfxPattern.GetPattern()->GetType()) {
+  case PatternType::SURFACE: {
+    SurfacePattern* surfacePattern = static_cast<SurfacePattern*>(mGfxPattern.GetPattern());
+    surfacePattern->mMatrix = patternToUser;
+    surfacePattern->mExtendMode = mExtend;
     break;
-  case PatternType::LINEAR_GRADIENT:
-    mLinearGradientPattern.addr()->mMatrix = patternToUser;
-    mLinearGradientPattern.addr()->mStops = mStops;
+  }
+  case PatternType::LINEAR_GRADIENT: {
+    LinearGradientPattern* linearGradientPattern = static_cast<LinearGradientPattern*>(mGfxPattern.GetPattern());
+    linearGradientPattern->mMatrix = patternToUser;
+    linearGradientPattern->mStops = mStops;
     break;
-  case PatternType::RADIAL_GRADIENT:
-    mRadialGradientPattern.addr()->mMatrix = patternToUser;
-    mRadialGradientPattern.addr()->mStops = mStops;
+  }
+  case PatternType::RADIAL_GRADIENT: {
+    RadialGradientPattern* radialGradientPattern = static_cast<RadialGradientPattern*>(mGfxPattern.GetPattern());
+    radialGradientPattern->mMatrix = patternToUser;
+    radialGradientPattern->mStops = mStops;
     break;
+  }
   default:
     /* Reassure the compiler we are handling all the enum values.  */
     break;
   }
 
-  return mGfxPattern;
+  return mGfxPattern.GetPattern();
 }
 
 void
-gfxPattern::SetExtend(GraphicsExtend extend)
+gfxPattern::SetExtend(ExtendMode aExtend)
 {
-  mExtend = extend;
+  mExtend = aExtend;
   mStops = nullptr;
 }
 
 bool
 gfxPattern::IsOpaque()
 {
-  if (mGfxPattern->GetType() != PatternType::SURFACE) {
+  if (mGfxPattern.GetPattern()->GetType() != PatternType::SURFACE) {
     return false;
   }
 
-  if (mSurfacePattern.addr()->mSurface->GetFormat() == SurfaceFormat::B8G8R8X8) {
+  if (static_cast<SurfacePattern*>(mGfxPattern.GetPattern())->mSurface->GetFormat() == SurfaceFormat::B8G8R8X8) {
     return true;
   }
   return false;
 }
 
-gfxPattern::GraphicsExtend
-gfxPattern::Extend() const
-{
-  return mExtend;
-}
-
 void
-gfxPattern::SetFilter(GraphicsFilter filter)
+gfxPattern::SetFilter(gfx::Filter filter)
 {
-  if (mGfxPattern->GetType() != PatternType::SURFACE) {
+  if (mGfxPattern.GetPattern()->GetType() != PatternType::SURFACE) {
     return;
   }
 
-  mSurfacePattern.addr()->mFilter = ToFilter(filter);
+  static_cast<SurfacePattern*>(mGfxPattern.GetPattern())->mFilter = filter;
 }
 
-GraphicsFilter
+Filter
 gfxPattern::Filter() const
 {
-  if (mGfxPattern->GetType() != PatternType::SURFACE) {
-    return GraphicsFilter::FILTER_GOOD;
+  if (mGfxPattern.GetPattern()->GetType() != PatternType::SURFACE) {
+    return gfx::Filter::GOOD;
   }
-  return ThebesFilter(mSurfacePattern.addr()->mFilter);
+  return static_cast<const SurfacePattern*>(mGfxPattern.GetPattern())->mFilter;
 }
 
 bool
-gfxPattern::GetSolidColor(gfxRGBA& aColor)
+gfxPattern::GetSolidColor(Color& aColorOut)
 {
-  if (mGfxPattern->GetType() == PatternType::COLOR) {
-    aColor = ThebesColor(mColorPattern.addr()->mColor);
+  if (mGfxPattern.GetPattern()->GetType() == PatternType::COLOR) {
+    aColorOut = static_cast<ColorPattern*>(mGfxPattern.GetPattern())->mColor;
     return true;
   }
 
  return false;
-}
-
-gfxPattern::GraphicsPatternType
-gfxPattern::GetType() const
-{
-  return ThebesPatternType(mGfxPattern->GetType());
 }
 
 int

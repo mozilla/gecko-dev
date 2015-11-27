@@ -116,6 +116,11 @@ MozWifiP2pManager.prototype = {
     let state = this._mm.sendSyncMessage("WifiP2pManager:getState")[0];
     if (state) {
       debug('State: ' + JSON.stringify(state));
+      this.enabled = state.enabled;
+      this.currentPeer = state.currentPeer;
+      if (state.groupOwner) {
+        this.groupOwner = new MozWifiP2pGroupOwner(state.groupOwner);
+      }
     } else {
       debug('Failed to get state');
     }
@@ -149,7 +154,7 @@ MozWifiP2pManager.prototype = {
 
      case "WifiP2pManager:getPeerList:Return:OK":
         request = this.takeRequest(msg.rid);
-        Services.DOMRequest.fireSuccess(request, msg.data);
+        Services.DOMRequest.fireSuccess(request, Cu.cloneInto(msg.data, this._window));
         break;
 
       case "WifiP2pManager:getPeerList:Return:NO":

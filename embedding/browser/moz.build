@@ -46,10 +46,9 @@ UNIFIED_SOURCES += [
     'nsWebBrowserContentPolicy.cpp',
 ]
 
-FAIL_ON_WARNINGS = True
-
 FINAL_LIBRARY = 'xul'
 LOCAL_INCLUDES += [
-    '/content/base/src',
-    '/content/svg/content/src',
+    '/dom/base',
+    '/dom/svg',
+    '/layout/style',
 ]

@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -18,6 +19,7 @@
 #include "nsXBLPrototypeBinding.h"
 #include "mozilla/AddonPathService.h"
 #include "mozilla/dom/BindingUtils.h"
+#include "mozilla/dom/ElementBinding.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "nsGlobalWindow.h"
 #include "xpcpublic.h"
@@ -61,8 +63,8 @@ nsXBLProtoImplField::~nsXBLProtoImplField()
 {
   MOZ_COUNT_DTOR(nsXBLProtoImplField);
   if (mFieldText)
-    nsMemory::Free(mFieldText);
-  NS_Free(mName);
+    free(mFieldText);
+  free(mName);
   NS_CONTENT_DELETE_LIST_MEMBER(nsXBLProtoImplField, this, mNext);
 }
 
@@ -75,7 +77,7 @@ nsXBLProtoImplField::AppendFieldText(const nsAString& aText)
     char16_t* temp = mFieldText;
     mFieldText = ToNewUnicode(newFieldText);
     mFieldTextLength = newFieldText.Length();
-    nsMemory::Free(temp);
+    free(temp);
   }
   else {
     mFieldText = ToNewUnicode(aText);
@@ -219,7 +221,7 @@ InstallXBLField(JSContext* cx,
 }
 
 bool
-FieldGetterImpl(JSContext *cx, JS::CallArgs args)
+FieldGetterImpl(JSContext *cx, const JS::CallArgs& args)
 {
   JS::Handle<JS::Value> thisv = args.thisv();
   MOZ_ASSERT(ValueHasISupportsPrivate(thisv));
@@ -243,12 +245,7 @@ FieldGetterImpl(JSContext *cx, JS::CallArgs args)
     return true;
   }
 
-  JS::Rooted<JS::Value> v(cx);
-  if (!JS_GetPropertyById(cx, thisObj, id, &v)) {
-    return false;
-  }
-  args.rval().set(v);
-  return true;
+  return JS_GetPropertyById(cx, thisObj, id, args.rval());
 }
 
 static bool
@@ -260,7 +257,7 @@ FieldGetter(JSContext *cx, unsigned argc, JS::Value *vp)
 }
 
 bool
-FieldSetterImpl(JSContext *cx, JS::CallArgs args)
+FieldSetterImpl(JSContext *cx, const JS::CallArgs& args)
 {
   JS::Handle<JS::Value> thisv = args.thisv();
   MOZ_ASSERT(ValueHasISupportsPrivate(thisv));
@@ -340,7 +337,7 @@ nsXBLProtoImplField::InstallAccessors(JSContext* aCx,
 
   JS::Rooted<JSObject*> get(aCx,
     JS_GetFunctionObject(js::NewFunctionByIdWithReserved(aCx, FieldGetter,
-                                                         0, 0, scopeObject, id)));
+                                                         0, 0, id)));
   if (!get) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -350,7 +347,7 @@ nsXBLProtoImplField::InstallAccessors(JSContext* aCx,
 
   JS::Rooted<JSObject*> set(aCx,
     JS_GetFunctionObject(js::NewFunctionByIdWithReserved(aCx, FieldSetter,
-                                                          1, 0, scopeObject, id)));
+                                                          1, 0, id)));
   if (!set) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -367,8 +364,8 @@ nsXBLProtoImplField::InstallAccessors(JSContext* aCx,
 
   if (!::JS_DefinePropertyById(aCx, aTargetClassObject, id, JS::UndefinedHandleValue,
                                AccessorAttributes(),
-                               JS_DATA_TO_FUNC_PTR(JSPropertyOp, get.get()),
-                               JS_DATA_TO_FUNC_PTR(JSStrictPropertyOp, set.get()))) {
+                               JS_DATA_TO_FUNC_PTR(JSNative, get.get()),
+                               JS_DATA_TO_FUNC_PTR(JSNative, set.get()))) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
@@ -393,10 +390,6 @@ nsXBLProtoImplField::InstallField(JS::Handle<JSObject*> aBoundNode,
 
   nsAutoMicroTask mt;
 
-  // EvaluateString and JS_DefineUCProperty can both trigger GC, so
-  // protect |result| here.
-  nsresult rv;
-
   nsAutoCString uriSpec;
   aBindingDocURI->GetSpec(uriSpec);
 
@@ -407,7 +400,8 @@ nsXBLProtoImplField::InstallField(JS::Handle<JSObject*> aBoundNode,
 
   // We are going to run script via EvaluateString, so we need a script entry
   // point, but as this is XBL related it does not appear in the HTML spec.
-  AutoEntryScript entryScript(globalObject, true);
+  AutoEntryScript entryScript(globalObject, "XBL <field> initialization", true);
+  entryScript.TakeOwnershipOfErrorReporting();
   JSContext* cx = entryScript.cx();
 
   NS_ASSERTION(!::JS_IsExceptionPending(cx),
@@ -415,29 +409,39 @@ nsXBLProtoImplField::InstallField(JS::Handle<JSObject*> aBoundNode,
 
   JSAddonId* addonId = MapURIToAddonID(aBindingDocURI);
 
-  // First, enter the xbl scope, wrap the node, and use that as the scope for
-  // the evaluation.
+  Element* boundElement = nullptr;
+  nsresult rv = UNWRAP_OBJECT(Element, aBoundNode, boundElement);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  // First, enter the xbl scope, build the element's scope chain, and use
+  // that as the scope chain for the evaluation.
   JS::Rooted<JSObject*> scopeObject(cx, xpc::GetScopeForXBLExecution(cx, aBoundNode, addonId));
   NS_ENSURE_TRUE(scopeObject, NS_ERROR_OUT_OF_MEMORY);
   JSAutoCompartment ac(cx, scopeObject);
-
-  JS::Rooted<JSObject*> wrappedNode(cx, aBoundNode);
-  if (!JS_WrapObject(cx, &wrappedNode))
-      return NS_ERROR_OUT_OF_MEMORY;
 
   JS::Rooted<JS::Value> result(cx);
   JS::CompileOptions options(cx);
   options.setFileAndLine(uriSpec.get(), mLineNumber)
          .setVersion(JSVERSION_LATEST);
-  nsJSUtils::EvaluateOptions evalOptions;
+  nsJSUtils::EvaluateOptions evalOptions(cx);
+  if (!nsJSUtils::GetScopeChainForElement(cx, boundElement,
+                                          evalOptions.scopeChain)) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
   rv = nsJSUtils::EvaluateString(cx, nsDependentString(mFieldText,
                                                        mFieldTextLength),
-                                 wrappedNode, options, evalOptions,
-                                 &result);
+                                 scopeObject, options, evalOptions, &result);
   if (NS_FAILED(rv)) {
     return rv;
   }
 
+  if (rv == NS_SUCCESS_DOM_SCRIPT_EVALUATION_THREW) {
+    // Report the exception now, before we try using the JSContext for
+    // the JS_DefineUCProperty call.
+    entryScript.ReportException();
+  }
 
   // Now, enter the node's compartment, wrap the eval result, and define it on
   // the bound node.

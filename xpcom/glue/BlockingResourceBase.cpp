@@ -14,7 +14,7 @@
 #ifndef MOZ_CALLSTACK_DISABLED
 #include "CodeAddressService.h"
 #include "nsHashKeys.h"
-#include "nsStackWalk.h"
+#include "mozilla/StackWalk.h"
 #include "nsTHashtable.h"
 #endif
 
@@ -23,7 +23,7 @@
 #include "mozilla/ReentrantMonitor.h"
 #include "mozilla/Mutex.h"
 
-#ifdef MOZILLA_INTERNAL_API
+#if defined(MOZILLA_INTERNAL_API) && !defined(MOZILLA_XPCOMRT_API)
 #include "GeckoProfiler.h"
 #endif //MOZILLA_INTERNAL_API
 
@@ -48,7 +48,8 @@ BlockingResourceBase::DDT* BlockingResourceBase::sDeadlockDetector;
 
 
 void
-BlockingResourceBase::StackWalkCallback(void* aPc, void* aSp, void* aClosure)
+BlockingResourceBase::StackWalkCallback(uint32_t aFrameNumber, void* aPc,
+                                        void* aSp, void* aClosure)
 {
 #ifndef MOZ_CALLSTACK_DISABLED
   AcquisitionState* state = (AcquisitionState*)aClosure;
@@ -67,8 +68,7 @@ BlockingResourceBase::GetStackTrace(AcquisitionState& aState)
 
   // NB: Ignore the return value, there's nothing useful we can do if this
   //     this fails.
-  NS_StackWalk(StackWalkCallback, kSkipFrames,
-               24, &aState, 0, nullptr);
+  MozStackWalk(StackWalkCallback, kSkipFrames, 24, &aState, 0, nullptr);
 #endif
 }
 
@@ -121,20 +121,20 @@ PrintCycle(const BlockingResourceBase::DDT::ResourceAcquisitionArray* aCycle,
 }
 
 #ifndef MOZ_CALLSTACK_DISABLED
-struct CodeAddressServiceLock MOZ_FINAL
+struct CodeAddressServiceLock final
 {
   static void Unlock() { }
   static void Lock() { }
   static bool IsLocked() { return true; }
 };
 
-struct CodeAddressServiceStringAlloc MOZ_FINAL
+struct CodeAddressServiceStringAlloc final
 {
   static char* copy(const char* aString) { return ::strdup(aString); }
   static void free(char* aString) { ::free(aString); }
 };
 
-class CodeAddressServiceStringTable MOZ_FINAL
+class CodeAddressServiceStringTable final
 {
 public:
   CodeAddressServiceStringTable() : mSet(32) {}
@@ -185,11 +185,13 @@ BlockingResourceBase::Print(nsACString& aOut) const
   WalkTheStackCodeAddressService addressService;
 
   for (uint32_t i = 0; i < state.Length(); i++) {
-    const size_t kMaxLength = 4096;
+    const size_t kMaxLength = 1024;
     char buffer[kMaxLength];
-    addressService.GetLocation(state[i], buffer, kMaxLength);
+    addressService.GetLocation(i + 1, state[i], buffer, kMaxLength);
     const char* fmt = "    %s\n";
-    aOut += nsPrintfCString(fmt, buffer);
+    aOut.AppendLiteral("    ");
+    aOut.Append(buffer);
+    aOut.AppendLiteral("\n");
     fprintf(stderr, fmt, buffer);
   }
 
@@ -210,7 +212,7 @@ BlockingResourceBase::BlockingResourceBase(
   , mAcquired()
 #endif
 {
-  NS_ABORT_IF_FALSE(mName, "Name must be nonnull");
+  MOZ_ASSERT(mName, "Name must be nonnull");
   // PR_CallOnce guaranatees that InitStatics is called in a
   // thread-safe way
   if (PR_SUCCESS != PR_CallOnce(&sCallOnce, InitStatics)) {
@@ -229,7 +231,9 @@ BlockingResourceBase::~BlockingResourceBase()
   // base class, or its underlying primitive, will check for such
   // stupid mistakes.
   mChainPrev = 0;             // racy only for stupidly buggy client code
-  sDeadlockDetector->Remove(this);
+  if (sDeadlockDetector) {
+    sDeadlockDetector->Remove(this);
+  }
 }
 
 
@@ -457,7 +461,7 @@ ReentrantMonitor::Wait(PRIntervalTime aInterval)
   mChainPrev = 0;
 
   nsresult rv;
-#ifdef MOZILLA_INTERNAL_API
+#if defined(MOZILLA_INTERNAL_API) && !defined(MOZILLA_XPCOMRT_API)
   {
     GeckoProfilerSleepRAII profiler_sleep;
 #endif //MOZILLA_INTERNAL_API
@@ -466,7 +470,7 @@ ReentrantMonitor::Wait(PRIntervalTime aInterval)
     rv = PR_Wait(mReentrantMonitor, aInterval) == PR_SUCCESS ? NS_OK :
                                                                NS_ERROR_FAILURE;
 
-#ifdef MOZILLA_INTERNAL_API
+#if defined(MOZILLA_INTERNAL_API) && !defined(MOZILLA_XPCOMRT_API)
   }
 #endif //MOZILLA_INTERNAL_API
 

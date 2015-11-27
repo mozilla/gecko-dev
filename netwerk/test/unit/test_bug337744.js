@@ -18,7 +18,14 @@ function check_for_exception(spec)
     getService(Ci.nsIIOService);
 
   try {
-    var channel = ios.newChannel(spec, null, null);
+    var channel = ios.newChannel2(spec,
+                                  null,
+                                  null,
+                                  null,      // aLoadingNode
+                                  Services.scriptSecurityManager.getSystemPrincipal(),
+                                  null,      // aTriggeringPrincipal
+                                  Ci.nsILoadInfo.SEC_NORMAL,
+                                  Ci.nsIContentPolicy.TYPE_OTHER);
   }
   catch (e) {
     return;
@@ -28,7 +35,7 @@ function check_for_exception(spec)
 }
 
 function run_test() {
-  for each (spec in specs) {
+  for (var spec of specs) {
     check_for_exception(spec);
   }
 }

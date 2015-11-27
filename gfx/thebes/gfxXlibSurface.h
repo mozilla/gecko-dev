@@ -17,7 +17,13 @@
 
 #include "nsSize.h"
 
-class gfxXlibSurface MOZ_FINAL : public gfxASurface {
+// Although the dimension parameters in the xCreatePixmapReq wire protocol are
+// 16-bit unsigned integers, the server's CreatePixmap returns BadAlloc if
+// either dimension cannot be represented by a 16-bit *signed* integer.
+#define XLIB_IMAGE_SIDE_SIZE_LIMIT 0x7fff
+
+
+class gfxXlibSurface final : public gfxASurface {
 public:
     // construct a wrapper around the specified drawable with dpy/visual.
     // Will use XGetGeometry to query the window/pixmap size.
@@ -25,12 +31,12 @@ public:
 
     // construct a wrapper around the specified drawable with dpy/visual,
     // and known width/height.
-    gfxXlibSurface(Display *dpy, Drawable drawable, Visual *visual, const gfxIntSize& size);
+    gfxXlibSurface(Display *dpy, Drawable drawable, Visual *visual, const mozilla::gfx::IntSize& size);
 
     // construct a wrapper around the specified drawable with dpy/format,
     // and known width/height.
     gfxXlibSurface(Screen *screen, Drawable drawable, XRenderPictFormat *format,
-                   const gfxIntSize& size);
+                   const mozilla::gfx::IntSize& size);
 
     explicit gfxXlibSurface(cairo_surface_t *csurf);
 
@@ -39,22 +45,23 @@ public:
     // the pixmap should be in video or system memory.  It must be on
     // |screen| (if specified).
     static already_AddRefed<gfxXlibSurface>
-    Create(Screen *screen, Visual *visual, const gfxIntSize& size,
+    Create(Screen *screen, Visual *visual, const mozilla::gfx::IntSize& size,
            Drawable relatedDrawable = None);
     static cairo_surface_t *
-    CreateCairoSurface(Screen *screen, Visual *visual, const gfxIntSize& size,
+    CreateCairoSurface(Screen *screen, Visual *visual, const mozilla::gfx::IntSize& size,
                        Drawable relatedDrawable = None);
     static already_AddRefed<gfxXlibSurface>
-    Create(Screen* screen, XRenderPictFormat *format, const gfxIntSize& size,
+    Create(Screen* screen, XRenderPictFormat *format, const mozilla::gfx::IntSize& size,
            Drawable relatedDrawable = None);
 
     virtual ~gfxXlibSurface();
 
     virtual already_AddRefed<gfxASurface>
-    CreateSimilarSurface(gfxContentType aType, const gfxIntSize& aSize);
-    virtual void Finish() MOZ_OVERRIDE;
+    CreateSimilarSurface(gfxContentType aType,
+                         const mozilla::gfx::IntSize& aSize) override;
+    virtual void Finish() override;
 
-    virtual const gfxIntSize GetSize() const;
+    virtual const mozilla::gfx::IntSize GetSize() const override;
 
     Display* XDisplay() { return mDisplay; }
     Screen* XScreen();
@@ -78,12 +85,11 @@ public:
     // Find a visual and colormap pair suitable for rendering to this surface.
     bool GetColormapAndVisual(Colormap* colormap, Visual **visual);
 
-    // This surface is a wrapper around X pixmaps, which are stored in the X
-    // server, not the main application.
-    virtual gfxMemoryLocation GetMemoryLocation() const;
-
 #if defined(GL_PROVIDER_GLX)
     GLXPixmap GetGLXPixmap();
+    // Binds a GLXPixmap backed by this context's surface.
+    // Primarily for use in sharing surfaces.
+    void BindGLXPixmap(GLXPixmap aPixmap);
 #endif
 
     // Return true if cairo will take its slow path when this surface is used
@@ -105,7 +111,7 @@ protected:
     Display *mDisplay;
     Drawable mDrawable;
 
-    const gfxIntSize DoSizeQuery();
+    const mozilla::gfx::IntSize DoSizeQuery();
 
 #if defined(GL_PROVIDER_GLX)
     GLXPixmap mGLXPixmap;

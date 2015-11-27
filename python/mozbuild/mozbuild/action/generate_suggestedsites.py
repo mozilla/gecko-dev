@@ -11,9 +11,10 @@ This script follows these steps:
 (see srcdir option). Merge all properties into a single dict accounting for
 the priority of source directories.
 
-2. Read the list of sites from the 'browser.suggestedsites.list.INDEX'
-properties with value of these keys being an identifier for each suggested site
-e.g. browser.suggestedsites.list.0=mozilla, browser.suggestedsites.list.1=fxmarketplace.
+2. Read the list of sites from the list 'browser.suggestedsites.list.INDEX' and
+'browser.suggestedsites.restricted.list.INDEX' properties with value of these keys
+being an identifier for each suggested site e.g. browser.suggestedsites.list.0=mozilla,
+browser.suggestedsites.list.1=fxmarketplace.
 
 3. For each site identifier defined by the list keys, look for matching branches
 containing the respective properties i.e. url, title, etc. For example,
@@ -25,14 +26,17 @@ write the result to suggestedsites.json on the locale-specific raw resource
 directory e.g. raw/suggestedsites.json, raw-pt-rBR/suggestedsites.json.
 '''
 
-from __future__ import print_function
+from __future__ import absolute_import, print_function
 
 import argparse
+import copy
 import json
-import re
 import sys
 import os
 
+from mozbuild.dotproperties import (
+    DotProperties,
+)
 from mozbuild.util import (
     FileAvoidWrite,
 )
@@ -42,57 +46,17 @@ from mozpack.files import (
 import mozpack.path as mozpath
 
 
-def read_properties_file(filename):
-    """Reads a properties file into a dict.
-
-    Ignores empty, comment lines, and keys not starting with the prefix for
-    suggested sites ('browser.suggestedsites'). Removes the prefix from all
-    matching keys i.e. turns 'browser.suggestedsites.foo' into simply 'foo'
-    """
-    prefix = 'browser.suggestedsites.'
-    properties = {}
-    for l in open(filename, 'rt').readlines():
-        line = l.strip()
-        if not line.startswith(prefix):
-            continue
-        (k, v) = re.split('\s*=\s*', line, 1)
-        properties[k[len(prefix):]] = v
-    return properties
-
-
 def merge_properties(filename, srcdirs):
     """Merges properties from the given file in the given source directories."""
-    properties = {}
+    properties = DotProperties()
     for srcdir in srcdirs:
         path = mozpath.join(srcdir, filename)
         try:
-            properties.update(read_properties_file(path))
-        except IOError, e:
+            properties.update(path)
+        except IOError:
             # Ignore non-existing files
             continue
     return properties
-
-
-def get_site_list_from_properties(properties):
-    """Turns {'list.0':'foo', 'list.1':'bar'} into ['foo', 'bar']."""
-    prefix = 'list.'
-    indexes = []
-    for k, v in properties.iteritems():
-        if not k.startswith(prefix):
-            continue
-        indexes.append(int(k[len(prefix):]))
-    return [properties[prefix + str(index)] for index in sorted(indexes)]
-
-
-def get_site_from_properties(name, properties):
-    """Turns {'foo.title':'title', ...} into {'title':'title', ...}."""
-    prefix = '{name}.'.format(name=name)
-    try:
-        site = dict((k, properties[prefix + k]) for k in ('title', 'url', 'bgcolor'))
-    except IndexError, e:
-        raise Exception("Could not find required property for '{name}: {error}'"
-                        .format(name=name, error=str(e)))
-    return site
 
 
 def main(args):
@@ -115,10 +79,7 @@ def main(args):
     opts = parser.parse_args(args)
 
     # Use reversed order so that the first srcdir has higher priority to override keys.
-    all_properties = merge_properties('region.properties', reversed(opts.srcdir))
-    names = get_site_list_from_properties(all_properties)
-    if opts.verbose:
-        print('Reading {len} suggested sites: {names}'.format(len=len(names), names=names))
+    properties = merge_properties('region.properties', reversed(opts.srcdir))
 
     # Keep these two in sync.
     image_url_template = 'android.resource://%s/drawable/suggestedsites_{name}' % opts.android_package_name
@@ -127,26 +88,45 @@ def main(args):
     # Load properties corresponding to each site name and define their
     # respective image URL.
     sites = []
-    for name in names:
-        site = get_site_from_properties(name, all_properties)
-        site['imageurl'] = image_url_template.format(name=name)
-        sites.append(site)
 
-        # Now check for existence of an appropriately named drawable.  If none
-        # exists, throw.  This stops a locale discovering, at runtime, that the
-        # corresponding drawable was not added to en-US.
-        if not opts.resources:
-            continue
-        resources = os.path.abspath(opts.resources)
-        finder = FileFinder(resources)
-        matches = [p for p, _ in finder.find(drawables_template.format(name=name))]
-        if not matches:
-            raise Exception("Could not find drawable in '{resources}' for '{name}'"
-                .format(resources=resources, name=name))
-        else:
-            if opts.verbose:
-                print("Found {len} drawables in '{resources}' for '{name}': {matches}"
-                      .format(len=len(matches), resources=resources, name=name, matches=matches))
+    def add_names(names, defaults={}):
+        for name in names:
+            site = copy.deepcopy(defaults)
+            site.update(properties.get_dict('browser.suggestedsites.{name}'.format(name=name), required_keys=('title', 'url', 'bgcolor')))
+            site['imageurl'] = image_url_template.format(name=name)
+            sites.append(site)
+
+            # Now check for existence of an appropriately named drawable.  If none
+            # exists, throw.  This stops a locale discovering, at runtime, that the
+            # corresponding drawable was not added to en-US.
+            if not opts.resources:
+                continue
+            resources = os.path.abspath(opts.resources)
+            finder = FileFinder(resources)
+            matches = [p for p, _ in finder.find(drawables_template.format(name=name))]
+            if not matches:
+                raise Exception("Could not find drawable in '{resources}' for '{name}'"
+                    .format(resources=resources, name=name))
+            else:
+                if opts.verbose:
+                    print("Found {len} drawables in '{resources}' for '{name}': {matches}"
+                          .format(len=len(matches), resources=resources, name=name, matches=matches))
+
+    # We want the lists to be ordered for reproducibility.  Each list has a
+    # "default" JSON list item which will be extended by the properties read.
+    lists = [
+        ('browser.suggestedsites.list', {}),
+        ('browser.suggestedsites.restricted.list', {'restricted': True}),
+    ]
+    if opts.verbose:
+        print('Reading {len} suggested site lists: {lists}'.format(len=len(lists), lists=[list_name for list_name, _ in lists]))
+
+    for (list_name, list_item_defaults) in lists:
+        names = properties.get_list(list_name)
+        if opts.verbose:
+            print('Reading {len} suggested sites from {list}: {names}'.format(len=len(names), list=list_name, names=names))
+        add_names(names, list_item_defaults)
+
 
     # FileAvoidWrite creates its parent directories.
     output = os.path.abspath(opts.output)

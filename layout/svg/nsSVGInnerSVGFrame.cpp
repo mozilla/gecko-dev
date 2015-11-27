@@ -11,9 +11,7 @@
 #include "gfxContext.h"
 #include "nsIFrame.h"
 #include "nsISVGChildFrame.h"
-#include "nsRenderingContext.h"
 #include "nsSVGContainerFrame.h"
-#include "nsSVGEffects.h"
 #include "nsSVGIntegrationUtils.h"
 #include "mozilla/dom/SVGSVGElement.h"
 
@@ -43,7 +41,7 @@ nsSVGInnerSVGFrame::Init(nsIContent*       aContent,
                          nsContainerFrame* aParent,
                          nsIFrame*         aPrevInFlow)
 {
-  NS_ASSERTION(aContent->IsSVG(nsGkAtoms::svg),
+  NS_ASSERTION(aContent->IsSVGElement(nsGkAtoms::svg),
                "Content is not an SVG 'svg' element!");
 
   nsSVGInnerSVGFrameBase::Init(aContent, aParent, aPrevInFlow);
@@ -60,7 +58,7 @@ nsSVGInnerSVGFrame::GetType() const
 // nsISVGChildFrame methods
 
 nsresult
-nsSVGInnerSVGFrame::PaintSVG(nsRenderingContext *aContext,
+nsSVGInnerSVGFrame::PaintSVG(gfxContext& aContext,
                              const gfxMatrix& aTransform,
                              const nsIntRect *aDirtyRect)
 {
@@ -80,11 +78,10 @@ nsSVGInnerSVGFrame::PaintSVG(nsRenderingContext *aContext,
       return NS_OK;
     }
 
-    gfxContext *gfx = aContext->ThebesContext();
-    autoSR.SetContext(gfx);
+    autoSR.SetContext(&aContext);
     gfxRect clipRect =
       nsSVGUtils::GetClipRectForFrame(this, x, y, width, height);
-    nsSVGUtils::SetClipRect(gfx, aTransform, clipRect);
+    nsSVGUtils::SetClipRect(&aContext, aTransform, clipRect);
   }
 
   return nsSVGInnerSVGFrameBase::PaintSVG(aContext, aTransform, aDirtyRect);
@@ -133,8 +130,8 @@ nsSVGInnerSVGFrame::ReflowSVG()
 void
 nsSVGInnerSVGFrame::NotifySVGChanged(uint32_t aFlags)
 {
-  NS_ABORT_IF_FALSE(aFlags & (TRANSFORM_CHANGED | COORD_CONTEXT_CHANGED),
-                    "Invalidation logic may need adjusting");
+  MOZ_ASSERT(aFlags & (TRANSFORM_CHANGED | COORD_CONTEXT_CHANGED),
+             "Invalidation logic may need adjusting");
 
   if (aFlags & COORD_CONTEXT_CHANGED) {
 
@@ -199,7 +196,9 @@ nsSVGInnerSVGFrame::AttributeChanged(int32_t  aNameSpaceID,
 
     if (aAttribute == nsGkAtoms::width ||
         aAttribute == nsGkAtoms::height) {
-      nsSVGEffects::InvalidateRenderingObservers(this);
+      nsLayoutUtils::PostRestyleEvent(
+        mContent->AsElement(), nsRestyleHint(0),
+        nsChangeHint_InvalidateRenderingObservers);
       nsSVGUtils::ScheduleReflowSVG(this);
 
       if (content->HasViewBoxOrSyntheticViewBox()) {
@@ -234,7 +233,9 @@ nsSVGInnerSVGFrame::AttributeChanged(int32_t  aNameSpaceID,
       // and cause DoApplyRenderingChangeToTree to make the SchedulePaint call.
 
       if (aAttribute == nsGkAtoms::x || aAttribute == nsGkAtoms::y) {
-        nsSVGEffects::InvalidateRenderingObservers(this);
+        nsLayoutUtils::PostRestyleEvent(
+          mContent->AsElement(), nsRestyleHint(0),
+          nsChangeHint_InvalidateRenderingObservers);
         nsSVGUtils::ScheduleReflowSVG(this);
       } else if (aAttribute == nsGkAtoms::viewBox ||
                  (aAttribute == nsGkAtoms::preserveAspectRatio &&

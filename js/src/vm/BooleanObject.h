@@ -8,11 +8,12 @@
 #define vm_BooleanObject_h
 
 #include "jsbool.h"
-#include "jsobj.h"
+
+#include "vm/NativeObject.h"
 
 namespace js {
 
-class BooleanObject : public JSObject
+class BooleanObject : public NativeObject
 {
     /* Stores this Boolean object's [[PrimitiveValue]]. */
     static const unsigned PRIMITIVE_VALUE_SLOT = 0;
@@ -26,7 +27,7 @@ class BooleanObject : public JSObject
      * Creates a new Boolean object boxing the given primitive bool.  The
      * object's [[Prototype]] is determined from context.
      */
-    static inline BooleanObject *create(JSContext *cx, bool b);
+    static inline BooleanObject* create(JSContext* cx, bool b);
 
     bool unbox() const {
         return getFixedSlot(PRIMITIVE_VALUE_SLOT).toBoolean();
@@ -38,8 +39,8 @@ class BooleanObject : public JSObject
     }
 
     /* For access to init, as Boolean.prototype is special. */
-    friend JSObject *
-    ::js_InitBooleanClass(JSContext *cx, js::HandleObject global);
+    friend JSObject*
+    js::InitBooleanClass(JSContext* cx, js::HandleObject global);
 };
 
 } // namespace js

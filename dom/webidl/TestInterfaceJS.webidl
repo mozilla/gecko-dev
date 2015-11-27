@@ -12,7 +12,7 @@ dictionary TestInterfaceJSUnionableDictionary {
 [JSImplementation="@mozilla.org/dom/test-interface-js;1",
  Pref="dom.expose_test_interfaces",
  Constructor(optional any anyArg, optional object objectArg, optional TestInterfaceJSDictionary dictionaryArg)]
-interface TestInterfaceJS {
+interface TestInterfaceJS : EventTarget {
   readonly attribute any anyArg;
   readonly attribute object objectArg;
   [Cached, Pure] readonly attribute TestInterfaceJSDictionary dictionaryArg;
@@ -31,7 +31,7 @@ interface TestInterfaceJS {
   // For testing bug 968335.
   DOMString getCallerPrincipal();
 
-  DOMString convertSVS(ScalarValueString svs);
+  DOMString convertSVS(USVString svs);
 
   (TestInterfaceJS or long) pingPongUnion((TestInterfaceJS or long) something);
   (DOMString or TestInterfaceJS?) pingPongUnionContainingNull((TestInterfaceJS? or DOMString) something);
@@ -42,4 +42,43 @@ interface TestInterfaceJS {
   readonly attribute short cachedAttr;
   void setCachedAttr(short n);
   void clearCachedAttrCache();
+
+  // Test for sequence overloading and union behavior
+  void testSequenceOverload(sequence<DOMString> arg);
+  void testSequenceOverload(DOMString arg);
+
+  void testSequenceUnion((sequence<DOMString> or DOMString) arg);
+
+  // Tests for exception-throwing behavior
+  [Throws]
+  void testThrowError();
+
+  [Throws]
+  void testThrowDOMException();
+
+  [Throws]
+  void testThrowTypeError();
+
+  [Throws]
+  void testThrowCallbackError(Function callback);
+
+  [Throws]
+  void testThrowXraySelfHosted();
+
+  [Throws]
+  void testThrowSelfHosted();
+
+  // Tests for promise-rejection behavior
+  Promise<void> testPromiseWithThrowingChromePromiseInit();
+  Promise<void> testPromiseWithThrowingContentPromiseInit(PromiseInit func);
+  Promise<void> testPromiseWithDOMExceptionThrowingPromiseInit();
+  Promise<void> testPromiseWithThrowingChromeThenFunction();
+  Promise<void> testPromiseWithThrowingContentThenFunction(AnyCallback func);
+  Promise<void> testPromiseWithDOMExceptionThrowingThenFunction();
+  Promise<void> testPromiseWithThrowingChromeThenable();
+  Promise<void> testPromiseWithThrowingContentThenable(object thenable);
+  Promise<void> testPromiseWithDOMExceptionThrowingThenable();
+
+  // Event handler tests
+  attribute EventHandler onsomething;
 };

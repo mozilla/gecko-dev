@@ -13,10 +13,6 @@
 #include "SurfaceTypes.h"
 #include "mozilla/WidgetUtils.h"
 
-#if defined(MOZ_ENABLE_D3D10_LAYER)
-# include "mozilla/layers/ShadowLayerUtilsD3D10.h"
-#endif
-
 #if defined(XP_MACOSX)
 #define MOZ_HAVE_PLATFORM_SPECIFIC_LAYER_BUFFERS
 #endif
@@ -28,7 +24,8 @@ namespace mozilla { namespace layers {
 struct SurfaceDescriptorX11 {
   bool operator==(const SurfaceDescriptorX11&) const { return false; }
 };
-} }
+} // namespace layers
+} // namespace mozilla
 #endif
 
 #if defined(MOZ_WIDGET_GONK)
@@ -42,7 +39,8 @@ struct MagicGrallocBufferHandle {
 struct GrallocBufferRef {
   bool operator==(const GrallocBufferRef&) const { return false; }
 };
-} }
+} // namespace layers
+} // namespace mozilla
 #endif
 
 namespace IPC {

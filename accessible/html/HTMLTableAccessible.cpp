@@ -11,7 +11,6 @@
 #include "nsAccessibilityService.h"
 #include "nsAccUtils.h"
 #include "DocAccessible.h"
-#include "nsIAccessibleRelation.h"
 #include "nsTextEquivUtils.h"
 #include "Relation.h"
 #include "Role.h"
@@ -47,31 +46,23 @@ using namespace mozilla::a11y;
 
 HTMLTableCellAccessible::
   HTMLTableCellAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  HyperTextAccessibleWrap(aContent, aDoc), xpcAccessibleTableCell(this)
+  HyperTextAccessibleWrap(aContent, aDoc)
 {
+  mType = eHTMLTableCellType;
   mGenericTypes |= eTableCell;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// HTMLTableCellAccessible: nsISupports implementation
-
-NS_IMPL_ISUPPORTS_INHERITED(HTMLTableCellAccessible,
-                            HyperTextAccessible,
-                            nsIAccessibleTableCell)
+NS_IMPL_ISUPPORTS_INHERITED0(HTMLTableCellAccessible, HyperTextAccessible)
 
 ////////////////////////////////////////////////////////////////////////////////
 // HTMLTableCellAccessible: Accessible implementation
 
-void
-HTMLTableCellAccessible::Shutdown()
-{
-  mTableCell = nullptr;
-  HyperTextAccessibleWrap::Shutdown();
-}
-
 role
 HTMLTableCellAccessible::NativeRole()
 {
+  if (mContent->IsMathMLElement(nsGkAtoms::mtd_)) {
+    return roles::MATHML_CELL;
+  }
   return roles::CELL;
 }
 
@@ -142,19 +133,39 @@ HTMLTableCellAccessible::NativeAttributes()
   if (!axisText.IsEmpty())
     nsAccUtils::SetAccAttr(attributes, nsGkAtoms::axis, axisText);
 
+#ifdef DEBUG
+  nsAutoString unused;
+  attributes->SetStringProperty(NS_LITERAL_CSTRING("cppclass"),
+                                NS_LITERAL_STRING("HTMLTableCellAccessible"),
+                                unused);
+#endif
+
   return attributes.forget();
 }
 
+GroupPos
+HTMLTableCellAccessible::GroupPosition()
+{
+  int32_t count = 0, index = 0;
+  TableAccessible* table = Table();
+  if (table && nsCoreUtils::GetUIntAttr(table->AsAccessible()->GetContent(),
+                                        nsGkAtoms::aria_colcount, &count) &&
+      nsCoreUtils::GetUIntAttr(mContent, nsGkAtoms::aria_colindex, &index)) {
+    return GroupPos(0, index, count);
+  }
+
+  return HyperTextAccessibleWrap::GroupPosition();
+}
+
 ////////////////////////////////////////////////////////////////////////////////
-// HTMLTableCellAccessible: nsIAccessibleTableCell implementation
+// HTMLTableCellAccessible: TableCellAccessible implementation
 
 TableAccessible*
 HTMLTableCellAccessible::Table() const
 {
   Accessible* parent = const_cast<HTMLTableCellAccessible*>(this);
   while ((parent = parent->Parent())) {
-    roles::Role role = parent->Role();
-    if (role == roles::TABLE || role == roles::TREE_TABLE)
+    if (parent->IsTable())
       return parent->AsTable();
   }
 
@@ -302,46 +313,43 @@ HTMLTableHeaderCellAccessible::NativeRole()
 {
   // Check value of @scope attribute.
   static nsIContent::AttrValuesArray scopeValues[] =
-    {&nsGkAtoms::col, &nsGkAtoms::row, nullptr};
+    { &nsGkAtoms::col, &nsGkAtoms::colgroup,
+      &nsGkAtoms::row, &nsGkAtoms::rowgroup, nullptr };
   int32_t valueIdx =
     mContent->FindAttrValueIn(kNameSpaceID_None, nsGkAtoms::scope,
                               scopeValues, eCaseMatters);
 
   switch (valueIdx) {
     case 0:
-      return roles::COLUMNHEADER;
     case 1:
+      return roles::COLUMNHEADER;
+    case 2:
+    case 3:
       return roles::ROWHEADER;
   }
 
-  // Assume it's columnheader if there are headers in siblings, otherwise
-  // rowheader.
-  // This should iterate the flattened tree
-  nsIContent* parentContent = mContent->GetParent();
-  if (!parentContent) {
-    NS_ERROR("Deattached content on alive accessible?");
+  TableAccessible* table = Table();
+  if (!table)
     return roles::NOTHING;
-  }
 
-  for (nsIContent* siblingContent = mContent->GetPreviousSibling(); siblingContent;
-       siblingContent = siblingContent->GetPreviousSibling()) {
-    if (siblingContent->IsElement()) {
-      return nsCoreUtils::IsHTMLTableHeader(siblingContent) ?
-        roles::COLUMNHEADER : roles::ROWHEADER;
-    }
-  }
+  // If the cell next to this one is not a header cell then assume this cell is
+  // a row header for it.
+  uint32_t rowIdx = RowIdx(), colIdx = ColIdx();
+  Accessible* cell = table->CellAt(rowIdx, colIdx + ColExtent());
+  if (cell && !nsCoreUtils::IsHTMLTableHeader(cell->GetContent()))
+    return roles::ROWHEADER;
 
-  for (nsIContent* siblingContent = mContent->GetNextSibling(); siblingContent;
-       siblingContent = siblingContent->GetNextSibling()) {
-    if (siblingContent->IsElement()) {
-      return nsCoreUtils::IsHTMLTableHeader(siblingContent) ?
-       roles::COLUMNHEADER : roles::ROWHEADER;
-    }
-  }
+  // If the cell below this one is not a header cell then assume this cell is
+  // a column header for it.
+  uint32_t rowExtent = RowExtent();
+  cell = table->CellAt(rowIdx + rowExtent, colIdx);
+  if (cell && !nsCoreUtils::IsHTMLTableHeader(cell->GetContent()))
+    return roles::COLUMNHEADER;
 
-  // No elements in siblings what means the table has one column only. Therefore
-  // it should be column header.
-  return roles::COLUMNHEADER;
+  // Otherwise if this cell is surrounded by header cells only then make a guess
+  // based on its cell spanning. In other words if it is row spanned then assume
+  // it's a row header, otherwise it's a column header.
+  return rowExtent > 1 ? roles::ROWHEADER : roles::COLUMNHEADER;
 }
 
 
@@ -354,25 +362,36 @@ NS_IMPL_ISUPPORTS_INHERITED0(HTMLTableRowAccessible, Accessible)
 role
 HTMLTableRowAccessible::NativeRole()
 {
+  if (mContent->IsMathMLElement(nsGkAtoms::mtr_)) {
+    return roles::MATHML_TABLE_ROW;
+  } else if (mContent->IsMathMLElement(nsGkAtoms::mlabeledtr_)) {
+    return roles::MATHML_LABELED_ROW;
+  }
   return roles::ROW;
+}
+
+GroupPos
+HTMLTableRowAccessible::GroupPosition()
+{
+  int32_t count = 0, index = 0;
+  Accessible* table = nsAccUtils::TableFor(this);
+  if (table && nsCoreUtils::GetUIntAttr(table->GetContent(),
+                                        nsGkAtoms::aria_rowcount, &count) &&
+      nsCoreUtils::GetUIntAttr(mContent, nsGkAtoms::aria_rowindex, &index)) {
+    return GroupPos(0, index, count);
+  }
+
+  return AccessibleWrap::GroupPosition();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // HTMLTableAccessible
 ////////////////////////////////////////////////////////////////////////////////
 
-NS_IMPL_ISUPPORTS_INHERITED(HTMLTableAccessible, Accessible,
-                            nsIAccessibleTable)
+NS_IMPL_ISUPPORTS_INHERITED0(HTMLTableAccessible, Accessible)
 
 ////////////////////////////////////////////////////////////////////////////////
 // HTMLTableAccessible: Accessible
-
-void
-HTMLTableAccessible::Shutdown()
-{
-  mTable = nullptr;
-  AccessibleWrap::Shutdown();
-}
 
 void
 HTMLTableAccessible::CacheChildren()
@@ -397,6 +416,9 @@ HTMLTableAccessible::CacheChildren()
 role
 HTMLTableAccessible::NativeRole()
 {
+  if (mContent->IsMathMLElement(nsGkAtoms::mtable_)) {
+    return roles::MATHML_TABLE;
+  }
   return roles::TABLE;
 }
 
@@ -434,6 +456,11 @@ HTMLTableAccessible::NativeAttributes()
 {
   nsCOMPtr<nsIPersistentProperties> attributes =
     AccessibleWrap::NativeAttributes();
+
+  if (mContent->IsMathMLElement(nsGkAtoms::mtable_)) {
+    GetAccService()->MarkupAttributes(mContent, attributes);
+  }
+
   if (IsProbablyLayoutTable()) {
     nsAutoString unused;
     attributes->SetStringProperty(NS_LITERAL_CSTRING("layout-guess"),
@@ -444,7 +471,7 @@ HTMLTableAccessible::NativeAttributes()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// HTMLTableAccessible: nsIAccessible implementation
+// HTMLTableAccessible: Accessible
 
 Relation
 HTMLTableAccessible::RelationByType(RelationType aType)
@@ -457,7 +484,7 @@ HTMLTableAccessible::RelationByType(RelationType aType)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// HTMLTableAccessible: nsIAccessibleTable implementation
+// HTMLTableAccessible: Table
 
 Accessible*
 HTMLTableAccessible::Caption() const
@@ -785,7 +812,7 @@ HTMLTableAccessible::AddRowOrColumnToSelection(int32_t aIndex, uint32_t aTarget)
     count = RowCount();
 
   nsIPresShell* presShell(mDoc->PresShell());
-  nsRefPtr<nsFrameSelection> tableSelection =
+  RefPtr<nsFrameSelection> tableSelection =
     const_cast<nsFrameSelection*>(presShell->ConstFrameSelection());
 
   for (uint32_t idx = 0; idx < count; idx++) {
@@ -811,7 +838,7 @@ HTMLTableAccessible::RemoveRowsOrColumnsFromSelection(int32_t aIndex,
     return NS_OK;
 
   nsIPresShell* presShell(mDoc->PresShell());
-  nsRefPtr<nsFrameSelection> tableSelection =
+  RefPtr<nsFrameSelection> tableSelection =
     const_cast<nsFrameSelection*>(presShell->ConstFrameSelection());
 
   bool doUnselectRow = (aTarget == nsISelectionPrivate::TABLESELECTION_ROW);
@@ -942,8 +969,8 @@ HTMLTableAccessible::IsProbablyLayoutTable()
     RETURN_LAYOUT_ANSWER(false, "Has role attribute, weak role, and role is table");
   }
 
-  if (mContent->Tag() != nsGkAtoms::table)
-    RETURN_LAYOUT_ANSWER(true, "table built by CSS display:table style");
+  NS_ASSERTION(mContent->IsHTMLElement(nsGkAtoms::table),
+    "table should not be built by CSS display:table style");
 
   // Check if datatable attribute has "0" value.
   if (mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::datatable,
@@ -964,24 +991,24 @@ HTMLTableAccessible::IsProbablyLayoutTable()
 
   for (nsIContent* childElm = mContent->GetFirstChild(); childElm;
        childElm = childElm->GetNextSibling()) {
-    if (!childElm->IsHTML())
+    if (!childElm->IsHTMLElement())
       continue;
 
-    if (childElm->Tag() == nsGkAtoms::col ||
-        childElm->Tag() == nsGkAtoms::colgroup ||
-        childElm->Tag() == nsGkAtoms::tfoot ||
-        childElm->Tag() == nsGkAtoms::thead) {
+    if (childElm->IsAnyOfHTMLElements(nsGkAtoms::col,
+                                      nsGkAtoms::colgroup,
+                                      nsGkAtoms::tfoot,
+                                      nsGkAtoms::thead)) {
       RETURN_LAYOUT_ANSWER(false,
                            "Has col, colgroup, tfoot or thead -- legitimate table structures");
     }
 
-    if (childElm->Tag() == nsGkAtoms::tbody) {
+    if (childElm->IsHTMLElement(nsGkAtoms::tbody)) {
       for (nsIContent* rowElm = childElm->GetFirstChild(); rowElm;
            rowElm = rowElm->GetNextSibling()) {
-        if (rowElm->IsHTML() && rowElm->Tag() == nsGkAtoms::tr) {
+        if (rowElm->IsHTMLElement(nsGkAtoms::tr)) {
           for (nsIContent* cellElm = rowElm->GetFirstChild(); cellElm;
                cellElm = cellElm->GetNextSibling()) {
-            if (cellElm->IsHTML()) {
+            if (cellElm->IsHTMLElement()) {
 
               if (cellElm->NodeInfo()->Equals(nsGkAtoms::th)) {
                 RETURN_LAYOUT_ANSWER(false,
@@ -1013,18 +1040,17 @@ HTMLTableAccessible::IsProbablyLayoutTable()
   }
 
   // If only 1 column or only 1 row, it's for layout
-  int32_t columns, rows;
-  GetColumnCount(&columns);
-  if (columns <=1) {
+  uint32_t colCount = ColCount();
+  if (colCount <=1) {
     RETURN_LAYOUT_ANSWER(true, "Has only 1 column");
   }
-  GetRowCount(&rows);
-  if (rows <=1) {
+  uint32_t rowCount = RowCount();
+  if (rowCount <=1) {
     RETURN_LAYOUT_ANSWER(true, "Has only 1 row");
   }
 
   // Check for many columns
-  if (columns >= 5) {
+  if (colCount >= 5) {
     RETURN_LAYOUT_ANSWER(false, ">=5 columns");
   }
 
@@ -1067,8 +1093,8 @@ HTMLTableAccessible::IsProbablyLayoutTable()
   }
 
   // Check for many rows
-  const int32_t kMaxLayoutRows = 20;
-  if (rows > kMaxLayoutRows) { // A ton of rows, this is probably for data
+  const uint32_t kMaxLayoutRows = 20;
+  if (rowCount > kMaxLayoutRows) { // A ton of rows, this is probably for data
     RETURN_LAYOUT_ANSWER(false, ">= kMaxLayoutRows (20) and non-bordered");
   }
 
@@ -1087,7 +1113,7 @@ HTMLTableAccessible::IsProbablyLayoutTable()
   }
 
   // Two column rules
-  if (rows * columns <= 10) {
+  if (rowCount * colCount <= 10) {
     RETURN_LAYOUT_ANSWER(true, "2-4 columns, 10 cells or less, non-bordered");
   }
 

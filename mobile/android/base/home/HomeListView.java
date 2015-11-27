@@ -33,7 +33,7 @@ public class HomeListView extends ListView
     protected OnUrlOpenListener mUrlOpenListener;
 
     // Top divider
-    private boolean mShowTopDivider;
+    private final boolean mShowTopDivider;
 
     // ContextMenuInfo maker
     private HomeContextMenuInfo.Factory mContextMenuInfoFactory;
@@ -91,6 +91,9 @@ public class HomeListView extends ListView
             mContextMenuInfo = mContextMenuInfoFactory.makeInfoForCursor(view, position, id, cursor);
             return showContextMenuForChild(HomeListView.this);
 
+        } else if (mContextMenuInfoFactory instanceof HomeContextMenuInfo.ListFactory) {
+            mContextMenuInfo = ((HomeContextMenuInfo.ListFactory) mContextMenuInfoFactory).makeInfoForAdapter(view, position, id, getAdapter());
+            return showContextMenuForChild(HomeListView.this);
         } else {
             mContextMenuInfo = null;
             return false;

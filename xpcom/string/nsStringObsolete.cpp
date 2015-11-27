@@ -540,7 +540,7 @@ StripChars2(char16_t* aString,uint32_t aLength,const char* aSet) {
 
 /* ***** END RICKG BLOCK ***** */
 
-static const char* kWhitespace="\b\t\r\n ";
+static const char* kWhitespace="\f\t\r\n ";
 
 // This function is used to implement FindCharInSet and friends
 template <class CharT>
@@ -919,7 +919,7 @@ void
 nsString::ReplaceChar( const char16_t* aSet, char16_t aNewChar )
 {
   if (!EnsureMutable()) // XXX do this lazily?
-    NS_ABORT_OOM(mLength);
+    AllocFailed(mLength);
 
   char16_t* data = mData;
   uint32_t lenRemaining = mLength;

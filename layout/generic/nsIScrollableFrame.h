@@ -11,7 +11,9 @@
 #define nsIScrollFrame_h___
 
 #include "nsCoord.h"
+#include "DisplayItemClip.h"
 #include "ScrollbarStyles.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/gfx/Point.h"
 #include "nsIScrollbarMediator.h"
 #include "Units.h"
@@ -27,13 +29,21 @@ class nsPresContext;
 class nsIContent;
 class nsRenderingContext;
 class nsIAtom;
+class nsDisplayListBuilder;
 
 namespace mozilla {
 struct ContainerLayerParameters;
 namespace layers {
 class Layer;
-}
-}
+} // namespace layers
+
+struct FrameMetricsAndClip
+{
+  layers::FrameMetrics metrics;
+  mozilla::Maybe<DisplayItemClip> clip;
+};
+
+} // namespace mozilla
 
 /**
  * Interface for frames that are scrollable. This interface exposes
@@ -97,8 +107,10 @@ public:
   /**
    * Return the width for non-disappearing scrollbars.
    */
-  virtual nscoord GetNondisappearingScrollbarWidth(nsPresContext* aPresContext,
-                                                   nsRenderingContext* aRC) = 0;
+  virtual nscoord
+  GetNondisappearingScrollbarWidth(nsPresContext* aPresContext,
+                                   nsRenderingContext* aRC,
+                                   mozilla::WritingMode aWM) = 0;
   /**
    * GetScrolledRect is designed to encapsulate deciding which
    * directions of overflow should be reachable by scrolling and which
@@ -145,14 +157,6 @@ public:
    */
   virtual nsSize GetScrollPositionClampingScrollPortSize() const = 0;
   /**
-   * Get the element resolution.
-   */
-  virtual gfxSize GetResolution() const = 0;
-  /**
-   * Set the element resolution.
-   */
-  virtual void SetResolution(const gfxSize& aResolution) = 0;
-  /**
    * Return how much we would try to scroll by in each direction if
    * asked to scroll by one "line" vertically and horizontally.
    */
@@ -192,6 +196,15 @@ public:
    */
   enum ScrollMode { INSTANT, SMOOTH, SMOOTH_MSD, NORMAL };
   /**
+   * Some platforms (OSX) may generate additional scrolling events even
+   * after the user has stopped scrolling, simulating a momentum scrolling
+   * effect resulting from fling gestures.
+   * SYNTHESIZED_MOMENTUM_EVENT indicates that the scrolling is being requested
+   * by such a synthesized event and may be ignored if another scroll has
+   * been started since the last actual user input.
+   */
+  enum ScrollMomentum { NOT_MOMENTUM, SYNTHESIZED_MOMENTUM_EVENT };
+  /**
    * @note This method might destroy the frame, pres shell and other objects.
    * Clamps aScrollPosition to GetScrollRange and sets the scroll position
    * to that value.
@@ -201,7 +214,9 @@ public:
    * The choosen point will be as close as possible to aScrollPosition.
    */
   virtual void ScrollTo(nsPoint aScrollPosition, ScrollMode aMode,
-                        const nsRect* aRange = nullptr) = 0;
+                        const nsRect* aRange = nullptr,
+                        nsIScrollbarMediator::ScrollSnapMode aSnap
+                          = nsIScrollbarMediator::DISABLE_SNAP) = 0;
   /**
    * @note This method might destroy the frame, pres shell and other objects.
    * Scrolls to a particular position in integer CSS pixels.
@@ -255,7 +270,28 @@ public:
   virtual void ScrollBy(nsIntPoint aDelta, ScrollUnit aUnit, ScrollMode aMode,
                         nsIntPoint* aOverflow = nullptr,
                         nsIAtom* aOrigin = nullptr,
-                        bool aIsMomentum = false) = 0;
+                        ScrollMomentum aMomentum = NOT_MOMENTUM,
+                        nsIScrollbarMediator::ScrollSnapMode aSnap
+                          = nsIScrollbarMediator::DISABLE_SNAP) = 0;
+
+  /**
+   * Perform scroll snapping, possibly resulting in a smooth scroll to
+   * maintain the scroll snap position constraints.  A predicted landing
+   * position determined by the APZC is used to select the best matching
+   * snap point, allowing touchscreen fling gestures to navigate between
+   * snap points.
+   * @param aDestination The desired landing position of the fling, which
+   * is used to select the best matching snap point.
+   */
+  virtual void FlingSnap(const mozilla::CSSPoint& aDestination) = 0;
+  /**
+   * Perform scroll snapping, possibly resulting in a smooth scroll to
+   * maintain the scroll snap position constraints.  Velocity sampled from
+   * main thread scrolling is used to determine best matching snap point
+   * when called after a fling gesture on a trackpad or mouse wheel.
+   */
+  virtual void ScrollSnap() = 0;
+
   /**
    * @note This method might destroy the frame, pres shell and other objects.
    * This tells the scroll frame to try scrolling to the scroll
@@ -294,7 +330,7 @@ public:
    * This basically means that we should allocate resources in the
    * expectation that scrolling is going to happen.
    */
-  virtual bool IsScrollingActive() = 0;
+  virtual bool IsScrollingActive(nsDisplayListBuilder* aBuilder) = 0;
   /**
    * Returns true if the scrollframe is currently processing an async
    * or smooth scroll.
@@ -309,10 +345,6 @@ public:
    * Was the current presentation state for this frame restored from history?
    */
   virtual bool DidHistoryRestore() const = 0;
-  /**
-   * Was the current resolution set by the user or just default initialized?
-   */
-  virtual bool IsResolutionSet() const = 0;
   /**
    * Clear the flag so that DidHistoryRestore() returns false until the next
    * RestoreState call.
@@ -375,16 +407,49 @@ public:
    * aLayer's animated geometry root is this frame. If there needs to be a
    * FrameMetrics contributed by this frame, append it to aOutput.
    */
-  virtual void ComputeFrameMetrics(mozilla::layers::Layer* aLayer,
-                                   nsIFrame* aContainerReferenceFrame,
-                                   const ContainerLayerParameters& aParameters,
-                                   nsRect* aOutClipRect,
-                                   nsTArray<FrameMetrics>* aOutput) const = 0;
+  virtual mozilla::Maybe<mozilla::FrameMetricsAndClip> ComputeFrameMetrics(
+    mozilla::layers::Layer* aLayer,
+    nsIFrame* aContainerReferenceFrame,
+    const ContainerLayerParameters& aParameters,
+    bool aIsForCaret) const = 0;
 
   /**
    * If this scroll frame is ignoring viewporting clipping
    */
   virtual bool IsIgnoringViewportClipping() const = 0;
+
+  /**
+   * Mark the scrollbar frames for reflow.
+   */
+  virtual void MarkScrollbarsDirtyForReflow() const = 0;
+
+  virtual void SetTransformingByAPZ(bool aTransforming) = 0;
+  virtual bool IsTransformingByAPZ() const = 0;
+
+  /**
+   * Notify this scroll frame that it can be zoomed by APZ.
+   */
+  virtual void SetZoomableByAPZ(bool aZoomable) = 0;
+
+  /**
+   * Whether or not this frame uses containerful scrolling.
+   */
+  virtual bool UsesContainerScrolling() const = 0;
+
+  virtual mozilla::Maybe<mozilla::DisplayItemClip> ComputeScrollClip(bool aIsForCaret) const = 0;
+
+  /**
+   * Determine if we should build a scrollable layer for this scroll frame and
+   * return the result. It will also record this result on the scroll frame.
+   * Pass the dirty rect in aDirtyRect. On return it will be set to the
+   * displayport if there is one (ie the dirty rect that should be used).
+   * This function may create a display port where one did not exist before if
+   * aAllowCreateDisplayPort is true. It is only allowed to be false if there
+   * has been a call with it set to true before on the same paint.
+   */
+  virtual bool DecideScrollableLayer(nsDisplayListBuilder* aBuilder,
+                                     nsRect* aDirtyRect,
+                                     bool aAllowCreateDisplayPort) = 0;
 };
 
 #endif

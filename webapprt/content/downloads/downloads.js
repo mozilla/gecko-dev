@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const { interfaces: Ci, utils: Cu, classes: Cc } = Components;
+"use strict";
+
+var { interfaces: Ci, utils: Cu, classes: Cc } = Components;
 
 const nsIDM = Ci.nsIDownloadManager;
 
@@ -20,9 +22,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "DownloadUtils",
 XPCOMUtils.defineLazyModuleGetter(this, "PluralForm",
   "resource://gre/modules/PluralForm.jsm");
 
-let gStr = {};
+var gStr = {};
 
-let DownloadItem = function(aID, aDownload) {
+var DownloadItem = function(aID, aDownload) {
   this.id = aID;
   this._download = aDownload;
 
@@ -354,29 +356,29 @@ DownloadItem.prototype = {
       case nsIDM.DOWNLOAD_BLOCKED_PARENTAL:
       case nsIDM.DOWNLOAD_BLOCKED_POLICY:
       case nsIDM.DOWNLOAD_DIRTY:
-        let (stateSize = {}) {
-          stateSize[nsIDM.DOWNLOAD_FINISHED] = () => {
-            // Display the file size, but show "Unknown" for negative sizes.
-            let sizeText = gStr.doneSizeUnknown;
-            if (this.maxBytes >= 0) {
-              let [size, unit] = DownloadUtils.convertByteUnits(this.maxBytes);
-              sizeText = gStr.doneSize.replace("#1", size);
-              sizeText = sizeText.replace("#2", unit);
-            }
-            return sizeText;
-          };
-          stateSize[nsIDM.DOWNLOAD_FAILED] = () => gStr.stateFailed;
-          stateSize[nsIDM.DOWNLOAD_CANCELED] = () => gStr.stateCanceled;
-          stateSize[nsIDM.DOWNLOAD_BLOCKED_PARENTAL] = () => gStr.stateBlocked;
-          stateSize[nsIDM.DOWNLOAD_BLOCKED_POLICY] = () => gStr.stateBlockedPolicy;
-          stateSize[nsIDM.DOWNLOAD_DIRTY] = () => gStr.stateDirty;
+        let stateSize = {};
+        stateSize[nsIDM.DOWNLOAD_FINISHED] = () => {
+          // Display the file size, but show "Unknown" for negative sizes.
+          let sizeText = gStr.doneSizeUnknown;
+          if (this.maxBytes >= 0) {
+            let [size, unit] = DownloadUtils.convertByteUnits(this.maxBytes);
+            sizeText = gStr.doneSize.replace("#1", size);
+            sizeText = sizeText.replace("#2", unit);
+          }
+          return sizeText;
+        };
+        stateSize[nsIDM.DOWNLOAD_FAILED] = () => gStr.stateFailed;
+        stateSize[nsIDM.DOWNLOAD_CANCELED] = () => gStr.stateCanceled;
+        stateSize[nsIDM.DOWNLOAD_BLOCKED_PARENTAL] = () => gStr.stateBlocked;
+        stateSize[nsIDM.DOWNLOAD_BLOCKED_POLICY] = () => gStr.stateBlockedPolicy;
+        stateSize[nsIDM.DOWNLOAD_DIRTY] = () => gStr.stateDirty;
 
-          // Insert 1 is the download size or download state.
-          status = gStr.doneStatus.replace("#1", stateSize[this.state]());
-        }
+        // Insert 1 is the download size or download state.
+        status = gStr.doneStatus.replace("#1", stateSize[this.state]());
 
         let [displayHost, fullHost] =
           DownloadUtils.getURIHost(this.referrer || this.uri);
+
         // Insert 2 is the eTLD + 1 or other variations of the host.
         status = status.replace("#2", displayHost);
         // Set the tooltip to be the full host.
@@ -474,7 +476,7 @@ DownloadItem.prototype = {
    * @return Boolean true if it matches the search; false otherwise
    */
   matchesSearch: function(aTerms, aAttributes) {
-    return aTerms.some(term => aAttributes.some(attr => this.element.getAttribute(attr).contains(term)));
+    return aTerms.some(term => aAttributes.some(attr => this.element.getAttribute(attr).includes(term)));
   },
 
   isCommandEnabled: function(aCommand) {
@@ -568,15 +570,15 @@ DownloadItem.prototype = {
       case "cmd_copyLocation":
         let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"].
                         getService(Ci.nsIClipboardHelper);
-        clipboard.copyString(this.uri, document);
+        clipboard.copyString(this.uri);
         break;
     }
   },
 };
 
-let gDownloadList = {
+var gDownloadList = {
   downloadItemsMap: new Map(),
-  downloadItems: {},
+  idToDownloadItemMap: new Map(),
   _autoIncrementID: 0,
   downloadView: null,
   searchBox: null,
@@ -721,12 +723,11 @@ let gDownloadList = {
     }
 
     // Clear the list before adding items by replacing with a shallow copy.
-    let (empty = this.downloadView.cloneNode(false)) {
-      this.downloadView.parentNode.replaceChild(empty, this.downloadView);
-      this.downloadView = empty;
-    }
+    let empty = this.downloadView.cloneNode(false);
+    this.downloadView.parentNode.replaceChild(empty, this.downloadView);
+    this.downloadView = empty;
 
-    for each (let downloadItem in this.downloadItems) {
+    for (let downloadItem of this.idToDownloadItemMap.values()) {
       if (downloadItem.inProgress ||
           downloadItem.matchesSearch(this.searchTerms, this.searchAttributes)) {
         this.downloadView.appendChild(downloadItem.element);
@@ -772,7 +773,7 @@ let gDownloadList = {
     let button = document.getElementById("clearListButton");
 
     // The button is enabled if we have items in the list that we can clean up.
-    for each (let downloadItem in this.downloadItems) {
+    for (let downloadItem of this.idToDownloadItemMap.values()) {
       if (!downloadItem.inProgress &&
           downloadItem.matchesSearch(this.searchTerms, this.searchAttributes)) {
         button.disabled = false;
@@ -807,8 +808,7 @@ let gDownloadList = {
     }
 
     if (this.downloadView.selectedItem) {
-      let dl = this.downloadView.selectedItem;
-      let downloadItem = this.downloadItems[dl.getAttribute("id")];
+      let downloadItem = this._getSelectedDownloadItem();
 
       let idx = downloadItem.state;
       if (idx < 0) {
@@ -837,12 +837,10 @@ let gDownloadList = {
    */
   doDefaultForSelected: function() {
     // Make sure we have something selected.
-    let item = this.downloadView.selectedItem;
-    if (!item) {
+    let download = this._getSelectedDownloadItem();
+    if (!download) {
       return;
     }
-
-    let download = this.downloadItems[item.getAttribute("id")];
 
     // Get the default action (first item in the menu).
     let menuitem = document.getElementById(this.contextMenus[download.state][0]);
@@ -876,7 +874,7 @@ let gDownloadList = {
       let items = Array.from(this.downloadView.selectedItems);
 
       // Do the command for each download item.
-      for each (let item in items) {
+      for (let item of items) {
         this.performCommand(aCmd, item);
       }
 
@@ -890,17 +888,17 @@ let gDownloadList = {
       elm = elm.parentNode;
     }
 
-    let downloadItem = this.downloadItems[elm.getAttribute("id")];
+    let downloadItem = this._getDownloadItemForElement(elm);
     downloadItem.doCommand(aCmd);
   },
 
   onDragStart: function(aEvent) {
-    if (!this.downloadView.selectedItem) {
+    let downloadItem = this._getSelectedDownloadItem();
+    if (!downloadItem) {
       return;
     }
 
     let dl = this.downloadView.selectedItem;
-    let downloadItem = this.downloadItems[dl.getAttribute("id")];
     let f = downloadItem.localFile;
     if (!f.exists()) {
       return;
@@ -982,7 +980,7 @@ let gDownloadList = {
     let totalSize = 0;
     let totalTransferred = 0;
 
-    for each (let downloadItem in this.downloadItems) {
+    for (let downloadItem of this.idToDownloadItemMap.values()) {
       if (!downloadItem.inProgress) {
         continue;
       }
@@ -1029,7 +1027,7 @@ let gDownloadList = {
 
     let downloadItem = new DownloadItem(newID, aDownload);
     this.downloadItemsMap.set(aDownload, downloadItem);
-    this.downloadItems[newID] = downloadItem;
+    this.idToDownloadItemMap.set(newID, downloadItem);
 
     if (downloadItem.inProgress ||
         downloadItem.matchesSearch(this.searchTerms, this.searchAttributes)) {
@@ -1087,7 +1085,7 @@ let gDownloadList = {
     }
 
     this.downloadItemsMap.delete(aDownload);
-    delete this.downloadItems[downloadItem.id];
+    this.idToDownloadItemMap.delete(downloadItem.id);
 
     this.removeFromView(downloadItem);
   },
@@ -1105,19 +1103,25 @@ let gDownloadList = {
     // We might have removed the last item, so update the clear list button.
     this.updateClearListButton();
   },
+  _getDownloadItemForElement(element) {
+    return this.idToDownloadItemMap.get(element.getAttribute("id"));
+  },
+  _getSelectedDownloadItem() {
+    let dl = this.downloadView.selectedItem;
+    return dl ? this._getDownloadItemForElement(dl) : null;
+  },
 };
 
 function Startup() {
   // Convert strings to those in the string bundle.
-  let (sb = document.getElementById("downloadStrings")) {
-    let strings = ["paused", "cannotPause", "doneStatus", "doneSize",
-                   "doneSizeUnknown", "stateFailed", "stateCanceled",
-                   "stateBlocked", "stateBlockedPolicy", "stateDirty",
-                   "downloadsTitleFiles", "downloadsTitlePercent",];
+  let sb = document.getElementById("downloadStrings");
+  let strings = ["paused", "cannotPause", "doneStatus", "doneSize",
+                 "doneSizeUnknown", "stateFailed", "stateCanceled",
+                 "stateBlocked", "stateBlockedPolicy", "stateDirty",
+                 "downloadsTitleFiles", "downloadsTitlePercent",];
 
-    for each (let name in strings) {
-      gStr[name] = sb.getString(name);
-    }
+  for (let name of strings) {
+    gStr[name] = sb.getString(name);
   }
 
   gDownloadList.init();

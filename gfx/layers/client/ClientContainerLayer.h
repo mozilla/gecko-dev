@@ -9,14 +9,13 @@
 #include <stdint.h>                     // for uint32_t
 #include "ClientLayerManager.h"         // for ClientLayerManager, etc
 #include "Layers.h"                     // for Layer, ContainerLayer, etc
-#include "gfxPrefs.h"                   // for gfxPrefs
 #include "nsDebug.h"                    // for NS_ASSERTION
 #include "nsISupportsImpl.h"            // for MOZ_COUNT_CTOR, etc
 #include "nsISupportsUtils.h"           // for NS_ADDREF, NS_RELEASE
 #include "nsRegion.h"                   // for nsIntRegion
 #include "nsTArray.h"                   // for nsAutoTArray
 #include "ReadbackProcessor.h"
-#include "ClientThebesLayer.h"
+#include "ClientPaintedLayer.h"
 
 namespace mozilla {
 namespace layers {
@@ -28,8 +27,7 @@ class ClientContainerLayer : public ContainerLayer,
 {
 public:
   explicit ClientContainerLayer(ClientLayerManager* aManager) :
-    ContainerLayer(aManager,
-                   static_cast<ClientLayer*>(MOZ_THIS_IN_INITIALIZER_LIST()))
+    ContainerLayer(aManager, static_cast<ClientLayer*>(this))
   {
     MOZ_COUNT_CTOR(ClientContainerLayer);
     mSupportsComponentAlphaChildren = true;
@@ -46,11 +44,9 @@ protected:
   }
 
 public:
-  virtual void RenderLayer()
+  virtual void RenderLayer() override
   {
-    if (GetMaskLayer()) {
-      ToClientLayer(GetMaskLayer())->RenderLayer();
-    }
+    RenderMaskLayers(this);
     
     DefaultComputeSupportsComponentAlphaChildren();
 
@@ -62,7 +58,7 @@ public:
 
     for (uint32_t i = 0; i < children.Length(); i++) {
       Layer* child = children.ElementAt(i);
-      if (child->GetEffectiveVisibleRegion().IsEmpty()) {
+      if (!child->IsVisible()) {
         continue;
       }
 
@@ -75,13 +71,13 @@ public:
     }
   }
 
-  virtual void SetVisibleRegion(const nsIntRegion& aRegion)
+  virtual void SetVisibleRegion(const nsIntRegion& aRegion) override
   {
     NS_ASSERTION(ClientManager()->InConstruction(),
                  "Can only set properties in construction phase");
     ContainerLayer::SetVisibleRegion(aRegion);
   }
-  virtual bool InsertAfter(Layer* aChild, Layer* aAfter) MOZ_OVERRIDE
+  virtual bool InsertAfter(Layer* aChild, Layer* aAfter) override
   {
     if(!ClientManager()->InConstruction()) {
       NS_ERROR("Can only set properties in construction phase");
@@ -98,7 +94,7 @@ public:
     return true;
   }
 
-  virtual bool RemoveChild(Layer* aChild) MOZ_OVERRIDE
+  virtual bool RemoveChild(Layer* aChild) override
   {
     if (!ClientManager()->InConstruction()) {
       NS_ERROR("Can only set properties in construction phase");
@@ -113,7 +109,7 @@ public:
     return true;
   }
 
-  virtual bool RepositionChild(Layer* aChild, Layer* aAfter) MOZ_OVERRIDE
+  virtual bool RepositionChild(Layer* aChild, Layer* aAfter) override
   {
     if (!ClientManager()->InConstruction()) {
       NS_ERROR("Can only set properties in construction phase");
@@ -128,10 +124,10 @@ public:
     return true;
   }
 
-  virtual Layer* AsLayer() { return this; }
-  virtual ShadowableLayer* AsShadowableLayer() { return this; }
+  virtual Layer* AsLayer() override { return this; }
+  virtual ShadowableLayer* AsShadowableLayer() override { return this; }
 
-  virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface)
+  virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface) override
   {
     DefaultComputeEffectiveTransforms(aTransformToSurface);
   }
@@ -151,8 +147,7 @@ class ClientRefLayer : public RefLayer,
                        public ClientLayer {
 public:
   explicit ClientRefLayer(ClientLayerManager* aManager) :
-    RefLayer(aManager,
-             static_cast<ClientLayer*>(MOZ_THIS_IN_INITIALIZER_LIST()))
+    RefLayer(aManager, static_cast<ClientLayer*>(this))
   {
     MOZ_COUNT_CTOR(ClientRefLayer);
   }
@@ -186,7 +181,7 @@ private:
   }
 };
 
-}
-}
+} // namespace layers
+} // namespace mozilla
 
 #endif

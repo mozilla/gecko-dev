@@ -111,7 +111,7 @@ bool MacPowerInformationService::sShuttingDown = false;
 MacPowerInformationService* MacPowerInformationService::sInstance = nullptr;
 
 namespace {
-struct SingletonDestroyer MOZ_FINAL : public nsIObserver
+struct SingletonDestroyer final : public nsIObserver
 {
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
@@ -129,7 +129,7 @@ SingletonDestroyer::Observe(nsISupports*, const char* aTopic, const char16_t*)
   MacPowerInformationService::Shutdown();
   return NS_OK;
 }
-} // anonymous namespace
+} // namespace
 
 /* static */ MacPowerInformationService*
 MacPowerInformationService::GetInstance()

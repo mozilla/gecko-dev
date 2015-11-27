@@ -7,7 +7,6 @@
 #define GFX_PLATFORM_GTK_H
 
 #include "gfxPlatform.h"
-#include "gfxPrefs.h"
 #include "nsAutoRef.h"
 #include "nsTArray.h"
 
@@ -29,23 +28,34 @@ public:
     }
 
     virtual already_AddRefed<gfxASurface>
-      CreateOffscreenSurface(const IntSize& size,
-                             gfxContentType contentType) MOZ_OVERRIDE;
+      CreateOffscreenSurface(const IntSize& aSize,
+                             gfxImageFormat aFormat) override;
 
-    mozilla::TemporaryRef<mozilla::gfx::ScaledFont>
-      GetScaledFontForFont(mozilla::gfx::DrawTarget* aTarget, gfxFont *aFont);
+    virtual already_AddRefed<mozilla::gfx::ScaledFont>
+      GetScaledFontForFont(mozilla::gfx::DrawTarget* aTarget, gfxFont *aFont) override;
 
-    nsresult GetFontList(nsIAtom *aLangGroup,
-                         const nsACString& aGenericFamily,
-                         nsTArray<nsString>& aListOfFonts);
+    virtual nsresult GetFontList(nsIAtom *aLangGroup,
+                                 const nsACString& aGenericFamily,
+                                 nsTArray<nsString>& aListOfFonts) override;
 
-    nsresult UpdateFontList();
+    virtual nsresult UpdateFontList() override;
 
-    nsresult GetStandardFamilyName(const nsAString& aFontName, nsAString& aFamilyName);
+    virtual void
+    GetCommonFallbackFonts(uint32_t aCh, uint32_t aNextCh,
+                           int32_t aRunScript,
+                           nsTArray<const char*>& aFontList) override;
 
-    gfxFontGroup *CreateFontGroup(const mozilla::FontFamilyList& aFontFamilyList,
-                                  const gfxFontStyle *aStyle,
-                                  gfxUserFontSet *aUserFontSet);
+    virtual gfxPlatformFontList* CreatePlatformFontList() override;
+
+    virtual nsresult GetStandardFamilyName(const nsAString& aFontName,
+                                           nsAString& aFamilyName) override;
+
+    gfxFontGroup*
+    CreateFontGroup(const mozilla::FontFamilyList& aFontFamilyList,
+                    const gfxFontStyle *aStyle,
+                    gfxTextPerfMetrics* aTextPerf,
+                    gfxUserFontSet *aUserFontSet,
+                    gfxFloat aDevToCssSize) override;
 
     /**
      * Look up a local platform font using the full font face name (needed to
@@ -54,7 +64,7 @@ public:
     virtual gfxFontEntry* LookupLocalFont(const nsAString& aFontName,
                                           uint16_t aWeight,
                                           int16_t aStretch,
-                                          bool aItalic);
+                                          uint8_t aStyle) override;
 
     /**
      * Activate a platform font (needed to support @font-face src url() )
@@ -63,16 +73,21 @@ public:
     virtual gfxFontEntry* MakePlatformFont(const nsAString& aFontName,
                                            uint16_t aWeight,
                                            int16_t aStretch,
-                                           bool aItalic,
+                                           uint8_t aStyle,
                                            const uint8_t* aFontData,
-                                           uint32_t aLength);
+                                           uint32_t aLength) override;
 
     /**
      * Check whether format is supported on a platform or not (if unclear,
      * returns true).
      */
     virtual bool IsFontFormatSupported(nsIURI *aFontURI,
-                                         uint32_t aFormatFlags);
+                                         uint32_t aFormatFlags) override;
+
+    /**
+     * Calls XFlush if xrender is enabled.
+     */
+    virtual void FlushContentDrawing() override;
 
 #if (MOZ_WIDGET_GTK == 2)
     static void SetGdkDrawable(cairo_surface_t *target,
@@ -81,11 +96,12 @@ public:
 #endif
 
     static int32_t GetDPI();
+    static double  GetDPIScale();
 
     bool UseXRender() {
 #if defined(MOZ_X11)
-        if (GetContentBackend() != mozilla::gfx::BackendType::NONE &&
-            GetContentBackend() != mozilla::gfx::BackendType::CAIRO)
+        if (GetDefaultContentBackend() != mozilla::gfx::BackendType::NONE &&
+            GetDefaultContentBackend() != mozilla::gfx::BackendType::CAIRO)
             return false;
 
         return sUseXRender;
@@ -94,29 +110,44 @@ public:
 #endif
     }
 
-    bool UseImageOffscreenSurfaces() {
-        // We want to turn on image offscreen surfaces ONLY for GTK3 builds
-        // since GTK2 theme rendering still requires xlib surfaces per se.
-#if (MOZ_WIDGET_GTK == 3)
-        return gfxPrefs::UseImageOffscreenSurfaces();
-#else
-        return false;
+#ifdef MOZ_X11
+    virtual void GetAzureBackendInfo(mozilla::widget::InfoObject &aObj) override {
+      gfxPlatform::GetAzureBackendInfo(aObj);
+      aObj.DefineProperty("CairoUseXRender", UseXRender());
+    }
 #endif
+
+    static bool UseFcFontList() { return sUseFcFontList; }
+
+    bool UseImageOffscreenSurfaces();
+
+    virtual gfxImageFormat GetOffscreenFormat() override;
+
+    bool SupportsApzWheelInput() const override {
+      return true;
     }
 
-    virtual gfxImageFormat GetOffscreenFormat();
+    void FontsPrefsChanged(const char *aPref) override;
 
-    virtual int GetScreenDepth() const;
+    // maximum number of fonts to substitute for a generic
+    uint32_t MaxGenericSubstitions();
 
 protected:
     static gfxFontconfigUtils *sFontconfigUtils;
 
+    int8_t mMaxGenericSubstitutions;
+
 private:
-    virtual void GetPlatformCMSOutputProfile(void *&mem, size_t &size);
+    virtual void GetPlatformCMSOutputProfile(void *&mem,
+                                             size_t &size) override;
 
 #ifdef MOZ_X11
     static bool sUseXRender;
 #endif
+
+    // xxx - this will be removed once the new fontconfig platform font list
+    // replaces gfxPangoFontGroup
+    static bool sUseFcFontList;
 };
 
 #endif /* GFX_PLATFORM_GTK_H */

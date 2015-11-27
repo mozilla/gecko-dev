@@ -28,10 +28,6 @@ if CONFIG['_MSC_VER']:
         '-wd4661', # no suitable definition provided for explicit template instantiation request
     ]
 
-FAIL_ON_WARNINGS = True
-
-MSVC_ENABLE_PGO = True
-
 include('/ipc/chromium/chromium-config.mozbuild')
 
 FINAL_LIBRARY = 'xul'
@@ -39,6 +35,5 @@ FINAL_LIBRARY = 'xul'
 LOCAL_INCLUDES += [
     '../../../dom/base',
     '../src',
-    '/js/ipc',
 ]
 

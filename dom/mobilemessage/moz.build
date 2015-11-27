@@ -19,6 +19,7 @@ EXPORTS.mozilla.dom.mobilemessage += [
 if CONFIG['MOZ_WIDGET_TOOLKIT'] == 'android':
     SOURCES += [
         'android/MobileMessageDatabaseService.cpp',
+        'android/SmsManager.cpp',
         'android/SmsService.cpp',
     ]
 elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk' and CONFIG['MOZ_B2G_RIL']:
@@ -26,6 +27,7 @@ elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk' and CONFIG['MOZ_B2G_RIL']:
         'gonk/mms_consts.js',
         'gonk/MmsPduHelper.jsm',
         'gonk/MobileMessageDB.jsm',
+        'gonk/SmsSegmentHelper.jsm',
         'gonk/wap_consts.js',
         'gonk/WspPduHelper.jsm',
     ]
@@ -35,18 +37,22 @@ elif CONFIG['MOZ_WIDGET_TOOLKIT'] == 'gonk' and CONFIG['MOZ_B2G_RIL']:
         'gonk/MobileMessageDatabaseService.js',
         'gonk/MobileMessageDatabaseService.manifest',
     ]
-    SOURCES += [
-        'gonk/SmsService.cpp',
-    ]
+    if not CONFIG['DISABLE_MOZ_RIL_GEOLOC']:
+        EXTRA_COMPONENTS += [
+            'gonk/SmsService.js',
+            'gonk/SmsService.manifest',
+        ]
 
 EXPORTS.mozilla.dom += [
     'DOMMobileMessageError.h',
     'MmsMessage.h',
     'MobileMessageManager.h',
+    'MobileMessageThread.h',
     'SmsMessage.h',
 ]
 
 UNIFIED_SOURCES += [
+    'Assertions.cpp',
     'Constants.cpp',
     'DeletedMessageInfo.cpp',
     'DOMMobileMessageError.cpp',
@@ -54,12 +60,15 @@ UNIFIED_SOURCES += [
     'ipc/SmsIPCService.cpp',
     'ipc/SmsParent.cpp',
     'MmsMessage.cpp',
+    'MmsMessageInternal.cpp',
     'MobileMessageCallback.cpp',
     'MobileMessageCursorCallback.cpp',
     'MobileMessageManager.cpp',
     'MobileMessageService.cpp',
     'MobileMessageThread.cpp',
+    'MobileMessageThreadInternal.cpp',
     'SmsMessage.cpp',
+    'SmsMessageInternal.cpp',
 ]
 
 IPDL_SOURCES += [
@@ -69,12 +78,9 @@ IPDL_SOURCES += [
     'ipc/SmsTypes.ipdlh',
 ]
 
-FAIL_ON_WARNINGS = True
-
-MSVC_ENABLE_PGO = True
-
 LOCAL_INCLUDES += [
     '/dom/base',
+    '/widget/android',
 ]
 
 include('/ipc/chromium/chromium-config.mozbuild')

@@ -6,6 +6,9 @@
 
 /* A memory allocator for zlib use in SPDY that reports to about:memory. */
 
+#ifndef mozilla_net_SpdyZlibReporter_h
+#define mozilla_net_SpdyZlibReporter_h
+
 #include "mozilla/Assertions.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
@@ -14,7 +17,7 @@
 
 namespace mozilla {
 
-class SpdyZlibReporter MOZ_FINAL : public nsIMemoryReporter
+class SpdyZlibReporter final : public nsIMemoryReporter
 {
   ~SpdyZlibReporter() {}
 
@@ -47,7 +50,9 @@ private:
 
   NS_IMETHODIMP
   CollectReports(nsIHandleReportCallback* aHandleReport, nsISupports* aData,
-                 bool aAnonymize);
+                 bool aAnonymize) override;
 };
 
 } // namespace mozilla
+
+#endif // mozilla_net_SpdyZlibReporter_h

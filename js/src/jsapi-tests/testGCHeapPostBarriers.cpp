@@ -5,13 +5,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifdef JSGC_GENERATIONAL
-
 #include "js/RootingAPI.h"
 #include "jsapi-tests/tests.h"
 
+using mozilla::ScopedDeletePtr;
+
 BEGIN_TEST(testGCHeapPostBarriers)
 {
+#ifdef JS_GC_ZEAL
+    AutoLeaveZeal nozeal(cx);
+#endif /* JS_GC_ZEAL */
+
     /* Sanity check - objects start in the nursery and then become tenured. */
     JS_GC(cx->runtime());
     JS::RootedObject obj(cx, NurseryObject());
@@ -42,10 +46,10 @@ TestHeapPostBarriers(T initialObj)
     CHECK(js::gc::IsInsideNursery(initialObj));
 
     /* Construct Heap<> wrapper. */
-    JS::Heap<T> *heapData = new JS::Heap<T>();
-    CHECK(heapData);
+    ScopedDeletePtr<JS::Heap<T>> heapData(new JS::Heap<T>);
+    CHECK(heapData.get());
     CHECK(Passthrough(heapData->get() == nullptr));
-    heapData->set(initialObj);
+    *heapData = initialObj;
 
     /* Store the pointer as an integer so that the hazard analysis will miss it. */
     uintptr_t initialObjAsInt = uintptr_t(initialObj);
@@ -62,28 +66,25 @@ TestHeapPostBarriers(T initialObj)
     CHECK(value.isInt32());
     CHECK(value.toInt32() == 42);
 
-    delete heapData;
     return true;
 }
 
-JSObject *NurseryObject()
+JSObject* NurseryObject()
 {
-    JS::RootedObject obj(cx, JS_NewObject(cx, nullptr, JS::NullPtr(), JS::NullPtr()));
+    JS::RootedObject obj(cx, JS_NewPlainObject(cx));
     if (!obj)
         return nullptr;
     JS_DefineProperty(cx, obj, "x", 42, 0);
     return obj;
 }
 
-JSFunction *NurseryFunction()
+JSFunction* NurseryFunction()
 {
     /*
      * We don't actually use the function as a function, so here we cheat and
      * cast a JSObject.
      */
-    return static_cast<JSFunction *>(NurseryObject());
+    return static_cast<JSFunction*>(NurseryObject());
 }
 
 END_TEST(testGCHeapPostBarriers)
-
-#endif

@@ -231,7 +231,7 @@ function testOverrides(callback) {
   SpecialPowers.pushPrefEnv({
     set: [[PREF_OVERRIDES_ENABLED, true]]
   }, function nextTest() {
-    testUA(tests.shift(), function () tests.length ? nextTest() : callback());
+    testUA(tests.shift(), function() { tests.length ? nextTest() : callback() });
   });
 }
 
@@ -239,12 +239,15 @@ SpecialPowers.Cu.import('resource://gre/modules/UserAgentOverrides.jsm', window)
 SpecialPowers.wrap(UserAgentOverrides).init();
 
 SimpleTest.waitForExplicitFinish();
+SimpleTest.requestCompleteLog();
 
-testOverrides(function ()
-  testInactive(function ()
+info(SpecialPowers.Cc["@mozilla.org/dom/site-specific-user-agent;1"].number);
+
+testOverrides(function() {
+  testInactive(function() {
     testPriority(SimpleTest.finish)
-  )
-);
+  });
+});
 
 </script>
 </pre>

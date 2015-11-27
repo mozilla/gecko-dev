@@ -21,7 +21,7 @@ MOZ_PKG_PLATFORM := $(TARGET_OS)-$(TARGET_CPU)
 # TARGET_OS/TARGET_CPU may be unintuitive, so we hardcode some special formats
 ifeq ($(OS_ARCH),WINNT)
 ifeq ($(TARGET_CPU),x86_64)
-MOZ_PKG_PLATFORM := win64-$(TARGET_CPU)
+MOZ_PKG_PLATFORM := win64
 else
 MOZ_PKG_PLATFORM := win32
 endif
@@ -54,7 +54,11 @@ ifndef MOZ_PKG_APPNAME
 MOZ_PKG_APPNAME = $(MOZ_APP_NAME)
 endif
 
+ifdef MOZ_SIMPLE_PACKAGE_NAME
+PKG_BASENAME := $(MOZ_SIMPLE_PACKAGE_NAME)
+else
 PKG_BASENAME = $(MOZ_PKG_APPNAME)-$(MOZ_PKG_VERSION).$(AB_CD).$(MOZ_PKG_PLATFORM)
+endif
 PKG_PATH =
 PKG_INST_BASENAME = $(PKG_BASENAME).installer
 PKG_STUB_BASENAME = $(PKG_BASENAME).installer-stub
@@ -128,8 +132,17 @@ SYMBOL_ARCHIVE_BASENAME = $(PKG_BASENAME).crashreporter-symbols
 # Code coverage package naming
 CODE_COVERAGE_ARCHIVE_BASENAME = $(PKG_BASENAME).code-coverage-gcno
 
+# Mozharness naming
+MOZHARNESS_PACKAGE = mozharness.zip
+
 # Test package naming
-TEST_PACKAGE = $(PKG_BASENAME).tests.zip
+TEST_PACKAGE = $(PKG_BASENAME).common.tests.zip
+CPP_TEST_PACKAGE = $(PKG_BASENAME).cppunittest.tests.zip
+XPC_TEST_PACKAGE = $(PKG_BASENAME).xpcshell.tests.zip
+MOCHITEST_PACKAGE = $(PKG_BASENAME).mochitest.tests.zip
+REFTEST_PACKAGE = $(PKG_BASENAME).reftest.tests.zip
+WP_TEST_PACKAGE = $(PKG_BASENAME).web-platform.tests.zip
+TALOS_PACKAGE = $(PKG_BASENAME).talos.tests.zip
 
 ifneq (,$(wildcard $(DIST)/bin/application.ini))
 BUILDID = $(shell $(PYTHON) $(MOZILLA_DIR)/config/printconfigsetting.py $(DIST)/bin/application.ini App BuildID)
@@ -139,24 +152,31 @@ endif
 
 ifndef INCLUDED_RCS_MK
   USE_RCS_MK := 1
-  include $(topsrcdir)/config/makefiles/makeutils.mk
+  include $(MOZILLA_DIR)/config/makefiles/makeutils.mk
 endif
 
-MOZ_SOURCE_STAMP = $(firstword $(shell hg -R $(MOZILLA_DIR) parent --template="{node|short}\n" 2>/dev/null))
+MOZ_SOURCE_STAMP = $(firstword $(shell hg -R $(MOZILLA_DIR) parent --template="{node}\n" 2>/dev/null))
 
 ###########################################################################
 # bug: 746277 - preserve existing functionality.
 # MOZILLA_DIR="": cd $(SPACE); hg # succeeds if ~/.hg exists
 ###########################################################################
-ifdef MOZILLA_OFFICIAL
+ifdef MOZ_INCLUDE_SOURCE_INFO
 MOZ_SOURCE_REPO = $(call getSourceRepo,$(MOZILLA_DIR)$(NULL) $(NULL))
 endif
 
 MOZ_SOURCESTAMP_FILE = $(DIST)/$(PKG_PATH)/$(MOZ_INFO_BASENAME).txt
 MOZ_BUILDINFO_FILE = $(DIST)/$(PKG_PATH)/$(MOZ_INFO_BASENAME).json
 MOZ_MOZINFO_FILE = $(DIST)/$(PKG_PATH)/$(MOZ_INFO_BASENAME).mozinfo.json
+MOZ_TEST_PACKAGES_FILE = $(DIST)/$(PKG_PATH)/test_packages.json
+MOZ_TEST_PACKAGES_FILE_TC = $(DIST)/$(PKG_PATH)/test_packages_tc.json
 
 # JavaScript Shell
-PKG_JSSHELL = $(DIST)/jsshell-$(MOZ_PKG_PLATFORM).zip
+ifdef MOZ_SIMPLE_PACKAGE_NAME
+JSSHELL_NAME := $(MOZ_SIMPLE_PACKAGE_NAME).jsshell.zip
+else
+JSSHELL_NAME = jsshell-$(MOZ_PKG_PLATFORM).zip
+endif
+PKG_JSSHELL = $(DIST)/$(JSSHELL_NAME)
 
 endif # PACKAGE_NAME_MK_INCLUDED

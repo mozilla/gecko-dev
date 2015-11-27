@@ -5,13 +5,19 @@
 #endif
 
 const PREF_INTRO_SHOWN = "browser.newtabpage.introShown";
+const PREF_NEWTAB_ENHANCED = "browser.newtabpage.enhanced";
 
-let gIntro = {
-  _introShown: Services.prefs.getBoolPref(PREF_INTRO_SHOWN),
-
+var gIntro = {
   _nodeIDSuffixes: [
-    "panel",
+    "mask",
+    "modal",
+    "text",
+    "buttons",
+    "header",
+    "footer"
   ],
+
+  _paragraphs: [],
 
   _nodes: {},
 
@@ -19,36 +25,71 @@ let gIntro = {
     for (let idSuffix of this._nodeIDSuffixes) {
       this._nodes[idSuffix] = document.getElementById("newtab-intro-" + idSuffix);
     }
+  },
 
-    this._nodes.panel.addEventListener("popupshowing", e => this._setUpPanel());
+  _showMessage: function() {
+    // Set the paragraphs
+    let paragraphNodes = this._nodes.text.getElementsByTagName("p");
+
+    this._paragraphs.forEach((arg, index) => {
+      paragraphNodes[index].innerHTML = arg;
+    });
+
+    // Set the button
+    document.getElementById("newtab-intro-button").
+             setAttribute("value", newTabString("intro.gotit"));
+  },
+
+  _bold: function(str) {
+    return `<strong>${str}</strong>`;
+  },
+
+  _link: function(url, text) {
+    return `<a href="${url}" target="_blank">${text}</a>`;
+  },
+
+  _exitIntro: function() {
+    this._nodes.mask.style.opacity = 0;
+    this._nodes.mask.addEventListener("transitionend", () => {
+      this._nodes.mask.style.display = "none";
+    });
+  },
+
+  _generateParagraphs: function() {
+    let customizeIcon = '<input type="button" class="newtab-control newtab-customize"/>';
+    this._paragraphs.push(newTabString("intro1.paragraph1"));
+    this._paragraphs.push(newTabString("intro1.paragraph2",
+                            [
+                              this._link(TILES_PRIVACY_LINK, newTabString("privacy.link")),
+                              customizeIcon
+                            ]));
   },
 
   showIfNecessary: function() {
-    if (!this._introShown) {
-      Services.prefs.setBoolPref(PREF_INTRO_SHOWN, true);
+    if (!Services.prefs.getBoolPref(PREF_NEWTAB_ENHANCED)) {
+      return;
+    }
+    if (!Services.prefs.getBoolPref(PREF_INTRO_SHOWN)) {
       this.showPanel();
+      Services.prefs.setBoolPref(PREF_INTRO_SHOWN, true);
     }
   },
 
   showPanel: function() {
-    // Open the customize menu first
-    gCustomize.showPanel().then(nodes => {
-      // Point the panel at the 'what' menu item
-      this._nodes.panel.openPopup(nodes.what);
-    });
-  },
+    this._nodes.mask.style.display = "block";
+    this._nodes.mask.style.opacity = 1;
 
-  _setUpPanel: function() {
-    // Build the panel if necessary
-    if (this._nodes.panel.childNodes.length == 1) {
-      ['<a href="' + TILES_INTRO_LINK + '">' + newTabString("learn.link") + "</a>",
-       '<a href="' + TILES_PRIVACY_LINK + '">' + newTabString("privacy.link") + "</a>",
-       '<input type="button" class="newtab-customize"/>',
-      ].forEach((arg, index) => {
-        let paragraph = document.createElementNS(HTML_NAMESPACE, "p");
-        this._nodes.panel.appendChild(paragraph);
-        paragraph.innerHTML = newTabString("intro.paragraph" + (index + 1), [arg]);
-      });
+    if (!this._paragraphs.length) {
+      // It's our first time showing the panel. Do some initial setup
+      this._generateParagraphs();
     }
+    this._showMessage();
+
+    // Header text
+    this._nodes.header.innerHTML = newTabString("intro.header.update");
+
+    // Footer links
+    let footerLinkNode = document.getElementById("newtab-intro-link");
+    footerLinkNode.innerHTML = this._link(TILES_INTRO_LINK, newTabString("learn.link2"))
   },
 };

@@ -1,14 +1,16 @@
 /* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=2 sts=2 sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include <stdlib.h>                     // for getenv
 
-#include "mozilla/Attributes.h"         // for MOZ_FINAL
+#include "mozilla/Attributes.h"         // for final
 #include "mozilla/Preferences.h"        // for Preferences
 #include "mozilla/Services.h"           // for GetXULChromeRegistryService
 #include "mozilla/dom/Element.h"        // for Element
+#include "mozilla/dom/Selection.h"
 #include "mozilla/mozalloc.h"           // for operator delete, etc
 #include "nsAString.h"                  // for nsAString_internal::IsEmpty, etc
 #include "nsComponentManagerUtils.h"    // for do_CreateInstance
@@ -22,7 +24,6 @@
 #include "nsIContentPrefService2.h"     // for nsIContentPrefService2, etc
 #include "nsIDOMDocument.h"             // for nsIDOMDocument
 #include "nsIDOMElement.h"              // for nsIDOMElement
-#include "nsIDOMRange.h"                // for nsIDOMRange
 #include "nsIDocument.h"                // for nsIDocument
 #include "nsIEditor.h"                  // for nsIEditor
 #include "nsIHTMLEditor.h"              // for nsIHTMLEditor
@@ -34,28 +35,31 @@
 #include "nsITextServicesDocument.h"    // for nsITextServicesDocument
 #include "nsITextServicesFilter.h"      // for nsITextServicesFilter
 #include "nsIURI.h"                     // for nsIURI
-#include "nsIVariant.h"                 // for nsIWritableVariant, etc
+#include "nsVariant.h"                  // for nsIWritableVariant, etc
 #include "nsLiteralString.h"            // for NS_LITERAL_STRING, etc
 #include "nsMemory.h"                   // for nsMemory
+#include "nsRange.h"
 #include "nsReadableUtils.h"            // for ToNewUnicode, EmptyString, etc
 #include "nsServiceManagerUtils.h"      // for do_GetService
 #include "nsString.h"                   // for nsAutoString, nsString, etc
 #include "nsStringFwd.h"                // for nsAFlatString
 #include "nsStyleUtil.h"                // for nsStyleUtil
 #include "nsXULAppAPI.h"                // for XRE_GetProcessType
+#include "nsIPlaintextEditor.h"         // for editor flags
 
 using namespace mozilla;
+using namespace mozilla::dom;
 
-class UpdateDictionnaryHolder {
+class UpdateDictionaryHolder {
   private:
     nsEditorSpellCheck* mSpellCheck;
   public:
-    explicit UpdateDictionnaryHolder(nsEditorSpellCheck* esc): mSpellCheck(esc) {
+    explicit UpdateDictionaryHolder(nsEditorSpellCheck* esc): mSpellCheck(esc) {
       if (mSpellCheck) {
         mSpellCheck->BeginUpdateDictionary();
       }
     }
-    ~UpdateDictionnaryHolder() {
+    ~UpdateDictionaryHolder() {
       if (mSpellCheck) {
         mSpellCheck->EndUpdateDictionary();
       }
@@ -106,7 +110,7 @@ GetLoadContext(nsIEditor* aEditor)
  * Fetches the dictionary stored in content prefs and maintains state during the
  * fetch, which is asynchronous.
  */
-class DictionaryFetcher MOZ_FINAL : public nsIContentPrefCallback2
+class DictionaryFetcher final : public nsIContentPrefCallback2
 {
 public:
   NS_DECL_ISUPPORTS
@@ -118,7 +122,7 @@ public:
 
   NS_IMETHOD Fetch(nsIEditor* aEditor);
 
-  NS_IMETHOD HandleResult(nsIContentPref* aPref)
+  NS_IMETHOD HandleResult(nsIContentPref* aPref) override
   {
     nsCOMPtr<nsIVariant> value;
     nsresult rv = aPref->GetValue(getter_AddRefs(value));
@@ -127,13 +131,13 @@ public:
     return NS_OK;
   }
 
-  NS_IMETHOD HandleCompletion(uint16_t reason)
+  NS_IMETHOD HandleCompletion(uint16_t reason) override
   {
     mSpellCheck->DictionaryFetched(this);
     return NS_OK;
   }
 
-  NS_IMETHOD HandleError(nsresult error)
+  NS_IMETHOD HandleError(nsresult error) override
   {
     return NS_OK;
   }
@@ -147,7 +151,7 @@ public:
 private:
   ~DictionaryFetcher() {}
 
-  nsRefPtr<nsEditorSpellCheck> mSpellCheck;
+  RefPtr<nsEditorSpellCheck> mSpellCheck;
 };
 NS_IMPL_ISUPPORTS(DictionaryFetcher, nsIContentPrefCallback2)
 
@@ -197,8 +201,7 @@ StoreCurrentDictionary(nsIEditor* aEditor, const nsAString& aDictionary)
   rv = docUri->GetSpec(docUriSpec);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIWritableVariant> prefValue = do_CreateInstance(NS_VARIANT_CONTRACTID);
-  NS_ENSURE_TRUE(prefValue, NS_ERROR_OUT_OF_MEMORY);
+  RefPtr<nsVariant> prefValue = new nsVariant();
   prefValue->SetAsAString(aDictionary);
 
   nsCOMPtr<nsIContentPrefService2> contentPrefService =
@@ -293,7 +296,7 @@ nsEditorSpellCheck::CanSpellCheck(bool* _retval)
 }
 
 // Instances of this class can be used as either runnables or RAII helpers.
-class CallbackCaller MOZ_FINAL : public nsRunnable
+class CallbackCaller final : public nsRunnable
 {
 public:
   explicit CallbackCaller(nsIEditorSpellCheckCallback* aCallback)
@@ -317,7 +320,7 @@ private:
   nsCOMPtr<nsIEditorSpellCheckCallback> mCallback;
 };
 
-NS_IMETHODIMP    
+NS_IMETHODIMP
 nsEditorSpellCheck::InitSpellChecker(nsIEditor* aEditor, bool aEnableSelectionChecking, nsIEditorSpellCheckCallback* aCallback)
 {
   NS_ENSURE_TRUE(aEditor, NS_ERROR_NULL_POINTER);
@@ -342,10 +345,9 @@ nsEditorSpellCheck::InitSpellChecker(nsIEditor* aEditor, bool aEnableSelectionCh
     // Find out if the section is collapsed or not.
     // If it isn't, we want to spellcheck just the selection.
 
-    nsCOMPtr<nsISelection> selection;
-
-    rv = aEditor->GetSelection(getter_AddRefs(selection));
-    NS_ENSURE_SUCCESS(rv, rv);
+    nsCOMPtr<nsISelection> domSelection;
+    aEditor->GetSelection(getter_AddRefs(domSelection));
+    RefPtr<Selection> selection = static_cast<Selection*>(domSelection.get());
     NS_ENSURE_TRUE(selection, NS_ERROR_FAILURE);
 
     int32_t count = 0;
@@ -354,10 +356,8 @@ nsEditorSpellCheck::InitSpellChecker(nsIEditor* aEditor, bool aEnableSelectionCh
     NS_ENSURE_SUCCESS(rv, rv);
 
     if (count > 0) {
-      nsCOMPtr<nsIDOMRange> range;
-
-      rv = selection->GetRangeAt(0, getter_AddRefs(range));
-      NS_ENSURE_SUCCESS(rv, rv);
+      RefPtr<nsRange> range = selection->GetRangeAt(0);
+      NS_ENSURE_STATE(range);
 
       bool collapsed = false;
       rv = range->GetCollapsed(&collapsed);
@@ -367,10 +367,7 @@ nsEditorSpellCheck::InitSpellChecker(nsIEditor* aEditor, bool aEnableSelectionCh
         // We don't want to touch the range in the selection,
         // so create a new copy of it.
 
-        nsCOMPtr<nsIDOMRange> rangeBounds;
-        rv =  range->CloneRange(getter_AddRefs(rangeBounds));
-        NS_ENSURE_SUCCESS(rv, rv);
-        NS_ENSURE_TRUE(rangeBounds, NS_ERROR_FAILURE);
+        RefPtr<nsRange> rangeBounds = range->CloneRange();
 
         // Make sure the new range spans complete words.
 
@@ -401,7 +398,7 @@ nsEditorSpellCheck::InitSpellChecker(nsIEditor* aEditor, bool aEnableSelectionCh
     // However, if it does fail, we still need to call the callback since we
     // discard the failure.  Do it asynchronously so that the caller is always
     // guaranteed async behavior.
-    nsRefPtr<CallbackCaller> caller = new CallbackCaller(aCallback);
+    RefPtr<CallbackCaller> caller = new CallbackCaller(aCallback);
     NS_ENSURE_STATE(caller);
     rv = NS_DispatchToMainThread(caller);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -410,13 +407,13 @@ nsEditorSpellCheck::InitSpellChecker(nsIEditor* aEditor, bool aEnableSelectionCh
   return NS_OK;
 }
 
-NS_IMETHODIMP    
+NS_IMETHODIMP
 nsEditorSpellCheck::GetNextMisspelledWord(char16_t **aNextMisspelledWord)
 {
   NS_ENSURE_TRUE(mSpellChecker, NS_ERROR_NOT_INITIALIZED);
 
   nsAutoString nextMisspelledWord;
-  
+
   DeleteSuggestedWordList();
   // Beware! This may flush notifications via synchronous
   // ScrollSelectionIntoView.
@@ -427,7 +424,7 @@ nsEditorSpellCheck::GetNextMisspelledWord(char16_t **aNextMisspelledWord)
   return rv;
 }
 
-NS_IMETHODIMP    
+NS_IMETHODIMP
 nsEditorSpellCheck::GetSuggestedWord(char16_t **aSuggestedWord)
 {
   nsAutoString word;
@@ -442,7 +439,7 @@ nsEditorSpellCheck::GetSuggestedWord(char16_t **aSuggestedWord)
   return NS_OK;
 }
 
-NS_IMETHODIMP    
+NS_IMETHODIMP
 nsEditorSpellCheck::CheckCurrentWord(const char16_t *aSuggestedWord,
                                      bool *aIsMisspelled)
 {
@@ -453,7 +450,7 @@ nsEditorSpellCheck::CheckCurrentWord(const char16_t *aSuggestedWord,
                                   aIsMisspelled, &mSuggestedWordList);
 }
 
-NS_IMETHODIMP    
+NS_IMETHODIMP
 nsEditorSpellCheck::CheckCurrentWordNoSuggest(const char16_t *aSuggestedWord,
                                               bool *aIsMisspelled)
 {
@@ -463,7 +460,7 @@ nsEditorSpellCheck::CheckCurrentWordNoSuggest(const char16_t *aSuggestedWord,
                                   aIsMisspelled, nullptr);
 }
 
-NS_IMETHODIMP    
+NS_IMETHODIMP
 nsEditorSpellCheck::ReplaceWord(const char16_t *aMisspelledWord,
                                 const char16_t *aReplaceWord,
                                 bool             allOccurrences)
@@ -474,7 +471,7 @@ nsEditorSpellCheck::ReplaceWord(const char16_t *aMisspelledWord,
                                 nsDependentString(aReplaceWord), allOccurrences);
 }
 
-NS_IMETHODIMP    
+NS_IMETHODIMP
 nsEditorSpellCheck::IgnoreWordAllOccurrences(const char16_t *aWord)
 {
   NS_ENSURE_TRUE(mSpellChecker, NS_ERROR_NOT_INITIALIZED);
@@ -482,7 +479,7 @@ nsEditorSpellCheck::IgnoreWordAllOccurrences(const char16_t *aWord)
   return mSpellChecker->IgnoreAll(nsDependentString(aWord));
 }
 
-NS_IMETHODIMP    
+NS_IMETHODIMP
 nsEditorSpellCheck::GetPersonalDictionary()
 {
   NS_ENSURE_TRUE(mSpellChecker, NS_ERROR_NOT_INITIALIZED);
@@ -493,7 +490,7 @@ nsEditorSpellCheck::GetPersonalDictionary()
   return mSpellChecker->GetPersonalDictionary(&mDictionaryList);
 }
 
-NS_IMETHODIMP    
+NS_IMETHODIMP
 nsEditorSpellCheck::GetPersonalDictionaryWord(char16_t **aDictionaryWord)
 {
   if ( mDictionaryIndex < int32_t( mDictionaryList.Length()))
@@ -508,7 +505,7 @@ nsEditorSpellCheck::GetPersonalDictionaryWord(char16_t **aDictionaryWord)
   return NS_OK;
 }
 
-NS_IMETHODIMP    
+NS_IMETHODIMP
 nsEditorSpellCheck::AddWordToDictionary(const char16_t *aWord)
 {
   NS_ENSURE_TRUE(mSpellChecker, NS_ERROR_NOT_INITIALIZED);
@@ -516,7 +513,7 @@ nsEditorSpellCheck::AddWordToDictionary(const char16_t *aWord)
   return mSpellChecker->AddWordToPersonalDictionary(nsDependentString(aWord));
 }
 
-NS_IMETHODIMP    
+NS_IMETHODIMP
 nsEditorSpellCheck::RemoveWordFromDictionary(const char16_t *aWord)
 {
   NS_ENSURE_TRUE(mSpellChecker, NS_ERROR_NOT_INITIALIZED);
@@ -524,7 +521,7 @@ nsEditorSpellCheck::RemoveWordFromDictionary(const char16_t *aWord)
   return mSpellChecker->RemoveWordFromPersonalDictionary(nsDependentString(aWord));
 }
 
-NS_IMETHODIMP    
+NS_IMETHODIMP
 nsEditorSpellCheck::GetDictionaryList(char16_t ***aDictionaryList, uint32_t *aCount)
 {
   NS_ENSURE_TRUE(mSpellChecker, NS_ERROR_NOT_INITIALIZED);
@@ -547,7 +544,7 @@ nsEditorSpellCheck::GetDictionaryList(char16_t ***aDictionaryList, uint32_t *aCo
     // If there are no dictionaries, return an array containing
     // one element and a count of one.
 
-    tmpPtr = (char16_t **)nsMemory::Alloc(sizeof(char16_t *));
+    tmpPtr = (char16_t **)moz_xmalloc(sizeof(char16_t *));
 
     NS_ENSURE_TRUE(tmpPtr, NS_ERROR_OUT_OF_MEMORY);
 
@@ -558,7 +555,7 @@ nsEditorSpellCheck::GetDictionaryList(char16_t ***aDictionaryList, uint32_t *aCo
     return NS_OK;
   }
 
-  tmpPtr = (char16_t **)nsMemory::Alloc(sizeof(char16_t *) * dictList.Length());
+  tmpPtr = (char16_t **)moz_xmalloc(sizeof(char16_t *) * dictList.Length());
 
   NS_ENSURE_TRUE(tmpPtr, NS_ERROR_OUT_OF_MEMORY);
 
@@ -575,7 +572,7 @@ nsEditorSpellCheck::GetDictionaryList(char16_t ***aDictionaryList, uint32_t *aCo
   return rv;
 }
 
-NS_IMETHODIMP    
+NS_IMETHODIMP
 nsEditorSpellCheck::GetCurrentDictionary(nsAString& aDictionary)
 {
   NS_ENSURE_TRUE(mSpellChecker, NS_ERROR_NOT_INITIALIZED);
@@ -583,73 +580,62 @@ nsEditorSpellCheck::GetCurrentDictionary(nsAString& aDictionary)
   return mSpellChecker->GetCurrentDictionary(aDictionary);
 }
 
-NS_IMETHODIMP    
+NS_IMETHODIMP
 nsEditorSpellCheck::SetCurrentDictionary(const nsAString& aDictionary)
 {
   NS_ENSURE_TRUE(mSpellChecker, NS_ERROR_NOT_INITIALIZED);
 
-  nsRefPtr<nsEditorSpellCheck> kungFuDeathGrip = this;
+  RefPtr<nsEditorSpellCheck> kungFuDeathGrip = this;
 
   // The purpose of mUpdateDictionaryRunning is to avoid doing all of this if
   // UpdateCurrentDictionary's helper method DictionaryFetched, which calls us,
-  // is on the stack.
+  // is on the stack. In other words: Only do this, if the user manually selected a
+  // dictionary to use.
   if (!mUpdateDictionaryRunning) {
 
     // Ignore pending dictionary fetchers by increasing this number.
     mDictionaryFetcherGroup++;
 
-    nsDefaultStringComparator comparator;
-    nsAutoString langCode;
-    int32_t dashIdx = aDictionary.FindChar('-');
-    if (dashIdx != -1) {
-      langCode.Assign(Substring(aDictionary, 0, dashIdx));
-    } else {
-      langCode.Assign(aDictionary);
-    }
+    uint32_t flags = 0;
+    mEditor->GetFlags(&flags);
+    if (!(flags & nsIPlaintextEditor::eEditorMailMask)) {
+      if (!aDictionary.IsEmpty() && (mPreferredLang.IsEmpty() ||
+          !mPreferredLang.Equals(aDictionary,
+                                 nsCaseInsensitiveStringComparator()))) {
+        // When user sets dictionary manually, we store this value associated
+        // with editor url, if it doesn't match the document language exactly.
+        // For example on "en" sites, we need to store "en-GB", otherwise
+        // the language might jump back to en-US although the user explicitly
+        // chose otherwise.
+        StoreCurrentDictionary(mEditor, aDictionary);
+#ifdef DEBUG_DICT
+        printf("***** Writing content preferences for |%s|\n",
+               NS_ConvertUTF16toUTF8(aDictionary).get());
+#endif
+      } else {
+        // If user sets a dictionary matching the language defined by
+        // document, we consider content pref has been canceled, and we clear it.
+        ClearCurrentDictionary(mEditor);
+#ifdef DEBUG_DICT
+        printf("***** Clearing content preferences for |%s|\n",
+               NS_ConvertUTF16toUTF8(aDictionary).get());
+#endif
+      }
 
-    if (mPreferredLang.IsEmpty() || !nsStyleUtil::DashMatchCompare(mPreferredLang, langCode, comparator)) {
-      // When user sets dictionary manually, we store this value associated
-      // with editor url.
-      StoreCurrentDictionary(mEditor, aDictionary);
-    } else {
-      // If user sets a dictionary matching (even partially), lang defined by
-      // document, we consider content pref has been canceled, and we clear it.
-      ClearCurrentDictionary(mEditor);
+      // Also store it in as a preference, so we can use it as a fallback.
+      // We don't want this for mail composer because it uses
+      // "spellchecker.dictionary" as a preference.
+      Preferences::SetString("spellchecker.dictionary", aDictionary);
+#ifdef DEBUG_DICT
+      printf("***** Storing spellchecker.dictionary |%s|\n",
+             NS_ConvertUTF16toUTF8(aDictionary).get());
+#endif
     }
-
-    // Also store it in as a preference. It will be used as a default value
-    // when everything else fails.
-    Preferences::SetString("spellchecker.dictionary", aDictionary);
   }
   return mSpellChecker->SetCurrentDictionary(aDictionary);
 }
 
 NS_IMETHODIMP
-nsEditorSpellCheck::CheckCurrentDictionary()
-{
-  mSpellChecker->CheckCurrentDictionary();
-
-  // Check if our current dictionary is still available.
-  nsAutoString currentDictionary;
-  nsresult rv = GetCurrentDictionary(currentDictionary);
-  if (NS_SUCCEEDED(rv) && !currentDictionary.IsEmpty()) {
-    return NS_OK;
-  }
-
-  // If our preferred current dictionary has gone, pick another one.
-  nsTArray<nsString> dictList;
-  rv = mSpellChecker->GetDictionaryList(&dictList);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (dictList.Length() > 0) {
-    rv = SetCurrentDictionary(dictList[0]);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP    
 nsEditorSpellCheck::UninitSpellChecker()
 {
   NS_ENSURE_TRUE(mSpellChecker, NS_ERROR_NOT_INITIALIZED);
@@ -663,15 +649,14 @@ nsEditorSpellCheck::UninitSpellChecker()
 }
 
 
-/* void setFilter (in nsITextServicesFilter filter); */
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsEditorSpellCheck::SetFilter(nsITextServicesFilter *filter)
 {
   mTxtSrvFilter = filter;
   return NS_OK;
 }
 
-nsresult    
+nsresult
 nsEditorSpellCheck::DeleteSuggestedWordList()
 {
   mSuggestedWordList.Clear();
@@ -684,7 +669,7 @@ nsEditorSpellCheck::UpdateCurrentDictionary(nsIEditorSpellCheckCallback* aCallba
 {
   nsresult rv;
 
-  nsRefPtr<nsEditorSpellCheck> kungFuDeathGrip = this;
+  RefPtr<nsEditorSpellCheck> kungFuDeathGrip = this;
 
   // Get language with html5 algorithm
   nsCOMPtr<nsIContent> rootContent;
@@ -697,40 +682,84 @@ nsEditorSpellCheck::UpdateCurrentDictionary(nsIEditorSpellCheckCallback* aCallba
     NS_ENSURE_SUCCESS(rv, rv);
     rootContent = do_QueryInterface(rootElement);
   }
-  NS_ENSURE_TRUE(rootContent, NS_ERROR_FAILURE);
 
-  DictionaryFetcher* fetcher = new DictionaryFetcher(this, aCallback,
-                                                     mDictionaryFetcherGroup);
+  // Try to get topmost document's document element for embedded mail editor.
+  uint32_t flags = 0;
+  mEditor->GetFlags(&flags);
+  if (flags & nsIPlaintextEditor::eEditorMailMask) {
+    nsCOMPtr<nsIDocument> ownerDoc = rootContent->OwnerDoc();
+    NS_ENSURE_TRUE(ownerDoc, NS_ERROR_FAILURE);
+    nsIDocument* parentDoc = ownerDoc->GetParentDocument();
+    if (parentDoc) {
+      rootContent = do_QueryInterface(parentDoc->GetDocumentElement());
+    }
+  }
+
+  if (!rootContent) {
+    return NS_ERROR_FAILURE;
+  }
+
+  RefPtr<DictionaryFetcher> fetcher =
+    new DictionaryFetcher(this, aCallback, mDictionaryFetcherGroup);
   rootContent->GetLang(fetcher->mRootContentLang);
   nsCOMPtr<nsIDocument> doc = rootContent->GetCurrentDoc();
   NS_ENSURE_STATE(doc);
   doc->GetContentLanguage(fetcher->mRootDocContentLang);
 
-  if (XRE_GetProcessType() == GeckoProcessType_Content) {
-    // Content prefs don't work in E10S (Bug 1027898) pretend that we
-    // didn't have any & trigger the asynchrous completion.
-    nsCOMPtr<nsIRunnable> runnable =
-      NS_NewRunnableMethodWithArg<uint16_t>(fetcher, &DictionaryFetcher::HandleCompletion, 0);
-    NS_DispatchToMainThread(runnable);
-  } else {
-    rv = fetcher->Fetch(mEditor);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
+  rv = fetcher->Fetch(mEditor);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
+}
+
+// Helper function that iterates over the list of dictionaries and sets the one
+// that matches based on a given comparison type.
+nsresult
+nsEditorSpellCheck::TryDictionary(const nsAString& aDictName,
+                                  nsTArray<nsString>& aDictList,
+                                  enum dictCompare aCompareType)
+{
+  nsresult rv = NS_ERROR_NOT_AVAILABLE;
+
+  for (uint32_t i = 0; i < aDictList.Length(); i++) {
+    nsAutoString dictStr(aDictList.ElementAt(i));
+    bool equals = false;
+    switch (aCompareType) {
+      case DICT_NORMAL_COMPARE:
+        equals = aDictName.Equals(dictStr);
+        break;
+      case DICT_COMPARE_CASE_INSENSITIVE:
+        equals = aDictName.Equals(dictStr, nsCaseInsensitiveStringComparator());
+        break;
+      case DICT_COMPARE_DASHMATCH:
+        equals = nsStyleUtil::DashMatchCompare(dictStr, aDictName, nsCaseInsensitiveStringComparator());
+        break;
+    }
+    if (equals) {
+      rv = mSpellChecker->SetCurrentDictionary(dictStr);
+#ifdef DEBUG_DICT
+      if (NS_SUCCEEDED(rv))
+        printf("***** Set |%s|.\n", NS_ConvertUTF16toUTF8(dictStr).get());
+#endif
+      // We always break here. We tried to set the dictionary to an existing
+      // dictionary from the list. This must work, if it doesn't, there is
+      // no point trying another one.
+      break;
+    }
+  }
+  return rv;
 }
 
 nsresult
 nsEditorSpellCheck::DictionaryFetched(DictionaryFetcher* aFetcher)
 {
-  nsRefPtr<nsEditorSpellCheck> kungFuDeathGrip = this;
-
-  nsresult rv = NS_OK;
+  MOZ_ASSERT(aFetcher);
+  RefPtr<nsEditorSpellCheck> kungFuDeathGrip = this;
 
   // Important: declare the holder after the callback caller so that the former
   // is destructed first so that it's not active when the callback is called.
   CallbackCaller callbackCaller(aFetcher->mCallback);
-  UpdateDictionnaryHolder holder(this);
+  UpdateDictionaryHolder holder(this);
 
   if (aFetcher->mGroup < mDictionaryFetcherGroup) {
     // SetCurrentDictionary was called after the fetch started.  Don't overwrite
@@ -738,63 +767,110 @@ nsEditorSpellCheck::DictionaryFetched(DictionaryFetcher* aFetcher)
     return NS_OK;
   }
 
+  /*
+   * We try to derive the dictionary to use based on the following priorities:
+   * 1) Content preference, so the language the user set for the site before.
+   *    (Introduced in bug 678842 and corrected in bug 717433.)
+   * 2) Language set by the website, or any other dictionary that partly
+   *    matches that. (Introduced in bug 338427.)
+   *    Eg. if the website is "en-GB", a user who only has "en-US" will get
+   *    that. If the website is generic "en", the user will get one of the
+   *    "en-*" installed, (almost) at random.
+   *    However, we prefer what is stored in "spellchecker.dictionary",
+   *    so if the user chose "en-AU" before, they will get "en-AU" on a plain
+   *    "en" site. (Introduced in bug 682564.)
+   * 3) The value of "spellchecker.dictionary" which reflects a previous
+   *    language choice of the user (on another site).
+   *    (This was the original behaviour before the aforementioned bugs
+   *    landed).
+   * 4) The user's locale.
+   * 5) Use the current dictionary that is currently set.
+   * 6) The content of the "LANG" environment variable (if set).
+   * 7) The first spell check dictionary installed.
+   */
+
+  // Get the language from the element or its closest parent according to:
+  // https://html.spec.whatwg.org/#attr-lang
+  // This is used in SetCurrentDictionary.
   mPreferredLang.Assign(aFetcher->mRootContentLang);
+#ifdef DEBUG_DICT
+  printf("***** mPreferredLang (element) |%s|\n",
+         NS_ConvertUTF16toUTF8(mPreferredLang).get());
+#endif
 
-  // If we successfully fetched a dictionary from content prefs, do not go
-  // further. Use this exact dictionary.
-  nsAutoString dictName;
-  dictName.Assign(aFetcher->mDictionary);
-  if (!dictName.IsEmpty()) {
-    if (NS_FAILED(SetCurrentDictionary(dictName))) { 
-      // may be dictionary was uninstalled ?
-      ClearCurrentDictionary(mEditor);
-    }
-    return NS_OK;
-  }
-
+  // If no luck, try the "Content-Language" header.
   if (mPreferredLang.IsEmpty()) {
     mPreferredLang.Assign(aFetcher->mRootDocContentLang);
+#ifdef DEBUG_DICT
+    printf("***** mPreferredLang (content-language) |%s|\n",
+           NS_ConvertUTF16toUTF8(mPreferredLang).get());
+#endif
   }
 
-  // Then, try to use language computed from element
-  if (!mPreferredLang.IsEmpty()) {
-    dictName.Assign(mPreferredLang);
-  }
+  // Auxiliary status.
+  nsresult rv2;
 
-  // otherwise, get language from preferences
-  nsAutoString preferedDict(Preferences::GetLocalizedString("spellchecker.dictionary"));
-  // Replace '_' with '-' in case the user has an underscore stored in their
-  // pref, see bug 992118 for how this could have happened.
-  int32_t underScore = preferedDict.FindChar('_');
-  if (underScore != -1) {
-    preferedDict.Replace(underScore, 1, '-');
-  }
-  if (dictName.IsEmpty()) {
-    dictName.Assign(preferedDict);
-  }
+  // We obtain a list of available dictionaries.
+  nsTArray<nsString> dictList;
+  rv2 = mSpellChecker->GetDictionaryList(&dictList);
+  NS_ENSURE_SUCCESS(rv2, rv2);
 
-  if (dictName.IsEmpty())
-  {
-    // Prefs didn't give us a dictionary name, so just get the current
-    // locale and use that as the default dictionary name!
+  // Priority 1:
+  // If we successfully fetched a dictionary from content prefs, do not go
+  // further. Use this exact dictionary.
+  // Don't use content preferences for editor with eEditorMailMask flag.
+  nsAutoString dictName;
+  uint32_t flags;
+  mEditor->GetFlags(&flags);
+  if (!(flags & nsIPlaintextEditor::eEditorMailMask)) {
+    dictName.Assign(aFetcher->mDictionary);
+    if (!dictName.IsEmpty()) {
+      if (NS_SUCCEEDED(TryDictionary(dictName, dictList, DICT_NORMAL_COMPARE))) {
+#ifdef DEBUG_DICT
+        printf("***** Assigned from content preferences |%s|\n",
+               NS_ConvertUTF16toUTF8(dictName).get());
+#endif
 
-    nsCOMPtr<nsIXULChromeRegistry> packageRegistry =
-      mozilla::services::GetXULChromeRegistryService();
-
-    if (packageRegistry) {
-      nsAutoCString utf8DictName;
-      rv = packageRegistry->GetSelectedLocale(NS_LITERAL_CSTRING("global"),
-                                              utf8DictName);
-      AppendUTF8toUTF16(utf8DictName, dictName);
+        // We take an early exit here, so let's not forget to clear the word
+        // list.
+        DeleteSuggestedWordList();
+        return NS_OK;
+      }
+      // May be dictionary was uninstalled ?
+      // Clear the content preference and continue.
+      ClearCurrentDictionary(mEditor);
     }
   }
 
-  if (NS_SUCCEEDED(rv) && !dictName.IsEmpty()) {
-    rv = SetCurrentDictionary(dictName);
-    if (NS_FAILED(rv)) {
-      // required dictionary was not available. Try to get a dictionary
-      // matching at least language part of dictName: 
+  // Priority 2:
+  // After checking the content preferences, we use the language of the element
+  // or document.
+  dictName.Assign(mPreferredLang);
+#ifdef DEBUG_DICT
+  printf("***** Assigned from element/doc |%s|\n",
+         NS_ConvertUTF16toUTF8(dictName).get());
+#endif
 
+  // Get the preference value.
+  nsAutoString preferredDict;
+  preferredDict = Preferences::GetLocalizedString("spellchecker.dictionary");
+
+  // The following will be driven by this status. Once we were able to set a
+  // dictionary successfully, we're done. So we start with a "failed" status.
+  nsresult rv = NS_ERROR_NOT_AVAILABLE;
+
+  if (!dictName.IsEmpty()) {
+    // RFC 5646 explicitly states that matches should be case-insensitive.
+    rv = TryDictionary (dictName, dictList, DICT_COMPARE_CASE_INSENSITIVE);
+
+    if (NS_FAILED(rv)) {
+#ifdef DEBUG_DICT
+      printf("***** Setting of |%s| failed (or it wasn't available)\n",
+             NS_ConvertUTF16toUTF8(dictName).get());
+#endif
+
+      // Required dictionary was not available. Try to get a dictionary
+      // matching at least language part of dictName.
       nsAutoString langCode;
       int32_t dashIdx = dictName.FindChar('-');
       if (dashIdx != -1) {
@@ -803,80 +879,114 @@ nsEditorSpellCheck::DictionaryFetched(DictionaryFetcher* aFetcher)
         langCode.Assign(dictName);
       }
 
-      nsDefaultStringComparator comparator;
-
-      // try dictionary.spellchecker preference if it starts with langCode (and
-      // if we haven't tried it already)
-      if (!preferedDict.IsEmpty() && !dictName.Equals(preferedDict) && 
-          nsStyleUtil::DashMatchCompare(preferedDict, langCode, comparator)) {
-        rv = SetCurrentDictionary(preferedDict);
+      // Try dictionary.spellchecker preference, if it starts with langCode,
+      // so we don't just get any random dictionary matching the language.
+      if (!preferredDict.IsEmpty() &&
+          nsStyleUtil::DashMatchCompare(preferredDict, langCode, nsDefaultStringComparator())) {
+#ifdef DEBUG_DICT
+        printf("***** Trying preference value |%s| since it matches language code\n",
+               NS_ConvertUTF16toUTF8(preferredDict).get());
+#endif
+        rv = TryDictionary (preferredDict, dictList,
+                            DICT_COMPARE_CASE_INSENSITIVE);
       }
 
-      // Otherwise, try langCode (if we haven't tried it already)
       if (NS_FAILED(rv)) {
-        if (!dictName.Equals(langCode) && !preferedDict.Equals(langCode)) {
-          rv = SetCurrentDictionary(langCode);
-        }
-      }
-
-      // Otherwise, try any available dictionary aa-XX
-      if (NS_FAILED(rv)) {
-        // loop over avaible dictionaries; if we find one with required
-        // language, use it
-        nsTArray<nsString> dictList;
-        rv = mSpellChecker->GetDictionaryList(&dictList);
-        NS_ENSURE_SUCCESS(rv, rv);
-        int32_t i, count = dictList.Length();
-        for (i = 0; i < count; i++) {
-          nsAutoString dictStr(dictList.ElementAt(i));
-
-          if (dictStr.Equals(dictName) ||
-              dictStr.Equals(preferedDict) ||
-              dictStr.Equals(langCode)) {
-            // We have already tried it
-            continue;
-          }
-
-          if (nsStyleUtil::DashMatchCompare(dictStr, langCode, comparator) &&
-              NS_SUCCEEDED(SetCurrentDictionary(dictStr))) {
-              break;
-          }
-        }
+        // Use any dictionary with the required language.
+#ifdef DEBUG_DICT
+        printf("***** Trying to find match for language code |%s|\n",
+               NS_ConvertUTF16toUTF8(langCode).get());
+#endif
+        rv = TryDictionary (langCode, dictList, DICT_COMPARE_DASHMATCH);
       }
     }
   }
 
-  // If we have not set dictionary, and the editable element doesn't have a
-  // lang attribute, we try to get a dictionary. First try LANG environment variable,
-  // then en-US. If it does not work, pick the first one.
-  if (mPreferredLang.IsEmpty()) {
+  // Priority 3:
+  // If the document didn't supply a dictionary or the setting failed,
+  // try the user preference next.
+  if (NS_FAILED(rv)) {
+    if (!preferredDict.IsEmpty()) {
+#ifdef DEBUG_DICT
+      printf("***** Trying preference value |%s|\n",
+             NS_ConvertUTF16toUTF8(preferredDict).get());
+#endif
+      rv = TryDictionary (preferredDict, dictList, DICT_NORMAL_COMPARE);
+    }
+  }
+
+  // Priority 4:
+  // As next fallback, try the current locale.
+  if (NS_FAILED(rv)) {
+    nsCOMPtr<nsIXULChromeRegistry> packageRegistry =
+      mozilla::services::GetXULChromeRegistryService();
+
+    if (packageRegistry) {
+      nsAutoCString utf8DictName;
+      rv2 = packageRegistry->GetSelectedLocale(NS_LITERAL_CSTRING("global"),
+                                               utf8DictName);
+      dictName.Assign(EmptyString());
+      AppendUTF8toUTF16(utf8DictName, dictName);
+#ifdef DEBUG_DICT
+      printf("***** Trying locale |%s|\n",
+             NS_ConvertUTF16toUTF8(dictName).get());
+#endif
+      rv = TryDictionary (dictName, dictList, DICT_COMPARE_CASE_INSENSITIVE);
+    }
+  }
+
+  if (NS_FAILED(rv)) {
+  // Still no success.
+
+  // Priority 5:
+  // If we have a current dictionary, don't try anything else.
     nsAutoString currentDictionary;
-    rv = GetCurrentDictionary(currentDictionary);
-    if (NS_FAILED(rv) || currentDictionary.IsEmpty()) {
-      // Try to get current dictionary from environment variable LANG
+    rv2 = GetCurrentDictionary(currentDictionary);
+#ifdef DEBUG_DICT
+    if (NS_SUCCEEDED(rv2))
+        printf("***** Retrieved current dict |%s|\n",
+               NS_ConvertUTF16toUTF8(currentDictionary).get());
+#endif
+
+    if (NS_FAILED(rv2) || currentDictionary.IsEmpty()) {
+      // Priority 6:
+      // Try to get current dictionary from environment variable LANG.
+      // LANG = language[_territory][.charset]
       char* env_lang = getenv("LANG");
       if (env_lang != nullptr) {
         nsString lang = NS_ConvertUTF8toUTF16(env_lang);
-        // Strip trailing charset if there is any
+        // Strip trailing charset, if there is any.
         int32_t dot_pos = lang.FindChar('.');
         if (dot_pos != -1) {
-          lang = Substring(lang, 0, dot_pos - 1);
+          lang = Substring(lang, 0, dot_pos);
         }
-        // Replace '_' with '-'
+
         int32_t underScore = lang.FindChar('_');
         if (underScore != -1) {
           lang.Replace(underScore, 1, '-');
+#ifdef DEBUG_DICT
+          printf("***** Trying LANG from environment |%s|\n",
+                 NS_ConvertUTF16toUTF8(lang).get());
+#endif
+          nsAutoString lang2;
+          lang2.Assign(lang);
+          rv = TryDictionary(lang2, dictList, DICT_COMPARE_CASE_INSENSITIVE);
         }
-        rv = SetCurrentDictionary(lang);
       }
+
+      // Priority 7:
+      // If it does not work, pick the first one.
       if (NS_FAILED(rv)) {
-        rv = SetCurrentDictionary(NS_LITERAL_STRING("en-US"));
-        if (NS_FAILED(rv)) {
-          nsTArray<nsString> dictList;
-          rv = mSpellChecker->GetDictionaryList(&dictList);
-          if (NS_SUCCEEDED(rv) && dictList.Length() > 0) {
-            SetCurrentDictionary(dictList[0]);
-          }
+        if (dictList.Length() > 0) {
+          nsAutoString firstInList;
+          firstInList.Assign(dictList[0]);
+          rv = TryDictionary(firstInList, dictList, DICT_NORMAL_COMPARE);
+#ifdef DEBUG_DICT
+          printf("***** Trying first of list |%s|\n",
+                 NS_ConvertUTF16toUTF8(dictList[0]).get());
+          if (NS_SUCCEEDED(rv))
+            printf ("***** Setting worked.\n");
+#endif
         }
       }
     }

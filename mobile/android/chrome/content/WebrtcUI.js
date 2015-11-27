@@ -3,14 +3,34 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
+this.EXPORTED_SYMBOLS = ["WebrtcUI"];
+
 XPCOMUtils.defineLazyModuleGetter(this, "Notifications", "resource://gre/modules/Notifications.jsm");
+XPCOMUtils.defineLazyServiceGetter(this, "ParentalControls", "@mozilla.org/parental-controls-service;1", "nsIParentalControlsService");
 
 var WebrtcUI = {
   _notificationId: null,
 
+  // Add-ons can override stock permission behavior by doing:
+  //
+  //   var stockObserve = WebrtcUI.observe;
+  //
+  //   webrtcUI.observe = function(aSubject, aTopic, aData) {
+  //     switch (aTopic) {
+  //      case "PeerConnection:request": {
+  //        // new code.
+  //        break;
+  //      ...
+  //      default:
+  //        return stockObserve.call(this, aSubject, aTopic, aData);
+  //
+  // See browser/modules/webrtcUI.jsm for details.
+
   observe: function(aSubject, aTopic, aData) {
     if (aTopic === "getUserMedia:request") {
-      this.handleRequest(aSubject, aTopic, aData);
+      this.handleGumRequest(aSubject, aTopic, aData);
+    } else if (aTopic === "PeerConnection:request") {
+      this.handlePCRequest(aSubject, aTopic, aData);
     } else if (aTopic === "recording-device-events") {
       switch (aData) {
         case "shutdown":
@@ -72,13 +92,29 @@ var WebrtcUI = {
     }
   },
 
-  handleRequest: function handleRequest(aSubject, aTopic, aData) {
+  handlePCRequest: function handlePCRequest(aSubject, aTopic, aData) {
+    aSubject = aSubject.wrappedJSObject;
+    let { callID } = aSubject;
+    // Also available: windowID, isSecure, innerWindowID. For contentWindow do:
+    //
+    //   let contentWindow = Services.wm.getOuterWindowWithId(windowID);
+
+    Services.obs.notifyObservers(null, "PeerConnection:response:allow", callID);
+  },
+
+  handleGumRequest: function handleGumRequest(aSubject, aTopic, aData) {
     let constraints = aSubject.getConstraints();
     let contentWindow = Services.wm.getOuterWindowWithId(aSubject.windowID);
 
     contentWindow.navigator.mozGetUserMediaDevices(
       constraints,
       function (devices) {
+        if (!ParentalControls.isAllowed(ParentalControls.CAMERA_MICROPHONE)) {
+          Services.obs.notifyObservers(null, "getUserMedia:response:deny", aSubject.callID);
+          WebrtcUI.showBlockMessage(devices);
+          return;
+        }
+
         WebrtcUI.prompt(contentWindow, aSubject.callID, constraints.audio,
                         constraints.video, devices);
       },
@@ -113,7 +149,8 @@ var WebrtcUI = {
           allowedDevices.AppendElement(videoDevices[videoId]);
 
         Services.obs.notifyObservers(allowedDevices, "getUserMedia:response:allow", aCallID);
-      }
+      },
+      positive: true
     }];
   },
 
@@ -155,6 +192,31 @@ var WebrtcUI = {
 
       }
     }
+  },
+
+  showBlockMessage: function(aDevices) {
+    let microphone = false;
+    let camera = false;
+
+    for (let device of aDevices) {
+      device = device.QueryInterface(Ci.nsIMediaDevice);
+      if (device.type == "audio") {
+        microphone = true;
+      } else if (device.type == "video") {
+        camera = true;
+      }
+    }
+
+    let message;
+    if (microphone && !camera) {
+      message = Strings.browser.GetStringFromName("getUserMedia.blockedMicrophoneAccess");
+    } else if (camera && !microphone) {
+      message = Strings.browser.GetStringFromName("getUserMedia.blockedCameraAccess");
+    } else {
+      message = Strings.browser.GetStringFromName("getUserMedia.blockedCameraAndMicrophoneAccess");
+    }
+
+    NativeWindow.doorhanger.show(message, "webrtc-blocked", [], BrowserApp.selectedTab.id, {});
   },
 
   prompt: function prompt(aContentWindow, aCallID, aAudioRequested,

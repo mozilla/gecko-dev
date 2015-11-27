@@ -123,12 +123,19 @@ chatBrowserAccess.prototype = {
     return browser ? browser.contentWindow : null;
   },
 
-  openURIInFrame: function browser_openURIInFrame(aURI, aOpener, aWhere, aContext) {
+  openURIInFrame: function browser_openURIInFrame(aURI, aParams, aWhere, aContext) {
     let browser = this._openURIInNewTab(aURI, aWhere);
     return browser ? browser.QueryInterface(Ci.nsIFrameLoaderOwner) : null;
   },
 
-  isTabContentWindow: function (aWindow) this.contentWindow == aWindow,
+  isTabContentWindow: function (aWindow) {
+    return this.contentWindow == aWindow;
+  },
+
+  canClose() {
+    let {BrowserUtils} = Cu.import("resource://gre/modules/BrowserUtils.jsm", {});
+    return BrowserUtils.canCloseWindow(window);
+  },
 };
 
 </script>

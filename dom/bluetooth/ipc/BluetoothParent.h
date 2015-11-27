@@ -1,11 +1,11 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozilla_dom_bluetooth_ipc_bluetoothparent_h__
-#define mozilla_dom_bluetooth_ipc_bluetoothparent_h__
+#ifndef mozilla_dom_bluetooth_ipc_BluetoothParent_h
+#define mozilla_dom_bluetooth_ipc_BluetoothParent_h
 
 #include "mozilla/dom/bluetooth/BluetoothCommon.h"
 
@@ -37,8 +37,8 @@ class BluetoothService;
  * BluetoothParent
  ******************************************************************************/
 
-class BluetoothParent : public PBluetoothParent,
-                        public mozilla::Observer<BluetoothSignal>
+class BluetoothParent : public PBluetoothParent
+                      , public BluetoothSignalObserver
 {
   friend class mozilla::dom::ContentParent;
 
@@ -51,7 +51,7 @@ class BluetoothParent : public PBluetoothParent,
     Dead
   };
 
-  nsRefPtr<BluetoothService> mService;
+  RefPtr<BluetoothService> mService;
   ShutdownState mShutdownState;
   bool mReceivedStopNotifying;
   bool mSentBeginShutdown;
@@ -68,29 +68,29 @@ protected:
   InitWithService(BluetoothService* aService);
 
   virtual void
-  ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
+  ActorDestroy(ActorDestroyReason aWhy) override;
 
   virtual bool
-  RecvRegisterSignalHandler(const nsString& aNode) MOZ_OVERRIDE;
+  RecvRegisterSignalHandler(const nsString& aNode) override;
 
   virtual bool
-  RecvUnregisterSignalHandler(const nsString& aNode) MOZ_OVERRIDE;
+  RecvUnregisterSignalHandler(const nsString& aNode) override;
 
   virtual bool
-  RecvStopNotifying() MOZ_OVERRIDE;
+  RecvStopNotifying() override;
 
   virtual bool
   RecvPBluetoothRequestConstructor(PBluetoothRequestParent* aActor,
-                                   const Request& aRequest) MOZ_OVERRIDE;
+                                   const Request& aRequest) override;
 
   virtual PBluetoothRequestParent*
-  AllocPBluetoothRequestParent(const Request& aRequest) MOZ_OVERRIDE;
+  AllocPBluetoothRequestParent(const Request& aRequest) override;
 
   virtual bool
-  DeallocPBluetoothRequestParent(PBluetoothRequestParent* aActor) MOZ_OVERRIDE;
+  DeallocPBluetoothRequestParent(PBluetoothRequestParent* aActor) override;
 
   virtual void
-  Notify(const BluetoothSignal& aSignal) MOZ_OVERRIDE;
+  Notify(const BluetoothSignal& aSignal) override;
 
 private:
   void
@@ -108,7 +108,7 @@ class BluetoothRequestParent : public PBluetoothRequestParent
 
   friend class ReplyRunnable;
 
-  nsRefPtr<BluetoothService> mService;
+  RefPtr<BluetoothService> mService;
   nsRevocableEventPtr<ReplyRunnable> mReplyRunnable;
 
 #ifdef DEBUG
@@ -120,13 +120,19 @@ protected:
   virtual ~BluetoothRequestParent();
 
   virtual void
-  ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
+  ActorDestroy(ActorDestroyReason aWhy) override;
 
   void
   RequestComplete();
 
   bool
-  DoRequest(const DefaultAdapterPathRequest& aRequest);
+  DoRequest(const GetAdaptersRequest& aRequest);
+
+  bool
+  DoRequest(const StartBluetoothRequest& aRequest);
+
+  bool
+  DoRequest(const StopBluetoothRequest& aRequest);
 
   bool
   DoRequest(const SetPropertyRequest& aRequest);
@@ -141,6 +147,12 @@ protected:
   DoRequest(const StopDiscoveryRequest& aRequest);
 
   bool
+  DoRequest(const StartLeScanRequest& aRequest);
+
+  bool
+  DoRequest(const StopLeScanRequest& aRequest);
+
+  bool
   DoRequest(const PairRequest& aRequest);
 
   bool
@@ -148,8 +160,12 @@ protected:
 
   bool
   DoRequest(const PairedDevicePropertiesRequest& aRequest);
+
   bool
   DoRequest(const ConnectedDevicePropertiesRequest& aRequest);
+
+  bool
+  DoRequest(const FetchUuidsRequest& aRequest);
 
   bool
   DoRequest(const SetPinCodeRequest& aRequest);
@@ -164,13 +180,16 @@ protected:
   DoRequest(const DenyPairingConfirmationRequest& aRequest);
 
   bool
+  DoRequest(const PinReplyRequest& aRequest);
+
+  bool
+  DoRequest(const SspReplyRequest& aRequest);
+
+  bool
   DoRequest(const ConnectRequest& aRequest);
 
   bool
   DoRequest(const DisconnectRequest& aRequest);
-
-  bool
-  DoRequest(const IsConnectedRequest& aRequest);
 
   bool
   DoRequest(const SendFileRequest& aRequest);
@@ -193,6 +212,39 @@ protected:
   bool
   DoRequest(const IsScoConnectedRequest& aRequest);
 
+  bool
+  DoRequest(const SetObexPasswordRequest& aRequest);
+
+  bool
+  DoRequest(const RejectObexAuthRequest& aRequest);
+
+  bool
+  DoRequest(const ReplyTovCardPullingRequest& aRequest);
+
+  bool
+  DoRequest(const ReplyToPhonebookPullingRequest& aRequest);
+
+  bool
+  DoRequest(const ReplyTovCardListingRequest& aRequest);
+
+  bool
+  DoRequest(const ReplyToFolderListingRequest& aRequest);
+
+  bool
+  DoRequest(const ReplyToMessagesListingRequest& aRequest);
+
+  bool
+  DoRequest(const ReplyToGetMessageRequest& aRequest);
+
+  bool
+  DoRequest(const ReplyToSetMessageStatusRequest& aRequest);
+
+  bool
+  DoRequest(const ReplyToSendMessageRequest& aRequest);
+
+  bool
+  DoRequest(const ReplyToMessageUpdateRequest& aRequest);
+
 #ifdef MOZ_B2G_RIL
   bool
   DoRequest(const AnswerWaitingCallRequest& aRequest);
@@ -209,8 +261,77 @@ protected:
 
   bool
   DoRequest(const SendPlayStatusRequest& aRequest);
+
+  bool
+  DoRequest(const ConnectGattClientRequest& aRequest);
+
+  bool
+  DoRequest(const DisconnectGattClientRequest& aRequest);
+
+  bool
+  DoRequest(const DiscoverGattServicesRequest& aRequest);
+
+  bool
+  DoRequest(const GattClientStartNotificationsRequest& aRequest);
+
+  bool
+  DoRequest(const GattClientStopNotificationsRequest& aRequest);
+
+  bool
+  DoRequest(const UnregisterGattClientRequest& aRequest);
+
+  bool
+  DoRequest(const GattClientReadRemoteRssiRequest& aRequest);
+
+  bool
+  DoRequest(const GattClientReadCharacteristicValueRequest& aRequest);
+
+  bool
+  DoRequest(const GattClientWriteCharacteristicValueRequest& aRequest);
+
+  bool
+  DoRequest(const GattClientReadDescriptorValueRequest& aRequest);
+
+  bool
+  DoRequest(const GattClientWriteDescriptorValueRequest& aRequest);
+
+  bool
+  DoRequest(const GattServerConnectPeripheralRequest& aRequest);
+
+  bool
+  DoRequest(const GattServerDisconnectPeripheralRequest& aRequest);
+
+  bool
+  DoRequest(const UnregisterGattServerRequest& aRequest);
+
+  bool
+  DoRequest(const GattServerAddServiceRequest& aRequest);
+
+  bool
+  DoRequest(const GattServerAddIncludedServiceRequest& aRequest);
+
+  bool
+  DoRequest(const GattServerAddCharacteristicRequest& aRequest);
+
+  bool
+  DoRequest(const GattServerAddDescriptorRequest& aRequest);
+
+  bool
+  DoRequest(const GattServerRemoveServiceRequest& aRequest);
+
+  bool
+  DoRequest(const GattServerStartServiceRequest& aRequest);
+
+  bool
+  DoRequest(const GattServerStopServiceRequest& aRequest);
+
+  bool
+  DoRequest(const GattServerSendResponseRequest& aRequest);
+
+  bool
+  DoRequest(const GattServerSendIndicationRequest& aRequest);
 };
 
 END_BLUETOOTH_NAMESPACE
 
-#endif // mozilla_dom_bluetooth_ipc_bluetoothparent_h__
+#endif // mozilla_dom_bluetooth_ipc_BluetoothParent_h

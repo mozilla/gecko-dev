@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -15,7 +15,8 @@ CompositionEvent::CompositionEvent(EventTarget* aOwner,
                                    nsPresContext* aPresContext,
                                    WidgetCompositionEvent* aEvent)
   : UIEvent(aOwner, aPresContext,
-            aEvent ? aEvent : new WidgetCompositionEvent(false, 0, nullptr))
+            aEvent ? aEvent :
+                     new WidgetCompositionEvent(false, eVoidEvent, nullptr))
 {
   NS_ASSERTION(mEvent->mClass == eCompositionEventClass,
                "event type mismatch");
@@ -32,7 +33,8 @@ CompositionEvent::CompositionEvent(EventTarget* aOwner,
     mEvent->mFlags.mCancelable = false;
   }
 
-  mData = mEvent->AsCompositionEvent()->data;
+  // XXX Do we really need to duplicate the data value?
+  mData = mEvent->AsCompositionEvent()->mData;
   // TODO: Native event should have locale information.
 }
 
@@ -79,12 +81,12 @@ CompositionEvent::InitCompositionEvent(const nsAString& aType,
 using namespace mozilla;
 using namespace mozilla::dom;
 
-nsresult
-NS_NewDOMCompositionEvent(nsIDOMEvent** aInstancePtrResult,
-                          EventTarget* aOwner,
+already_AddRefed<CompositionEvent>
+NS_NewDOMCompositionEvent(EventTarget* aOwner,
                           nsPresContext* aPresContext,
                           WidgetCompositionEvent* aEvent)
 {
-  CompositionEvent* event = new CompositionEvent(aOwner, aPresContext, aEvent);
-  return CallQueryInterface(event, aInstancePtrResult);
+  RefPtr<CompositionEvent> event =
+    new CompositionEvent(aOwner, aPresContext, aEvent);
+  return event.forget();
 }

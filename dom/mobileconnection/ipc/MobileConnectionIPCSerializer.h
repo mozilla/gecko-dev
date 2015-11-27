@@ -1,3 +1,5 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
 * License, v. 2.0. If a copy of the MPL was not distributed with this
 * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -6,12 +8,14 @@
 #define mozilla_dom_mobileconnection_MobileConnectionIPCSerialiser_h
 
 #include "ipc/IPCMessageUtils.h"
+#include "mozilla/dom/mobileconnection/MobileCallForwardingOptions.h"
 #include "mozilla/dom/MobileCellInfo.h"
 #include "mozilla/dom/MobileConnectionInfo.h"
 #include "mozilla/dom/MobileNetworkInfo.h"
 #include "mozilla/dom/MozMobileConnectionBinding.h"
 
-using mozilla::AutoSafeJSContext;
+using mozilla::AutoJSContext;
+using mozilla::dom::mobileconnection::MobileCallForwardingOptions;
 using mozilla::dom::MobileNetworkInfo;
 using mozilla::dom::MobileCellInfo;
 using mozilla::dom::MobileConnectionInfo;
@@ -19,6 +23,7 @@ using mozilla::dom::MobileConnectionInfo;
 typedef nsIMobileCellInfo* nsMobileCellInfo;
 typedef nsIMobileConnectionInfo* nsMobileConnectionInfo;
 typedef nsIMobileNetworkInfo* nsMobileNetworkInfo;
+typedef nsIMobileCallForwardingOptions* nsMobileCallForwardingOptions;
 
 namespace IPC {
 
@@ -53,27 +58,83 @@ struct MozCallForwardingOptions : public mozilla::dom::MozCallForwardingOptions
   };
 };
 
-struct MozCallBarringOptions : mozilla::dom::MozCallBarringOptions
+template <>
+struct ParamTraits<nsIMobileCallForwardingOptions*>
 {
-  bool operator==(const MozCallBarringOptions& aOther) const
+  typedef nsIMobileCallForwardingOptions* paramType;
+
+  // Function to serialize a MobileCallForwardingOptions.
+  static void Write(Message *aMsg, const paramType& aParam)
   {
-    return // Compare mEnabled
-           ((!mEnabled.WasPassed() && !aOther.mEnabled.WasPassed()) ||
-            (mEnabled.WasPassed() && aOther.mEnabled.WasPassed() &&
-             mEnabled.Value() == aOther.mEnabled.Value())) &&
-           // Compare mPassword
-           ((!mPassword.WasPassed() && !aOther.mPassword.WasPassed()) ||
-            (mPassword.WasPassed() && aOther.mPassword.WasPassed() &&
-             mPassword.Value() == aOther.mPassword.Value())) &&
-           // Compare mProgram
-           ((!mProgram.WasPassed() && !aOther.mProgram.WasPassed()) ||
-            (mProgram.WasPassed() && aOther.mProgram.WasPassed() &&
-             mProgram.Value() == aOther.mProgram.Value())) &&
-           // Compare mServiceClass
-           ((!mServiceClass.WasPassed() && !aOther.mServiceClass.WasPassed()) ||
-            (mServiceClass.WasPassed() && aOther.mServiceClass.WasPassed() &&
-             mServiceClass.Value() == aOther.mServiceClass.Value()));
-  };
+    bool isNull = !aParam;
+    WriteParam(aMsg, isNull);
+    // If it is a null object, then we are done.
+    if (isNull) {
+      return;
+    }
+
+    int16_t pShort;
+    nsString pString;
+    bool pBool;
+
+    aParam->GetActive(&pBool);
+    WriteParam(aMsg, pBool);
+
+    aParam->GetAction(&pShort);
+    WriteParam(aMsg, pShort);
+
+    aParam->GetReason(&pShort);
+    WriteParam(aMsg, pShort);
+
+    aParam->GetNumber(pString);
+    WriteParam(aMsg, pString);
+
+    aParam->GetTimeSeconds(&pShort);
+    WriteParam(aMsg, pShort);
+
+    aParam->GetServiceClass(&pShort);
+    WriteParam(aMsg, pShort);
+  }
+
+  // Function to de-serialize a MobileCallForwardingOptions.
+  static bool Read(const Message *aMsg, void **aIter, paramType* aResult)
+  {
+    // Check if is the null pointer we have transfered.
+    bool isNull;
+    if (!ReadParam(aMsg, aIter, &isNull)) {
+      return false;
+    }
+
+    if (isNull) {
+      *aResult = nullptr;
+      return true;
+    }
+
+    bool active;
+    int16_t action;
+    int16_t reason;
+    nsString number;
+    int16_t timeSeconds;
+    int16_t serviceClass;
+
+    // It's not important to us where it fails, but rather if it fails
+    if (!(ReadParam(aMsg, aIter, &active) &&
+          ReadParam(aMsg, aIter, &action) &&
+          ReadParam(aMsg, aIter, &reason) &&
+          ReadParam(aMsg, aIter, &number) &&
+          ReadParam(aMsg, aIter, &timeSeconds) &&
+          ReadParam(aMsg, aIter, &serviceClass))) {
+      return false;
+    }
+
+    *aResult = new MobileCallForwardingOptions(active, action, reason,
+                                               number, timeSeconds, serviceClass);
+
+    // We release this ref after receiver finishes processing.
+    NS_ADDREF(*aResult);
+
+    return true;
+  }
 };
 
 /**
@@ -261,7 +322,7 @@ struct ParamTraits<nsIMobileConnectionInfo*>
       return;
     }
 
-    AutoSafeJSContext cx;
+    AutoJSContext cx;
     nsString pString;
     bool pBool;
     nsCOMPtr<nsIMobileNetworkInfo> pNetworkInfo;
@@ -330,7 +391,7 @@ struct ParamTraits<nsIMobileConnectionInfo*>
       return true;
     }
 
-    AutoSafeJSContext cx;
+    AutoJSContext cx;
     nsString state;
     bool connected;
     bool emergencyOnly;
@@ -577,166 +638,6 @@ struct ParamTraits<MozCallForwardingOptions>
         if (!ReadParam(aMsg, aIter, &aResult->mServiceClass.Value().SetValue())) {
           return false;
         }
-      }
-    }
-
-    return true;
-  }
-};
-
-/**
- * MozCallBarringOptions Serialize/De-serialize.
- */
-template <>
-struct ParamTraits<MozCallBarringOptions>
-{
-  typedef MozCallBarringOptions paramType;
-
-  // Function to serialize a MozCallBarringOptions.
-  static void Write(Message *aMsg, const paramType& aParam)
-  {
-    bool wasPassed = false;
-    bool isNull = false;
-
-    // Write mProgram
-    wasPassed = aParam.mProgram.WasPassed();
-    WriteParam(aMsg, wasPassed);
-    if (wasPassed) {
-      isNull = aParam.mProgram.Value().IsNull();
-      WriteParam(aMsg, isNull);
-      if (!isNull) {
-        WriteParam(aMsg, aParam.mProgram.Value().Value());
-      }
-    }
-
-    // Write mEnabled
-    wasPassed = aParam.mEnabled.WasPassed();
-    WriteParam(aMsg, wasPassed);
-    if (wasPassed) {
-      isNull = aParam.mEnabled.Value().IsNull();
-      WriteParam(aMsg, isNull);
-      if (!isNull) {
-        WriteParam(aMsg, aParam.mEnabled.Value().Value());
-      }
-    }
-
-    // Write mPassword
-    wasPassed = aParam.mPassword.WasPassed();
-    WriteParam(aMsg, wasPassed);
-    if (wasPassed) {
-      WriteParam(aMsg, aParam.mPassword.Value());
-    }
-
-    // Write mServiceClass
-    wasPassed = aParam.mServiceClass.WasPassed();
-    WriteParam(aMsg, wasPassed);
-    if (wasPassed) {
-      isNull = aParam.mServiceClass.Value().IsNull();
-      WriteParam(aMsg, isNull);
-      if (!isNull) {
-        WriteParam(aMsg, aParam.mServiceClass.Value().Value());
-      }
-    }
-
-    // Write mPin
-    wasPassed = aParam.mPin.WasPassed();
-    WriteParam(aMsg, wasPassed);
-    if (wasPassed) {
-      WriteParam(aMsg, aParam.mPin.Value());
-    }
-
-    // Write mNewPin
-    wasPassed = aParam.mNewPin.WasPassed();
-    WriteParam(aMsg, wasPassed);
-    if (wasPassed) {
-      WriteParam(aMsg, aParam.mNewPin.Value());
-    }
-  }
-
-  // Function to de-serialize a MozCallBarringOptions.
-  static bool Read(const Message *aMsg, void **aIter, paramType* aResult)
-  {
-    bool wasPassed = false;
-    bool isNull = false;
-
-    // Read mProgram
-    if (!ReadParam(aMsg, aIter, &wasPassed)) {
-      return false;
-    }
-    if (wasPassed) {
-      aResult->mProgram.Construct();
-      if (!ReadParam(aMsg, aIter, &isNull)) {
-        return false;
-      }
-
-      if (!isNull) {
-        if (!ReadParam(aMsg, aIter, &aResult->mProgram.Value().SetValue())) {
-          return false;
-        }
-      }
-    }
-
-    // Read mEnabled
-    if (!ReadParam(aMsg, aIter, &wasPassed)) {
-      return false;
-    }
-    if (wasPassed) {
-      aResult->mEnabled.Construct();
-      if (!ReadParam(aMsg, aIter, &isNull)) {
-        return false;
-      }
-
-      if (!isNull) {
-        if (!ReadParam(aMsg, aIter, &aResult->mEnabled.Value().SetValue())) {
-          return false;
-        }
-      }
-    }
-
-    // Read mPassword
-    if (!ReadParam(aMsg, aIter, &wasPassed)) {
-      return false;
-    }
-    if (wasPassed) {
-      if (!ReadParam(aMsg, aIter, &aResult->mPassword.Construct())) {
-        return false;
-      }
-    }
-
-    // Read mServiceClass
-    if (!ReadParam(aMsg, aIter, &wasPassed)) {
-      return false;
-    }
-    if (wasPassed) {
-      aResult->mServiceClass.Construct();
-      if (!ReadParam(aMsg, aIter, &isNull)) {
-        return false;
-      }
-
-      if (!isNull) {
-        if (!ReadParam(aMsg, aIter, &aResult->mServiceClass.Value().SetValue())) {
-          return false;
-        }
-      }
-    }
-
-    // Read mPin
-    if (!ReadParam(aMsg, aIter, &wasPassed)) {
-      return false;
-    }
-    if (wasPassed) {
-      if (!ReadParam(aMsg, aIter, &aResult->mPin.Construct())) {
-        return false;
-      }
-    }
-
-    // Read mNewPin
-    if (!ReadParam(aMsg, aIter, &wasPassed)) {
-      return false;
-    }
-    if (wasPassed) {
-      if (!ReadParam(aMsg, aIter, &aResult->mNewPin.Construct())) {
-        return false;
       }
     }
 

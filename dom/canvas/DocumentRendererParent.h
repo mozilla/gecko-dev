@@ -26,19 +26,19 @@ public:
     void DrawToCanvas(const nsIntSize& renderedSize,
 		      const nsCString& aData);
 
-    virtual void ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
+    virtual void ActorDestroy(ActorDestroyReason aWhy) override;
 
     virtual bool Recv__delete__(const nsIntSize& renderedSize,
-                                const nsCString& data) MOZ_OVERRIDE;
+                                const nsCString& data) override;
 
 private:
     nsCOMPtr<nsICanvasRenderingContextInternal> mCanvas;
-    nsRefPtr<gfxContext> mCanvasContext;
+    RefPtr<gfxContext> mCanvasContext;
 
     DISALLOW_EVIL_CONSTRUCTORS(DocumentRendererParent);
 };
 
-}
-}
+} // namespace ipc
+} // namespace mozilla
 
 #endif

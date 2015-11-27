@@ -19,6 +19,7 @@
 
 #define NS_FONT_WEIGHT_NORMAL           400
 #define NS_FONT_WEIGHT_BOLD             700
+#define NS_FONT_WEIGHT_THIN             100
 
 #define NS_FONT_STRETCH_ULTRA_CONDENSED (-4)
 #define NS_FONT_STRETCH_EXTRA_CONDENSED (-3)
@@ -208,5 +209,17 @@ enum {
 #define NS_FONT_SUB_SUPER_SIZE_RATIO_LARGE       (0.667)
 #define NS_FONT_SUB_SUPER_SMALL_SIZE             (20.0)
 #define NS_FONT_SUB_SUPER_LARGE_SIZE             (45.0)
+
+// pref lang id's for font prefs
+enum eFontPrefLang {
+    #define FONT_PREF_LANG(enum_id_, str_, atom_id_) eFontPrefLang_ ## enum_id_
+    #include "gfxFontPrefLangList.h"
+    #undef FONT_PREF_LANG
+
+    , eFontPrefLang_CJKSet  // special code for CJK set
+    , eFontPrefLang_First = eFontPrefLang_Western
+    , eFontPrefLang_Last = eFontPrefLang_Others
+    , eFontPrefLang_Count = (eFontPrefLang_Last - eFontPrefLang_First + 1)
+};
 
 #endif

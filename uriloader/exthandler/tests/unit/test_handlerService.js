@@ -27,8 +27,7 @@ function run_test() {
   const rootPrefBranch = prefSvc.getBranch("");
   
   let noMailto = false;
-  let isWindows = ("@mozilla.org/windows-registry-key;1" in Components.classes);
-  if (isWindows) {
+  if (mozinfo.os == "win") {
     // Check mailto handler from registry.
     // If registry entry is nothing, no mailto handler
     let regSvc = Cc["@mozilla.org/windows-registry-key;1"].
@@ -42,6 +41,19 @@ function run_test() {
       noMailto = true;
     }
     regSvc.close();
+  }
+
+  if (mozinfo.os == "linux") {
+    // Check mailto handler from GIO
+    // If there isn't one, then we have no mailto handler
+    let gIOSvc = Cc["@mozilla.org/gio-service;1"].
+                 createInstance(Ci.nsIGIOService);
+    try {
+      gIOSvc.getAppForURIScheme("mailto");
+      noMailto = false;
+    } catch (ex) {
+      noMailto = true;
+    }
   }
 
   //**************************************************************************//
@@ -157,7 +169,7 @@ function run_test() {
   else
     do_check_eq(0, protoInfo.possibleApplicationHandlers.length);
 
-  // Win7+ might not have a default mailto: handler
+  // Win7+ or Linux's GIO might not have a default mailto: handler
   if (noMailto)
     do_check_true(protoInfo.alwaysAskBeforeHandling);
   else
@@ -168,7 +180,7 @@ function run_test() {
   protoInfo = protoSvc.getProtocolHandlerInfo("mailto");
   if (haveDefaultHandlersVersion) {
     do_check_eq(2, protoInfo.possibleApplicationHandlers.length);
-    // Win7+ might not have a default mailto: handler, but on other platforms
+    // Win7+ or Linux's GIO may have no default mailto: handler. Otherwise
     // alwaysAskBeforeHandling is expected to be false here, because although
     // the pref is true, the value in RDF is false. The injected mailto handler
     // carried over the default pref value, and so when we set the pref above
@@ -449,7 +461,7 @@ function run_test() {
   do_check_eq(lolType, "application/lolcat");
 
   // test mailcap entries with needsterminal are ignored on non-Windows non-Mac.
-  if (!("@mozilla.org/windows-registry-key;1" in Cc) && !("nsILocalFileMac" in Ci)) {
+  if (mozinfo.os != "win" && mozinfo.os != "mac") {
     env.set('PERSONAL_MAILCAP', do_get_file('mailcap').path);
     handlerInfo = mimeSvc.getFromTypeAndExtension("text/plain", null);
     do_check_eq(handlerInfo.preferredAction, Ci.nsIHandlerInfo.useSystemDefault);

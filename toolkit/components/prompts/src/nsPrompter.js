@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+"use strict";
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -21,7 +22,7 @@ Prompter.prototype = {
     QueryInterface   : XPCOMUtils.generateQI([Ci.nsIPromptFactory, Ci.nsIPromptService, Ci.nsIPromptService2]),
 
 
-    /* ----------  private memebers  ---------- */
+    /* ----------  private members  ---------- */
 
     pickPrompter : function (domWin) {
         return new ModalPrompter(domWin);
@@ -116,7 +117,7 @@ Prompter.prototype = {
 
 
 // Common utils not specific to a particular prompter style.
-let PromptUtilsTemp = {
+var PromptUtilsTemp = {
     __proto__ : PromptUtils,
 
     getLocalizedString : function (key, formatArgs) {
@@ -210,7 +211,7 @@ let PromptUtilsTemp = {
 
         // If the URI explicitly specified a port, only include it when
         // it's not the default. (We never want "http://foo.com:80")
-        port = uri.port;
+        let port = uri.port;
         if (port != -1) {
             let handler = Services.io.getProtocolHandler(scheme);
             if (port != handler.defaultPort)
@@ -370,7 +371,11 @@ function openModalWindow(domWin, uri, args) {
 }
 
 function openTabPrompt(domWin, tabPrompt, args) {
-    PromptUtils.fireDialogEvent(domWin, "DOMWillOpenModalDialog");
+    let docShell = domWin.QueryInterface(Ci.nsIInterfaceRequestor)
+                         .getInterface(Ci.nsIDocShell);
+    let inPermitUnload = docShell.contentViewer && docShell.contentViewer.inPermitUnload;
+    let eventDetail = Cu.cloneInto({tabPrompt: true, inPermitUnload}, domWin);
+    PromptUtils.fireDialogEvent(domWin, "DOMWillOpenModalDialog", null, eventDetail);
 
     let winUtils = domWin.QueryInterface(Ci.nsIInterfaceRequestor)
                          .getInterface(Ci.nsIDOMWindowUtils);
@@ -432,14 +437,15 @@ function openTabPrompt(domWin, tabPrompt, args) {
 }
 
 function openRemotePrompt(domWin, args, tabPrompt) {
-    let messageManager = domWin.QueryInterface(Ci.nsIInterfaceRequestor)
-                         .getInterface(Ci.nsIWebNavigation)
-                         .QueryInterface(Ci.nsIDocShell)
-                         .QueryInterface(Ci.nsIInterfaceRequestor)
-                         .getInterface(Ci.nsITabChild)
-                         .messageManager;
+    let docShell = domWin.QueryInterface(Ci.nsIInterfaceRequestor)
+                         .getInterface(Ci.nsIDocShell);
+    let messageManager = docShell.QueryInterface(Ci.nsIInterfaceRequestor)
+                                 .getInterface(Ci.nsITabChild)
+                                 .messageManager;
 
-    PromptUtils.fireDialogEvent(domWin, "DOMWillOpenModalDialog");
+    let inPermitUnload = docShell.contentViewer && docShell.contentViewer.inPermitUnload;
+    let eventDetail = Cu.cloneInto({tabPrompt, inPermitUnload}, domWin);
+    PromptUtils.fireDialogEvent(domWin, "DOMWillOpenModalDialog", null, eventDetail);
 
     let winUtils = domWin.QueryInterface(Ci.nsIInterfaceRequestor)
                          .getInterface(Ci.nsIDOMWindowUtils);
@@ -482,6 +488,7 @@ function openRemotePrompt(domWin, args, tabPrompt) {
 
     let topPrincipal = domWin.top.document.nodePrincipal;
     let promptPrincipal = domWin.document.nodePrincipal;
+    args.promptPrincipal = promptPrincipal;
     args.showAlertOrigin = topPrincipal.equals(promptPrincipal);
 
     args._remoteId = id;

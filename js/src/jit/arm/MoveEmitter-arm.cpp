@@ -6,10 +6,12 @@
 
 #include "jit/arm/MoveEmitter-arm.h"
 
+#include "jit/MacroAssembler-inl.h"
+
 using namespace js;
 using namespace js::jit;
 
-MoveEmitterARM::MoveEmitterARM(MacroAssemblerARMCompat &masm)
+MoveEmitterARM::MoveEmitterARM(MacroAssembler& masm)
   : inCycle_(0),
     masm(masm),
     pushedAtCycle_(-1),
@@ -21,7 +23,7 @@ MoveEmitterARM::MoveEmitterARM(MacroAssemblerARMCompat &masm)
 }
 
 void
-MoveEmitterARM::emit(const MoveResolver &moves)
+MoveEmitterARM::emit(const MoveResolver& moves)
 {
     if (moves.numCycles()) {
         // Reserve stack for cycle resolution
@@ -38,43 +40,36 @@ MoveEmitterARM::~MoveEmitterARM()
     assertDone();
 }
 
-Operand
+Address
 MoveEmitterARM::cycleSlot(uint32_t slot, uint32_t subslot) const
 {
     int32_t offset =  masm.framePushed() - pushedAtCycle_;
-    JS_ASSERT(offset < 4096 && offset > -4096);
-    return Operand(StackPointer, offset + slot * sizeof(double) + subslot);
+    MOZ_ASSERT(offset < 4096 && offset > -4096);
+    return Address(StackPointer, offset + slot * sizeof(double) + subslot);
 }
 
-// THIS IS ALWAYS AN LDRAddr. It should not be wrapped in an operand, methinks.
-Operand
+Address
 MoveEmitterARM::spillSlot() const
 {
     int32_t offset =  masm.framePushed() - pushedAtSpill_;
-    JS_ASSERT(offset < 4096 && offset > -4096);
-    return Operand(StackPointer, offset);
+    MOZ_ASSERT(offset < 4096 && offset > -4096);
+    return Address(StackPointer, offset);
 }
 
-Operand
-MoveEmitterARM::toOperand(const MoveOperand &operand, bool isFloat) const
+Address
+MoveEmitterARM::toAddress(const MoveOperand& operand) const
 {
-    if (operand.isMemoryOrEffectiveAddress()) {
-        if (operand.base() != StackPointer) {
-            JS_ASSERT(operand.disp() < 1024 && operand.disp() > -1024);
-            return Operand(operand.base(), operand.disp());
-        }
+    MOZ_ASSERT(operand.isMemoryOrEffectiveAddress());
 
-        JS_ASSERT(operand.disp() >= 0);
-
-        // Otherwise, the stack offset may need to be adjusted.
-        return Operand(StackPointer, operand.disp() + (masm.framePushed() - pushedAtStart_));
+    if (operand.base() != StackPointer) {
+        MOZ_ASSERT(operand.disp() < 1024 && operand.disp() > -1024);
+        return Operand(operand.base(), operand.disp()).toAddress();
     }
 
-    if (operand.isGeneralReg())
-        return Operand(operand.reg());
+    MOZ_ASSERT(operand.disp() >= 0);
 
-    JS_ASSERT(operand.isFloatReg());
-    return Operand(operand.floatReg());
+    // Otherwise, the stack offset may need to be adjusted.
+    return Address(StackPointer, operand.disp() + (masm.framePushed() - pushedAtStart_));
 }
 
 Register
@@ -100,7 +95,7 @@ MoveEmitterARM::tempReg()
 }
 
 void
-MoveEmitterARM::breakCycle(const MoveOperand &from, const MoveOperand &to,
+MoveEmitterARM::breakCycle(const MoveOperand& from, const MoveOperand& to,
                            MoveOp::Type type, uint32_t slotId)
 {
     // There is some pattern:
@@ -113,11 +108,16 @@ MoveEmitterARM::breakCycle(const MoveOperand &from, const MoveOperand &to,
       case MoveOp::FLOAT32:
         if (to.isMemory()) {
             VFPRegister temp = ScratchFloat32Reg;
-            masm.ma_vldr(toOperand(to, true), temp);
+            masm.ma_vldr(toAddress(to), temp);
             // Since it is uncertain if the load will be aligned or not
             // just fill both of them with the same value.
             masm.ma_vstr(temp, cycleSlot(slotId, 0));
             masm.ma_vstr(temp, cycleSlot(slotId, 4));
+        } else if (to.isGeneralReg()) {
+            // Since it is uncertain if the load will be aligned or not
+            // just fill both of them with the same value.
+            masm.ma_str(to.reg(), cycleSlot(slotId, 0));
+            masm.ma_str(to.reg(), cycleSlot(slotId, 4));
         } else {
             FloatRegister src = to.floatReg();
             // Just always store the largest possible size. Currently, this is
@@ -127,9 +127,13 @@ MoveEmitterARM::breakCycle(const MoveOperand &from, const MoveOperand &to,
         break;
       case MoveOp::DOUBLE:
         if (to.isMemory()) {
-            FloatRegister temp = ScratchDoubleReg;
-            masm.ma_vldr(toOperand(to, true), temp);
-            masm.ma_vstr(temp, cycleSlot(slotId, 0));
+            ScratchDoubleScope scratch(masm);
+            masm.ma_vldr(toAddress(to), scratch);
+            masm.ma_vstr(scratch, cycleSlot(slotId, 0));
+        } else if (to.isGeneralRegPair()) {
+            ScratchDoubleScope scratch(masm);
+            masm.ma_vxfer(to.evenReg(), to.oddReg(), scratch);
+            masm.ma_vstr(scratch, cycleSlot(slotId, 0));
         } else {
             masm.ma_vstr(to.floatReg().doubleOverlay(), cycleSlot(slotId, 0));
         }
@@ -139,7 +143,7 @@ MoveEmitterARM::breakCycle(const MoveOperand &from, const MoveOperand &to,
         // an non-vfp value
         if (to.isMemory()) {
             Register temp = tempReg();
-            masm.ma_ldr(toOperand(to, false), temp);
+            masm.ma_ldr(toAddress(to), temp);
             masm.ma_str(temp, cycleSlot(0,0));
         } else {
             if (to.reg() == spilledReg_) {
@@ -156,7 +160,7 @@ MoveEmitterARM::breakCycle(const MoveOperand &from, const MoveOperand &to,
 }
 
 void
-MoveEmitterARM::completeCycle(const MoveOperand &from, const MoveOperand &to, MoveOp::Type type, uint32_t slotId)
+MoveEmitterARM::completeCycle(const MoveOperand& from, const MoveOperand& to, MoveOp::Type type, uint32_t slotId)
 {
     // There is some pattern:
     //   (A -> B)
@@ -168,9 +172,17 @@ MoveEmitterARM::completeCycle(const MoveOperand &from, const MoveOperand &to, Mo
       case MoveOp::FLOAT32:
       case MoveOp::DOUBLE:
         if (to.isMemory()) {
-            FloatRegister temp = ScratchDoubleReg;
-            masm.ma_vldr(cycleSlot(slotId, 0), temp);
-            masm.ma_vstr(temp, toOperand(to, true));
+            ScratchDoubleScope scratch(masm);
+            masm.ma_vldr(cycleSlot(slotId, 0), scratch);
+            masm.ma_vstr(scratch, toAddress(to));
+        } else if (to.isGeneralReg()) {
+            MOZ_ASSERT(type == MoveOp::FLOAT32);
+            masm.ma_ldr(toAddress(from), to.reg());
+        } else if (to.isGeneralRegPair()) {
+            MOZ_ASSERT(type == MoveOp::DOUBLE);
+            ScratchDoubleScope scratch(masm);
+            masm.ma_vldr(toAddress(from), scratch);
+            masm.ma_vxfer(scratch, to.evenReg(), to.oddReg());
         } else {
             uint32_t offset = 0;
             if ((!from.isMemory()) && from.floatReg().numAlignedAliased() == 1)
@@ -180,11 +192,11 @@ MoveEmitterARM::completeCycle(const MoveOperand &from, const MoveOperand &to, Mo
         break;
       case MoveOp::INT32:
       case MoveOp::GENERAL:
-        JS_ASSERT(slotId == 0);
+        MOZ_ASSERT(slotId == 0);
         if (to.isMemory()) {
             Register temp = tempReg();
             masm.ma_ldr(cycleSlot(slotId, 0), temp);
-            masm.ma_str(temp, toOperand(to, false));
+            masm.ma_str(temp, toAddress(to));
         } else {
             if (to.reg() == spilledReg_) {
                 // Make sure we don't re-clobber the spilled register later.
@@ -199,8 +211,12 @@ MoveEmitterARM::completeCycle(const MoveOperand &from, const MoveOperand &to, Mo
 }
 
 void
-MoveEmitterARM::emitMove(const MoveOperand &from, const MoveOperand &to)
+MoveEmitterARM::emitMove(const MoveOperand& from, const MoveOperand& to)
 {
+    // Register pairs are used to store Double values during calls.
+    MOZ_ASSERT(!from.isGeneralRegPair());
+    MOZ_ASSERT(!to.isGeneralRegPair());
+
     if (to.isGeneralReg() && to.reg() == spilledReg_) {
         // If the destination is the spilled register, make sure we
         // don't re-clobber its value.
@@ -214,84 +230,119 @@ MoveEmitterARM::emitMove(const MoveOperand &from, const MoveOperand &to)
             masm.ma_ldr(spillSlot(), spilledReg_);
             spilledReg_ = InvalidReg;
         }
-        switch (toOperand(to, false).getTag()) {
-          case Operand::OP2:
-            // secretly must be a register
+        if (to.isMemoryOrEffectiveAddress())
+            masm.ma_str(from.reg(), toAddress(to));
+        else
             masm.ma_mov(from.reg(), to.reg());
-            break;
-          case Operand::MEM:
-            masm.ma_str(from.reg(), toOperand(to, false));
-            break;
-          default:
-            MOZ_CRASH("strange move!");
-        }
     } else if (to.isGeneralReg()) {
-        JS_ASSERT(from.isMemoryOrEffectiveAddress());
+        MOZ_ASSERT(from.isMemoryOrEffectiveAddress());
         if (from.isMemory())
-            masm.ma_ldr(toOperand(from, false), to.reg());
+            masm.ma_ldr(toAddress(from), to.reg());
         else
             masm.ma_add(from.base(), Imm32(from.disp()), to.reg());
     } else {
         // Memory to memory gpr move.
         Register reg = tempReg();
 
-        JS_ASSERT(from.isMemoryOrEffectiveAddress());
+        MOZ_ASSERT(from.isMemoryOrEffectiveAddress());
         if (from.isMemory())
-            masm.ma_ldr(toOperand(from, false), reg);
+            masm.ma_ldr(toAddress(from), reg);
         else
             masm.ma_add(from.base(), Imm32(from.disp()), reg);
-        JS_ASSERT(to.base() != reg);
-        masm.ma_str(reg, toOperand(to, false));
+        MOZ_ASSERT(to.base() != reg);
+        masm.ma_str(reg, toAddress(to));
     }
 }
 
 void
-MoveEmitterARM::emitFloat32Move(const MoveOperand &from, const MoveOperand &to)
+MoveEmitterARM::emitFloat32Move(const MoveOperand& from, const MoveOperand& to)
 {
+    // Register pairs are used to store Double values during calls.
+    MOZ_ASSERT(!from.isGeneralRegPair());
+    MOZ_ASSERT(!to.isGeneralRegPair());
+
     if (from.isFloatReg()) {
         if (to.isFloatReg())
             masm.ma_vmov_f32(from.floatReg(), to.floatReg());
+        else if (to.isGeneralReg())
+            masm.ma_vxfer(from.floatReg(), to.reg());
         else
-            masm.ma_vstr(VFPRegister(from.floatReg()).singleOverlay(),
-                         toOperand(to, true));
+            masm.ma_vstr(VFPRegister(from.floatReg()).singleOverlay(), toAddress(to));
+    } else if (from.isGeneralReg()) {
+        if (to.isFloatReg())
+            masm.ma_vxfer(from.reg(), to.floatReg());
+        else if (to.isGeneralReg())
+            masm.ma_mov(from.reg(), to.reg());
+        else
+            masm.ma_str(from.reg(), toAddress(to));
     } else if (to.isFloatReg()) {
-        masm.ma_vldr(toOperand(from, true),
-                     VFPRegister(to.floatReg()).singleOverlay());
+        masm.ma_vldr(toAddress(from), VFPRegister(to.floatReg()).singleOverlay());
+    } else if (to.isGeneralReg()) {
+        masm.ma_ldr(toAddress(from), to.reg());
     } else {
         // Memory to memory move.
-        JS_ASSERT(from.isMemory());
+        MOZ_ASSERT(from.isMemory());
         FloatRegister reg = ScratchFloat32Reg;
-        masm.ma_vldr(toOperand(from, true),
-                     VFPRegister(reg).singleOverlay());
-        masm.ma_vstr(VFPRegister(reg).singleOverlay(),
-                     toOperand(to, true));
+        masm.ma_vldr(toAddress(from), VFPRegister(reg).singleOverlay());
+        masm.ma_vstr(VFPRegister(reg).singleOverlay(), toAddress(to));
     }
 }
 
 void
-MoveEmitterARM::emitDoubleMove(const MoveOperand &from, const MoveOperand &to)
+MoveEmitterARM::emitDoubleMove(const MoveOperand& from, const MoveOperand& to)
 {
+    // Registers are used to store pointers / int32 / float32 values.
+    MOZ_ASSERT(!from.isGeneralReg());
+    MOZ_ASSERT(!to.isGeneralReg());
+
     if (from.isFloatReg()) {
         if (to.isFloatReg())
             masm.ma_vmov(from.floatReg(), to.floatReg());
+        else if (to.isGeneralRegPair())
+            masm.ma_vxfer(from.floatReg(), to.evenReg(), to.oddReg());
         else
-            masm.ma_vstr(from.floatReg(), toOperand(to, true));
+            masm.ma_vstr(from.floatReg(), toAddress(to));
+    } else if (from.isGeneralRegPair()) {
+        if (to.isFloatReg())
+            masm.ma_vxfer(from.evenReg(), from.oddReg(), to.floatReg());
+        else if (to.isGeneralRegPair()) {
+            MOZ_ASSERT(!from.aliases(to));
+            masm.ma_mov(from.evenReg(), to.evenReg());
+            masm.ma_mov(from.oddReg(), to.oddReg());
+        } else {
+            FloatRegister reg = ScratchDoubleReg;
+            masm.ma_vxfer(from.evenReg(), from.oddReg(), reg);
+            masm.ma_vstr(reg, toAddress(to));
+        }
     } else if (to.isFloatReg()) {
-        masm.ma_vldr(toOperand(from, true), to.floatReg());
+        masm.ma_vldr(toAddress(from), to.floatReg());
+    } else if (to.isGeneralRegPair()) {
+        MOZ_ASSERT(from.isMemory());
+        Address src = toAddress(from);
+        // Note: We can safely use the MoveOperand's displacement here,
+        // even if the base is SP: MoveEmitter::toOperand adjusts
+        // SP-relative operands by the difference between the current
+        // stack usage and stackAdjust, which emitter.finish() resets to
+        // 0.
+        //
+        // Warning: if the offset isn't within [-255,+255] then this
+        // will assert-fail (or, if non-debug, load the wrong words).
+        // Nothing uses such an offset at the time of this writing.
+        masm.ma_ldrd(EDtrAddr(src.base, EDtrOffImm(src.offset)), to.evenReg(), to.oddReg());
     } else {
         // Memory to memory move.
-        JS_ASSERT(from.isMemory());
-        FloatRegister reg = ScratchDoubleReg;
-        masm.ma_vldr(toOperand(from, true), reg);
-        masm.ma_vstr(reg, toOperand(to, true));
+        MOZ_ASSERT(from.isMemory());
+        ScratchDoubleScope scratch(masm);
+        masm.ma_vldr(toAddress(from), scratch);
+        masm.ma_vstr(scratch, toAddress(to));
     }
 }
 
 void
-MoveEmitterARM::emit(const MoveOp &move)
+MoveEmitterARM::emit(const MoveOp& move)
 {
-    const MoveOperand &from = move.from();
-    const MoveOperand &to = move.to();
+    const MoveOperand& from = move.from();
+    const MoveOperand& to = move.to();
 
     if (move.isCycleEnd() && move.isCycleBegin()) {
         // A fun consequence of aliased registers is you can have multiple
@@ -302,9 +353,9 @@ MoveEmitterARM::emit(const MoveOp &move)
     }
 
     if (move.isCycleEnd()) {
-        JS_ASSERT(inCycle_);
+        MOZ_ASSERT(inCycle_);
         completeCycle(from, to, move.type(), move.cycleEndSlot());
-        JS_ASSERT(inCycle_ > 0);
+        MOZ_ASSERT(inCycle_ > 0);
         inCycle_--;
         return;
     }
@@ -333,7 +384,7 @@ MoveEmitterARM::emit(const MoveOp &move)
 void
 MoveEmitterARM::assertDone()
 {
-    JS_ASSERT(inCycle_ == 0);
+    MOZ_ASSERT(inCycle_ == 0);
 }
 
 void

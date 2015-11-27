@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 sw=2 et tw=78: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -20,38 +20,37 @@ public:
   {
   }
   virtual bool
-  preventExtensions(JSContext* aCx, JS::Handle<JSObject*> aProxy) const MOZ_OVERRIDE
-  {
-    // Throw a TypeError, per WebIDL.
-    JS_ReportErrorNumber(aCx, js_GetErrorMessage, nullptr,
-                         JSMSG_CANT_CHANGE_EXTENSIBILITY);
-    return false;
-  }
-  virtual bool
   getOwnPropDescriptor(JSContext* aCx, JS::Handle<JSObject*> aProxy,
                        JS::Handle<jsid> aId,
                        bool /* unused */,
                        JS::MutableHandle<JSPropertyDescriptor> aDesc)
-                       const MOZ_OVERRIDE;
+                       const override;
   virtual bool
   defineProperty(JSContext* aCx, JS::Handle<JSObject*> aProxy,
                  JS::Handle<jsid> aId,
-                 JS::MutableHandle<JSPropertyDescriptor> aDesc) const MOZ_OVERRIDE;
+                 JS::Handle<JSPropertyDescriptor> aDesc,
+                 JS::ObjectOpResult &result) const override;
   virtual bool
   ownPropNames(JSContext* aCx, JS::Handle<JSObject*> aProxy, unsigned flags,
-               JS::AutoIdVector& aProps) const MOZ_OVERRIDE;
+               JS::AutoIdVector& aProps) const override;
   virtual bool
   delete_(JSContext* aCx, JS::Handle<JSObject*> aProxy, JS::Handle<jsid> aId,
-          bool* aBp) const MOZ_OVERRIDE;
+          JS::ObjectOpResult &aResult) const override;
+  virtual bool
+  preventExtensions(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+                    JS::ObjectOpResult& aResult) const override
+  {
+    return aResult.failCantPreventExtensions();
+  }
   virtual bool
   isExtensible(JSContext* aCx, JS::Handle<JSObject*> aProxy,
-               bool* aIsExtensible) const MOZ_OVERRIDE
+               bool* aIsExtensible) const override
   {
     *aIsExtensible = true;
     return true;
   }
   virtual const char*
-  className(JSContext *aCx, JS::Handle<JSObject*> aProxy) const MOZ_OVERRIDE
+  className(JSContext *aCx, JS::Handle<JSObject*> aProxy) const override
   {
     return "WindowProperties";
   }
@@ -63,9 +62,10 @@ public:
     return &instance;
   }
 
-  // For Install, aProto is the proto of the Window we're associated with.
-  static void
-  Install(JSContext *aCx, JS::Handle<JSObject*> aProto);
+  // For Create, aProto is the parent of the interface prototype object of the
+  // Window we're associated with.
+  static JSObject*
+  Create(JSContext *aCx, JS::Handle<JSObject*> aProto);
 };
 
 } // namespace dom

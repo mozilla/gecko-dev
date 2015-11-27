@@ -12,12 +12,13 @@ ADDONS = $(patsubst $(ADDONSRC)/%/package.json,$(TESTADDONS)/%.xpi,$(wildcard $(
 INSTALL_TARGETS += test_addons
 test_addons_FILES = $(ADDONS)
 test_addons_DEST = $(TESTROOT)
+test_addons_TARGET := misc
 
 sinclude $(topsrcdir)/config/rules.mk
 
 # This can switch to just zipping the files when native jetpacks land
 $(TESTADDONS)/%.xpi: FORCE $(call mkdir_deps,$(CURDIR)/$(TESTADDONS)) $(ADDONSRC)/%
-	$(PYTHON) $(srcdir)/source/bin/cfx xpi --pkgdir=$(lastword $^) --output-file=$@
+	$(PYTHON) $(srcdir)/source/bin/cfx xpi --no-strip-xpi --pkgdir=$(lastword $^) --output-file=$@
 
 #libs:: $(ADDONS)
 

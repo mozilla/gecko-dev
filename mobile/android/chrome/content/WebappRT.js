@@ -1,9 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-let Cc = Components.classes;
-let Ci = Components.interfaces;
-let Cu = Components.utils;
+
+/*globals PermissionsInstaller */
+
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
@@ -21,7 +24,7 @@ function pref(name, value) {
   }
 }
 
-let WebappRT = {
+var WebappRT = {
   prefs: [
     // Disable all add-on locations other than the profile (which can't be disabled this way)
     pref("extensions.enabledScopes", 1),
@@ -32,7 +35,7 @@ let WebappRT = {
     // Set a future policy version to avoid the telemetry prompt.
     pref("toolkit.telemetry.prompted", 999),
     pref("toolkit.telemetry.notifiedOptOut", 999),
-    pref("media.useAudioChannelService", true),
+    pref("media.useAudioChannelAPI", true),
     pref("dom.mozTCPSocket.enabled", true),
 
     // Enabled system messages for web activity support
@@ -65,8 +68,18 @@ let WebappRT = {
 
     // If the app is in debug mode, configure and enable the remote debugger.
     Messaging.sendRequestForResult({ type: "NativeApp:IsDebuggable" }).then((response) => {
-      if (response.isDebuggable) {
-        this._enableRemoteDebugger(aUrl);
+      let that = this;
+      let name = this._getAppName(aUrl);
+
+       if (response.isDebuggable) {
+        Notifications.create({
+          title: Strings.browser.formatStringFromName("remoteStartNotificationTitle", [name], 1),
+          message: Strings.browser.GetStringFromName("remoteStartNotificationMessage"),
+          icon: "drawable://warning_doorhanger",
+          onClick: function(aId, aCookie) {
+            that._enableRemoteDebugger(aUrl);
+          },
+        });
       }
     });
 
@@ -139,6 +152,18 @@ let WebappRT = {
     }
   },
 
+  _getAppName: function(aUrl) {
+    let name = Strings.browser.GetStringFromName("remoteNotificationGenericName");
+    let app = DOMApplicationRegistry.getAppByManifestURL(aUrl);
+
+    if (app) {
+      name = app.name;
+    }
+
+    return name;
+  },
+
+
   _enableRemoteDebugger: function(aUrl) {
     // Skip the connection prompt in favor of notifying the user below.
     Services.prefs.setBoolPref("devtools.debugger.prompt-connection", false);
@@ -158,13 +183,7 @@ let WebappRT = {
     // Notify the user that we enabled the debugger and which port it's using
     // so they can use the DevTools Connect… dialog to connect the client to it.
     DOMApplicationRegistry.registryReady.then(() => {
-      let name;
-      let app = DOMApplicationRegistry.getAppByManifestURL(aUrl);
-      if (app) {
-        name = app.name;
-      } else {
-        name = Strings.browser.GetStringFromName("remoteNotificationGenericName");
-      }
+      let name = this._getAppName(aUrl);
 
       Notifications.create({
         title: Strings.browser.formatStringFromName("remoteNotificationTitle", [name], 1),

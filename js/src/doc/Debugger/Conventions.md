@@ -136,6 +136,13 @@ associated `Debugger` instance's `uncaughtExceptionHook` property, as
 described below.
 
 
+## Timestamps
+
+Timestamps are expressed in units of milliseconds since an arbitrary,
+but fixed, epoch.  The resolution of timestamps is generally greater
+than milliseconds, though no specific resolution is guaranteed.
+
+
 ## The `Debugger.DebuggeeWouldRun` Exception
 
 Some debugger operations that appear to simply inspect the debuggee's state

@@ -23,6 +23,7 @@
 #include "nsIDOMMouseEvent.h"
 #include "nsScrollbarButtonFrame.h"
 #include "nsISliderListener.h"
+#include "nsIScrollableFrame.h"
 #include "nsIScrollbarMediator.h"
 #include "nsScrollbarFrame.h"
 #include "nsRepeatService.h"
@@ -35,9 +36,13 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/MouseEvents.h"
+#include "mozilla/layers/AsyncDragMetrics.h"
+#include "mozilla/layers/InputAPZContext.h"
 #include <algorithm>
 
 using namespace mozilla;
+using mozilla::layers::AsyncDragMetrics;
+using mozilla::layers::InputAPZContext;
 
 bool nsSliderFrame::gMiddlePref = false;
 int32_t nsSliderFrame::gSnapMultiplier;
@@ -55,7 +60,7 @@ GetContentOfBox(nsIFrame *aBox)
 nsIFrame*
 NS_NewSliderFrame (nsIPresShell* aPresShell, nsStyleContext* aContext)
 {
-  return new (aPresShell) nsSliderFrame(aPresShell, aContext);
+  return new (aPresShell) nsSliderFrame(aContext);
 }
 
 NS_IMPL_FRAMEARENA_HELPERS(nsSliderFrame)
@@ -64,12 +69,13 @@ NS_QUERYFRAME_HEAD(nsSliderFrame)
   NS_QUERYFRAME_ENTRY(nsSliderFrame)
 NS_QUERYFRAME_TAIL_INHERITING(nsBoxFrame)
 
-nsSliderFrame::nsSliderFrame(nsIPresShell* aPresShell, nsStyleContext* aContext):
-  nsBoxFrame(aPresShell, aContext),
+nsSliderFrame::nsSliderFrame(nsStyleContext* aContext):
+  nsBoxFrame(aContext),
   mCurPos(0),
   mChange(0),
   mDragFinished(true),
-  mUserChanged(false)
+  mUserChanged(false),
+  mScrollingWithAPZ(false)
 {
 }
 
@@ -264,7 +270,8 @@ nsSliderFrame::AttributeChanged(int32_t aNameSpaceID,
           nsIScrollbarMediator* mediator = scrollbarFrame->GetScrollbarMediator();
           scrollbarFrame->SetIncrementToWhole(direction);
           if (mediator) {
-            mediator->ScrollByWhole(scrollbarFrame, direction);
+            mediator->ScrollByWhole(scrollbarFrame, direction,
+                                    nsIScrollbarMediator::ENABLE_SNAP);
           }
         }
         // 'this' might be destroyed here
@@ -321,6 +328,42 @@ nsSliderFrame::BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
 
     if (crect.width < thumbRect.width || crect.height < thumbRect.height)
       return;
+
+    // If this scrollbar is the scrollbar of an actively scrolled scroll frame,
+    // layerize the scrollbar thumb, wrap it in its own ContainerLayer and
+    // attach scrolling information to it.
+    // We do this here and not in the thumb's nsBoxFrame::BuildDisplayList so
+    // that the event region that gets created for the thumb is included in
+    // the nsDisplayOwnLayer contents.
+
+    uint32_t flags = 0;
+    mozilla::layers::FrameMetrics::ViewID scrollTargetId =
+      mozilla::layers::FrameMetrics::NULL_SCROLL_ID;
+    aBuilder->GetScrollbarInfo(&scrollTargetId, &flags);
+    bool thumbGetsLayer = (scrollTargetId != layers::FrameMetrics::NULL_SCROLL_ID);
+    nsLayoutUtils::SetScrollbarThumbLayerization(thumb, thumbGetsLayer);
+
+    if (thumbGetsLayer) {
+      nsDisplayListCollection tempLists;
+      nsBoxFrame::BuildDisplayListForChildren(aBuilder, aDirtyRect, tempLists);
+
+      // This is a bit of a hack. Collect up all descendant display items
+      // and merge them into a single Content() list.
+      nsDisplayList masterList;
+      masterList.AppendToTop(tempLists.BorderBackground());
+      masterList.AppendToTop(tempLists.BlockBorderBackgrounds());
+      masterList.AppendToTop(tempLists.Floats());
+      masterList.AppendToTop(tempLists.Content());
+      masterList.AppendToTop(tempLists.PositionedDescendants());
+      masterList.AppendToTop(tempLists.Outlines());
+
+      // Wrap the list to make it its own layer.
+      aLists.Content()->AppendNewToTop(new (aBuilder)
+        nsDisplayOwnLayer(aBuilder, this, &masterList, flags, scrollTargetId,
+                          GetThumbRatio()));
+
+      return;
+    }
   }
   
   nsBoxFrame::BuildDisplayListForChildren(aBuilder, aDirtyRect, aLists);
@@ -440,9 +483,12 @@ nsSliderFrame::HandleEvent(nsPresContext* aPresContext,
 
   if (isDraggingThumb())
   {
-    switch (aEvent->message) {
-    case NS_TOUCH_MOVE:
-    case NS_MOUSE_MOVE: {
+    switch (aEvent->mMessage) {
+    case eTouchMove:
+    case eMouseMove: {
+      if (mScrollingWithAPZ) {
+        break;
+      }
       nsPoint eventPoint;
       if (!GetEventPoint(aEvent, eventPoint)) {
         break;
@@ -503,13 +549,16 @@ nsSliderFrame::HandleEvent(nsPresContext* aPresContext,
     }
     break;
 
-    case NS_TOUCH_END:
-    case NS_MOUSE_BUTTON_UP:
+    case eTouchEnd:
+    case eMouseUp:
       if (ShouldScrollForEvent(aEvent)) {
         StopDrag();
         //we MUST call nsFrame HandleEvent for mouse ups to maintain the selection state and capture state.
         return nsFrame::HandleEvent(aPresContext, aEvent, aEventStatus);
       }
+
+    default:
+      break;
     }
 
     //return nsFrame::HandleEvent(aPresContext, aEvent, aEventStatus);
@@ -559,9 +608,9 @@ nsSliderFrame::HandleEvent(nsPresContext* aPresContext,
            aEvent->AsMouseEvent()->button == WidgetMouseEvent::eRightButton) {
     // HandlePress and HandleRelease are usually called via
     // nsFrame::HandleEvent, but only for the left mouse button.
-    if (aEvent->message == NS_MOUSE_BUTTON_DOWN) {
+    if (aEvent->mMessage == eMouseDown) {
       HandlePress(aPresContext, aEvent, aEventStatus);
-    } else if (aEvent->message == NS_MOUSE_BUTTON_UP) {
+    } else if (aEvent->mMessage == eMouseUp) {
       HandleRelease(aPresContext, aEvent, aEventStatus);
     }
 
@@ -570,10 +619,13 @@ nsSliderFrame::HandleEvent(nsPresContext* aPresContext,
 #endif
 
   // XXX hack until handle release is actually called in nsframe.
-//  if (aEvent->message == NS_MOUSE_EXIT_SYNTH || aEvent->message == NS_MOUSE_RIGHT_BUTTON_UP || aEvent->message == NS_MOUSE_LEFT_BUTTON_UP)
-  //   HandleRelease(aPresContext, aEvent, aEventStatus);
+  //  if (aEvent->mMessage == eMouseOut ||
+  //      aEvent->mMessage == NS_MOUSE_RIGHT_BUTTON_UP ||
+  //      aEvent->mMessage == NS_MOUSE_LEFT_BUTTON_UP) {
+  //    HandleRelease(aPresContext, aEvent, aEventStatus);
+  //  }
 
-  if (aEvent->message == NS_MOUSE_EXIT_SYNTH && mChange)
+  if (aEvent->mMessage == eMouseOut && mChange)
      HandleRelease(aPresContext, aEvent, aEventStatus);
 
   return nsFrame::HandleEvent(aPresContext, aEvent, aEventStatus);
@@ -690,21 +742,23 @@ nsSliderFrame::CurrentPositionChanged()
 
   // avoid putting the scroll thumb at subpixel positions which cause needless invalidations
   nscoord appUnitsPerPixel = PresContext()->AppUnitsPerDevPixel();
-  nsRect snappedThumbRect = newThumbRect.ToNearestPixels(appUnitsPerPixel).ToAppUnits(appUnitsPerPixel);
+  nsPoint snappedThumbLocation = ToAppUnits(
+      newThumbRect.TopLeft().ToNearestPixels(appUnitsPerPixel),
+      appUnitsPerPixel);
   if (IsHorizontal()) {
-    newThumbRect.x = snappedThumbRect.x;
-    newThumbRect.width = snappedThumbRect.width;
+    newThumbRect.x = snappedThumbLocation.x;
   } else {
-    newThumbRect.y = snappedThumbRect.y;
-    newThumbRect.height = snappedThumbRect.height;
+    newThumbRect.y = snappedThumbLocation.y;
   }
-  newThumbRect = newThumbRect.Intersect(clientRect);
 
   // set the rect
   thumbFrame->SetRect(newThumbRect);
 
   // Request a repaint of the scrollbar
-  SchedulePaint();
+  nsIScrollableFrame* scrollableFrame = do_QueryFrame(GetScrollbar()->GetParent());
+  if (!scrollableFrame || scrollableFrame->LastScrollOrigin() != nsGkAtoms::apz) {
+    SchedulePaint();
+  }
 
   mCurPos = curPos;
 
@@ -848,6 +902,53 @@ nsSliderMediator::HandleEvent(nsIDOMEvent* aEvent)
   return NS_OK;
 }
 
+bool
+nsSliderFrame::StartAPZDrag(WidgetGUIEvent* aEvent)
+{
+  if (!gfxPlatform::GetPlatform()->SupportsApzDragInput()) {
+    return false;
+  }
+
+  nsContainerFrame* cf = GetScrollbar()->GetParent();
+  if (!cf) {
+    return false;
+  }
+
+  nsIContent* scrollableContent = cf->GetContent();
+  if (!scrollableContent) {
+    return false;
+  }
+
+  mozilla::layers::FrameMetrics::ViewID scrollTargetId;
+  bool hasID = nsLayoutUtils::FindIDFor(scrollableContent, &scrollTargetId);
+  bool hasAPZView = hasID && (scrollTargetId != layers::FrameMetrics::NULL_SCROLL_ID);
+
+  if (!hasAPZView) {
+    return false;
+  }
+
+  nsIFrame* scrollbarBox = GetScrollbar();
+  nsCOMPtr<nsIContent> scrollbar = GetContentOfBox(scrollbarBox);
+
+  // This rect is the range in which the scroll thumb can slide in.
+  nsRect sliderTrack = GetRect() - scrollbarBox->GetPosition();
+  CSSIntRect sliderTrackCSS = CSSIntRect::FromAppUnitsRounded(sliderTrack);
+
+  uint64_t inputblockId = InputAPZContext::GetInputBlockId();
+  uint32_t presShellId = PresContext()->PresShell()->GetPresShellId();
+  AsyncDragMetrics dragMetrics(scrollTargetId, presShellId, inputblockId,
+                               NSAppUnitsToIntPixels(mDragStart,
+                                 float(AppUnitsPerCSSPixel())),
+                               sliderTrackCSS,
+                               IsHorizontal() ? AsyncDragMetrics::HORIZONTAL :
+                                                AsyncDragMetrics::VERTICAL);
+
+  // When we start an APZ drag, we wont get mouse events for the drag.
+  // APZ will consume them all and only notify us of the new scroll position.
+  this->GetNearestWidget()->StartAsyncScrollbarDrag(dragMetrics);
+  return true;
+}
+
 nsresult
 nsSliderFrame::StartDrag(nsIDOMEvent* aEvent)
 {
@@ -915,6 +1016,8 @@ nsSliderFrame::StartDrag(nsIDOMEvent* aEvent)
 
   mDragStart = pos - mThumbStart;
 
+  mScrollingWithAPZ = StartAPZDrag(event);
+
 #ifdef DEBUG_SLIDER
   printf("Pressed mDragStart=%d\n",mDragStart);
 #endif
@@ -927,6 +1030,8 @@ nsSliderFrame::StopDrag()
 {
   AddListener();
   DragThumb(false);
+
+  mScrollingWithAPZ = false;
 
 #ifdef MOZ_WIDGET_GTK
   nsIFrame* thumbFrame = mFrames.FirstChild();
@@ -1003,12 +1108,12 @@ nsSliderFrame::RemoveListener()
 bool
 nsSliderFrame::ShouldScrollForEvent(WidgetGUIEvent* aEvent)
 {
-  switch (aEvent->message) {
-    case NS_TOUCH_START:
-    case NS_TOUCH_END:
+  switch (aEvent->mMessage) {
+    case eTouchStart:
+    case eTouchEnd:
       return true;
-    case NS_MOUSE_BUTTON_DOWN:
-    case NS_MOUSE_BUTTON_UP: {
+    case eMouseDown:
+    case eMouseUp: {
       uint16_t button = aEvent->AsMouseEvent()->button;
 #ifdef MOZ_WIDGET_GTK
       return (button == WidgetMouseEvent::eLeftButton) ||
@@ -1031,11 +1136,11 @@ nsSliderFrame::ShouldScrollToClickForEvent(WidgetGUIEvent* aEvent)
     return false;
   }
 
-  if (aEvent->message == NS_TOUCH_START) {
+  if (aEvent->mMessage == eTouchStart) {
     return GetScrollToClick();
   }
 
-  if (aEvent->message != NS_MOUSE_BUTTON_DOWN) {
+  if (aEvent->mMessage != eMouseDown) {
     return false;
   }
 
@@ -1153,6 +1258,14 @@ nsSliderFrame::HandleRelease(nsPresContext* aPresContext,
 {
   StopRepeat();
 
+  nsIFrame* scrollbar = GetScrollbar();
+  nsScrollbarFrame* sb = do_QueryFrame(scrollbar);
+  if (sb) {
+    nsIScrollbarMediator* m = sb->GetScrollbarMediator();
+    if (m) {
+      m->ScrollbarReleased(sb);
+    }
+  }
   return NS_OK;
 }
 
@@ -1261,11 +1374,21 @@ nsSliderFrame::PageScroll(nscoord aChange)
     nsIScrollbarMediator* m = sb->GetScrollbarMediator();
     sb->SetIncrementToPage(aChange);
     if (m) {
-      m->ScrollByPage(sb, aChange);
+      m->ScrollByPage(sb, aChange, nsIScrollbarMediator::ENABLE_SNAP);
       return;
     }
   }
   PageUpDown(aChange);
+}
+
+float
+nsSliderFrame::GetThumbRatio() const
+{
+  // mRatio is in thumb app units per scrolled css pixels. Convert it to a
+  // ratio of the thumb's CSS pixels per scrolled CSS pixels. (Note the thumb
+  // is in the scrollframe's parent's space whereas the scrolled CSS pixels
+  // are in the scrollframe's space).
+  return mRatio / mozilla::AppUnitsPerCSSPixel();
 }
 
 NS_IMPL_ISUPPORTS(nsSliderMediator,

@@ -11,7 +11,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/TimeStamp.h"
 #include "nsHttpRequestHead.h"
-#include "nsILoadGroup.h"
+#include "nsISchedulingContext.h"
 #include "nsString.h"
 #include "PSpdyPush.h"
 #include "SpdySession31.h"
@@ -22,7 +22,7 @@ namespace net {
 
 class SpdyPush31TransactionBuffer;
 
-class SpdyPushedStream31 MOZ_FINAL : public SpdyStream31
+class SpdyPushedStream31 final : public SpdyStream31
 {
 public:
   SpdyPushedStream31(SpdyPush31TransactionBuffer *aTransaction,
@@ -40,7 +40,7 @@ public:
   nsresult ReadSegments(nsAHttpSegmentReader *,  uint32_t, uint32_t *);
   nsresult WriteSegments(nsAHttpSegmentWriter *, uint32_t, uint32_t *);
 
-  nsILoadGroupConnectionInfo *LoadGroupConnectionInfo() { return mLoadGroupCI; };
+  nsISchedulingContext *SchedulingContext() { return mSchedulingContext; };
   void ConnectPushedStream(SpdyStream31 *consumer);
 
   bool DeferCleanupOnSuccess() { return mDeferCleanupOnSuccess; }
@@ -58,7 +58,7 @@ private:
   SpdyStream31 *mConsumerStream; // paired request stream that consumes from
   // real spdy one.. null until a match is made.
 
-  nsCOMPtr<nsILoadGroupConnectionInfo> mLoadGroupCI;
+  nsCOMPtr<nsISchedulingContext> mSchedulingContext;
 
   SpdyPush31TransactionBuffer *mBufferedPush;
   TimeStamp          mLastRead;
@@ -69,7 +69,7 @@ private:
   bool mDeferCleanupOnSuccess;
 };
 
-class SpdyPush31TransactionBuffer MOZ_FINAL : public nsAHttpTransaction
+class SpdyPush31TransactionBuffer final : public nsAHttpTransaction
 {
 public:
   NS_DECL_ISUPPORTS
@@ -96,7 +96,7 @@ private:
   uint32_t mBufferedHTTP1Consumed;
 };
 
-} // namespace mozilla::net
+} // namespace net
 } // namespace mozilla
 
 #endif // mozilla_net_SpdyPush3_Internal_h

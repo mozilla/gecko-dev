@@ -19,13 +19,21 @@ function LoadContext(usePrivateBrowsing) {
   this.usePrivateBrowsing = usePrivateBrowsing;
 }
 LoadContext.prototype = {
+  originAttributes: {},
   QueryInterface: XPCOMUtils.generateQI([Ci.nsILoadContext, Ci.nsIInterfaceRequestor]),
   getInterface: XPCOMUtils.generateQI([Ci.nsILoadContext])
 };
 
 function getChannels() {
   for (let u of URIs) {
-    yield Services.io.newChannel(u, null, null);
+    yield Services.io.newChannel2(u,
+                                  null,
+                                  null,
+                                  null,      // aLoadingNode
+                                  Services.scriptSecurityManager.getSystemPrincipal(),
+                                  null,      // aTriggeringPrincipal
+                                  Ci.nsILoadInfo.SEC_NORMAL,
+                                  Ci.nsIContentPolicy.TYPE_OTHER);
   }
 }
 

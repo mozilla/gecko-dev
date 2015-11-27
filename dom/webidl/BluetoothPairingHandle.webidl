@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-[CheckPermissions="bluetooth"]
+[CheckAnyPermissions="bluetooth"]
 interface BluetoothPairingHandle
 {
   /**
@@ -13,8 +13,22 @@ interface BluetoothPairingHandle
    */
   readonly attribute DOMString passkey;
 
-  [NewObject, Throws]
+  /**
+   * Reply pin code for enterpincodereq. The promise will be rejected if the
+   * pairing request type is not enterpincodereq or operation fails.
+   */
+  [NewObject]
   Promise<void> setPinCode(DOMString aPinCode);
-  [NewObject, Throws]
-  Promise<void> setPairingConfirmation(boolean aConfirm);
+
+  /**
+   * Accept pairing requests. The promise will be rejected if the pairing
+   * request type is not pairingconfirmationreq or pairingconsentreq or
+   * operation fails.
+   */
+  [NewObject]
+  Promise<void> accept();
+
+  // Reject pairing requests. The promise will be rejected if operation fails.
+  [NewObject]
+  Promise<void> reject();
 };

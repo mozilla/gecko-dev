@@ -5,18 +5,22 @@
 #ifndef mozilla_a11_DocManager_h_
 #define mozilla_a11_DocManager_h_
 
+#include "mozilla/ClearOnShutdown.h"
 #include "nsIDocument.h"
 #include "nsIDOMEventListener.h"
 #include "nsRefPtrHashtable.h"
 #include "nsIWebProgressListener.h"
 #include "nsWeakReference.h"
 #include "nsIPresShell.h"
+#include "mozilla/StaticPtr.h"
 
 namespace mozilla {
 namespace a11y {
 
 class Accessible;
 class DocAccessible;
+class xpcAccessibleDocument;
+class DocAccessibleParent;
 
 /**
  * Manage the document accessible life cycle.
@@ -59,11 +63,32 @@ public:
   /**
    * Called by document accessible when it gets shutdown.
    */
-  inline void NotifyOfDocumentShutdown(nsIDocument* aDocument)
+  void NotifyOfDocumentShutdown(DocAccessible* aDocument,
+                                nsIDocument* aDOMDocument);
+
+  /**
+   * Return XPCOM accessible document.
+   */
+  xpcAccessibleDocument* GetXPCDocument(DocAccessible* aDocument);
+  xpcAccessibleDocument* GetCachedXPCDocument(DocAccessible* aDocument) const
+    { return mXPCDocumentCache.GetWeak(aDocument); }
+
+  /*
+   * Notification that a top level document in a content process has gone away.
+   */
+  static void RemoteDocShutdown(DocAccessibleParent* aDoc)
   {
-    mDocAccessibleCache.Remove(aDocument);
-    RemoveListeners(aDocument);
+    DebugOnly<bool> result = sRemoteDocuments->RemoveElement(aDoc);
+    MOZ_ASSERT(result, "Why didn't we find the document!");
   }
+
+  /*
+   * Notify of a new top level document in a content process.
+   */
+  static void RemoteDocAdded(DocAccessibleParent* aDoc);
+
+  static const nsTArray<DocAccessibleParent*>* TopLevelRemoteDocs()
+    { return sRemoteDocuments; }
 
 #ifdef DEBUG
   bool IsProcessingRefreshDriverNotification() const;
@@ -110,40 +135,23 @@ private:
    */
   DocAccessible* CreateDocOrRootAccessible(nsIDocument* aDocument);
 
-  typedef nsRefPtrHashtable<nsPtrHashKey<const nsIDocument>, DocAccessible>
-    DocAccessibleHashtable;
-
-  /**
-   * Get first entry of the document accessible from cache.
-   */
-  static PLDHashOperator
-    GetFirstEntryInDocCache(const nsIDocument* aKey,
-                            DocAccessible* aDocAccessible,
-                            void* aUserArg);
-
   /**
    * Clear the cache and shutdown the document accessibles.
    */
   void ClearDocCache();
 
-  struct nsSearchAccessibleInCacheArg
-  {
-    Accessible* mAccessible;
-    nsINode* mNode;
-  };
-
-  static PLDHashOperator
-    SearchAccessibleInDocCache(const nsIDocument* aKey,
-                               DocAccessible* aDocAccessible,
-                               void* aUserArg);
-
-#ifdef DEBUG
-  static PLDHashOperator
-    SearchIfDocIsRefreshing(const nsIDocument* aKey,
-                            DocAccessible* aDocAccessible, void* aUserArg);
-#endif
-
+  typedef nsRefPtrHashtable<nsPtrHashKey<const nsIDocument>, DocAccessible>
+    DocAccessibleHashtable;
   DocAccessibleHashtable mDocAccessibleCache;
+
+  typedef nsRefPtrHashtable<nsPtrHashKey<const DocAccessible>, xpcAccessibleDocument>
+    XPCDocumentHashtable;
+  XPCDocumentHashtable mXPCDocumentCache;
+
+  /*
+   * The list of remote top level documents.
+   */
+  static StaticAutoPtr<nsTArray<DocAccessibleParent*>> sRemoteDocuments;
 };
 
 /**

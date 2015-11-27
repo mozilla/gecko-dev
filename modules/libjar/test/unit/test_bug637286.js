@@ -2,8 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
+Cu.import("resource://gre/modules/Services.jsm");
 
 // Check that the zip cache can expire entries from nested jars
 var ios = Cc["@mozilla.org/network/io-service;1"].
@@ -11,7 +13,14 @@ var ios = Cc["@mozilla.org/network/io-service;1"].
 
 function open_inner_zip(base, idx) {
     var spec = "jar:" + base + "inner" + idx + ".zip!/foo";
-    var channel = ios.newChannel(spec, null, null);
+    var channel = ios.newChannel2(spec,
+                                  null,
+                                  null,
+                                  null,      // aLoadingNode
+                                  Services.scriptSecurityManager.getSystemPrincipal(),
+                                  null,      // aTriggeringPrincipal
+                                  Ci.nsILoadInfo.SEC_NORMAL,
+                                  Ci.nsIContentPolicy.TYPE_OTHER);
     var stream = channel.open();
 }
 

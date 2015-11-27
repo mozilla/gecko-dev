@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -18,7 +19,6 @@
 #include "nsError.h"
 #include "nsIConsoleService.h"
 #include "nsIScriptError.h"
-#include "nsNetUtil.h"
 #include "nsTHashtable.h"
 #include "nsHashKeys.h"
 #include "nsTArray.h"
@@ -45,51 +45,51 @@ public:
                                                      nsXMLContentSink)
 
   // nsIExpatSink
-  NS_IMETHOD HandleDoctypeDecl(const nsAString & aSubset, 
-                               const nsAString & aName, 
-                               const nsAString & aSystemId, 
-                               const nsAString & aPublicId,
-                               nsISupports* aCatalogData);
-  NS_IMETHOD HandleProcessingInstruction(const char16_t *aTarget, 
-                                         const char16_t *aData);
-  NS_IMETHOD HandleXMLDeclaration(const char16_t *aVersion,
-                                  const char16_t *aEncoding,
-                                  int32_t aStandalone);
-  NS_IMETHOD ReportError(const char16_t* aErrorText, 
+  NS_IMETHOD HandleDoctypeDecl(const nsAString& aSubset,
+                               const nsAString& aName,
+                               const nsAString& aSystemId,
+                               const nsAString& aPublicId,
+                               nsISupports* aCatalogData) override;
+  NS_IMETHOD HandleProcessingInstruction(const char16_t* aTarget,
+                                         const char16_t* aData) override;
+  NS_IMETHOD HandleXMLDeclaration(const char16_t* aVersion,
+                                  const char16_t* aEncoding,
+                                  int32_t aStandalone) override;
+  NS_IMETHOD ReportError(const char16_t* aErrorText,
                          const char16_t* aSourceText,
-                         nsIScriptError *aError,
-                         bool *_retval);
+                         nsIScriptError* aError,
+                         bool* aRetval) override;
 
   // nsIContentSink
-  NS_IMETHOD WillBuildModel(nsDTDMode aDTDMode);
-  NS_IMETHOD DidBuildModel(bool aTerminated);
-  NS_IMETHOD SetDocumentCharset(nsACString& aCharset);
-  virtual nsISupports *GetTarget();
+  NS_IMETHOD WillBuildModel(nsDTDMode aDTDMode) override;
+  NS_IMETHOD DidBuildModel(bool aTerminated) override;
+  NS_IMETHOD SetDocumentCharset(nsACString& aCharset) override;
+  virtual nsISupports* GetTarget() override;
   NS_IMETHOD DidProcessATokenImpl();
 
   // nsIXMLContentSink
 
   // nsIFragmentContentSink
-  NS_IMETHOD FinishFragmentParsing(nsIDOMDocumentFragment** aFragment);
-  NS_IMETHOD SetTargetDocument(nsIDocument* aDocument);
-  NS_IMETHOD WillBuildContent();
-  NS_IMETHOD DidBuildContent();
-  NS_IMETHOD IgnoreFirstContainer();
-  NS_IMETHOD SetPreventScriptExecution(bool aPreventScriptExecution);
+  NS_IMETHOD FinishFragmentParsing(nsIDOMDocumentFragment** aFragment) override;
+  NS_IMETHOD SetTargetDocument(nsIDocument* aDocument) override;
+  NS_IMETHOD WillBuildContent() override;
+  NS_IMETHOD DidBuildContent() override;
+  NS_IMETHOD IgnoreFirstContainer() override;
+  NS_IMETHOD SetPreventScriptExecution(bool aPreventScriptExecution) override;
 
 protected:
   virtual ~nsXMLFragmentContentSink();
 
-  virtual bool SetDocElement(int32_t aNameSpaceID, 
-                               nsIAtom *aTagName,
-                               nsIContent *aContent);
+  virtual bool SetDocElement(int32_t aNameSpaceID,
+                               nsIAtom* aTagName,
+                               nsIContent* aContent) override;
   virtual nsresult CreateElement(const char16_t** aAtts, uint32_t aAttsCount,
                                  mozilla::dom::NodeInfo* aNodeInfo, uint32_t aLineNumber,
                                  nsIContent** aResult, bool* aAppendContent,
-                                 mozilla::dom::FromParser aFromParser);
-  virtual nsresult CloseElement(nsIContent* aContent);
+                                 mozilla::dom::FromParser aFromParser) override;
+  virtual nsresult CloseElement(nsIContent* aContent) override;
 
-  virtual void MaybeStartLayout(bool aIgnorePendingSheets);
+  virtual void MaybeStartLayout(bool aIgnorePendingSheets) override;
 
   // nsContentSink overrides
   virtual nsresult ProcessStyleLink(nsIContent* aElement,
@@ -97,7 +97,7 @@ protected:
                                     bool aAlternate,
                                     const nsSubstring& aTitle,
                                     const nsSubstring& aType,
-                                    const nsSubstring& aMedia);
+                                    const nsSubstring& aMedia) override;
   nsresult LoadXSLStyleSheet(nsIURI* aUrl);
   void StartLayout();
 
@@ -167,7 +167,7 @@ nsXMLFragmentContentSink::WillBuildModel(nsDTDMode aDTDMode)
 NS_IMETHODIMP 
 nsXMLFragmentContentSink::DidBuildModel(bool aTerminated)
 {
-  nsRefPtr<nsParserBase> kungFuDeathGrip(mParser);
+  RefPtr<nsParserBase> kungFuDeathGrip(mParser);
 
   // Drop our reference to the parser to get rid of a circular
   // reference.
@@ -227,8 +227,9 @@ nsresult
 nsXMLFragmentContentSink::CloseElement(nsIContent* aContent)
 {
   // don't do fancy stuff in nsXMLContentSink
-  if (mPreventScriptExecution && aContent->Tag() == nsGkAtoms::script &&
-      (aContent->IsHTML() || aContent->IsSVG())) {
+  if (mPreventScriptExecution &&
+      (aContent->IsHTMLElement(nsGkAtoms::script),
+       aContent->IsSVGElement(nsGkAtoms::script))) {
     nsCOMPtr<nsIScriptElement> sele = do_QueryInterface(aContent);
     NS_ASSERTION(sele, "script did QI correctly!");
     sele->PreventExecution();
@@ -265,7 +266,7 @@ nsXMLFragmentContentSink::HandleProcessingInstruction(const char16_t *aTarget,
   const nsDependentString target(aTarget);
   const nsDependentString data(aData);
 
-  nsRefPtr<ProcessingInstruction> node =
+  RefPtr<ProcessingInstruction> node =
     NS_NewXMLProcessingInstruction(mNodeInfoManager, target, data);
 
   // no special processing here.  that should happen when the fragment moves into the document

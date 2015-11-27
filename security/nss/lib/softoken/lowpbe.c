@@ -319,8 +319,8 @@ do_xor(unsigned char *dest, unsigned char *src, int len)
 }
 
 static SECStatus
-nsspkcs5_PBKFD2_F(const SECHashObject *hashobj, SECItem *pwitem, SECItem *salt,
-			int iterations, unsigned int i, unsigned char *T)
+nsspkcs5_PBKDF2_F(const SECHashObject *hashobj, SECItem *pwitem, SECItem *salt,
+                  int iterations, unsigned int i, unsigned char *T)
 {
     int j;
     HMACContext *cx = NULL;
@@ -393,7 +393,7 @@ nsspkcs5_PBKDF2(const SECHashObject *hashobj, NSSPKCS5PBEParameter *pbe_param,
     }
 
     for (i=1,rp=result->data; i <= nblocks ; i++, rp +=hLen) {
-	rv = nsspkcs5_PBKFD2_F(hashobj,pwitem,salt,iterations,i,T);
+        rv = nsspkcs5_PBKDF2_F(hashobj, pwitem, salt, iterations, i, T);
 	if (rv != SECSuccess) {
 	    break;
 	}
@@ -410,7 +410,7 @@ loser:
     } else {
 	result->len = dkLen;
     }
-	
+
     return result;
 }
 #endif
@@ -516,7 +516,7 @@ nsspkcs5_PKCS12PBE(const SECHashObject *hashObject,
 	}
 
 	PORT_Memcpy(Ai, iterBuf, hashLength);
-	for (Bidx = 0; Bidx < B.len; Bidx += hashLength) {
+	for (Bidx = 0; Bidx < (int)B.len; Bidx += hashLength) {
 	    PORT_Memcpy(B.data+Bidx,iterBuf,NSSPBE_MIN(B.len-Bidx,hashLength));
 	}
 

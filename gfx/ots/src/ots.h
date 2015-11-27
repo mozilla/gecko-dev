@@ -12,6 +12,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <limits>
+#include <map>
 
 #include "opentype-sanitiser.h"
 
@@ -22,40 +23,47 @@ char (&ArraySizeHelper(T (&array)[N]))[N];
 
 namespace ots {
 
-#if defined(_MSC_VER) || !defined(OTS_DEBUG)
+#if !defined(OTS_DEBUG)
 #define OTS_FAILURE() false
 #else
-#define OTS_FAILURE() ots::Failure(__FILE__, __LINE__, __PRETTY_FUNCTION__)
-bool Failure(const char *f, int l, const char *fn);
+#define OTS_FAILURE() \
+  (\
+    std::fprintf(stderr, "ERROR at %s:%d (%s)\n", \
+                 __FILE__, __LINE__, __FUNCTION__) \
+    && false\
+  )
 #endif
 
 // All OTS_FAILURE_* macros ultimately evaluate to 'false', just like the original
 // message-less OTS_FAILURE(), so that the current parser will return 'false' as
 // its result (indicating a failure).
 
-#if defined(_MSC_VER) || !defined(OTS_DEBUG)
-#define OTS_MESSAGE_(otf_,...) \
-  (otf_)->context->Message(__VA_ARGS__)
+#if !defined(OTS_DEBUG)
+#define OTS_MESSAGE_(level,otf_,...) \
+  (otf_)->context->Message(level,__VA_ARGS__)
 #else
-#define OTS_MESSAGE_(otf_,...) \
+#define OTS_MESSAGE_(level,otf_,...) \
   OTS_FAILURE(), \
-  (otf_)->context->Message(__VA_ARGS__)
+  (otf_)->context->Message(level,__VA_ARGS__)
 #endif
 
 // Generate a simple message
 #define OTS_FAILURE_MSG_(otf_,...) \
-  (OTS_MESSAGE_(otf_,__VA_ARGS__), false)
+  (OTS_MESSAGE_(0,otf_,__VA_ARGS__), false)
+
+#define OTS_WARNING_MSG_(otf_,...) \
+  OTS_MESSAGE_(1,otf_,__VA_ARGS__)
 
 // Generate a message with an associated table tag
 #define OTS_FAILURE_MSG_TAG_(otf_,msg_,tag_) \
-  (OTS_MESSAGE_(otf_,"%4.4s: %s", tag_, msg_), false)
+  (OTS_MESSAGE_(0,otf_,"%c%c%c%c: %s", OTS_UNTAG(tag_), msg_), false)
 
-// Convenience macro for use in files that only handle a single table tag,
+// Convenience macros for use in files that only handle a single table tag,
 // defined as TABLE_NAME at the top of the file; the 'file' variable is
 // expected to be the current OpenTypeFile pointer.
-#define OTS_FAILURE_MSG(...) OTS_FAILURE_MSG_(file, TABLE_NAME ": " __VA_ARGS__)
+#define OTS_FAILURE_MSG(...) OTS_FAILURE_MSG_(font->file, TABLE_NAME ": " __VA_ARGS__)
 
-#define OTS_WARNING OTS_FAILURE_MSG
+#define OTS_WARNING(...) OTS_WARNING_MSG_(font->file, TABLE_NAME ": " __VA_ARGS__)
 
 // -----------------------------------------------------------------------------
 // Buffer helper class
@@ -138,15 +146,6 @@ class Buffer {
     return ReadU32(reinterpret_cast<uint32_t*>(value));
   }
 
-  bool ReadTag(uint32_t *value) {
-    if (offset_ + 4 > length_) {
-      return OTS_FAILURE();
-    }
-    std::memcpy(value, buffer_ + offset_, sizeof(uint32_t));
-    offset_ += 4;
-    return true;
-  }
-
   bool ReadR64(uint64_t *value) {
     if (offset_ + 8 > length_) {
       return OTS_FAILURE();
@@ -218,12 +217,43 @@ bool IsValidVersionTag(uint32_t tag);
 FOR_EACH_TABLE_TYPE
 #undef F
 
-struct OpenTypeFile {
-  OpenTypeFile() {
-#define F(name, capname) name = NULL;
+struct Font;
+struct OpenTypeFile;
+
+#define F(name, capname) \
+bool ots_##name##_parse(Font *f, const uint8_t *d, size_t l); \
+bool ots_##name##_should_serialise(Font *f); \
+bool ots_##name##_serialise(OTSStream *s, Font *f); \
+void ots_##name##_reuse(Font *f, Font *o);\
+void ots_##name##_free(Font *f);
+FOR_EACH_TABLE_TYPE
+#undef F
+
+struct Font {
+  explicit Font(const OpenTypeFile *f)
+      : file(f),
+        version(0),
+        num_tables(0),
+        search_range(0),
+        entry_selector(0),
+        range_shift(0) {
+#define F(name, capname) \
+    name = NULL; \
+    name##_reused = false;
     FOR_EACH_TABLE_TYPE
 #undef F
   }
+
+  ~Font() {
+#define F(name, capname) \
+    if (!name##_reused) {\
+      ots_##name##_free(this); \
+    }
+    FOR_EACH_TABLE_TYPE
+#undef F
+  }
+
+  const OpenTypeFile *file;
 
   uint32_t version;
   uint16_t num_tables;
@@ -231,22 +261,33 @@ struct OpenTypeFile {
   uint16_t entry_selector;
   uint16_t range_shift;
 
-  OTSContext *context;
-
-#define F(name, capname) OpenType##capname *name;
+#define F(name, capname) \
+  OpenType##capname *name; \
+  bool name##_reused;
 FOR_EACH_TABLE_TYPE
 #undef F
 };
 
-#define F(name, capname) \
-bool ots_##name##_parse(OpenTypeFile *f, const uint8_t *d, size_t l); \
-bool ots_##name##_should_serialise(OpenTypeFile *f); \
-bool ots_##name##_serialise(OTSStream *s, OpenTypeFile *f); \
-void ots_##name##_free(OpenTypeFile *f);
-// TODO(yusukes): change these function names to follow Chromium coding rule.
-FOR_EACH_TABLE_TYPE
-#undef F
+struct OutputTable {
+  uint32_t tag;
+  size_t offset;
+  size_t length;
+  uint32_t chksum;
+
+  bool operator<(const OutputTable& other) const {
+    return tag < other.tag;
+  }
+};
+
+typedef std::map<uint32_t, std::pair<Font*, OutputTable> > TableMap;
+
+struct OpenTypeFile {
+  OTSContext *context;
+  TableMap tables;
+};
 
 }  // namespace ots
+
+#undef FOR_EACH_TABLE_TYPE
 
 #endif  // OTS_H_

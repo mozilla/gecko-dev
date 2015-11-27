@@ -1,0 +1,63 @@
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+interface imgIRequest;
+interface nsIDocument;
+interface nsIDOMDocument;
+interface nsIProperties;
+interface nsIURI;
+
+/**
+ * imgICache interface
+ *
+ * @author Stuart Parmenter <pavlov@netscape.com>
+ * @version 0.1
+ * @see imagelib2
+ */
+[scriptable, builtinclass, uuid(bfdf23ff-378e-402e-8a6c-840f0c82b6c3)]
+interface imgICache : nsISupports
+{
+  /**
+   * Evict images from the cache.
+   *
+   * @param chrome If TRUE,  evict only chrome images.
+   *               If FALSE, evict everything except chrome images.
+   */
+  void clearCache(in boolean chrome);
+
+  /**
+   * Find Properties
+   * Used to get properties such as 'type' and 'content-disposition'
+   * 'type' is a nsISupportsCString containing the images' mime type such as
+   * 'image/png'
+   * 'content-disposition' will be a nsISupportsCString containing the header
+   * If you call this before any data has been loaded from a URI, it will
+   * succeed, but come back empty.
+   *
+   * Hopefully this will be removed with bug 805119
+   *
+   * @param uri The URI to look up.
+   * @param doc Optional pointer to the document that the cache entry belongs to.
+   * @returns NULL if the URL was not found in the cache
+   */
+  nsIProperties findEntryProperties(in nsIURI uri, [optional] in nsIDOMDocument doc);
+
+  /**
+   * Make this cache instance respect private browsing notifications. This
+   * entails clearing the chrome and content caches whenever the
+   * last-pb-context-exited notification is observed.
+   */
+  void respectPrivacyNotifications();
+
+  /**
+   * Clear the image cache for a document.  Controlled documents are responsible
+   * for doing this manually when they get destroyed.
+   */
+  [noscript, notxpcom]
+  void clearCacheForControlledDocument(in nsIDocument doc);
+};

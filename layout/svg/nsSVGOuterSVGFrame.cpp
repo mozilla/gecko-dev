@@ -93,7 +93,7 @@ nsSVGOuterSVGFrame::Init(nsIContent*       aContent,
                          nsContainerFrame* aParent,
                          nsIFrame*         aPrevInFlow)
 {
-  NS_ASSERTION(aContent->IsSVG(nsGkAtoms::svg),
+  NS_ASSERTION(aContent->IsSVGElement(nsGkAtoms::svg),
                "Content is not an SVG 'svg' element!");
 
   AddStateBits(NS_STATE_IS_OUTER_SVG |
@@ -168,15 +168,33 @@ nsSVGOuterSVGFrame::GetPrefISize(nsRenderingContext *aRenderingContext)
   DISPLAY_PREF_WIDTH(this, result);
 
   SVGSVGElement *svg = static_cast<SVGSVGElement*>(mContent);
-  nsSVGLength2 &width = svg->mLengthAttributes[SVGSVGElement::ATTR_WIDTH];
+  WritingMode wm = GetWritingMode();
+  const nsSVGLength2& isize = wm.IsVertical()
+    ? svg->mLengthAttributes[SVGSVGElement::ATTR_HEIGHT]
+    : svg->mLengthAttributes[SVGSVGElement::ATTR_WIDTH];
 
-  if (width.IsPercentage()) {
-    // It looks like our containing block's width may depend on our width. In
-    // that case our behavior is undefined according to CSS 2.1 section 10.3.2,
-    // so return zero.
+  if (isize.IsPercentage()) {
+    // It looks like our containing block's isize may depend on our isize. In
+    // that case our behavior is undefined according to CSS 2.1 section 10.3.2.
+    // As a last resort, we'll fall back to returning zero.
     result = nscoord(0);
+
+    // Returning zero may be unhelpful, however, as it leads to unexpected
+    // disappearance of %-sized SVGs in orthogonal contexts, where our
+    // containing block wants to shrink-wrap. So let's look for an ancestor
+    // with non-zero size in this dimension, and use that as a (somewhat
+    // arbitrary) result instead.
+    nsIFrame *parent = GetParent();
+    while (parent) {
+      nscoord parentISize = parent->GetLogicalSize(wm).ISize(wm);
+      if (parentISize > 0 && parentISize != NS_UNCONSTRAINEDSIZE) {
+        result = parentISize;
+        break;
+      }
+      parent = parent->GetParent();
+    }
   } else {
-    result = nsPresContext::CSSPixelsToAppUnits(width.GetAnimValue(svg));
+    result = nsPresContext::CSSPixelsToAppUnits(isize.GetAnimValue(svg));
     if (result < 0) {
       result = nscoord(0);
     }
@@ -271,7 +289,7 @@ nsSVGOuterSVGFrame::ComputeSize(nsRenderingContext *aRenderingContext,
                                 const LogicalSize& aMargin,
                                 const LogicalSize& aBorder,
                                 const LogicalSize& aPadding,
-                                uint32_t aFlags)
+                                ComputeSizeFlags aFlags)
 {
   if (IsRootOfImage() || IsRootOfReplacedElementSubDoc()) {
     // The embedding element has sized itself using the CSS replaced element
@@ -306,9 +324,8 @@ nsSVGOuterSVGFrame::ComputeSize(nsRenderingContext *aRenderingContext,
     nsSVGLength2 &width =
       content->mLengthAttributes[SVGSVGElement::ATTR_WIDTH];
     if (width.IsPercentage()) {
-      NS_ABORT_IF_FALSE(intrinsicSize.width.GetUnit() == eStyleUnit_None,
-                        "GetIntrinsicSize should have reported no "
-                        "intrinsic width");
+      MOZ_ASSERT(intrinsicSize.width.GetUnit() == eStyleUnit_None,
+                 "GetIntrinsicSize should have reported no intrinsic width");
       float val = width.GetAnimValInSpecifiedUnits() / 100.0f;
       if (val < 0.0f) val = 0.0f;
       intrinsicSize.width.SetCoordValue(val * cbSize.Width(aWM));
@@ -319,17 +336,16 @@ nsSVGOuterSVGFrame::ComputeSize(nsRenderingContext *aRenderingContext,
     NS_ASSERTION(aCBSize.BSize(aWM) != NS_AUTOHEIGHT,
                  "root should not have auto-height containing block");
     if (height.IsPercentage()) {
-      NS_ABORT_IF_FALSE(intrinsicSize.height.GetUnit() == eStyleUnit_None,
-                        "GetIntrinsicSize should have reported no "
-                        "intrinsic height");
+      MOZ_ASSERT(intrinsicSize.height.GetUnit() == eStyleUnit_None,
+                 "GetIntrinsicSize should have reported no intrinsic height");
       float val = height.GetAnimValInSpecifiedUnits() / 100.0f;
       if (val < 0.0f) val = 0.0f;
       intrinsicSize.height.SetCoordValue(val * cbSize.Height(aWM));
     }
-    NS_ABORT_IF_FALSE(intrinsicSize.height.GetUnit() == eStyleUnit_Coord &&
-                      intrinsicSize.width.GetUnit() == eStyleUnit_Coord,
-                      "We should have just handled the only situation where"
-                      "we lack an intrinsic height or width.");
+    MOZ_ASSERT(intrinsicSize.height.GetUnit() == eStyleUnit_Coord &&
+               intrinsicSize.width.GetUnit() == eStyleUnit_Coord,
+               "We should have just handled the only situation where"
+               "we lack an intrinsic height or width.");
   }
 
   return nsLayoutUtils::ComputeSizeWithIntrinsicDimensions(aWM,
@@ -347,6 +363,7 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*           aPresContext,
                            const nsHTMLReflowState& aReflowState,
                            nsReflowStatus&          aStatus)
 {
+  MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("nsSVGOuterSVGFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aDesiredSize, aStatus);
   NS_FRAME_TRACE(NS_FRAME_TRACE_CALLS,
@@ -436,8 +453,9 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*           aPresContext,
     // including our anonymous wrapper kid:
     anonKid->AddStateBits(mState & NS_FRAME_IS_DIRTY);
     anonKid->ReflowSVG();
-    NS_ABORT_IF_FALSE(!anonKid->GetNextSibling(),
-      "We should have one anonymous child frame wrapping our real children");
+    MOZ_ASSERT(!anonKid->GetNextSibling(),
+               "We should have one anonymous child frame wrapping our real "
+               "children");
   }
   mCallingReflowSVG = false;
 
@@ -541,13 +559,13 @@ public:
 
   virtual void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
                        HitTestState* aState,
-                       nsTArray<nsIFrame*> *aOutFrames) MOZ_OVERRIDE;
+                       nsTArray<nsIFrame*> *aOutFrames) override;
   virtual void Paint(nsDisplayListBuilder* aBuilder,
-                     nsRenderingContext* aCtx) MOZ_OVERRIDE;
+                     nsRenderingContext* aCtx) override;
 
   virtual void ComputeInvalidationRegion(nsDisplayListBuilder* aBuilder,
                                          const nsDisplayItemGeometry* aGeometry,
-                                         nsRegion* aInvalidRegion) MOZ_OVERRIDE;
+                                         nsRegion* aInvalidRegion) override;
 
   NS_DISPLAY_DECL_NAME("SVGOuterSVG", TYPE_SVG_OUTER_SVG)
 };
@@ -588,9 +606,8 @@ nsDisplayOuterSVG::Paint(nsDisplayListBuilder* aBuilder,
   PRTime start = PR_Now();
 #endif
 
-  // Create an SVGAutoRenderState so we can call SetPaintingToWindow on
-  // it, but do so without changing the render mode:
-  SVGAutoRenderState state(aContext, SVGAutoRenderState::GetRenderMode(aContext));
+  // Create an SVGAutoRenderState so we can call SetPaintingToWindow on it.
+  SVGAutoRenderState state(aContext->GetDrawTarget());
 
   if (aBuilder->IsPaintingToWindow()) {
     state.SetPaintingToWindow(true);
@@ -615,10 +632,8 @@ nsDisplayOuterSVG::Paint(nsDisplayListBuilder* aBuilder,
   // units (i.e. CSS px) in the matrix that we pass to our children):
   gfxMatrix tm = nsSVGIntegrationUtils::GetCSSPxToDevPxMatrix(mFrame) *
                    gfxMatrix::Translation(devPixelOffset);
-  nsSVGUtils::PaintFrameWithEffects(mFrame, aContext, tm, &contentAreaDirtyRect);
+  nsSVGUtils::PaintFrameWithEffects(mFrame, *aContext->ThebesContext(), tm, &contentAreaDirtyRect);
   aContext->ThebesContext()->Restore();
-
-  NS_ASSERTION(!aContext->ThebesContext()->HasError(), "Cairo in error state");
 
 #if defined(DEBUG) && defined(SVG_DEBUG_PAINT_TIMING)
   PRTime end = PR_Now();
@@ -626,19 +641,14 @@ nsDisplayOuterSVG::Paint(nsDisplayListBuilder* aBuilder,
 #endif
 }
 
-static PLDHashOperator CheckForeignObjectInvalidatedArea(nsPtrHashKey<nsSVGForeignObjectFrame>* aEntry, void* aData)
-{
-  nsRegion* region = static_cast<nsRegion*>(aData);
-  region->Or(*region, aEntry->GetKey()->GetInvalidRegion());
-  return PL_DHASH_NEXT;
-}
-
 nsRegion
 nsSVGOuterSVGFrame::FindInvalidatedForeignObjectFrameChildren(nsIFrame* aFrame)
 {
   nsRegion result;
   if (mForeignObjectHash && mForeignObjectHash->Count()) {
-    mForeignObjectHash->EnumerateEntries(CheckForeignObjectInvalidatedArea, &result);
+    for (auto it = mForeignObjectHash->Iter(); !it.Done(); it.Next()) {
+      result.Or(result, it.Get()->GetKey()->GetInvalidRegion());
+    }
   }
   return result;
 }
@@ -762,10 +772,10 @@ nsSVGOuterSVGFrame::GetType() const
 void
 nsSVGOuterSVGFrame::NotifyViewportOrTransformChanged(uint32_t aFlags)
 {
-  NS_ABORT_IF_FALSE(aFlags &&
-                    !(aFlags & ~(COORD_CONTEXT_CHANGED | TRANSFORM_CHANGED |
-                                 FULL_ZOOM_CHANGED)),
-                    "Unexpected aFlags value");
+  MOZ_ASSERT(aFlags &&
+             !(aFlags & ~(COORD_CONTEXT_CHANGED | TRANSFORM_CHANGED |
+                          FULL_ZOOM_CHANGED)),
+             "Unexpected aFlags value");
 
   // No point in doing anything when were not init'ed yet:
   if (!mViewportInitialized) {
@@ -822,7 +832,7 @@ nsSVGOuterSVGFrame::NotifyViewportOrTransformChanged(uint32_t aFlags)
 // nsISVGChildFrame methods:
 
 nsresult
-nsSVGOuterSVGFrame::PaintSVG(nsRenderingContext* aContext,
+nsSVGOuterSVGFrame::PaintSVG(gfxContext& aContext,
                              const gfxMatrix& aTransform,
                              const nsIntRect* aDirtyRect)
 {
@@ -879,14 +889,13 @@ nsSVGOuterSVGFrame::IsRootOfReplacedElementSubDoc(nsIFrame **aEmbeddingFrame)
   if (!mContent->GetParent()) {
     // Our content is the document element
     nsCOMPtr<nsIDocShell> docShell = PresContext()->GetDocShell();
-    nsCOMPtr<nsIDOMWindow> window;
+    nsCOMPtr<nsPIDOMWindow> window;
     if (docShell) {
       window = docShell->GetWindow();
     }
 
     if (window) {
-      nsCOMPtr<nsIDOMElement> frameElement;
-      window->GetFrameElement(getter_AddRefs(frameElement));
+      nsCOMPtr<nsIDOMElement> frameElement = window->GetFrameElement();
       nsCOMPtr<nsIObjectLoadingContent> olc = do_QueryInterface(frameElement);
       if (olc) {
         // Our document is inside an HTML 'object', 'embed' or 'applet' element
@@ -947,8 +956,8 @@ nsSVGOuterSVGAnonChildFrame::Init(nsIContent*       aContent,
                                   nsContainerFrame* aParent,
                                   nsIFrame*         aPrevInFlow)
 {
-  NS_ABORT_IF_FALSE(aParent->GetType() == nsGkAtoms::svgOuterSVGFrame,
-                    "Unexpected parent");
+  MOZ_ASSERT(aParent->GetType() == nsGkAtoms::svgOuterSVGFrame,
+             "Unexpected parent");
   nsSVGOuterSVGAnonChildFrameBase::Init(aContent, aParent, aPrevInFlow);
 }
 #endif

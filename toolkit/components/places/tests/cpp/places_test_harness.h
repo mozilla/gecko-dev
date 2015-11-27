@@ -7,12 +7,12 @@
 #include "TestHarness.h"
 #include "nsMemory.h"
 #include "nsThreadUtils.h"
-#include "nsNetUtil.h"
 #include "nsDocShellCID.h"
 
 #include "nsToolkitCompsCID.h"
 #include "nsINavHistoryService.h"
 #include "nsIObserverService.h"
+#include "nsIURI.h"
 #include "mozilla/IHistory.h"
 #include "mozIStorageConnection.h"
 #include "mozIStorageStatement.h"
@@ -22,6 +22,7 @@
 #include "nsPIPlacesDatabase.h"
 #include "nsIObserver.h"
 #include "prinrval.h"
+#include "prtime.h"
 #include "mozilla/Attributes.h"
 
 #define WAITFORTOPIC_TIMEOUT_SECONDS 5
@@ -97,7 +98,7 @@ void do_test_finished();
 /**
  * Spins current thread until a topic is received.
  */
-class WaitForTopicSpinner MOZ_FINAL : public nsIObserver
+class WaitForTopicSpinner final : public nsIObserver
 {
 public:
   NS_DECL_ISUPPORTS
@@ -125,7 +126,7 @@ public:
 
   NS_IMETHOD Observe(nsISupports* aSubject,
                      const char* aTopic,
-                     const char16_t* aData)
+                     const char16_t* aData) override
   {
     mTopicReceived = true;
     nsCOMPtr<nsIObserverService> observerService =
@@ -149,7 +150,7 @@ NS_IMPL_ISUPPORTS(
 /**
  * Spins current thread until an async statement is executed.
  */
-class AsyncStatementSpinner MOZ_FINAL : public mozIStorageStatementCallback
+class AsyncStatementSpinner final : public mozIStorageStatementCallback
 {
 public:
   NS_DECL_ISUPPORTS
@@ -346,7 +347,7 @@ do_wait_async_updates() {
 
   db->CreateAsyncStatement(NS_LITERAL_CSTRING("COMMIT"),
                            getter_AddRefs(stmt));
-  nsRefPtr<AsyncStatementSpinner> spinner = new AsyncStatementSpinner();
+  RefPtr<AsyncStatementSpinner> spinner = new AsyncStatementSpinner();
   (void)stmt->ExecuteAsync(spinner, getter_AddRefs(pending));
 
   spinner->SpinUntilCompleted();
@@ -372,9 +373,9 @@ addURI(nsIURI* aURI)
 static const char TOPIC_PROFILE_CHANGE[] = "profile-before-change";
 static const char TOPIC_PLACES_CONNECTION_CLOSED[] = "places-connection-closed";
 
-class WaitForConnectionClosed MOZ_FINAL : public nsIObserver
+class WaitForConnectionClosed final : public nsIObserver
 {
-  nsRefPtr<WaitForTopicSpinner> mSpinner;
+  RefPtr<WaitForTopicSpinner> mSpinner;
 
   ~WaitForConnectionClosed() {}
 
@@ -394,7 +395,7 @@ public:
 
   NS_IMETHOD Observe(nsISupports* aSubject,
                      const char* aTopic,
-                     const char16_t* aData)
+                     const char16_t* aData) override
   {
     nsCOMPtr<nsIObserverService> os =
       do_GetService(NS_OBSERVERSERVICE_CONTRACTID);

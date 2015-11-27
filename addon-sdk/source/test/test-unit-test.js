@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 const timer = require("sdk/timers");
-const { Loader } = require("sdk/test/loader");
 
 var setupCalled = false, teardownCalled = false;
 
@@ -48,8 +47,8 @@ exports.testATeardownAsyncTestPart2 = function(test) {
 exports.testWaitUntilInstant = function(test) {
   test.waitUntilDone();
 
-  test.waitUntil(function () true, "waitUntil with instant true pass")
-      .then(function () test.done());
+  test.waitUntil(() => true, "waitUntil with instant true pass")
+      .then(() => test.done());
 }
 
 exports.testWaitUntil = function(test) {
@@ -122,28 +121,29 @@ exports.testWaitUntilTimeoutInCallback = function(test) {
   let message = 0;
   if (require("sdk/test/options").parseable) {
     expected.push(["print", "TEST-START | wait4ever\n"]);
-    expected.push(["error", "fail:", "Timed out"]);
+    expected.push(["error", "fail:", "Timed out (after: START)"]);
     expected.push(["error", "test assertion never became true:\n", "assertion failed, value is false\n"]);
-    expected.push(["print", "TEST-END | wait4ever\n"]);
   }
   else {
     expected.push(["info",  "executing 'wait4ever'"]);
-    expected.push(["error", "fail:", "Timed out"]);
+    expected.push(["error", "fail:", "Timed out (after: START)"]);
     expected.push(["error", "test assertion never became true:\n", "assertion failed, value is false\n"]);
   }
 
   function checkExpected(name, args) {
-    if (expected.length == 0 || expected[0][0] != name) {
-      test.fail("Saw an unexpected console." + name + "() call " + args);
+    var index = message;
+    if (message++ >= expected.length) {
       return;
     }
 
-    message++;
-    let expectedArgs = expected.shift().slice(1);
-    for (let i = 0; i < expectedArgs.length; i++)
+    let expectedArgs = expected[index].slice(1);
+    for (let i = 0; i < expectedArgs.length; i++) {
       test.assertEqual(args[i], expectedArgs[i], "Should have seen the right message in argument " + i + " of message " + message);
-    if (expected.length == 0)
+    }
+
+    if (message >= expected.length) {
       test.done();
+    }
   }
 
   let runner = new (require("sdk/deprecated/unit-test").TestRunner)({
@@ -167,7 +167,7 @@ exports.testWaitUntilTimeoutInCallback = function(test) {
       name: "wait4ever",
       testFunction: function(test) {
         test.waitUntilDone(100);
-        test.waitUntil(function() false);
+        test.waitUntil(() => false);
       }
     },
     onDone: function() {}

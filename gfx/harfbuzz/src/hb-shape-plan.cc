@@ -29,6 +29,12 @@
 #include "hb-font-private.hh"
 #include "hb-buffer-private.hh"
 
+
+#ifndef HB_DEBUG_SHAPE_PLAN
+#define HB_DEBUG_SHAPE_PLAN (HB_DEBUG+0)
+#endif
+
+
 #define HB_SHAPER_IMPLEMENT(shaper) \
 	HB_SHAPER_DATA_ENSURE_DECLARE(shaper, face) \
 	HB_SHAPER_DATA_ENSURE_DECLARE(shaper, font)
@@ -42,6 +48,11 @@ hb_shape_plan_plan (hb_shape_plan_t    *shape_plan,
 		    unsigned int        num_user_features,
 		    const char * const *shaper_list)
 {
+  DEBUG_MSG_FUNC (SHAPE_PLAN, shape_plan,
+		  "num_features=%d shaper_list=%p",
+		  num_user_features,
+		  shaper_list);
+
   const hb_shaper_pair_t *shapers = _hb_shapers_get ();
 
 #define HB_SHAPER_PLAN(shaper) \
@@ -95,7 +106,7 @@ hb_shape_plan_plan (hb_shape_plan_t    *shape_plan,
  *
  * Return value: (transfer full):
  *
- * Since: 1.0
+ * Since: 0.9.7
  **/
 hb_shape_plan_t *
 hb_shape_plan_create (hb_face_t                     *face,
@@ -104,14 +115,20 @@ hb_shape_plan_create (hb_face_t                     *face,
 		      unsigned int                   num_user_features,
 		      const char * const            *shaper_list)
 {
+  DEBUG_MSG_FUNC (SHAPE_PLAN, NULL,
+		  "face=%p num_features=%d shaper_list=%p",
+		  face,
+		  num_user_features,
+		  shaper_list);
+
   hb_shape_plan_t *shape_plan;
   hb_feature_t *features = NULL;
 
   if (unlikely (!face))
     face = hb_face_get_empty ();
-  if (unlikely (!props || hb_object_is_inert (face)))
+  if (unlikely (!props))
     return hb_shape_plan_get_empty ();
-  if (num_user_features && !(features = (hb_feature_t *) malloc (num_user_features * sizeof (hb_feature_t))))
+  if (num_user_features && !(features = (hb_feature_t *) calloc (num_user_features, sizeof (hb_feature_t))))
     return hb_shape_plan_get_empty ();
   if (!(shape_plan = hb_object_create<hb_shape_plan_t> ())) {
     free (features);
@@ -141,7 +158,7 @@ hb_shape_plan_create (hb_face_t                     *face,
  *
  * Return value: (transfer full):
  *
- * Since: 1.0
+ * Since: 0.9.7
  **/
 hb_shape_plan_t *
 hb_shape_plan_get_empty (void)
@@ -177,7 +194,7 @@ hb_shape_plan_get_empty (void)
  *
  * Return value: (transfer full):
  *
- * Since: 1.0
+ * Since: 0.9.7
  **/
 hb_shape_plan_t *
 hb_shape_plan_reference (hb_shape_plan_t *shape_plan)
@@ -191,7 +208,7 @@ hb_shape_plan_reference (hb_shape_plan_t *shape_plan)
  *
  * 
  *
- * Since: 1.0
+ * Since: 0.9.7
  **/
 void
 hb_shape_plan_destroy (hb_shape_plan_t *shape_plan)
@@ -219,7 +236,7 @@ hb_shape_plan_destroy (hb_shape_plan_t *shape_plan)
  *
  * Return value: 
  *
- * Since: 1.0
+ * Since: 0.9.7
  **/
 hb_bool_t
 hb_shape_plan_set_user_data (hb_shape_plan_t    *shape_plan,
@@ -240,7 +257,7 @@ hb_shape_plan_set_user_data (hb_shape_plan_t    *shape_plan,
  *
  * Return value: (transfer none):
  *
- * Since: 1.0
+ * Since: 0.9.7
  **/
 void *
 hb_shape_plan_get_user_data (hb_shape_plan_t    *shape_plan,
@@ -262,7 +279,7 @@ hb_shape_plan_get_user_data (hb_shape_plan_t    *shape_plan,
  *
  * Return value: 
  *
- * Since: 1.0
+ * Since: 0.9.7
  **/
 hb_bool_t
 hb_shape_plan_execute (hb_shape_plan_t    *shape_plan,
@@ -271,9 +288,18 @@ hb_shape_plan_execute (hb_shape_plan_t    *shape_plan,
 		       const hb_feature_t *features,
 		       unsigned int        num_features)
 {
-  if (unlikely (hb_object_is_inert (shape_plan) ||
-		hb_object_is_inert (font) ||
-		hb_object_is_inert (buffer)))
+  DEBUG_MSG_FUNC (SHAPE_PLAN, shape_plan,
+		  "num_features=%d shaper_func=%p",
+		  num_features,
+		  shape_plan->shaper_func);
+
+  if (unlikely (!buffer->len))
+    return true;
+
+  assert (!hb_object_is_inert (buffer));
+  assert (buffer->content_type == HB_BUFFER_CONTENT_TYPE_UNICODE);
+
+  if (unlikely (hb_object_is_inert (shape_plan)))
     return false;
 
   assert (shape_plan->face_unsafe == font->face);
@@ -374,7 +400,7 @@ hb_non_global_user_features_present (const hb_feature_t *user_features,
  *
  * Return value: (transfer full):
  *
- * Since: 1.0
+ * Since: 0.9.7
  **/
 hb_shape_plan_t *
 hb_shape_plan_create_cached (hb_face_t                     *face,
@@ -383,6 +409,12 @@ hb_shape_plan_create_cached (hb_face_t                     *face,
 			     unsigned int                   num_user_features,
 			     const char * const            *shaper_list)
 {
+  DEBUG_MSG_FUNC (SHAPE_PLAN, NULL,
+		  "face=%p num_features=%d shaper_list=%p",
+		  face,
+		  num_user_features,
+		  shaper_list);
+
   hb_shape_plan_proposal_t proposal = {
     *props,
     shaper_list,
@@ -392,25 +424,22 @@ hb_shape_plan_create_cached (hb_face_t                     *face,
   };
 
   if (shaper_list) {
-    /* Choose shaper.  Adapted from hb_shape_plan_plan(). */
-#define HB_SHAPER_PLAN(shaper) \
-	  HB_STMT_START { \
-	    if (hb_##shaper##_shaper_face_data_ensure (face)) \
-	      proposal.shaper_func = _hb_##shaper##_shape; \
-	  } HB_STMT_END
-
+    /* Choose shaper.  Adapted from hb_shape_plan_plan().
+     * Must choose shaper exactly the same way as that function. */
     for (const char * const *shaper_item = shaper_list; *shaper_item; shaper_item++)
       if (0)
 	;
 #define HB_SHAPER_IMPLEMENT(shaper) \
-      else if (0 == strcmp (*shaper_item, #shaper)) \
-	HB_SHAPER_PLAN (shaper);
+      else if (0 == strcmp (*shaper_item, #shaper) && \
+	       hb_##shaper##_shaper_face_data_ensure (face)) \
+      { \
+	proposal.shaper_func = _hb_##shaper##_shape; \
+	break; \
+      }
 #include "hb-shaper-list.hh"
 #undef HB_SHAPER_IMPLEMENT
 
-#undef HB_SHAPER_PLAN
-
-    if (unlikely (!proposal.shaper_list))
+    if (unlikely (!proposal.shaper_func))
       return hb_shape_plan_get_empty ();
   }
 
@@ -419,11 +448,18 @@ retry:
   hb_face_t::plan_node_t *cached_plan_nodes = (hb_face_t::plan_node_t *) hb_atomic_ptr_get (&face->shape_plans);
   for (hb_face_t::plan_node_t *node = cached_plan_nodes; node; node = node->next)
     if (hb_shape_plan_matches (node->shape_plan, &proposal))
+    {
+      DEBUG_MSG_FUNC (SHAPE_PLAN, node->shape_plan, "fulfilled from cache");
       return hb_shape_plan_reference (node->shape_plan);
+    }
 
   /* Not found. */
 
   hb_shape_plan_t *shape_plan = hb_shape_plan_create (face, props, user_features, num_user_features, shaper_list);
+
+  /* Don't add to the cache if face is inert. */
+  if (unlikely (hb_object_is_inert (face)))
+    return shape_plan;
 
   /* Don't add the plan to the cache if there were user features with non-global ranges */
 
@@ -442,6 +478,7 @@ retry:
     free (node);
     goto retry;
   }
+  DEBUG_MSG_FUNC (SHAPE_PLAN, shape_plan, "inserted into cache");
 
   return hb_shape_plan_reference (shape_plan);
 }
@@ -454,7 +491,7 @@ retry:
  *
  * Return value: (transfer none):
  *
- * Since: 1.0
+ * Since: 0.9.7
  **/
 const char *
 hb_shape_plan_get_shaper (hb_shape_plan_t *shape_plan)

@@ -15,7 +15,6 @@
 #include "nsStyleContext.h"
 #include "nsTArrayForwardDeclare.h"
 
-class nsBaseContentList;
 class nsIContent;
 class nsIFrame;
 
@@ -40,7 +39,7 @@ public:
     {}
 
     nsIContent* mContent;
-    nsRefPtr<nsStyleContext> mStyleContext;
+    RefPtr<nsStyleContext> mStyleContext;
     nsTArray<ContentInfo> mChildren;
   };
 

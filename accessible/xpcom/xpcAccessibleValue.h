@@ -12,21 +12,30 @@
 namespace mozilla {
 namespace a11y {
 
+class Accessible;
+
+/**
+ * XPCOM nsIAccessibleValue interface implementation, used by
+ * xpcAccessibleGeneric class.
+ */
 class xpcAccessibleValue : public nsIAccessibleValue
 {
 public:
-  NS_IMETHOD GetMaximumValue(double* aValue) MOZ_FINAL MOZ_OVERRIDE;
-  NS_IMETHOD GetMinimumValue(double* aValue) MOZ_FINAL MOZ_OVERRIDE;
-  NS_IMETHOD GetCurrentValue(double* aValue) MOZ_FINAL MOZ_OVERRIDE;
-  NS_IMETHOD SetCurrentValue(double aValue) MOZ_FINAL MOZ_OVERRIDE;
-  NS_IMETHOD GetMinimumIncrement(double* aMinIncrement) MOZ_FINAL MOZ_OVERRIDE;
+  NS_IMETHOD GetMaximumValue(double* aValue) final override;
+  NS_IMETHOD GetMinimumValue(double* aValue) final override;
+  NS_IMETHOD GetCurrentValue(double* aValue) final override;
+  NS_IMETHOD SetCurrentValue(double aValue) final override;
+  NS_IMETHOD GetMinimumIncrement(double* aMinIncrement) final override;
+
+protected:
+  xpcAccessibleValue() { }
+  virtual ~xpcAccessibleValue() {}
 
 private:
-  xpcAccessibleValue() { }
-  friend class Accessible;
+  Accessible* Intl();
 
-  xpcAccessibleValue(const xpcAccessibleValue&) MOZ_DELETE;
-  xpcAccessibleValue& operator =(const xpcAccessibleValue&) MOZ_DELETE;
+  xpcAccessibleValue(const xpcAccessibleValue&) = delete;
+  xpcAccessibleValue& operator =(const xpcAccessibleValue&) = delete;
 };
 
 } // namespace a11y

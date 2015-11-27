@@ -10,45 +10,40 @@
 #endif
 
 #include "GLLibraryLoader.h"
+#include "mozilla/StaticMutex.h"
 #include "mozilla/ThreadLocal.h"
 #include "nsIFile.h"
+#include "GeckoProfiler.h"
 
 #include <bitset>
+#include <vector>
 
-#if defined(XP_WIN)
+#ifdef XP_WIN
+    #ifndef WIN32_LEAN_AND_MEAN
+        #define WIN32_LEAN_AND_MEAN 1
+    #endif
 
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN 1
-#endif
+    #include <windows.h>
 
-#include <windows.h>
-
-typedef HDC EGLNativeDisplayType;
-typedef HBITMAP EGLNativePixmapType;
-typedef HWND EGLNativeWindowType;
-
-#define GET_NATIVE_WINDOW(aWidget) ((EGLNativeWindowType)aWidget->GetNativeData(NS_NATIVE_WINDOW))
-
+    typedef HDC EGLNativeDisplayType;
+    typedef HBITMAP EGLNativePixmapType;
+    typedef HWND EGLNativeWindowType;
 #else
-typedef void *EGLNativeDisplayType;
-typedef void *EGLNativePixmapType;
-typedef void *EGLNativeWindowType;
+    typedef void* EGLNativeDisplayType;
+    typedef void* EGLNativePixmapType;
+    typedef void* EGLNativeWindowType;
 
-#ifdef ANDROID
-// We only need to explicitly dlopen egltrace
-// on android as we can use LD_PRELOAD or other tricks
-// on other platforms. We look for it in /data/local
-// as that's writeable by all users
-//
-// This should really go in GLLibraryEGL.cpp but we currently reference
-// APITRACE_LIB in GLContextProviderEGL.cpp. Further refactoring
-// will come in subsequent patches on Bug 732865
-#define APITRACE_LIB "/data/local/tmp/egltrace.so"
-
-#ifdef MOZ_WIDGET_ANDROID
-
-#endif // MOZ_WIDGET_ANDROID
-#endif // ANDROID
+    #ifdef ANDROID
+        // We only need to explicitly dlopen egltrace
+        // on android as we can use LD_PRELOAD or other tricks
+        // on other platforms. We look for it in /data/local
+        // as that's writeable by all users
+        //
+        // This should really go in GLLibraryEGL.cpp but we currently reference
+        // APITRACE_LIB in GLContextProviderEGL.cpp. Further refactoring
+        // will come in subsequent patches on Bug 732865
+        #define APITRACE_LIB "/data/local/tmp/egltrace.so"
+    #endif
 #endif
 
 #if defined(MOZ_X11)
@@ -58,6 +53,11 @@ typedef void *EGLNativeWindowType;
 #endif
 
 namespace mozilla {
+
+namespace gfx {
+class DataSourceSurface;
+}
+
 namespace gl {
 
 #undef BEFORE_GL_CALL
@@ -75,31 +75,46 @@ namespace gl {
 # endif
 #endif
 
+#ifdef MOZ_WIDGET_ANDROID
+// Record the name of the GL call for better hang stacks on Android.
+#define BEFORE_GL_CALL                      \
+    PROFILER_LABEL_FUNC(                    \
+      js::ProfileEntry::Category::GRAPHICS);\
+    BeforeGLCall(MOZ_FUNCTION_NAME)
+#else
 #define BEFORE_GL_CALL do {          \
     BeforeGLCall(MOZ_FUNCTION_NAME); \
 } while (0)
+#endif
 
 #define AFTER_GL_CALL do {           \
     AfterGLCall(MOZ_FUNCTION_NAME);  \
 } while (0)
-// We rely on the fact that GLLibraryEGL.h #defines BEFORE_GL_CALL and
-// AFTER_GL_CALL to nothing if !defined(DEBUG).
+#else
+#ifdef MOZ_WIDGET_ANDROID
+// Record the name of the GL call for better hang stacks on Android.
+#define BEFORE_GL_CALL PROFILER_LABEL_FUNC(js::ProfileEntry::Category::GRAPHICS)
 #else
 #define BEFORE_GL_CALL
+#endif
 #define AFTER_GL_CALL
 #endif
+
+class GLContext;
 
 class GLLibraryEGL
 {
 public:
-    GLLibraryEGL() 
+    GLLibraryEGL()
         : mInitialized(false),
           mEGLLibrary(nullptr),
-          mIsANGLE(false)
+          mIsANGLE(false),
+          mIsWARP(false)
     {
     }
 
-    void InitExtensions();
+    void InitClientExtensions();
+    void InitDisplayExtensions();
 
     /**
      * Known GL extensions that can be queried by
@@ -118,6 +133,9 @@ public:
         KHR_image,
         KHR_fence_sync,
         ANDROID_native_fence_sync,
+        EGL_ANDROID_image_crop,
+        ANGLE_platform_angle,
+        ANGLE_platform_angle_d3d,
         Extensions_Max
     };
 
@@ -140,6 +158,22 @@ public:
         EGLDisplay disp = mSymbols.fGetDisplay(display_id);
         AFTER_GL_CALL;
         return disp;
+    }
+
+    EGLDisplay fGetPlatformDisplayEXT(EGLenum platform, void* native_display, const EGLint* attrib_list)
+    {
+        BEFORE_GL_CALL;
+        EGLDisplay disp = mSymbols.fGetPlatformDisplayEXT(platform, native_display, attrib_list);
+        AFTER_GL_CALL;
+        return disp;
+    }
+
+    EGLBoolean fTerminate(EGLDisplay display)
+    {
+        BEFORE_GL_CALL;
+        EGLBoolean ret = mSymbols.fTerminate(display);
+        AFTER_GL_CALL;
+        return ret;
     }
 
     EGLSurface fGetCurrentSurface(EGLint id)
@@ -429,6 +463,10 @@ public:
         return mIsANGLE;
     }
 
+    bool IsWARP() const {
+        return mIsWARP;
+    }
+
     bool HasKHRImageBase() {
         return IsExtensionSupported(KHR_image) || IsExtensionSupported(KHR_image_base);
     }
@@ -449,7 +487,9 @@ public:
         return IsExtensionSupported(EXT_create_context_robustness);
     }
 
-    bool EnsureInitialized();
+    bool ReadbackEGLImage(EGLImage image, gfx::DataSourceSurface* out_surface);
+
+    bool EnsureInitialized(bool forceAccel = false);
 
     void DumpEGLConfig(EGLConfig cfg);
     void DumpEGLConfigs();
@@ -457,6 +497,10 @@ public:
     struct {
         typedef EGLDisplay (GLAPIENTRY * pfnGetDisplay)(void *display_id);
         pfnGetDisplay fGetDisplay;
+        typedef EGLDisplay(GLAPIENTRY * pfnGetPlatformDisplayEXT)(EGLenum platform, void *native_display, const EGLint *attrib_list);
+        pfnGetPlatformDisplayEXT fGetPlatformDisplayEXT;
+        typedef EGLBoolean (GLAPIENTRY * pfnTerminate)(EGLDisplay dpy);
+        pfnTerminate fTerminate;
         typedef EGLSurface (GLAPIENTRY * pfnGetCurrentSurface)(EGLint);
         pfnGetCurrentSurface fGetCurrentSurface;
         typedef EGLContext (GLAPIENTRY * pfnGetCurrentContext)(void);
@@ -570,8 +614,11 @@ private:
     bool mInitialized;
     PRLibrary* mEGLLibrary;
     EGLDisplay mEGLDisplay;
+    RefPtr<GLContext> mReadbackGL;
 
     bool mIsANGLE;
+    bool mIsWARP;
+    static StaticMutex sMutex;
 };
 
 extern GLLibraryEGL sEGLLibrary;

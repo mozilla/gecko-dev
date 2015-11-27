@@ -31,7 +31,7 @@
 #include <media/stagefright/MetaData.h>
 #include <utils/ByteOrder.h>
 
-#include "mozilla/NullPtr.h"
+#include "ClosingService.h"
 #include "NetworkActivityMonitor.h"
 
 using namespace mozilla::net;
@@ -65,6 +65,7 @@ ARTPWriter::ARTPWriter(int fd)
     }
 
     NetworkActivityMonitor::AttachIOLayer(mSocket);
+    ClosingService::AttachIOLayer(mSocket);
 
     mRTPAddr.inet.family = PR_AF_INET;
 
@@ -140,7 +141,9 @@ status_t ARTPWriter::start(MetaData *params) {
     mNumSRsSent = 0;
 
     const char *mime;
-    CHECK(mSource->getFormat()->findCString(kKeyMIMEType, &mime));
+    if (!mSource->getFormat()->findCString(kKeyMIMEType, &mime)) {
+        return ERROR_UNSUPPORTED;
+    }
 
     mMode = INVALID;
     if (!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_AVC)) {

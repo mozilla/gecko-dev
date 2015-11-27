@@ -14,16 +14,15 @@
 
 #include "nsIStyleRuleProcessor.h"
 
-class nsIDocument;
 class nsRuleWalker;
 
 namespace mozilla {
 
 namespace dom {
 class Element;
-}
+} // namespace dom
 
-class SVGAttrAnimationRuleProcessor MOZ_FINAL : public nsIStyleRuleProcessor
+class SVGAttrAnimationRuleProcessor final : public nsIStyleRuleProcessor
 {
 public:
   SVGAttrAnimationRuleProcessor();
@@ -35,22 +34,23 @@ public:
   NS_DECL_ISUPPORTS
 
   // nsIStyleRuleProcessor API
-  virtual void RulesMatching(ElementRuleProcessorData* aData) MOZ_OVERRIDE;
-  virtual void RulesMatching(PseudoElementRuleProcessorData* aData) MOZ_OVERRIDE;
-  virtual void RulesMatching(AnonBoxRuleProcessorData* aData) MOZ_OVERRIDE;
+  virtual void RulesMatching(ElementRuleProcessorData* aData) override;
+  virtual void RulesMatching(PseudoElementRuleProcessorData* aData) override;
+  virtual void RulesMatching(AnonBoxRuleProcessorData* aData) override;
 #ifdef MOZ_XUL
-  virtual void RulesMatching(XULTreeRuleProcessorData* aData) MOZ_OVERRIDE;
+  virtual void RulesMatching(XULTreeRuleProcessorData* aData) override;
 #endif
-  virtual nsRestyleHint HasStateDependentStyle(StateRuleProcessorData* aData) MOZ_OVERRIDE;
-  virtual nsRestyleHint HasStateDependentStyle(PseudoElementStateRuleProcessorData* aData) MOZ_OVERRIDE;
-  virtual bool HasDocumentStateDependentStyle(StateRuleProcessorData* aData) MOZ_OVERRIDE;
+  virtual nsRestyleHint HasStateDependentStyle(StateRuleProcessorData* aData) override;
+  virtual nsRestyleHint HasStateDependentStyle(PseudoElementStateRuleProcessorData* aData) override;
+  virtual bool HasDocumentStateDependentStyle(StateRuleProcessorData* aData) override;
   virtual nsRestyleHint
-    HasAttributeDependentStyle(AttributeRuleProcessorData* aData) MOZ_OVERRIDE;
-  virtual bool MediumFeaturesChanged(nsPresContext* aPresContext) MOZ_OVERRIDE;
+    HasAttributeDependentStyle(AttributeRuleProcessorData* aData,
+                               RestyleHintData& aRestyleHintDataResult) override;
+  virtual bool MediumFeaturesChanged(nsPresContext* aPresContext) override;
   virtual size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf)
-    const MOZ_MUST_OVERRIDE MOZ_OVERRIDE;
+    const MOZ_MUST_OVERRIDE override;
   virtual size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf)
-    const MOZ_MUST_OVERRIDE MOZ_OVERRIDE;
+    const MOZ_MUST_OVERRIDE override;
 
   size_t DOMSizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
@@ -59,8 +59,8 @@ public:
                             nsRuleWalker* aRuleWalker);
 
 private:
-  SVGAttrAnimationRuleProcessor(const SVGAttrAnimationRuleProcessor& aCopy) MOZ_DELETE;
-  SVGAttrAnimationRuleProcessor& operator=(const SVGAttrAnimationRuleProcessor& aCopy) MOZ_DELETE;
+  SVGAttrAnimationRuleProcessor(const SVGAttrAnimationRuleProcessor& aCopy) = delete;
+  SVGAttrAnimationRuleProcessor& operator=(const SVGAttrAnimationRuleProcessor& aCopy) = delete;
 };
 
 } // namespace mozilla

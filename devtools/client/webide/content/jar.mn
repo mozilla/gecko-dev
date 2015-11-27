@@ -1,0 +1,38 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+webide.jar:
+%   content webide %content/
+    content/webide.xul                (webide.xul)
+    content/webide.js                 (webide.js)
+    content/newapp.xul                (newapp.xul)
+    content/newapp.js                 (newapp.js)
+    content/details.xhtml             (details.xhtml)
+    content/details.js                (details.js)
+    content/addons.js                 (addons.js)
+    content/addons.xhtml              (addons.xhtml)
+    content/permissionstable.js       (permissionstable.js)
+    content/permissionstable.xhtml    (permissionstable.xhtml)
+    content/runtimedetails.js         (runtimedetails.js)
+    content/runtimedetails.xhtml      (runtimedetails.xhtml)
+    content/prefs.js                  (prefs.js)
+    content/prefs.xhtml               (prefs.xhtml)
+    content/monitor.xhtml             (monitor.xhtml)
+    content/monitor.js                (monitor.js)
+    content/devicepreferences.js      (devicepreferences.js)
+    content/devicepreferences.xhtml   (devicepreferences.xhtml)
+    content/devicesettings.js         (devicesettings.js)
+    content/devicesettings.xhtml      (devicesettings.xhtml)
+    content/wifi-auth.js              (wifi-auth.js)
+    content/wifi-auth.xhtml           (wifi-auth.xhtml)
+    content/logs.xhtml                (logs.xhtml)
+    content/logs.js                   (logs.js)
+    content/project-listing.xhtml     (project-listing.xhtml)
+    content/project-listing.js        (project-listing.js)
+    content/project-panel.js          (project-panel.js)
+    content/runtime-panel.js          (runtime-panel.js)
+    content/runtime-listing.xhtml     (runtime-listing.xhtml)
+    content/runtime-listing.js        (runtime-listing.js)
+    content/simulator.js              (simulator.js)
+    content/simulator.xhtml           (simulator.xhtml)

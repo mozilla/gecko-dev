@@ -12,7 +12,14 @@ include BluetoothTypes;
 
 include "mozilla/dom/bluetooth/ipc/BluetoothMessageUtils.h";
 
-using mozilla::dom::bluetooth::BluetoothObjectType from "mozilla/dom/bluetooth/BluetoothCommon.h";
+using mozilla::dom::bluetooth::BluetoothAddress
+  from "mozilla/dom/bluetooth/BluetoothCommon.h";
+using mozilla::dom::bluetooth::BluetoothObjectType
+  from "mozilla/dom/bluetooth/BluetoothCommon.h";
+using mozilla::dom::bluetooth::BluetoothPinCode
+  from "mozilla/dom/bluetooth/BluetoothCommon.h";
+using mozilla::dom::bluetooth::ControlPlayStatus
+  from "mozilla/dom/bluetooth/BluetoothCommon.h";
 
 namespace mozilla {
 namespace dom {
@@ -22,8 +29,16 @@ namespace bluetooth {
  * Bluetooth request types.
  */
 
-struct DefaultAdapterPathRequest
+struct GetAdaptersRequest
 { };
+
+struct StartBluetoothRequest
+{
+};
+
+struct StopBluetoothRequest
+{
+};
 
 struct SetPropertyRequest
 {
@@ -34,7 +49,7 @@ struct SetPropertyRequest
 struct GetPropertyRequest
 {
   BluetoothObjectType type;
-  nsString path;
+  BluetoothAddress address;
 };
 
 struct StartDiscoveryRequest
@@ -45,42 +60,66 @@ struct StopDiscoveryRequest
 {
 };
 
+struct StartLeScanRequest
+{
+  BluetoothUuid[] serviceUuids;
+};
+
+struct StopLeScanRequest
+{
+  BluetoothUuid scanUuid;
+};
+
 struct PairRequest
 {
-  nsString address;
+  BluetoothAddress address;
   uint32_t timeoutMS;
 };
 
 struct UnpairRequest
 {
-  nsString address;
+  BluetoothAddress address;
+};
+
+struct PinReplyRequest
+{
+  BluetoothAddress address;
+  bool accept;
+  BluetoothPinCode pinCode;
+};
+
+struct SspReplyRequest
+{
+  BluetoothAddress address;
+  BluetoothSspVariant variant;
+  bool accept;
 };
 
 struct SetPinCodeRequest
 {
-  nsString path;
-  nsString pincode;
+  BluetoothAddress address;
+  BluetoothPinCode pincode;
 };
 
 struct SetPasskeyRequest
 {
-  nsString path;
+  BluetoothAddress address;
   uint32_t passkey;
 };
 
 struct ConfirmPairingConfirmationRequest
 {
-  nsString path;
+  BluetoothAddress address;
 };
 
 struct DenyPairingConfirmationRequest
 {
-  nsString path;
+  BluetoothAddress address;
 };
 
 struct PairedDevicePropertiesRequest
 {
-  nsString[] addresses;
+  BluetoothAddress[] addresses;
 };
 
 struct ConnectedDevicePropertiesRequest
@@ -88,43 +127,43 @@ struct ConnectedDevicePropertiesRequest
   uint16_t serviceUuid;
 };
 
+struct FetchUuidsRequest
+{
+  BluetoothAddress address;
+};
+
 struct ConnectRequest
 {
-  nsString address;
+  BluetoothAddress address;
   uint32_t cod;
   uint16_t serviceUuid;
 };
 
 struct DisconnectRequest
 {
-  nsString address;
-  uint16_t serviceUuid;
-};
-
-struct IsConnectedRequest
-{
+  BluetoothAddress address;
   uint16_t serviceUuid;
 };
 
 struct SendFileRequest
 {
-  nsString devicePath;
+  BluetoothAddress address;
   PBlob blob;
 };
 
 struct StopSendingFileRequest
 {
-  nsString devicePath;
+  BluetoothAddress address;
 };
 
 struct ConfirmReceivingFileRequest
 {
-  nsString devicePath;
+  BluetoothAddress address;
 };
 
 struct DenyReceivingFileRequest
 {
-  nsString devicePath;
+  BluetoothAddress address;
 };
 
 struct ConnectScoRequest
@@ -137,6 +176,72 @@ struct DisconnectScoRequest
 
 struct IsScoConnectedRequest
 {
+};
+
+struct SetObexPasswordRequest
+{
+  nsString password;
+};
+
+struct RejectObexAuthRequest
+{
+};
+
+struct ReplyTovCardPullingRequest
+{
+  PBlob blob;
+};
+
+struct ReplyToPhonebookPullingRequest
+{
+  PBlob blob;
+  uint16_t phonebookSize;
+};
+
+struct ReplyTovCardListingRequest
+{
+  PBlob blob;
+  uint16_t phonebookSize;
+};
+
+struct ReplyToFolderListingRequest
+{
+  uint16_t masId;
+  nsString folderList;
+};
+
+struct ReplyToMessagesListingRequest
+{
+  uint16_t masId;
+  PBlob blob;
+  bool newMessage;
+  nsString timeStamp;
+  uint16_t size;
+};
+
+struct ReplyToGetMessageRequest
+{
+  uint16_t masId;
+  PBlob blob;
+};
+
+struct ReplyToSetMessageStatusRequest
+{
+  uint16_t masId;
+  bool messageStatus;
+};
+
+struct ReplyToSendMessageRequest
+{
+  uint16_t masId;
+  nsString handleId;
+  bool messageStatus;
+};
+
+struct ReplyToMessageUpdateRequest
+{
+  uint16_t masId;
+  bool messageStatus;
 };
 
 struct AnswerWaitingCallRequest
@@ -165,27 +270,193 @@ struct SendPlayStatusRequest
 {
   int64_t duration;
   int64_t position;
-  nsString playStatus;
+  ControlPlayStatus playStatus;
+};
+
+struct ConnectGattClientRequest
+{
+  BluetoothUuid appUuid;
+  BluetoothAddress deviceAddress;
+};
+
+struct DisconnectGattClientRequest
+{
+  BluetoothUuid appUuid;
+  BluetoothAddress deviceAddress;
+};
+
+struct DiscoverGattServicesRequest
+{
+  BluetoothUuid appUuid;
+};
+
+struct GattClientStartNotificationsRequest
+{
+  BluetoothUuid appUuid;
+  BluetoothGattServiceId servId;
+  BluetoothGattId charId;
+};
+
+struct GattClientStopNotificationsRequest
+{
+  BluetoothUuid appUuid;
+  BluetoothGattServiceId servId;
+  BluetoothGattId charId;
+};
+
+struct UnregisterGattClientRequest
+{
+  int clientIf;
+};
+
+struct GattClientReadRemoteRssiRequest
+{
+  int clientIf;
+  BluetoothAddress deviceAddress;
+};
+
+struct GattClientReadCharacteristicValueRequest
+{
+  BluetoothUuid appUuid;
+  BluetoothGattServiceId serviceId;
+  BluetoothGattId charId;
+};
+
+struct GattClientWriteCharacteristicValueRequest
+{
+  BluetoothUuid appUuid;
+  BluetoothGattServiceId serviceId;
+  BluetoothGattId charId;
+  BluetoothGattWriteType writeType;
+  uint8_t[] value;
+};
+
+struct GattClientReadDescriptorValueRequest
+{
+  BluetoothUuid appUuid;
+  BluetoothGattServiceId serviceId;
+  BluetoothGattId charId;
+  BluetoothGattId descId;
+};
+
+struct GattClientWriteDescriptorValueRequest
+{
+  BluetoothUuid appUuid;
+  BluetoothGattServiceId serviceId;
+  BluetoothGattId charId;
+  BluetoothGattId descId;
+  uint8_t[] value;
+};
+
+struct GattServerConnectPeripheralRequest
+{
+  BluetoothUuid appUuid;
+  BluetoothAddress address;
+};
+
+struct GattServerDisconnectPeripheralRequest
+{
+  BluetoothUuid appUuid;
+  BluetoothAddress address;
+};
+
+struct UnregisterGattServerRequest
+{
+  int serverIf;
+};
+
+struct GattServerAddServiceRequest
+{
+  BluetoothUuid appUuid;
+  BluetoothGattServiceId serviceId;
+  uint16_t handleCount;
+};
+
+struct GattServerAddIncludedServiceRequest
+{
+  BluetoothUuid appUuid;
+  BluetoothAttributeHandle serviceHandle;
+  BluetoothAttributeHandle includedServiceHandle;
+};
+
+struct GattServerAddCharacteristicRequest
+{
+  BluetoothUuid appUuid;
+  BluetoothAttributeHandle serviceHandle;
+  BluetoothUuid characteristicUuid;
+  BluetoothGattAttrPerm permissions;
+  BluetoothGattCharProp properties;
+};
+
+struct GattServerAddDescriptorRequest
+{
+  BluetoothUuid appUuid;
+  BluetoothAttributeHandle serviceHandle;
+  BluetoothAttributeHandle characteristicHandle;
+  BluetoothUuid descriptorUuid;
+  BluetoothGattAttrPerm permissions;
+};
+
+struct GattServerRemoveServiceRequest
+{
+  BluetoothUuid appUuid;
+  BluetoothAttributeHandle serviceHandle;
+};
+
+struct GattServerStartServiceRequest
+{
+  BluetoothUuid appUuid;
+  BluetoothAttributeHandle serviceHandle;
+};
+
+struct GattServerStopServiceRequest
+{
+  BluetoothUuid appUuid;
+  BluetoothAttributeHandle serviceHandle;
+};
+
+struct GattServerSendResponseRequest
+{
+  BluetoothUuid appUuid;
+  BluetoothAddress address;
+  uint16_t status;
+  int32_t requestId;
+  BluetoothGattResponse response;
+};
+
+struct GattServerSendIndicationRequest
+{
+  BluetoothUuid appUuid;
+  BluetoothAddress address;
+  BluetoothAttributeHandle characteristicHandle;
+  bool confirm;
+  uint8_t[] value;
 };
 
 union Request
 {
-  DefaultAdapterPathRequest;
+  GetAdaptersRequest;
+  StartBluetoothRequest;
+  StopBluetoothRequest;
   SetPropertyRequest;
   GetPropertyRequest;
   StartDiscoveryRequest;
   StopDiscoveryRequest;
+  StartLeScanRequest;
+  StopLeScanRequest;
   PairRequest;
   UnpairRequest;
+  PinReplyRequest;
+  SspReplyRequest;
   SetPinCodeRequest;
   SetPasskeyRequest;
   ConfirmPairingConfirmationRequest;
   DenyPairingConfirmationRequest;
   ConnectedDevicePropertiesRequest;
   PairedDevicePropertiesRequest;
+  FetchUuidsRequest;
   ConnectRequest;
   DisconnectRequest;
-  IsConnectedRequest;
   SendFileRequest;
   StopSendingFileRequest;
   ConfirmReceivingFileRequest;
@@ -193,11 +464,45 @@ union Request
   ConnectScoRequest;
   DisconnectScoRequest;
   IsScoConnectedRequest;
+  SetObexPasswordRequest;
+  RejectObexAuthRequest;
+  ReplyTovCardPullingRequest;
+  ReplyToPhonebookPullingRequest;
+  ReplyTovCardListingRequest;
+  ReplyToFolderListingRequest;
+  ReplyToMessagesListingRequest;
+  ReplyToGetMessageRequest;
+  ReplyToSetMessageStatusRequest;
+  ReplyToSendMessageRequest;
+  ReplyToMessageUpdateRequest;
   AnswerWaitingCallRequest;
   IgnoreWaitingCallRequest;
   ToggleCallsRequest;
   SendMetaDataRequest;
   SendPlayStatusRequest;
+  ConnectGattClientRequest;
+  DisconnectGattClientRequest;
+  DiscoverGattServicesRequest;
+  GattClientStartNotificationsRequest;
+  GattClientStopNotificationsRequest;
+  UnregisterGattClientRequest;
+  GattClientReadRemoteRssiRequest;
+  GattClientReadCharacteristicValueRequest;
+  GattClientWriteCharacteristicValueRequest;
+  GattClientReadDescriptorValueRequest;
+  GattClientWriteDescriptorValueRequest;
+  GattServerConnectPeripheralRequest;
+  GattServerDisconnectPeripheralRequest;
+  UnregisterGattServerRequest;
+  GattServerAddServiceRequest;
+  GattServerAddIncludedServiceRequest;
+  GattServerAddCharacteristicRequest;
+  GattServerAddDescriptorRequest;
+  GattServerRemoveServiceRequest;
+  GattServerStartServiceRequest;
+  GattServerStopServiceRequest;
+  GattServerSendResponseRequest;
+  GattServerSendIndicationRequest;
 };
 
 protocol PBluetooth

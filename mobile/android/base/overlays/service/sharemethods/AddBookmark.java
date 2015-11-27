@@ -24,16 +24,6 @@ public class AddBookmark extends ShareMethod {
         return Result.SUCCESS;
     }
 
-    public String getSuccessMesssage() {
-        return context.getResources().getString(R.string.bookmark_added);
-    }
-
-    // Unused.
-    @Override
-    public String getFailureMessage() {
-        return null;
-    }
-
     public AddBookmark(Context context) {
         super(context);
     }

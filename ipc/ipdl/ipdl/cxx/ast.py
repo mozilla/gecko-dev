@@ -331,11 +331,13 @@ Type.BOOL = Type('bool')
 Type.INT = Type('int')
 Type.INT32 = Type('int32_t')
 Type.INTPTR = Type('intptr_t')
+Type.NSRESULT = Type('nsresult')
 Type.UINT32 = Type('uint32_t')
 Type.UINT32PTR = Type('uint32_t', ptr=1)
 Type.SIZE = Type('size_t')
 Type.VOID = Type('void')
 Type.VOIDPTR = Type('void', ptr=1)
+Type.AUTO = Type('auto')
 
 class TypeArray(Node):
     def __init__(self, basetype, nmemb):
@@ -662,6 +664,10 @@ class ExprCall(Node):
         Node.__init__(self)
         self.func = func
         self.args = args
+
+class ExprMove(ExprCall):
+    def __init__(self, arg):
+        ExprCall.__init__(self, ExprVar("mozilla::Move"), args=[arg])
 
 class ExprNew(Node):
     # XXX taking some poetic license ...

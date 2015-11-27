@@ -12,18 +12,23 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/Move.h"
+#include "mozilla/UniquePtr.h"
 
+#include "jsapi.h"
 #include "jspubtd.h"
 
+#include "js/GCAPI.h"
 #include "js/RootingAPI.h"
 #include "js/TypeDecls.h"
 
 namespace js {
 class Debugger;
-}
+} // namespace js
 
 namespace JS {
+
+using mozilla::UniquePtr;
+
 namespace dbg {
 
 // Helping embedding code build objects for Debugger
@@ -89,11 +94,11 @@ namespace dbg {
 // the object shown above, given a Builder passed to it by Debugger:
 //
 //    bool
-//    MyScriptEntryReason::explain(JSContext *cx,
-//                                 Builder &builder,
-//                                 Builder::Object &result)
+//    MyScriptEntryReason::explain(JSContext* cx,
+//                                 Builder& builder,
+//                                 Builder::Object& result)
 //    {
-//        JSObject *eventObject = ... obtain debuggee event object somehow ...;
+//        JSObject* eventObject = ... obtain debuggee event object somehow ...;
 //        if (!eventObject)
 //            return false;
 //        result = builder.newObject(cx);
@@ -124,82 +129,79 @@ class Builder {
     PersistentRootedObject debuggerObject;
 
     // debuggerObject's Debugger structure, for convenience.
-    js::Debugger *debugger;
+    js::Debugger* debugger;
 
     // Check that |thing| is in the same compartment as our debuggerObject. Used
     // for assertions when constructing BuiltThings. We can overload this as we
     // add more instantiations of BuiltThing.
 #if DEBUG
-    void assertBuilt(JSObject *obj);
+    void assertBuilt(JSObject* obj);
 #else
-    void assertBuilt(JSObject *obj) { }
+    void assertBuilt(JSObject* obj) { }
 #endif
 
   protected:
     // A reference to a trusted object or value. At the moment, we only use it
-    // with JSObject *.
+    // with JSObject*.
     template<typename T>
     class BuiltThing {
         friend class BuilderOrigin;
 
-        void nonNull() {}
-
       protected:
         // The Builder to which this trusted thing belongs.
-        Builder &owner;
+        Builder& owner;
 
         // A rooted reference to our value.
         PersistentRooted<T> value;
 
-        BuiltThing(JSContext *cx, Builder &owner_, T value_ = js::GCMethods<T>::initial())
+        BuiltThing(JSContext* cx, Builder& owner_, T value_ = js::GCMethods<T>::initial())
           : owner(owner_), value(cx, value_)
         {
             owner.assertBuilt(value_);
         }
 
         // Forward some things from our owner, for convenience.
-        js::Debugger *debugger() const { return owner.debugger; }
-        JSObject *debuggerObject() const { return owner.debuggerObject; }
+        js::Debugger* debugger() const { return owner.debugger; }
+        JSObject* debuggerObject() const { return owner.debuggerObject; }
 
       public:
-        BuiltThing(const BuiltThing &rhs) : owner(rhs.owner), value(rhs.value) { }
-        BuiltThing &operator=(const BuiltThing &rhs) {
+        BuiltThing(const BuiltThing& rhs) : owner(rhs.owner), value(rhs.value) { }
+        BuiltThing& operator=(const BuiltThing& rhs) {
             MOZ_ASSERT(&owner == &rhs.owner);
             owner.assertBuilt(rhs.value);
             value = rhs.value;
             return *this;
         }
 
-        typedef void (BuiltThing::* ConvertibleToBool)();
-        operator ConvertibleToBool() const {
-            // If we ever instantiate BuiltThink<Value>, this might not suffice.
-            return value ? &BuiltThing::nonNull : 0;
+        explicit operator bool() const {
+            // If we ever instantiate BuiltThing<Value>, this might not suffice.
+            return value;
         }
 
       private:
-        BuiltThing() MOZ_DELETE;
+        BuiltThing() = delete;
     };
 
   public:
     // A reference to a trusted object, possibly null. Instances of Object are
     // always properly rooted. They can be copied and assigned, as if they were
     // pointers.
-    class Object: private BuiltThing<JSObject *> {
+    class Object: private BuiltThing<JSObject*> {
         friend class Builder;           // for construction
         friend class BuilderOrigin;     // for unwrapping
 
-        typedef BuiltThing<JSObject *> Base;
+        typedef BuiltThing<JSObject*> Base;
 
         // This is private, because only Builders can create Objects that
         // actually point to something (hence the 'friend' declaration).
-        Object(JSContext *cx, Builder &owner_, HandleObject obj) : Base(cx, owner_, obj.get()) { }
+        Object(JSContext* cx, Builder& owner_, HandleObject obj) : Base(cx, owner_, obj.get()) { }
 
-        bool definePropertyToTrusted(JSContext *cx, const char *name,
+        bool definePropertyToTrusted(JSContext* cx, const char* name,
                                      JS::MutableHandleValue value);
 
       public:
-        Object(JSContext *cx, Builder &owner_) : Base(cx, owner_, nullptr) { }
-        Object(const Object &rhs) : Base(rhs) { }
+        Object(JSContext* cx, Builder& owner_) : Base(cx, owner_, nullptr) { }
+        Object(const Object& rhs) : Base(rhs) { }
 
         // Our automatically-generated assignment operator can see our base
         // class's assignment operator, so we don't need to write one out here.
@@ -217,38 +219,38 @@ class Builder {
         // property's value.
         //
         // On error, report the problem on cx and return false.
-        bool defineProperty(JSContext *cx, const char *name, JS::HandleValue value);
-        bool defineProperty(JSContext *cx, const char *name, JS::HandleObject value);
-        bool defineProperty(JSContext *cx, const char *name, Object &value);
+        bool defineProperty(JSContext* cx, const char* name, JS::HandleValue value);
+        bool defineProperty(JSContext* cx, const char* name, JS::HandleObject value);
+        bool defineProperty(JSContext* cx, const char* name, Object& value);
 
-        using Base::ConvertibleToBool;
-        using Base::operator ConvertibleToBool;
+        using Base::operator bool;
     };
 
     // Build an empty object for direct use by debugger code, owned by this
     // Builder. If an error occurs, report it on cx and return a false Object.
-    Object newObject(JSContext *cx);
+    Object newObject(JSContext* cx);
 
   protected:
-    Builder(JSContext *cx, js::Debugger *debugger);
+    Builder(JSContext* cx, js::Debugger* debugger);
 };
 
 // Debugger itself instantiates this subclass of Builder, which can unwrap
 // BuiltThings that belong to it.
 class BuilderOrigin : public Builder {
     template<typename T>
-    T unwrapAny(const BuiltThing<T> &thing) {
+    T unwrapAny(const BuiltThing<T>& thing) {
         MOZ_ASSERT(&thing.owner == this);
         return thing.value.get();
     }
 
   public:
-    BuilderOrigin(JSContext *cx, js::Debugger *debugger_)
+    BuilderOrigin(JSContext* cx, js::Debugger* debugger_)
       : Builder(cx, debugger_)
     { }
 
-    JSObject *unwrap(Object &object) { return unwrapAny(object); }
+    JSObject* unwrap(Object& object) { return unwrapAny(object); }
 };
+
 
 
 // Finding the size of blocks allocated with malloc
@@ -261,7 +263,118 @@ class BuilderOrigin : public Builder {
 
 // Tell Debuggers in |runtime| to use |mallocSizeOf| to find the size of
 // malloc'd blocks.
-void SetDebuggerMallocSizeOf(JSRuntime *runtime, mozilla::MallocSizeOf mallocSizeOf);
+JS_PUBLIC_API(void)
+SetDebuggerMallocSizeOf(JSRuntime* runtime, mozilla::MallocSizeOf mallocSizeOf);
+
+// Get the MallocSizeOf function that the given runtime is using to find the
+// size of malloc'd blocks.
+JS_PUBLIC_API(mozilla::MallocSizeOf)
+GetDebuggerMallocSizeOf(JSRuntime* runtime);
+
+
+
+// Debugger and Garbage Collection Events
+// --------------------------------------
+//
+// The Debugger wants to report about its debuggees' GC cycles, however entering
+// JS after a GC is troublesome since SpiderMonkey will often do something like
+// force a GC and then rely on the nursery being empty. If we call into some
+// Debugger's hook after the GC, then JS runs and the nursery won't be
+// empty. Instead, we rely on embedders to call back into SpiderMonkey after a
+// GC and notify Debuggers to call their onGarbageCollection hook.
+
+
+// For each Debugger that observed a debuggee involved in the given GC event,
+// call its `onGarbageCollection` hook.
+JS_PUBLIC_API(bool)
+FireOnGarbageCollectionHook(JSContext* cx, GarbageCollectionEvent::Ptr&& data);
+
+
+
+// Handlers for observing Promises
+// -------------------------------
+//
+// The Debugger wants to observe behavior of promises, which are implemented by
+// Gecko with webidl and which SpiderMonkey knows nothing about. On the other
+// hand, Gecko knows nothing about which (if any) debuggers are observing a
+// promise's global. The compromise is that Gecko is responsible for calling
+// these handlers at the appropriate times, and SpiderMonkey will handle
+// notifying any Debugger instances that are observing the given promise's
+// global.
+
+// Notify any Debugger instances observing this promise's global that a new
+// promise was allocated.
+JS_PUBLIC_API(void)
+onNewPromise(JSContext* cx, HandleObject promise);
+
+// Notify any Debugger instances observing this promise's global that the
+// promise has settled (ie, it has either been fulfilled or rejected). Note that
+// this is *not* equivalent to the promise resolution (ie, the promise's fate
+// getting locked in) because you can resolve a promise with another pending
+// promise, in which case neither promise has settled yet.
+//
+// It is Gecko's responsibility to ensure that this is never called on the same
+// promise more than once (because a promise can only make the transition from
+// unsettled to settled once).
+JS_PUBLIC_API(void)
+onPromiseSettled(JSContext* cx, HandleObject promise);
+
+
+
+// Return true if the given value is a Debugger object, false otherwise.
+JS_PUBLIC_API(bool)
+IsDebugger(JSObject& obj);
+
+// Append each of the debuggee global objects observed by the Debugger object
+// |dbgObj| to |vector|. Returns true on success, false on failure.
+JS_PUBLIC_API(bool)
+GetDebuggeeGlobals(JSContext* cx, JSObject& dbgObj, AutoObjectVector& vector);
+
+
+// Hooks for reporting where JavaScript execution began.
+//
+// Our performance tools would like to be able to label blocks of JavaScript
+// execution with the function name and source location where execution began:
+// the event handler, the callback, etc.
+//
+// Construct an instance of this class on the stack, providing a JSContext
+// belonging to the runtime in which execution will occur. Each time we enter
+// JavaScript --- specifically, each time we push a JavaScript stack frame that
+// has no older JS frames younger than this AutoEntryMonitor --- we will
+// call the appropriate |Entry| member function to indicate where we've begun
+// execution.
+
+class MOZ_STACK_CLASS AutoEntryMonitor {
+    JSRuntime* runtime_;
+    AutoEntryMonitor* savedMonitor_;
+
+  public:
+    explicit AutoEntryMonitor(JSContext* cx);
+    ~AutoEntryMonitor();
+
+    // SpiderMonkey reports the JavaScript entry points occuring within this
+    // AutoEntryMonitor's scope to the following member functions, which the
+    // embedding is expected to override.
+
+    // We have begun executing |function|. Note that |function| may not be the
+    // actual closure we are running, but only the canonical function object to
+    // which the script refers.
+    virtual void Entry(JSContext* cx, JSFunction* function,
+                       HandleValue asyncStack,
+                       HandleString asyncCause) = 0;
+
+    // Execution has begun at the entry point of |script|, which is not a
+    // function body. (This is probably being executed by 'eval' or some
+    // JSAPI equivalent.)
+    virtual void Entry(JSContext* cx, JSScript* script,
+                       HandleValue asyncStack,
+                       HandleString asyncCause) = 0;
+
+    // Execution of the function or script has ended.
+    virtual void Exit(JSContext* cx) { }
+};
+
+
 
 } // namespace dbg
 } // namespace JS

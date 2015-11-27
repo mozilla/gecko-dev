@@ -19,6 +19,7 @@
 #include "nsIPrefService.h"
 #include "nsIPrompt.h"
 #include "nsNetUtil.h"
+#include "nsContentSecurityManager.h"
 #include "nsExternalHelperAppService.h"
 
 // used to dispatch urls to default protocol handlers
@@ -57,6 +58,7 @@ private:
     
     nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
     nsCOMPtr<nsILoadGroup> mLoadGroup;
+    nsCOMPtr<nsILoadInfo> mLoadInfo;
 };
 
 NS_IMPL_ADDREF(nsExtProtocolChannel)
@@ -174,14 +176,34 @@ NS_IMETHODIMP nsExtProtocolChannel::Open(nsIInputStream **_retval)
   return OpenURL();
 }
 
+NS_IMETHODIMP nsExtProtocolChannel::Open2(nsIInputStream** aStream)
+{
+  nsCOMPtr<nsIStreamListener> listener;
+  nsresult rv = nsContentSecurityManager::doContentSecurityCheck(this, listener);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return Open(aStream);
+}
+
 NS_IMETHODIMP nsExtProtocolChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *ctxt)
 {
+  MOZ_ASSERT(!mLoadInfo || mLoadInfo->GetSecurityMode() == 0 ||
+             mLoadInfo->GetInitialSecurityCheckDone(),
+             "security flags in loadInfo but asyncOpen2() not called");
+
   NS_ENSURE_ARG_POINTER(listener);
   NS_ENSURE_TRUE(!mWasOpened, NS_ERROR_ALREADY_OPENED);
 
   mWasOpened = true;
 
   return OpenURL();
+}
+
+NS_IMETHODIMP nsExtProtocolChannel::AsyncOpen2(nsIStreamListener *aListener)
+{
+  nsCOMPtr<nsIStreamListener> listener = aListener;
+  nsresult rv = nsContentSecurityManager::doContentSecurityCheck(this, listener);
+  NS_ENSURE_SUCCESS(rv, rv);
+  return AsyncOpen(listener, nullptr);
 }
 
 NS_IMETHODIMP nsExtProtocolChannel::GetLoadFlags(nsLoadFlags *aLoadFlags)
@@ -264,14 +286,16 @@ NS_IMETHODIMP nsExtProtocolChannel::SetOwner(nsISupports * aPrincipal)
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-NS_IMETHODIMP nsExtProtocolChannel::GetLoadInfo(nsILoadInfo * *aLoadInfo)
+NS_IMETHODIMP nsExtProtocolChannel::GetLoadInfo(nsILoadInfo **aLoadInfo)
 {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  NS_IF_ADDREF(*aLoadInfo = mLoadInfo);
+  return NS_OK;
 }
 
-NS_IMETHODIMP nsExtProtocolChannel::SetLoadInfo(nsILoadInfo * aLoadInfo)
+NS_IMETHODIMP nsExtProtocolChannel::SetLoadInfo(nsILoadInfo *aLoadInfo)
 {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  mLoadInfo = aLoadInfo;
+  return NS_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -395,7 +419,10 @@ NS_IMETHODIMP nsExternalProtocolHandler::NewURI(const nsACString &aSpec,
   return NS_OK;
 }
 
-NS_IMETHODIMP nsExternalProtocolHandler::NewChannel(nsIURI *aURI, nsIChannel **_retval)
+NS_IMETHODIMP
+nsExternalProtocolHandler::NewChannel2(nsIURI* aURI,
+                                       nsILoadInfo* aLoadInfo,
+                                       nsIChannel** _retval)
 {
   // Only try to return a channel if we have a protocol handler for the url.
   // nsOSHelperAppService::LoadUriInternal relies on this to check trustedness
@@ -410,6 +437,9 @@ NS_IMETHODIMP nsExternalProtocolHandler::NewChannel(nsIURI *aURI, nsIChannel **_
     ((nsExtProtocolChannel*) channel.get())->SetURI(aURI);
     channel->SetOriginalURI(aURI);
 
+    // set the loadInfo on the new channel
+    ((nsExtProtocolChannel*) channel.get())->SetLoadInfo(aLoadInfo);
+
     if (_retval)
     {
       *_retval = channel;
@@ -419,6 +449,11 @@ NS_IMETHODIMP nsExternalProtocolHandler::NewChannel(nsIURI *aURI, nsIChannel **_
   }
 
   return NS_ERROR_UNKNOWN_PROTOCOL;
+}
+
+NS_IMETHODIMP nsExternalProtocolHandler::NewChannel(nsIURI *aURI, nsIChannel **_retval)
+{
+  return NewChannel2(aURI, nullptr, _retval);
 }
 
 ///////////////////////////////////////////////////////////////////////

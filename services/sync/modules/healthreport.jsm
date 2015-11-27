@@ -99,6 +99,16 @@ SyncProvider.prototype = Object.freeze({
   },
 
   observe: function (subject, topic, data) {
+    switch (topic) {
+      case "weave:service:sync:start":
+      case "weave:service:sync:finish":
+      case "weave:service:sync:error":
+        return this._observeSync(subject, topic, data);
+    }
+    Cu.reportError("unexpected topic in sync healthreport provider: " + topic);
+  },
+
+  _observeSync: function (subject, topic, data) {
     let field;
     switch (topic) {
       case "weave:service:sync:start":
@@ -112,6 +122,10 @@ SyncProvider.prototype = Object.freeze({
       case "weave:service:sync:error":
         field = "syncError";
         break;
+
+      default:
+        Cu.reportError("unexpected sync topic in sync healthreport provider: " + topic);
+        return;
     }
 
     let m = this.getMeasurement(SyncMeasurement1.prototype.name,

@@ -12,6 +12,7 @@ const HEAP_IMPORTS = "const i8=new glob.Int8Array(b);var u8=new glob.Uint8Array(
                      "const i32=new glob.Int32Array(b);var u32=new glob.Uint32Array(b);"+
                      "const f32=new glob.Float32Array(b);var f64=new glob.Float64Array(b);";
 const BUF_MIN = 64 * 1024;
+const BUF_CHANGE_MIN = 16 * 1024 * 1024;
 const BUF_64KB = new ArrayBuffer(BUF_MIN);
 
 function asmCompile()
@@ -76,9 +77,9 @@ function assertAsmTypeFail()
     // Verify no error is thrown with warnings off
     Function.apply(null, arguments);
 
-    // Turn on warnings-as-errors
-    var oldOpts = options("werror");
-    assertEq(oldOpts.indexOf("werror"), -1);
+    // Turn on throwing on validation errors
+    var oldOpts = options("throw_on_asmjs_validation_failure");
+    assertEq(oldOpts.indexOf("throw_on_asmjs_validation_failure"), -1);
 
     // Verify an error is thrown
     var caught = false;
@@ -93,7 +94,7 @@ function assertAsmTypeFail()
         throw new Error("Didn't catch the type failure error");
 
     // Turn warnings-as-errors back off
-    options("werror");
+    options("throw_on_asmjs_validation_failure");
 }
 
 function assertAsmLinkFail(f)

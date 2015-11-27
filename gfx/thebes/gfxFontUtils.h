@@ -13,6 +13,7 @@
 #include "mozilla/Likely.h"
 #include "mozilla/Endian.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/UniquePtr.h"
 
 #include "zlib.h"
 #include <algorithm>
@@ -81,10 +82,8 @@ public:
         return ((block->mBits[(aIndex>>3) & (BLOCK_SIZE - 1)]) & (1 << (aIndex & 0x7))) != 0;
     }
 
-#if PR_LOGGING
     // dump out contents of bitmap
     void Dump(const char* aPrefix, eGfxLog aWhichLog) const;
-#endif
 
     bool TestRange(uint32_t aStart, uint32_t aEnd) {
         uint32_t startBlock, endBlock, blockLen;
@@ -99,7 +98,6 @@ public:
         bool hasBlocksInRange = false;
 
         endBlock = aEnd >> BLOCK_INDEX_SHIFT;
-        blockIndex = startBlock;
         for (blockIndex = startBlock; blockIndex <= endBlock; blockIndex++) {
             if (blockIndex < blockLen && mBlocks[blockIndex])
                 hasBlocksInRange = true;
@@ -248,7 +246,7 @@ public:
     }
 
     size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
-        size_t total = mBlocks.SizeOfExcludingThis(aMallocSizeOf);
+        size_t total = mBlocks.ShallowSizeOfExcludingThis(aMallocSizeOf);
         for (uint32_t i = 0; i < mBlocks.Length(); i++) {
             if (mBlocks[i]) {
                 total += aMallocSizeOf(mBlocks[i]);
@@ -553,7 +551,10 @@ struct PostTable {
     AutoSwap_PRUint32    maxMemType1;
 };
 
-struct HheaTable {
+// This structure is used for both 'hhea' and 'vhea' tables.
+// The field names here are those of the horizontal version; the
+// vertical table just exchanges vertical and horizontal coordinates.
+struct MetricsHeader {
     AutoSwap_PRUint32    version;
     AutoSwap_PRInt16     ascender;
     AutoSwap_PRInt16     descender;
@@ -570,7 +571,7 @@ struct HheaTable {
     AutoSwap_PRInt16     reserved3;
     AutoSwap_PRInt16     reserved4;
     AutoSwap_PRInt16     metricDataFormat;
-    AutoSwap_PRUint16    numOfLongHorMetrics;
+    AutoSwap_PRUint16    numOfLongMetrics;
 };
 
 struct MaxpTableHeader {
@@ -652,8 +653,10 @@ enum gfxUserFontType {
     GFX_USERFONT_UNKNOWN = 0,
     GFX_USERFONT_OPENTYPE = 1,
     GFX_USERFONT_SVG = 2,
-    GFX_USERFONT_WOFF = 3
+    GFX_USERFONT_WOFF = 3,
+    GFX_USERFONT_WOFF2 = 4
 };
+#define GFX_PREF_WOFF2_ENABLED "gfx.downloadable_fonts.woff2.enabled"
 
 extern const uint8_t sCJKCompatSVSTable[];
 
@@ -784,7 +787,7 @@ public:
 
     static nsresult
     ReadCMAPTableFormat14(const uint8_t *aBuf, uint32_t aLength, 
-                          uint8_t*& aTable);
+                          mozilla::UniquePtr<uint8_t[]>& aTable);
 
     static uint32_t
     FindPreferredSubtable(const uint8_t *aBuf, uint32_t aBufLength,
@@ -899,6 +902,16 @@ public:
     static inline bool IsVarSelector(uint32_t ch) {
         return (ch >= kUnicodeVS1 && ch <= kUnicodeVS16) ||
                (ch >= kUnicodeVS17 && ch <= kUnicodeVS256);
+    }
+
+    enum {
+        kUnicodeRegionalIndicatorA = 0x1F1E6,
+        kUnicodeRegionalIndicatorZ = 0x1F1FF
+    };
+
+    static inline bool IsRegionalIndicator(uint32_t aCh) {
+        return aCh >= kUnicodeRegionalIndicatorA &&
+               aCh <= kUnicodeRegionalIndicatorZ;
     }
 
     static inline bool IsInvalid(uint32_t ch) {

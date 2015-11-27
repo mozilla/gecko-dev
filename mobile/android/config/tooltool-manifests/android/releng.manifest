@@ -1,32 +1,58 @@
 [
 {
-"size": 78706854,
-"digest": "8ff42509ecebfd7e20f8fac9987ed2b2c04942641eead674ee66f74014c5153f1c20080cd3ccb243af76ca7432df3c3f5b5ae08a478fd2817e62661a4edb437c",
+"size": 357533004,
+"visibility": "internal",
+"digest": "9b24b6db45ca4f6418d18119e3d2dd48e2a352e977ebf4fd0b2a8c4103fd0735eacb0f7360ff3a2eda6777fdd1029325ca23b8a4c34542b3b1fa487ff633647c",
 "algorithm": "sha512",
-"filename": "android-ndk.tar.bz2"
+"filename": "android-ndk.tar.bz2",
+"unpack": true
 },
 {
-"size": 207966812,
-"digest": "9f6d50e5e67e6a6784dea3b5573178a869b017d2d0c7588af9eb53fdd23c7d1bd6f775f07a9ad1510ba36bf1608d21baa4e26e92afe61e190429870a6371b97d",
+"size": 535625068,
+"visibility": "internal", 
+"digest": "0627515046a23c1d109e2782865b1b3b546c1d552955e4156317f76cbb195eb630aa25feea3f4edd1c685f129da0c2a5169d4d6349c1c31d8a95158a4569a478",
 "algorithm": "sha512",
-"filename": "android-sdk.tar.xz"
+"filename": "android-sdk-linux.tar.xz",
+"unpack": true
 },
 {
-"size": 336,
-"digest": "3336af2e7106654be09ae10b19f981162584ede0888abe295c45fe6e10f52d460a0a94b8bef0518f1419fcd82939b723123e122897599edce9cc240757424890",
+"size": 167175,
+"visibility": "public",
+"digest": "0b71a936edf5bd70cf274aaa5d7abc8f77fe8e7b5593a208f805cc9436fac646b9c4f0b43c2b10de63ff3da671497d35536077ecbc72dba7f8159a38b580f831",
 "algorithm": "sha512",
-"filename": "setup.sh"
-},
-{
-"size": 168202,
-"digest": "5520f53fc10fcb569f235aff5c78ea5b69c878a8439b95aa758de2b83fc9f09bd4758c5fd701d84c58776386e210f3f30e5c9da6fdd8358d7dd371c764179339",
-"algorithm": "sha512",
-"filename": "sccache.tar.bz2"
+"filename": "sccache.tar.bz2",
+"unpack": true
 },
 {
 "size": 7920445,
+"visibility": "public",
 "digest": "e28b7a12fbbef02ad742958df8dd356ea2adb8ef79e95cd8eb8dbc953eb4cc11888969dac7d636187fd3ace9c63d9a6bc3d7795021c1d811a843e413fe5e52c9",
 "algorithm": "sha512",
-"filename": "apache-ant-bin.tar.bz2"
+"filename": "apache-ant.tar.bz2",
+"unpack": true
+},
+{
+"size": 4906080,
+"visibility": "public",
+"unpack": true,
+"digest": "d735544e039da89382c53b2302b7408d4610247b4f8b5cdc5a4d5a8ec5470947b19e8ea7f7a37e78222e661347e394e0030d81f41534138b527b14e9c4e55634",
+"algorithm": "sha512",
+"filename": "jsshell.tar.xz"
+},
+{
+"size": 80458572,
+"visibility": "public",
+"unpack": true,
+"digest": "e5101f9dee1e462f6cbd3897ea57eede41d23981825c7b20d91d23ab461875d54d3dfc24999aa58a31e8b01f49fb3140e05ffe5af2957ef1d1afb89fd0dfe1ad",
+"algorithm": "sha512",
+"filename": "gcc.tar.xz"
+},
+{
+"size": 31013068,
+"visibility": "public",
+"digest": "e30a26f98a3448064857491aee1a7a26f98494f86a89113de9be17c37c8181ed60250706fed881ec1f035002fcdaf8b9b4a7d9ae70ce40acff2f1acfbb40f8d9",
+"algorithm": "sha512",
+"filename": "java_home-1.7.0-openjdk-1.7.0.85.x86_64.tar.xz",
+"unpack": true
 }
 ]

@@ -44,9 +44,9 @@ public:
 NS_DEFINE_STATIC_IID_ACCESSOR(CacheFileListener, CACHEFILELISTENER_IID)
 
 
-class CacheFile : public CacheFileChunkListener
-                , public CacheFileIOListener
-                , public CacheFileMetadataListener
+class CacheFile final : public CacheFileChunkListener
+                      , public CacheFileIOListener
+                      , public CacheFileMetadataListener
 {
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -56,25 +56,27 @@ public:
   nsresult Init(const nsACString &aKey,
                 bool aCreateNew,
                 bool aMemoryOnly,
+                bool aSkipSizeCheck,
                 bool aPriority,
+                bool aPinned,
                 CacheFileListener *aCallback);
 
-  NS_IMETHOD OnChunkRead(nsresult aResult, CacheFileChunk *aChunk);
-  NS_IMETHOD OnChunkWritten(nsresult aResult, CacheFileChunk *aChunk);
+  NS_IMETHOD OnChunkRead(nsresult aResult, CacheFileChunk *aChunk) override;
+  NS_IMETHOD OnChunkWritten(nsresult aResult, CacheFileChunk *aChunk) override;
   NS_IMETHOD OnChunkAvailable(nsresult aResult, uint32_t aChunkIdx,
-                              CacheFileChunk *aChunk);
-  NS_IMETHOD OnChunkUpdated(CacheFileChunk *aChunk);
+                              CacheFileChunk *aChunk) override;
+  NS_IMETHOD OnChunkUpdated(CacheFileChunk *aChunk) override;
 
-  NS_IMETHOD OnFileOpened(CacheFileHandle *aHandle, nsresult aResult);
+  NS_IMETHOD OnFileOpened(CacheFileHandle *aHandle, nsresult aResult) override;
   NS_IMETHOD OnDataWritten(CacheFileHandle *aHandle, const char *aBuf,
-                           nsresult aResult);
-  NS_IMETHOD OnDataRead(CacheFileHandle *aHandle, char *aBuf, nsresult aResult);
-  NS_IMETHOD OnFileDoomed(CacheFileHandle *aHandle, nsresult aResult);
-  NS_IMETHOD OnEOFSet(CacheFileHandle *aHandle, nsresult aResult);
-  NS_IMETHOD OnFileRenamed(CacheFileHandle *aHandle, nsresult aResult);
+                           nsresult aResult) override;
+  NS_IMETHOD OnDataRead(CacheFileHandle *aHandle, char *aBuf, nsresult aResult) override;
+  NS_IMETHOD OnFileDoomed(CacheFileHandle *aHandle, nsresult aResult) override;
+  NS_IMETHOD OnEOFSet(CacheFileHandle *aHandle, nsresult aResult) override;
+  NS_IMETHOD OnFileRenamed(CacheFileHandle *aHandle, nsresult aResult) override;
 
-  NS_IMETHOD OnMetadataRead(nsresult aResult);
-  NS_IMETHOD OnMetadataWritten(nsresult aResult);
+  NS_IMETHOD OnMetadataRead(nsresult aResult) override;
+  NS_IMETHOD OnMetadataWritten(nsresult aResult) override;
 
   NS_IMETHOD OpenInputStream(nsIInputStream **_retval);
   NS_IMETHOD OpenOutputStream(CacheOutputCloseListener *aCloseListener, nsIOutputStream **_retval);
@@ -102,6 +104,7 @@ public:
   bool DataSize(int64_t* aSize);
   void Key(nsACString& aKey) { aKey = mKey; }
   bool IsDoomed();
+  bool IsPinned() const { return mPinned; }
   bool IsWriteInProgress();
 
   // Memory reporting
@@ -121,7 +124,7 @@ private:
   void     Lock();
   void     Unlock();
   void     AssertOwnsLock() const;
-  void     ReleaseOutsideLock(nsISupports *aObject);
+  void     ReleaseOutsideLock(RefPtr<nsISupports> aObject);
 
   enum ECallerType {
     READER    = 0,
@@ -167,7 +170,7 @@ private:
   void PostWriteTimer();
 
   static PLDHashOperator WriteAllCachedChunks(const uint32_t& aIdx,
-                                              nsRefPtr<CacheFileChunk>& aChunk,
+                                              RefPtr<CacheFileChunk>& aChunk,
                                               void* aClosure);
 
   static PLDHashOperator FailListenersIfNonExistentChunk(
@@ -176,11 +179,11 @@ private:
                            void* aClosure);
 
   static PLDHashOperator FailUpdateListeners(const uint32_t& aIdx,
-                                             nsRefPtr<CacheFileChunk>& aChunk,
+                                             RefPtr<CacheFileChunk>& aChunk,
                                              void* aClosure);
 
   static PLDHashOperator CleanUpCachedChunks(const uint32_t& aIdx,
-                                             nsRefPtr<CacheFileChunk>& aChunk,
+                                             RefPtr<CacheFileChunk>& aChunk,
                                              void* aClosure);
 
   nsresult PadChunkWithZeroes(uint32_t aChunkIdx);
@@ -193,7 +196,9 @@ private:
   bool           mOpeningFile;
   bool           mReady;
   bool           mMemoryOnly;
+  bool           mSkipSizeCheck;
   bool           mOpenAsMemoryOnly;
+  bool           mPinned;
   bool           mPriority;
   bool           mDataAccessed;
   bool           mDataIsDirty;
@@ -204,8 +209,8 @@ private:
   int64_t        mDataSize;
   nsCString      mKey;
 
-  nsRefPtr<CacheFileHandle>    mHandle;
-  nsRefPtr<CacheFileMetadata>  mMetadata;
+  RefPtr<CacheFileHandle>      mHandle;
+  RefPtr<CacheFileMetadata>    mMetadata;
   nsCOMPtr<CacheFileListener>  mListener;
   nsCOMPtr<CacheFileIOListener>   mDoomAfterOpenListener;
 
@@ -216,7 +221,7 @@ private:
   nsTArray<CacheFileInputStream*> mInputs;
   CacheFileOutputStream          *mOutput;
 
-  nsTArray<nsISupports*>          mObjsToRelease;
+  nsTArray<RefPtr<nsISupports>> mObjsToRelease;
 };
 
 class CacheFileAutoLock {
@@ -246,11 +251,11 @@ public:
   }
 
 private:
-  nsRefPtr<CacheFile> mFile;
+  RefPtr<CacheFile> mFile;
   bool mLocked;
 };
 
-} // net
-} // mozilla
+} // namespace net
+} // namespace mozilla
 
 #endif

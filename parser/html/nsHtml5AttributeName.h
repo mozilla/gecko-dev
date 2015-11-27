@@ -361,9 +361,11 @@ class nsHtml5AttributeName
     static nsHtml5AttributeName* ATTR_LANGUAGE;
     static nsHtml5AttributeName* ATTR_TEMPLATE;
     static nsHtml5AttributeName* ATTR_TABINDEX;
+    static nsHtml5AttributeName* ATTR_PROPERTY;
     static nsHtml5AttributeName* ATTR_READONLY;
     static nsHtml5AttributeName* ATTR_SELECTED;
     static nsHtml5AttributeName* ATTR_ROWLINES;
+    static nsHtml5AttributeName* ATTR_REFERRER;
     static nsHtml5AttributeName* ATTR_SEAMLESS;
     static nsHtml5AttributeName* ATTR_ROWALIGN;
     static nsHtml5AttributeName* ATTR_STRETCHY;
@@ -385,7 +387,6 @@ class nsHtml5AttributeName
     static nsHtml5AttributeName* ATTR_ELEVATION;
     static nsHtml5AttributeName* ATTR_DIRECTION;
     static nsHtml5AttributeName* ATTR_DRAGGABLE;
-    static nsHtml5AttributeName* ATTR_FILTERRES;
     static nsHtml5AttributeName* ATTR_FILL_RULE;
     static nsHtml5AttributeName* ATTR_FONTSTYLE;
     static nsHtml5AttributeName* ATTR_FONT_SIZE;
@@ -397,6 +398,7 @@ class nsHtml5AttributeName
     static nsHtml5AttributeName* ATTR_ONDRAGEND;
     static nsHtml5AttributeName* ATTR_ONMOVEEND;
     static nsHtml5AttributeName* ATTR_ONINVALID;
+    static nsHtml5AttributeName* ATTR_INTEGRITY;
     static nsHtml5AttributeName* ATTR_ONKEYDOWN;
     static nsHtml5AttributeName* ATTR_ONFOCUSIN;
     static nsHtml5AttributeName* ATTR_ONMOUSEUP;
@@ -626,7 +628,6 @@ class nsHtml5AttributeName
     static nsHtml5AttributeName* ATTR_STROKE_LINEJOIN;
     static nsHtml5AttributeName* ATTR_REPEAT_TEMPLATE;
     static nsHtml5AttributeName* ATTR_ARIA_DESCRIBEDBY;
-    static nsHtml5AttributeName* ATTR_CONTENTSTYLETYPE;
     static nsHtml5AttributeName* ATTR_FONT_SIZE_ADJUST;
     static nsHtml5AttributeName* ATTR_KERNELUNITLENGTH;
     static nsHtml5AttributeName* ATTR_ONBEFOREACTIVATE;
@@ -643,7 +644,6 @@ class nsHtml5AttributeName
     static nsHtml5AttributeName* ATTR_XCHANNELSELECTOR;
     static nsHtml5AttributeName* ATTR_YCHANNELSELECTOR;
     static nsHtml5AttributeName* ATTR_ARIA_AUTOCOMPLETE;
-    static nsHtml5AttributeName* ATTR_CONTENTSCRIPTTYPE;
     static nsHtml5AttributeName* ATTR_ENABLE_BACKGROUND;
     static nsHtml5AttributeName* ATTR_DOMINANT_BASELINE;
     static nsHtml5AttributeName* ATTR_GRADIENTTRANSFORM;
@@ -672,7 +672,6 @@ class nsHtml5AttributeName
     static nsHtml5AttributeName* ATTR_VERYVERYTHICKMATHSPACE;
     static nsHtml5AttributeName* ATTR_STRIKETHROUGH_POSITION;
     static nsHtml5AttributeName* ATTR_STRIKETHROUGH_THICKNESS;
-    static nsHtml5AttributeName* ATTR_EXTERNALRESOURCESREQUIRED;
     static nsHtml5AttributeName* ATTR_GLYPH_ORIENTATION_VERTICAL;
     static nsHtml5AttributeName* ATTR_COLOR_INTERPOLATION_FILTERS;
     static nsHtml5AttributeName* ATTR_GLYPH_ORIENTATION_HORIZONTAL;

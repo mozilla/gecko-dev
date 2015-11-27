@@ -11,15 +11,15 @@ this.EXPORTED_SYMBOLS = [
   "TokenServerClientServerError",
 ];
 
-const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
+var {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
-Cu.import("resource://gre/modules/Preferences.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://services-common/rest.js");
 Cu.import("resource://services-common/utils.js");
 Cu.import("resource://services-common/observers.js");
 
-const Prefs = new Preferences("services.common.tokenserverclient.");
+const PREF_LOG_LEVEL = "services.common.log.logger.tokenserverclient";
 
 /**
  * Represents a TokenServerClient error that occurred on the client.
@@ -32,6 +32,9 @@ const Prefs = new Preferences("services.common.tokenserverclient.");
 this.TokenServerClientError = function TokenServerClientError(message) {
   this.name = "TokenServerClientError";
   this.message = message || "Client error.";
+  // Without explicitly setting .stack, all stacks from these errors will point
+  // to the "new Error()" call a few lines down, which isn't helpful.
+  this.stack = Error().stack;
 }
 TokenServerClientError.prototype = new Error();
 TokenServerClientError.prototype.constructor = TokenServerClientError;
@@ -40,6 +43,11 @@ TokenServerClientError.prototype._toStringFields = function() {
 }
 TokenServerClientError.prototype.toString = function() {
   return this.name + "(" + JSON.stringify(this._toStringFields()) + ")";
+}
+TokenServerClientError.prototype.toJSON = function() {
+  let result = this._toStringFields();
+  result["name"] = this.name;
+  return result;
 }
 
 /**
@@ -52,6 +60,7 @@ this.TokenServerClientNetworkError =
  function TokenServerClientNetworkError(error) {
   this.name = "TokenServerClientNetworkError";
   this.error = error;
+  this.stack = Error().stack;
 }
 TokenServerClientNetworkError.prototype = new TokenServerClientError();
 TokenServerClientNetworkError.prototype.constructor =
@@ -96,6 +105,7 @@ this.TokenServerClientServerError =
   this.name = "TokenServerClientServerError";
   this.message = message || "Server error.";
   this.cause = cause;
+  this.stack = Error().stack;
 }
 TokenServerClientServerError.prototype = new TokenServerClientError();
 TokenServerClientServerError.prototype.constructor =
@@ -140,7 +150,11 @@ TokenServerClientServerError.prototype._toStringFields = function() {
  */
 this.TokenServerClient = function TokenServerClient() {
   this._log = Log.repository.getLogger("Common.TokenServerClient");
-  this._log.level = Log.Level[Prefs.get("logger.level")];
+  let level = "Debug";
+  try {
+    level = Services.prefs.getCharPref(PREF_LOG_LEVEL);
+  } catch (ex) {}
+  this._log.level = Log.Level[level];
 }
 TokenServerClient.prototype = {
   /**
@@ -384,6 +398,11 @@ TokenServerClient.prototype = {
         error.cause = "unknown-service";
       }
 
+      if (response.status == 401 || response.status == 403) {
+        Services.telemetry.getKeyedHistogramById(
+          "TOKENSERVER_AUTH_ERRORS").add(error.cause || "unknown");
+      }
+
       // A Retry-After header should theoretically only appear on a 503, but
       // we'll look for it on any error response.
       this._maybeNotifyBackoff(response, "retry-after");
@@ -404,7 +423,7 @@ TokenServerClient.prototype = {
       }
     }
 
-    this._log.debug("Successful token response: " + result.id);
+    this._log.debug("Successful token response");
     cb(null, {
       id:       result.id,
       key:      result.key,

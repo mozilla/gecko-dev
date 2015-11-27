@@ -11,6 +11,7 @@
 #include "nsDebug.h"                    // for NS_ASSERTION, etc
 #include "nsEditor.h"                   // mEditor
 #include "nsError.h"                    // for NS_OK, etc
+#include "nsQueryObject.h"              // for do_QueryObject
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -38,7 +39,9 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(InsertTextTxn, EditTxn,
 NS_IMPL_ADDREF_INHERITED(InsertTextTxn, EditTxn)
 NS_IMPL_RELEASE_INHERITED(InsertTextTxn, EditTxn)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(InsertTextTxn)
-  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsITransaction, InsertTextTxn)
+  if (aIID.Equals(NS_GET_IID(InsertTextTxn))) {
+    foundInterface = static_cast<nsITransaction*>(this);
+  } else
 NS_INTERFACE_MAP_END_INHERITING(EditTxn)
 
 
@@ -50,7 +53,7 @@ InsertTextTxn::DoTransaction()
 
   // Only set selection to insertion point if editor gives permission
   if (mEditor.GetShouldTxnSetSelection()) {
-    nsRefPtr<Selection> selection = mEditor.GetSelection();
+    RefPtr<Selection> selection = mEditor.GetSelection();
     NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
     res = selection->Collapse(mTextNode,
                               mOffset + mStringToInsert.Length());
@@ -80,7 +83,7 @@ InsertTextTxn::Merge(nsITransaction* aTransaction, bool* aDidMerge)
 
   // If aTransaction is a InsertTextTxn, and if the selection hasn't changed,
   // then absorb it
-  nsRefPtr<InsertTextTxn> otherInsTxn = do_QueryObject(aTransaction);
+  RefPtr<InsertTextTxn> otherInsTxn = do_QueryObject(aTransaction);
   if (otherInsTxn && IsSequentialInsert(*otherInsTxn)) {
     nsAutoString otherData;
     otherInsTxn->GetData(otherData);

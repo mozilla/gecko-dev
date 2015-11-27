@@ -14,15 +14,13 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "CustomizableUI", "resource:///modules/CustomizableUI.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "SharedFrame", "resource:///modules/SharedFrame.jsm");
-
 XPCOMUtils.defineLazyModuleGetter(this, "DynamicResizeWatcher", "resource:///modules/Social.jsm");
 
 // The minimum sizes for the auto-resize panel code.
 const PANEL_MIN_HEIGHT = 100;
 const PANEL_MIN_WIDTH = 330;
 
-let PanelFrameInternal = {
+var PanelFrameInternal = {
   /**
    * Helper function to get and hold a single instance of a DynamicResizeWatcher.
    */
@@ -47,45 +45,49 @@ let PanelFrameInternal = {
    */
   _attachNotificatonPanel: function(aWindow, aParent, aButton, aType, aOrigin, aSrc, aSize) {
     aParent.hidden = false;
-    let notificationFrameId = aOrigin ? aType + "-status-" + aOrigin : aType;
-    let frame = aWindow.document.getElementById(notificationFrameId);
+    let notificationFrameId = aOrigin ? aType + "-status-" + aOrigin : aType + "-panel-iframe";
+    let doc = aWindow.document;
+    let frame = doc.getElementById(notificationFrameId);
 
-    // If the button was customized to a new location, we we'll destroy the
+    // If the button was customized to a new location, destroy the
     // iframe and start fresh.
     if (frame && frame.parentNode != aParent) {
-      SharedFrame.forgetGroup(frame.id);
       frame.parentNode.removeChild(frame);
       frame = null;
     }
 
     if (!frame) {
       let {width, height} = aSize ? aSize : {width: PANEL_MIN_WIDTH, height: PANEL_MIN_HEIGHT};
+      frame = doc.createElement("browser");
+      let attrs = {
+        "type": "content",
+        "mozbrowser": "true",
+        // All frames use social-panel-frame as the class.
+        "class": "social-panel-frame",
+        "id": notificationFrameId,
+        "tooltip": "aHTMLTooltip",
+        "context": "contentAreaContextMenu",
+        "flex": "1",
 
-      frame = SharedFrame.createFrame(
-        notificationFrameId, /* frame name */
-        aParent, /* parent */
-        {
-          "type": "content",
-          "mozbrowser": "true",
-          // All frames use social-panel-frame as the class.
-          "class": "social-panel-frame",
-          "id": notificationFrameId,
-          "tooltip": "aHTMLTooltip",
-          "context": "contentAreaContextMenu",
-          "flex": "1",
+        // work around bug 793057 - by making the panel roughly the final size
+        // we are more likely to have the anchor in the correct position.
+        "style": "width: " + width + "px; height: " + height + "px;",
+        "dynamicresizer": !aSize,
 
-          // work around bug 793057 - by making the panel roughly the final size
-          // we are more likely to have the anchor in the correct position.
-          "style": "width: " + width + "px; height: " + height + "px;",
-          "dynamicresizer": !aSize,
-
-          "origin": aOrigin,
-          "src": aSrc
-        }
-      );
+        "origin": aOrigin,
+        "src": aSrc
+      };
+      if (aType == "social") {
+        attrs["message"] = "true";
+        attrs["messagemanagergroup"] = aType;
+      }
+      for (let [k, v] of Iterator(attrs)) {
+        frame.setAttribute(k, v);
+      }
+      aParent.appendChild(frame);
     } else {
       frame.setAttribute("origin", aOrigin);
-      SharedFrame.updateURL(notificationFrameId, aSrc);
+      frame.setAttribute("src", aSrc);
     }
     aButton.setAttribute("notificationFrameId", notificationFrameId);
   }
@@ -94,7 +96,7 @@ let PanelFrameInternal = {
 /**
  * The exported PanelFrame object
  */
-let PanelFrame = {
+var PanelFrame = {
   /**
    * Shows a popup in a pop-up panel, or in a sliding panel view in the application menu.
    * It will move the iframe to different DOM locations depending on where it needs to be
@@ -156,12 +158,6 @@ let PanelFrame = {
 
     panel.addEventListener("popupshown", function onpopupshown() {
       panel.removeEventListener("popupshown", onpopupshown);
-      SharedFrame.setOwner(notificationFrameId, notificationFrame);
-      // This attribute is needed on both the button and the
-      // containing toolbaritem since the buttons on OS X have
-      // moz-appearance:none, while their container gets
-      // moz-appearance:toolbarbutton due to the way that toolbar buttons
-      // get combined on OS X.
       let initFrameShow = () => {
         notificationFrame.docShell.isActive = true;
         notificationFrame.docShell.isAppTab = true;
@@ -169,6 +165,11 @@ let PanelFrame = {
           dynamicResizer.start(panel, notificationFrame);
         dispatchPanelEvent(aType + "FrameShow");
       };
+      // This attribute is needed on both the button and the
+      // containing toolbaritem since the buttons on OS X have
+      // moz-appearance:none, while their container gets
+      // moz-appearance:toolbarbutton due to the way that toolbar buttons
+      // get combined on OS X.
       anchorBtn.setAttribute("open", "true");
       if (notificationFrame.contentDocument &&
           notificationFrame.contentDocument.readyState == "complete") {
@@ -182,9 +183,7 @@ let PanelFrame = {
       }
     });
 
-    // in overflow, the anchor is a normal toolbarbutton, in toolbar it is a badge button
-    let anchor = aWindow.document.getAnonymousElementByAttribute(anchorBtn, "class", "toolbarbutton-badge-container") ||
-                 aWindow.document.getAnonymousElementByAttribute(anchorBtn, "class", "toolbarbutton-icon");
+    let anchor = aWindow.document.getAnonymousElementByAttribute(anchorBtn, "class", "toolbarbutton-icon");
     // Bug 849216 - open the popup asynchronously so we avoid the auto-rollup
     // handling from preventing it being opened in some cases.
     Services.tm.mainThread.dispatch(function() {

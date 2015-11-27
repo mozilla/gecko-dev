@@ -6,9 +6,9 @@ Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/NetUtil.jsm");
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cr = Components.results;
 
 XPCOMUtils.defineLazyServiceGetter(Services, "cookies",
                                    "@mozilla.org/cookieService;1",
@@ -80,13 +80,13 @@ _observer.prototype = {
 
 // Close the cookie database. If a generator is supplied, it will be invoked
 // once the close is complete.
-function do_close_profile(generator, cleanse) {
+function do_close_profile(generator) {
   // Register an observer for db close.
   let obs = new _observer(generator, "cookie-db-closed");
 
   // Close the db.
   let service = Services.cookies.QueryInterface(Ci.nsIObserver);
-  service.observe(null, "profile-before-change", cleanse ? cleanse : "");
+  service.observe(null, "profile-before-change", "shutdown-persist");
 }
 
 // Load the cookie database. If a generator is supplied, it will be invoked

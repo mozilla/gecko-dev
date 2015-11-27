@@ -15,11 +15,21 @@ namespace mozilla {
 namespace layout {
 
 void
+RenderFrameChild::ActorDestroy(ActorDestroyReason why)
+{
+  mWasDestroyed = true;
+}
+
+void
 RenderFrameChild::Destroy()
 {
+  if (mWasDestroyed) {
+    return;
+  }
+
   Send__delete__(this);
   // WARNING: |this| is dead, hands off
 }
 
-}  // namespace layout
-}  // namespace mozilla
+} // namespace layout
+} // namespace mozilla

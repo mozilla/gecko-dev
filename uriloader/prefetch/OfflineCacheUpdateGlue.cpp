@@ -12,26 +12,24 @@
 #include "nsIApplicationCacheContainer.h"
 #include "nsIChannel.h"
 #include "nsIDocument.h"
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
-#if defined(PR_LOGGING)
 //
 // To enable logging (see prlog.h for full details):
 //
 //    set NSPR_LOG_MODULES=nsOfflineCacheUpdate:5
 //    set NSPR_LOG_FILE=offlineupdate.log
 //
-// this enables PR_LOG_ALWAYS level information and places all output in
+// this enables LogLevel::Info level information and places all output in
 // the file offlineupdate.log
 //
 extern PRLogModuleInfo *gOfflineCacheUpdateLog;
-#endif
 
 #undef LOG
-#define LOG(args) PR_LOG(gOfflineCacheUpdateLog, 4, args)
+#define LOG(args) MOZ_LOG(gOfflineCacheUpdateLog, mozilla::LogLevel::Debug, args)
 
 #undef LOG_ENABLED
-#define LOG_ENABLED() PR_LOG_TEST(gOfflineCacheUpdateLog, 4)
+#define LOG_ENABLED() MOZ_LOG_TEST(gOfflineCacheUpdateLog, mozilla::LogLevel::Debug)
 
 namespace mozilla {
 namespace docshell {
@@ -97,8 +95,9 @@ OfflineCacheUpdateGlue::Schedule()
 }
 
 NS_IMETHODIMP
-OfflineCacheUpdateGlue::Init(nsIURI *aManifestURI, 
+OfflineCacheUpdateGlue::Init(nsIURI *aManifestURI,
                              nsIURI *aDocumentURI,
+                             nsIPrincipal* aLoadingPrincipal,
                              nsIDOMDocument *aDocument,
                              nsIFile *aCustomProfileDir,
                              uint32_t aAppID,
@@ -116,6 +115,7 @@ OfflineCacheUpdateGlue::Init(nsIURI *aManifestURI,
         return NS_ERROR_NULL_POINTER;
 
     mDocumentURI = aDocumentURI;
+    mLoadingPrincipal = aLoadingPrincipal;
 
     if (aDocument)
         SetDocument(aDocument);
@@ -125,7 +125,8 @@ OfflineCacheUpdateGlue::Init(nsIURI *aManifestURI,
         return NS_OK;
     }
 
-    return mUpdate->Init(aManifestURI, aDocumentURI, nullptr, aCustomProfileDir, aAppID, aInBrowser);
+    return mUpdate->Init(aManifestURI, aDocumentURI, aLoadingPrincipal, nullptr,
+                         aCustomProfileDir, aAppID, aInBrowser);
 }
 
 void
@@ -203,7 +204,6 @@ OfflineCacheUpdateGlue::ApplicationCacheAvailable(nsIApplicationCache *aApplicat
     NS_ENSURE_SUCCESS(rv, rv);
 
     if (!existingCache) {
-#if defined(PR_LOGGING)
         if (LOG_ENABLED()) {
             nsAutoCString clientID;
             if (aApplicationCache) {
@@ -212,7 +212,6 @@ OfflineCacheUpdateGlue::ApplicationCacheAvailable(nsIApplicationCache *aApplicat
             LOG(("Update %p: associating app cache %s to document %p",
                  this, clientID.get(), mDocument.get()));
         }
-#endif
 
         rv = container->SetApplicationCache(aApplicationCache);
         NS_ENSURE_SUCCESS(rv, rv);
@@ -221,5 +220,5 @@ OfflineCacheUpdateGlue::ApplicationCacheAvailable(nsIApplicationCache *aApplicat
     return NS_OK;
 }
 
-}
-}
+} // namespace docshell
+} // namespace mozilla

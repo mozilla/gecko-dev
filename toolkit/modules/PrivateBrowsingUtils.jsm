@@ -10,7 +10,7 @@ const kAutoStartPref = "browser.privatebrowsing.autostart";
 
 // This will be set to true when the PB mode is autostarted from the command
 // line for the current session.
-let gTemporaryAutoStartMode = false;
+var gTemporaryAutoStartMode = false;
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -34,13 +34,33 @@ this.PrivateBrowsingUtils = {
   },
 
   isBrowserPrivate: function(aBrowser) {
-    return this.isWindowPrivate(aBrowser.ownerDocument.defaultView);
+    let chromeWin = aBrowser.ownerDocument.defaultView;
+    if (chromeWin.gMultiProcessBrowser) {
+      // In e10s we have to look at the chrome window's private
+      // browsing status since the only alternative is to check the
+      // content window, which is in another process.
+      return this.isWindowPrivate(chromeWin);
+    } else {
+      return this.privacyContextFromWindow(aBrowser.contentWindow).usePrivateBrowsing;
+    }
   },
 
   privacyContextFromWindow: function pbu_privacyContextFromWindow(aWindow) {
     return aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                   .getInterface(Ci.nsIWebNavigation)
                   .QueryInterface(Ci.nsILoadContext);
+  },
+
+  addToTrackingAllowlist(aURI) {
+    let pbmtpWhitelist = Cc["@mozilla.org/pbm-tp-whitelist;1"]
+                           .getService(Ci.nsIPrivateBrowsingTrackingProtectionWhitelist);
+    pbmtpWhitelist.addToAllowList(aURI);
+  },
+
+  removeFromTrackingAllowlist(aURI) {
+    let pbmtpWhitelist = Cc["@mozilla.org/pbm-tp-whitelist;1"]
+                           .getService(Ci.nsIPrivateBrowsingTrackingProtectionWhitelist);
+    pbmtpWhitelist.removeFromAllowList(aURI);
   },
 
   get permanentPrivateBrowsing() {

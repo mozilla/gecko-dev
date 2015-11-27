@@ -39,8 +39,9 @@
   page-break-inside: inherit;
   vertical-align: inherit; /* needed for inline-table */
   line-height: inherit; /* needed for vertical-align on inline-table */
-  align-self: inherit; /* needed for "align-self" to work on table flex items */
-  order: inherit;   /* needed for "order" to work on table flex items */
+  align-self: inherit;
+  justify-self: inherit;
+  order: inherit;   /* needed for "order" to work on table flex/grid items */
   /* Bug 722777 */
   -moz-transform: inherit;
   -moz-transform-origin: inherit;
@@ -73,21 +74,26 @@
 }
 
 /* Ruby */
-@supports(display:ruby) {
+@supports (display:ruby) {
   *|*::-moz-ruby {
     display: ruby;
+    unicode-bidi: -moz-isolate;
   }
   *|*::-moz-ruby-base {
     display: ruby-base;
+    unicode-bidi: -moz-isolate;
   }
   *|*::-moz-ruby-text {
     display: ruby-text;
+    unicode-bidi: -moz-isolate;
   }
   *|*::-moz-ruby-base-container {
     display: ruby-base-container;
+    unicode-bidi: -moz-isolate;
   }
   *|*::-moz-ruby-text-container {
     display: ruby-text-container;
+    unicode-bidi: -moz-isolate;
   }
 }
 
@@ -98,6 +104,11 @@
   vertical-align: baseline;
   font-variant-numeric: tabular-nums;
 }
+
+/* SVG documents don't always load this file but they do have links.
+ * If you change the link rules, consider carefully whether to make
+ * the same changes to svg.css.
+ */
 
 /* Links */
 
@@ -252,7 +263,7 @@
 
 }
 
-*|*:not(:root):-moz-full-screen {
+*|*:-moz-full-screen:not(:root) {
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
@@ -270,11 +281,10 @@
   box-sizing: border-box !important;
 }
 
-/* If there is a full-screen element that is not the root then
-   we should hide the viewport scrollbar. We exclude the chrome
-   document to prevent reframing of contained plugins. */
-:not(xul|*):root:-moz-full-screen-ancestor {
-  overflow: hidden !important;
+/* Selectors here should match the check in
+ * nsViewportFrame.cpp:ShouldInTopLayerForFullscreen() */
+*|*:-moz-full-screen:not(:root):not(:-moz-browser-frame) {
+  -moz-top-layer: top !important;
 }
 
 /* XML parse error reporting */
@@ -291,6 +301,7 @@ parsererror|parsererror {
   border-color: red;
   font-size: 14pt;
   background-color: lightyellow;
+  color: black;
 }
 
 parsererror|sourcetext {
@@ -304,84 +315,211 @@ parsererror|sourcetext {
   font-size: 12pt;
 }
 
-div[\_moz_anonclass="mozTouchCaret"].moz-touchcaret,
-div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-left,
-div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-right {
-  background-image: url("resource://gre/res/text_caret.png");
+div:-moz-native-anonymous.moz-accessiblecaret,
+div:-moz-native-anonymous.moz-accessiblecaret > div.image,
+div:-moz-native-anonymous.moz-accessiblecaret > div.bar {
   position: absolute;
-  width: 29px;
-  height: 31px;
-  margin-left: -15px;
-  background-position: center center;
-  background-size: 100% 100%;
   z-index: 2147483647;
 }
 
-div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-left.tilt {
-  background-image: url("resource://gre/res/text_caret_tilt_left.png");
-  margin-left: -29px;
-  width: 29px;
+div:-moz-native-anonymous.moz-accessiblecaret > div.image {
+  background-position: center bottom;
+  background-size: 100%;
+  background-repeat: no-repeat;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+
+  /* Override this property in moz-custom-content-container to make dummy touch
+   * listener work. */
+  pointer-events: auto;
 }
 
-div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-right.tilt {
-  background-image: url("resource://gre/res/text_caret_tilt_right.png");
-  margin-left: 0px;
-  width: 29px;
+div:-moz-native-anonymous.moz-accessiblecaret > div.bar {
+  margin-left: 49%;
+  background-color: #008aa0;
+}
+
+div:-moz-native-anonymous.moz-accessiblecaret.no-bar > div.bar {
+  display: none;
+}
+
+div:-moz-native-anonymous.moz-accessiblecaret.normal > div.image {
+  background-image: url("resource://gre/res/accessiblecaret.png");
+}
+
+div:-moz-native-anonymous.moz-accessiblecaret.left > div.image {
+  background-image: url("resource://gre/res/accessiblecaret_tilt_left.png");
+  margin-left: -39%;
+}
+
+div:-moz-native-anonymous.moz-accessiblecaret.right > div.image {
+  background-image: url("resource://gre/res/accessiblecaret_tilt_right.png");
+  margin-left: 41%;
+}
+
+div:-moz-native-anonymous.moz-accessiblecaret.none {
+  display: none;
 }
 
 @media (min-resolution: 1.5dppx) {
-  div[\_moz_anonclass="mozTouchCaret"].moz-touchcaret,
-  div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-left,
-  div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-right {
+  div:-moz-native-anonymous.moz-accessiblecaret.normal > div.image {
+    background-image: url("resource://gre/res/accessiblecaret@1.5x.png");
+  }
+
+  div:-moz-native-anonymous.moz-accessiblecaret.left > div.image {
+    background-image: url("resource://gre/res/accessiblecaret_tilt_left@1.5x.png");
+  }
+
+  div:-moz-native-anonymous.moz-accessiblecaret.right > div.image {
+    background-image: url("resource://gre/res/accessiblecaret_tilt_right@1.5x.png");
+  }
+}
+
+@media (min-resolution: 2dppx) {
+  div:-moz-native-anonymous.moz-accessiblecaret.normal > div.image {
+    background-image: url("resource://gre/res/accessiblecaret@2x.png");
+  }
+
+  div:-moz-native-anonymous.moz-accessiblecaret.left > div.image {
+    background-image: url("resource://gre/res/accessiblecaret_tilt_left@2x.png");
+  }
+
+  div:-moz-native-anonymous.moz-accessiblecaret.right > div.image {
+    background-image: url("resource://gre/res/accessiblecaret_tilt_right@2x.png");
+  }
+}
+
+@media (min-resolution: 2.25dppx) {
+  div:-moz-native-anonymous.moz-accessiblecaret.normal > div.image {
+    background-image: url("resource://gre/res/accessiblecaret@2.25x.png");
+  }
+
+  div:-moz-native-anonymous.moz-accessiblecaret.left > div.image {
+    background-image: url("resource://gre/res/accessiblecaret_tilt_left@2.25x.png");
+  }
+
+  div:-moz-native-anonymous.moz-accessiblecaret.right > div.image {
+    background-image: url("resource://gre/res/accessiblecaret_tilt_right@2.25x.png");
+  }
+}
+
+div:-moz-native-anonymous.moz-touchcaret,
+div:-moz-native-anonymous.moz-selectioncaret-left,
+div:-moz-native-anonymous.moz-selectioncaret-right {
+  position: fixed;
+  width: 44px;
+  height: 47px;
+}
+
+div:-moz-native-anonymous.moz-selectioncaret-left > div,
+div:-moz-native-anonymous.moz-selectioncaret-right > div {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  bottom: 0;
+}
+
+div:-moz-native-anonymous.moz-touchcaret,
+div:-moz-native-anonymous.moz-selectioncaret-left,
+div:-moz-native-anonymous.moz-selectioncaret-right,
+div:-moz-native-anonymous.moz-selectioncaret-left > div,
+div:-moz-native-anonymous.moz-selectioncaret-right > div {
+  background-position: center bottom;
+  background-size: 100%;
+  background-repeat: no-repeat;
+  z-index: 2147483647;
+}
+
+div:-moz-native-anonymous.moz-touchcaret,
+div:-moz-native-anonymous.moz-selectioncaret-left > div,
+div:-moz-native-anonymous.moz-selectioncaret-right > div {
+  background-image: url("resource://gre/res/text_caret.png");
+}
+
+div:-moz-native-anonymous.moz-touchcaret,
+div:-moz-native-anonymous.moz-selectioncaret-left,
+div:-moz-native-anonymous.moz-selectioncaret-right {
+  margin-left: -23px;
+}
+
+div:-moz-native-anonymous.moz-selectioncaret-left.tilt > div {
+  background-image: url("resource://gre/res/text_caret_tilt_left.png");
+  margin-left: -17px;
+}
+
+div:-moz-native-anonymous.moz-selectioncaret-right.tilt > div {
+  background-image: url("resource://gre/res/text_caret_tilt_right.png");
+  margin-left: 18px;
+}
+
+@media (min-resolution: 1.5dppx) {
+  div:-moz-native-anonymous.moz-touchcaret,
+  div:-moz-native-anonymous.moz-selectioncaret-left > div,
+  div:-moz-native-anonymous.moz-selectioncaret-right > div {
     background-image: url("resource://gre/res/text_caret@1.5x.png");
   }
 
-  div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-left.tilt {
+  div:-moz-native-anonymous.moz-selectioncaret-left.tilt > div {
     background-image: url("resource://gre/res/text_caret_tilt_left@1.5x.png");
   }
 
-  div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-right.tilt {
+  div:-moz-native-anonymous.moz-selectioncaret-right.tilt > div {
     background-image: url("resource://gre/res/text_caret_tilt_right@1.5x.png");
   }
 }
 
 @media (min-resolution: 2dppx) {
-  div[\_moz_anonclass="mozTouchCaret"].moz-touchcaret,
-  div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-left,
-  div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-right {
+  div:-moz-native-anonymous.moz-touchcaret,
+  div:-moz-native-anonymous.moz-selectioncaret-left > div,
+  div:-moz-native-anonymous.moz-selectioncaret-right > div {
     background-image: url("resource://gre/res/text_caret@2x.png");
   }
 
-  div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-left.tilt {
+  div:-moz-native-anonymous.moz-selectioncaret-left.tilt > div {
     background-image: url("resource://gre/res/text_caret_tilt_left@2x.png");
   }
 
-  div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-right.tilt {
+  div:-moz-native-anonymous.moz-selectioncaret-right.tilt > div {
     background-image: url("resource://gre/res/text_caret_tilt_right@2x.png");
   }
 }
 
 @media (min-resolution: 2.25dppx) {
-  div[\_moz_anonclass="mozTouchCaret"].moz-touchcaret,
-  div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-left,
-  div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-right {
+  div:-moz-native-anonymous.moz-touchcaret,
+  div:-moz-native-anonymous.moz-selectioncaret-left > div,
+  div:-moz-native-anonymous.moz-selectioncaret-right > div {
     background-image: url("resource://gre/res/text_caret@2.25x.png");
   }
 
-  div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-left.tilt {
+  div:-moz-native-anonymous.moz-selectioncaret-left.tilt > div {
     background-image: url("resource://gre/res/text_caret_tilt_left@2.25x.png");
   }
 
-  div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-right.tilt {
+  div:-moz-native-anonymous.moz-selectioncaret-right.tilt > div {
     background-image: url("resource://gre/res/text_caret_tilt_right@2.25x.png");
   }
 }
 
-div[\_moz_anonclass="mozTouchCaret"].moz-touchcaret.hidden,
-div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-left.hidden,
-div[\_moz_anonclass="mozTouchCaret"].moz-selectioncaret-right.hidden {
+div:-moz-native-anonymous.moz-touchcaret.hidden,
+div:-moz-native-anonymous.moz-selectioncaret-left.hidden,
+div:-moz-native-anonymous.moz-selectioncaret-right.hidden,
+div:-moz-native-anonymous.moz-selectioncaret-left.hidden > div,
+div:-moz-native-anonymous.moz-selectioncaret-right.hidden > div {
   width: 0px;
   height: 0px;
   margin: 0px;
   visibility: hidden;
+}
+
+/* Custom content container in the CanvasFrame, fixed positioned on top of
+   everything else, not reacting to pointer events. */
+div:-moz-native-anonymous.moz-custom-content-container {
+  pointer-events: none;
+  -moz-top-layer: top;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 }

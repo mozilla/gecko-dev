@@ -8,7 +8,6 @@ package org.mozilla.gecko.home;
 import java.util.EnumSet;
 
 import org.mozilla.gecko.R;
-import org.mozilla.gecko.db.BrowserContract.History;
 import org.mozilla.gecko.db.BrowserContract.URLColumns;
 import org.mozilla.gecko.db.BrowserDB.FilterFlags;
 import org.mozilla.gecko.util.StringUtils;
@@ -206,7 +205,7 @@ class PinSiteDialog extends DialogFragment {
     }
 
     private static class SearchAdapter extends CursorAdapter {
-        private LayoutInflater mInflater;
+        private final LayoutInflater mInflater;
 
         public SearchAdapter(Context context) {
             super(context, null, 0);

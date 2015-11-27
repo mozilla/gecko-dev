@@ -4,33 +4,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include <iomanip>
-#include "logging.h"
-#include "nspr.h"
-#include "cryptohi.h"
-#include "ssl.h"
-#include "keyhi.h"
-#include "pk11pub.h"
-#include "sechash.h"
-#include "nsError.h"
 #include "dtlsidentity.h"
+
+#include "cert.h"
+#include "cryptohi.h"
+#include "keyhi.h"
+#include "nsError.h"
+#include "pk11pub.h"
+#include "prprf.h"
+#include "sechash.h"
+#include "ssl.h"
 
 namespace mozilla {
 
-MOZ_MTLOG_MODULE("mtransport")
-
 DtlsIdentity::~DtlsIdentity() {
-  // XXX: make cert_ a smart pointer to avoid this, after we figure
-  // out the linking problem.
-  if (cert_)
+  if (cert_) {
     CERT_DestroyCertificate(cert_);
+  }
 }
 
-const std::string DtlsIdentity::DEFAULT_HASH_ALGORITHM = "sha-256";
-const size_t DtlsIdentity::HASH_ALGORITHM_MAX_LENGTH = 64;
-
-TemporaryRef<DtlsIdentity> DtlsIdentity::Generate() {
-
+RefPtr<DtlsIdentity> DtlsIdentity::Generate() {
   ScopedPK11SlotInfo slot(PK11_GetInternalSlot());
   if (!slot) {
     return nullptr;
@@ -56,10 +49,16 @@ TemporaryRef<DtlsIdentity> DtlsIdentity::Generate() {
     return nullptr;
   }
 
-  PK11RSAGenParams rsaparams;
-  rsaparams.keySizeInBits = 1024; // TODO: make this stronger when we
-                                  // pre-generate.
-  rsaparams.pe = 65537; // We are too paranoid to use 3 as the exponent.
+  unsigned char paramBuf[12]; // OIDs are small
+  SECItem ecdsaParams = { siBuffer, paramBuf, sizeof(paramBuf) };
+  SECOidData* oidData = SECOID_FindOIDByTag(SEC_OID_SECG_EC_SECP256R1);
+  if (!oidData || (oidData->oid.len > (sizeof(paramBuf) - 2))) {
+    return nullptr;
+  }
+  ecdsaParams.data[0] = SEC_ASN1_OBJECT_ID;
+  ecdsaParams.data[1] = oidData->oid.len;
+  memcpy(ecdsaParams.data + 2, oidData->oid.data, oidData->oid.len);
+  ecdsaParams.len = oidData->oid.len + 2;
 
   ScopedSECKEYPrivateKey private_key;
   ScopedSECKEYPublicKey public_key;
@@ -67,7 +66,7 @@ TemporaryRef<DtlsIdentity> DtlsIdentity::Generate() {
 
   private_key =
       PK11_GenerateKeyPair(slot,
-                           CKM_RSA_PKCS_KEY_PAIR_GEN, &rsaparams, &pubkey,
+                           CKM_EC_KEY_PAIR_GEN, &ecdsaParams, &pubkey,
                            PR_FALSE, PR_TRUE, nullptr);
   if (private_key == nullptr)
     return nullptr;
@@ -123,7 +122,7 @@ TemporaryRef<DtlsIdentity> DtlsIdentity::Generate() {
   PLArenaPool *arena = certificate->arena;
 
   rv = SECOID_SetAlgorithmID(arena, &certificate->signature,
-                             SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION, 0);
+                             SEC_OID_ANSIX962_ECDSA_SHA256_SIGNATURE, 0);
   if (rv != SECSuccess)
     return nullptr;
 
@@ -147,30 +146,34 @@ TemporaryRef<DtlsIdentity> DtlsIdentity::Generate() {
 
   rv = SEC_DerSignData(arena, signedCert, innerDER.data, innerDER.len,
                        private_key,
-                       SEC_OID_PKCS1_SHA1_WITH_RSA_ENCRYPTION);
+                       SEC_OID_ANSIX962_ECDSA_SHA256_SIGNATURE);
   if (rv != SECSuccess) {
     return nullptr;
   }
   certificate->derCert = *signedCert;
 
-  return new DtlsIdentity(private_key.forget(), certificate.forget());
+  RefPtr<DtlsIdentity> identity =
+      new DtlsIdentity(private_key.forget(), certificate.forget(), ssl_kea_ecdh);
+  return identity.forget();
 }
 
+const std::string DtlsIdentity::DEFAULT_HASH_ALGORITHM = "sha-256";
 
 nsresult DtlsIdentity::ComputeFingerprint(const std::string algorithm,
-                                          unsigned char *digest,
-                                          std::size_t size,
-                                          std::size_t *digest_length) {
-  MOZ_ASSERT(cert_);
+                                          uint8_t *digest,
+                                          size_t size,
+                                          size_t *digest_length) const {
+  const CERTCertificate* c = cert();
+  MOZ_ASSERT(c);
 
-  return ComputeFingerprint(cert_, algorithm, digest, size, digest_length);
+  return ComputeFingerprint(c, algorithm, digest, size, digest_length);
 }
 
 nsresult DtlsIdentity::ComputeFingerprint(const CERTCertificate *cert,
                                           const std::string algorithm,
-                                          unsigned char *digest,
-                                          std::size_t size,
-                                          std::size_t *digest_length) {
+                                          uint8_t *digest,
+                                          size_t size,
+                                          size_t *digest_length) {
   MOZ_ASSERT(cert);
 
   HASH_HashType ht;
@@ -191,106 +194,24 @@ nsresult DtlsIdentity::ComputeFingerprint(const CERTCertificate *cert,
 
   const SECHashObject *ho = HASH_GetHashObject(ht);
   MOZ_ASSERT(ho);
-  if (!ho)
+  if (!ho) {
     return NS_ERROR_INVALID_ARG;
+  }
 
   MOZ_ASSERT(ho->length >= 20);  // Double check
 
-  if (size < ho->length)
+  if (size < ho->length) {
     return NS_ERROR_INVALID_ARG;
+  }
 
   SECStatus rv = HASH_HashBuf(ho->type, digest,
                               cert->derCert.data,
                               cert->derCert.len);
-  if (rv != SECSuccess)
+  if (rv != SECSuccess) {
     return NS_ERROR_FAILURE;
+  }
 
   *digest_length = ho->length;
-
-  return NS_OK;
-}
-
-// Format the fingerprint in RFC 4572 Section 5 attribute format, including both
-// the hash name and the fingerprint, colons and all.
-// returns an empty string if there is a problem
-std::string DtlsIdentity::GetFormattedFingerprint(const std::string &algorithm) {
-  unsigned char digest[HASH_ALGORITHM_MAX_LENGTH];
-  size_t digest_length;
-
-  nsresult res = this->ComputeFingerprint(algorithm,
-                                          digest,
-                                          sizeof(digest),
-                                          &digest_length);
-  if (NS_FAILED(res)) {
-    MOZ_MTLOG(ML_ERROR, "Unable to compute " << algorithm
-              << " hash for identity: nsresult = 0x"
-              << std::hex << std::uppercase
-              << static_cast<uint32_t>(res)
-              << std::nouppercase << std::dec);
-    return "";
-  }
-
-  return algorithm + " " + this->FormatFingerprint(digest, digest_length);
-}
-
-std::string DtlsIdentity::FormatFingerprint(const unsigned char *digest,
-                                            std::size_t size) {
-  std::string str("");
-  char group[3];
-
-  for (std::size_t i=0; i < size; i++) {
-    PR_snprintf(group, sizeof(group), "%.2X", digest[i]);
-    if (i != 0) {
-      str += ":";
-    }
-    str += group;
-  }
-
-  MOZ_ASSERT(str.size() == (size * 3 - 1));  // Check result length
-  return str;
-}
-
-// Parse a fingerprint in RFC 4572 format.
-// Note that this tolerates some badly formatted data, in particular:
-// (a) arbitrary runs of colons
-// (b) colons at the beginning or end.
-nsresult DtlsIdentity::ParseFingerprint(const std::string fp,
-                                        unsigned char *digest,
-                                        size_t size,
-                                        size_t *length) {
-  size_t offset = 0;
-  bool top_half = true;
-  uint8_t val = 0;
-
-  for (size_t i=0; i<fp.length(); i++) {
-    if (offset >= size) {
-      // Note: no known way for offset to get > size
-      MOZ_MTLOG(ML_ERROR, "Fingerprint too long for buffer");
-      return NS_ERROR_INVALID_ARG;
-    }
-
-    if (top_half && (fp[i] == ':')) {
-      continue;
-    } else if ((fp[i] >= '0') && (fp[i] <= '9')) {
-      val |= fp[i] - '0';
-    } else if ((fp[i] >= 'A') && (fp[i] <= 'F')) {
-      val |= fp[i] - 'A' + 10;
-    } else {
-      MOZ_MTLOG(ML_ERROR, "Invalid fingerprint value " << fp[i]);
-      return NS_ERROR_ILLEGAL_VALUE;
-    }
-
-    if (top_half) {
-      val <<= 4;
-      top_half = false;
-    } else {
-      digest[offset++] = val;
-      top_half = true;
-      val = 0;
-    }
-  }
-
-  *length = offset;
 
   return NS_OK;
 }

@@ -1,7 +1,7 @@
 node-http2
 ==========
 
-An HTTP/2 ([draft-ietf-httpbis-http2-14](http://tools.ietf.org/html/draft-ietf-httpbis-http2-14))
+An HTTP/2 ([draft-ietf-httpbis-http2-16](http://tools.ietf.org/html/draft-ietf-httpbis-http2-16))
 client and server implementation for node.js.
 
 ![Travis CI status](https://travis-ci.org/molnarg/node-http2.svg?branch=master)
@@ -116,12 +116,12 @@ point to understand the code.
 ### Test coverage ###
 
 To generate a code coverage report, run `npm test --coverage` (which runs very slowly, be patient).
-Code coverage summary as of version 2.7.0:
+Code coverage summary as of version 3.0.1:
 ```
-Statements   : 92.68% ( 405/437 )
-Branches     : 79.65% ( 137/172 )
-Functions    : 92.31% ( 60/65 )
-Lines        : 92.68% ( 405/437 )
+Statements   : 92.09% ( 1759/1910 )
+Branches     : 82.56% ( 696/843 )
+Functions    : 91.38% ( 212/232 )
+Lines        : 92.17% ( 1753/1902 )
 ```
 
 There's a hosted version of the detailed (line-by-line) coverage report
@@ -151,11 +151,17 @@ $ HTTP2_LOG=info node ./example/client.js 'http://localhost:8080/server.js' >/de
 Contributors
 ------------
 
+The co-maintainer of the project is [Nick Hurley](https://github.com/todesschaf).
+
 Code contributions are always welcome! People who contributed to node-http2 so far:
 
-* Nick Hurley
-* Mike Belshe
-* Yoshihiro Iwanaga
+* [Nick Hurley](https://github.com/todesschaf)
+* [Mike Belshe](https://github.com/mbelshe)
+* [Yoshihiro Iwanaga](https://github.com/iwanaga)
+* [Igor Novikov](https://github.com/vsemogutor)
+* [James Willcox](https://github.com/snorp)
+* [David Björklund](https://github.com/kesla)
+* [Patrick McManus](https://github.com/mcmanus)
 
 Special thanks to Google for financing the development of this module as part of their [Summer of
 Code program](https://developers.google.com/open-source/soc/) (project: [HTTP/2 prototype server

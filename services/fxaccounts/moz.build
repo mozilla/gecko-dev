@@ -6,18 +6,24 @@
 
 DIRS += ['interfaces']
 
-TEST_DIRS += ['tests']
+MOCHITEST_CHROME_MANIFESTS += ['tests/mochitest/chrome.ini']
+
+XPCSHELL_TESTS_MANIFESTS += ['tests/xpcshell/xpcshell.ini']
 
 EXTRA_JS_MODULES += [
   'Credentials.jsm',
+  'FxAccounts.jsm',
   'FxAccountsClient.jsm',
   'FxAccountsCommon.js',
   'FxAccountsOAuthClient.jsm',
+  'FxAccountsOAuthGrantClient.jsm',
+  'FxAccountsProfile.jsm',
   'FxAccountsProfileClient.jsm',
+  'FxAccountsWebChannel.jsm',
 ]
 
 EXTRA_PP_JS_MODULES += [
-  'FxAccounts.jsm',
+  'FxAccountsStorage.jsm',
 ]
 
 # For now, we will only be using the FxA manager in B2G.

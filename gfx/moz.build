@@ -20,6 +20,7 @@ DIRS += [
     'ots/src',
     'thebes',
     'ipc',
+    'vr',
 ]
 
 if CONFIG['MOZ_ENABLE_SKIA']:
@@ -30,3 +31,4 @@ if CONFIG['ENABLE_TESTS']:
 
 TEST_DIRS += ['tests']
 
+SPHINX_TREES['gfx'] = 'docs'

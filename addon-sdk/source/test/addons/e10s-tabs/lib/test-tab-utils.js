@@ -1,10 +1,12 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 'use strict';
 
 const { getTabs } = require('sdk/tabs/utils');
-const { isGlobalPBSupported, isWindowPBSupported, isTabPBSupported } = require('sdk/private-browsing/utils');
+const { isWindowPBSupported, isTabPBSupported } = require('sdk/private-browsing/utils');
 const { browserWindows } = require('sdk/windows');
 const tabs = require('sdk/tabs');
-const { pb } = require('./private-browsing/helper');
 const { isPrivate } = require('sdk/private-browsing');
 const { openTab, closeTab, getTabContentWindow, getOwnerWindow } = require('sdk/tabs/utils');
 const { open, close } = require('sdk/window/helpers');
@@ -13,7 +15,7 @@ const { getMostRecentBrowserWindow } = require('sdk/window/utils');
 const { fromIterator } = require('sdk/util/array');
 
 if (isWindowPBSupported) {
-  exports.testGetTabs = function(assert, done) {
+  exports.testGetTabsPWPB = function(assert, done) {
     let tabCount = getTabs().length;
     let windowCount = browserWindows.length;
 
@@ -45,7 +47,7 @@ if (isWindowPBSupported) {
   };
 }
 else if (isTabPBSupported) {
-  exports.testGetTabs = function(assert, done) {
+  exports.testGetTabsPTPB = function(assert, done) {
     let startTabCount = getTabs().length;
     let tab = openTab(getMostRecentBrowserWindow(), 'about:blank', {
       isPrivate: true
@@ -63,5 +65,3 @@ else if (isTabPBSupported) {
     done();
   };
 }
-
-// require('test').run(exports);

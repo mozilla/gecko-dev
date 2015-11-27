@@ -332,6 +332,14 @@ function jsTestDriverBrowserInit()
     {
       properties.version = '1.8';
     }
+    else if (properties.test.match(/^ecma_6\/Class/))
+    {
+      properties.version = '1.8';
+    }
+    else if (properties.test.match(/^ecma_6\/extensions/))
+    {
+      properties.version = '1.8';
+    }
   }
 
   // default to language=type;text/javascript. required for
@@ -550,6 +558,16 @@ function closeDialog()
       subject.close();
     }
   }
+}
+
+function newGlobal() {
+  var iframe = document.createElement("iframe");
+  document.documentElement.appendChild(iframe);
+  var win = iframe.contentWindow;
+  iframe.remove();
+  // Shim in "evaluate"
+  win.evaluate = win.eval;
+  return win;
 }
 
 registerDialogCloser();

@@ -69,9 +69,9 @@ _convert_coord_to_int (double coord, int32_t *v)
 
 static bool
 _get_rectangular_clip (cairo_t *cr,
-                       const nsIntRect& bounds,
+                       const IntRect& bounds,
                        bool *need_clip,
-                       nsIntRect *rectangles, int max_rectangles,
+                       IntRect *rectangles, int max_rectangles,
                        int *num_rectangles)
 {
     cairo_rectangle_list_t *cliplist;
@@ -90,8 +90,8 @@ _get_rectangular_clip (cairo_t *cr,
     clips = cliplist->rectangles;
 
     for (i = 0; i < cliplist->num_rectangles; ++i) {
-        
-        nsIntRect rect;
+
+        IntRect rect;
         if (!_convert_coord_to_int (clips[i].x, &rect.x) ||
             !_convert_coord_to_int (clips[i].y, &rect.y) ||
             !_convert_coord_to_int (clips[i].width, &rect.width) ||
@@ -106,7 +106,7 @@ _get_rectangular_clip (cairo_t *cr,
             /* the bounds are entirely inside the clip region so we don't need to clip. */
             *need_clip = false;
             goto FINISH;
-        }            
+        }
 
         NS_ASSERTION(bounds.Contains(rect),
                      "Was expecting to be clipped to bounds");
@@ -136,7 +136,7 @@ FINISH:
  * @return True if we took the direct path
  */
 bool
-gfxXlibNativeRenderer::DrawDirect(gfxContext *ctx, nsIntSize size,
+gfxXlibNativeRenderer::DrawDirect(gfxContext *ctx, IntSize size,
                                   uint32_t flags,
                                   Screen *screen, Visual *visual)
 {
@@ -154,7 +154,7 @@ gfxXlibNativeRenderer::DrawDirect(gfxContext *ctx, nsIntSize size,
 }
 
 bool
-gfxXlibNativeRenderer::DrawCairo(cairo_t* cr, nsIntSize size,
+gfxXlibNativeRenderer::DrawCairo(cairo_t* cr, IntSize size,
                                  uint32_t flags,
                                  Screen *screen, Visual *visual)
 {
@@ -176,7 +176,7 @@ gfxXlibNativeRenderer::DrawCairo(cairo_t* cr, nsIntSize size,
     NS_ASSERTION(int32_t(device_offset_x) == device_offset_x &&
                  int32_t(device_offset_y) == device_offset_y,
                  "Expected integer device offsets");
-    nsIntPoint offset(NS_lroundf(matrix.x0 + device_offset_x),
+    IntPoint offset(NS_lroundf(matrix.x0 + device_offset_x),
                       NS_lroundf(matrix.y0 + device_offset_y));
 
     int max_rectangles = 0;
@@ -189,14 +189,14 @@ gfxXlibNativeRenderer::DrawCairo(cairo_t* cr, nsIntSize size,
 
     /* The client won't draw outside the surface so consider this when
        analysing clip rectangles. */
-    nsIntRect bounds(offset, size);
+    IntRect bounds(offset, size);
     bounds.IntersectRect(bounds,
-                         nsIntRect(0, 0,
+                         IntRect(0, 0,
                                    cairo_xlib_surface_get_width(target),
                                    cairo_xlib_surface_get_height(target)));
 
     bool needs_clip = true;
-    nsIntRect rectangles[MAX_STATIC_CLIP_RECTANGLES];
+    IntRect rectangles[MAX_STATIC_CLIP_RECTANGLES];
     int rect_count = 0;
 
     /* Check that the clip is rectangular and aligned on unit boundaries. */
@@ -308,7 +308,7 @@ enum DrawingMethod {
 static cairo_surface_t*
 CreateTempXlibSurface (cairo_surface_t* cairoTarget,
                        DrawTarget* drawTarget,
-                       nsIntSize size,
+                       IntSize size,
                        bool canDrawOverBackground,
                        uint32_t flags, Screen *screen, Visual *visual,
                        DrawingMethod *method)
@@ -352,7 +352,7 @@ CreateTempXlibSurface (cairo_surface_t* cairoTarget,
         } else if (cairoTargetType == CAIRO_SURFACE_TYPE_IMAGE || drawTarget) {
             gfxImageFormat imageFormat =
                 drawTarget ? SurfaceFormatToImageFormat(drawTarget->GetFormat()) :
-                    (gfxImageFormat)cairo_image_surface_get_format(cairoTarget);
+                    gfxCairoFormatToImageFormat(cairo_image_surface_get_format(cairoTarget));
             target_visual = gfxXlibSurface::FindVisual(screen, imageFormat);
             Display *dpy = DisplayOfScreen(screen);
             if (target_visual) {
@@ -360,7 +360,7 @@ CreateTempXlibSurface (cairo_surface_t* cairoTarget,
             } else {
                 target_format =
                     gfxXlibSurface::FindRenderFormat(dpy, imageFormat);
-            }                
+            }
         }
 
         if (supportsAlternateVisual &&
@@ -412,7 +412,7 @@ CreateTempXlibSurface (cairo_surface_t* cairoTarget,
 
     cairo_surface_t *surface =
         gfxXlibSurface::CreateCairoSurface(screen, visual,
-                                           gfxIntSize(size.width, size.height),
+                                           IntSize(size.width, size.height),
                                            drawable);
     if (!surface) {
         return nullptr;
@@ -436,7 +436,7 @@ CreateTempXlibSurface (cairo_surface_t* cairoTarget,
 
 bool
 gfxXlibNativeRenderer::DrawOntoTempSurface(cairo_surface_t *tempXlibSurface,
-                                           nsIntPoint offset)
+                                           IntPoint offset)
 {
     cairo_surface_flush(tempXlibSurface);
     /* no clipping is needed because the callback can't draw outside the native
@@ -448,10 +448,10 @@ gfxXlibNativeRenderer::DrawOntoTempSurface(cairo_surface_t *tempXlibSurface,
 
 static already_AddRefed<gfxImageSurface>
 CopyXlibSurfaceToImage(cairo_surface_t *tempXlibSurface,
-                       gfxIntSize size,
+                       IntSize size,
                        gfxImageFormat format)
 {
-    nsRefPtr<gfxImageSurface> result = new gfxImageSurface(size, format);
+    RefPtr<gfxImageSurface> result = new gfxImageSurface(size, format);
 
     cairo_t* copyCtx = cairo_create(result->CairoSurface());
     cairo_set_source_surface(copyCtx, tempXlibSurface, 0, 0);
@@ -463,7 +463,7 @@ CopyXlibSurfaceToImage(cairo_surface_t *tempXlibSurface,
 }
 
 void
-gfxXlibNativeRenderer::Draw(gfxContext* ctx, nsIntSize size,
+gfxXlibNativeRenderer::Draw(gfxContext* ctx, IntSize size,
                             uint32_t flags, Screen *screen, Visual *visual)
 {
     gfxMatrix matrix = ctx->CurrentMatrix();
@@ -474,7 +474,7 @@ gfxXlibNativeRenderer::Draw(gfxContext* ctx, nsIntSize size,
     // would permit copying the background but not drawing direct.)
     bool matrixIsIntegerTranslation = !matrix.HasNonIntegerTranslation();
     bool canDrawOverBackground = matrixIsIntegerTranslation &&
-        ctx->CurrentOperator() == gfxContext::OPERATOR_OVER;
+         ctx->CurrentOp() == CompositionOp::OP_OVER;
 
     // The padding of 0.5 for non-pixel-exact transformations used here is
     // the same as what _cairo_pattern_analyze_filter uses.
@@ -506,7 +506,7 @@ gfxXlibNativeRenderer::Draw(gfxContext* ctx, nsIntSize size,
           return;
     }
 
-    nsIntRect drawingRect(nsIntPoint(0, 0), size);
+    IntRect drawingRect(IntPoint(0, 0), size);
     // Drawing need only be performed within the clip extents
     // (and padding for the filter).
     if (!matrixIsIntegerTranslation) {
@@ -516,7 +516,7 @@ gfxXlibNativeRenderer::Draw(gfxContext* ctx, nsIntSize size,
     }
     clipExtents.RoundOut();
 
-    nsIntRect intExtents(int32_t(clipExtents.X()),
+    IntRect intExtents(int32_t(clipExtents.X()),
                          int32_t(clipExtents.Y()),
                          int32_t(clipExtents.Width()),
                          int32_t(clipExtents.Height()));
@@ -573,7 +573,7 @@ gfxXlibNativeRenderer::Draw(gfxContext* ctx, nsIntSize size,
             native.mFormat = moz2DFormat;
             native.mType = NativeSurfaceType::CAIRO_SURFACE;
             native.mSurface = tempXlibSurface;
-            native.mSize = ToIntSize(size);
+            native.mSize = size;
             RefPtr<SourceSurface> sourceSurface =
                 drawTarget->CreateSourceSurfaceFromNativeSurface(native);
             if (sourceSurface) {
@@ -582,7 +582,7 @@ gfxXlibNativeRenderer::Draw(gfxContext* ctx, nsIntSize size,
                     Rect(0, 0, size.width, size.height));
             }
         } else {
-            nsRefPtr<gfxASurface> tmpSurf = gfxASurface::Wrap(tempXlibSurface);
+            RefPtr<gfxASurface> tmpSurf = gfxASurface::Wrap(tempXlibSurface);
             ctx->SetSource(tmpSurf, offset);
             ctx->Paint();
         }
@@ -590,7 +590,7 @@ gfxXlibNativeRenderer::Draw(gfxContext* ctx, nsIntSize size,
         return;
     }
     
-    nsRefPtr<gfxImageSurface> blackImage =
+    RefPtr<gfxImageSurface> blackImage =
         CopyXlibSurfaceToImage(tempXlibSurface, size, gfxImageFormat::ARGB32);
     
     cairo_t* tmpCtx = cairo_create(tempXlibSurface);
@@ -599,7 +599,7 @@ gfxXlibNativeRenderer::Draw(gfxContext* ctx, nsIntSize size,
     cairo_paint(tmpCtx);
     cairo_destroy(tmpCtx);
     DrawOntoTempSurface(tempXlibSurface, -drawingRect.TopLeft());
-    nsRefPtr<gfxImageSurface> whiteImage =
+    RefPtr<gfxImageSurface> whiteImage =
         CopyXlibSurfaceToImage(tempXlibSurface, size, gfxImageFormat::RGB24);
   
     if (blackImage->CairoStatus() == CAIRO_STATUS_SUCCESS &&
@@ -615,7 +615,7 @@ gfxXlibNativeRenderer::Draw(gfxContext* ctx, nsIntSize size,
             native.mFormat = moz2DFormat;
             native.mType = NativeSurfaceType::CAIRO_SURFACE;
             native.mSurface = paintSurface->CairoSurface();
-            native.mSize = ToIntSize(size);
+            native.mSize = size;
             RefPtr<SourceSurface> sourceSurface =
                 drawTarget->CreateSourceSurfaceFromNativeSurface(native);
             if (sourceSurface) {

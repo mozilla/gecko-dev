@@ -6,6 +6,10 @@ const TEST_MSG = "ContentSearchTest";
 const CONTENT_SEARCH_MSG = "ContentSearch";
 const TEST_CONTENT_SCRIPT_BASENAME = "contentSearch.js";
 
+// This timeout is absurdly high to avoid random failures like bug 1087120.
+// That bug was reported when the timeout was 5 seconds, so let's try 10.
+const SUGGESTIONS_TIMEOUT = 10000;
+
 var gMsgMan;
 
 add_task(function* GetState() {
@@ -66,34 +70,6 @@ add_task(function* SetCurrentEngine() {
   });
 });
 
-add_task(function* ManageEngines() {
-  yield addTab();
-  gMsgMan.sendAsyncMessage(TEST_MSG, {
-    type: "ManageEngines",
-  });
-  let deferred = Promise.defer();
-  let winWatcher = Cc["@mozilla.org/embedcomp/window-watcher;1"].
-                   getService(Ci.nsIWindowWatcher);
-  winWatcher.registerNotification(function onOpen(subj, topic, data) {
-    if (topic == "domwindowopened" && subj instanceof Ci.nsIDOMWindow) {
-      subj.addEventListener("load", function onLoad() {
-        subj.removeEventListener("load", onLoad);
-        if (subj.document.documentURI ==
-            "chrome://browser/content/search/engineManager.xul") {
-          winWatcher.unregisterNotification(onOpen);
-          ok(true, "Observed search manager window open");
-          is(subj.opener, window,
-             "Search engine manager opener should be this chrome window");
-          subj.close();
-          deferred.resolve();
-        }
-      });
-    }
-  });
-  info("Waiting for search engine manager window to open...");
-  yield deferred.promise;
-});
-
 add_task(function* modifyEngine() {
   yield addTab();
   let engine = Services.search.currentEngine;
@@ -118,7 +94,8 @@ add_task(function* search() {
   let data = {
     engineName: engine.name,
     searchString: "ContentSearchTest",
-    whence: "ContentSearchTest",
+    healthReportKey: "ContentSearchTest",
+    searchPurpose: "ContentSearchTest",
   };
   gMsgMan.sendAsyncMessage(TEST_MSG, {
     type: "Search",
@@ -126,24 +103,35 @@ add_task(function* search() {
   });
   let submissionURL =
     engine.getSubmission(data.searchString, "", data.whence).uri.spec;
-  let deferred = Promise.defer();
-  let listener = {
-    onStateChange: function (webProg, req, flags, status) {
-      let url = req.originalURI.spec;
-      info("onStateChange " + url);
-      let docStart = Ci.nsIWebProgressListener.STATE_IS_DOCUMENT |
-                     Ci.nsIWebProgressListener.STATE_START;
-      if ((flags & docStart) && webProg.isTopLevel && url == submissionURL) {
-        gBrowser.removeProgressListener(listener);
-        ok(true, "Search URL loaded");
-        req.cancel(Components.results.NS_ERROR_FAILURE);
-        deferred.resolve();
-      }
-    }
+  yield waitForLoadAndStopIt(gBrowser.selectedBrowser, submissionURL);
+});
+
+add_task(function* searchInBackgroundTab() {
+  // This test is like search(), but it opens a new tab after starting a search
+  // in another.  In other words, it performs a search in a background tab.  The
+  // search page should be loaded in the same tab that performed the search, in
+  // the background tab.
+  yield addTab();
+  let searchBrowser = gBrowser.selectedBrowser;
+  let engine = Services.search.currentEngine;
+  let data = {
+    engineName: engine.name,
+    searchString: "ContentSearchTest",
+    healthReportKey: "ContentSearchTest",
+    searchPurpose: "ContentSearchTest",
   };
-  gBrowser.addProgressListener(listener);
-  info("Waiting for search URL to load: " + submissionURL);
-  yield deferred.promise;
+  gMsgMan.sendAsyncMessage(TEST_MSG, {
+    type: "Search",
+    data: data,
+  });
+
+  let newTab = gBrowser.addTab();
+  gBrowser.selectedTab = newTab;
+  registerCleanupFunction(() => gBrowser.removeTab(newTab));
+
+  let submissionURL =
+    engine.getSubmission(data.searchString, "", data.whence).uri.spec;
+  yield waitForLoadAndStopIt(searchBrowser, submissionURL);
 });
 
 add_task(function* badImage() {
@@ -201,7 +189,7 @@ add_task(function* GetSuggestions_AddFormHistoryEntry_RemoveFormHistoryEntry() {
     data: {
       engineName: engine.name,
       searchString: searchStr,
-      remoteTimeout: 5000,
+      remoteTimeout: SUGGESTIONS_TIMEOUT,
     },
   });
 
@@ -237,7 +225,7 @@ add_task(function* GetSuggestions_AddFormHistoryEntry_RemoveFormHistoryEntry() {
     data: {
       engineName: engine.name,
       searchString: searchStr,
-      remoteTimeout: 5000,
+      remoteTimeout: SUGGESTIONS_TIMEOUT,
     },
   });
 
@@ -258,9 +246,43 @@ add_task(function* GetSuggestions_AddFormHistoryEntry_RemoveFormHistoryEntry() {
   yield waitForTestMsg("CurrentState");
 });
 
+function buffersEqual(actualArrayBuffer, expectedArrayBuffer) {
+  let expectedView = new Int8Array(expectedArrayBuffer);
+  let actualView = new Int8Array(actualArrayBuffer);
+  for (let i = 0; i < expectedView.length; i++) {
+    if (actualView[i] != expectedView[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function arrayBufferEqual(actualArrayBuffer, expectedArrayBuffer) {
+  ok(actualArrayBuffer instanceof ArrayBuffer, "Actual value is ArrayBuffer.");
+  ok(expectedArrayBuffer instanceof ArrayBuffer, "Expected value is ArrayBuffer.");
+  Assert.equal(actualArrayBuffer.byteLength, expectedArrayBuffer.byteLength,
+      "Array buffers have the same length.");
+  ok(buffersEqual(actualArrayBuffer, expectedArrayBuffer), "Buffers are equal.");
+}
+
+function checkArrayBuffers(actual, expected) {
+  if (actual instanceof ArrayBuffer) {
+    arrayBufferEqual(actual, expected);
+  }
+  if (typeof actual == "object") {
+    for (let i in actual) {
+      checkArrayBuffers(actual[i], expected[i]);
+    }
+  }
+}
 
 function checkMsg(actualMsg, expectedMsgData) {
+  let actualMsgData = actualMsg.data;
   SimpleTest.isDeeply(actualMsg.data, expectedMsgData, "Checking message");
+
+  // Engines contain ArrayBuffers which we have to compare byte by byte and
+  // not as Objects (like SimpleTest.isDeeply does).
+  checkArrayBuffers(actualMsgData, expectedMsgData);
 }
 
 function waitForMsg(name, type) {
@@ -295,7 +317,7 @@ function waitForNewEngine(basename, numImages) {
   // Wait for addEngine().
   let addDeferred = Promise.defer();
   let url = getRootDirectory(gTestPath) + basename;
-  Services.search.addEngine(url, Ci.nsISearchEngine.TYPE_MOZSEARCH, "", false, {
+  Services.search.addEngine(url, null, "", false, {
     onSuccess: function (engine) {
       info("Search engine added: " + basename);
       addDeferred.resolve(engine);
@@ -307,6 +329,33 @@ function waitForNewEngine(basename, numImages) {
   });
 
   return Promise.all([addDeferred.promise].concat(eventPromises));
+}
+
+function waitForLoadAndStopIt(browser, expectedURL) {
+  let deferred = Promise.defer();
+  let listener = {
+    onStateChange: function (webProg, req, flags, status) {
+      if (req instanceof Ci.nsIChannel) {
+        let url = req.originalURI.spec;
+        info("onStateChange " + url);
+        let docStart = Ci.nsIWebProgressListener.STATE_IS_DOCUMENT |
+                       Ci.nsIWebProgressListener.STATE_START;
+        if ((flags & docStart) && webProg.isTopLevel && url == expectedURL) {
+          browser.removeProgressListener(listener);
+          ok(true, "Expected URL loaded");
+          req.cancel(Components.results.NS_ERROR_FAILURE);
+          deferred.resolve();
+        }
+      }
+    },
+    QueryInterface: XPCOMUtils.generateQI([
+      Ci.nsIWebProgressListener,
+      Ci.nsISupportsWeakReference,
+    ]),
+  };
+  browser.addProgressListener(listener);
+  info("Waiting for URL to load: " + expectedURL);
+  return deferred.promise;
 }
 
 function addTab() {
@@ -330,35 +379,35 @@ function addTab() {
   return deferred.promise;
 }
 
-function currentStateObj() {
-  return Task.spawn(function* () {
-    let state = {
-      engines: [],
-      currentEngine: yield currentEngineObj(),
-    };
-    for (let engine of Services.search.getVisibleEngines()) {
-      let uri = engine.getIconURLBySize(16, 16);
-      state.engines.push({
-        name: engine.name,
-        iconBuffer: yield arrayBufferFromDataURI(uri),
-      });
-    }
-    return state;
-  }.bind(this));
-}
-
-function currentEngineObj() {
-  return Task.spawn(function* () {
-    let engine = Services.search.currentEngine;
-    let uri1x = engine.getIconURLBySize(65, 26);
-    let uri2x = engine.getIconURLBySize(130, 52);
-    return {
+var currentStateObj = Task.async(function* () {
+  let state = {
+    engines: [],
+    currentEngine: yield currentEngineObj(),
+  };
+  for (let engine of Services.search.getVisibleEngines()) {
+    let uri = engine.getIconURLBySize(16, 16);
+    state.engines.push({
       name: engine.name,
-      logoBuffer: yield arrayBufferFromDataURI(uri1x),
-      logo2xBuffer: yield arrayBufferFromDataURI(uri2x),
-    };
-  }.bind(this));
-}
+      iconBuffer: yield arrayBufferFromDataURI(uri),
+    });
+  }
+  return state;
+});
+
+var currentEngineObj = Task.async(function* () {
+  let engine = Services.search.currentEngine;
+  let uri1x = engine.getIconURLBySize(65, 26);
+  let uri2x = engine.getIconURLBySize(130, 52);
+  let uriFavicon = engine.getIconURLBySize(16, 16);
+  let bundle = Services.strings.createBundle("chrome://global/locale/autocomplete.properties");
+  return {
+    name: engine.name,
+    placeholder: bundle.formatStringFromName("searchWithEngine", [engine.name], 1),
+    logoBuffer: yield arrayBufferFromDataURI(uri1x),
+    logo2xBuffer: yield arrayBufferFromDataURI(uri2x),
+    iconBuffer: yield arrayBufferFromDataURI(uriFavicon),
+  };
+});
 
 function arrayBufferFromDataURI(uri) {
   if (!uri) {

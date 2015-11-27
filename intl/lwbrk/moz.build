@@ -44,9 +44,10 @@ else:
         'rulebrk.c',
     ]
 
-MSVC_ENABLE_PGO = True
-
 FINAL_LIBRARY = 'xul'
 
 if CONFIG['MOZ_WIDGET_GTK']:
     CXXFLAGS += CONFIG['MOZ_PANGO_CFLAGS']
+
+if CONFIG['GNU_CXX']:
+    CXXFLAGS += ['-Wshadow']

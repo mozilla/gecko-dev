@@ -1,0 +1,96 @@
+<!DOCTYPE HTML>
+<html>
+<!--
+Bug 1038811: Push tests.
+
+Any copyright is dedicated to the Public Domain.
+http://creativecommons.org/licenses/publicdomain/
+
+-->
+<head>
+  <title>Test for Bug 1038811</title>
+  <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script type="text/javascript" src="/tests/SimpleTest/SpawnTask.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+  <meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+</head>
+<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1038811">Mozilla Bug 1038811</a>
+<p id="display"></p>
+<div id="content" style="display: none">
+
+</div>
+<pre id="test">
+</pre>
+
+<script class="testbody" type="text/javascript">
+
+  function debug(str) {
+  //  console.log(str + "\n");
+  }
+
+  var registration;
+  add_task(function* start() {
+    SpecialPowers.addPermission("desktop-notification", false, document);
+    yield new Promise(resolve => {
+      SpecialPowers.pushPrefEnv({"set": [
+        ["dom.push.enabled", true],
+        ["dom.serviceWorkers.exemptFromPerDomainMax", true],
+        ["dom.serviceWorkers.enabled", true],
+        ["dom.serviceWorkers.testing.enabled", true]
+        ]}, resolve);
+    });
+
+    var url = "worker.js" + "?" + Math.random();
+    registration = yield navigator.serviceWorker.register(url, {scope: "."});
+  });
+
+  add_task(function* setupPushNotification() {
+    try {
+      yield registration.pushManager.subscribe();
+      ok(false, "subscribe() should fail because no permission for push");
+    } catch (error) {
+      ok(error instanceof DOMException, "Wrong exception type");
+      is(error.name, "PermissionDeniedError", "Wrong exception name");
+    }
+  });
+
+  add_task(function* getEndpoint() {
+    var pushSubscription = yield registration.pushManager.getSubscription();
+    is(pushSubscription, null, "getSubscription() should return null because no permission for push");
+  });
+
+  add_task(function* checkPermissionState() {
+    var permissionManager = SpecialPowers.Ci.nsIPermissionManager;
+    var tests = [{
+      action: permissionManager.ALLOW_ACTION,
+      state: "granted",
+    }, {
+      action: permissionManager.DENY_ACTION,
+      state: "denied",
+    }, {
+      action: permissionManager.PROMPT_ACTION,
+      state: "prompt",
+    }, {
+      action: permissionManager.UNKNOWN_ACTION,
+      state: "prompt",
+    }];
+    for (var test of tests) {
+      if (test.action == permissionManager.UNKNOWN_ACTION) {
+        SpecialPowers.removePermission("desktop-notification", document);
+      } else {
+        SpecialPowers.addPermission("desktop-notification",
+          test.action, document);
+      }
+      var state = yield registration.pushManager.permissionState();
+      is(state, test.state, JSON.stringify(test));
+    }
+  });
+
+  add_task(function* unregister() {
+    var result = yield registration.unregister();
+    ok(result, "Unregister should return true.");
+  });
+
+</script>
+</body>
+</html>

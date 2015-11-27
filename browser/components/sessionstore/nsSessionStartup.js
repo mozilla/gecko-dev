@@ -42,7 +42,7 @@ Cu.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "console",
-  "resource://gre/modules/devtools/Console.jsm");
+  "resource://gre/modules/Console.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "SessionFile",
   "resource:///modules/sessionstore/SessionFile.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "CrashMonitor",
@@ -63,7 +63,16 @@ consoleMsg.init(aMsg, aException.fileName, null, aException.lineNumber, 0, Ci.ns
   Services.console.logMessage(consoleMsg);
 }
 
-let gOnceInitializedDeferred = Promise.defer();
+var gOnceInitializedDeferred = (function () {
+  let deferred = {};
+
+  deferred.promise = new Promise((resolve, reject) => {
+    deferred.resolve = resolve;
+    deferred.reject = reject;
+  });
+
+  return deferred;
+})();
 
 /* :::::::: The Service ::::::::::::::: */
 

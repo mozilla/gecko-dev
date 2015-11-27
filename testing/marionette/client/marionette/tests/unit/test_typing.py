@@ -2,13 +2,18 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from marionette_test import MarionetteTestCase
-from keys import Keys
-from errors import ElementNotVisibleException
+import urllib
+
+from marionette.marionette_test import MarionetteTestCase, skip_if_b2g
+from marionette_driver.keys import Keys
+from marionette_driver.errors import ElementNotVisibleException
+
+
+def inline(doc):
+    return "data:text/html;charset=utf-8,%s" % urllib.quote(doc)
 
 
 class TestTyping(MarionetteTestCase):
-
     def testShouldFireKeyPressEvents(self):
         test_html = self.marionette.absolute_url("javascriptPage.html")
         self.marionette.navigate(test_html)
@@ -49,6 +54,38 @@ class TestTyping(MarionetteTestCase):
         keyReporter = self.marionette.find_element("id", "keyReporter")
         keyReporter.send_keys("ABC DEF")
         self.assertEqual(keyReporter.get_attribute("value"), "ABC DEF")
+
+    @skip_if_b2g
+    def testCutAndPasteShortcuts(self):
+        # Test that modifier keys work via copy/paste shortcuts.
+        if self.marionette.session_capabilities['platformName'] == 'Darwin':
+            mod_key = Keys.META
+        else:
+            mod_key = Keys.CONTROL
+
+        test_html = self.marionette.absolute_url("javascriptPage.html")
+        self.marionette.navigate(test_html)
+
+        keyReporter = self.marionette.find_element("id", "keyReporter")
+        self.assertEqual(keyReporter.get_attribute("value"), "")
+        keyReporter.send_keys("zyxwvutsr")
+        self.assertEqual(keyReporter.get_attribute("value"), "zyxwvutsr")
+
+        # Select all and cut.
+        keyReporter.send_keys(mod_key, 'a')
+        keyReporter.send_keys(mod_key, 'x')
+        self.assertEqual(keyReporter.get_attribute("value"), "")
+
+        self.marionette.set_context("chrome")
+        url_bar = self.marionette.find_element("id", "urlbar")
+
+        # Clear and paste.
+        url_bar.send_keys(mod_key, 'a')
+        url_bar.send_keys(Keys.BACK_SPACE)
+
+        self.assertEqual(url_bar.get_attribute("value"), "")
+        url_bar.send_keys(mod_key, 'v')
+        self.assertEqual(url_bar.get_attribute("value"), "zyxwvutsr")
 
     def testShouldBeAbleToTypeQuoteMarks(self):
         test_html = self.marionette.absolute_url("javascriptPage.html")
@@ -248,3 +285,17 @@ class TestTyping(MarionetteTestCase):
         self.marionette.navigate(test_html)
         not_displayed = self.marionette.find_element('id', 'notDisplayed')
         self.assertRaises(ElementNotVisibleException, not_displayed.send_keys, 'foo')
+
+    def test_appends_to_input_text(self):
+        self.marionette.navigate(inline("<input>"))
+        el = self.marionette.find_element("tag name", "input")
+        el.send_keys("foo")
+        el.send_keys("bar")
+        self.assertEqual("foobar", el.get_attribute("value"))
+
+    def test_appends_to_textarea(self):
+        self.marionette.navigate(inline("<textarea></textarea>"))
+        textarea = self.marionette.find_element("tag name", "textarea")
+        textarea.send_keys("foo")
+        textarea.send_keys("bar")
+        self.assertEqual("foobar", textarea.get_attribute("value"))

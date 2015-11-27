@@ -1,69 +1,45 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
+"use strict";
+
 const TEST_VALUE = "example.com/\xF7?\xF7";
 const START_VALUE = "example.com/%C3%B7?%C3%B7";
 
-function test() {
-  waitForExplicitFinish();
-  runNextTest();
-}
-
-function locationBarEnter(aEvent, aClosure) {
-  executeSoon(function() {
-    gURLBar.focus();
-    EventUtils.synthesizeKey("VK_RETURN", aEvent);
-    addPageShowListener(aClosure);
-  });
-}
-
-function runNextTest() {
-  let test = gTests.shift();
-  if (!test) {
-    finish();
-    return;
-  }
-  
-  info("Running test: " + test.desc);
+add_task(function* () {
+  info("Simple return keypress");
   let tab = gBrowser.selectedTab = gBrowser.addTab(START_VALUE);
-  addPageShowListener(function() {
-    locationBarEnter(test.event, function() {
-      test.check(tab);
 
-      // Clean up
-      while (gBrowser.tabs.length > 1)
-        gBrowser.removeTab(gBrowser.selectedTab)
-      runNextTest();
-    });
-  });
-}
+  gURLBar.focus();
+  EventUtils.synthesizeKey("VK_RETURN", {});
+  yield BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
 
-let gTests = [
-  { desc: "Simple return keypress",
-    event: {},
-    check: checkCurrent
-  },
+  // Check url bar and selected tab.
+  is(gURLBar.textValue, TEST_VALUE, "Urlbar should preserve the value on return keypress");
+  is(gBrowser.selectedTab, tab, "New URL was loaded in the current tab");
 
-  { desc: "Alt+Return keypress",
-    event: { altKey: true },
-    check: checkNewTab,
-  },
-]
+  // Cleanup.
+  gBrowser.removeCurrentTab();
+});
 
-function checkCurrent(aTab) {
-  is(gURLBar.value, TEST_VALUE, "Urlbar should preserve the value on return keypress");
-  is(gBrowser.selectedTab, aTab, "New URL was loaded in the current tab");
-}
+add_task(function* () {
+  info("Alt+Return keypress");
+  let tab = gBrowser.selectedTab = gBrowser.addTab(START_VALUE);
+  // due to bug 691608, we must wait for the load event, else isTabEmpty() will
+  // return true on e10s for this tab, so it will be reused even with altKey.
+  yield BrowserTestUtils.browserLoaded(tab.linkedBrowser);
 
-function checkNewTab(aTab) {
-  is(gURLBar.value, TEST_VALUE, "Urlbar should preserve the value on return keypress");
-  isnot(gBrowser.selectedTab, aTab, "New URL was loaded in a new tab");
-}
+  gURLBar.focus();
+  EventUtils.synthesizeKey("VK_RETURN", {altKey: true});
 
-function addPageShowListener(aFunc) {
-  gBrowser.selectedBrowser.addEventListener("pageshow", function loadListener() {
-    gBrowser.selectedBrowser.removeEventListener("pageshow", loadListener, false);
-    aFunc();
-  });
-}
+  // wait for the new tab to appear.
+  yield BrowserTestUtils.waitForEvent(gBrowser.tabContainer, "TabOpen");
 
+  // Check url bar and selected tab.
+  is(gURLBar.textValue, TEST_VALUE, "Urlbar should preserve the value on return keypress");
+  isnot(gBrowser.selectedTab, tab, "New URL was loaded in a new tab");
+
+  // Cleanup.
+  gBrowser.removeTab(tab);
+  gBrowser.removeCurrentTab();
+});

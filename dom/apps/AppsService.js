@@ -11,10 +11,14 @@ function debug(s) {
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
+const Cr = Components.results;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/Promise.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "UserCustomizations",
+  "resource://gre/modules/UserCustomizations.jsm");
 
 const APPS_SERVICE_CID = Components.ID("{05072afa-92fe-45bf-ae22-39b69c117058}");
 
@@ -30,13 +34,24 @@ function AppsService()
 
 AppsService.prototype = {
 
+  isInvalidId: function(localId) {
+    return (localId == Ci.nsIScriptSecurityManager.NO_APP_ID ||
+            localId == Ci.nsIScriptSecurityManager.UNKNOWN_APP_ID);
+  },
+
   getManifestCSPByLocalId: function getCSPByLocalId(localId) {
     debug("GetManifestCSPByLocalId( " + localId + " )");
+    if (this.isInvalidId(localId)) {
+      return null;
+    }
     return DOMApplicationRegistry.getManifestCSPByLocalId(localId);
   },
 
   getDefaultCSPByLocalId: function getCSPByLocalId(localId) {
     debug("GetDefaultCSPByLocalId( " + localId + " )");
+    if (this.isInvalidId(localId)) {
+      return null;
+    }
     return DOMApplicationRegistry.getDefaultCSPByLocalId(localId);
   },
 
@@ -67,11 +82,17 @@ AppsService.prototype = {
 
   getAppByLocalId: function getAppByLocalId(aLocalId) {
     debug("getAppByLocalId( " + aLocalId + " )");
+    if (this.isInvalidId(aLocalId)) {
+      return null;
+    }
     return DOMApplicationRegistry.getAppByLocalId(aLocalId);
   },
 
   getManifestURLByLocalId: function getManifestURLByLocalId(aLocalId) {
     debug("getManifestURLByLocalId( " + aLocalId + " )");
+    if (this.isInvalidId(aLocalId)) {
+      return null;
+    }
     return DOMApplicationRegistry.getManifestURLByLocalId(aLocalId);
   },
 
@@ -92,8 +113,7 @@ AppsService.prototype = {
 
   getRedirect: function getRedirect(aLocalId, aURI) {
     debug("getRedirect for " + aLocalId + " " + aURI.spec);
-    if (aLocalId == Ci.nsIScriptSecurityManager.NO_APP_ID ||
-        aLocalId == Ci.nsIScriptSecurityManager.UNKNOWN_APP_ID) {
+    if (this.isInvalidId(aLocalId)) {
       return null;
     }
 
@@ -124,6 +144,30 @@ AppsService.prototype = {
     }
     // No matching redirect.
     return null;
+  },
+
+  getScopeByLocalId: function(aLocalId) {
+    debug("getScopeByLocalId( " + aLocalId + " )");
+    if (this.isInvalidId(aLocalId)) {
+      return null;
+    }
+    // TODO : implement properly!
+    // We just return null for now to not break PushService.jsm
+    return null;
+  },
+
+  isExtensionResource: function(aURI) {
+    // This is only expected to be used by NeckoParent, and will not work
+    // properly in child processes.
+    if (Services.appinfo.processType != Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT) {
+      throw Cr.NS_ERROR_FAILURE;
+    }
+
+    return UserCustomizations.isFromExtension(aURI);
+  },
+
+  updateDataStoreEntriesFromLocalId: function(aLocalId) {
+    return DOMApplicationRegistry.updateDataStoreEntriesFromLocalId(aLocalId);
   },
 
   classID : APPS_SERVICE_CID,

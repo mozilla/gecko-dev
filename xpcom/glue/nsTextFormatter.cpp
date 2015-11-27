@@ -26,8 +26,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "prdtoa.h"
-#include "prlog.h"
-#include "prprf.h"
+#include "mozilla/Logging.h"
+#include "mozilla/Snprintf.h"
 #include "prmem.h"
 #include "nsCRTGlue.h"
 #include "nsTextFormatter.h"
@@ -351,14 +351,14 @@ cvt_f(SprintfState* aState, double aDouble, int aWidth, int aPrec,
       break;
     case 'E':
       exp = 'E';
-    // no break
+      MOZ_FALLTHROUGH;
     case 'e':
       numdigits = aPrec + 1;
       mode = 2;
       break;
     case 'G':
       exp = 'E';
-    // no break
+      MOZ_FALLTHROUGH;
     case 'g':
       if (aPrec == 0) {
         aPrec = 1;
@@ -406,7 +406,8 @@ cvt_f(SprintfState* aState, double aDouble, int aWidth, int aPrec,
           }
         }
         *bufp++ = exp;
-        PR_snprintf(bufp, bufsz - (bufp - buf), "%+03d", decpt - 1);
+
+        snprintf(bufp, bufsz - (bufp - buf), "%+03d", decpt - 1);
         break;
 
       case 'f':
@@ -458,7 +459,7 @@ cvt_f(SprintfState* aState, double aDouble, int aWidth, int aPrec,
             }
           }
           *bufp++ = exp;
-          PR_snprintf(bufp, bufsz - (bufp - buf), "%+03d", decpt - 1);
+          snprintf(bufp, bufsz - (bufp - buf), "%+03d", decpt - 1);
         } else {
           if (decpt < 1) {
             *bufp++ = '0';
@@ -603,7 +604,7 @@ BuildArgArray(const char16_t* aFmt, va_list aAp, int* aRv,
   }
 
   if (number > NAS_DEFAULT_NUM) {
-    nas = (struct NumArgState*)nsMemory::Alloc(number * sizeof(struct NumArgState));
+    nas = (struct NumArgState*)moz_xmalloc(number * sizeof(struct NumArgState));
     if (!nas) {
       *aRv = -1;
       return nullptr;
@@ -1203,10 +1204,10 @@ GrowStuff(SprintfState* aState, const char16_t* aStr, uint32_t aLen)
     /* Grow the buffer */
     newlen = aState->maxlen + ((aLen > 32) ? aLen : 32);
     if (aState->base) {
-      newbase = (char16_t*)nsMemory::Realloc(aState->base,
-                                             newlen * sizeof(char16_t));
+      newbase = (char16_t*)moz_xrealloc(aState->base,
+                                        newlen * sizeof(char16_t));
     } else {
-      newbase = (char16_t*)nsMemory::Alloc(newlen * sizeof(char16_t));
+      newbase = (char16_t*)moz_xmalloc(newlen * sizeof(char16_t));
     }
     if (!newbase) {
       /* Ran out of memory */
@@ -1361,6 +1362,6 @@ nsTextFormatter::vsnprintf(char16_t* aOut, uint32_t aOutLen,
 void
 nsTextFormatter::smprintf_free(char16_t* aMem)
 {
-  nsMemory::Free(aMem);
+  free(aMem);
 }
 

@@ -30,7 +30,7 @@ static bool do_preload = false;
 #endif
 
 #if defined(SUNOS4) || defined(NEXTSTEP) || \
-    defined(XP_DARWIN) || \
+    defined(XP_MACOSX) || \
     (defined(OPENBSD) || defined(NETBSD)) && !defined(__ELF__)
 #define LEADING_UNDERSCORE "_"
 #else
@@ -40,7 +40,9 @@ static bool do_preload = false;
 #if defined(XP_WIN)
 #include <windows.h>
 #include <mbstring.h>
+#if defined(_MSC_VER) && _MSC_VER < 1900
 #define snprintf _snprintf
+#endif
 
 typedef HINSTANCE LibHandleType;
 
@@ -50,25 +52,25 @@ GetLibHandle(pathstr_t aDependentLib)
   LibHandleType libHandle =
     LoadLibraryExW(aDependentLib, nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
 
+#ifdef DEBUG
   if (!libHandle) {
     DWORD err = GetLastError();
-#ifdef DEBUG
     LPVOID lpMsgBuf;
-    FormatMessage(
+    FormatMessageW(
       FORMAT_MESSAGE_ALLOCATE_BUFFER |
       FORMAT_MESSAGE_FROM_SYSTEM |
       FORMAT_MESSAGE_IGNORE_INSERTS,
       nullptr,
       err,
       MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-      (LPTSTR)&lpMsgBuf,
+      (LPWSTR)&lpMsgBuf,
       0,
       nullptr
     );
     wprintf(L"Error loading %ls: %s\n", aDependentLib, lpMsgBuf);
     LocalFree(lpMsgBuf);
-#endif
   }
+#endif
 
   return libHandle;
 }
@@ -154,70 +156,6 @@ NS_HIDDEN __typeof(dlclose) __wrap_dlclose;
 #define dlsym __wrap_dlsym
 #define dlclose __wrap_dlclose
 #endif
-
-#ifdef NS_TRACE_MALLOC
-extern "C" {
-NS_EXPORT_(__ptr_t) __libc_malloc(size_t);
-NS_EXPORT_(__ptr_t) __libc_calloc(size_t, size_t);
-NS_EXPORT_(__ptr_t) __libc_realloc(__ptr_t, size_t);
-NS_EXPORT_(void)    __libc_free(__ptr_t);
-NS_EXPORT_(__ptr_t) __libc_memalign(size_t, size_t);
-NS_EXPORT_(__ptr_t) __libc_valloc(size_t);
-}
-
-static __ptr_t (*_malloc)(size_t) = __libc_malloc;
-static __ptr_t (*_calloc)(size_t, size_t) = __libc_calloc;
-static __ptr_t (*_realloc)(__ptr_t, size_t) = __libc_realloc;
-static void (*_free)(__ptr_t) = __libc_free;
-static __ptr_t (*_memalign)(size_t, size_t) = __libc_memalign;
-static __ptr_t (*_valloc)(size_t) = __libc_valloc;
-
-NS_EXPORT_(__ptr_t) malloc(size_t size)
-{
-  return _malloc(size);
-}
-
-NS_EXPORT_(__ptr_t) calloc(size_t nmemb, size_t size)
-{
-  return _calloc(nmemb, size);
-}
-
-NS_EXPORT_(__ptr_t) realloc(__ptr_t ptr, size_t size)
-{
-  return _realloc(ptr, size);
-}
-
-NS_EXPORT_(void) free(__ptr_t ptr)
-{
-  _free(ptr);
-}
-
-NS_EXPORT_(void) cfree(__ptr_t ptr)
-{
-  _free(ptr);
-}
-
-NS_EXPORT_(__ptr_t) memalign(size_t boundary, size_t size)
-{
-  return _memalign(boundary, size);
-}
-
-NS_EXPORT_(int)
-posix_memalign(void** memptr, size_t alignment, size_t size)
-{
-  __ptr_t ptr = _memalign(alignment, size);
-  if (!ptr) {
-    return ENOMEM;
-  }
-  *memptr = ptr;
-  return 0;
-}
-
-NS_EXPORT_(__ptr_t) valloc(size_t size)
-{
-  return _valloc(size);
-}
-#endif /* NS_TRACE_MALLOC */
 
 typedef void* LibHandleType;
 
@@ -322,17 +260,6 @@ typedef Scoped<ScopedCloseFileTraits> ScopedCloseFile;
 static void
 XPCOMGlueUnload()
 {
-#if !defined(XP_WIN) && !defined(XP_MACOSX) && defined(NS_TRACE_MALLOC)
-  if (sTop) {
-    _malloc = __libc_malloc;
-    _calloc = __libc_calloc;
-    _realloc = __libc_realloc;
-    _free = __libc_free;
-    _memalign = __libc_memalign;
-    _valloc = __libc_valloc;
-  }
-#endif
-
   while (sTop) {
     CloseLibHandle(sTop->libHandle);
 
@@ -367,8 +294,24 @@ static GetFrozenFunctionsFunc
 XPCOMGlueLoad(const char* aXPCOMFile)
 {
   char xpcomDir[MAXPATHLEN];
-#if defined(XP_WIN)
+#ifdef XP_WIN
   const char* lastSlash = ns_strrpbrk(aXPCOMFile, "/\\");
+#elif XP_MACOSX
+  // On OSX, the dependentlibs.list file lives under Contents/Resources.
+  // However, the actual libraries listed in dependentlibs.list live under
+  // Contents/MacOS. We want to read the list from Contents/Resources, then
+  // load the libraries from Contents/MacOS.
+  const char *tempSlash = strrchr(aXPCOMFile, '/');
+  size_t tempLen = size_t(tempSlash - aXPCOMFile);
+  if (tempLen > MAXPATHLEN) {
+    return nullptr;
+  }
+  char tempBuffer[MAXPATHLEN];
+  memcpy(tempBuffer, aXPCOMFile, tempLen);
+  tempBuffer[tempLen] = '\0';
+  const char *slash = strrchr(tempBuffer, '/');
+  tempLen = size_t(slash - tempBuffer);
+  const char *lastSlash = aXPCOMFile + tempLen;
 #else
   const char* lastSlash = strrchr(aXPCOMFile, '/');
 #endif
@@ -377,12 +320,20 @@ XPCOMGlueLoad(const char* aXPCOMFile)
     size_t len = size_t(lastSlash - aXPCOMFile);
 
     if (len > MAXPATHLEN - sizeof(XPCOM_FILE_PATH_SEPARATOR
+#ifdef XP_MACOSX
+                                  "Resources"
+                                  XPCOM_FILE_PATH_SEPARATOR
+#endif
                                   XPCOM_DEPENDENT_LIBS_LIST)) {
       return nullptr;
     }
     memcpy(xpcomDir, aXPCOMFile, len);
     strcpy(xpcomDir + len, XPCOM_FILE_PATH_SEPARATOR
-           XPCOM_DEPENDENT_LIBS_LIST);
+#ifdef XP_MACOSX
+                           "Resources"
+                           XPCOM_FILE_PATH_SEPARATOR
+#endif
+                           XPCOM_DEPENDENT_LIBS_LIST);
     cursor = xpcomDir + len + 1;
   } else {
     strcpy(xpcomDir, XPCOM_DEPENDENT_LIBS_LIST);
@@ -399,6 +350,14 @@ XPCOMGlueLoad(const char* aXPCOMFile)
     return nullptr;
   }
 
+#ifdef XP_MACOSX
+  tempLen = size_t(cursor - xpcomDir);
+  if (tempLen > MAXPATHLEN - sizeof("MacOS" XPCOM_FILE_PATH_SEPARATOR) - 1) {
+    return nullptr;
+  }
+  strcpy(cursor, "MacOS" XPCOM_FILE_PATH_SEPARATOR);
+  cursor += strlen(cursor);
+#endif
   *cursor = '\0';
 
   char buffer[MAXPATHLEN];
@@ -436,15 +395,6 @@ XPCOMGlueLoad(const char* aXPCOMFile)
     return nullptr;
   }
 
-#if !defined(XP_WIN) && !defined(XP_MACOSX) && defined(NS_TRACE_MALLOC)
-  _malloc = (__ptr_t(*)(size_t)) GetSymbol(sTop->libHandle, "malloc");
-  _calloc = (__ptr_t(*)(size_t, size_t)) GetSymbol(sTop->libHandle, "calloc");
-  _realloc = (__ptr_t(*)(__ptr_t, size_t)) GetSymbol(sTop->libHandle, "realloc");
-  _free = (void(*)(__ptr_t)) GetSymbol(sTop->libHandle, "free");
-  _memalign = (__ptr_t(*)(size_t, size_t)) GetSymbol(sTop->libHandle, "memalign");
-  _valloc = (__ptr_t(*)(size_t)) GetSymbol(sTop->libHandle, "valloc");
-#endif
-
   return sym;
 }
 
@@ -476,9 +426,55 @@ XPCOMGlueEnablePreload()
   do_preload = true;
 }
 
+#if defined(MOZ_WIDGET_GTK) && (defined(MOZ_MEMORY) || defined(__FreeBSD__) || defined(__NetBSD__))
+#define MOZ_GSLICE_INIT
+#endif
+
+#ifdef MOZ_GSLICE_INIT
+#include <glib.h>
+
+class GSliceInit {
+public:
+  GSliceInit() {
+    mHadGSlice = bool(getenv("G_SLICE"));
+    if (!mHadGSlice) {
+      // Disable the slice allocator, since jemalloc already uses similar layout
+      // algorithms, and using a sub-allocator tends to increase fragmentation.
+      // This must be done before g_thread_init() is called.
+      // glib >= 2.36 initializes g_slice as a side effect of its various static
+      // initializers, so this needs to happen before glib is loaded, which is
+      // this is hooked in XPCOMGlueStartup before libxul is loaded. This
+      // relies on the main executable not depending on glib.
+      setenv("G_SLICE", "always-malloc", 1);
+    }
+  }
+
+  ~GSliceInit() {
+#if MOZ_WIDGET_GTK == 2
+    if (sTop) {
+      auto XRE_GlibInit = (void (*)(void)) GetSymbol(sTop->libHandle,
+        "XRE_GlibInit");
+      // Initialize glib enough for G_SLICE to have an effect before it is unset.
+      // unset.
+      XRE_GlibInit();
+    }
+#endif
+    if (!mHadGSlice) {
+      unsetenv("G_SLICE");
+    }
+  }
+
+private:
+  bool mHadGSlice;
+};
+#endif
+
 nsresult
 XPCOMGlueStartup(const char* aXPCOMFile)
 {
+#ifdef MOZ_GSLICE_INIT
+  GSliceInit gSliceInit;
+#endif
   xpcomFunctions.version = XPCOM_GLUE_VERSION;
   xpcomFunctions.size    = sizeof(XPCOMFunctions);
 
@@ -576,7 +572,7 @@ NS_NewNativeLocalFile(const nsACString& aPath, bool aFollowLinks,
 }
 
 XPCOM_API(nsresult)
-NS_GetDebug(nsIDebug** aResult)
+NS_GetDebug(nsIDebug2** aResult)
 {
   if (!xpcomFunctions.getDebug) {
     return NS_ERROR_NOT_INITIALIZED;

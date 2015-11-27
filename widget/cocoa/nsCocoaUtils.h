@@ -12,6 +12,7 @@
 #include "imgIContainer.h"
 #include "npapi.h"
 #include "nsTArray.h"
+#include "Units.h"
 
 // This must be the last include:
 #include "nsObjCExceptions.h"
@@ -48,8 +49,8 @@ class nsIWidget;
 namespace mozilla {
 namespace gfx {
 class SourceSurface;
-}
-}
+} // namespace gfx
+} // namespace mozilla
 
 // Used to retain a Cocoa object for the remainder of a method's execution.
 class nsAutoRetainCocoaObject {
@@ -128,6 +129,7 @@ struct KeyBindingsCommand
 class nsCocoaUtils
 {
   typedef mozilla::gfx::SourceSurface SourceSurface;
+  typedef mozilla::LayoutDeviceIntRect LayoutDeviceIntRect;
 
 public:
 
@@ -158,13 +160,13 @@ public:
                       NSToIntRound(aPt.y * aBackingScale));
   }
 
-  static nsIntRect
+  static LayoutDeviceIntRect
   CocoaPointsToDevPixels(const NSRect& aRect, CGFloat aBackingScale)
   {
-    return nsIntRect(NSToIntRound(aRect.origin.x * aBackingScale),
-                     NSToIntRound(aRect.origin.y * aBackingScale),
-                     NSToIntRound(aRect.size.width * aBackingScale),
-                     NSToIntRound(aRect.size.height * aBackingScale));
+    return LayoutDeviceIntRect(NSToIntRound(aRect.origin.x * aBackingScale),
+                               NSToIntRound(aRect.origin.y * aBackingScale),
+                               NSToIntRound(aRect.size.width * aBackingScale),
+                               NSToIntRound(aRect.size.height * aBackingScale));
   }
 
   static CGFloat
@@ -174,14 +176,27 @@ public:
   }
 
   static NSPoint
-  DevPixelsToCocoaPoints(const nsIntPoint& aPt, CGFloat aBackingScale)
+  DevPixelsToCocoaPoints(const mozilla::LayoutDeviceIntPoint& aPt,
+                         CGFloat aBackingScale)
   {
     return NSMakePoint((CGFloat)aPt.x / aBackingScale,
                        (CGFloat)aPt.y / aBackingScale);
   }
 
+  // XXX: all calls to this function should eventually be replaced with calls
+  // to DevPixelsToCocoaPoints().
   static NSRect
-  DevPixelsToCocoaPoints(const nsIntRect& aRect, CGFloat aBackingScale)
+  UntypedDevPixelsToCocoaPoints(const nsIntRect& aRect, CGFloat aBackingScale)
+  {
+    return NSMakeRect((CGFloat)aRect.x / aBackingScale,
+                      (CGFloat)aRect.y / aBackingScale,
+                      (CGFloat)aRect.width / aBackingScale,
+                      (CGFloat)aRect.height / aBackingScale);
+  }
+
+  static NSRect
+  DevPixelsToCocoaPoints(const LayoutDeviceIntRect& aRect,
+                         CGFloat aBackingScale)
   {
     return NSMakeRect((CGFloat)aRect.x / aBackingScale,
                       (CGFloat)aRect.y / aBackingScale,
@@ -215,8 +230,8 @@ public:
   // See explanation for geckoRectToCocoaRect, guess what this does...
   static nsIntRect CocoaRectToGeckoRect(const NSRect &cocoaRect);
 
-  static nsIntRect CocoaRectToGeckoRectDevPix(const NSRect &aCocoaRect,
-                                              CGFloat aBackingScale);
+  static mozilla::LayoutDeviceIntRect CocoaRectToGeckoRectDevPix(
+    const NSRect& aCocoaRect, CGFloat aBackingScale);
 
   // Gives the location for the event in screen coordinates. Do not call this
   // unless the window the event was originally targeted at is still alive!
@@ -242,9 +257,10 @@ public:
   static BOOL IsMomentumScrollEvent(NSEvent* aEvent);
   static BOOL HasPreciseScrollingDeltas(NSEvent* aEvent);
   static void GetScrollingDeltas(NSEvent* aEvent, CGFloat* aOutDeltaX, CGFloat* aOutDeltaY);
+  static BOOL EventHasPhaseInformation(NSEvent* aEvent);
 
   // Hides the Menu bar and the Dock. Multiple hide/show requests can be nested.
-  static void HideOSChromeOnScreen(bool aShouldHide, NSScreen* aScreen);
+  static void HideOSChromeOnScreen(bool aShouldHide);
 
   static nsIWidget* GetHiddenWindowWidget();
 
@@ -321,17 +337,16 @@ public:
   static void InitNPCocoaEvent(NPCocoaEvent* aNPCocoaEvent);
 
   /**
-   * Initializes aPluginEvent for aCocoaEvent.
-   */
-  static void InitPluginEvent(mozilla::WidgetPluginEvent &aPluginEvent,
-                              NPCocoaEvent &aCocoaEvent);
-  /**
    * Initializes WidgetInputEvent for aNativeEvent or aModifiers.
    */
   static void InitInputEvent(mozilla::WidgetInputEvent &aInputEvent,
                              NSEvent* aNativeEvent);
-  static void InitInputEvent(mozilla::WidgetInputEvent &aInputEvent,
-                             NSUInteger aModifiers);
+
+  /**
+   * Converts the native modifiers from aNativeEvent into WidgetMouseEvent
+   * Modifiers. aNativeEvent can be null.
+   */
+  static mozilla::Modifiers ModifiersForEvent(NSEvent* aNativeEvent);
 
   /**
    * ConvertToCarbonModifier() returns carbon modifier flags for the cocoa

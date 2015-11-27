@@ -25,32 +25,58 @@ const MOBILENETWORKINFO_CID =
   Components.ID("{a6c8416c-09b4-46d1-bf29-6520d677d085}");
 const MOBILECELLINFO_CID =
   Components.ID("{0635d9ab-997e-4cdf-84e7-c1883752dff3}");
-const TELEPHONYCALLBACK_CID =
-  Components.ID("{6e1af17e-37f3-11e4-aed3-60a44c237d2b}");
+const MOBILECALLFORWARDINGOPTIONS_CID =
+  Components.ID("{e0cf4463-ee63-4b05-ab2e-d94bf764836c}");
+const NEIGHBORINGCELLINFO_CID =
+  Components.ID("{6078cbf1-f34c-44fa-96f8-11a88d4bfdd3}");
+const GSMCELLINFO_CID =
+  Components.ID("{e3cf3aa0-f992-48fe-967b-ec98a28c8535}");
+const WCDMACELLINFO_CID =
+  Components.ID("{62e2c83c-b535-4068-9762-8039fac48106}");
+const CDMACELLINFO_CID =
+  Components.ID("{40f491f0-dd8b-42fd-af32-aef5b002749a}");
+const LTECELLINFO_CID =
+  Components.ID("{715e2c76-3b08-41e4-8ea5-e60c5ce6393e}");
+
 
 const NS_XPCOM_SHUTDOWN_OBSERVER_ID      = "xpcom-shutdown";
 const NS_PREFBRANCH_PREFCHANGE_TOPIC_ID  = "nsPref:changed";
 const NS_NETWORK_ACTIVE_CHANGED_TOPIC_ID = "network-active-changed";
+const NS_DATA_CALL_ERROR_TOPIC_ID        = "data-call-error";
 
 const kPrefRilDebuggingEnabled = "ril.debugging.enabled";
 
-XPCOMUtils.defineLazyServiceGetter(this, "gSystemMessenger",
-                                   "@mozilla.org/system-message-internal;1",
-                                   "nsISystemMessagesInternal");
+const UNKNOWN_VALUE = Ci.nsICellInfo.UNKNOWN_VALUE;
+
+XPCOMUtils.defineLazyServiceGetter(this, "gMobileConnectionMessenger",
+                                   "@mozilla.org/ril/system-messenger-helper;1",
+                                   "nsIMobileConnectionMessenger");
 
 XPCOMUtils.defineLazyServiceGetter(this, "gNetworkManager",
                                    "@mozilla.org/network/manager;1",
                                    "nsINetworkManager");
 
-XPCOMUtils.defineLazyServiceGetter(this, "gRadioInterfaceLayer",
-                                   "@mozilla.org/ril;1",
-                                   "nsIRadioInterfaceLayer");
+XPCOMUtils.defineLazyServiceGetter(this, "gIccService",
+                                   "@mozilla.org/icc/iccservice;1",
+                                   "nsIIccService");
 
-XPCOMUtils.defineLazyServiceGetter(this, "gGonkTelephonyService",
-                                  "@mozilla.org/telephony/telephonyservice;1",
-                                  "nsIGonkTelephonyService");
+XPCOMUtils.defineLazyServiceGetter(this, "gDataCallManager",
+                                   "@mozilla.org/datacall/manager;1",
+                                   "nsIDataCallManager");
 
-let DEBUG = RIL.DEBUG_RIL;
+XPCOMUtils.defineLazyModuleGetter(this, "gTelephonyUtils",
+                                  "resource://gre/modules/TelephonyUtils.jsm",
+                                  "TelephonyUtils");
+
+XPCOMUtils.defineLazyGetter(this, "gRadioInterfaceLayer", function() {
+  let ril = { numRadioInterfaces: 0 };
+  try {
+    ril = Cc["@mozilla.org/ril;1"].getService(Ci.nsIRadioInterfaceLayer);
+  } catch(e) {}
+  return ril;
+});
+
+var DEBUG = RIL.DEBUG_RIL;
 function debug(s) {
   dump("MobileConnectionService: " + s + "\n");
 }
@@ -112,67 +138,344 @@ MobileConnectionInfo.prototype = {
   relSignalStrength: null
 };
 
-function CallForwardingOptions(aOptions) {
-  this.active = aOptions.active;
-  this.action = aOptions.action;
-  this.reason = aOptions.reason;
-  this.number = aOptions.number;
-  this.timeSeconds = aOptions.timeSeconds;
-  this.serviceClass = aOptions.serviceClass;
+function MobileCallForwardingOptions(aOptions) {
+  for (let key in aOptions) {
+    this[key] = aOptions[key];
+  }
 }
-CallForwardingOptions.prototype = {
-  __exposedProps__ : {active: 'r',
-                      action: 'r',
-                      reason: 'r',
-                      number: 'r',
-                      timeSeconds: 'r',
-                      serviceClass: 'r'},
+MobileCallForwardingOptions.prototype = {
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIMobileCallForwardingOptions]),
+  classID: MOBILECALLFORWARDINGOPTIONS_CID,
+  classInfo: XPCOMUtils.generateCI({
+    classID:          MOBILECALLFORWARDINGOPTIONS_CID,
+    classDescription: "MobileCallForwardingOptions",
+    interfaces:       [Ci.nsIMobileCallForwardingOptions]
+  }),
+
+  // nsIMobileForwardingOptions
+
+  active: false,
+  action: Ci.nsIMobileConnection.CALL_FORWARD_ACTION_UNKNOWN,
+  reason: Ci.nsIMobileConnection.CALL_FORWARD_REASON_UNKNOWN,
+  number: null,
+  timeSeconds: -1,
+  serviceClass: Ci.nsIMobileConnection.ICC_SERVICE_CLASS_NONE
+}
+
+function NeighboringCellInfo(aOptions) {
+  this.networkType = aOptions.networkType;
+  this.gsmLocationAreaCode = (aOptions.gsmLocationAreaCode !== undefined &&
+                              aOptions.gsmLocationAreaCode >= 0 &&
+                              aOptions.gsmLocationAreaCode <= 65535) ?
+                             aOptions.gsmLocationAreaCode : UNKNOWN_VALUE;
+  this.gsmCellId = (aOptions.gsmCellId !== undefined &&
+                    aOptions.gsmCellId >= 0 &&
+                    aOptions.gsmCellId <= 65535) ?
+                   aOptions.gsmCellId : UNKNOWN_VALUE;
+  this.wcdmaPsc = (aOptions.wcdmaPsc !== undefined && aOptions.wcdmaPsc >= 0 &&
+                   aOptions.wcdmaPsc <= 511) ?
+                  aOptions.wcdmaPsc : UNKNOWN_VALUE;
+  this.signalStrength = (aOptions.signalStrength !== undefined &&
+                         ((aOptions.signalStrength >= 0 &&
+                           aOptions.signalStrength <= 31) ||
+                          (aOptions.signalStrength >= -120 &&
+                           aOptions.signalStrength <= -25))) ?
+                        aOptions.signalStrength : UNKNOWN_VALUE;
+}
+NeighboringCellInfo.prototype = {
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsINeighboringCellInfo]),
+  classID:        NEIGHBORINGCELLINFO_CID,
+  classInfo:      XPCOMUtils.generateCI({
+    classID:          NEIGHBORINGCELLINFO_CID,
+    classDescription: "NeighboringCellInfo",
+    interfaces:       [Ci.nsINeighboringCellInfo]
+  }),
+
+  isValid: function() {
+    return !(this.gsmLocationAreaCode == UNKNOWN_VALUE &&
+             this.gsmCellId == UNKNOWN_VALUE &&
+             this.wcdmaPsc == UNKNOWN_VALUE &&
+             this.signalStrength == UNKNOWN_VALUE);
+  },
+
+  // nsINeighboringCellInfo
+
+  networkType: null,
+  gsmLocationAreaCode: UNKNOWN_VALUE,
+  gsmCellId: UNKNOWN_VALUE,
+  wcdmaPsc: UNKNOWN_VALUE,
+  signalStrength: UNKNOWN_VALUE
 };
 
-function MMIResult(aOptions) {
-  this.serviceCode = aOptions.serviceCode;
-  this.statusMessage = aOptions.statusMessage;
-  this.additionalInformation = aOptions.additionalInformation;
+function CellInfo(aOptions) {
+  this.type = aOptions.type;
+  this.registered = aOptions.registered;
+  this.timestampType = aOptions.timestampType;
+  this.timestamp = aOptions.timestamp;
 }
-MMIResult.prototype = {
-  __exposedProps__ : {serviceCode: 'r',
-                      statusMessage: 'r',
-                      additionalInformation: 'r'},
+CellInfo.prototype = {
+
+  // nsICellInfo
+
+  type: null,
+  registered: false,
+  timestampType: Ci.nsICellInfo.TIMESTAMP_TYPE_UNKNOWN,
+  timestamp: 0
 };
 
-/**
- * Wrap a MobileConnectionCallback to a TelephonyCallback.
- */
-function TelephonyCallback(aCallback) {
-  this.callback = aCallback;
+function GsmCellInfo(aOptions) {
+  CellInfo.call(this, aOptions);
+
+  // Cell Identity
+  this.mcc = (aOptions.mcc !== undefined && aOptions.mcc >= 0 &&
+              aOptions.mcc <= 999) ? aOptions.mcc : UNKNOWN_VALUE;
+  this.mnc = (aOptions.mnc !== undefined && aOptions.mnc >= 0 &&
+              aOptions.mnc <= 999) ? aOptions.mnc : UNKNOWN_VALUE;
+  this.lac = (aOptions.lac !== undefined && aOptions.lac >= 0 &&
+              aOptions.lac <= 65535) ? aOptions.lac : UNKNOWN_VALUE;
+  this.cid = (aOptions.cid !== undefined && aOptions.cid >= 0 &&
+              aOptions.cid <= 65535) ? aOptions.cid : UNKNOWN_VALUE;
+
+  // Signal Strength
+  this.signalStrength = (aOptions.signalStrength !== undefined &&
+                         aOptions.signalStrength >= 0 &&
+                         aOptions.signalStrength <= 31) ?
+                        aOptions.signalStrength : UNKNOWN_VALUE;
+  this.bitErrorRate = (aOptions.bitErrorRate !== undefined &&
+                       aOptions.bitErrorRate >= 0 && aOptions.bitErrorRate <= 7)
+                      ? aOptions.bitErrorRate : UNKNOWN_VALUE;
 }
-TelephonyCallback.prototype = {
-  QueryInterface:   XPCOMUtils.generateQI([Ci.nsITelephonyCallback]),
-  classID:          TELEPHONYCALLBACK_CID,
+GsmCellInfo.prototype = {
+  __proto__: CellInfo.prototype,
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsICellInfo,
+                                         Ci.nsIGsmCellInfo]),
+  classID: GSMCELLINFO_CID,
+  classInfo: XPCOMUtils.generateCI({
+    classID:          GSMCELLINFO_CID,
+    classDescription: "GsmCellInfo",
+    interfaces:       [Ci.nsIGsmCellInfo]
+  }),
 
-  notifyDialMMI: function(mmiServiceCode) {
-    this.serviceCode = mmiServiceCode;
+  isValid: function() {
+    return !(this.mcc == UNKNOWN_VALUE && this.mnc == UNKNOWN_VALUE &&
+             this.lac == UNKNOWN_VALUE && this.cid == UNKNOWN_VALUE &&
+             this.signalStrength == UNKNOWN_VALUE &&
+             this.bitErrorRate == UNKNOWN_VALUE);
   },
 
-  notifyDialMMISuccess: function(result) {
-    this.callback.notifySendCancelMmiSuccess(result);
+  // nsIGsmCellInfo
+
+  mcc: UNKNOWN_VALUE,
+  mnc: UNKNOWN_VALUE,
+  lac: UNKNOWN_VALUE,
+  cid: UNKNOWN_VALUE,
+  signalStrength: UNKNOWN_VALUE,
+  bitErrorRate: UNKNOWN_VALUE
+};
+
+function WcdmaCellInfo(aOptions) {
+  CellInfo.call(this, aOptions);
+
+  // Cell Identity
+  this.mcc = (aOptions.mcc !== undefined && aOptions.mcc >= 0 &&
+              aOptions.mcc <= 999) ? aOptions.mcc : UNKNOWN_VALUE;
+  this.mnc = (aOptions.mnc !== undefined && aOptions.mnc >= 0 &&
+              aOptions.mnc <= 999) ? aOptions.mnc : UNKNOWN_VALUE;
+  this.lac = (aOptions.lac !== undefined && aOptions.lac >= 0 &&
+              aOptions.lac <= 65535) ? aOptions.lac : UNKNOWN_VALUE;
+  this.cid = (aOptions.cid !== undefined && aOptions.cid >= 0 &&
+              aOptions.cid <= 268435455) ? aOptions.cid : UNKNOWN_VALUE;
+  this.psc = (aOptions.psc !== undefined && aOptions.psc >= 0 &&
+              aOptions.psc <= 511) ? aOptions.psc : UNKNOWN_VALUE;
+
+  // Signal Strength
+  this.signalStrength = (aOptions.signalStrength !== undefined &&
+                         aOptions.signalStrength >= 0 &&
+                         aOptions.signalStrength <= 31) ?
+                        aOptions.signalStrength : UNKNOWN_VALUE;
+  this.bitErrorRate = (aOptions.bitErrorRate !== undefined &&
+                       aOptions.bitErrorRate >= 0 && aOptions.bitErrorRate <= 7)
+                      ? aOptions.bitErrorRate : UNKNOWN_VALUE;
+}
+WcdmaCellInfo.prototype = {
+  __proto__: CellInfo.prototype,
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsICellInfo,
+                                         Ci.nsIWcdmaCellInfo]),
+  classID: WCDMACELLINFO_CID,
+  classInfo: XPCOMUtils.generateCI({
+    classID:          WCDMACELLINFO_CID,
+    classDescription: "WcdmaCellInfo",
+    interfaces:       [Ci.nsIWcdmaCellInfo]
+  }),
+
+  isValid: function() {
+    return !(this.mcc == UNKNOWN_VALUE && this.mnc == UNKNOWN_VALUE &&
+             this.lac == UNKNOWN_VALUE && this.cid == UNKNOWN_VALUE &&
+             this.psc == UNKNOWN_VALUE && this.signalStrength == UNKNOWN_VALUE &&
+             this.bitErrorRate == UNKNOWN_VALUE);
   },
 
-  notifyDialMMIError: function(error) {
-    this.callback.notifyError(error, "", this.serviceCode);
+  // nsIWcdmaCellInfo
+
+  mcc: UNKNOWN_VALUE,
+  mnc: UNKNOWN_VALUE,
+  lac: UNKNOWN_VALUE,
+  cid: UNKNOWN_VALUE,
+  psc: UNKNOWN_VALUE,
+  signalStrength: UNKNOWN_VALUE,
+  bitErrorRate: UNKNOWN_VALUE
+};
+
+function LteCellInfo(aOptions) {
+  CellInfo.call(this, aOptions);
+
+  // Cell Identity
+  this.mcc = (aOptions.mcc !== undefined && aOptions.mcc >= 0 &&
+              aOptions.mcc <= 999) ? aOptions.mcc : UNKNOWN_VALUE;
+  this.mnc = (aOptions.mnc !== undefined && aOptions.mnc >= 0 &&
+              aOptions.mnc <= 999) ? aOptions.mnc : UNKNOWN_VALUE;
+  this.cid = (aOptions.cid !== undefined && aOptions.cid >= 0 &&
+              aOptions.cid <= 268435455) ? aOptions.cid : UNKNOWN_VALUE;
+  this.pcid = (aOptions.pcid !== undefined && aOptions.pcid >= 0 &&
+               aOptions.pcid <= 503) ? aOptions.pcid : UNKNOWN_VALUE;
+  this.tac = (aOptions.tac !== undefined && aOptions.tac >= 0 &&
+              aOptions.tac <= 65535) ? aOptions.tac : UNKNOWN_VALUE;
+
+  // Signal Strength
+  this.signalStrength = (aOptions.signalStrength !== undefined &&
+                         aOptions.signalStrength >= 0 &&
+                         aOptions.signalStrength <= 31) ?
+                        aOptions.signalStrength : UNKNOWN_VALUE;
+  this.rsrp = (aOptions.rsrp !== undefined && aOptions.rsrp >= 44 &&
+               aOptions.rsrp <= 140) ? aOptions.rsrp : UNKNOWN_VALUE;
+  this.rsrq = (aOptions.rsrq !== undefined && aOptions.rsrq >= 3 &&
+               aOptions.rsrq <= 20) ? aOptions.rsrq : UNKNOWN_VALUE;
+  this.rssnr = (aOptions.rssnr !== undefined && aOptions.rssnr >= -200 &&
+                aOptions.rssnr <= 300) ? aOptions.rssnr : UNKNOWN_VALUE;
+  this.cqi = (aOptions.cqi !== undefined && aOptions.cqi >= 0 &&
+                aOptions.cqi <= 15) ? aOptions.cqi : UNKNOWN_VALUE;
+  this.timingAdvance = (aOptions.timingAdvance !== undefined &&
+                        aOptions.timingAdvance >= 0 &&
+                        aOptions.timingAdvance <= 2147483646) ?
+                       aOptions.timingAdvance : UNKNOWN_VALUE;
+}
+LteCellInfo.prototype = {
+  __proto__: CellInfo.prototype,
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsICellInfo,
+                                         Ci.nsILteCellInfo]),
+  classID: LTECELLINFO_CID,
+  classInfo: XPCOMUtils.generateCI({
+    classID:          LTECELLINFO_CID,
+    classDescription: "LteCellInfo",
+    interfaces:       [Ci.nsILteCellInfo]
+  }),
+
+  isValid: function() {
+    return !(this.mcc == UNKNOWN_VALUE && this.mnc == UNKNOWN_VALUE &&
+             this.cid == UNKNOWN_VALUE && this.pcid == UNKNOWN_VALUE &&
+             this.tac == UNKNOWN_VALUE && this.signalStrength == UNKNOWN_VALUE &&
+             this.rsrp == UNKNOWN_VALUE && this.rsrq == UNKNOWN_VALUE &&
+             this.rssnr == UNKNOWN_VALUE && this.cqi == UNKNOWN_VALUE &&
+             this.timingAdvance == UNKNOWN_VALUE);
   },
 
-  notifyDialMMIErrorWithInfo: function(error, info) {
-    this.callback.notifyError(error, "", this.serviceCode, info);
+  // nsILteCellInfo
+
+  mcc: UNKNOWN_VALUE,
+  mnc: UNKNOWN_VALUE,
+  cid: UNKNOWN_VALUE,
+  pcid: UNKNOWN_VALUE,
+  tac: UNKNOWN_VALUE,
+  signalStrength: UNKNOWN_VALUE,
+  rsrp: UNKNOWN_VALUE,
+  rsrq: UNKNOWN_VALUE,
+  rssnr: UNKNOWN_VALUE,
+  cqi: UNKNOWN_VALUE,
+  timingAdvance: UNKNOWN_VALUE
+};
+
+function CdmaCellInfo(aOptions) {
+  CellInfo.call(this, aOptions);
+
+  // Cell Identity
+  this.networkId = (aOptions.networkId !== undefined &&
+                    aOptions.networkId >= 0 && aOptions.networkId <= 65535) ?
+                   aOptions.networkId : UNKNOWN_VALUE;
+  this.systemId = (aOptions.systemId !== undefined && aOptions.systemId >= 0 &&
+                   aOptions.systemId <= 32767) ?
+                  aOptions.systemId : UNKNOWN_VALUE;
+  this.baseStationId = (aOptions.baseStationId !== undefined &&
+                        aOptions.baseStationId >= 0 &&
+                        aOptions.baseStationId <= 65535) ?
+                       aOptions.baseStationId : UNKNOWN_VALUE;
+  this.longitude = (aOptions.longitude !== undefined &&
+                    aOptions.longitude >= -2592000 &&
+                    aOptions.longitude <= 2592000) ?
+                   aOptions.longitude : UNKNOWN_VALUE;
+  this.latitude = (aOptions.latitude !== undefined &&
+                   aOptions.latitude >= -1296000 &&
+                   aOptions.latitude <= 1296000) ?
+                  aOptions.latitude : UNKNOWN_VALUE;
+
+  // Signal Strength
+  this.cdmaEcio = (aOptions.cdmaEcio !== undefined &&
+                   aOptions.cdmaEcio >= 0) ? aOptions.cdmaEcio : UNKNOWN_VALUE;
+  this.evdoDbm = (aOptions.evdoDbm !== undefined &&
+                  aOptions.evdoDbm >= 0) ? aOptions.evdoDbm : UNKNOWN_VALUE;
+  this.evdoEcio = (aOptions.evdoEcio !== undefined &&
+                   aOptions.evdoEcio >= 0) ? aOptions.evdoEcio : UNKNOWN_VALUE;
+  this.evdoSnr = (aOptions.evdoSnr !== undefined &&
+                  aOptions.evdoSnr >= 0 && aOptions.evdoSnr <= 8) ?
+                 aOptions.evdoSnr : UNKNOWN_VALUE;
+}
+CdmaCellInfo.prototype = {
+  __proto__: CellInfo.prototype,
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsICellInfo,
+                                         Ci.nsICdmaCellInfo]),
+  classID: CDMACELLINFO_CID,
+  classInfo: XPCOMUtils.generateCI({
+    classID:          CDMACELLINFO_CID,
+    classDescription: "CdmaCellInfo",
+    interfaces:       [Ci.nsICdmaCellInfo]
+  }),
+
+  isValid: function() {
+    return !(this.networkId == UNKNOWN_VALUE && this.systemId == UNKNOWN_VALUE &&
+             this.baseStationId == UNKNOWN_VALUE &&
+             this.longitude == UNKNOWN_VALUE &&
+             this.latitude == UNKNOWN_VALUE && this.cdmaDbm == UNKNOWN_VALUE &&
+             this.cdmaEcio == UNKNOWN_VALUE && this.evdoDbm == UNKNOWN_VALUE &&
+             this.evdoEcio == UNKNOWN_VALUE && this.evdoSnr == UNKNOWN_VALUE);
   },
 
-  notifyDialError: function() {
-    throw Cr.NS_ERROR_UNEXPECTED;
-  },
+  // nsICdmaCellInfo
 
-  notifyDialSuccess: function() {
-    throw Cr.NS_ERROR_UNEXPECTED;
-  },
+  networkId: UNKNOWN_VALUE,
+  systemId: UNKNOWN_VALUE,
+  baseStationId: UNKNOWN_VALUE,
+  longitude: UNKNOWN_VALUE,
+  latitude: UNKNOWN_VALUE,
+  cdmaDbm: UNKNOWN_VALUE,
+  cdmaEcio: UNKNOWN_VALUE,
+  evdoDbm: UNKNOWN_VALUE,
+  evdoEcio: UNKNOWN_VALUE,
+  evdoSnr: UNKNOWN_VALUE
+};
+
+function MobileDeviceIdentities(aImei, aImeisv, aEsn, aMeid) {
+  this.imei = aImei;
+  this.imeisv = aImeisv;
+  this.esn = aEsn;
+  this.meid = aMeid;
+}
+MobileDeviceIdentities.prototype = {
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIMobileDeviceIdentities]),
+
+  // nsIMobileDeviceIdentities
+  imei: null,
+  imeisv: null,
+  esn: null,
+  meid: null
 };
 
 function MobileConnectionProvider(aClientId, aRadioInterface) {
@@ -200,14 +503,21 @@ MobileConnectionProvider.prototype = {
    */
   _selectingNetwork: null,
 
+  /**
+   * The two radio states below stand for the user expectation and the hardware
+   * status, respectively. |radioState| will be updated based on their values.
+   */
+  _expectedRadioState: RIL.GECKO_RADIOSTATE_UNKNOWN,
+  _hardwareRadioState: RIL.GECKO_RADIOSTATE_UNKNOWN,
+
   voice: null,
   data: null,
-  iccId: null,
-  networkSelectionMode: null,
-  radioState: null,
+  networkSelectionMode: Ci.nsIMobileConnection.NETWORK_SELECTION_MODE_UNKNOWN,
+  radioState: Ci.nsIMobileConnection.MOBILE_RADIO_STATE_UNKNOWN,
   lastKnownNetwork: null,
   lastKnownHomeNetwork: null,
   supportedNetworkTypes: null,
+  deviceIdentities: null,
 
   /**
    * A utility function to dump debug message.
@@ -233,10 +543,11 @@ MobileConnectionProvider.prototype = {
 
       let networkTypes = RIL.RIL_PREFERRED_NETWORK_TYPE_TO_GECKO[index];
       supportedNetworkTypes = networkTypes ?
-        networkTypes.replace("-auto", "", "g").split("/") :
+        networkTypes.replace(/-auto/g, "").split("/") :
         RIL.GECKO_SUPPORTED_NETWORK_TYPES_DEFAULT.split(",");
     }
 
+    let enumNetworkTypes = [];
     for (let type of supportedNetworkTypes) {
       // If the value in system property is not valid, use the default one which
       // is defined in ril_consts.js.
@@ -244,81 +555,18 @@ MobileConnectionProvider.prototype = {
         if (DEBUG) {
           this._debug("Unknown network type: " + type);
         }
-        supportedNetworkTypes =
-          RIL.GECKO_SUPPORTED_NETWORK_TYPES_DEFAULT.split(",");
+        RIL.GECKO_SUPPORTED_NETWORK_TYPES_DEFAULT.split(",").forEach(aType => {
+          enumNetworkTypes.push(RIL.GECKO_SUPPORTED_NETWORK_TYPES.indexOf(aType));
+        });
         break;
       }
+      enumNetworkTypes.push(RIL.GECKO_SUPPORTED_NETWORK_TYPES.indexOf(type));
     }
     if (DEBUG) {
-      this._debug("Supported Network Types: " + supportedNetworkTypes);
-    }
-    return supportedNetworkTypes;
-  },
-
-  /**
-   * Helper for guarding us against invalid reason values for call forwarding.
-   */
-  _isValidCallForwardingReason: function(aReason) {
-    switch (aReason) {
-      case Ci.nsIMobileConnection.CALL_FORWARD_REASON_UNCONDITIONAL:
-      case Ci.nsIMobileConnection.CALL_FORWARD_REASON_MOBILE_BUSY:
-      case Ci.nsIMobileConnection.CALL_FORWARD_REASON_NO_REPLY:
-      case Ci.nsIMobileConnection.CALL_FORWARD_REASON_NOT_REACHABLE:
-      case Ci.nsIMobileConnection.CALL_FORWARD_REASON_ALL_CALL_FORWARDING:
-      case Ci.nsIMobileConnection.CALL_FORWARD_REASON_ALL_CONDITIONAL_CALL_FORWARDING:
-        return true;
-      default:
-        return false;
-    }
-  },
-
-  /**
-   * Helper for guarding us against invalid action values for call forwarding.
-   */
-  _isValidCallForwardingAction: function(aAction) {
-    switch (aAction) {
-      case Ci.nsIMobileConnection.CALL_FORWARD_ACTION_DISABLE:
-      case Ci.nsIMobileConnection.CALL_FORWARD_ACTION_ENABLE:
-      case Ci.nsIMobileConnection.CALL_FORWARD_ACTION_REGISTRATION:
-      case Ci.nsIMobileConnection.CALL_FORWARD_ACTION_ERASURE:
-        return true;
-      default:
-        return false;
-    }
-  },
-
-  /**
-   * Helper for guarding us against invalid program values for call barring.
-   */
-  _isValidCallBarringProgram: function(aProgram) {
-    switch (aProgram) {
-      case Ci.nsIMobileConnection.CALL_BARRING_PROGRAM_ALL_OUTGOING:
-      case Ci.nsIMobileConnection.CALL_BARRING_PROGRAM_OUTGOING_INTERNATIONAL:
-      case Ci.nsIMobileConnection.CALL_BARRING_PROGRAM_OUTGOING_INTERNATIONAL_EXCEPT_HOME:
-      case Ci.nsIMobileConnection.CALL_BARRING_PROGRAM_ALL_INCOMING:
-      case Ci.nsIMobileConnection.CALL_BARRING_PROGRAM_INCOMING_ROAMING:
-        return true;
-      default:
-        return false;
-    }
-  },
-
-  /**
-   * Helper for guarding us against invalid options for call barring.
-   */
-  _isValidCallBarringOptions: function(aOptions, aUsedForSetting) {
-    if (!aOptions || aOptions.serviceClass == null ||
-        !this._isValidCallBarringProgram(aOptions.program)) {
-      return false;
+      this._debug("Supported Network Types: " + enumNetworkTypes);
     }
 
-    // For setting callbarring options, |enabled| and |password| are required.
-    if (aUsedForSetting &&
-        (aOptions.enabled == null || aOptions.password == null)) {
-      return false;
-    }
-
-    return true;
+    return enumNetworkTypes;
   },
 
   /**
@@ -340,9 +588,8 @@ MobileConnectionProvider.prototype = {
    * really the case. See bug 787967
    */
   _checkRoamingBetweenOperators: function(aNetworkInfo) {
-    // TODO: Bug 864489 - B2G RIL: use ipdl as IPC in MozIccManager
-    // Should get iccInfo from GonkIccProvider.
-    let iccInfo = this._radioInterface.rilContext.iccInfo;
+    let icc = gIccService.getIccByServiceId(this._clientId);
+    let iccInfo = icc ? icc.iccInfo : null;
     let operator = aNetworkInfo.network;
     let state = aNetworkInfo.state;
 
@@ -369,6 +616,12 @@ MobileConnectionProvider.prototype = {
     return true;
   },
 
+  /**
+   * The design of this updating function is to update the attribute in
+   * |aDestInfo| *only if* new data (e.g. aSrcInfo) contains the same attribute.
+   * Thus, for the attribute in |aDestInfo| that isn't showed in |aSrcInfo|, it
+   * should just keep the original value unchanged.
+   */
   _updateConnectionInfo: function(aDestInfo, aSrcInfo) {
     let isUpdated = false;
     for (let key in aSrcInfo) {
@@ -393,15 +646,13 @@ MobileConnectionProvider.prototype = {
     } else {
       aDestInfo.network = this._operatorInfo;
 
-      if (aSrcInfo.cell == null) {
-        if (aDestInfo.cell != null) {
-          isUpdated = true;
-          aDestInfo.cell = null;
-        }
-      } else {
-        if (aDestInfo.cell == null) {
+      // If no new cell data is passed, we should just keep the original cell
+      // data unchanged.
+      if (aSrcInfo.cell) {
+        if (!aDestInfo.cell) {
           aDestInfo.cell = new MobileCellInfo();
         }
+
         isUpdated = this._updateInfo(aDestInfo.cell, aSrcInfo.cell) || isUpdated;
       }
     }
@@ -411,6 +662,12 @@ MobileConnectionProvider.prototype = {
     return isUpdated;
   },
 
+  /**
+   * The design of this updating function is to update the attribute in
+   * |aDestInfo| *only if* new data (e.g. aSrcInfo) contains the same attribute.
+   * Thus, for the attribute in |aDestInfo| that isn't showed in |aSrcInfo|, it
+   * should just keep the original value unchanged.
+   */
   _updateInfo: function(aDestInfo, aSrcInfo) {
     let isUpdated = false;
     for (let key in aSrcInfo) {
@@ -423,7 +680,7 @@ MobileConnectionProvider.prototype = {
   },
 
   _rulesToCallForwardingOptions: function(aRules) {
-    return aRules.map(rule => new CallForwardingOptions(rule));
+    return aRules.map(rule => new MobileCallForwardingOptions(rule));
   },
 
   _dispatchNotifyError: function(aCallback, aErrorMsg) {
@@ -449,7 +706,7 @@ MobileConnectionProvider.prototype = {
   deliverListenerEvent: function(aName, aArgs) {
     let listeners = this._listeners.slice();
     for (let listener of listeners) {
-      if (listeners.indexOf(listener) === -1) {
+      if (this._listeners.indexOf(listener) === -1) {
         continue;
       }
       let handler = listener[aName];
@@ -476,10 +733,10 @@ MobileConnectionProvider.prototype = {
   updateDataInfo: function(aNewInfo, aBatch = false) {
     // For the data connection, the `connected` flag indicates whether
     // there's an active data call. We get correct `connected` state here.
-    let active = gNetworkManager.active;
+    let active = gNetworkManager.activeNetworkInfo;
     aNewInfo.connected = false;
     if (active &&
-        active.type === Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE &&
+        active.type === Ci.nsINetworkInfo.NETWORK_TYPE_MOBILE &&
         active.serviceId === this._clientId) {
       aNewInfo.connected = true;
     }
@@ -488,6 +745,105 @@ MobileConnectionProvider.prototype = {
     if (isUpdated && !aBatch) {
       this.deliverListenerEvent("notifyDataChanged");
     }
+
+    if (isUpdated) {
+      this._ensureDataRegistration();
+    }
+  },
+
+  _dataRegistrationFailed: false,
+  _ensureDataRegistration: function() {
+    let isDataRegistered =
+      this.data &&
+      this.data.state == RIL.GECKO_MOBILE_CONNECTION_STATE_REGISTERED;
+    let isVoiceRegistered =
+      this.voice &&
+      this.voice.state == RIL.GECKO_MOBILE_CONNECTION_STATE_REGISTERED;
+
+    if (isVoiceRegistered && isDataRegistered) {
+      if (DEBUG) {
+        this._debug("Voice and data registered.");
+      }
+      this._dataRegistrationFailed = false;
+      return;
+    }
+
+    if (isVoiceRegistered && !isDataRegistered &&
+        this._clientId == gDataCallManager.dataDefaultServiceId) {
+
+      // We have been here before, no more recovery.
+      if (this._dataRegistrationFailed) {
+        if (DEBUG) {
+          this._debug("Voice and data not consistent: " + this.voice.state +
+                      " != " + this.data.state + ".");
+        }
+        return;
+      }
+
+      if (DEBUG) {
+        this._debug("Voice and data not consistent: " + this.voice.state +
+                    " != " + this.data.state + ", try to recover.");
+      }
+
+      this._dataRegistrationFailed = true;
+      // If there is any ongoing call, wait for them to disconnect.
+      if (gTelephonyUtils.hasAnyCalls(this._clientId)) {
+        gTelephonyUtils.waitForNoCalls(this._clientId)
+          .then(() => {
+            if (this._dataRegistrationFailed) {
+              this._recoverDataRegistration();
+            }
+          });
+        return;
+      }
+
+      this._recoverDataRegistration();
+    }
+  },
+
+
+  /**
+   * To recover data registration, get the current preferred network type first,
+   * then set it to a temporary preferred network type, and last set back to the
+   * previous preferred network type. This is will cause deregistration and
+   * registration on both voice and data networks.
+   */
+  _recoverDataRegistration: function() {
+    if (DEBUG) {
+      this._debug("Trying to recover data registration...");
+    }
+
+    let currentPreferredNetworkType;
+
+    let resetPreferredNetworkType = () => {
+      this.setPreferredNetworkType(currentPreferredNetworkType, {
+        QueryInterface: XPCOMUtils.generateQI([Ci.nsIMobileConnectionCallback]),
+        notifySuccess: () => {},
+        notifyError: aErrorMsg => {}
+      });
+    };
+
+    let setTemporaryPreferredNetworkType = () => {
+      this.setPreferredNetworkType(
+        Ci.nsIMobileConnection.PREFERRED_NETWORK_TYPE_WCDMA_GSM_CDMA_EVDO, {
+          QueryInterface: XPCOMUtils.generateQI([Ci.nsIMobileConnectionCallback]),
+          notifySuccess: () =>  resetPreferredNetworkType(),
+          notifyError: aErrorMsg => resetPreferredNetworkType()
+      });
+    };
+
+    this.getPreferredNetworkType({
+      QueryInterface: XPCOMUtils.generateQI([Ci.nsIMobileConnectionCallback]),
+      notifyGetPreferredNetworkTypeSuccess: networkType => {
+        currentPreferredNetworkType = networkType;
+        setTemporaryPreferredNetworkType();
+      },
+      notifyError: aErrorMsg => {
+        currentPreferredNetworkType =
+          Ci.nsIMobileConnection.PREFERRED_NETWORK_TYPE_LTE_WCDMA_GSM_CDMA_EVDO;
+        setTemporaryPreferredNetworkType();
+      }
+    });
   },
 
   updateOperatorInfo: function(aNewInfo, aBatch = false) {
@@ -535,29 +891,102 @@ MobileConnectionProvider.prototype = {
     }
   },
 
-  updateIccId: function(aIccId) {
-    if (this.iccId === aIccId) {
+  updateRadioState: function(aMessage, aCallback = null) {
+    switch (aMessage.msgType) {
+      case "ExpectedRadioState":
+        this._expectedRadioState = aMessage.msgData;
+        break;
+      case "HardwareRadioState":
+        this._hardwareRadioState = aMessage.msgData;
+        break;
+      default:
+        if (DEBUG) this._debug("updateRadioState: Invalid message type");
+        return;
+    }
+
+    if (aMessage.msgType === "ExpectedRadioState" && aCallback &&
+        this._hardwareRadioState === this._expectedRadioState) {
+      // Early resolved
+      aCallback.notifySuccess();
       return;
     }
 
-    this.iccId = aIccId;
-    this.deliverListenerEvent("notifyIccChanged");
-  },
+    let newState;
+    switch (this._expectedRadioState) {
+      case RIL.GECKO_RADIOSTATE_ENABLED:
+        newState = this._hardwareRadioState === this._expectedRadioState ?
+          Ci.nsIMobileConnection.MOBILE_RADIO_STATE_ENABLED :
+          Ci.nsIMobileConnection.MOBILE_RADIO_STATE_ENABLING;
+        break;
 
-  updateRadioState: function(aRadioState) {
-    if (this.radioState === aRadioState) {
-      return;
+      case RIL.GECKO_RADIOSTATE_DISABLED:
+        newState = this._hardwareRadioState === this._expectedRadioState ?
+          Ci.nsIMobileConnection.MOBILE_RADIO_STATE_DISABLED :
+          Ci.nsIMobileConnection.MOBILE_RADIO_STATE_DISABLING;
+        break;
+
+      default: /* RIL.GECKO_RADIOSTATE_UNKNOWN */
+        switch (this._hardwareRadioState) {
+          case RIL.GECKO_RADIOSTATE_ENABLED:
+            newState = Ci.nsIMobileConnection.MOBILE_RADIO_STATE_ENABLED;
+            break;
+          case RIL.GECKO_RADIOSTATE_DISABLED:
+            newState = Ci.nsIMobileConnection.MOBILE_RADIO_STATE_DISABLED;
+            break;
+          default: /* RIL.GECKO_RADIOSTATE_UNKNOWN */
+            newState = Ci.nsIMobileConnection.MOBILE_RADIO_STATE_UNKNOWN;
+        }
     }
 
-    this.radioState = aRadioState;
+    // This update is triggered by underlying layers and the state is UNKNOWN
+    if (aMessage.msgType === "HardwareRadioState" &&
+        aMessage.msgData === RIL.GECKO_RADIOSTATE_UNKNOWN) {
+      // TODO: Find a better way than just setting the radio state to UNKNOWN
+      newState = Ci.nsIMobileConnection.MOBILE_RADIO_STATE_UNKNOWN;
+    }
+
+    if (newState === Ci.nsIMobileConnection.MOBILE_RADIO_STATE_ENABLING ||
+        newState === Ci.nsIMobileConnection.MOBILE_RADIO_STATE_DISABLING) {
+      let action = this._expectedRadioState === RIL.GECKO_RADIOSTATE_ENABLED;
+      this._radioInterface.sendWorkerMessage("setRadioEnabled",
+                                             {enabled: action},
+                                             function(aResponse) {
+        if (!aCallback) {
+          return false;
+        }
+        if (aResponse.errorMsg) {
+          aCallback.notifyError(aResponse.errorMsg);
+          return false;
+        }
+        aCallback.notifySuccess();
+        return false;
+      });
+    }
+
+    if (DEBUG) this._debug("Current Radio State is '" + newState + "'");
+    if (this.radioState === newState) {
+      return;
+    }
+    this.radioState = newState;
     this.deliverListenerEvent("notifyRadioStateChanged");
   },
 
   notifyCFStateChanged: function(aAction, aReason, aNumber, aTimeSeconds,
                                  aServiceClass) {
     this.deliverListenerEvent("notifyCFStateChanged",
-                              [true, aAction, aReason, aNumber, aTimeSeconds,
-                                aServiceClass]);
+                              [aAction, aReason, aNumber, aTimeSeconds,
+                               aServiceClass]);
+  },
+
+  notifyDeviceIdentitiesChanged: function(aImei, aImeisv, aEsn, aMeid) {
+    if (this.deviceIdentities) {
+      if (DEBUG) this._debug("deviceIdentities shall not be changed once being updated.");
+      return;
+    }
+
+    this.deviceIdentities =
+      new MobileDeviceIdentities(aImei, aImeisv, aEsn, aMeid);
+    this.deliverListenerEvent("notifyDeviceIdentitiesChanged");
   },
 
   getSupportedNetworkTypes: function(aTypes) {
@@ -634,7 +1063,7 @@ MobileConnectionProvider.prototype = {
   },
 
   setPreferredNetworkType: function(aType, aCallback) {
-    if (this.radioState !== RIL.GECKO_RADIOSTATE_ENABLED) {
+    if (this.radioState !== Ci.nsIMobileConnection.MOBILE_RADIO_STATE_ENABLED) {
       this._dispatchNotifyError(aCallback, RIL.GECKO_ERROR_RADIO_NOT_AVAILABLE);
       return;
     }
@@ -653,7 +1082,7 @@ MobileConnectionProvider.prototype = {
   },
 
   getPreferredNetworkType: function(aCallback) {
-    if (this.radioState !== RIL.GECKO_RADIOSTATE_ENABLED) {
+    if (this.radioState !== Ci.nsIMobileConnection.MOBILE_RADIO_STATE_ENABLED) {
       this._dispatchNotifyError(aCallback, RIL.GECKO_ERROR_RADIO_NOT_AVAILABLE);
       return;
     }
@@ -665,7 +1094,7 @@ MobileConnectionProvider.prototype = {
         return false;
       }
 
-      aCallback.notifySuccessWithString(aResponse.type);
+      aCallback.notifyGetPreferredNetworkTypeSuccess(aResponse.type);
       return false;
     }).bind(this));
   },
@@ -692,7 +1121,7 @@ MobileConnectionProvider.prototype = {
         return false;
       }
 
-      aCallback.notifySuccessWithString(aResponse.mode);
+      aCallback.notifyGetRoamingPreferenceSuccess(aResponse.mode);
       return false;
     }).bind(this));
   },
@@ -724,38 +1153,13 @@ MobileConnectionProvider.prototype = {
     }).bind(this));
   },
 
-  sendMMI: function(aMmi, aCallback) {
-    let telephonyCallback = new TelephonyCallback(aCallback);
-    gGonkTelephonyService.dialMMI(this._clientId, aMmi, telephonyCallback);
-  },
-
-  cancelMMI: function(aCallback) {
-    this._radioInterface.sendWorkerMessage("cancelUSSD", null,
-                                           (function(aResponse) {
-      if (aResponse.errorMsg) {
-        aCallback.notifyError(aResponse.errorMsg);
-        return false;
-      }
-
-      aCallback.notifySuccess();
-      return false;
-    }).bind(this));
-  },
-
-  setCallForwarding: function(aOptions, aCallback) {
-    if (!aOptions ||
-        !this._isValidCallForwardingReason(aOptions.reason) ||
-        !this._isValidCallForwardingAction(aOptions.action)){
-      this._dispatchNotifyError(aCallback, RIL.GECKO_ERROR_INVALID_PARAMETER);
-      return;
-    }
-
+  setCallForwarding: function(aAction, aReason, aNumber, aTimeSeconds,
+                              aServiceClass, aCallback) {
     let options = {
-      active: aOptions.active,
-      action: aOptions.action,
-      reason: aOptions.reason,
-      number: aOptions.number,
-      timeSeconds: aOptions.timeSeconds,
+      action: aAction,
+      reason: aReason,
+      number: aNumber,
+      timeSeconds: aTimeSeconds,
       serviceClass: RIL.ICC_SERVICE_CLASS_VOICE
     };
 
@@ -775,11 +1179,6 @@ MobileConnectionProvider.prototype = {
   },
 
   getCallForwarding: function(aReason, aCallback) {
-    if (!this._isValidCallForwardingReason(aReason)){
-      this._dispatchNotifyError(aCallback, RIL.GECKO_ERROR_INVALID_PARAMETER);
-      return;
-    }
-
     this._radioInterface.sendWorkerMessage("queryCallForwardStatus",
                                            {reason: aReason},
                                            (function(aResponse) {
@@ -788,23 +1187,19 @@ MobileConnectionProvider.prototype = {
         return false;
       }
 
-      aCallback.notifyGetCallForwardingSuccess(
-        this._rulesToCallForwardingOptions(aResponse.rules));
+      let infos = this._rulesToCallForwardingOptions(aResponse.rules);
+      aCallback.notifyGetCallForwardingSuccess(infos.length, infos);
       return false;
     }).bind(this));
   },
 
-  setCallBarring: function(aOptions, aCallback) {
-    if (!this._isValidCallBarringOptions(aOptions, true)) {
-      this._dispatchNotifyError(aCallback, RIL.GECKO_ERROR_INVALID_PARAMETER);
-      return;
-    }
-
+  setCallBarring: function(aProgram, aEnabled, aPassword, aServiceClass,
+                           aCallback) {
     let options = {
-      program: aOptions.program,
-      enabled: aOptions.enabled,
-      password: aOptions.password,
-      serviceClass: aOptions.serviceClass
+      program: aProgram,
+      enabled: aEnabled,
+      password: aPassword,
+      serviceClass: aServiceClass
     };
 
     this._radioInterface.sendWorkerMessage("setCallBarring", options,
@@ -819,16 +1214,11 @@ MobileConnectionProvider.prototype = {
     }).bind(this));
   },
 
-  getCallBarring: function(aOptions, aCallback) {
-    if (!this._isValidCallBarringOptions(aOptions)) {
-      this._dispatchNotifyError(aCallback, RIL.GECKO_ERROR_INVALID_PARAMETER);
-      return;
-    }
-
+  getCallBarring: function(aProgram, aPassword, aServiceClass, aCallback) {
     let options = {
-      program: aOptions.program,
-      password: aOptions.password,
-      serviceClass: aOptions.serviceClass
+      program: aProgram,
+      password: aPassword,
+      serviceClass: aServiceClass
     };
 
     this._radioInterface.sendWorkerMessage("queryCallBarringStatus", options,
@@ -845,17 +1235,10 @@ MobileConnectionProvider.prototype = {
     }).bind(this));
   },
 
-  changeCallBarringPassword: function(aOptions, aCallback) {
-    // Checking valid PIN for supplementary services. See TS.22.004 clause 5.2.
-    if (aOptions.pin == null || !aOptions.pin.match(/^\d{4}$/) ||
-        aOptions.newPin == null || !aOptions.newPin.match(/^\d{4}$/)) {
-      this._dispatchNotifyError(aCallback, "InvalidPassword");
-      return;
-    }
-
+  changeCallBarringPassword: function(aPin, aNewPin, aCallback) {
     let options = {
-      pin: aOptions.pin,
-      newPin: aOptions.newPin
+      pin: aPin,
+      newPin: aNewPin
     };
 
     this._radioInterface.sendWorkerMessage("changeCallBarringPassword", options,
@@ -870,9 +1253,13 @@ MobileConnectionProvider.prototype = {
     }).bind(this));
   },
 
-  setCallWaiting: function(aEnabled, aCallback) {
-    this._radioInterface.sendWorkerMessage("setCallWaiting",
-                                           {enabled: aEnabled},
+  setCallWaiting: function(aEnabled, aServiceClass, aCallback) {
+    let options = {
+      enabled: aEnabled,
+      serviceClass: aServiceClass
+    };
+
+    this._radioInterface.sendWorkerMessage("setCallWaiting", options,
                                            (function(aResponse) {
       if (aResponse.errorMsg) {
         aCallback.notifyError(aResponse.errorMsg);
@@ -892,7 +1279,7 @@ MobileConnectionProvider.prototype = {
         return false;
       }
 
-      aCallback.notifySuccessWithBoolean(aResponse.enabled);
+      aCallback.notifyGetCallWaitingSuccess(aResponse.serviceClass);
       return false;
     }).bind(this));
   },
@@ -903,7 +1290,7 @@ MobileConnectionProvider.prototype = {
       return;
     }
 
-    if (this.radioState !== RIL.GECKO_RADIOSTATE_ENABLED) {
+    if (this.radioState !== Ci.nsIMobileConnection.MOBILE_RADIO_STATE_ENABLED) {
       this._dispatchNotifyError(aCallback, RIL.GECKO_ERROR_RADIO_NOT_AVAILABLE);
       return;
     }
@@ -922,7 +1309,7 @@ MobileConnectionProvider.prototype = {
   },
 
   getCallingLineIdRestriction: function(aCallback) {
-    if (this.radioState !== RIL.GECKO_RADIOSTATE_ENABLED) {
+    if (this.radioState !== Ci.nsIMobileConnection.MOBILE_RADIO_STATE_ENABLED) {
       this._dispatchNotifyError(aCallback, RIL.GECKO_ERROR_RADIO_NOT_AVAILABLE);
       return;
     }
@@ -953,17 +1340,90 @@ MobileConnectionProvider.prototype = {
   },
 
   setRadioEnabled: function(aEnabled, aCallback) {
-    this._radioInterface.sendWorkerMessage("setRadioEnabled",
-                                           {enabled: aEnabled},
-                                           (function(aResponse) {
+    if (DEBUG) {
+      this._debug("setRadioEnabled: " + aEnabled);
+    }
+
+    // Before sending a equest to |ril_worker.js|, we should check radioState.
+    switch (this.radioState) {
+      case Ci.nsIMobileConnection.MOBILE_RADIO_STATE_UNKNOWN:
+      case Ci.nsIMobileConnection.MOBILE_RADIO_STATE_ENABLED:
+      case Ci.nsIMobileConnection.MOBILE_RADIO_STATE_DISABLED:
+        break;
+      default:
+        aCallback.notifyError("InvalidStateError");
+        return;
+    }
+
+    let message = {
+      msgType: "ExpectedRadioState",
+      msgData: (aEnabled ? RIL.GECKO_RADIOSTATE_ENABLED :
+                           RIL.GECKO_RADIOSTATE_DISABLED)
+    };
+    this.updateRadioState(message, aCallback);
+  },
+
+  getCellInfoList: function(aCallback) {
+    this._radioInterface.sendWorkerMessage("getCellInfoList",
+                                           null,
+                                           function(aResponse) {
       if (aResponse.errorMsg) {
-        aCallback.notifyError(aResponse.errorMsg);
-        return true;
+        aCallback.notifyGetCellInfoListFailed(aResponse.errorMsg);
+        return;
       }
 
-      aCallback.notifySuccess();
-      return true;
-    }).bind(this));
+      let cellInfoList = [];
+      let count = aResponse.result.length;
+      for (let i = 0; i < count; i++) {
+        let srcCellInfo = aResponse.result[i];
+        let cellInfo;
+        switch (srcCellInfo.type) {
+          case RIL.CELL_INFO_TYPE_GSM:
+            cellInfo = new GsmCellInfo(srcCellInfo);
+            break;
+          case RIL.CELL_INFO_TYPE_WCDMA:
+            cellInfo = new WcdmaCellInfo(srcCellInfo);
+            break;
+          case RIL.CELL_INFO_TYPE_LTE:
+            cellInfo = new LteCellInfo(srcCellInfo);
+            break;
+          case RIL.CELL_INFO_TYPE_CDMA:
+            cellInfo = new CdmaCellInfo(srcCellInfo);
+            break;
+        }
+
+        if (!cellInfo || !cellInfo.isValid()) {
+          continue;
+        }
+
+        cellInfoList.push(cellInfo);
+      }
+      aCallback.notifyGetCellInfoList(cellInfoList.length, cellInfoList);
+    }.bind(this));
+  },
+
+  getNeighboringCellIds: function(aCallback) {
+    this._radioInterface.sendWorkerMessage("getNeighboringCellIds",
+                                           null,
+                                           function(aResponse) {
+      if (aResponse.errorMsg) {
+        aCallback.notifyGetNeighboringCellIdsFailed(aResponse.errorMsg);
+        return;
+      }
+
+      let neighboringCellIds = [];
+      let count = aResponse.result.length;
+      for (let i = 0; i < count; i++) {
+        let srcCellInfo = aResponse.result[i];
+        let cellInfo = new NeighboringCellInfo(srcCellInfo);
+        if (cellInfo && cellInfo.isValid()) {
+          neighboringCellIds.push(cellInfo);
+        }
+      }
+      aCallback.notifyGetNeighboringCellIds(neighboringCellIds.length,
+                                            neighboringCellIds);
+
+    }.bind(this));
   },
 };
 
@@ -979,6 +1439,7 @@ function MobileConnectionService() {
 
   Services.prefs.addObserver(kPrefRilDebuggingEnabled, this, false);
   Services.obs.addObserver(this, NS_NETWORK_ACTIVE_CHANGED_TOPIC_ID, false);
+  Services.obs.addObserver(this, NS_DATA_CALL_ERROR_TOPIC_ID, false);
   Services.obs.addObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false);
 
   debug("init complete");
@@ -1001,6 +1462,7 @@ MobileConnectionService.prototype = {
   _shutdown: function() {
     Services.prefs.removeObserver(kPrefRilDebuggingEnabled, this);
     Services.obs.removeObserver(this, NS_NETWORK_ACTIVE_CHANGED_TOPIC_ID);
+    Services.obs.removeObserver(this, NS_DATA_CALL_ERROR_TOPIC_ID);
     Services.obs.removeObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID);
   },
 
@@ -1048,24 +1510,6 @@ MobileConnectionService.prototype = {
     this.getItemByServiceId(aClientId).updateDataInfo(aDataInfo);
   },
 
-  notifyUssdReceived: function(aClientId, aMessage, aSessionEnded) {
-    if (DEBUG) {
-      debug("notifyUssdReceived for " + aClientId + ": " +
-            aMessage + " (sessionEnded : " + aSessionEnded + ")");
-    }
-
-    this.getItemByServiceId(aClientId)
-        .deliverListenerEvent("notifyUssdReceived", [aMessage, aSessionEnded]);
-
-    let info = {
-      message: aMessage,
-      sessionEnded: aSessionEnded,
-      serviceId: aClientId
-    };
-
-    gSystemMessenger.broadcastMessage("ussd-received", info);
-  },
-
   notifyDataError: function(aClientId, aMessage) {
     if (DEBUG) {
       debug("notifyDataError for " + aClientId + ": " + aMessage);
@@ -1095,20 +1539,16 @@ MobileConnectionService.prototype = {
         .deliverListenerEvent("notifyOtaStatusChanged", [aStatus]);
   },
 
-  notifyIccChanged: function(aClientId, aIccId) {
-    if (DEBUG) {
-      debug("notifyIccChanged for " + aClientId + ": " + aIccId);
-    }
-
-    this.getItemByServiceId(aClientId).updateIccId(aIccId);
-  },
-
   notifyRadioStateChanged: function(aClientId, aRadioState) {
     if (DEBUG) {
       debug("notifyRadioStateChanged for " + aClientId + ": " + aRadioState);
     }
 
-    this.getItemByServiceId(aClientId).updateRadioState(aRadioState);
+    let message = {
+      msgType: "HardwareRadioState",
+      msgData: aRadioState
+    };
+    this.getItemByServiceId(aClientId).updateRadioState(message);
   },
 
   notifyNetworkInfoChanged: function(aClientId, aNetworkInfo) {
@@ -1228,6 +1668,65 @@ MobileConnectionService.prototype = {
                                   aServiceClass);
   },
 
+  notifyCdmaInfoRecDisplay: function(aClientId, aDisplay) {
+    gMobileConnectionMessenger.notifyCdmaInfoRecDisplay(aClientId, aDisplay);
+  },
+
+  notifyCdmaInfoRecCalledPartyNumber: function(aClientId, aType, aPlan, aNumber,
+                                               aPi, aSi) {
+    gMobileConnectionMessenger
+      .notifyCdmaInfoRecCalledPartyNumber(aClientId, aType, aPlan, aNumber,
+                                          aPi, aSi);
+  },
+
+  notifyCdmaInfoRecCallingPartyNumber: function(aClientId, aType, aPlan, aNumber,
+                                                aPi, aSi) {
+    gMobileConnectionMessenger
+      .notifyCdmaInfoRecCallingPartyNumber(aClientId, aType, aPlan, aNumber,
+                                           aPi, aSi);
+  },
+
+  notifyCdmaInfoRecConnectedPartyNumber: function(aClientId, aType, aPlan, aNumber,
+                                                  aPi, aSi) {
+    gMobileConnectionMessenger
+      .notifyCdmaInfoRecConnectedPartyNumber(aClientId, aType, aPlan, aNumber,
+                                             aPi, aSi);
+  },
+
+  notifyCdmaInfoRecSignal: function(aClientId, aType, aAlertPitch, aSignal){
+    gMobileConnectionMessenger
+      .notifyCdmaInfoRecSignal(aClientId, aType, aAlertPitch, aSignal);
+  },
+
+  notifyCdmaInfoRecRedirectingNumber: function(aClientId, aType, aPlan, aNumber,
+                                               aPi, aSi, aReason) {
+    gMobileConnectionMessenger
+      .notifyCdmaInfoRecRedirectingNumber(aClientId, aType, aPlan, aNumber,
+                                          aPi, aSi, aReason);
+  },
+
+  notifyCdmaInfoRecLineControl: function(aClientId, aPolarityIncluded, aToggle,
+                                         aReverse, aPowerDenial) {
+    gMobileConnectionMessenger
+      .notifyCdmaInfoRecLineControl(aClientId, aPolarityIncluded, aToggle,
+                                    aReverse, aPowerDenial);
+  },
+
+  notifyCdmaInfoRecClir: function(aClientId, aCause) {
+    gMobileConnectionMessenger.notifyCdmaInfoRecClir(aClientId, aCause);
+  },
+
+  notifyCdmaInfoRecAudioControl: function(aClientId, aUpLink, aDownLink) {
+    gMobileConnectionMessenger
+      .notifyCdmaInfoRecAudioControl(aClientId, aUpLink, aDownLink);
+  },
+
+  notifyDeviceIdentitiesChanged: function(aClientId, aImei, aImeisv,
+                                          aEsn, aMeid) {
+    this.getItemByServiceId(aClientId)
+      .notifyDeviceIdentitiesChanged(aImei, aImeisv, aEsn, aMeid);
+  },
+
   /**
    * nsIObserver interface.
    */
@@ -1239,6 +1738,14 @@ MobileConnectionService.prototype = {
           // Update connected flag only.
           provider.updateDataInfo({});
         }
+        break;
+      case NS_DATA_CALL_ERROR_TOPIC_ID:
+        try {
+          if (aSubject instanceof Ci.nsIRilNetworkInfo) {
+            let rilInfo = aSubject.QueryInterface(Ci.nsIRilNetworkInfo);
+            this.notifyDataError(rilInfo.serviceId, aData);
+          }
+        } catch (e) {}
         break;
       case NS_PREFBRANCH_PREFCHANGE_TOPIC_ID:
         if (aData === kPrefRilDebuggingEnabled) {

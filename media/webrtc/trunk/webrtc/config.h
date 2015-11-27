@@ -10,8 +10,8 @@
 
 // TODO(pbos): Move Config from common.h to here.
 
-#ifndef WEBRTC_VIDEO_ENGINE_NEW_INCLUDE_CONFIG_H_
-#define WEBRTC_VIDEO_ENGINE_NEW_INCLUDE_CONFIG_H_
+#ifndef WEBRTC_CONFIG_H_
+#define WEBRTC_CONFIG_H_
 
 #include <string>
 #include <vector>
@@ -20,28 +20,6 @@
 #include "webrtc/typedefs.h"
 
 namespace webrtc {
-
-struct RtpStatistics {
-  RtpStatistics()
-      : ssrc(0),
-        fraction_loss(0),
-        cumulative_loss(0),
-        extended_max_sequence_number(0) {}
-  uint32_t ssrc;
-  int fraction_loss;
-  int cumulative_loss;
-  int extended_max_sequence_number;
-  std::string c_name;
-};
-
-struct StreamStats {
-  StreamStats() : key_frames(0), delta_frames(0), bitrate_bps(0) {}
-  uint32_t key_frames;
-  uint32_t delta_frames;
-  int32_t bitrate_bps;
-  StreamDataCounters rtp_stats;
-  RtcpStatistics rtcp_stats;
-};
 
 // Settings for NACK, see RFC 4585 for details.
 struct NackConfig {
@@ -57,6 +35,7 @@ struct NackConfig {
 // payload types to '-1' to disable.
 struct FecConfig {
   FecConfig() : ulpfec_payload_type(-1), red_payload_type(-1) {}
+  std::string ToString() const;
   // Payload type used for ULPFEC packets.
   int ulpfec_payload_type;
 
@@ -66,13 +45,66 @@ struct FecConfig {
 
 // RTP header extension to use for the video stream, see RFC 5285.
 struct RtpExtension {
+  RtpExtension(const std::string& name, int id) : name(name), id(id) {}
+  std::string ToString() const;
+  static bool IsSupported(const std::string& name);
+
   static const char* kTOffset;
   static const char* kAbsSendTime;
-  RtpExtension(const char* name, int id) : name(name), id(id) {}
-  // TODO(mflodman) Add API to query supported extensions.
+  static const char* kVideoRotation;
   std::string name;
   int id;
 };
+
+struct VideoStream {
+  VideoStream();
+  ~VideoStream();
+  std::string ToString() const;
+
+  size_t width;
+  size_t height;
+  int max_framerate;
+
+  int min_bitrate_bps;
+  int target_bitrate_bps;
+  int max_bitrate_bps;
+
+  int max_qp;
+
+  // Bitrate thresholds for enabling additional temporal layers. Since these are
+  // thresholds in between layers, we have one additional layer. One threshold
+  // gives two temporal layers, one below the threshold and one above, two give
+  // three, and so on.
+  // The VideoEncoder may redistribute bitrates over the temporal layers so a
+  // bitrate threshold of 100k and an estimate of 105k does not imply that we
+  // get 100k in one temporal layer and 5k in the other, just that the bitrate
+  // in the first temporal layer should not exceed 100k.
+  // TODO(pbos): Apart from a special case for two-layer screencast these
+  // thresholds are not propagated to the VideoEncoder. To be implemented.
+  std::vector<int> temporal_layer_thresholds_bps;
+};
+
+struct VideoEncoderConfig {
+  enum ContentType {
+    kRealtimeVideo,
+    kScreenshare,
+  };
+
+  VideoEncoderConfig();
+  ~VideoEncoderConfig();
+  std::string ToString() const;
+
+  std::vector<VideoStream> streams;
+  ContentType content_type;
+  void* encoder_specific_settings;
+
+  // Padding will be used up to this bitrate regardless of the bitrate produced
+  // by the encoder. Padding above what's actually produced by the encoder helps
+  // maintaining a higher bitrate estimate. Padding will however not be sent
+  // unless the estimated bandwidth indicates that the link can handle it.
+  int min_transmit_bitrate_bps;
+};
+
 }  // namespace webrtc
 
-#endif  // WEBRTC_VIDEO_ENGINE_NEW_INCLUDE_CONFIG_H_
+#endif  // WEBRTC_CONFIG_H_

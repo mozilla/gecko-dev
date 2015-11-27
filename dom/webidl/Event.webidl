@@ -11,7 +11,7 @@
  */
 
 [Constructor(DOMString type, optional EventInit eventInitDict),
- Exposed=(Window,Worker)]
+ Exposed=(Window,Worker,System)]
 interface Event {
   [Pure]
   readonly attribute DOMString type;
@@ -43,7 +43,6 @@ interface Event {
   [Pure]
   readonly attribute DOMHighResTimeStamp timeStamp;
 
-  [Throws]
   void initEvent(DOMString type, boolean bubbles, boolean cancelable);
 };
 
@@ -56,6 +55,7 @@ partial interface Event {
 
   readonly attribute EventTarget? originalTarget;
   readonly attribute EventTarget? explicitOriginalTarget;
+  [ChromeOnly] readonly attribute EventTarget? composedTarget;
   [ChromeOnly] readonly attribute boolean multipleActionsPrevented;
   [ChromeOnly] readonly attribute boolean isSynthesized;
 

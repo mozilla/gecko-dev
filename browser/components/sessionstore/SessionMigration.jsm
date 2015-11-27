@@ -21,7 +21,7 @@ XPCOMUtils.defineLazyGetter(this, "gDecoder", function () {
   return new TextDecoder();
 });
 
-let SessionMigrationInternal = {
+var SessionMigrationInternal = {
   /**
    * Convert the original session restore state into a minimal state. It will
    * only contain:
@@ -72,14 +72,9 @@ let SessionMigrationInternal = {
       win._closedTabs = [];
       return win;
     });
-    let wrappedState = {
-      url: "about:welcomeback",
-      formdata: {
-        id: {"sessionData": state},
-        xpath: {}
-      }
-    };
-    return {windows: [{tabs: [{entries: [wrappedState]}]}]};
+    let url = "about:welcomeback";
+    let formdata = {id: {sessionData: state}, url};
+    return {windows: [{tabs: [{entries: [{url}], formdata}]}]};
   },
   /**
    * Asynchronously read session restore state (JSON) from a path
@@ -101,7 +96,7 @@ let SessionMigrationInternal = {
   }
 }
 
-let SessionMigration = {
+var SessionMigration = {
   /**
    * Migrate a limited set of session data from one path to another.
    */

@@ -22,6 +22,10 @@
 #include "ARTSPConnection.h"
 #include "ASessionDescription.h"
 
+#include "RtspPrlog.h"
+
+#include "nsIOService.h"
+
 #include <ctype.h>
 #include <cutils/properties.h>
 
@@ -35,16 +39,26 @@
 #include <netdb.h>
 #include "nsPrintfCString.h"
 
-#include "prlog.h"
+#include "mozilla/Logging.h"
 
 #include "prio.h"
 #include "prnetdb.h"
 
-extern PRLogModuleInfo* gRtspLog;
+namespace mozilla {
+namespace net {
+extern LazyLogModule gRtspLog;
+}
+}
 
-// If no access units are received within 2 secs, assume that the rtp
-// stream has ended and signal end of stream.
-static int64_t kAccessUnitTimeoutUs = 2000000ll;
+// If no access units are received within 10 secs, assume that the rtp
+// stream has ended and abort.
+static int64_t kAccessUnitTimeoutUs = 10000000ll;
+
+// The end-of-stream timer will be running in the last 2 seconds of duration.
+static int64_t kActivateEndOfStreamTimerUs = 2000000ll;
+
+// The end-of-stream timer will timeout in 2 seconds.
+static int64_t kEndOfStreamTimeoutUs = 2000000ll;
 
 // If no access units arrive for the first 10 secs after starting the
 // stream, assume none ever will and signal EOS or switch transports.
@@ -84,15 +98,34 @@ static bool GetAttribute(const char *s, const char *key, AString *value) {
 
 struct RtspConnectionHandler : public AHandler {
     enum {
-        kWhatConnected                  = 'conn',
-        kWhatDisconnected               = 'disc',
-        kWhatSeekDone                   = 'sdon',
-        kWhatPausedDone                 = 'pdon',
-        kWhatAccessUnit                 = 'accU',
-        kWhatEOS                        = 'eos!',
-        kWhatSeekDiscontinuity          = 'seeD',
-        kWhatNormalPlayTimeMapping      = 'nptM',
-        kWhatTryTCPInterleaving         = 'ttiL',
+        kWhatConnected = 1000,
+        kWhatDisconnected,
+        kWhatDescribe,
+        kWhatSetup,
+        kWhatPause,
+        kWhatSeek,
+        kWhatPlay,
+        kWhatResume,
+        kWhatKeepAlive,
+        kWhatOptions,
+        kWhatEndOfStream,
+        kWhatAbort,
+        kWhatTeardown,
+        kWhatQuit,
+        kWhatAccessUnitTimeoutCheck,
+        kWhatEndOfStreamCheck,
+        kWhatSeekDone,
+        kWhatPausedDone,
+        kWhatAccessUnitComplete,
+        kWhatAccessUnit,
+        kWhatSeek1,
+        kWhatSeek2,
+        kWhatBinary,
+        kWhatTimeout,
+        kWhatEOS,
+        kWhatSeekDiscontinuity,
+        kWhatNormalPlayTimeMapping,
+        kWhatTryTCPInterleaving,
     };
 
     RtspConnectionHandler(
@@ -117,6 +150,8 @@ struct RtspConnectionHandler : public AHandler {
           mNTPAnchorUs(-1),
           mMediaAnchorUs(-1),
           mLastMediaTimeUs(0),
+          mNumAccessUnitsReceived(0),
+          mCheckPending(false),
           mCheckGeneration(0),
           mTryTCPInterleaving(false),
           mTryFakeRTCP(false),
@@ -157,37 +192,38 @@ struct RtspConnectionHandler : public AHandler {
         looper()->registerHandler(mConn);
         (1 ? mNetLooper : looper())->registerHandler(mRTPConn);
 
-        sp<AMessage> notify = new AMessage('biny', id());
+        sp<AMessage> notify = new AMessage(kWhatBinary, id());
         mConn->observeBinaryData(notify);
 
-        sp<AMessage> reply = new AMessage('conn', id());
+        sp<AMessage> reply = new AMessage(kWhatConnected, id());
         mConn->connect(mOriginalSessionURL.c_str(), reply);
     }
 
     void disconnect() {
-        (new AMessage('abor', id()))->post();
+        (new AMessage(kWhatAbort, id()))->post();
     }
 
     void seek(int64_t timeUs) {
-        sp<AMessage> msg = new AMessage('seek', id());
+        sp<AMessage> msg = new AMessage(kWhatSeek, id());
         msg->setInt64("time", timeUs);
         msg->post();
     }
 
     void setCheckPending(bool flag) {
+        mCheckPending = flag;
         for (size_t i = 0; i < mTracks.size(); ++i) {
-            setCheckPending(i, flag);
+            setEndOfStreamCheckPending(i, flag);
         }
     }
 
-    void setCheckPending(size_t trackIndex, bool flag) {
+    void setEndOfStreamCheckPending(size_t trackIndex, bool flag) {
         TrackInfo *info = &mTracks.editItemAt(trackIndex);
         if (info) {
             info->mCheckPendings = flag;
         }
     }
 
-    bool getCheckPending(size_t trackIndex) {
+    bool getEndOfStreamCheckPending(size_t trackIndex) {
         TrackInfo *info = &mTracks.editItemAt(trackIndex);
         return info->mCheckPendings;
     }
@@ -206,11 +242,14 @@ struct RtspConnectionHandler : public AHandler {
 
         setCheckPending(false);
 
-        sp<AMessage> reply = new AMessage('play', id());
+        sp<AMessage> reply = new AMessage(kWhatPlay, id());
         mConn->sendRequest(request.c_str(), reply);
     }
 
     void pause() {
+        if (!mSeekable) {
+            return;
+        }
         AString request = "PAUSE ";
         request.append(mSessionURL);
         request.append(" RTSP/1.0\r\n");
@@ -225,7 +264,7 @@ struct RtspConnectionHandler : public AHandler {
         setCheckPending(true);
         ++mCheckGeneration;
 
-        sp<AMessage> reply = new AMessage('paus', id());
+        sp<AMessage> reply = new AMessage(kWhatPause, id());
         mConn->sendRequest(request.c_str(), reply);
     }
 
@@ -243,7 +282,7 @@ struct RtspConnectionHandler : public AHandler {
 
         setCheckPending(false);
 
-        sp<AMessage> reply = new AMessage('resu', id());
+        sp<AMessage> reply = new AMessage(kWhatResume, id());
         mConn->sendRequest(request.c_str(), reply);
 
     }
@@ -426,7 +465,7 @@ struct RtspConnectionHandler : public AHandler {
 
     virtual void onMessageReceived(const sp<AMessage> &msg) {
         switch (msg->what()) {
-            case 'conn':
+            case kWhatConnected:
             {
                 int32_t result;
                 CHECK(msg->findInt32("result", &result));
@@ -443,35 +482,35 @@ struct RtspConnectionHandler : public AHandler {
                     request.append("Accept: application/sdp\r\n");
                     request.append("\r\n");
 
-                    sp<AMessage> reply = new AMessage('desc', id());
+                    sp<AMessage> reply = new AMessage(kWhatDescribe, id());
                     mConn->sendRequest(request.c_str(), reply);
                 } else {
-                    sp<AMessage> reply = new AMessage('disc', id());
+                    sp<AMessage> reply = new AMessage(kWhatDisconnected, id());
                     reply->setInt32("result", result);
                     mConn->disconnect(reply);
                 }
                 break;
             }
 
-            case 'disc':
+            case kWhatDisconnected:
             {
                 ++mKeepAliveGeneration;
 
                 int32_t reconnect;
                 if (msg->findInt32("reconnect", &reconnect) && reconnect) {
-                    sp<AMessage> reply = new AMessage('conn', id());
+                    sp<AMessage> reply = new AMessage(kWhatConnected, id());
                     mConn->connect(mOriginalSessionURL.c_str(), reply);
                 } else {
                     int32_t result;
                     CHECK(msg->findInt32("result", &result));
-                    sp<AMessage> reply = new AMessage('quit', id());
+                    sp<AMessage> reply = new AMessage(kWhatQuit, id());
                     reply->setInt32("result", result);
                     reply->post();
                 }
                 break;
             }
 
-            case 'desc':
+            case kWhatDescribe:
             {
                 int32_t result;
                 CHECK(msg->findInt32("result", &result));
@@ -502,7 +541,7 @@ struct RtspConnectionHandler : public AHandler {
                         request.append("Accept: application/sdp\r\n");
                         request.append("\r\n");
 
-                        sp<AMessage> reply = new AMessage('desc', id());
+                        sp<AMessage> reply = new AMessage(kWhatDescribe, id());
                         mConn->sendRequest(request.c_str(), reply);
                         break;
                     }
@@ -543,10 +582,13 @@ struct RtspConnectionHandler : public AHandler {
                                      "get something usable...");
 
                                 AString tmp;
-                                CHECK(MakeURL(
+                                if (!MakeURL(
                                             mSessionURL.c_str(),
                                             mBaseURL.c_str(),
-                                            &tmp));
+                                            &tmp)) {
+                                    LOGE("Fail to make url");
+                                    result = ERROR_UNSUPPORTED;
+                                }
 
                                 mBaseURL = tmp;
                             }
@@ -578,14 +620,14 @@ struct RtspConnectionHandler : public AHandler {
                 }
 
                 if (result != OK) {
-                    sp<AMessage> reply = new AMessage('disc', id());
+                    sp<AMessage> reply = new AMessage(kWhatDisconnected, id());
                     reply->setInt32("result", result);
                     mConn->disconnect(reply);
                 }
                 break;
             }
 
-            case 'setu':
+            case kWhatSetup:
             {
                 size_t index;
                 CHECK(msg->findSize("index", &index));
@@ -655,7 +697,7 @@ struct RtspConnectionHandler : public AHandler {
                             mSessionID.erase(i, mSessionID.size() - i);
                         }
 
-                        sp<AMessage> notify = new AMessage('accu', id());
+                        sp<AMessage> notify = new AMessage(kWhatAccessUnit, id());
                         notify->setSize("track-index", trackIndex);
 
                         i = response->mHeaders.indexOfKey("transport");
@@ -722,13 +764,13 @@ struct RtspConnectionHandler : public AHandler {
                       msgTryTcp->post();
                     }
                 } else {
-                    sp<AMessage> reply = new AMessage('disc', id());
+                    sp<AMessage> reply = new AMessage(kWhatDisconnected, id());
                     reply->setInt32("result", result);
                     mConn->disconnect(reply);
                 }
                 break;
             }
-            case 'paus':
+            case kWhatPause:
             {
                 mPausePending = true;
                 LOGI("pause completed");
@@ -737,9 +779,9 @@ struct RtspConnectionHandler : public AHandler {
                 msg->post();
                 break;
             }
-            case 'resu':
+            case kWhatResume:
                  break;
-            case 'play':
+            case kWhatPlay:
             {
                 int32_t result;
                 CHECK(msg->findInt32("result", &result));
@@ -758,10 +800,10 @@ struct RtspConnectionHandler : public AHandler {
                         static_cast<ARTSPResponse *>(obj.get());
                     if (response->mStatusCode != 200) {
                         result = UNKNOWN_ERROR;
+                    } else if (!parsePlayResponse(response)) {
+                        result = UNKNOWN_ERROR;
                     } else {
-                        parsePlayResponse(response);
-
-                        sp<AMessage> timeout = new AMessage('tiou', id());
+                        sp<AMessage> timeout = new AMessage(kWhatTimeout, id());
                         timeout->post(kPlayTimeoutUs);
                         mPausePending = false;
                         mNumPlayTimeoutsPending++;
@@ -769,7 +811,7 @@ struct RtspConnectionHandler : public AHandler {
                 }
 
                 if (result != OK) {
-                    sp<AMessage> reply = new AMessage('disc', id());
+                    sp<AMessage> reply = new AMessage(kWhatDisconnected, id());
                     reply->setInt32("result", result);
                     mConn->disconnect(reply);
                 }
@@ -777,7 +819,7 @@ struct RtspConnectionHandler : public AHandler {
                 break;
             }
 
-            case 'aliv':
+            case kWhatKeepAlive:
             {
                 int32_t generation;
                 CHECK(msg->findInt32("generation", &generation));
@@ -796,13 +838,13 @@ struct RtspConnectionHandler : public AHandler {
                 request.append("\r\n");
                 request.append("\r\n");
 
-                sp<AMessage> reply = new AMessage('opts', id());
+                sp<AMessage> reply = new AMessage(kWhatOptions, id());
                 reply->setInt32("generation", mKeepAliveGeneration);
                 mConn->sendRequest(request.c_str(), reply);
                 break;
             }
 
-            case 'opts':
+            case kWhatOptions:
             {
                 int32_t result;
                 CHECK(msg->findInt32("result", &result));
@@ -822,7 +864,7 @@ struct RtspConnectionHandler : public AHandler {
                 break;
             }
 
-            case 'eost':
+            case kWhatEndOfStream:
             {
                 size_t trackIndex = 0;
                 msg->findSize("trackIndex", &trackIndex);
@@ -830,7 +872,7 @@ struct RtspConnectionHandler : public AHandler {
                 break;
             }
 
-            case 'abor':
+            case kWhatAbort:
             {
                 for (size_t i = 0; i < mTracks.size(); ++i) {
                     TrackInfo *info = &mTracks.editItemAt(i);
@@ -866,7 +908,7 @@ struct RtspConnectionHandler : public AHandler {
                 mSeekable = false;
                 mAborted = true;
 
-                sp<AMessage> reply = new AMessage('tear', id());
+                sp<AMessage> reply = new AMessage(kWhatTeardown, id());
 
                 int32_t reconnect;
                 if (msg->findInt32("reconnect", &reconnect) && reconnect) {
@@ -890,7 +932,7 @@ struct RtspConnectionHandler : public AHandler {
                 break;
             }
 
-            case 'tear':
+            case kWhatTeardown:
             {
                 int32_t result;
                 CHECK(msg->findInt32("result", &result));
@@ -898,7 +940,7 @@ struct RtspConnectionHandler : public AHandler {
                 LOGI("TEARDOWN completed with result %d (%s)",
                      result, strerror(-result));
 
-                sp<AMessage> reply = new AMessage('disc', id());
+                sp<AMessage> reply = new AMessage(kWhatDisconnected, id());
                 reply->setInt32("result", result);
 
                 int32_t reconnect;
@@ -910,7 +952,7 @@ struct RtspConnectionHandler : public AHandler {
                 break;
             }
 
-            case 'quit':
+            case kWhatQuit:
             {
                 int32_t result;
                 CHECK(msg->findInt32("result", &result));
@@ -921,7 +963,26 @@ struct RtspConnectionHandler : public AHandler {
                 break;
             }
 
-            case 'chek':
+            case kWhatAccessUnitTimeoutCheck:
+            {
+                int32_t generation;
+                CHECK(msg->findInt32("generation", &generation));
+                if (generation != mCheckGeneration) {
+                    // This is an outdated message. Ignore.
+                    break;
+                }
+
+                if (mNumAccessUnitsReceived == 0) {
+                    LOGI("stream ended? aborting.");
+                    disconnect();
+                    break;
+                }
+                mNumAccessUnitsReceived = 0;
+                msg->post(kAccessUnitTimeoutUs);
+                break;
+            }
+
+            case kWhatEndOfStreamCheck:
             {
                 int32_t generation;
                 CHECK(msg->findInt32("generation", &generation));
@@ -937,18 +998,22 @@ struct RtspConnectionHandler : public AHandler {
                 }
 
                 if (track->mNumAccessUnitsReceiveds == 0) {
-                    LOGI("stream ended? aborting.");
-                    sp<AMessage> endStreamMsg = new AMessage('eost', id());
+                    if (gIOService->IsOffline()) {
+                        LOGI("stream ended? aborting.");
+                        disconnect();
+                        break;
+                    }
+                    sp<AMessage> endStreamMsg = new AMessage(kWhatEndOfStream, id());
                     endStreamMsg->setSize("trackIndex", trackIndex);
                     endStreamMsg->post();
                     break;
                 }
                 track->mNumAccessUnitsReceiveds = 0;
-                msg->post(kAccessUnitTimeoutUs);
+                msg->post(kEndOfStreamTimeoutUs);
                 break;
             }
 
-            case 'accu':
+            case kWhatAccessUnit:
             {
                 int32_t timeUpdate;
                 if (msg->findInt32("time-update", &timeUpdate) && timeUpdate) {
@@ -975,6 +1040,9 @@ struct RtspConnectionHandler : public AHandler {
                     break;
                 }
 
+                mNumAccessUnitsReceived++;
+                postAccessUnitTimeoutCheck();
+
                 size_t trackIndex;
                 CHECK(msg->findSize("track-index", &trackIndex));
 
@@ -984,9 +1052,6 @@ struct RtspConnectionHandler : public AHandler {
                 }
 
                 TrackInfo *track = &mTracks.editItemAt(trackIndex);
-
-                track->mNumAccessUnitsReceiveds++;
-                postAccessUnitTimeoutCheck(trackIndex);
 
                 int32_t eos;
                 if (msg->findInt32("eos", &eos)) {
@@ -1027,10 +1092,21 @@ struct RtspConnectionHandler : public AHandler {
                 }
 
                 onAccessUnitComplete(trackIndex, accessUnit);
+
+                // This code is put here because now accessUnit has timestamp.
+                track->mNumAccessUnitsReceiveds++;
+                int64_t duration, timeUs;
+                mSessionDesc->getDurationUs(&duration);
+                accessUnit->meta()->findInt64("timeUs", &timeUs);
+
+                // Start a timer to detect end-of-stream if close to the end.
+                if (timeUs >= duration - kActivateEndOfStreamTimerUs) {
+                    postEndOfStreamCheck(trackIndex);
+                }
                 break;
             }
 
-            case 'seek':
+            case kWhatSeek:
             {
                 if (!mSeekable) {
                     LOGW("This is a live stream, ignoring seek request.");
@@ -1062,14 +1138,19 @@ struct RtspConnectionHandler : public AHandler {
 
                 request.append("\r\n");
 
-                sp<AMessage> reply = new AMessage('see1', id());
+                sp<AMessage> reply = new AMessage(kWhatSeek1, id());
                 reply->setInt64("time", timeUs);
                 mConn->sendRequest(request.c_str(), reply);
                 break;
             }
 
-            case 'see1':
+            case kWhatSeek1:
             {
+                if (mAborted || !mSeekPending) {
+                    LOGV("We're aborted, dropping stale packet.");
+                    break;
+                }
+
                 // Session is paused now.
                 for (size_t i = 0; i < mTracks.size(); ++i) {
                     TrackInfo *info = &mTracks.editItemAt(i);
@@ -1095,28 +1176,29 @@ struct RtspConnectionHandler : public AHandler {
                 request.append(nsPrintfCString("Range: npt=%lld-\r\n", timeUs / 1000000ll).get());
                 request.append("\r\n");
 
-                sp<AMessage> reply = new AMessage('see2', id());
+                sp<AMessage> reply = new AMessage(kWhatSeek2, id());
                 mConn->sendRequest(request.c_str(), reply);
                 break;
             }
 
-            case 'see2':
+            case kWhatSeek2:
             {
-                CHECK(mSeekPending);
-
                 int32_t result;
                 CHECK(msg->findInt32("result", &result));
 
                 LOGI("PLAY completed with result %d (%s)",
                      result, strerror(-result));
-                if (mAborted) {
-                  LOGV("we're aborted, dropping stale packet.");
-                  break;
+                if (mAborted || !mSeekPending) {
+                    LOGV("We're aborted, dropping stale packet.");
+                    break;
                 }
 
+                mCheckPending = false;
+                postAccessUnitTimeoutCheck();
+
                 for (size_t i = 0; i < mTracks.size(); i++) {
-                    setCheckPending(i, false);
-                    postAccessUnitTimeoutCheck(i);
+                    setEndOfStreamCheckPending(i, false);
+                    postEndOfStreamCheck(i);
                 }
 
                 if (result == OK) {
@@ -1127,11 +1209,14 @@ struct RtspConnectionHandler : public AHandler {
 
                     if (response->mStatusCode != 200) {
                         result = UNKNOWN_ERROR;
+                    } else if (!parsePlayResponse(response)) {
+                        result = UNKNOWN_ERROR;
                     } else {
-                        parsePlayResponse(response);
-
                         ssize_t i = response->mHeaders.indexOfKey("rtp-info");
-                        CHECK_GE(i, 0);
+                        if (i < 0) {
+                            LOGE("No RTP info in response");
+                            (new AMessage(kWhatAbort, id()))->post();
+                        }
 
                         LOGV("rtp-info: %s", response->mHeaders.valueAt(i).c_str());
 
@@ -1141,7 +1226,7 @@ struct RtspConnectionHandler : public AHandler {
 
                 if (result != OK) {
                     LOGE("seek failed, aborting.");
-                    (new AMessage('abor', id()))->post();
+                    (new AMessage(kWhatAbort, id()))->post();
                 }
 
                 mSeekPending = false;
@@ -1153,24 +1238,27 @@ struct RtspConnectionHandler : public AHandler {
                 break;
             }
 
-            case 'biny':
+            case kWhatBinary:
             {
                 sp<RefBase> obj;
                 CHECK(msg->findObject("buffer", &obj));
                 sp<ABuffer> buffer = static_cast<ABuffer *>(obj.get());
 
                 int32_t index;
-                CHECK(buffer->meta()->findInt32("index", &index));
+                if (!buffer->meta()->findInt32("index", &index)) {
+                    LOGW("Cannot find index");
+                    break;
+                }
 
                 mRTPConn->injectPacket(index, buffer);
                 break;
             }
 
-            case 'tiou':
+            case kWhatTimeout:
             {
                 CHECK(mNumPlayTimeoutsPending >= 1);
                 mNumPlayTimeoutsPending--;
-                // If there are more than one pending 'tiou' messages in the
+                // If there are more than one pending kWhatTimeout messages in the
                 // queue, we ignore the preceding ones and only handle the last
                 // one.
                 // This check is necessary when we fail back to using RTP
@@ -1178,7 +1266,7 @@ struct RtspConnectionHandler : public AHandler {
                 // aboring a connection that is trying to transport RTP over
                 // TCP.
                 if (mNumPlayTimeoutsPending > 0) {
-                  // Do nothing. We only handle the last 'tiou' message.
+                  // Do nothing. We only handle the last kWhatTimeout message.
                   return;
                 }
 
@@ -1197,12 +1285,12 @@ struct RtspConnectionHandler : public AHandler {
 
                         mTryTCPInterleaving = true;
 
-                        sp<AMessage> msg = new AMessage('abor', id());
+                        sp<AMessage> msg = new AMessage(kWhatAbort, id());
                         msg->setInt32("reconnect", true);
                         msg->post();
                     } else {
                         LOGW("Never received any data, disconnecting.");
-                        (new AMessage('abor', id()))->post();
+                        (new AMessage(kWhatAbort, id()))->post();
                     }
                 }
                 break;
@@ -1215,19 +1303,29 @@ struct RtspConnectionHandler : public AHandler {
     }
 
     void postKeepAlive() {
-        sp<AMessage> msg = new AMessage('aliv', id());
+        sp<AMessage> msg = new AMessage(kWhatKeepAlive, id());
         msg->setInt32("generation", mKeepAliveGeneration);
         msg->post((mKeepAliveTimeoutUs * 9) / 10);
     }
 
-    void postAccessUnitTimeoutCheck(size_t trackIndex) {
-        if (getCheckPending(trackIndex)) {
+    void postEndOfStreamCheck(size_t trackIndex) {
+        if (getEndOfStreamCheckPending(trackIndex)) {
             return;
         }
-        setCheckPending(trackIndex, true);
-        sp<AMessage> check = new AMessage('chek', id());
+        setEndOfStreamCheckPending(trackIndex, true);
+        sp<AMessage> check = new AMessage(kWhatEndOfStreamCheck, id());
         check->setInt32("generation", mCheckGeneration);
         check->setSize("trackIndex", trackIndex);
+        check->post(kEndOfStreamTimeoutUs);
+    }
+
+    void postAccessUnitTimeoutCheck() {
+        if (mCheckPending) {
+            return;
+        }
+        mCheckPending = true;
+        sp<AMessage> check = new AMessage(kWhatAccessUnitTimeoutCheck, id());
+        check->setInt32("generation", mCheckGeneration);
         check->post(kAccessUnitTimeoutUs);
     }
 
@@ -1248,7 +1346,7 @@ struct RtspConnectionHandler : public AHandler {
         }
     }
 
-    void parsePlayResponse(const sp<ARTSPResponse> &response) {
+    bool parsePlayResponse(const sp<ARTSPResponse> &response) {
         mSeekable = false;
 
         for (size_t i = 0; i < mTracks.size(); ++i) {
@@ -1260,25 +1358,31 @@ struct RtspConnectionHandler : public AHandler {
         if (i < 0) {
             // Server doesn't even tell use what range it is going to
             // play, therefore we won't support seeking.
-            return;
+            return false;
         }
 
         AString range = response->mHeaders.valueAt(i);
         LOGV("Range: %s", range.c_str());
 
         AString val;
-        CHECK(GetAttribute(range.c_str(), "npt", &val));
+        if (!GetAttribute(range.c_str(), "npt", &val)) {
+            LOGE("No npt attribute in range");
+            return false;
+        }
 
         float npt1, npt2;
         if (!ASessionDescription::parseNTPRange(val.c_str(), &npt1, &npt2)) {
             // This is a live stream and therefore not seekable.
 
             LOGI("This is a live stream");
-            return;
+            return false;
         }
 
         i = response->mHeaders.indexOfKey("rtp-info");
-        CHECK_GE(i, 0);
+        if (i < 0) {
+            LOGE("No RTP info");
+            return false;
+        }
 
         AString rtpInfo = response->mHeaders.valueAt(i);
         List<AString> streamInfos;
@@ -1290,16 +1394,25 @@ struct RtspConnectionHandler : public AHandler {
             (*it).trim();
             LOGV("streamInfo[%d] = %s", n, (*it).c_str());
 
-            CHECK(GetAttribute((*it).c_str(), "url", &val));
+            if (!GetAttribute((*it).c_str(), "url", &val)) {
+                LOGE("No url attribute");
+                return false;
+            }
 
             size_t trackIndex = 0;
             while (trackIndex < mTracks.size()
                     && !(val == mTracks.editItemAt(trackIndex).mURL)) {
                 ++trackIndex;
             }
-            CHECK_LT(trackIndex, mTracks.size());
+            if (trackIndex >= mTracks.size()) {
+                LOGE("No matching url");
+                return false;
+            }
 
-            CHECK(GetAttribute((*it).c_str(), "seq", &val));
+            if (!GetAttribute((*it).c_str(), "seq", &val)) {
+                LOGE("No seq attribute");
+                return false;
+            }
 
             char *end;
             unsigned long seq = strtoul(val.c_str(), &end, 10);
@@ -1308,7 +1421,10 @@ struct RtspConnectionHandler : public AHandler {
             info->mFirstSeqNumInSegment = seq;
             info->mNewSegment = true;
 
-            CHECK(GetAttribute((*it).c_str(), "rtptime", &val));
+            if (!GetAttribute((*it).c_str(), "rtptime", &val)) {
+                LOGE("No rtptime attribute");
+                return false;
+            }
 
             uint32_t rtpTime = strtoul(val.c_str(), &end, 10);
 
@@ -1327,6 +1443,7 @@ struct RtspConnectionHandler : public AHandler {
         }
 
         mSeekable = true;
+        return true;
     }
 
     sp<MetaData> getTrackFormat(size_t index, int32_t *timeScale) {
@@ -1395,6 +1512,8 @@ private:
     int64_t mMediaAnchorUs;
     int64_t mLastMediaTimeUs;
 
+    int64_t mNumAccessUnitsReceived;
+    bool mCheckPending;
     int32_t mCheckGeneration;
     bool mTryTCPInterleaving;
     bool mTryFakeRTCP;
@@ -1414,7 +1533,7 @@ private:
         if (source->initCheck() != OK) {
             LOGW("Unsupported format. Ignoring track #%d.", index);
 
-            sp<AMessage> reply = new AMessage('setu', id());
+            sp<AMessage> reply = new AMessage(kWhatSetup, id());
             reply->setSize("index", index);
             reply->setInt32("result", ERROR_UNSUPPORTED);
             reply->post();
@@ -1422,10 +1541,26 @@ private:
         }
 
         AString url;
-        CHECK(mSessionDesc->findAttribute(index, "a=control", &url));
+        if (!mSessionDesc->findAttribute(index, "a=control", &url)) {
+            LOGW("Unsupported format. Ignoring track #%d.", index);
+
+            sp<AMessage> reply = new AMessage(kWhatSetup, id());
+            reply->setSize("index", index);
+            reply->setInt32("result", ERROR_UNSUPPORTED);
+            reply->post();
+            return;
+        }
 
         AString trackURL;
-        CHECK(MakeURL(mBaseURL.c_str(), url.c_str(), &trackURL));
+        if (!MakeURL(mBaseURL.c_str(), url.c_str(), &trackURL)) {
+            LOGW("Unsupported format. Ignoring track #%d.", index);
+
+            sp<AMessage> reply = new AMessage(kWhatSetup, id());
+            reply->setSize("index", index);
+            reply->setInt32("result", ERROR_UNSUPPORTED);
+            reply->post();
+            return;
+        }
 
         mTracks.push(TrackInfo());
         TrackInfo *info = &mTracks.editItemAt(mTracks.size() - 1);
@@ -1449,8 +1584,16 @@ private:
 
         int32_t timescale;
         int32_t numChannels;
-        ASessionDescription::ParseFormatDesc(
-                formatDesc.c_str(), &timescale, &numChannels);
+        if (!ASessionDescription::ParseFormatDesc(
+                    formatDesc.c_str(), &timescale, &numChannels)) {
+            LOGW("Unsupported format. Ignoring track #%d.", index);
+
+            sp<AMessage> reply = new AMessage(kWhatSetup, id());
+            reply->setSize("index", index);
+            reply->setInt32("result", ERROR_UNSUPPORTED);
+            reply->post();
+            return;
+        }
 
         info->mTimeScale = timescale;
 
@@ -1491,7 +1634,7 @@ private:
 
         request.append("\r\n");
 
-        sp<AMessage> reply = new AMessage('setu', id());
+        sp<AMessage> reply = new AMessage(kWhatSetup, id());
         reply->setSize("index", index);
         reply->setSize("track-index", mTracks.size() - 1);
         mConn->sendRequest(request.c_str(), reply);
@@ -1599,8 +1742,11 @@ private:
             int32_t trackIndex, const TrackInfo *track,
             const sp<ABuffer> &accessUnit) {
         uint32_t rtpTime;
-        CHECK(accessUnit->meta()->findInt32(
-                    "rtp-time", (int32_t *)&rtpTime));
+        if (!accessUnit->meta()->findInt32(
+                    "rtp-time", (int32_t *)&rtpTime)) {
+            LOGE("No RTP time in access unit meta");
+            return false;
+        }
 
         int64_t relRtpTimeUs =
             (((int64_t)rtpTime - (int64_t)track->mNormalPlayTimeRTP) * 1000000ll)
@@ -1630,7 +1776,7 @@ private:
     void postQueueAccessUnit(
             size_t trackIndex, const sp<ABuffer> &accessUnit) {
         sp<AMessage> msg = mNotify->dup();
-        msg->setInt32("what", kWhatAccessUnit);
+        msg->setInt32("what", kWhatAccessUnitComplete);
         msg->setSize("trackIndex", trackIndex);
         msg->setObject("accessUnit", accessUnit);
         msg->post();

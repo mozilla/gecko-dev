@@ -31,7 +31,7 @@
 #include "nsCRT.h"
 #include "nsXULAppAPI.h"
 
-#include "prlog.h"
+#include "mozilla/Logging.h"
 #include "prinit.h"
 
 #include "mozilla/MemoryReporting.h"
@@ -48,13 +48,15 @@ gfxFT2Font::ShapeText(gfxContext     *aContext,
                       uint32_t        aOffset,
                       uint32_t        aLength,
                       int32_t         aScript,
+                      bool            aVertical,
                       gfxShapedText  *aShapedText)
 {
     if (!gfxFont::ShapeText(aContext, aText, aOffset, aLength, aScript,
-                            aShapedText)) {
+                            aVertical, aShapedText)) {
         // harfbuzz must have failed(?!), just render raw glyphs
         AddRange(aText, aOffset, aLength, aShapedText);
-        PostShapingFixup(aContext, aText, aOffset, aLength, aShapedText);
+        PostShapingFixup(aContext, aText, aOffset, aLength, aVertical,
+                         aShapedText);
     }
 
     return true;
@@ -173,52 +175,6 @@ gfxFT2Font::~gfxFT2Font()
 {
 }
 
-/**
- * Look up the font in the gfxFont cache. If we don't find it, create one.
- * In either case, add a ref, append it to the aFonts array, and return it ---
- * except for OOM in which case we do nothing and return null.
- */
-already_AddRefed<gfxFT2Font>
-gfxFT2Font::GetOrMakeFont(const nsAString& aName, const gfxFontStyle *aStyle,
-                          bool aNeedsBold)
-{
-#ifdef ANDROID
-    FT2FontEntry *fe = static_cast<FT2FontEntry*>
-        (gfxPlatformFontList::PlatformFontList()->
-            FindFontForFamily(aName, aStyle, aNeedsBold));
-#else
-    FT2FontEntry *fe = static_cast<FT2FontEntry*>
-        (gfxToolkitPlatform::GetPlatform()->FindFontEntry(aName, *aStyle));
-#endif
-    if (!fe) {
-        NS_WARNING("Failed to find font entry for font!");
-        return nullptr;
-    }
-
-    nsRefPtr<gfxFT2Font> font = GetOrMakeFont(fe, aStyle, aNeedsBold);
-    return font.forget();
-}
-
-already_AddRefed<gfxFT2Font>
-gfxFT2Font::GetOrMakeFont(FT2FontEntry *aFontEntry, const gfxFontStyle *aStyle,
-                          bool aNeedsBold)
-{
-    nsRefPtr<gfxFont> font = gfxFontCache::GetCache()->Lookup(aFontEntry, aStyle);
-    if (!font) {
-        cairo_scaled_font_t *scaledFont = aFontEntry->CreateScaledFont(aStyle);
-        if (!scaledFont) {
-            return nullptr;
-        }
-        font = new gfxFT2Font(scaledFont, aFontEntry, aStyle, aNeedsBold);
-        cairo_scaled_font_destroy(scaledFont);
-        if (!font) {
-            return nullptr;
-        }
-        gfxFontCache::GetCache()->AddNew(font);
-    }
-    return font.forget().downcast<gfxFT2Font>();
-}
-
 void
 gfxFT2Font::FillGlyphDataForChar(uint32_t ch, CachedGlyphData *gd)
 {
@@ -262,7 +218,7 @@ gfxFT2Font::AddSizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf,
 {
     gfxFont::AddSizeOfExcludingThis(aMallocSizeOf, aSizes);
     aSizes->mFontInstances +=
-        mCharGlyphCache.SizeOfExcludingThis(nullptr, aMallocSizeOf);
+        mCharGlyphCache.ShallowSizeOfExcludingThis(aMallocSizeOf);
 }
 
 void
@@ -274,8 +230,8 @@ gfxFT2Font::AddSizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf,
 }
 
 #ifdef USE_SKIA
-mozilla::TemporaryRef<mozilla::gfx::GlyphRenderingOptions>
-gfxFT2Font::GetGlyphRenderingOptions()
+already_AddRefed<mozilla::gfx::GlyphRenderingOptions>
+gfxFT2Font::GetGlyphRenderingOptions(const TextRunDrawParams* aRunParams)
 {
   mozilla::gfx::FontHinting hinting;
 

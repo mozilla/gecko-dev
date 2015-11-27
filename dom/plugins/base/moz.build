@@ -31,7 +31,7 @@ EXPORTS += [
     'nsPluginInstanceOwner.h',
     'nsPluginLogging.h',
     'nsPluginNativeWindow.h',
-    'nsPluginPlayPreviewInfo.h',
+    'nsPluginNativeWindowGtk.h',
     'nsPluginsCID.h',
     'nsPluginsDir.h',
     'nsPluginTags.h',
@@ -43,20 +43,18 @@ EXPORTS.mozilla += [
 
 UNIFIED_SOURCES += [
     'nsJSNPRuntime.cpp',
+    'nsNPAPIPluginInstance.cpp',
+    'nsNPAPIPluginStreamListener.cpp',
     'nsPluginInstanceOwner.cpp',
     'nsPluginModule.cpp',
-    'nsPluginPlayPreviewInfo.cpp',
+    'nsPluginStreamListenerPeer.cpp',
+    'nsPluginTags.cpp',
     'PluginPRLibrary.cpp',
 ]
 
-# These files cannot be built in unified mode because they force NSPR logging.
 SOURCES += [
-    'nsNPAPIPlugin.cpp',
-    'nsNPAPIPluginInstance.cpp',
-    'nsNPAPIPluginStreamListener.cpp',
-    'nsPluginHost.cpp',
-    'nsPluginStreamListenerPeer.cpp',
-    'nsPluginTags.cpp',
+    'nsNPAPIPlugin.cpp', # Conflict with X11 headers
+    'nsPluginHost.cpp',  # Conflict with NS_NPAPIPLUGIN_CALLBACK
 ]
 
 if CONFIG['OS_ARCH'] == 'WINNT':
@@ -88,21 +86,15 @@ else:
             'nsPluginNativeWindow.cpp',
         ]
 
-if CONFIG['MOZ_WIDGET_TOOLKIT'] != 'android':
-    # android_npapi.h extends the NPNVariable and NPPVariable enums
-    # using #defines, which results in Wswitch warnings in gcc-4.6.
-    # Therefore, enable FAIL_ON_WARNINGS only on non-Android platforms.
-    FAIL_ON_WARNINGS = True
-
-MSVC_ENABLE_PGO = True
-
 LOCAL_INCLUDES += [
-    '/content/base/src',
     '/dom/base',
+    '/dom/plugins/ipc',
     '/layout/generic',
     '/layout/xul',
+    '/netwerk/base',
+    '/widget',
     '/widget/android',
-    '/widget/xpwidgets',
+    '/widget/cocoa',
     '/xpcom/base',
 ]
 

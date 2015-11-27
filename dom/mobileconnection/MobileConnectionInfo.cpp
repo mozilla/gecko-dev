@@ -1,5 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -10,6 +10,9 @@
 
 #include "jsapi.h"
 
+#ifdef CONVERT_STRING_TO_NULLABLE_ENUM
+#undef CONVERT_STRING_TO_NULLABLE_ENUM
+#endif
 #define CONVERT_STRING_TO_NULLABLE_ENUM(_string, _enumType, _enum)      \
 {                                                                       \
   _enum.SetNull();                                                      \
@@ -55,7 +58,6 @@ MobileConnectionInfo::MobileConnectionInfo(nsPIDOMWindow* aWindow)
   , mRoaming(false)
   , mWindow(aWindow)
 {
-  SetIsDOMBinding();
 }
 
 MobileConnectionInfo::MobileConnectionInfo(const nsAString& aState,
@@ -74,9 +76,8 @@ MobileConnectionInfo::MobileConnectionInfo(const nsAString& aState,
   , mRelSignalStrength(aRelSignalStrength)
 {
   // The instance created by this way is only used for IPC stuff. It won't be
-  // expose to JS directly, we will clone this instance to the one that is
-  // maintained in MobileConnectionChild. So we don't need SetIsDOMBinding()
-  // here.
+  // exposed to JS directly, we will clone this instance to the one that is
+  // maintained in MobileConnectionChild.
 
   // Update mState and mType
   CONVERT_STRING_TO_NULLABLE_ENUM(aState, MobileConnectionState, mState);
@@ -117,8 +118,8 @@ MobileConnectionInfo::Update(nsIMobileConnectionInfo* aInfo)
   CONVERT_STRING_TO_NULLABLE_ENUM(type, MobileConnectionType, mType);
 
   // Update mSignalStrength
-  AutoSafeJSContext cx;
-  JS::Rooted<JS::Value> signalStrength(cx, JSVAL_VOID);
+  AutoJSContext cx;
+  JS::Rooted<JS::Value> signalStrength(cx, JS::UndefinedValue());
   aInfo->GetSignalStrength(&signalStrength);
   if (signalStrength.isNumber()) {
     mSignalStrength.SetValue(signalStrength.toNumber());
@@ -127,7 +128,7 @@ MobileConnectionInfo::Update(nsIMobileConnectionInfo* aInfo)
   }
 
   // Update mRelSignalStrength
-  JS::Rooted<JS::Value> relSignalStrength(cx, JSVAL_VOID);
+  JS::Rooted<JS::Value> relSignalStrength(cx, JS::UndefinedValue());
   aInfo->GetRelSignalStrength(&relSignalStrength);
   if (relSignalStrength.isNumber()) {
     mRelSignalStrength.SetValue(relSignalStrength.toNumber());
@@ -161,10 +162,9 @@ MobileConnectionInfo::Update(nsIMobileConnectionInfo* aInfo)
 }
 
 JSObject*
-MobileConnectionInfo::WrapObject(JSContext* aCx)
+MobileConnectionInfo::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 {
-  MOZ_ASSERT(IsDOMBinding());
-  return MozMobileConnectionInfoBinding::Wrap(aCx, this);
+  return MozMobileConnectionInfoBinding::Wrap(aCx, this, aGivenProto);
 }
 
 // nsIMobileConnectionInfo

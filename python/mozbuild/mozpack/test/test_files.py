@@ -4,9 +4,13 @@
 
 from mozbuild.util import ensureParentDir
 
-from mozpack.errors import ErrorMessage
+from mozpack.errors import (
+    ErrorMessage,
+    errors,
+)
 from mozpack.files import (
     AbsoluteSymlinkFile,
+    ComposedFinder,
     DeflatedFile,
     Dest,
     ExistingFile,
@@ -15,11 +19,25 @@ from mozpack.files import (
     GeneratedFile,
     JarFinder,
     ManifestFile,
+    MercurialFile,
+    MercurialRevisionFinder,
     MinifiedJavaScript,
     MinifiedProperties,
     PreprocessedFile,
     XPTFile,
 )
+
+# We don't have hglib installed everywhere.
+try:
+    import hglib
+except ImportError:
+    hglib = None
+
+try:
+    from mozpack.hg import MercurialNativeRevisionFinder
+except ImportError:
+    MercurialNativeRevisionFinder = None
+
 from mozpack.mozjar import (
     JarReader,
     JarWriter,
@@ -37,9 +55,10 @@ import os
 import random
 import string
 import sys
-import mozpack.path
+import mozpack.path as mozpath
 from tempfile import mkdtemp
 from io import BytesIO
+from StringIO import StringIO
 from xpt import Typelib
 
 
@@ -795,10 +814,16 @@ class TestMinifiedJavaScript(TestWithTmpDir):
 
     def test_minified_verify_failure(self):
         orig_f = GeneratedFile('\n'.join(self.orig_lines))
+        errors.out = StringIO()
         min_f = MinifiedJavaScript(orig_f,
             verify_command=self._verify_command('1'))
 
         mini_lines = min_f.open().readlines()
+        output = errors.out.getvalue()
+        errors.out = sys.stderr
+        self.assertEqual(output,
+            'Warning: JS minification verification failed for <unknown>:\n'
+            'Warning: Error message\n')
         self.assertEqual(mini_lines, orig_f.open().readlines())
 
 
@@ -842,6 +867,10 @@ class MatchTestTemplate(object):
         self.do_check('foo/*/2/test*', ['foo/qux/2/test', 'foo/qux/2/test2'])
         self.do_check('**/bar', ['bar', 'foo/bar', 'foo/qux/bar'])
         self.do_check('foo/**/test', ['foo/qux/2/test'])
+        self.do_check('foo', [
+            'foo/bar', 'foo/baz', 'foo/qux/1', 'foo/qux/bar',
+            'foo/qux/2/test', 'foo/qux/2/test2'
+        ])
         self.do_check('foo/**', [
             'foo/bar', 'foo/baz', 'foo/qux/1', 'foo/qux/bar',
             'foo/qux/2/test', 'foo/qux/2/test2'
@@ -870,7 +899,7 @@ class MatchTestTemplate(object):
                                                 finder.find(pattern)])
             self.assertEqual(sorted([f for f, c in finder.find(pattern)]),
                              sorted([f for f, c in finder
-                                     if mozpack.path.match(f, pattern)]))
+                                     if mozpath.match(f, pattern)]))
 
 
 def do_check(test, finder, pattern, result):
@@ -895,6 +924,16 @@ class TestFileFinder(MatchTestTemplate, TestWithTmpDir):
         self.finder = FileFinder(self.tmpdir)
         self.do_match_test()
         self.do_finder_test(self.finder)
+
+    def test_get(self):
+        self.prepare_match_test()
+        finder = FileFinder(self.tmpdir)
+
+        self.assertIsNone(finder.get('does-not-exist'))
+        res = finder.get('bar')
+        self.assertIsInstance(res, File)
+        self.assertEqual(mozpath.normpath(res.path),
+                         mozpath.join(self.tmpdir, 'bar'))
 
     def test_ignored_dirs(self):
         """Ignored directories should not have results returned."""
@@ -938,6 +977,21 @@ class TestFileFinder(MatchTestTemplate, TestWithTmpDir):
         self.do_check('**', ['foo/bar', 'foo/baz', 'foo/quxz', 'bar'])
         self.do_check('foo/**', ['foo/bar', 'foo/baz', 'foo/quxz'])
 
+    def test_dotfiles(self):
+        """Finder can find files beginning with . is configured."""
+        self.prepare_match_test(with_dotfiles=True)
+        self.finder = FileFinder(self.tmpdir, find_dotfiles=True)
+        self.do_check('**', ['bar', 'foo/.foo', 'foo/.bar/foo',
+            'foo/bar', 'foo/baz', 'foo/qux/1', 'foo/qux/bar',
+            'foo/qux/2/test', 'foo/qux/2/test2'])
+
+    def test_dotfiles_plus_ignore(self):
+        self.prepare_match_test(with_dotfiles=True)
+        self.finder = FileFinder(self.tmpdir, find_dotfiles=True,
+                                 ignore=['foo/.bar/**'])
+        self.do_check('foo/**', ['foo/.foo', 'foo/bar', 'foo/baz',
+            'foo/qux/1', 'foo/qux/bar', 'foo/qux/2/test', 'foo/qux/2/test2'])
+
 
 class TestJarFinder(MatchTestTemplate, TestWithTmpDir):
     def add(self, path):
@@ -953,6 +1007,130 @@ class TestJarFinder(MatchTestTemplate, TestWithTmpDir):
         reader = JarReader(file=self.tmppath('test.jar'))
         self.finder = JarFinder(self.tmppath('test.jar'), reader)
         self.do_match_test()
+
+        self.assertIsNone(self.finder.get('does-not-exist'))
+        self.assertIsInstance(self.finder.get('bar'), DeflatedFile)
+
+
+class TestComposedFinder(MatchTestTemplate, TestWithTmpDir):
+    def add(self, path, content=None):
+        # Put foo/qux files under $tmp/b.
+        if path.startswith('foo/qux/'):
+            real_path = mozpath.join('b', path[8:])
+        else:
+            real_path = mozpath.join('a', path)
+        ensureParentDir(self.tmppath(real_path))
+        if not content:
+            content = path
+        open(self.tmppath(real_path), 'wb').write(content)
+
+    def do_check(self, pattern, result):
+        if '*' in pattern:
+            return
+        do_check(self, self.finder, pattern, result)
+
+    def test_composed_finder(self):
+        self.prepare_match_test()
+        # Also add files in $tmp/a/foo/qux because ComposedFinder is
+        # expected to mask foo/qux entirely with content from $tmp/b.
+        ensureParentDir(self.tmppath('a/foo/qux/hoge'))
+        open(self.tmppath('a/foo/qux/hoge'), 'wb').write('hoge')
+        open(self.tmppath('a/foo/qux/bar'), 'wb').write('not the right content')
+        self.finder = ComposedFinder({
+            '': FileFinder(self.tmppath('a')),
+            'foo/qux': FileFinder(self.tmppath('b')),
+        })
+        self.do_match_test()
+
+        self.assertIsNone(self.finder.get('does-not-exist'))
+        self.assertIsInstance(self.finder.get('bar'), File)
+
+
+@unittest.skipUnless(hglib, 'hglib not available')
+class TestMercurialRevisionFinder(MatchTestTemplate, TestWithTmpDir):
+    def setUp(self):
+        super(TestMercurialRevisionFinder, self).setUp()
+        hglib.init(self.tmpdir)
+
+    def add(self, path):
+        c = hglib.open(self.tmpdir)
+        ensureParentDir(self.tmppath(path))
+        with open(self.tmppath(path), 'wb') as fh:
+            fh.write(path)
+        c.add(self.tmppath(path))
+
+    def do_check(self, pattern, result):
+        do_check(self, self.finder, pattern, result)
+
+    def _get_finder(self, *args, **kwargs):
+        return MercurialRevisionFinder(*args, **kwargs)
+
+    def test_default_revision(self):
+        self.prepare_match_test()
+        c = hglib.open(self.tmpdir)
+        c.commit('initial commit')
+        self.finder = self._get_finder(self.tmpdir)
+        self.do_match_test()
+
+        self.assertIsNone(self.finder.get('does-not-exist'))
+        self.assertIsInstance(self.finder.get('bar'), MercurialFile)
+
+    def test_old_revision(self):
+        c = hglib.open(self.tmpdir)
+        with open(self.tmppath('foo'), 'wb') as fh:
+            fh.write('foo initial')
+        c.add(self.tmppath('foo'))
+        c.commit('initial')
+
+        with open(self.tmppath('foo'), 'wb') as fh:
+            fh.write('foo second')
+        with open(self.tmppath('bar'), 'wb') as fh:
+            fh.write('bar second')
+        c.add(self.tmppath('bar'))
+        c.commit('second')
+        # This wipes out the working directory, ensuring the finder isn't
+        # finding anything from the filesystem.
+        c.rawcommand(['update', 'null'])
+
+        finder = self._get_finder(self.tmpdir, 0)
+        f = finder.get('foo')
+        self.assertEqual(f.read(), 'foo initial')
+        self.assertEqual(f.read(), 'foo initial', 'read again for good measure')
+        self.assertIsNone(finder.get('bar'))
+
+        finder = MercurialRevisionFinder(self.tmpdir, rev=1)
+        f = finder.get('foo')
+        self.assertEqual(f.read(), 'foo second')
+        f = finder.get('bar')
+        self.assertEqual(f.read(), 'bar second')
+
+    def test_recognize_repo_paths(self):
+        c = hglib.open(self.tmpdir)
+        with open(self.tmppath('foo'), 'wb') as fh:
+            fh.write('initial')
+        c.add(self.tmppath('foo'))
+        c.commit('initial')
+        c.rawcommand(['update', 'null'])
+
+        finder = self._get_finder(self.tmpdir, 0,
+                                  recognize_repo_paths=True)
+        with self.assertRaises(NotImplementedError):
+            list(finder.find(''))
+
+        with self.assertRaises(ValueError):
+            finder.get('foo')
+        with self.assertRaises(ValueError):
+            finder.get('')
+
+        f = finder.get(self.tmppath('foo'))
+        self.assertIsInstance(f, MercurialFile)
+        self.assertEqual(f.read(), 'initial')
+
+
+@unittest.skipUnless(MercurialNativeRevisionFinder, 'hgnative not available')
+class TestMercurialNativeRevisionFinder(TestMercurialRevisionFinder):
+    def _get_finder(self, *args, **kwargs):
+        return MercurialNativeRevisionFinder(*args, **kwargs)
 
 
 if __name__ == '__main__':

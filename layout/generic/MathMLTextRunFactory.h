@@ -14,22 +14,27 @@
 class MathMLTextRunFactory : public nsTransformingTextRunFactory {
 public:
   MathMLTextRunFactory(nsTransformingTextRunFactory* aInnerTransformingTextRunFactory,
-                       uint32_t aFlags, uint8_t aSSTYScriptLevel)
+                       uint32_t aFlags, uint8_t aSSTYScriptLevel,
+                       float aFontInflation)
     : mInnerTransformingTextRunFactory(aInnerTransformingTextRunFactory),
       mFlags(aFlags),
+      mFontInflation(aFontInflation),
       mSSTYScriptLevel(aSSTYScriptLevel) {}
 
   virtual void RebuildTextRun(nsTransformedTextRun* aTextRun,
-                              gfxContext* aRefContext) MOZ_OVERRIDE;
+                              gfxContext* aRefContext,
+                              gfxMissingFontRecorder* aMFR) override;
   enum {
     // Style effects which may override single character <mi> behaviour
     MATH_FONT_STYLING_NORMAL   = 0x1, // fontstyle="normal" has been set.
     MATH_FONT_WEIGHT_BOLD      = 0x2, // fontweight="bold" has been set.
+    MATH_FONT_FEATURE_DTLS     = 0x4, // font feature dtls should be set
   };
 
 protected:
   nsAutoPtr<nsTransformingTextRunFactory> mInnerTransformingTextRunFactory;
   uint32_t mFlags;
+  float mFontInflation;
   uint8_t mSSTYScriptLevel;
 };
 

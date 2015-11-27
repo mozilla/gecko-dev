@@ -6,14 +6,18 @@
 include LayersSurfaces;
 include LayersMessages;
 include protocol PCompositable;
+include protocol PImageContainer;
 include protocol PLayer;
 include protocol PTexture;
 include ProtocolTypes;
+include protocol PMediaSystemResourceManager;
 
 include "mozilla/GfxMessageUtils.h";
 
 using struct mozilla::layers::TextureInfo from "mozilla/layers/CompositorTypes.h";
 using mozilla::layers::TextureFlags from "mozilla/layers/CompositorTypes.h";
+
+using PlatformThreadId from "base/platform_thread.h";
 
 namespace mozilla {
 namespace layers {
@@ -23,15 +27,20 @@ namespace layers {
  * frames directly to the compositor thread/process without relying on the main thread
  * which might be too busy dealing with content script.
  */
-intr protocol PImageBridge
+sync protocol PImageBridge
 {
   manages PCompositable;
   manages PTexture;
+  manages PMediaSystemResourceManager;
+  manages PImageContainer;
 
 child:
   async ParentAsyncMessages(AsyncParentMessageData[] aMessages);
 
+  async DidComposite(ImageCompositeNotification[] aNotifications);
+
 parent:
+  async ImageBridgeThreadId(PlatformThreadId aTreahdId);
 
   sync Update(CompositableOperation[] ops) returns (EditReply[] reply);
   async UpdateNoSwap(CompositableOperation[] ops);
@@ -48,8 +57,11 @@ parent:
   // Second step
   sync Stop();
 
-  sync PCompositable(TextureInfo aInfo) returns (uint64_t id);
-  async PTexture(SurfaceDescriptor aSharedData, TextureFlags aTextureFlags);
+  sync PCompositable(TextureInfo aInfo,
+                     nullable PImageContainer aImageContainer) returns (uint64_t id);
+  async PTexture(SurfaceDescriptor aSharedData, LayersBackend aBackend, TextureFlags aTextureFlags);
+  async PMediaSystemResourceManager();
+  async PImageContainer();
 
   async ChildAsyncMessages(AsyncChildMessageData[] aMessages);
 };

@@ -4,11 +4,14 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 #endif
 
+// The amount of time we wait while coalescing updates for hidden pages.
+const SCHEDULE_UPDATE_TIMEOUT_MS = 1000;
+
 /**
  * This singleton represents the whole 'New Tab Page' and takes care of
  * initializing all its components.
  */
-let gPage = {
+var gPage = {
   /**
    * Initializes the page.
    */
@@ -51,6 +54,7 @@ let gPage = {
       // Update thumbnails to the new enhanced setting
       if (aData == "browser.newtabpage.enhanced") {
         this.update();
+        gIntro.showIfNecessary();
       }
 
       // Initialize the whole page if we haven't done that, yet.
@@ -69,16 +73,39 @@ let gPage = {
   },
 
   /**
-   * Updates the whole page and the grid when the storage has changed.
-   * @param aOnlyIfHidden If true, the page is updated only if it's hidden in
-   *                      the preloader.
+   * Updates the page's grid right away for visible pages. If the page is
+   * currently hidden, i.e. in a background tab or in the preloader, then we
+   * batch multiple update requests and refresh the grid once after a short
+   * delay. Accepts a single parameter the specifies the reason for requesting
+   * a page update. The page may decide to delay or prevent a requested updated
+   * based on the given reason.
    */
-  update: function Page_update(aOnlyIfHidden=false) {
-    let skipUpdate = aOnlyIfHidden && !document.hidden;
-    // The grid might not be ready yet as we initialize it asynchronously.
-    if (gGrid.ready && !skipUpdate) {
-      gGrid.refresh();
+  update(reason = "") {
+    // Update immediately if we're visible.
+    if (!document.hidden) {
+      // Ignore updates where reason=links-changed as those signal that the
+      // provider's set of links changed. We don't want to update visible pages
+      // in that case, it is ok to wait until the user opens the next tab.
+      if (reason != "links-changed" && gGrid.ready) {
+        gGrid.refresh();
+      }
+
+      return;
     }
+
+    // Bail out if we scheduled before.
+    if (this._scheduleUpdateTimeout) {
+      return;
+    }
+
+    this._scheduleUpdateTimeout = setTimeout(() => {
+      // Refresh if the grid is ready.
+      if (gGrid.ready) {
+        gGrid.refresh();
+      }
+
+      this._scheduleUpdateTimeout = null;
+    }, SCHEDULE_UPDATE_TIMEOUT_MS);
   },
 
   /**
@@ -119,7 +146,7 @@ let gPage = {
    */
   _updateAttributes: function Page_updateAttributes(aValue) {
     // Set the nodes' states.
-    let nodeSelector = "#newtab-scrollbox, #newtab-grid, #newtab-search-container";
+    let nodeSelector = "#newtab-grid, #newtab-search-container";
     for (let node of document.querySelectorAll(nodeSelector)) {
       if (aValue)
         node.removeAttribute("page-disabled");
@@ -130,10 +157,27 @@ let gPage = {
     // Enables/disables the control and link elements.
     let inputSelector = ".newtab-control, .newtab-link";
     for (let input of document.querySelectorAll(inputSelector)) {
-      if (aValue) 
+      if (aValue)
         input.removeAttribute("tabindex");
       else
         input.setAttribute("tabindex", "-1");
+    }
+  },
+
+  /**
+   * Handles unload event
+   */
+  _handleUnloadEvent: function Page_handleUnloadEvent() {
+    gAllPages.unregister(this);
+    // compute page life-span and send telemetry probe: using milli-seconds will leave
+    // many low buckets empty. Instead we use half-second precision to make low end
+    // of histogram linear and not loose the change in user attention
+    let delta = Math.round((Date.now() - this._firstVisibleTime) / 500);
+    if (this._suggestedTilePresent) {
+      Services.telemetry.getHistogramById("NEWTAB_PAGE_LIFE_SPAN_SUGGESTED").add(delta);
+    }
+    else {
+      Services.telemetry.getHistogramById("NEWTAB_PAGE_LIFE_SPAN").add(delta);
     }
   },
 
@@ -146,7 +190,7 @@ let gPage = {
         this.onPageVisibleAndLoaded();
         break;
       case "unload":
-        gAllPages.unregister(this);
+        this._handleUnloadEvent();
         break;
       case "click":
         let {button, target} = aEvent;
@@ -170,6 +214,15 @@ let gPage = {
         }
         break;
       case "visibilitychange":
+        // Cancel any delayed updates for hidden pages now that we're visible.
+        if (this._scheduleUpdateTimeout) {
+          clearTimeout(this._scheduleUpdateTimeout);
+          this._scheduleUpdateTimeout = null;
+
+          // An update was pending so force an update now.
+          this.update();
+        }
+
         setTimeout(() => this.onPageFirstVisible());
         removeEventListener("visibilitychange", this);
         break;
@@ -182,9 +235,15 @@ let gPage = {
 
     for (let site of gGrid.sites) {
       if (site) {
-        site.captureIfMissing();
+        // The site may need to modify and/or re-render itself if
+        // something changed after newtab was created by preloader.
+        // For example, the suggested tile endTime may have passed.
+        site.onFirstVisible();
       }
     }
+
+    // save timestamp to compute page life-span delta
+    this._firstVisibleTime = Date.now();
 
     if (document.readyState == "complete") {
       this.onPageVisibleAndLoaded();
@@ -217,6 +276,10 @@ let gPage = {
       if (node.classList && node.classList.contains("newtab-cell")) {
         if (sites[++i]) {
           lastIndex = i;
+          if (sites[i].link.targetedSite) {
+            // record that suggested tile is shown to use suggested-tiles-histogram
+            this._suggestedTilePresent = true;
+          }
         }
       }
     }

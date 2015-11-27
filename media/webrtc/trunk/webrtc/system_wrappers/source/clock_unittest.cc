@@ -20,7 +20,9 @@ TEST(ClockTest, NtpTime) {
   uint32_t fractions;
   clock->CurrentNtp(seconds, fractions);
   int64_t milliseconds = clock->CurrentNtpInMilliseconds();
+  EXPECT_GT(milliseconds / 1000, kNtpJan1970);
   EXPECT_GE(milliseconds, Clock::NtpToMs(seconds, fractions));
-  EXPECT_NEAR(milliseconds, Clock::NtpToMs(seconds, fractions), 5);
+  EXPECT_NEAR(milliseconds, Clock::NtpToMs(seconds, fractions), 100);
 }
+
 }  // namespace webrtc

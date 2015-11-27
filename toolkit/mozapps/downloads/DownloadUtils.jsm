@@ -3,6 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+"use strict";
+
 this.EXPORTED_SYMBOLS = [ "DownloadUtils" ];
 
 /**
@@ -45,14 +47,29 @@ XPCOMUtils.defineLazyModuleGetter(this, "PluralForm",
                                   "resource://gre/modules/PluralForm.jsm");
 
 this.__defineGetter__("gDecimalSymbol", function() {
-  delete this.gDecimalSymbol;
-  return this.gDecimalSymbol = Number(5.4).toLocaleString().match(/\D/);
+    delete this.gDecimalSymbol;
+      return this.gDecimalSymbol = Number(5.4).toLocaleString().match(/\D/);
 });
+
+var localeNumberFormatCache = new Map();
+function getLocaleNumberFormat(fractionDigits) {
+  // Backward compatibility: don't use localized digits
+  let locale = Intl.NumberFormat().resolvedOptions().locale +
+               "-u-nu-latn";
+  let key = locale + "_" + fractionDigits;
+  if (!localeNumberFormatCache.has(key)) {
+    localeNumberFormatCache.set(key,
+      Intl.NumberFormat(locale,
+                        { maximumFractionDigits: fractionDigits,
+                          minimumFractionDigits: fractionDigits }));
+  }
+  return localeNumberFormatCache.get(key);
+}
 
 const kDownloadProperties =
   "chrome://mozapps/locale/downloads/downloads.properties";
 
-let gStr = {
+var gStr = {
   statusFormat: "statusFormat3",
   statusFormatInfiniteRate: "statusFormatInfiniteRate",
   statusFormatNoRate: "statusFormatNoRate",
@@ -76,7 +93,7 @@ let gStr = {
 
 // This lazily initializes the string bundle upon first use.
 this.__defineGetter__("gBundle", function() {
-  delete gBundle;
+  delete this.gBundle;
   return this.gBundle = Cc["@mozilla.org/intl/stringbundle;1"].
                         getService(Ci.nsIStringBundleService).
                         createBundle(kDownloadProperties);
@@ -85,7 +102,7 @@ this.__defineGetter__("gBundle", function() {
 // Keep track of at most this many second/lastSec pairs so that multiple calls
 // to getTimeLeft produce the same time left
 const kCachedLastMaxSize = 10;
-let gCachedLast = [];
+var gCachedLast = [];
 
 this.DownloadUtils = {
   /**
@@ -256,7 +273,7 @@ this.DownloadUtils = {
       return [gBundle.GetStringFromName(gStr.timeUnknown), aLastSec];
 
     // Try to find a cached lastSec for the given second
-    aLastSec = gCachedLast.reduce(function(aResult, aItem)
+    aLastSec = gCachedLast.reduce((aResult, aItem) =>
       aItem[0] == aSeconds ? aItem[1] : aResult, aLastSec);
 
     // Add the current second/lastSec pair unless we have too many
@@ -270,13 +287,11 @@ this.DownloadUtils = {
     if (aSeconds > aLastSec / 2) {
       // Apply hysteresis to favor downward over upward swings
       // 30% of down and 10% of up (exponential smoothing)
-      let (diff = aSeconds - aLastSec) {
-        aSeconds = aLastSec + (diff < 0 ? .3 : .1) * diff;
-      }
+      let diff = aSeconds - aLastSec;
+      aSeconds = aLastSec + (diff < 0 ? .3 : .1) * diff;
 
       // If the new time is similar, reuse something close to the last seconds,
       // but subtract a little to provide forward progress
-      let diff = aSeconds - aLastSec;
       let diffPct = diff / aLastSec * 100;
       if (Math.abs(diff) < 5 || Math.abs(diffPct) < 5)
         aSeconds = aLastSec - (diff < 0 ? .4 : .2);
@@ -461,11 +476,22 @@ this.DownloadUtils = {
 
     // Get rid of insignificant bits by truncating to 1 or 0 decimal points
     // 0 -> 0; 1.2 -> 1.2; 12.3 -> 12.3; 123.4 -> 123; 234.5 -> 235
-    // added in bug 462064: (unitIndex != 0) makes sure that no decimal digit for bytes appears when aBytes < 100 
-    aBytes = aBytes.toFixed((aBytes > 0) && (aBytes < 100) && (unitIndex != 0) ? 1 : 0);
+    // added in bug 462064: (unitIndex != 0) makes sure that no decimal digit for bytes appears when aBytes < 100
+    let fractionDigits = (aBytes > 0) && (aBytes < 100) && (unitIndex != 0) ? 1 : 0;
 
-    if (gDecimalSymbol != ".")
-      aBytes = aBytes.replace(".", gDecimalSymbol);
+    // Don't try to format Infinity values using NumberFormat.
+    if (aBytes === Infinity) {
+      aBytes = "Infinity";
+    } else {
+      if (typeof Intl != "undefined") {
+        aBytes = getLocaleNumberFormat(fractionDigits)
+                   .format(aBytes);
+      } else if (gDecimalSymbol != ".") {
+        // FIXME: Fall back to the old hack, will be fixed in bug 1200494.
+        aBytes = aBytes.toFixed(fractionDigits).replace(".", gDecimalSymbol);
+      }
+    }
+
     return [aBytes, gBundle.GetStringFromName(gStr.units[unitIndex])];
   },
 

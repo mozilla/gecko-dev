@@ -9,7 +9,11 @@
 #include "nsIAuthPromptProvider.h"
 #include "mozilla/ipc/InputStreamUtils.h"
 #include "mozilla/ipc/URIUtils.h"
+#include "mozilla/ipc/BackgroundUtils.h"
 #include "SerializedLoadContext.h"
+#include "nsIOService.h"
+#include "mozilla/net/NeckoCommon.h"
+#include "mozilla/net/WebSocketChannel.h"
 
 using namespace mozilla::ipc;
 
@@ -22,19 +26,24 @@ NS_IMPL_ISUPPORTS(WebSocketChannelParent,
 
 WebSocketChannelParent::WebSocketChannelParent(nsIAuthPromptProvider* aAuthProvider,
                                                nsILoadContext* aLoadContext,
-                                               PBOverrideStatus aOverrideStatus)
+                                               PBOverrideStatus aOverrideStatus,
+                                               uint32_t aSerial)
   : mAuthProvider(aAuthProvider)
   , mLoadContext(aLoadContext)
   , mIPCOpen(true)
+  , mSerial(aSerial)
 {
   // Websocket channels can't have a private browsing override
   MOZ_ASSERT_IF(!aLoadContext, aOverrideStatus == kPBOverride_Unset);
-#if defined(PR_LOGGING)
-  if (!webSocketLog)
-    webSocketLog = PR_NewLogModule("nsWebSocket");
-#endif
+  mObserver = new OfflineObserver(this);
 }
 
+WebSocketChannelParent::~WebSocketChannelParent()
+{
+  if (mObserver) {
+    mObserver->RemoveObserver();
+  }
+}
 //-----------------------------------------------------------------------------
 // WebSocketChannelParent::PWebSocketChannelParent
 //-----------------------------------------------------------------------------
@@ -51,17 +60,30 @@ WebSocketChannelParent::RecvDeleteSelf()
 bool
 WebSocketChannelParent::RecvAsyncOpen(const URIParams& aURI,
                                       const nsCString& aOrigin,
+                                      const uint64_t& aInnerWindowID,
                                       const nsCString& aProtocol,
                                       const bool& aSecure,
                                       const uint32_t& aPingInterval,
                                       const bool& aClientSetPingInterval,
                                       const uint32_t& aPingTimeout,
-                                      const bool& aClientSetPingTimeout)
+                                      const bool& aClientSetPingTimeout,
+                                      const OptionalLoadInfoArgs& aLoadInfoArgs)
 {
   LOG(("WebSocketChannelParent::RecvAsyncOpen() %p\n", this));
 
   nsresult rv;
   nsCOMPtr<nsIURI> uri;
+  nsCOMPtr<nsILoadInfo> loadInfo;
+
+  bool appOffline = false;
+  uint32_t appId = GetAppId();
+  if (appId != NECKO_UNKNOWN_APP_ID &&
+      appId != NECKO_NO_APP_ID) {
+    gIOService->IsAppOffline(appId, &appOffline);
+    if (appOffline) {
+      goto fail;
+    }
+  }
 
   if (aSecure) {
     mChannel =
@@ -72,6 +94,20 @@ WebSocketChannelParent::RecvAsyncOpen(const URIParams& aURI,
   }
   if (NS_FAILED(rv))
     goto fail;
+
+  rv = mChannel->SetSerial(mSerial);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    goto fail;
+  }
+
+  rv = LoadInfoArgsToLoadInfo(aLoadInfoArgs, getter_AddRefs(loadInfo));
+  if (NS_FAILED(rv))
+    goto fail;
+
+  rv = mChannel->SetLoadInfo(loadInfo);
+  if (NS_FAILED(rv)) {
+    goto fail;
+  }
 
   rv = mChannel->SetNotificationCallbacks(this);
   if (NS_FAILED(rv))
@@ -98,7 +134,7 @@ WebSocketChannelParent::RecvAsyncOpen(const URIParams& aURI,
     mChannel->SetPingTimeout(aPingTimeout / 1000);
   }
 
-  rv = mChannel->AsyncOpen(uri, aOrigin, this, nullptr);
+  rv = mChannel->AsyncOpen(uri, aOrigin, aInnerWindowID, this, nullptr);
   if (NS_FAILED(rv))
     goto fail;
 
@@ -117,6 +153,7 @@ WebSocketChannelParent::RecvClose(const uint16_t& code, const nsCString& reason)
     nsresult rv = mChannel->Close(code, reason);
     NS_ENSURE_SUCCESS(rv, true);
   }
+
   return true;
 }
 
@@ -168,11 +205,20 @@ WebSocketChannelParent::OnStart(nsISupports *aContext)
 {
   LOG(("WebSocketChannelParent::OnStart() %p\n", this));
   nsAutoCString protocol, extensions;
+  nsString effectiveURL;
+  bool encrypted = false;
   if (mChannel) {
     mChannel->GetProtocol(protocol);
     mChannel->GetExtensions(extensions);
+
+    RefPtr<WebSocketChannel> channel;
+    channel = static_cast<WebSocketChannel*>(mChannel.get());
+    MOZ_ASSERT(channel);
+
+    channel->GetEffectiveURL(effectiveURL);
+    encrypted = channel->IsEncrypted();
   }
-  if (!mIPCOpen || !SendOnStart(protocol, extensions)) {
+  if (!mIPCOpen || !SendOnStart(protocol, extensions, effectiveURL, encrypted)) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;
@@ -250,14 +296,32 @@ WebSocketChannelParent::GetInterface(const nsIID & iid, void **result)
 
   // Only support nsILoadContext if child channel's callbacks did too
   if (iid.Equals(NS_GET_IID(nsILoadContext)) && mLoadContext) {
-    NS_ADDREF(mLoadContext);
-    *result = static_cast<nsILoadContext*>(mLoadContext);
+    nsCOMPtr<nsILoadContext> copy = mLoadContext;
+    copy.forget(result);
     return NS_OK;
   }
 
   return QueryInterface(iid, result);
 }
 
+void
+WebSocketChannelParent::OfflineDisconnect()
+{
+  if (mChannel) {
+    mChannel->Close(nsIWebSocketChannel::CLOSE_GOING_AWAY,
+                    nsCString("App is offline"));
+  }
+}
+
+uint32_t
+WebSocketChannelParent::GetAppId()
+{
+  uint32_t appId = NECKO_UNKNOWN_APP_ID;
+  if (mLoadContext) {
+    mLoadContext->GetAppId(&appId);
+  }
+  return appId;
+}
 
 } // namespace net
 } // namespace mozilla

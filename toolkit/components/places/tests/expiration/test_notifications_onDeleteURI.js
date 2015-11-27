@@ -10,12 +10,10 @@
  * Expiring a full page should fire an onDeleteURI notification.
  */
 
-let hs = Cc["@mozilla.org/browser/nav-history-service;1"].
+var hs = Cc["@mozilla.org/browser/nav-history-service;1"].
          getService(Ci.nsINavHistoryService);
-let bs = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
-         getService(Ci.nsINavBookmarksService);
 
-let tests = [
+var tests = [
 
   { desc: "Add 1 bookmarked page.",
     addPages: 1,
@@ -47,7 +45,7 @@ function run_test() {
   run_next_test();
 }
 
-add_task(function test_notifications_onDeleteURI() {
+add_task(function* test_notifications_onDeleteURI() {
   // Set interval to a large value so we don't expire on it.
   setInterval(3600); // 1h
 
@@ -63,15 +61,18 @@ add_task(function test_notifications_onDeleteURI() {
     let now = getExpirablePRTime();
     for (let i = 0; i < currentTest.addPages; i++) {
       let page = "http://" + testIndex + "." + i + ".mozilla.org/";
-      yield promiseAddVisits({ uri: uri(page), visitDate: now++ });
+      yield PlacesTestUtils.addVisits({ uri: uri(page), visitDate: now++ });
     }
 
     // Setup bookmarks.
     currentTest.bookmarks = [];
     for (let i = 0; i < currentTest.addBookmarks; i++) {
       let page = "http://" + testIndex + "." + i + ".mozilla.org/";
-      bs.insertBookmark(bs.unfiledBookmarksFolder, uri(page),
-                        bs.DEFAULT_INDEX, null);
+      yield PlacesUtils.bookmarks.insert({
+        parentGuid: PlacesUtils.bookmarks.unfiledGuid,
+        title: null,
+        url: page
+      });
       currentTest.bookmarks.push(page);
     }
 
@@ -103,11 +104,11 @@ add_task(function test_notifications_onDeleteURI() {
                 currentTest.expectedNotifications);
 
     // Clean up.
-    bs.removeFolderChildren(bs.unfiledBookmarksFolder);
-    yield promiseClearHistory();
+    yield PlacesUtils.bookmarks.eraseEverything();
+    yield PlacesTestUtils.clearHistory();
   }
 
   clearMaxPages();
-  bs.removeFolderChildren(bs.unfiledBookmarksFolder);
-  yield promiseClearHistory();
+  yield PlacesUtils.bookmarks.eraseEverything();
+  yield PlacesTestUtils.clearHistory();
 });

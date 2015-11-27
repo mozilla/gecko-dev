@@ -7,15 +7,18 @@
 <script type="application/javascript"
         src="chrome://browser/content/preferences/in-content/privacy.js"/>
 
-<preferences id="privacyPreferences">
+<preferences id="privacyPreferences" hidden="true" data-category="panePrivacy">
 
   <!-- Tracking -->
   <preference id="privacy.donottrackheader.enabled"
               name="privacy.donottrackheader.enabled"
               type="bool"/>
-  <preference id="privacy.donottrackheader.value"
-              name="privacy.donottrackheader.value"
-              type="int"/>
+  <preference id="privacy.trackingprotection.enabled"
+              name="privacy.trackingprotection.enabled"
+              type="bool"/>
+  <preference id="privacy.trackingprotection.pbmode.enabled"
+              name="privacy.trackingprotection.pbmode.enabled"
+              type="bool"/>
 
   <!-- XXX button prefs -->
   <preference id="pref.privacy.disable_button.cookie_exceptions"
@@ -24,14 +27,23 @@
   <preference id="pref.privacy.disable_button.view_cookies"
               name="pref.privacy.disable_button.view_cookies"
               type="bool"/>
+  <preference id="pref.privacy.disable_button.change_blocklist"
+              name="pref.privacy.disable_button.change_blocklist"
+              type="bool"/>
 
   <!-- Location Bar -->
   <preference id="browser.urlbar.autocomplete.enabled"
               name="browser.urlbar.autocomplete.enabled"
               type="bool"/>
-  <preference id="browser.urlbar.default.behavior"
-              name="browser.urlbar.default.behavior"
-              type="int"/>
+  <preference id="browser.urlbar.suggest.bookmark"
+              name="browser.urlbar.suggest.bookmark"
+              type="bool"/>
+  <preference id="browser.urlbar.suggest.history"
+              name="browser.urlbar.suggest.history"
+              type="bool"/>
+  <preference id="browser.urlbar.suggest.openpage"
+              name="browser.urlbar.suggest.openpage"
+              type="bool"/>
 
   <!-- History -->
   <preference id="places.history.enabled"
@@ -68,27 +80,53 @@
       class="header"
       hidden="true"
       data-category="panePrivacy">
-  <label class="header-name">&panePrivacy.title;</label>
+  <label class="header-name" flex="1">&panePrivacy.title;</label>
+  <button class="help-button"
+          aria-label="&helpButton.label;"/>
 </hbox>
 
 <!-- Tracking -->
-<groupbox id="trackingGroup" data-category="panePrivacy" hidden="true" align="start">
+<groupbox id="trackingGroup" data-category="panePrivacy" hidden="true">
   <caption><label>&tracking.label;</label></caption>
-  <radiogroup id="doNotTrackSelection" orient="vertical" align="start"
-              preference="privacy.donottrackheader.value"
-              onsynctopreference="return gPrivacyPane.setTrackingPrefs()"
-              onsyncfrompreference="return gPrivacyPane.getTrackingPrefs()">
-    <radio id="dntnotrack" value="1" label="&dntTrackingNotOkay.label2;"
-            accesskey="&dntTrackingNotOkay.accesskey;" />
-    <radio id="dntdotrack" value="0" label="&dntTrackingOkay.label2;"
-            accesskey="&dntTrackingOkay.accesskey;" />
-    <radio id="dntnopref" value="-1" label="&dntTrackingNopref.label2;"
-            accesskey="&dntTrackingNopref.accesskey;" />
-  </radiogroup>
-  <label class="text-link" id="doNotTrackInfo"
-         href="https://www.mozilla.org/dnt">
-    &doNotTrackInfo.label;
-  </label>
+  <vbox>
+    <hbox align="center">
+      <checkbox id="privacyDoNotTrackCheckbox"
+                label="&dntTrackingNotOkay4.label;"
+                accesskey="&dntTrackingNotOkay4.accesskey;"
+                preference="privacy.donottrackheader.enabled"/>
+      <label id="doNotTrackInfo"
+             class="text-link"
+             href="https://www.mozilla.org/dnt">
+        &doNotTrackInfo.label;
+      </label>
+    </hbox>
+  </vbox>
+  <vbox id="trackingprotectionbox" hidden="true">
+    <hbox align="center">
+      <checkbox id="trackingProtection"
+                preference="privacy.trackingprotection.enabled"
+                accesskey="&trackingProtection5.accesskey;"
+                label="&trackingProtection5.label;" />
+      <label id="trackingProtectionLearnMore"
+             class="text-link"
+             value="&trackingProtectionLearnMore.label;"/>
+    </hbox>
+  </vbox>
+  <vbox id="trackingprotectionpbmbox">
+    <hbox align="center">
+      <checkbox id="trackingProtectionPBM"
+                preference="privacy.trackingprotection.pbmode.enabled"
+                accesskey="&trackingProtectionPBM5.accesskey;"
+                label="&trackingProtectionPBM5.label;" />
+      <label id="trackingProtectionPBMLearnMore"
+             class="text-link"
+             value="&trackingProtectionPBMLearnMore.label;"/>
+      <spacer flex="1" />
+      <button id="changeBlockList"
+              label="&changeBlockList.label;" accesskey="&changeBlockList.accesskey;"
+              preference="pref.privacy.disable_button.change_blocklist"/>
+    </hbox>
+  </vbox>
 </groupbox>
 
 <!-- History -->
@@ -109,37 +147,33 @@
     <label>&historyHeader.post.label;</label>
   </hbox>
   <deck id="historyPane">
-    <vbox align="center" id="historyRememberPane">
+    <vbox id="historyRememberPane">
       <hbox align="center" flex="1">
-        <spacer flex="1" class="indent"/>
-        <vbox flex="2">
+        <vbox flex="1">
           <description>&rememberDescription.label;</description>
-          <separator/>
+          <separator class="thin"/>
           <description>&rememberActions.pre.label;<html:a
           class="inline-link" id="historyRememberClear" href="#"
           >&rememberActions.clearHistory.label;</html:a>&rememberActions.middle.label;<html:a
           class="inline-link" id="historyRememberCookies" href="#"
           >&rememberActions.removeCookies.label;</html:a>&rememberActions.post.label;</description>
         </vbox>
-        <spacer flex="1" class="indent"/>
       </hbox>
     </vbox>
-    <vbox align="center" id="historyDontRememberPane">
+    <vbox id="historyDontRememberPane">
       <hbox align="center" flex="1">
-        <spacer flex="1" class="indent"/>
-        <vbox flex="2">
+        <vbox flex="1">
           <description>&dontrememberDescription.label;</description>
-          <separator/>
+          <separator class="thin"/>
           <description>&dontrememberActions.pre.label;<html:a
           class="inline-link" id="historyDontRememberClear" href="#"
           >&dontrememberActions.clearHistory.label;</html:a>&dontrememberActions.post.label;</description>
         </vbox>
-        <spacer flex="1" class="indent"/>
       </hbox>
     </vbox>
     <vbox id="historyCustomPane">
       <separator class="thin"/>
-      <vbox class="indent">
+      <vbox>
         <vbox align="start">
           <checkbox id="privateBrowsingAutoStart"
                     label="&privateBrowsingPermanent2.label;"
@@ -194,7 +228,6 @@
               <menupopup>
                 <menuitem label="&expire.label;" value="0"/>
                 <menuitem label="&close.label;" value="2"/>
-                <menuitem label="&askEachTime.label;" value="1"/>
               </menupopup>
             </menulist>
             <spacer flex="1"/>
@@ -219,23 +252,21 @@
 </groupbox>
 
 <!-- Location Bar -->
-<groupbox id="locationBarGroup" data-category="panePrivacy" hidden="true">
+<groupbox id="locationBarGroup"
+          data-category="panePrivacy"
+          hidden="true">
   <caption><label>&locationBar.label;</label></caption>
-  <hbox align="center">
-    <label id="locationBarSuggestionLabel"
-           control="locationBarSuggestion"
-           accesskey="&locbar.pre.accessKey;">&locbar.pre.label;</label>
-    <menulist id="locationBarSuggestion"
-              preference="browser.urlbar.autocomplete.enabled"
-              onsyncfrompreference="return gPrivacyPane.readSuggestionPref();"
-              onsynctopreference="return gPrivacyPane.writeSuggestionPref();">
-      <menupopup>
-        <menuitem label="&locbar.both.label;" value="0"/>
-        <menuitem label="&locbar.history.label;" value="1"/>
-        <menuitem label="&locbar.bookmarks.label;" value="2"/>
-        <menuitem label="&locbar.nothing.label;" value="-1"/>
-      </menupopup>
-    </menulist>
-    <label>&locbar.post.label;</label>
-  </hbox>
+  <label id="locationBarSuggestionLabel">&locbar.suggest.label;</label>
+  <checkbox id="historySuggestion" label="&locbar.history.label;"
+            accesskey="&locbar.history.accesskey;"
+            preference="browser.urlbar.suggest.history"/>
+  <checkbox id="bookmarkSuggestion" label="&locbar.bookmarks.label;"
+            accesskey="&locbar.bookmarks.accesskey;"
+            preference="browser.urlbar.suggest.bookmark"/>
+  <checkbox id="openpageSuggestion" label="&locbar.openpage.label;"
+            accesskey="&locbar.openpage.accesskey;"
+            preference="browser.urlbar.suggest.openpage"/>
+  <label class="text-link" onclick="if (event.button == 0) gotoPref('search')">
+    &suggestionSettings.label;
+  </label>
 </groupbox>

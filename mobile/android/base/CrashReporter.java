@@ -21,7 +21,8 @@ import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.util.zip.GZIPOutputStream;
 
-import android.app.Activity;
+import org.mozilla.gecko.AppConstants.Versions;
+
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
@@ -30,6 +31,7 @@ import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -37,7 +39,7 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 
-public class CrashReporter extends Activity
+public class CrashReporter extends AppCompatActivity
 {
     private static final String LOGTAG = "GeckoCrashReporter";
 
@@ -282,8 +284,8 @@ public class CrashReporter extends Activity
 
     private String generateBoundary() {
         // Generate some random numbers to fill out the boundary
-        int r0 = (int)((double)Integer.MAX_VALUE * Math.random());
-        int r1 = (int)((double)Integer.MAX_VALUE * Math.random());
+        int r0 = (int)(Integer.MAX_VALUE * Math.random());
+        int r1 = (int)(Integer.MAX_VALUE * Math.random());
         return String.format("---------------------------%08X%08X", r0, r1);
     }
 
@@ -387,7 +389,10 @@ public class CrashReporter extends Activity
             sendPart(os, boundary, "Android_Device", Build.DEVICE);
             sendPart(os, boundary, "Android_Display", Build.DISPLAY);
             sendPart(os, boundary, "Android_Fingerprint", Build.FINGERPRINT);
+            sendPart(os, boundary, "Android_APP_ABI", AppConstants.MOZ_APP_ABI);
             sendPart(os, boundary, "Android_CPU_ABI", Build.CPU_ABI);
+            sendPart(os, boundary, "Android_MIN_SDK", Integer.toString(AppConstants.Versions.MIN_SDK_VERSION));
+            sendPart(os, boundary, "Android_MAX_SDK", Integer.toString(AppConstants.Versions.MAX_SDK_VERSION));
             try {
                 sendPart(os, boundary, "Android_CPU_ABI2", Build.CPU_ABI2);
                 sendPart(os, boundary, "Android_Hardware", Build.HARDWARE);
@@ -395,7 +400,7 @@ public class CrashReporter extends Activity
                 Log.e(LOGTAG, "Exception while sending SDK version 8 keys", ex);
             }
             sendPart(os, boundary, "Android_Version",  Build.VERSION.SDK_INT + " (" + Build.VERSION.CODENAME + ")");
-            if (Build.VERSION.SDK_INT >= 16 && includeURLCheckbox.isChecked()) {
+            if (Versions.feature16Plus && includeURLCheckbox.isChecked()) {
                 sendPart(os, boundary, "Android_Logcat", readLogcat());
             }
 
@@ -445,7 +450,7 @@ public class CrashReporter extends Activity
             String action = "android.intent.action.MAIN";
             Intent intent = new Intent(action);
             intent.setClassName(AppConstants.ANDROID_PACKAGE_NAME,
-                                AppConstants.BROWSER_INTENT_CLASS_NAME);
+                                AppConstants.MOZ_ANDROID_BROWSER_INTENT_CLASS);
             intent.putExtra("didRestart", true);
             Log.i(LOGTAG, intent.toString());
             startActivity(intent);

@@ -283,17 +283,6 @@
     {0x8b, 0x06, 0x8a, 0xaf, 0xe1, 0x86, 0x9b, 0xd8} \
 }
 
-// component implementing nsIURIChecker.
-#define NS_URICHECKER_CONTRACT_ID \
-    "@mozilla.org/network/urichecker;1"
-#define NS_URICHECKER_CID \
-{ /* cf3a0e06-1dd1-11b2-a904-ac1d6da77a02 */         \
-    0xcf3a0e06,                                      \
-    0x1dd1,                                          \
-    0x11b2,                                          \
-    {0xa9, 0x04, 0xac, 0x1d, 0x6d, 0xa7, 0x7a, 0x02} \
-}
-
 // component implementing nsIIncrementalDownload.
 #define NS_INCREMENTALDOWNLOAD_CONTRACTID \
     "@mozilla.org/network/incremental-download;1"
@@ -317,12 +306,13 @@
 #define NS_SOCKETTRANSPORTSERVICE_CONTRACTID \
     "@mozilla.org/network/socket-transport-service;1"
 #define NS_SOCKETTRANSPORTSERVICE_CID                \
-{ /* c07e81e0-ef12-11d2-92b6-00105a1b0d64 */         \
-    0xc07e81e0,                                      \
-    0xef12,                                          \
-    0x11d2,                                          \
-    {0x92, 0xb6, 0x00, 0x10, 0x5a, 0x1b, 0x0d, 0x64} \
+{ /* ad56b25f-e6bb-4db3-9f7b-5b7db33fd2b1 */         \
+    0xad56b25f,                                      \
+    0xe6bb,                                          \
+    0x4db3,                                          \
+    {0x9f, 0x7b, 0x5b, 0x7d, 0xb3, 0x3f, 0xd2, 0xb1} \
 }
+
 
 // component implementing nsIServerSocket
 #define NS_SERVERSOCKET_CONTRACTID \
@@ -468,6 +458,28 @@
     { 0xae, 0xcf, 0x05, 0xf8, 0xfa, 0xf0, 0x0c, 0x9b } \
 }
 
+// captive portal service implementing nsICaptivePortalService
+#define NS_CAPTIVEPORTAL_CONTRACTID \
+    "@mozilla.org/network/captive-portal-service;1"
+#define NS_CAPTIVEPORTAL_CID \
+{ /* bdbe0555-fc3d-4f7b-9205-c309ceb2d641 */ \
+    0xbdbe0555, \
+    0xfc3d, \
+    0x4f7b, \
+  { 0x92, 0x05, 0xc3, 0x09, 0xce, 0xb2, 0xd6, 0x41 } \
+}
+
+// service implementing nsISchedulingContextService
+#define NS_SCHEDULINGCONTEXTSERVICE_CONTRACTID \
+    "@mozilla.org/network/scheduling-context-service;1"
+#define NS_SCHEDULINGCONTEXTSERVICE_CID \
+{ /* d5499fa7-7ba8-49ff-9e30-1858b99ace69 */ \
+    0xd5499fa7, \
+    0x7ba8, \
+    0x49ff, \
+    {0x93, 0x30, 0x18, 0x58, 0xb9, 0x9a, 0xce, 0x69} \
+}
+
 /******************************************************************************
  * netwerk/cache/ classes
  */
@@ -579,6 +591,18 @@
     {0xb5, 0x27, 0x8a, 0x64, 0x30, 0x56, 0xab, 0xbd} \
 }
 
+// component implementing nsIHttpPushListener.
+#define NS_HTTPPUSHLISTENER_CONTRACTID \
+    "@mozilla.org/network/push-listener;1"
+#define NS_HTTPPUSHLISTENER_CID                      \
+{                                                    \
+    0x73cf4430,                                      \
+    0x5877,                                          \
+    0x4c6b,                                          \
+    {0xb8, 0x78, 0x3e, 0xde, 0x5b, 0xc8, 0xef, 0xf1} \
+}
+
+
 #define NS_HTTPACTIVITYDISTRIBUTOR_CONTRACTID \
     "@mozilla.org/network/http-activity-distributor;1"
 #define NS_HTTPACTIVITYDISTRIBUTOR_CID \
@@ -613,14 +637,20 @@
     {0x8c, 0xda, 0x00, 0x60, 0xb0, 0xfc, 0x14, 0xa3} \
 }
 
-#define NS_RESURL_CID                    \
-{ /* ff8fe7ec-2f74-4408-b742-6b7a546029a8 */         \
-    0xff8fe7ec,                                      \
-    0x2f74,                                          \
-    0x4408,                                          \
-    {0xb7, 0x42, 0x6b, 0x7a, 0x54, 0x60, 0x29, 0xa8} \
+#define NS_EXTENSIONPROTOCOLHANDLER_CID              \
+{ /* aea16cd0-f020-4138-b068-0716c4a15b5a */         \
+    0xaea16cd0,                                      \
+    0xf020,                                          \
+    0x4138,                                          \
+    {0xb0, 0x68, 0x07, 0x16, 0xc4, 0xa1, 0x5b, 0x5a} \
 }
 
+#define NS_SUBSTITUTINGURL_CID                       \
+{ 0xdea9657c,                                        \
+  0x18cf,                                            \
+  0x4984,                                            \
+  { 0xbd, 0xe9, 0xcc, 0xef, 0x5d, 0x8a, 0xb4, 0x73 } \
+}
 
 /******************************************************************************
  * netwerk/protocol/file/ classes
@@ -855,6 +885,25 @@
     { 0x85, 0x44, 0x5a, 0x8d, 0x1a, 0xb7, 0x95, 0x37 } \
 }
 
+#define NS_PACKAGEDAPPSERVICE_CONTRACTID \
+    "@mozilla.org/network/packaged-app-service;1"
+#define NS_PACKAGEDAPPSERVICE_CID                      \
+{   /* adef6762-41b9-4470-a06a-dc29cf8de381 */         \
+    0xadef6762,                                        \
+    0x41b9,                                            \
+    0x4470,                                            \
+  { 0xa0, 0x6a, 0xdc, 0x29, 0xcf, 0x8d, 0xe3, 0x81 }   \
+}
+
+#define NS_PACKAGEDAPPVERIFIER_CONTRACTID \
+    "@mozilla.org/network/packaged-app-verifier;1"
+#define NS_PACKAGEDAPPVERIFIER_CID                      \
+{   /* 07242d20-4cae-11e5-b970-0800200c9a66 */         \
+    0x07242d20,                                        \
+    0x4cae,                                            \
+    0x11e5,                                            \
+  { 0xb9, 0x70, 0x08, 0x00, 0x20, 0x0c, 0x96, 0x66 }   \
+}
 
 /******************************************************************************
  * netwerk/cookie classes
@@ -1020,5 +1069,18 @@
  * Must implement nsINSSErrorsService.
  */
 #define NS_NSS_ERRORS_SERVICE_CONTRACTID "@mozilla.org/nss_errors_service;1"
+
+/**
+ * LoadContextInfo factory
+ */
+#define NS_NSILOADCONTEXTINFOFACTORY_CONTRACTID \
+    "@mozilla.org/load-context-info-factory;1"
+#define NS_NSILOADCONTEXTINFOFACTORY_CID             \
+{ /* 62d4b190-3642-4450-b019-d1c1fba56025 */         \
+    0x62d4b190,                                      \
+    0x3642,                                          \
+    0x4450,                                          \
+    {0xb0, 0x19, 0xd1, 0xc1, 0xfb, 0xa5, 0x60, 0x25} \
+}
 
 #endif // nsNetCID_h__

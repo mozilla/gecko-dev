@@ -9,7 +9,7 @@
 
 #include "mozilla/MathAlgorithms.h"
 
-#include "jit/IonAllocPolicy.h"
+#include "jit/JitAllocPolicy.h"
 
 namespace js {
 namespace jit {
@@ -18,7 +18,7 @@ namespace jit {
 // set operations such as intersection, difference, and union.
 // N.B. All set operations must be performed on sets with the same number
 // of bits.
-class BitSet : private TempObject
+class BitSet
 {
   public:
     static const size_t BitsPerWord = 8 * sizeof(uint32_t);
@@ -28,11 +28,7 @@ class BitSet : private TempObject
     }
 
   private:
-    explicit BitSet(unsigned int numBits) :
-        bits_(nullptr),
-        numBits_(numBits) {}
-
-    uint32_t *bits_;
+    uint32_t* bits_;
     const unsigned int numBits_;
 
     static inline uint32_t bitForValue(unsigned int value) {
@@ -47,12 +43,17 @@ class BitSet : private TempObject
         return RawLengthForBits(numBits_);
     }
 
-    bool init(TempAllocator &alloc);
+    BitSet(const BitSet&) = delete;
+    void operator=(const BitSet&) = delete;
 
   public:
     class Iterator;
 
-    static BitSet *New(TempAllocator &alloc, unsigned int numBits);
+    explicit BitSet(unsigned int numBits) :
+        bits_(nullptr),
+        numBits_(numBits) {}
+
+    bool init(TempAllocator& alloc);
 
     unsigned int getNumBits() const {
         return numBits_;
@@ -60,8 +61,8 @@ class BitSet : private TempObject
 
     // O(1): Check if this set contains the given value.
     bool contains(unsigned int value) const {
-        JS_ASSERT(bits_);
-        JS_ASSERT(value < numBits_);
+        MOZ_ASSERT(bits_);
+        MOZ_ASSERT(value < numBits_);
 
         return !!(bits_[wordForValue(value)] & bitForValue(value));
     }
@@ -71,32 +72,32 @@ class BitSet : private TempObject
 
     // O(1): Insert the given value into this set.
     void insert(unsigned int value) {
-        JS_ASSERT(bits_);
-        JS_ASSERT(value < numBits_);
+        MOZ_ASSERT(bits_);
+        MOZ_ASSERT(value < numBits_);
 
         bits_[wordForValue(value)] |= bitForValue(value);
     }
 
     // O(numBits): Insert every element of the given set into this set.
-    void insertAll(const BitSet *other);
+    void insertAll(const BitSet& other);
 
     // O(1): Remove the given value from this set.
     void remove(unsigned int value) {
-        JS_ASSERT(bits_);
-        JS_ASSERT(value < numBits_);
+        MOZ_ASSERT(bits_);
+        MOZ_ASSERT(value < numBits_);
 
         bits_[wordForValue(value)] &= ~bitForValue(value);
     }
 
     // O(numBits): Remove the every element of the given set from this set.
-    void removeAll(const BitSet *other);
+    void removeAll(const BitSet& other);
 
     // O(numBits): Intersect this set with the given set.
-    void intersect(const BitSet *other);
+    void intersect(const BitSet& other);
 
     // O(numBits): Intersect this set with the given set; return whether the
     // intersection caused the set to change.
-    bool fixedPointIntersect(const BitSet *other);
+    bool fixedPointIntersect(const BitSet& other);
 
     // O(numBits): Does inplace complement of the set.
     void complement();
@@ -104,7 +105,7 @@ class BitSet : private TempObject
     // O(numBits): Clear this set.
     void clear();
 
-    uint32_t *raw() const {
+    uint32_t* raw() const {
         return bits_;
     }
     size_t rawLength() const {
@@ -115,7 +116,7 @@ class BitSet : private TempObject
 class BitSet::Iterator
 {
   private:
-    BitSet &set_;
+    BitSet& set_;
     unsigned index_;
     unsigned word_;
     uint32_t value_;
@@ -123,14 +124,13 @@ class BitSet::Iterator
     void skipEmpty() {
         // Skip words containing only zeros.
         unsigned numWords = set_.numWords();
-        const uint32_t *bits = set_.bits_;
+        const uint32_t* bits = set_.bits_;
         while (value_ == 0) {
             word_++;
             if (word_ == numWords)
                 return;
 
-            JS_STATIC_ASSERT(sizeof(value_) * 8 == BitSet::BitsPerWord);
-            index_ = word_ * sizeof(value_) * 8;
+            index_ = word_ * BitSet::BitsPerWord;
             value_ = bits[word_];
         }
 
@@ -140,11 +140,11 @@ class BitSet::Iterator
         index_ += numZeros;
         value_ >>= numZeros;
 
-        JS_ASSERT_IF(index_ < set_.numBits_, set_.contains(index_));
+        MOZ_ASSERT_IF(index_ < set_.numBits_, set_.contains(index_));
     }
 
   public:
-    explicit Iterator(BitSet &set) :
+    explicit Iterator(BitSet& set) :
       set_(set),
       index_(0),
       word_(0),
@@ -156,28 +156,27 @@ class BitSet::Iterator
     inline bool more() const {
         return word_ < set_.numWords();
     }
-    inline operator bool() const {
+    explicit operator bool() const {
         return more();
     }
 
-    inline Iterator& operator++(int dummy) {
-        JS_ASSERT(more());
-        JS_ASSERT(index_ < set_.numBits_);
+    inline void operator++() {
+        MOZ_ASSERT(more());
+        MOZ_ASSERT(index_ < set_.numBits_);
 
         index_++;
         value_ >>= 1;
 
         skipEmpty();
-        return *this;
     }
 
-    unsigned int operator *() {
-        JS_ASSERT(index_ < set_.numBits_);
+    unsigned int operator*() {
+        MOZ_ASSERT(index_ < set_.numBits_);
         return index_;
     }
 };
 
-}
-}
+} // namespace jit
+} // namespace js
 
 #endif /* jit_BitSet_h */

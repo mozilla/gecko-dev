@@ -16,14 +16,12 @@
 #include "nsString.h"
 #include "nsTHashtable.h"
 #include "nsHashKeys.h"
-#include "nsIObserverService.h"
-#include "nsProxyRelease.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/Attributes.h"
 
-class nsDNSService MOZ_FINAL : public nsPIDNSService
-                             , public nsIObserver
-                             , public nsIMemoryReporter
+class nsDNSService final : public nsPIDNSService
+                         , public nsIObserver
+                         , public nsIMemoryReporter
 {
 public:
     NS_DECL_THREADSAFE_ISUPPORTS
@@ -45,7 +43,7 @@ private:
 
     uint16_t GetAFForLookup(const nsACString &host, uint32_t flags);
 
-    nsRefPtr<nsHostResolver>  mResolver;
+    RefPtr<nsHostResolver>  mResolver;
     nsCOMPtr<nsIIDNService>   mIDN;
 
     // mLock protects access to mResolver and mIPv4OnlyDomains
@@ -60,7 +58,7 @@ private:
     bool                                      mFirstTime;
     bool                                      mOffline;
     bool                                      mNotifyResolution;
-    nsMainThreadPtrHandle<nsIObserverService> mObserverService;
+    bool                                      mOfflineLocalhost;
     nsTHashtable<nsCStringHashKey>            mLocalDomains;
 };
 

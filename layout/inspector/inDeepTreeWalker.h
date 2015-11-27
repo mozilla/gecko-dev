@@ -14,7 +14,7 @@
 class nsINodeList;
 class inIDOMUtils;
 
-class inDeepTreeWalker : public inIDeepTreeWalker
+class inDeepTreeWalker final : public inIDeepTreeWalker
 {
 public:
   NS_DECL_ISUPPORTS

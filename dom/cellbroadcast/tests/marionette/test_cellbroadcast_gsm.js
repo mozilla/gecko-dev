@@ -22,7 +22,9 @@ function testReceiving_GSM_MessageAttributes() {
       ok(aMessage.etws.emergencyUserAlert != null, "aMessage.etws.emergencyUserAlert");
       ok(aMessage.etws.popup != null, "aMessage.etws.popup");
     }
-    ok(aMessage.cdmaServiceCategory != null, "aMessage.cdmaServiceCategory");
+
+    // cdmaServiceCategory shall always be unavailable in GMS/UMTS CB message.
+    ok(aMessage.cdmaServiceCategory == null, "aMessage.cdmaServiceCategory");
   };
 
   // Here we use a simple GSM message for test.
@@ -103,62 +105,6 @@ function testReceiving_GSM_MessageId() {
     promise = promise
       .then(() => sendMultipleRawCbsToEmulatorAndWait([pdu]))
       .then((aMessage) => verifyCBMessage(aMessage, aMessageId));
-  });
-
-  return promise;
-}
-
-function testReceiving_GSM_Language_and_Body() {
-  log("Test receiving GSM Cell Broadcast - Language & Body");
-
-  let promise = Promise.resolve();
-
-  let testDcs = [];
-  let dcs = 0;
-  while (dcs <= 0xFF) {
-    try {
-      let dcsInfo = { dcs: dcs };
-      [ dcsInfo.encoding, dcsInfo.language,
-        dcsInfo.indicator, dcsInfo.messageClass ] = decodeGsmDataCodingScheme(dcs);
-      testDcs.push(dcsInfo);
-    } catch (e) {
-      // Unsupported coding group, skip.
-      dcs = (dcs & PDU_DCS_CODING_GROUP_BITS) + 0x10;
-    }
-    dcs++;
-  }
-
-  let verifyCBMessage = (aMessage, aDcsInfo) => {
-    if (aDcsInfo.language) {
-      is(aMessage.language, aDcsInfo.language, "aMessage.language");
-    } else if (aDcsInfo.indicator) {
-      is(aMessage.language, "@@", "aMessage.language");
-    } else {
-      ok(aMessage.language == null, "aMessage.language");
-    }
-
-    switch (aDcsInfo.encoding) {
-      case PDU_DCS_MSG_CODING_7BITS_ALPHABET:
-        is(aMessage.body, aDcsInfo.indicator ? DUMMY_BODY_7BITS_IND : DUMMY_BODY_7BITS, "aMessage.body");
-        break;
-      case PDU_DCS_MSG_CODING_8BITS_ALPHABET:
-        ok(aMessage.body == null, "aMessage.body");
-        break;
-      case PDU_DCS_MSG_CODING_16BITS_ALPHABET:
-        is(aMessage.body, aDcsInfo.indicator ? DUMMY_BODY_UCS2_IND : DUMMY_BODY_UCS2, "aMessage.body");
-        break;
-    }
-
-    is(aMessage.messageClass, aDcsInfo.messageClass, "aMessage.messageClass");
-  };
-
-  testDcs.forEach(function(aDcsInfo) {
-    let pdu = buildHexStr(0, 8)
-            + buildHexStr(aDcsInfo.dcs, 2)
-            + buildHexStr(0, (CB_MESSAGE_SIZE_GSM - 5) * 2);
-    promise = promise
-      .then(() => sendMultipleRawCbsToEmulatorAndWait([pdu]))
-      .then((aMessage) => verifyCBMessage(aMessage, aDcsInfo));
   });
 
   return promise;
@@ -296,20 +242,6 @@ function testReceiving_GSM_Multipart() {
   return promise;
 }
 
-function testReceiving_GSM_ServiceCategory() {
-  log("Test receiving GSM Cell Broadcast - Service Category");
-
-  let verifyCBMessage = (aMessage) => {
-    // Bug 910091
-    // "Service Category" is not defined in GSM.  We should always get '0' here.
-    is(aMessage.cdmaServiceCategory, 0, "aMessage.cdmaServiceCategory");
-  };
-
-  let pdu = buildHexStr(0, CB_MESSAGE_SIZE_GSM * 2);
-  return sendMultipleRawCbsToEmulatorAndWait([pdu])
-    .then((aMessage) => verifyCBMessage(aMessage));
-}
-
 function testReceiving_GSM_PaddingCharacters() {
   log("Test receiving GSM Cell Broadcast - Padding Characters <CR>");
 
@@ -363,12 +295,10 @@ startTestCommon(function testCaseMain() {
     .then(() => testReceiving_GSM_GeographicalScope())
     .then(() => testReceiving_GSM_MessageCode())
     .then(() => testReceiving_GSM_MessageId())
-    .then(() => testReceiving_GSM_Language_and_Body())
     .then(() => testReceiving_GSM_Timestamp())
     .then(() => testReceiving_GSM_WarningType())
     .then(() => testReceiving_GSM_EmergencyUserAlert())
     .then(() => testReceiving_GSM_Popup())
     .then(() => testReceiving_GSM_Multipart())
-    .then(() => testReceiving_GSM_ServiceCategory())
     .then(() => testReceiving_GSM_PaddingCharacters());
 });

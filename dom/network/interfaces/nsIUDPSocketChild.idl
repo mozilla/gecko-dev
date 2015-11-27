@@ -7,6 +7,7 @@
 
 interface nsIUDPSocketInternal;
 interface nsIInputStream;
+interface nsIPrincipal;
 
 %{ C++
 namespace mozilla {
@@ -18,15 +19,19 @@ union NetAddr;
 native NetAddr(mozilla::net::NetAddr);
 [ptr] native NetAddrPtr(mozilla::net::NetAddr);
 
-[scriptable, uuid(36ec5264-6a58-4cf2-ad9a-185292e0d1d1)]
+[scriptable, uuid(481f15ce-224a-40b6-9927-7effbc326776)]
 interface nsIUDPSocketChild : nsISupports
 {
   readonly attribute unsigned short localPort;
   readonly attribute AUTF8String localAddress;
   attribute AUTF8String filterName;
 
+  // Allow hosting this over PBackground instead of PNecko
+  [noscript] void setBackgroundSpinsEvents();
+
   // Tell the chrome process to bind the UDP socket to a given local host and port
-  void bind(in nsIUDPSocketInternal socket, in AUTF8String host, in unsigned short port,
+  void bind(in nsIUDPSocketInternal socket, in nsIPrincipal principal,
+            in AUTF8String host, in unsigned short port,
             in bool addressReuse, in bool loopback);
 
   // Tell the chrome process to perform equivalent operations to all following methods

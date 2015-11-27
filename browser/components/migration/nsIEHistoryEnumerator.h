@@ -12,7 +12,7 @@
 #include "nsIWritablePropertyBag2.h"
 #include "nsAutoPtr.h"
 
-class nsIEHistoryEnumerator MOZ_FINAL : public nsISimpleEnumerator
+class nsIEHistoryEnumerator final : public nsISimpleEnumerator
 {
 public:
   NS_DECL_ISUPPORTS
@@ -28,8 +28,8 @@ private:
    */
   void EnsureInitialized();
 
-  nsRefPtr<IUrlHistoryStg2> mIEHistory;
-  nsRefPtr<IEnumSTATURL> mURLEnumerator;
+  RefPtr<IUrlHistoryStg2> mIEHistory;
+  RefPtr<IEnumSTATURL> mURLEnumerator;
 
   nsCOMPtr<nsIWritablePropertyBag2> mCachedNextEntry;
 };

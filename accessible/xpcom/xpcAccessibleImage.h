@@ -9,23 +9,32 @@
 
 #include "nsIAccessibleImage.h"
 
+#include "xpcAccessibleGeneric.h"
+
 namespace mozilla {
 namespace a11y {
 
-class xpcAccessibleImage : public nsIAccessibleImage
+class xpcAccessibleImage : public xpcAccessibleGeneric,
+                           public nsIAccessibleImage
 {
 public:
+  explicit xpcAccessibleImage(Accessible* aIntl) :
+    xpcAccessibleGeneric(aIntl) { }
+
+  NS_DECL_ISUPPORTS_INHERITED
+
   NS_IMETHOD GetImagePosition(uint32_t aCoordType,
-                              int32_t* aX, int32_t* aY) MOZ_FINAL;
-  NS_IMETHOD GetImageSize(int32_t* aWidth, int32_t* aHeight) MOZ_FINAL;
+                              int32_t* aX, int32_t* aY) final override;
+  NS_IMETHOD GetImageSize(int32_t* aWidth, int32_t* aHeight) final override;
+
+protected:
+  virtual ~xpcAccessibleImage() {}
 
 private:
-  friend class ImageAccessible;
+  ImageAccessible* Intl() { return mIntl->AsImage(); }
 
-  xpcAccessibleImage() { }
-
-  xpcAccessibleImage(const xpcAccessibleImage&) MOZ_DELETE;
-  xpcAccessibleImage& operator =(const xpcAccessibleImage&) MOZ_DELETE;
+  xpcAccessibleImage(const xpcAccessibleImage&) = delete;
+  xpcAccessibleImage& operator =(const xpcAccessibleImage&) = delete;
 };
 
 } // namespace a11y

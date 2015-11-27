@@ -8,14 +8,16 @@ DIRS += [
     'manifests',
     'tests',
     'ssltunnel',
+    'BrowserTestUtils',
 ]
-
-if CONFIG['MOZ_BUILD_APP'] == 'mobile/android':
-    DIRS += ['roboextender']
 
 XPI_NAME = 'mochijar'
 
 JAR_MANIFESTS += ['jar.mn']
+
+USE_EXTENSION_MANIFEST = True
+
+DIST_FILES += ['install.rdf']
 
 MOCHITEST_MANIFESTS += [
     'dynamic/mochitest.ini',
@@ -28,21 +30,17 @@ MOCHITEST_CHROME_MANIFESTS += ['chrome/chrome.ini']
 
 TEST_HARNESS_FILES.testing.mochitest += [
     '!automation.py',
-    '/build/automationutils.py',
     '/build/mobile/remoteautomation.py',
     '/build/pgo/server-locations.txt',
     '/build/sanitizers/lsan_suppressions.txt',
     '/netwerk/test/httpserver/httpd.js',
-    '/testing/mozbase/manifestparser/manifestparser/manifestparser.py',
     '/testing/mozbase/mozdevice/mozdevice/devicemanager.py',
     '/testing/mozbase/mozdevice/mozdevice/devicemanagerADB.py',
     '/testing/mozbase/mozdevice/mozdevice/devicemanagerSUT.py',
     '/testing/mozbase/mozdevice/mozdevice/droid.py',
+    '/testing/mozbase/mozdevice/mozdevice/version_codes.py',
     '/testing/mozbase/mozdevice/mozdevice/Zeroconf.py',
     '/testing/mozbase/moznetwork/moznetwork/moznetwork.py',
-    'android.json',
-    'android23.json',
-    'androidx86.json',
     'b2g_start_script.js',
     'bisection.py',
     'browser-harness.xul',
@@ -52,28 +50,25 @@ TEST_HARNESS_FILES.testing.mochitest += [
     'chrome-harness.js',
     'chunkifyTests.js',
     'gen_template.pl',
-    'gl.json',
     'harness.xul',
     'jetpack-addon-harness.js',
     'jetpack-addon-overlay.xul',
     'jetpack-package-harness.js',
     'jetpack-package-overlay.xul',
+    'leaks.py',
+    'mach_test_package_commands.py',
     'manifest.webapp',
     'manifestLibrary.js',
     'mochitest_options.py',
+    'nested_setup.js',
     'pywebsocket_wrapper.py',
     'redirect.html',
+    'runrobocop.py',
     'runtests.py',
     'runtestsb2g.py',
     'runtestsremote.py',
     'server.js',
 ]
-
-if CONFIG['MOZ_BUILD_APP'] == 'mobile/android':
-    TEST_HARNESS_FILES.testing.mochitest += [
-        '/mobile/android/base/tests/robocop.ini',
-        '/mobile/android/base/tests/robocop_autophone.ini',
-    ]
 
 TEST_HARNESS_FILES.testing.mochitest.pywebsocket += [
     'pywebsocket/standalone.py',
@@ -87,18 +82,20 @@ TEST_HARNESS_FILES.testing.mochitest.pywebsocket.mod_pywebsocket += [
     'pywebsocket/mod_pywebsocket/common.py',
     'pywebsocket/mod_pywebsocket/dispatch.py',
     'pywebsocket/mod_pywebsocket/extensions.py',
+    'pywebsocket/mod_pywebsocket/fast_masking.i',
     'pywebsocket/mod_pywebsocket/headerparserhandler.py',
     'pywebsocket/mod_pywebsocket/http_header_util.py',
     'pywebsocket/mod_pywebsocket/memorizingfile.py',
     'pywebsocket/mod_pywebsocket/msgutil.py',
+    'pywebsocket/mod_pywebsocket/mux.py',
     'pywebsocket/mod_pywebsocket/stream.py',
     'pywebsocket/mod_pywebsocket/util.py',
+    'pywebsocket/mod_pywebsocket/xhr_benchmark_handler.py',
 ]
 
 TEST_HARNESS_FILES.testing.mochitest.pywebsocket.mod_pywebsocket.handshake += [
     'pywebsocket/mod_pywebsocket/handshake/__init__.py',
     'pywebsocket/mod_pywebsocket/handshake/_base.py',
-    'pywebsocket/mod_pywebsocket/handshake/draft75.py',
     'pywebsocket/mod_pywebsocket/handshake/hybi.py',
     'pywebsocket/mod_pywebsocket/handshake/hybi00.py',
 ]

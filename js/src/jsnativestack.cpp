@@ -9,7 +9,7 @@
 #ifdef XP_WIN
 # include "jswin.h"
 
-#elif defined(XP_MACOSX) || defined(DARWIN) || defined(XP_UNIX)
+#elif defined(XP_DARWIN) || defined(DARWIN) || defined(XP_UNIX)
 # include <pthread.h>
 
 # if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
@@ -28,7 +28,7 @@
 
 #if defined(XP_WIN)
 
-void *
+void*
 js::GetNativeStackBaseImpl()
 {
 # if defined(_M_IX86) && defined(_MSC_VER)
@@ -47,6 +47,10 @@ js::GetNativeStackBaseImpl()
     PNT_TIB64 pTib = reinterpret_cast<PNT_TIB64>(NtCurrentTeb());
     return reinterpret_cast<void*>(pTib->StackBase);
 
+# elif defined(_M_ARM)
+    PNT_TIB pTib = reinterpret_cast<PNT_TIB>(NtCurrentTeb());
+    return static_cast<void*>(pTib->StackBase);
+
 # elif defined(_WIN32) && defined(__GNUC__)
     NT_TIB* pTib;
     asm ("movl %%fs:0x18, %0\n" : "=r" (pTib));
@@ -61,7 +65,7 @@ js::GetNativeStackBaseImpl()
 
 JS_STATIC_ASSERT(JS_STACK_GROWTH_DIRECTION < 0);
 
-void *
+void*
 js::GetNativeStackBaseImpl()
 {
     stack_t st;
@@ -75,7 +79,7 @@ js::GetNativeStackBaseImpl()
 
 JS_STATIC_ASSERT(JS_STACK_GROWTH_DIRECTION < 0);
 
-void *
+void*
 js::GetNativeStackBaseImpl()
 {
     ucontext_t context;
@@ -86,11 +90,11 @@ js::GetNativeStackBaseImpl()
 
 #else /* XP_UNIX */
 
-void *
+void*
 js::GetNativeStackBaseImpl()
 {
     pthread_t thread = pthread_self();
-# if defined(XP_MACOSX) || defined(DARWIN)
+# if defined(XP_DARWIN) || defined(DARWIN)
     return pthread_get_stackaddr_np(thread);
 
 # else
@@ -109,7 +113,7 @@ js::GetNativeStackBaseImpl()
     pthread_getattr_np(thread, &sattr);
 #  endif
 
-    void *stackBase = 0;
+    void* stackBase = 0;
     size_t stackSize = 0;
     int rc;
 # if defined(__OpenBSD__)
@@ -122,7 +126,15 @@ js::GetNativeStackBaseImpl()
         // thread (see bug 846670). So we scan /proc/self/maps to find the
         // segment which contains the stack.
         rc = -1;
-        FILE *fs = fopen("/proc/self/maps", "r");
+
+        // Put the string on the stack, otherwise there is the danger that it
+        // has not been decompressed by the the on-demand linker. Bug 1165460.
+        //
+        // The volatile keyword should stop the compiler from trying to omit
+        // the stack copy in the future (hopefully).
+        volatile char path[] = "/proc/self/maps";
+        FILE* fs = fopen((const char*)path, "r");
+
         if (fs) {
             char line[100];
             unsigned long stackAddr = (unsigned long)&sattr;
@@ -131,7 +143,7 @@ js::GetNativeStackBaseImpl()
                 unsigned long stackEnd;
                 if (sscanf(line, "%lx-%lx ", &stackStart, &stackEnd) == 2 &&
                     stackAddr >= stackStart && stackAddr < stackEnd) {
-                    stackBase = (void *)stackStart;
+                    stackBase = (void*)stackStart;
                     stackSize = stackEnd - stackStart;
                     rc = 0;
                     break;
@@ -148,7 +160,7 @@ js::GetNativeStackBaseImpl()
 # endif
     if (rc)
         MOZ_CRASH();
-    JS_ASSERT(stackBase);
+    MOZ_ASSERT(stackBase);
     pthread_attr_destroy(&sattr);
 
 #  if JS_STACK_GROWTH_DIRECTION > 0

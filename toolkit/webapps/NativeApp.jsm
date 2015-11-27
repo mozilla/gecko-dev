@@ -103,8 +103,14 @@ CommonNativeApp.prototype = {
     let manifest = new ManifestHelper(aManifest, aApp.origin, aApp.manifestURL);
     let origin = Services.io.newURI(aApp.origin, null, null);
 
-    this.iconURI = Services.io.newURI(manifest.biggestIconURL || DEFAULT_ICON_URL,
-                                      null, null);
+#ifdef XP_WIN
+    let biggestIconURL = manifest.biggestIconURL(v => v <= 256);
+#else
+    let biggestIconURL = manifest.biggestIconURL();
+#endif
+
+    this.iconURI = Services.io.newURI(biggestIconURL || DEFAULT_ICON_URL, null,
+                                      null);
 
     if (manifest.developer) {
       if (manifest.developer.name) {
@@ -446,7 +452,19 @@ function downloadIcon(aIconURI) {
     });
 #endif
 
-    let channel = NetUtil.newChannel(aIconURI);
+    // If not fetching an icon from chrome:// then we should create a
+    // NoAppCodeBasePrincipal. Note, that we are still in the process of
+    // installing the app, hence app.origin is not available yet and
+    // therefore we can not call getAppCodebasePrincipal.
+    let principal =
+      aIconURI.schemeIs("chrome") ?
+        Services.scriptSecurityManager.getSystemPrincipal() :
+        Services.scriptSecurityManager.createCodebasePrincipal(aIconURI, {});
+
+    let channel = NetUtil.newChannel({
+      uri: aIconURI,
+      loadingPrincipal: principal,
+      contentPolicyType: Ci.nsIContentPolicy.TYPE_INTERNAL_IMAGE});
     let { BadCertHandler } = Cu.import("resource://gre/modules/CertUtils.jsm", {});
     // Pass true to avoid optional redirect-cert-checking behavior.
     channel.notificationCallbacks = new BadCertHandler(true);

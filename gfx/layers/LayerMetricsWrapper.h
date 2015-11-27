@@ -77,7 +77,7 @@ namespace layers {
  * layers C1...Cn, where C1 has FrameMetrics FM1 and Cn has FrameMetrics Fn.
  * Although in this example C (in the first layer tree) and C0 (in the second
  * layer tree) are both ContainerLayers (because they have children), they
- * do not have to be. They may just be ThebesLayers or ColorLayers, for example,
+ * do not have to be. They may just be PaintedLayers or ColorLayers, for example,
  * which do not have any children. However, the type of C will always be the
  * same as the type of C0.
  *
@@ -299,6 +299,40 @@ public:
     return gfx::Matrix4x4();
   }
 
+  bool TransformIsPerspective() const
+  {
+    MOZ_ASSERT(IsValid());
+
+    // mLayer->GetTransformIsPerspective() tells us whether
+    // mLayer->GetTransform() is a perspective transform. Since
+    // mLayer->GetTransform() is only used at the bottom layer, we only
+    // need to check GetTransformIsPerspective() at the bottom layer too.
+    if (AtBottomLayer()) {
+      return mLayer->GetTransformIsPerspective();
+    }
+    return false;
+  }
+
+  EventRegions GetEventRegions() const
+  {
+    MOZ_ASSERT(IsValid());
+
+    if (AtBottomLayer()) {
+      return mLayer->GetEventRegions();
+    }
+    return EventRegions();
+  }
+
+  bool HasTransformAnimation() const
+  {
+    MOZ_ASSERT(IsValid());
+
+    if (AtBottomLayer()) {
+      return mLayer->HasTransformAnimation();
+    }
+    return false;
+  }
+
   RefLayer* AsRefLayer() const
   {
     MOZ_ASSERT(IsValid());
@@ -317,15 +351,54 @@ public:
       return mLayer->GetVisibleRegion();
     }
     nsIntRegion region = mLayer->GetVisibleRegion();
-    region.Transform(gfx::To3DMatrix(mLayer->GetTransform()));
+    region.Transform(mLayer->GetTransform());
     return region;
   }
 
-  const nsIntRect* GetClipRect() const
+  const Maybe<ParentLayerIntRect>& GetClipRect() const
   {
     MOZ_ASSERT(IsValid());
 
-    return mLayer->GetClipRect();
+    static const Maybe<ParentLayerIntRect> sNoClipRect = Nothing();
+
+    if (AtBottomLayer()) {
+      return mLayer->GetClipRect();
+    }
+
+    return sNoClipRect;
+  }
+
+  EventRegionsOverride GetEventRegionsOverride() const
+  {
+    MOZ_ASSERT(IsValid());
+
+    if (mLayer->AsContainerLayer()) {
+      return mLayer->AsContainerLayer()->GetEventRegionsOverride();
+    }
+    return EventRegionsOverride::NoOverride;
+  }
+
+  Layer::ScrollDirection GetScrollbarDirection() const
+  {
+    MOZ_ASSERT(IsValid());
+
+    return mLayer->GetScrollbarDirection();
+  }
+
+  FrameMetrics::ViewID GetScrollbarTargetContainerId() const
+  {
+    MOZ_ASSERT(IsValid());
+
+    return mLayer->GetScrollbarTargetContainerId();
+  }
+
+  int32_t GetScrollbarSize() const
+  {
+    if (GetScrollbarDirection() == Layer::VERTICAL) {
+      return mLayer->GetVisibleRegion().GetBounds().height;
+    } else {
+      return mLayer->GetVisibleRegion().GetBounds().width;
+    }
   }
 
   // Expose an opaque pointer to the layer. Mostly used for printf
@@ -393,7 +466,7 @@ private:
   uint32_t mIndex;
 };
 
-}
-}
+} // namespace layers
+} // namespace mozilla
 
 #endif /* GFX_LAYERMETRICSWRAPPER_H */

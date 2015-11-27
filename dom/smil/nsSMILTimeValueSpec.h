@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -91,25 +92,25 @@ protected:
   public:
     explicit TimeReferenceElement(nsSMILTimeValueSpec* aOwner) : mSpec(aOwner) { }
     void ResetWithElement(Element* aTo) {
-      nsRefPtr<Element> from = get();
+      RefPtr<Element> from = get();
       Unlink();
       ElementChanged(from, aTo);
     }
 
   protected:
-    virtual void ElementChanged(Element* aFrom, Element* aTo) MOZ_OVERRIDE
+    virtual void ElementChanged(Element* aFrom, Element* aTo) override
     {
       nsReferencedElement::ElementChanged(aFrom, aTo);
       mSpec->UpdateReferencedElement(aFrom, aTo);
     }
-    virtual bool IsPersistent() MOZ_OVERRIDE { return true; }
+    virtual bool IsPersistent() override { return true; }
   private:
     nsSMILTimeValueSpec* mSpec;
   };
 
   TimeReferenceElement mReferencedElement;
 
-  class EventListener MOZ_FINAL : public nsIDOMEventListener
+  class EventListener final : public nsIDOMEventListener
   {
     ~EventListener() {}
   public:
@@ -125,7 +126,7 @@ protected:
   private:
     nsSMILTimeValueSpec* mSpec;
   };
-  nsRefPtr<EventListener> mEventListener;
+  RefPtr<EventListener> mEventListener;
 };
 
 #endif // NS_SMILTIMEVALUESPEC_H_

@@ -7,6 +7,7 @@
 #include "nsAppFileLocationProvider.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsDirectoryServiceDefs.h"
+#include "nsEnumeratorUtils.h"
 #include "nsIAtom.h"
 #include "nsIFile.h"
 #include "nsString.h"
@@ -228,7 +229,8 @@ nsAppFileLocationProvider::GetFile(const char* aProp, bool* aPersistent,
   }
 
   if (localFile && NS_SUCCEEDED(rv)) {
-    return localFile->QueryInterface(NS_GET_IID(nsIFile), (void**)aResult);
+    localFile.forget(aResult);
+    return NS_OK;
   }
 
   return rv;
@@ -347,8 +349,7 @@ nsAppFileLocationProvider::GetProductDirectory(nsIFile** aLocalFile,
     return rv;
   }
 
-  *aLocalFile = localDir;
-  NS_ADDREF(*aLocalFile);
+  localDir.forget(aLocalFile);
 
   return rv;
 }
@@ -394,8 +395,7 @@ nsAppFileLocationProvider::GetDefaultUserProfileRoot(nsIFile** aLocalFile,
   }
 #endif
 
-  *aLocalFile = localDir;
-  NS_ADDREF(*aLocalFile);
+  localDir.forget(aLocalFile);
 
   return rv;
 }
@@ -420,7 +420,7 @@ public:
   {
   }
 
-  NS_IMETHOD HasMoreElements(bool* aResult)
+  NS_IMETHOD HasMoreElements(bool* aResult) override
   {
     while (!mNext && *mCurrentKey) {
       bool dontCare;
@@ -436,7 +436,7 @@ public:
     return NS_OK;
   }
 
-  NS_IMETHOD GetNext(nsISupports** aResult)
+  NS_IMETHOD GetNext(nsISupports** aResult) override
   {
     if (NS_WARN_IF(!aResult)) {
       return NS_ERROR_INVALID_ARG;
@@ -457,7 +457,7 @@ public:
   }
 
 protected:
-  nsIDirectoryServiceProvider* mProvider;
+  nsCOMPtr<nsIDirectoryServiceProvider> mProvider;
   const char** mCurrentKey;
   nsCOMPtr<nsIFile> mNext;
 
@@ -479,7 +479,7 @@ NS_IMPL_ISUPPORTS(nsAppDirectoryEnumerator, nsISimpleEnumerator)
 #define PATH_SEPARATOR ':'
 #endif
 
-class nsPathsDirectoryEnumerator MOZ_FINAL
+class nsPathsDirectoryEnumerator final
   : public nsAppDirectoryEnumerator
 {
   ~nsPathsDirectoryEnumerator() {}
@@ -580,18 +580,21 @@ nsAppFileLocationProvider::GetFiles(const char* aProp,
     }
     *aResult = new nsPathsDirectoryEnumerator(this, keys);
 #endif
-    NS_IF_ADDREF(*aResult);
-    rv = *aResult ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
+    NS_ADDREF(*aResult);
+    rv = NS_OK;
   }
   if (!nsCRT::strcmp(aProp, NS_APP_SEARCH_DIR_LIST)) {
-    static const char* keys[] = { nullptr, NS_APP_SEARCH_DIR, NS_APP_USER_SEARCH_DIR, nullptr };
+    static const char* keys[] = { nullptr, NS_APP_USER_SEARCH_DIR, nullptr };
     if (!keys[0] && !(keys[0] = PR_GetEnv("MOZ_SEARCH_ENGINE_PATH"))) {
       static const char nullstr = 0;
       keys[0] = &nullstr;
     }
     *aResult = new nsPathsDirectoryEnumerator(this, keys);
-    NS_IF_ADDREF(*aResult);
-    rv = *aResult ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
+    NS_ADDREF(*aResult);
+    rv = NS_OK;
+  }
+  if (!strcmp(aProp, NS_APP_DISTRIBUTION_SEARCH_DIR_LIST)) {
+    return NS_NewEmptyEnumerator(aResult);
   }
   return rv;
 }

@@ -8,12 +8,18 @@
 #include "mozilla/TypeTraits.h"
 
 using mozilla::AddLvalueReference;
+using mozilla::AddPointer;
+using mozilla::AddRvalueReference;
+using mozilla::Decay;
+using mozilla::DeclVal;
+using mozilla::IsFunction;
 using mozilla::IsArray;
 using mozilla::IsBaseOf;
 using mozilla::IsClass;
 using mozilla::IsConvertible;
 using mozilla::IsEmpty;
 using mozilla::IsLvalueReference;
+using mozilla::IsPointer;
 using mozilla::IsReference;
 using mozilla::IsRvalueReference;
 using mozilla::IsSame;
@@ -22,6 +28,14 @@ using mozilla::IsUnsigned;
 using mozilla::MakeSigned;
 using mozilla::MakeUnsigned;
 using mozilla::RemoveExtent;
+using mozilla::RemovePointer;
+
+static_assert(!IsFunction<int>::value,
+              "int is not a function type");
+static_assert(IsFunction<void(int)>::value,
+              "void(int) is a function type");
+static_assert(!IsFunction<void(*)(int)>::value,
+              "void(*)(int) is not a function type");
 
 static_assert(!IsArray<bool>::value,
               "bool not an array");
@@ -29,6 +43,30 @@ static_assert(IsArray<bool[]>::value,
               "bool[] is an array");
 static_assert(IsArray<bool[5]>::value,
               "bool[5] is an array");
+
+static_assert(!IsPointer<bool>::value,
+              "bool not a pointer");
+static_assert(IsPointer<bool*>::value,
+              "bool* is a pointer");
+static_assert(IsPointer<bool* const>::value,
+              "bool* const is a pointer");
+static_assert(IsPointer<bool* volatile>::value,
+              "bool* volatile is a pointer");
+static_assert(IsPointer<bool* const volatile>::value,
+              "bool* const volatile is a pointer");
+static_assert(IsPointer<bool**>::value,
+              "bool** is a pointer");
+static_assert(IsPointer<void (*)(void)>::value,
+              "void (*)(void) is a pointer");
+struct IsPointerTest { bool m; void f(); };
+static_assert(!IsPointer<IsPointerTest>::value,
+              "IsPointerTest not a pointer");
+static_assert(IsPointer<IsPointerTest*>::value,
+              "IsPointerTest* is a pointer");
+static_assert(!IsPointer<bool(IsPointerTest::*)>::value,
+              "bool(IsPointerTest::*) not a pointer");
+static_assert(!IsPointer<void(IsPointerTest::*)(void)>::value,
+              "void(IsPointerTest::*)(void) not a pointer");
 
 static_assert(!IsLvalueReference<bool>::value,
               "bool not an lvalue reference");
@@ -229,7 +267,7 @@ static_assert(!IsUnsigned<const volatile long double>::value,
 
 class NotIntConstructible
 {
-  NotIntConstructible(int) MOZ_DELETE;
+  NotIntConstructible(int) = delete;
 };
 
 static_assert(!IsSigned<NotIntConstructible>::value,
@@ -299,6 +337,10 @@ TestIsBaseOf()
                 "B is the same as B (and therefore, a base of B)");
 }
 
+class ExplicitCopyConstructor {
+  explicit ExplicitCopyConstructor(const ExplicitCopyConstructor&) = default;
+};
+
 static void
 TestIsConvertible()
 {
@@ -326,6 +368,14 @@ TestIsConvertible()
   static_assert((!IsConvertible<A, D>::value),
                 "A and D are unrelated");
 
+  static_assert(IsConvertible<void, void>::value, "void is void");
+  static_assert(!IsConvertible<A, void>::value, "A shouldn't convert to void");
+  static_assert(!IsConvertible<void, B>::value, "void shouldn't convert to B");
+
+  static_assert(!IsConvertible<const ExplicitCopyConstructor&,
+                               ExplicitCopyConstructor>::value,
+                "IsConvertible should test for implicit convertibility");
+
   // These cases seem to require C++11 support to properly implement them, so
   // for now just disable them.
   //static_assert((!IsConvertible<C*, A*>::value),
@@ -344,6 +394,36 @@ static_assert(IsSame<AddLvalueReference<void>::Type, void>::value,
               "void shouldn't be transformed by AddLvalueReference");
 static_assert(IsSame<AddLvalueReference<struct S1&&>::Type, struct S1&>::value,
               "not reference-collapsing struct S1&& & to struct S1& correctly");
+
+static_assert(IsSame<AddRvalueReference<int>::Type, int&&>::value,
+              "not adding && to int correctly");
+static_assert(IsSame<AddRvalueReference<volatile int&>::Type, volatile int&>::value,
+              "not adding && to volatile int& correctly");
+static_assert(IsSame<AddRvalueReference<const int&&>::Type, const int&&>::value,
+              "not adding && to volatile int& correctly");
+static_assert(IsSame<AddRvalueReference<void*>::Type, void*&&>::value,
+              "not adding && to void* correctly");
+static_assert(IsSame<AddRvalueReference<void>::Type, void>::value,
+              "void shouldn't be transformed by AddRvalueReference");
+static_assert(IsSame<AddRvalueReference<struct S1&>::Type, struct S1&>::value,
+              "not reference-collapsing struct S1& && to struct S1& correctly");
+
+struct TestWithDefaultConstructor
+{
+  int foo() const { return 0; }
+};
+struct TestWithNoDefaultConstructor
+{
+  explicit TestWithNoDefaultConstructor(int) {}
+  int foo() const { return 1; }
+};
+
+static_assert(IsSame<decltype(TestWithDefaultConstructor().foo()), int>::value,
+              "decltype should work using a struct with a default constructor");
+static_assert(IsSame<decltype(DeclVal<TestWithDefaultConstructor>().foo()), int>::value,
+              "decltype should work using a DeclVal'd struct with a default constructor");
+static_assert(IsSame<decltype(DeclVal<TestWithNoDefaultConstructor>().foo()), int>::value,
+              "decltype should work using a DeclVal'd struct without a default constructor");
 
 static_assert(IsSame<MakeSigned<const unsigned char>::Type, const signed char>::value,
               "const unsigned char won't signify correctly");
@@ -404,6 +484,58 @@ static_assert(IsSame<RemoveExtent<volatile int[5]>::Type, volatile int>::value,
               "removing extent from known-bound array must return element type");
 static_assert(IsSame<RemoveExtent<long[][17]>::Type, long[17]>::value,
               "removing extent from multidimensional array must return element type");
+
+struct TestRemovePointer { bool m; void f(); };
+static_assert(IsSame<RemovePointer<int>::Type, int>::value,
+              "removing pointer from int must return int");
+static_assert(IsSame<RemovePointer<int*>::Type, int>::value,
+              "removing pointer from int* must return int");
+static_assert(IsSame<RemovePointer<int* const>::Type, int>::value,
+              "removing pointer from int* const must return int");
+static_assert(IsSame<RemovePointer<int* volatile>::Type, int>::value,
+              "removing pointer from int* volatile must return int");
+static_assert(IsSame<RemovePointer<const long*>::Type, const long>::value,
+              "removing pointer from const long* must return const long");
+static_assert(IsSame<RemovePointer<void* const>::Type, void>::value,
+              "removing pointer from void* const must return void");
+static_assert(IsSame<RemovePointer<void (TestRemovePointer::*)()>::Type,
+                                   void (TestRemovePointer::*)()>::value,
+              "removing pointer from void (S::*)() must return void (S::*)()");
+static_assert(IsSame<RemovePointer<void (*)()>::Type, void()>::value,
+              "removing pointer from void (*)() must return void()");
+static_assert(IsSame<RemovePointer<bool TestRemovePointer::*>::Type,
+                                   bool TestRemovePointer::*>::value,
+              "removing pointer from bool S::* must return bool S::*");
+
+static_assert(IsSame<AddPointer<int>::Type, int*>::value,
+              "adding pointer to int must return int*");
+static_assert(IsSame<AddPointer<int*>::Type, int**>::value,
+              "adding pointer to int* must return int**");
+static_assert(IsSame<AddPointer<int&>::Type, int*>::value,
+              "adding pointer to int& must return int*");
+static_assert(IsSame<AddPointer<int* const>::Type, int* const*>::value,
+              "adding pointer to int* const must return int* const*");
+static_assert(IsSame<AddPointer<int* volatile>::Type, int* volatile*>::value,
+              "adding pointer to int* volatile must return int* volatile*");
+
+static_assert(IsSame<Decay<int>::Type, int>::value,
+              "decaying int must return int");
+static_assert(IsSame<Decay<int*>::Type, int*>::value,
+              "decaying int* must return int*");
+static_assert(IsSame<Decay<int* const>::Type, int*>::value,
+              "decaying int* const must return int*");
+static_assert(IsSame<Decay<int* volatile>::Type, int*>::value,
+              "decaying int* volatile must return int*");
+static_assert(IsSame<Decay<int&>::Type, int>::value,
+              "decaying int& must return int");
+static_assert(IsSame<Decay<const int&>::Type, int>::value,
+              "decaying const int& must return int");
+static_assert(IsSame<Decay<int&&>::Type, int>::value,
+              "decaying int&& must return int");
+static_assert(IsSame<Decay<int[1]>::Type, int*>::value,
+              "decaying int[1] must return int*");
+static_assert(IsSame<Decay<void(int)>::Type, void(*)(int)>::value,
+              "decaying void(int) must return void(*)(int)");
 
 /*
  * Android's broken [u]intptr_t inttype macros are broken because its PRI*PTR

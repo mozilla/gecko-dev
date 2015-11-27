@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-let testURL = "http://example.org/browser/browser/base/content/test/general/dummy_page.html";
-let testActionURL = "moz-action:switchtab," + JSON.stringify({url: testURL});
+var testURL = "http://example.org/browser/browser/base/content/test/general/dummy_page.html";
+var testActionURL = "moz-action:switchtab," + JSON.stringify({url: testURL});
 testURL = gURLBar.trimValue(testURL);
-let testTab;
+var testTab;
 
 function runNextTest() {
   if (tests.length) {
@@ -25,13 +25,14 @@ function cleanup() {
   finish();
 }
 
-let tests = [
+var tests = [
   {
     expected: testURL,
     setup: function() {
       gURLBar.value = testActionURL;
       gURLBar.valueIsTyped = true;
-      is(gURLBar.value, testActionURL, "gURLBar.value starts with correct value");
+      is(gURLBar.value, testActionURL, "gURLBar starts with the correct real value");
+      is(gURLBar.textValue, testURL, "gURLBar starts with the correct display value");
 
       // Focus the urlbar so we can select it all & copy
       gURLBar.focus();
@@ -73,7 +74,8 @@ let tests = [
       gURLBar.value = testActionURL;
       gURLBar.valueIsTyped = true;
       // Sanity check that we have the right value
-      is(gURLBar.value, testActionURL, "gURLBar.value starts with correct value");
+      is(gURLBar.value, testActionURL, "gURLBar starts with the correct real value");
+      is(gURLBar.textValue, testURL, "gURLBar starts with the correct display value");
 
       // Now just select part of the value & cut that.
       gURLBar.selectionStart = testURL.length - 10;

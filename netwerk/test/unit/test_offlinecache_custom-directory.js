@@ -10,14 +10,23 @@
  */
 
 Cu.import("resource://testing-common/httpd.js");
+Cu.import('resource://gre/modules/Services.jsm');
 
 var httpServer = null;
 var cacheUpdateObserver = null;
+var systemPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
 
 function make_channel(url, callback, ctx) {
   var ios = Cc["@mozilla.org/network/io-service;1"].
             getService(Ci.nsIIOService);
-  return ios.newChannel(url, "", null);
+  return ios.newChannel2(url,
+                         "",
+                         null,
+                         null,      // aLoadingNode
+                         systemPrincipal,
+                         null,      // aTriggeringPrincipal
+                         Ci.nsILoadInfo.SEC_NORMAL,
+                         Ci.nsIContentPolicy.TYPE_OTHER);
 }
 
 function make_uri(url) {
@@ -96,10 +105,10 @@ function run_test()
 
   var pm = Cc["@mozilla.org/permissionmanager;1"]
     .getService(Ci.nsIPermissionManager);
+  var ssm = Cc["@mozilla.org/scriptsecuritymanager;1"]
+              .getService(Ci.nsIScriptSecurityManager);
   var uri = make_uri("http://localhost:4444");
-  var principal = Cc["@mozilla.org/scriptsecuritymanager;1"]
-                    .getService(Ci.nsIScriptSecurityManager)
-                    .getNoAppCodebasePrincipal(uri);
+  var principal = ssm.createCodebasePrincipal(uri, {});
 
   if (pm.testPermissionFromPrincipal(principal, "offline-app") != 0) {
     dump("Previous test failed to clear offline-app permission!  Expect failures.\n");
@@ -117,6 +126,7 @@ function run_test()
   var update = us.scheduleAppUpdate(
       make_uri("http://localhost:4444/manifest"),
       make_uri("http://localhost:4444/masterEntry"),
+      systemPrincipal,
       0 /* no AppID */, false /* not in browser*/,
       customDir);
 

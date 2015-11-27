@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -21,7 +22,7 @@
 #include "nsIDOMDocumentType.h"
 #include "nsCOMPtr.h"
 #include "nsXPIDLString.h"
-#include "nsIHttpChannel.h"
+#include "nsIHttpChannelInternal.h"
 #include "nsIURI.h"
 #include "nsIServiceManager.h"
 #include "nsNetUtil.h"
@@ -178,7 +179,7 @@ nsresult
 NS_NewXMLDocument(nsIDocument** aInstancePtrResult, bool aLoadedAsData,
                   bool aIsPlainDocument)
 {
-  nsRefPtr<XMLDocument> doc = new XMLDocument();
+  RefPtr<XMLDocument> doc = new XMLDocument();
 
   nsresult rv = doc->Init();
 
@@ -285,7 +286,7 @@ XMLDocument::Load(const nsAString& aUrl, bool *aReturn)
 {
   ErrorResult rv;
   *aReturn = Load(aUrl, rv);
-  return rv.ErrorCode();
+  return rv.StealNSResult();
 }
 
 bool
@@ -305,7 +306,7 @@ XMLDocument::Load(const nsAString& aUrl, ErrorResult& aRv)
   nsCOMPtr<nsIPrincipal> principal = NodePrincipal();
 
   // The callingDoc's Principal and doc's Principal should be the same
-  if (callingDoc->NodePrincipal() != principal) {
+  if (callingDoc && (callingDoc->NodePrincipal() != principal)) {
     nsContentUtils::ReportToConsole(nsIScriptError::errorFlag,
                                     NS_LITERAL_CSTRING("DOM"),
                                     callingDoc,
@@ -331,41 +332,7 @@ XMLDocument::Load(const nsAString& aUrl, ErrorResult& aRv)
     return false;
   }
 
-  // Check to see whether the current document is allowed to load this URI.
-  // It's important to use the current document's principal for this check so
-  // that we don't end up in a case where code with elevated privileges is
-  // calling us and changing the principal of this document.
-
-  // Enforce same-origin even for chrome loaders to avoid someone accidentally
-  // using a document that content has a reference to and turn that into a
-  // chrome document.
-  if (!nsContentUtils::IsSystemPrincipal(principal)) {
-    rv = principal->CheckMayLoad(uri, false, false);
-    if (NS_FAILED(rv)) {
-      aRv.Throw(rv);
-      return false;
-    }
-
-    int16_t shouldLoad = nsIContentPolicy::ACCEPT;
-    rv = NS_CheckContentLoadPolicy(nsIContentPolicy::TYPE_XMLHTTPREQUEST,
-                                   uri,
-                                   principal,
-                                   callingDoc ? callingDoc.get() :
-                                     static_cast<nsIDocument*>(this),
-                                   NS_LITERAL_CSTRING("application/xml"),
-                                   nullptr,
-                                   &shouldLoad,
-                                   nsContentUtils::GetContentPolicy(),
-                                   nsContentUtils::GetSecurityManager());
-    if (NS_FAILED(rv)) {
-      aRv.Throw(rv);
-      return false;
-    }
-    if (NS_CP_REJECTED(shouldLoad)) {
-      aRv.Throw(NS_ERROR_CONTENT_BLOCKED);
-      return false;
-    }
-  } else {
+  if (nsContentUtils::IsSystemPrincipal(principal)) {
     // We're called from chrome, check to make sure the URI we're
     // about to load is also chrome.
 
@@ -417,7 +384,7 @@ XMLDocument::Load(const nsAString& aUrl, ErrorResult& aRv)
   // be loaded.  Note that we need to hold a strong ref to |principal|
   // here, because ResetToURI will null out our node principal before
   // setting the new one.
-  nsRefPtr<EventListenerManager> elm(mListenerManager);
+  RefPtr<EventListenerManager> elm(mListenerManager);
   mListenerManager = nullptr;
 
   // When we are called from JS we can find the load group for the page,
@@ -434,11 +401,7 @@ XMLDocument::Load(const nsAString& aUrl, ErrorResult& aRv)
   mListenerManager = elm;
 
   // Create a channel
-  nsCOMPtr<nsIInterfaceRequestor> req = nsContentUtils::GetSameOriginChecker();
-  if (!req) {
-    aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
-    return false;
-  }
+  nsCOMPtr<nsIInterfaceRequestor> req = nsContentUtils::SameOriginChecker();
 
   nsCOMPtr<nsIChannel> channel;
   // nsIRequest::LOAD_BACKGROUND prevents throbber from becoming active,
@@ -447,9 +410,8 @@ XMLDocument::Load(const nsAString& aUrl, ErrorResult& aRv)
                      uri,
                      callingDoc ? callingDoc.get() :
                                   static_cast<nsIDocument*>(this),
-                     nsILoadInfo::SEC_NORMAL,
-                     nsIContentPolicy::TYPE_XMLHTTPREQUEST,
-                     nullptr,   // aChannelPolicy
+                     nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_DATA_IS_BLOCKED,
+                     nsIContentPolicy::TYPE_INTERNAL_XMLHTTPREQUEST,
                      loadGroup,
                      req,
                      nsIRequest::LOAD_BACKGROUND);
@@ -457,6 +419,14 @@ XMLDocument::Load(const nsAString& aUrl, ErrorResult& aRv)
   if (NS_FAILED(rv)) {
     aRv.Throw(rv);
     return false;
+  }
+
+  // TODO Bug 1189945: Remove nsIChannel CorsMode flag and set Request.mode
+  // based on nsILoadInfo securityFlags instead. This block will be removed
+  // when Request.mode set correctly.
+  nsCOMPtr<nsIHttpChannelInternal> httpChannel = do_QueryInterface(channel);
+  if (httpChannel) {
+    httpChannel->SetCorsMode(nsIHttpChannelInternal::CORS_MODE_SAME_ORIGIN);
   }
 
   // StartDocumentLoad asserts that readyState is uninitialized, so
@@ -482,7 +452,7 @@ XMLDocument::Load(const nsAString& aUrl, ErrorResult& aRv)
   // mChannelIsPending.
 
   // Start an asynchronous read of the XML document
-  rv = channel->AsyncOpen(listener, nullptr);
+  rv = channel->AsyncOpen2(listener);
   if (NS_FAILED(rv)) {
     mChannelIsPending = false;
     aRv.Throw(rv);
@@ -597,7 +567,7 @@ XMLDocument::EndLoad()
     // Generate a document load event for the case when an XML
     // document was loaded as pure data without any presentation
     // attached to it.
-    WidgetEvent event(true, NS_LOAD);
+    WidgetEvent event(true, eLoad);
     EventDispatcher::Dispatch(static_cast<nsIDocument*>(this), nullptr, &event);
   }
 }
@@ -616,7 +586,7 @@ XMLDocument::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const
   NS_ASSERTION(aNodeInfo->NodeInfoManager() == mNodeInfoManager,
                "Can't import this document into another document!");
 
-  nsRefPtr<XMLDocument> clone = new XMLDocument();
+  RefPtr<XMLDocument> clone = new XMLDocument();
   nsresult rv = CloneDocHelper(clone);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -628,13 +598,13 @@ XMLDocument::Clone(mozilla::dom::NodeInfo *aNodeInfo, nsINode **aResult) const
 }
 
 JSObject*
-XMLDocument::WrapNode(JSContext *aCx)
+XMLDocument::WrapNode(JSContext *aCx, JS::Handle<JSObject*> aGivenProto)
 {
   if (mIsPlainDocument) {
-    return DocumentBinding::Wrap(aCx, this);
+    return DocumentBinding::Wrap(aCx, this, aGivenProto);
   }
 
-  return XMLDocumentBinding::Wrap(aCx, this);
+  return XMLDocumentBinding::Wrap(aCx, this, aGivenProto);
 }
 
 } // namespace dom

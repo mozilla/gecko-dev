@@ -26,21 +26,27 @@ public:
     void SetMethod(const nsACString &method);
     void SetVersion(nsHttpVersion version) { mVersion = version; }
     void SetRequestURI(const nsCSubstring &s) { mRequestURI = s; }
+    void SetPath(const nsCSubstring &s) { mPath = s; }
 
     const nsHttpHeaderArray &Headers() const { return mHeaders; }
     nsHttpHeaderArray & Headers()          { return mHeaders; }
     const nsCString &Method()        const { return mMethod; }
     nsHttpVersion       Version()    const { return mVersion; }
     const nsCSubstring &RequestURI() const { return mRequestURI; }
+    const nsCSubstring &Path()       const { return mPath.IsEmpty() ? mRequestURI : mPath; }
 
     void SetHTTPS(bool val) { mHTTPS = val; }
     bool IsHTTPS() const { return mHTTPS; }
+
+    void SetOrigin(const nsACString &scheme, const nsACString &host, int32_t port);
+    const nsCString &Origin() const { return mOrigin; }
 
     const char *PeekHeader(nsHttpAtom h) const
     {
         return mHeaders.PeekHeader(h);
     }
     nsresult SetHeader(nsHttpAtom h, const nsACString &v, bool m=false) { return mHeaders.SetHeader(h, v, m); }
+    nsresult SetEmptyHeader(nsHttpAtom h) { return mHeaders.SetEmptyHeader(h); }
     nsresult GetHeader(nsHttpAtom h, nsACString &v) const
     {
         return mHeaders.GetHeader(h, v);
@@ -90,17 +96,25 @@ public:
     bool IsHead() const { return EqualsMethod(kMethod_Head); }
     bool IsPut() const { return EqualsMethod(kMethod_Put); }
     bool IsTrace() const { return EqualsMethod(kMethod_Trace); }
+    void ParseHeaderSet(char *buffer) { mHeaders.ParseHeaderSet(buffer); }
 
 private:
     // All members must be copy-constructable and assignable
     nsHttpHeaderArray mHeaders;
     nsCString         mMethod;
     nsHttpVersion     mVersion;
+
+    // mRequestURI and mPath are strings instead of an nsIURI
+    // because this is used off the main thread
     nsCString         mRequestURI;
+    nsCString         mPath;
+
+    nsCString         mOrigin;
     ParsedMethodType  mParsedMethod;
     bool              mHTTPS;
 };
 
-}} // namespace mozilla::net
+} // namespace net
+} // namespace mozilla
 
 #endif // nsHttpRequestHead_h__

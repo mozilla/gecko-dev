@@ -8,6 +8,7 @@
 #include "nsNetUtil.h"
 #include "netCore.h"
 #include "nsStringStream.h"
+#include "nsIFile.h"
 #include "nsIFileURL.h"
 #include "nsEscape.h"
 #include "nsIDirIndex.h"
@@ -346,6 +347,7 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
                          "<link rel=\"stylesheet\" media=\"screen, projection\" type=\"text/css\""
                          " href=\"chrome://global/skin/dirListing/dirListing.css\">\n"
                          "<script type=\"application/javascript\">\n"
+                         "'use strict';\n"
                          "var gTable, gOrderBy, gTBody, gRows, gUI_showHidden;\n"
                          "document.addEventListener(\"DOMContentLoaded\", function() {\n"
                          "  gTable = document.getElementsByTagName(\"table\")[0];\n"
@@ -370,7 +372,7 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
                          "  }\n"
                          "  if (gUI_showHidden) {\n"
                          "    gRows = Array.slice(gTBody.rows);\n"
-                         "    hiddenObjects = gRows.some(function (row) row.className == \"hidden-object\");\n"
+                         "    hiddenObjects = gRows.some(row => row.className == \"hidden-object\");\n"
                          "  }\n"
                          "  gTable.setAttribute(\"order\", \"\");\n"
                          "  if (hiddenObjects) {\n"
@@ -531,30 +533,6 @@ nsIndexedToHTML::DoOnStartRequest(nsIRequest* request, nsISupports *aContext,
 
     buffer.AppendLiteral("</title>\n");    
 
-    // If there is a quote character in the baseUri, then
-    // lets not add a base URL.  The reason for this is that
-    // if we stick baseUri containing a quote into a quoted
-    // string, the quote character will prematurely close
-    // the base href string.  This is a fall-back check;
-    // that's why it is OK to not use a base rather than
-    // trying to play nice and escaping the quotes.  See bug
-    // 358128.
-
-    if (baseUri.FindChar('"') == kNotFound)
-    {
-        // Great, the baseUri does not contain a char that
-        // will prematurely close the string.  Go ahead an
-        // add a base href.
-        buffer.AppendLiteral("<base href=\"");
-        nsAdoptingCString htmlEscapedUri(nsEscapeHTML(baseUri.get()));
-        buffer.Append(htmlEscapedUri);
-        buffer.AppendLiteral("\" />\n");
-    }
-    else
-    {
-        NS_ERROR("broken protocol handler didn't escape double-quote.");
-    }
-
     nsCString direction(NS_LITERAL_CSTRING("ltr"));
     nsCOMPtr<nsIXULChromeRegistry> reg =
       mozilla::services::GetXULChromeRegistryService();
@@ -697,7 +675,7 @@ nsIndexedToHTML::OnIndexAvailable(nsIRequest *aRequest,
 
     // Adjust the length in case unescaping shortened the string.
     loc.Truncate(nsUnescapeCount(loc.BeginWriting()));
-    if (loc.First() == PRUnichar('.'))
+    if (loc.First() == char16_t('.'))
         pushBuffer.AppendLiteral(" class=\"hidden-object\"");
 
     pushBuffer.AppendLiteral(">\n <td sortable-data=\"");

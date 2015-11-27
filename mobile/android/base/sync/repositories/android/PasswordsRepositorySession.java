@@ -49,11 +49,11 @@ public class PasswordsRepositorySession extends
   }
 
   private static final String LOG_TAG = "PasswordsRepoSession";
-  private static String COLLECTION = "passwords";
+  private static final String COLLECTION = "passwords";
 
-  private RepoUtils.QueryHelper passwordsHelper;
-  private RepoUtils.QueryHelper deletedPasswordsHelper;
-  private ContentProviderClient passwordsProvider;
+  private final RepoUtils.QueryHelper passwordsHelper;
+  private final RepoUtils.QueryHelper deletedPasswordsHelper;
+  private final ContentProviderClient passwordsProvider;
 
   private final Context context;
 
@@ -270,11 +270,8 @@ public class PasswordsRepositorySession extends
         PasswordRecord existingRecord;
         try {
           existingRecord = retrieveByGUID(guid);
-        } catch (NullCursorException e) {
+        } catch (NullCursorException | RemoteException e) {
           // Indicates a serious problem.
-          delegate.onRecordStoreFailed(e, record.guid);
-          return;
-        } catch (RemoteException e) {
           delegate.onRecordStoreFailed(e, record.guid);
           return;
         }
@@ -368,8 +365,13 @@ public class PasswordsRepositorySession extends
         // We found a local dupe.
         trace("Incoming record " + remoteRecord.guid + " dupes to local record " + existingRecord.guid);
         Logger.debug(LOG_TAG, "remote " + remoteRecord.guid + " dupes to " + existingRecord.guid);
-        Record toStore = reconcileRecords(remoteRecord, existingRecord, lastRemoteRetrieval, lastLocalRetrieval);
 
+        if (existingRecord.deleted && existingRecord.lastModified > remoteRecord.lastModified) {
+          Logger.debug(LOG_TAG, "Local deletion is newer, not storing remote record.");
+          return;
+        }
+
+        Record toStore = reconcileRecords(remoteRecord, existingRecord, lastRemoteRetrieval, lastLocalRetrieval);
         if (toStore == null) {
           Logger.debug(LOG_TAG, "Reconciling returned null. Not inserting a record.");
           return;
@@ -475,10 +477,17 @@ public class PasswordsRepositorySession extends
 
     final String[] args = new String[] { origRecord.guid };
 
-    int updated = context.getContentResolver().update(BrowserContractHelpers.PASSWORDS_CONTENT_URI, cv, WHERE_GUID_IS, args);
-    if (updated != 1) {
-      Logger.warn(LOG_TAG, "Unexpectedly updated " + updated + " rows for guid " + origPasswordRecord.guid);
+    if (origRecord.deleted) {
+      // Purge from deleted table.
+      deleteGUID(origRecord.guid);
+      insert(newPasswordRecord);
+    } else {
+      int updated = context.getContentResolver().update(BrowserContractHelpers.PASSWORDS_CONTENT_URI, cv, WHERE_GUID_IS, args);
+      if (updated != 1) {
+        Logger.warn(LOG_TAG, "Unexpectedly updated " + updated + " rows for guid " + origPasswordRecord.guid);
+      }
     }
+
     return newRecord;
   }
 

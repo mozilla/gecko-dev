@@ -2,7 +2,9 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-const Ci = Components.interfaces;
+Components.utils.import("resource://testing-common/MockRegistrar.jsm");
+
+var Ci = Components.interfaces;
 
 // This verifies that duplicate plugins are coalesced and maintain their ID
 // across restarts.
@@ -13,7 +15,9 @@ var PLUGINS = [{
   version: "1",
   blocklisted: false,
   enabledState: Ci.nsIPluginTag.STATE_ENABLED,
-  get disabled() this.enabledState == Ci.nsIPluginTag.STATE_DISABLED,
+  get disabled() {
+    return this.enabledState == Ci.nsIPluginTag.STATE_DISABLED;
+  },
   filename: "/home/mozilla/.plugins/dupplugin1.so"
 }, {
   name: "Duplicate Plugin 1",
@@ -21,7 +25,9 @@ var PLUGINS = [{
   version: "1",
   blocklisted: false,
   enabledState: Ci.nsIPluginTag.STATE_ENABLED,
-  get disabled() this.enabledState == Ci.nsIPluginTag.STATE_DISABLED,
+  get disabled() {
+    return this.enabledState == Ci.nsIPluginTag.STATE_DISABLED;
+  },
   filename: "",
   filename: "/usr/lib/plugins/dupplugin1.so"
 }, {
@@ -30,7 +36,9 @@ var PLUGINS = [{
   version: "1",
   blocklisted: false,
   enabledState: Ci.nsIPluginTag.STATE_ENABLED,
-  get disabled() this.enabledState == Ci.nsIPluginTag.STATE_DISABLED,
+  get disabled() {
+    return this.enabledState == Ci.nsIPluginTag.STATE_DISABLED;
+  },
   filename: "/home/mozilla/.plugins/dupplugin2.so"
 }, {
   name: "Duplicate Plugin 2",
@@ -38,7 +46,9 @@ var PLUGINS = [{
   version: "1",
   blocklisted: false,
   enabledState: Ci.nsIPluginTag.STATE_ENABLED,
-  get disabled() this.enabledState == Ci.nsIPluginTag.STATE_DISABLED,
+  get disabled() {
+    return this.enabledState == Ci.nsIPluginTag.STATE_DISABLED;
+  },
   filename: "",
   filename: "/usr/lib/plugins/dupplugin2.so"
 }, {
@@ -47,7 +57,9 @@ var PLUGINS = [{
   version: "1",
   blocklisted: false,
   enabledState: Ci.nsIPluginTag.STATE_ENABLED,
-  get disabled() this.enabledState == Ci.nsIPluginTag.STATE_DISABLED,
+  get disabled() {
+    return this.enabledState == Ci.nsIPluginTag.STATE_DISABLED;
+  },
   filename: "/home/mozilla/.plugins/dupplugin3.so"
 }, {
   name: "Non-duplicate Plugin", // 4
@@ -55,7 +67,9 @@ var PLUGINS = [{
   version: "1",
   blocklisted: false,
   enabledState: Ci.nsIPluginTag.STATE_ENABLED,
-  get disabled() this.enabledState == Ci.nsIPluginTag.STATE_DISABLED,
+  get disabled() {
+    return this.enabledState == Ci.nsIPluginTag.STATE_DISABLED;
+  },
   filename: "",
   filename: "/usr/lib/plugins/dupplugin4.so"
 }, {
@@ -64,7 +78,9 @@ var PLUGINS = [{
   version: "1",
   blocklisted: false,
   enabledState: Ci.nsIPluginTag.STATE_ENABLED,
-  get disabled() this.enabledState == Ci.nsIPluginTag.STATE_DISABLED,
+  get disabled() {
+    return this.enabledState == Ci.nsIPluginTag.STATE_DISABLED;
+  },
   filename: "/home/mozilla/.plugins/dupplugin5.so"
 }];
 
@@ -84,25 +100,14 @@ var PluginHost = {
   }
 }
 
-var PluginHostFactory = {
-  createInstance: function (outer, iid) {
-    if (outer != null)
-      throw Components.results.NS_ERROR_NO_AGGREGATION;
-    return PluginHost.QueryInterface(iid);
-  }
-};
-
-var registrar = Components.manager.QueryInterface(Components.interfaces.nsIComponentRegistrar);
-registrar.registerFactory(Components.ID("{721c3e73-969e-474b-a6dc-059fd288c428}"),
-                          "Fake Plugin Host",
-                          "@mozilla.org/plugin/host;1", PluginHostFactory);
+MockRegistrar.register("@mozilla.org/plugin/host;1", PluginHost);
 
 var gPluginIDs = [null, null, null, null, null];
 
 function run_test() {
   do_test_pending();
   createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "1.9.2");
-  Services.prefs.setBoolPref("media.gmp-gmpopenh264.provider.enabled", false);
+  Services.prefs.setBoolPref("media.gmp-provider.enabled", false);
 
   startupManager();
 

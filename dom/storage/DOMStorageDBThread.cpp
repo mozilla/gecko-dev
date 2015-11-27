@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -19,7 +20,7 @@
 #include "mozIStorageValueArray.h"
 #include "mozIStorageFunction.h"
 #include "nsIObserverService.h"
-#include "nsIVariant.h"
+#include "nsVariant.h"
 #include "mozilla/IOInterposer.h"
 #include "mozilla/Services.h"
 
@@ -41,7 +42,7 @@ DOMStorageDBBridge::DOMStorageDBBridge()
 
 DOMStorageDBThread::DOMStorageDBThread()
 : mThread(nullptr)
-, mMonitor("DOMStorageThreadMonitor")
+, mThreadObserver(new ThreadObserver())
 , mStopIOThread(false)
 , mWALModeEnabled(false)
 , mDBReady(false)
@@ -76,7 +77,7 @@ DOMStorageDBThread::Init()
 
   // Need to keep the lock to avoid setting mThread later then
   // the thread body executes.
-  MonitorAutoLock monitor(mMonitor);
+  MonitorAutoLock monitor(mThreadObserver->GetMonitor());
 
   mThread = PR_CreateThread(PR_USER_THREAD, &DOMStorageDBThread::ThreadFunc, this,
                             PR_PRIORITY_LOW, PR_GLOBAL_THREAD, PR_JOINABLE_THREAD,
@@ -98,7 +99,7 @@ DOMStorageDBThread::Shutdown()
   Telemetry::AutoTimer<Telemetry::LOCALDOMSTORAGE_SHUTDOWN_DATABASE_MS> timer;
 
   {
-    MonitorAutoLock monitor(mMonitor);
+    MonitorAutoLock monitor(mThreadObserver->GetMonitor());
 
     // After we stop, no other operations can be accepted
     mFlushImmediately = true;
@@ -130,7 +131,7 @@ DOMStorageDBThread::SyncPreload(DOMStorageCacheBridge* aCache, bool aForceSync)
   if (mDBReady && mWALModeEnabled) {
     bool pendingTasks;
     {
-      MonitorAutoLock monitor(mMonitor);
+      MonitorAutoLock monitor(mThreadObserver->GetMonitor());
       pendingTasks = mPendingTasks.IsScopeUpdatePending(aCache->Scope()) ||
                      mPendingTasks.IsScopeClearPending(aCache->Scope());
     }
@@ -157,7 +158,7 @@ DOMStorageDBThread::SyncPreload(DOMStorageCacheBridge* aCache, bool aForceSync)
 void
 DOMStorageDBThread::AsyncFlush()
 {
-  MonitorAutoLock monitor(mMonitor);
+  MonitorAutoLock monitor(mThreadObserver->GetMonitor());
   mFlushImmediately = true;
   monitor.Notify();
 }
@@ -165,48 +166,37 @@ DOMStorageDBThread::AsyncFlush()
 bool
 DOMStorageDBThread::ShouldPreloadScope(const nsACString& aScope)
 {
-  MonitorAutoLock monitor(mMonitor);
+  MonitorAutoLock monitor(mThreadObserver->GetMonitor());
   return mScopesHavingData.Contains(aScope);
 }
-
-namespace { // anon
-
-PLDHashOperator
-GetScopesHavingDataEnum(nsCStringHashKey* aKey, void* aArg)
-{
-  InfallibleTArray<nsCString>* scopes =
-      static_cast<InfallibleTArray<nsCString>*>(aArg);
-  scopes->AppendElement(aKey->GetKey());
-  return PL_DHASH_NEXT;
-}
-
-} // anon
 
 void
 DOMStorageDBThread::GetScopesHavingData(InfallibleTArray<nsCString>* aScopes)
 {
-  MonitorAutoLock monitor(mMonitor);
-  mScopesHavingData.EnumerateEntries(GetScopesHavingDataEnum, aScopes);
+  MonitorAutoLock monitor(mThreadObserver->GetMonitor());
+  for (auto iter = mScopesHavingData.Iter(); !iter.Done(); iter.Next()) {
+    aScopes->AppendElement(iter.Get()->GetKey());
+  }
 }
 
 nsresult
 DOMStorageDBThread::InsertDBOp(DOMStorageDBThread::DBOperation* aOperation)
 {
-  MonitorAutoLock monitor(mMonitor);
+  MonitorAutoLock monitor(mThreadObserver->GetMonitor());
 
   // Sentinel to don't forget to delete the operation when we exit early.
   nsAutoPtr<DOMStorageDBThread::DBOperation> opScope(aOperation);
+
+  if (NS_FAILED(mStatus)) {
+    MonitorAutoUnlock unlock(mThreadObserver->GetMonitor());
+    aOperation->Finalize(mStatus);
+    return mStatus;
+  }
 
   if (mStopIOThread) {
     // Thread use after shutdown demanded.
     MOZ_ASSERT(false);
     return NS_ERROR_NOT_INITIALIZED;
-  }
-
-  if (NS_FAILED(mStatus)) {
-    MonitorAutoUnlock unlock(mMonitor);
-    aOperation->Finalize(mStatus);
-    return mStatus;
   }
 
   switch (aOperation->Type()) {
@@ -225,7 +215,7 @@ DOMStorageDBThread::InsertDBOp(DOMStorageDBThread::DBOperation* aOperation)
       // actually been cleared from the database.  Preloads are processed
       // immediately before update and clear operations on the database that
       // are flushed periodically in batches.
-      MonitorAutoUnlock unlock(mMonitor);
+      MonitorAutoUnlock unlock(mThreadObserver->GetMonitor());
       aOperation->Finalize(NS_OK);
       return NS_OK;
     }
@@ -292,7 +282,7 @@ DOMStorageDBThread::ThreadFunc()
 {
   nsresult rv = InitDatabase();
 
-  MonitorAutoLock lockMonitor(mMonitor);
+  MonitorAutoLock lockMonitor(mThreadObserver->GetMonitor());
 
   if (NS_FAILED(rv)) {
     mStatus = rv;
@@ -300,13 +290,32 @@ DOMStorageDBThread::ThreadFunc()
     return;
   }
 
-  while (MOZ_LIKELY(!mStopIOThread || mPreloads.Length() || mPendingTasks.HasTasks())) {
+  // Create an nsIThread for the current PRThread, so we can observe runnables
+  // dispatched to it.
+  nsCOMPtr<nsIThread> thread = NS_GetCurrentThread();
+  nsCOMPtr<nsIThreadInternal> threadInternal = do_QueryInterface(thread);
+  MOZ_ASSERT(threadInternal); // Should always succeed.
+  threadInternal->SetObserver(mThreadObserver);
+
+  while (MOZ_LIKELY(!mStopIOThread || mPreloads.Length() ||
+                    mPendingTasks.HasTasks() ||
+                    mThreadObserver->HasPendingEvents())) {
+    // Process xpcom events first.
+    while (MOZ_UNLIKELY(mThreadObserver->HasPendingEvents())) {
+      mThreadObserver->ClearPendingEvents();
+      MonitorAutoUnlock unlock(mThreadObserver->GetMonitor());
+      bool processedEvent;
+      do {
+        rv = thread->ProcessNextEvent(false, &processedEvent);
+      } while (NS_SUCCEEDED(rv) && processedEvent);
+    }
+
     if (MOZ_UNLIKELY(TimeUntilFlush() == 0)) {
       // Flush time is up or flush has been forced, do it now.
       UnscheduleFlush();
       if (mPendingTasks.Prepare()) {
         {
-          MonitorAutoUnlock unlockMonitor(mMonitor);
+          MonitorAutoUnlock unlockMonitor(mThreadObserver->GetMonitor());
           rv = mPendingTasks.Execute(this);
         }
 
@@ -320,7 +329,7 @@ DOMStorageDBThread::ThreadFunc()
       nsAutoPtr<DBOperation> op(mPreloads[0]);
       mPreloads.RemoveElementAt(0);
       {
-        MonitorAutoUnlock unlockMonitor(mMonitor);
+        MonitorAutoUnlock unlockMonitor(mThreadObserver->GetMonitor());
         op->PerformAndFinalize(this);
       }
 
@@ -333,14 +342,45 @@ DOMStorageDBThread::ThreadFunc()
   } // thread loop
 
   mStatus = ShutdownDatabase();
+
+  if (threadInternal) {
+    threadInternal->SetObserver(nullptr);
+  }
 }
+
+
+NS_IMPL_ISUPPORTS(DOMStorageDBThread::ThreadObserver, nsIThreadObserver)
+
+NS_IMETHODIMP
+DOMStorageDBThread::ThreadObserver::OnDispatchedEvent(nsIThreadInternal *thread)
+{
+  MonitorAutoLock lock(mMonitor);
+  mHasPendingEvents = true;
+  lock.Notify();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+DOMStorageDBThread::ThreadObserver::OnProcessNextEvent(nsIThreadInternal *thread,
+                                       bool mayWait)
+{
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+DOMStorageDBThread::ThreadObserver::AfterProcessNextEvent(nsIThreadInternal *thread,
+                                          bool eventWasProcessed)
+{
+  return NS_OK;
+}
+
 
 extern void
 ReverseString(const nsCSubstring& aSource, nsCSubstring& aResult);
 
-namespace { // anon
+namespace {
 
-class nsReverseStringSQLFunction MOZ_FINAL : public mozIStorageFunction
+class nsReverseStringSQLFunction final : public mozIStorageFunction
 {
   ~nsReverseStringSQLFunction() {}
 
@@ -363,19 +403,15 @@ nsReverseStringSQLFunction::OnFunctionCall(
   nsAutoCString result;
   ReverseString(stringToReverse, result);
 
-  nsCOMPtr<nsIWritableVariant> outVar(do_CreateInstance(
-      NS_VARIANT_CONTRACTID, &rv));
-  NS_ENSURE_SUCCESS(rv, rv);
-
+  RefPtr<nsVariant> outVar(new nsVariant());
   rv = outVar->SetAsAUTF8String(result);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  *aResult = outVar.get();
-  outVar.forget();
+  outVar.forget(aResult);
   return NS_OK;
 }
 
-} // anon
+} // namespace
 
 nsresult
 DOMStorageDBThread::OpenDatabaseConnection()
@@ -508,7 +544,7 @@ DOMStorageDBThread::InitDatabase()
     rv = stmt->GetUTF8String(0, foundScope);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    MonitorAutoLock monitor(mMonitor);
+    MonitorAutoLock monitor(mThreadObserver->GetMonitor());
     mScopesHavingData.PutEntry(foundScope);
   }
 
@@ -648,7 +684,7 @@ DOMStorageDBThread::ScheduleFlush()
   mDirtyEpoch = PR_IntervalNow() | 1; // Must be non-zero to indicate we are scheduled
 
   // Wake the monitor from indefinite sleep...
-  mMonitor.Notify();
+  (mThreadObserver->GetMonitor()).Notify();
 }
 
 void
@@ -689,7 +725,7 @@ DOMStorageDBThread::NotifyFlushCompletion()
 {
 #ifdef DOM_STORAGE_TESTS
   if (!NS_IsMainThread()) {
-    nsRefPtr<nsRunnableMethod<DOMStorageDBThread, void, false> > event =
+    RefPtr<nsRunnableMethod<DOMStorageDBThread, void, false> > event =
       NS_NewNonOwningRunnableMethod(this, &DOMStorageDBThread::NotifyFlushCompletion);
     NS_DispatchToMainThread(event);
     return;
@@ -1023,7 +1059,7 @@ DOMStorageDBThread::PendingOperations::HasTasks()
   return !!mUpdates.Count() || !!mClears.Count();
 }
 
-namespace { // anon
+namespace {
 
 PLDHashOperator
 ForgetUpdatesForScope(const nsACString& aMapping,
@@ -1045,7 +1081,7 @@ ForgetUpdatesForScope(const nsACString& aMapping,
   return PL_DHASH_REMOVE;
 }
 
-} // anon
+} // namespace
 
 bool
 DOMStorageDBThread::PendingOperations::CheckForCoalesceOpportunity(DBOperation* aNewOp,
@@ -1132,7 +1168,7 @@ DOMStorageDBThread::PendingOperations::Add(DOMStorageDBThread::DBOperation* aOpe
   }
 }
 
-namespace { // anon
+namespace {
 
 PLDHashOperator
 CollectTasks(const nsACString& aMapping, nsAutoPtr<DOMStorageDBThread::DBOperation>& aOperation, void* aArg)
@@ -1144,7 +1180,7 @@ CollectTasks(const nsACString& aMapping, nsAutoPtr<DOMStorageDBThread::DBOperati
   return PL_DHASH_NEXT;
 }
 
-} // anon
+} // namespace
 
 bool
 DOMStorageDBThread::PendingOperations::Prepare()
@@ -1215,62 +1251,44 @@ DOMStorageDBThread::PendingOperations::Finalize(nsresult aRv)
   return true;
 }
 
-namespace { // anon
+namespace {
 
-class FindPendingOperationForScopeData
+bool
+FindPendingClearForScope(const nsACString& aScope,
+                         DOMStorageDBThread::DBOperation* aPendingOperation)
 {
-public:
-  explicit FindPendingOperationForScopeData(const nsACString& aScope) : mScope(aScope), mFound(false) {}
-  nsCString mScope;
-  bool mFound;
-};
-
-PLDHashOperator
-FindPendingClearForScope(const nsACString& aMapping,
-                         DOMStorageDBThread::DBOperation* aPendingOperation,
-                         void* aArg)
-{
-  FindPendingOperationForScopeData* data =
-    static_cast<FindPendingOperationForScopeData*>(aArg);
-
   if (aPendingOperation->Type() == DOMStorageDBThread::DBOperation::opClearAll) {
-    data->mFound = true;
-    return PL_DHASH_STOP;
+    return true;
   }
 
   if (aPendingOperation->Type() == DOMStorageDBThread::DBOperation::opClear &&
-      data->mScope == aPendingOperation->Scope()) {
-    data->mFound = true;
-    return PL_DHASH_STOP;
+      aScope == aPendingOperation->Scope()) {
+    return true;
   }
 
   if (aPendingOperation->Type() == DOMStorageDBThread::DBOperation::opClearMatchingScope &&
-      StringBeginsWith(data->mScope, aPendingOperation->Scope())) {
-    data->mFound = true;
-    return PL_DHASH_STOP;
+      StringBeginsWith(aScope, aPendingOperation->Scope())) {
+    return true;
   }
 
-  return PL_DHASH_NEXT;
+  return false;
 }
 
-} // anon
+} // namespace
 
 bool
 DOMStorageDBThread::PendingOperations::IsScopeClearPending(const nsACString& aScope)
 {
   // Called under the lock
 
-  FindPendingOperationForScopeData data(aScope);
-  mClears.EnumerateRead(FindPendingClearForScope, &data);
-  if (data.mFound) {
-    return true;
+  for (auto iter = mClears.Iter(); !iter.Done(); iter.Next()) {
+    if (FindPendingClearForScope(aScope, iter.UserData())) {
+      return true;
+    }
   }
 
   for (uint32_t i = 0; i < mExecList.Length(); ++i) {
-    DOMStorageDBThread::DBOperation* task = mExecList[i];
-    FindPendingClearForScope(EmptyCString(), task, &data);
-
-    if (data.mFound) {
+    if (FindPendingClearForScope(aScope, mExecList[i])) {
       return true;
     }
   }
@@ -1278,45 +1296,37 @@ DOMStorageDBThread::PendingOperations::IsScopeClearPending(const nsACString& aSc
   return false;
 }
 
-namespace { // anon
+namespace {
 
-PLDHashOperator
-FindPendingUpdateForScope(const nsACString& aMapping,
-                          DOMStorageDBThread::DBOperation* aPendingOperation,
-                          void* aArg)
+bool
+FindPendingUpdateForScope(const nsACString& aScope,
+                          DOMStorageDBThread::DBOperation* aPendingOperation)
 {
-  FindPendingOperationForScopeData* data =
-    static_cast<FindPendingOperationForScopeData*>(aArg);
-
   if ((aPendingOperation->Type() == DOMStorageDBThread::DBOperation::opAddItem ||
        aPendingOperation->Type() == DOMStorageDBThread::DBOperation::opUpdateItem ||
        aPendingOperation->Type() == DOMStorageDBThread::DBOperation::opRemoveItem) &&
-       data->mScope == aPendingOperation->Scope()) {
-    data->mFound = true;
-    return PL_DHASH_STOP;
+       aScope == aPendingOperation->Scope()) {
+    return true;
   }
 
-  return PL_DHASH_NEXT;
+  return false;
 }
 
-} // anon
+} // namespace
 
 bool
 DOMStorageDBThread::PendingOperations::IsScopeUpdatePending(const nsACString& aScope)
 {
   // Called under the lock
 
-  FindPendingOperationForScopeData data(aScope);
-  mUpdates.EnumerateRead(FindPendingUpdateForScope, &data);
-  if (data.mFound) {
-    return true;
+  for (auto iter = mUpdates.Iter(); !iter.Done(); iter.Next()) {
+    if (FindPendingUpdateForScope(aScope, iter.UserData())) {
+      return true;
+    }
   }
 
   for (uint32_t i = 0; i < mExecList.Length(); ++i) {
-    DOMStorageDBThread::DBOperation* task = mExecList[i];
-    FindPendingUpdateForScope(EmptyCString(), task, &data);
-
-    if (data.mFound) {
+    if (FindPendingUpdateForScope(aScope, mExecList[i])) {
       return true;
     }
   }
@@ -1324,5 +1334,5 @@ DOMStorageDBThread::PendingOperations::IsScopeUpdatePending(const nsACString& aS
   return false;
 }
 
-} // ::dom
-} // ::mozilla
+} // namespace dom
+} // namespace mozilla

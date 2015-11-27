@@ -12,17 +12,17 @@ browserElementTestHelpers.addPermission();
 var iframe = null;
 function runTest() {
   iframe = document.createElement('iframe');
-  SpecialPowers.wrap(iframe).mozbrowser = true;
+  iframe.setAttribute('mozbrowser', 'true');
   document.body.appendChild(iframe);
 
-  checkForGenericError();
+  checkForDnsError();
 }
 
-function checkForGenericError() {
-  iframe.addEventListener("mozbrowsererror", function onGenericError(e) {
-    iframe.removeEventListener(e.type, onGenericError);
+function checkForDnsError() {
+  iframe.addEventListener("mozbrowsererror", function onDnsError(e) {
+    iframe.removeEventListener(e.type, onDnsError);
     ok(true, "Got mozbrowsererror event.");
-    ok(e.detail.type == "other", "Event's detail has a |type| param with the value '" + e.detail.type + "'.");
+    ok(e.detail.type == "dnsNotFound", "Event's detail has a |type| param with the value '" + e.detail.type + "'.");
 
     checkForExpiredCertificateError();
   });

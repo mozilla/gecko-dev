@@ -545,7 +545,7 @@ crlgen_CreateReasonCode(PLArenaPool *arena, const char **dataArr,
 {
     SECItem *encodedItem;
     void *dummy;
-    void *mark;
+    void *mark = NULL;
     int code = 0;
 
     PORT_Assert(arena && dataArr);
@@ -583,7 +583,9 @@ crlgen_CreateReasonCode(PLArenaPool *arena, const char **dataArr,
     return encodedItem;
 
   loser:
-    PORT_ArenaRelease (arena, mark);
+    if (mark) {
+        PORT_ArenaRelease (arena, mark);
+    }
     return NULL;
 }
 
@@ -595,7 +597,7 @@ crlgen_CreateInvalidityDate(PLArenaPool *arena, const char **dataArr,
 {
     SECItem *encodedItem;
     int length = 0;
-    void *mark;
+    void *mark = NULL;
 
     PORT_Assert(arena && dataArr);
     if (!arena || !dataArr) {
@@ -624,7 +626,9 @@ crlgen_CreateInvalidityDate(PLArenaPool *arena, const char **dataArr,
     return encodedItem;
     
   loser:
-    PORT_ArenaRelease(arena, mark);
+    if (mark) {
+        PORT_ArenaRelease(arena, mark);
+    }
     return NULL;
 }
 
@@ -1079,15 +1083,12 @@ static SECStatus
 crlgen_RmCert(CRLGENGeneratorData *crlGenData, char *certId)
 {
     PRUint64 i = 0;
-    PLArenaPool *arena;
 
     PORT_Assert(crlGenData && certId);
     if (!crlGenData || !certId) {
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return SECFailure;
     }
-
-    arena = crlGenData->signCrl->arena;
 
     if (crlgen_SetNewRangeField(crlGenData, certId) == SECFailure &&
         certId) {
@@ -1169,7 +1170,7 @@ crlgen_setNextDataFn_field(CRLGENGeneratorData *crlGenData, void *str,
 
     switch (crlGenData->contextId) {
       case CRLGEN_CHANGE_RANGE_CONTEXT:
-          if (dtype != CRLGEN_TYPE_DIGIT || dtype != CRLGEN_TYPE_DIGIT_RANGE) {
+          if (dtype != CRLGEN_TYPE_DIGIT && dtype != CRLGEN_TYPE_DIGIT_RANGE) {
               crlgen_PrintError(crlGenData->parsedLineNum,
                                 "range value should have "
                                 "numeric or numeric range values.\n");

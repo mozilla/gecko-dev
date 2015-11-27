@@ -279,7 +279,7 @@ static bool RestartApplication()
    modalDelegate:nil didEndSelector:nil contextInfo:nil];
 }
 
-- (IBAction)viewReportOkClicked:(id)sender;
+- (IBAction)viewReportOkClicked:(id)sender
 {
   [mViewReportWindow orderOut:nil];
   [NSApp endSheet:mViewReportWindow];
@@ -570,7 +570,14 @@ static bool RestartApplication()
        i++) {
     NSString* key = NSSTR(i->first);
     NSString* value = NSSTR(i->second);
-    [parameters setObject: value forKey: key];
+    if (key && value) {
+      [parameters setObject: value forKey: key];
+    } else {
+      ostringstream message;
+      message << "Warning: skipping annotation '" << i->first
+              << "' due to malformed UTF-8 encoding";
+      LogMessage(message.str());
+    }
   }
 
   for (StringTable::const_iterator i = gFiles.begin();
@@ -807,9 +814,14 @@ void UIError_impl(const string& message)
 
 bool UIGetIniPath(string& path)
 {
-  path = gArgv[0];
-  path.append(".ini");
-
+  NSString* tmpPath = [NSString stringWithUTF8String:gArgv[0]];
+  NSString* iniName = [tmpPath lastPathComponent];
+  iniName = [iniName stringByAppendingPathExtension:@"ini"];
+  tmpPath = [tmpPath stringByDeletingLastPathComponent];
+  tmpPath = [tmpPath stringByDeletingLastPathComponent];
+  tmpPath = [tmpPath stringByAppendingPathComponent:@"Resources"];
+  tmpPath = [tmpPath stringByAppendingPathComponent:iniName];
+  path = [tmpPath UTF8String];
   return true;
 }
 

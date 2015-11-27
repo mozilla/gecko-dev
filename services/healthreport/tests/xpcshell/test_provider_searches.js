@@ -3,11 +3,11 @@
 
 "use strict";
 
-const {utils: Cu} = Components;
+var {utils: Cu} = Components;
 
 Cu.import("resource://gre/modules/Metrics.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
-let bsp = Cu.import("resource://gre/modules/services/healthreport/providers.jsm");
+var bsp = Cu.import("resource://gre/modules/services/healthreport/providers.jsm");
 
 const DEFAULT_ENGINES = [
   {name: "Amazon.com",    identifier: "amazondotcom"},
@@ -33,6 +33,11 @@ MockSearchesProvider.prototype = {
 };
 
 function run_test() {
+  // Tell the search service we are running in the US.  This also has the
+  // desired side-effect of preventing our geoip lookup.
+  Services.prefs.setBoolPref("browser.search.isUS", true);
+  Services.prefs.setCharPref("browser.search.countryCode", "US");
+
   run_next_test();
 }
 
@@ -141,22 +146,11 @@ add_task(function* test_default_search_engine() {
   let provider = new SearchesProvider();
   yield provider.init(storage);
 
-  let m = provider.getMeasurement("engines", 1);
-
-  // Ensure no collection if Telemetry not enabled.
-  Services.prefs.setBoolPref("toolkit.telemetry.enabled", false);
+  let m = provider.getMeasurement("engines", 2);
 
   let now = new Date();
   yield provider.collectDailyData();
-
   let data = yield m.getValues();
-  Assert.equal(data.days.hasDay(now), false);
-
-  // Now enable telemetry and ensure we populate.
-  Services.prefs.setBoolPref("toolkit.telemetry.enabled", true);
-
-  yield provider.collectDailyData();
-  data = yield m.getValues();
   Assert.ok(data.days.hasDay(now));
 
   let day = data.days.getDay(now);
@@ -179,6 +173,15 @@ add_task(function* test_default_search_engine() {
   yield provider.collectDailyData();
   data = yield m.getValues();
   Assert.equal(data.days.getDay(now).get("default"), "other-testdefault");
+
+  // If no cohort identifier is set, we shouldn't report a cohort.
+  Assert.equal(data.days.getDay(now).get("cohort"), undefined);
+
+  // Set a cohort identifier and verify we record it.
+  Services.prefs.setCharPref("browser.search.cohort", "testcohort");
+  yield provider.collectDailyData();
+  data = yield m.getValues();
+  Assert.equal(data.days.getDay(now).get("cohort"), "testcohort");
 
   yield storage.close();
 });

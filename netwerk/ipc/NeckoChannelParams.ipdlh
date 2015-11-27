@@ -12,16 +12,68 @@ include URIParams;
 include InputStreamParams;
 include PBackgroundSharedTypes;
 
+using mozilla::NeckoOriginAttributes from "mozilla/ipc/BackgroundUtils.h";
 using struct mozilla::void_t from "ipc/IPCMessageUtils.h";
 using RequestHeaderTuples from "mozilla/net/PHttpChannelParams.h";
 using struct nsHttpAtom from "nsHttp.h";
+using class nsHttpResponseHead from "nsHttpResponseHead.h";
 
 namespace mozilla {
 namespace net {
 
 //-----------------------------------------------------------------------------
+// LoadInfo IPDL structs
+//-----------------------------------------------------------------------------
+
+struct LoadInfoArgs
+{
+  PrincipalInfo    requestingPrincipalInfo;
+  PrincipalInfo    triggeringPrincipalInfo;
+  uint32_t         securityFlags;
+  uint32_t         contentPolicyType;
+  bool             upgradeInsecureRequests;
+  bool             upgradeInsecurePreloads;
+  uint64_t         innerWindowID;
+  uint64_t         outerWindowID;
+  uint64_t         parentOuterWindowID;
+  bool             enforceSecurity;
+  bool             initialSecurityCheckDone;
+  NeckoOriginAttributes originAttributes;
+  PrincipalInfo[]  redirectChainIncludingInternalRedirects;
+  PrincipalInfo[]  redirectChain;
+};
+
+/**
+ * Not every channel necessarily has a loadInfo attached.
+ */
+union OptionalLoadInfoArgs
+{
+  void_t;
+  LoadInfoArgs;
+};
+
+//-----------------------------------------------------------------------------
 // HTTP IPDL structs
 //-----------------------------------------------------------------------------
+
+union OptionalHttpResponseHead
+{
+  void_t;
+  nsHttpResponseHead;
+};
+
+struct CorsPreflightArgs
+{
+  bool          withCredentials;
+  PrincipalInfo preflightPrincipal;
+  nsCString[]   unsafeHeaders;
+};
+
+union OptionalCorsPreflightArgs
+{
+  void_t;
+  CorsPreflightArgs;
+};
 
 struct HttpChannelOpenArgs
 {
@@ -32,32 +84,41 @@ struct HttpChannelOpenArgs
   OptionalURIParams           original;
   OptionalURIParams           doc;
   OptionalURIParams           referrer;
+  uint32_t                    referrerPolicy;
   OptionalURIParams           apiRedirectTo;
+  OptionalURIParams           topWindowURI;
   uint32_t                    loadFlags;
   RequestHeaderTuples         requestHeaders;
   nsCString                   requestMethod;
   OptionalInputStreamParams   uploadStream;
   bool                        uploadStreamHasHeaders;
   uint16_t                    priority;
+  uint32_t                    classOfService;
   uint8_t                     redirectionLimit;
   bool                        allowPipelining;
   bool                        allowSTS;
-  bool                        forceAllowThirdPartyCookie;
+  uint32_t                    thirdPartyFlags;
   bool                        resumeAt;
   uint64_t                    startPos;
   nsCString                   entityID;
   bool                        chooseApplicationCache;
   nsCString                   appCacheClientID;
   bool                        allowSpdy;
+  bool                        allowAltSvc;
   OptionalFileDescriptorSet   fds;
-  PrincipalInfo               requestingPrincipalInfo;
-  uint32_t                    securityFlags;
-  uint32_t                    contentPolicyType;
+  OptionalLoadInfoArgs        loadInfo;
+  OptionalHttpResponseHead    synthesizedResponseHead;
+  nsCString                   synthesizedSecurityInfoSerialization;
+  uint32_t                    cacheKey;
+  nsCString                   schedulingContextID;
+  OptionalCorsPreflightArgs   preflightArgs;
+  uint32_t                    initialRwin;
 };
 
 struct HttpChannelConnectArgs
 {
   uint32_t channelId;
+  bool shouldIntercept;
 };
 
 union HttpChannelCreationArgs
@@ -76,9 +137,7 @@ struct FTPChannelOpenArgs
   uint64_t                  startPos;
   nsCString                 entityID;
   OptionalInputStreamParams uploadStream;
-  PrincipalInfo             requestingPrincipalInfo;
-  uint32_t                  securityFlags;
-  uint32_t                  contentPolicyType;
+  OptionalLoadInfoArgs      loadInfo;
 };
 
 struct FTPChannelConnectArgs
@@ -92,9 +151,15 @@ union FTPChannelCreationArgs
   FTPChannelConnectArgs;   // Used for redirected-to channels
 };
 
+struct HttpChannelDiverterArgs
+{
+  PHttpChannel mChannel;
+  bool mApplyConversion;
+};
+
 union ChannelDiverterArgs
 {
-  PHttpChannel;
+  HttpChannelDiverterArgs;
   PFTPChannel;
 };
 

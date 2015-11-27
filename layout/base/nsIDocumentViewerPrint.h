@@ -11,7 +11,6 @@ class nsIDocument;
 class nsStyleSet;
 class nsIPresShell;
 class nsPresContext;
-class nsIWidget;
 class nsViewManager;
 
 // {c6f255cf-cadd-4382-b57f-cd2a9874169b}
@@ -68,18 +67,18 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIDocumentViewerPrint,
 
 /* Use this macro when declaring classes that implement this interface. */
 #define NS_DECL_NSIDOCUMENTVIEWERPRINT \
-  virtual void     SetIsPrinting(bool aIsPrinting); \
-  virtual bool     GetIsPrinting(); \
-  virtual void     SetIsPrintPreview(bool aIsPrintPreview); \
-  virtual bool     GetIsPrintPreview(); \
-  virtual nsresult CreateStyleSet(nsIDocument* aDocument, nsStyleSet** aStyleSet); \
-  virtual void     IncrementDestroyRefCount(); \
-  virtual void     ReturnToGalleyPresentation(); \
-  virtual void     OnDonePrinting(); \
-  virtual bool     IsInitializedForPrintPreview(); \
-  virtual void     InitializeForPrintPreview(); \
+  virtual void     SetIsPrinting(bool aIsPrinting) override; \
+  virtual bool     GetIsPrinting() override; \
+  virtual void     SetIsPrintPreview(bool aIsPrintPreview) override; \
+  virtual bool     GetIsPrintPreview() override; \
+  virtual nsresult CreateStyleSet(nsIDocument* aDocument, nsStyleSet** aStyleSet) override; \
+  virtual void     IncrementDestroyRefCount() override; \
+  virtual void     ReturnToGalleyPresentation() override; \
+  virtual void     OnDonePrinting() override; \
+  virtual bool     IsInitializedForPrintPreview() override; \
+  virtual void     InitializeForPrintPreview() override; \
   virtual void     SetPrintPreviewPresentation(nsViewManager* aViewManager, \
                                                nsPresContext* aPresContext, \
-                                               nsIPresShell* aPresShell);
+                                               nsIPresShell* aPresShell) override;
 
 #endif /* nsIDocumentViewerPrint_h___ */

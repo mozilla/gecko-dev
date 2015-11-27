@@ -10,10 +10,10 @@ this.EXPORTED_SYMBOLS = [
   "Collection",
 ];
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
-const Cu = Components.utils;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cr = Components.results;
+var Cu = Components.utils;
 
 const CRYPTO_COLLECTION = "crypto";
 const KEYS_WBO = "keys";
@@ -23,6 +23,7 @@ Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/keys.js");
 Cu.import("resource://services-sync/resource.js");
 Cu.import("resource://services-sync/util.js");
+Cu.import("resource://services-common/async.js");
 
 this.WBORecord = function WBORecord(collection, id) {
   this.data = {};
@@ -104,68 +105,6 @@ WBORecord.prototype = {
 };
 
 Utils.deferGetSet(WBORecord, "data", ["id", "modified", "sortindex", "payload"]);
-
-/**
- * An interface and caching layer for records.
- */
-this.RecordManager = function RecordManager(service) {
-  this.service = service;
-
-  this._log = Log.repository.getLogger(this._logName);
-  this._records = {};
-}
-RecordManager.prototype = {
-  _recordType: WBORecord,
-  _logName: "Sync.RecordManager",
-
-  import: function RecordMgr_import(url) {
-    this._log.trace("Importing record: " + (url.spec ? url.spec : url));
-    try {
-      // Clear out the last response with empty object if GET fails
-      this.response = {};
-      this.response = this.service.resource(url).get();
-
-      // Don't parse and save the record on failure
-      if (!this.response.success)
-        return null;
-
-      let record = new this._recordType(url);
-      record.deserialize(this.response);
-
-      return this.set(url, record);
-    } catch(ex) {
-      this._log.debug("Failed to import record: " + Utils.exceptionStr(ex));
-      return null;
-    }
-  },
-
-  get: function RecordMgr_get(url) {
-    // Use a url string as the key to the hash
-    let spec = url.spec ? url.spec : url;
-    if (spec in this._records)
-      return this._records[spec];
-    return this.import(url);
-  },
-
-  set: function RecordMgr_set(url, record) {
-    let spec = url.spec ? url.spec : url;
-    return this._records[spec] = record;
-  },
-
-  contains: function RecordMgr_contains(url) {
-    if ((url.spec || url) in this._records)
-      return true;
-    return false;
-  },
-
-  clearCache: function recordMgr_clearCache() {
-    this._records = {};
-  },
-
-  del: function RecordMgr_del(url) {
-    delete this._records[url];
-  }
-};
 
 this.CryptoWrapper = function CryptoWrapper(collection, id) {
   this.cleartext = {};
@@ -257,7 +196,9 @@ CryptoWrapper.prototype = {
   },
 
   // The custom setter below masks the parent's getter, so explicitly call it :(
-  get id() WBORecord.prototype.__lookupGetter__("id").call(this),
+  get id() {
+    return WBORecord.prototype.__lookupGetter__("id").call(this);
+  },
 
   // Keep both plaintext and encrypted versions of the id to verify integrity
   set id(val) {
@@ -269,6 +210,67 @@ CryptoWrapper.prototype = {
 Utils.deferGetSet(CryptoWrapper, "payload", ["ciphertext", "IV", "hmac"]);
 Utils.deferGetSet(CryptoWrapper, "cleartext", "deleted");
 
+/**
+ * An interface and caching layer for records.
+ */
+this.RecordManager = function RecordManager(service) {
+  this.service = service;
+
+  this._log = Log.repository.getLogger(this._logName);
+  this._records = {};
+}
+RecordManager.prototype = {
+  _recordType: CryptoWrapper,
+  _logName: "Sync.RecordManager",
+
+  import: function RecordMgr_import(url) {
+    this._log.trace("Importing record: " + (url.spec ? url.spec : url));
+    try {
+      // Clear out the last response with empty object if GET fails
+      this.response = {};
+      this.response = this.service.resource(url).get();
+
+      // Don't parse and save the record on failure
+      if (!this.response.success)
+        return null;
+
+      let record = new this._recordType(url);
+      record.deserialize(this.response);
+
+      return this.set(url, record);
+    } catch (ex if !Async.isShutdownException(ex)) {
+      this._log.debug("Failed to import record: " + Utils.exceptionStr(ex));
+      return null;
+    }
+  },
+
+  get: function RecordMgr_get(url) {
+    // Use a url string as the key to the hash
+    let spec = url.spec ? url.spec : url;
+    if (spec in this._records)
+      return this._records[spec];
+    return this.import(url);
+  },
+
+  set: function RecordMgr_set(url, record) {
+    let spec = url.spec ? url.spec : url;
+    return this._records[spec] = record;
+  },
+
+  contains: function RecordMgr_contains(url) {
+    if ((url.spec || url) in this._records)
+      return true;
+    return false;
+  },
+
+  clearCache: function recordMgr_clearCache() {
+    this._records = {};
+  },
+
+  del: function RecordMgr_del(url) {
+    delete this._records[url];
+  }
+};
 
 /**
  * Keeps track of mappings between collection names ('tabs') and KeyBundles.
@@ -310,7 +312,7 @@ CollectionKeyManager.prototype = {
     // Return a sorted, unique array.
     changed.sort();
     let last;
-    changed = [x for each (x in changed) if ((x != last) && (last = x))];
+    changed = changed.filter(x => (x != last) && (last = x));
     return {same: changed.length == 0,
             changed: changed};
   },
@@ -356,8 +358,9 @@ CollectionKeyManager.prototype = {
   /**
    * Create a WBO for the current keys.
    */
-  asWBO: function(collection, id)
-    this._makeWBO(this._collections, this._default),
+  asWBO: function(collection, id) {
+    return this._makeWBO(this._collections, this._default);
+  },
 
   /**
    * Compute a new default key, and new keys for any specified collections.
@@ -560,14 +563,14 @@ Collection.prototype = {
   },
 
   // Apply the action to a certain set of ids
-  get ids() this._ids,
+  get ids() { return this._ids; },
   set ids(value) {
     this._ids = value;
     this._rebuildURL();
   },
 
   // Limit how many records to get
-  get limit() this._limit,
+  get limit() { return this._limit; },
   set limit(value) {
     this._limit = value;
     this._rebuildURL();

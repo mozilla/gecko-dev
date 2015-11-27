@@ -31,7 +31,6 @@
 #include "webrtc/modules/video_capture/linux/video_capture_linux.h"
 #include "webrtc/system_wrappers/interface/critical_section_wrapper.h"
 #include "webrtc/system_wrappers/interface/ref_count.h"
-#include "webrtc/system_wrappers/interface/thread_wrapper.h"
 #include "webrtc/system_wrappers/interface/trace.h"
 
 namespace webrtc
@@ -54,17 +53,16 @@ VideoCaptureModule* VideoCaptureImpl::Create(const int32_t id,
 }
 
 VideoCaptureModuleV4L2::VideoCaptureModuleV4L2(const int32_t id)
-    : VideoCaptureImpl(id), 
-      _captureThread(NULL),
+    : VideoCaptureImpl(id),
       _captureCritSect(CriticalSectionWrapper::CreateCriticalSection()),
-      _deviceId(-1), 
+      _deviceId(-1),
       _deviceFd(-1),
       _buffersAllocatedByDevice(-1),
-      _currentWidth(-1), 
+      _currentWidth(-1),
       _currentHeight(-1),
-      _currentFrameRate(-1), 
+      _currentFrameRate(-1),
       _captureStarted(false),
-      _captureVideoType(kVideoI420), 
+      _captureVideoType(kVideoI420),
       _pool(NULL)
 {
 }
@@ -167,18 +165,20 @@ int32_t VideoCaptureModuleV4L2::StartCapture(
     // Supported video formats in preferred order.
     // If the requested resolution is larger than VGA, we prefer MJPEG. Go for
     // I420 otherwise.
-    const int nFormats = 4;
+    const int nFormats = 5;
     unsigned int fmts[nFormats];
     if (capability.width > 640 || capability.height > 480) {
         fmts[0] = V4L2_PIX_FMT_MJPEG;
         fmts[1] = V4L2_PIX_FMT_YUV420;
         fmts[2] = V4L2_PIX_FMT_YUYV;
-        fmts[3] = V4L2_PIX_FMT_JPEG;
+        fmts[3] = V4L2_PIX_FMT_UYVY;
+        fmts[4] = V4L2_PIX_FMT_JPEG;
     } else {
         fmts[0] = V4L2_PIX_FMT_YUV420;
         fmts[1] = V4L2_PIX_FMT_YUYV;
-        fmts[2] = V4L2_PIX_FMT_MJPEG;
-        fmts[3] = V4L2_PIX_FMT_JPEG;
+        fmts[2] = V4L2_PIX_FMT_UYVY;
+        fmts[3] = V4L2_PIX_FMT_MJPEG;
+        fmts[4] = V4L2_PIX_FMT_JPEG;
     }
 
     // Enumerate image formats.
@@ -228,6 +228,8 @@ int32_t VideoCaptureModuleV4L2::StartCapture(
         _captureVideoType = kVideoYUY2;
     else if (video_fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_YUV420)
         _captureVideoType = kVideoI420;
+    else if (video_fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_UYVY)
+        _captureVideoType = kVideoUYVY;
     else if (video_fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_MJPEG ||
              video_fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_JPEG)
         _captureVideoType = kVideoMJPEG;
@@ -293,9 +295,9 @@ int32_t VideoCaptureModuleV4L2::StartCapture(
     if (!_captureThread)
     {
         _captureThread = ThreadWrapper::CreateThread(
-            VideoCaptureModuleV4L2::CaptureThread, this, kHighPriority);
-        unsigned int id;
-        _captureThread->Start(id);
+            VideoCaptureModuleV4L2::CaptureThread, this, "CaptureThread");
+        _captureThread->Start();
+        _captureThread->SetPriority(kHighPriority);
     }
 
     // Needed to start UVC camera - from the uvcview application
@@ -316,24 +318,14 @@ int32_t VideoCaptureModuleV4L2::StopCapture()
 {
     if (_captureThread) {
         // Make sure the capture thread stop stop using the critsect.
-        _captureThread->SetNotAlive();
-        if (_captureThread->Stop()) {
-            delete _captureThread;
-            _captureThread = NULL;
-        } else
-        {
-            // Couldn't stop the thread, leak instead of crash.
-            WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceVideoCapture, -1,
-                         "%s: could not stop capture thread", __FUNCTION__);
-            assert(false);
-        }
+        _captureThread->Stop();
+        _captureThread.reset();
     }
 
     CriticalSectionScoped cs(_captureCritSect);
     if (_captureStarted)
     {
         _captureStarted = false;
-        _captureThread = NULL;
 
         DeAllocateVideoBuffers();
         close(_deviceFd);

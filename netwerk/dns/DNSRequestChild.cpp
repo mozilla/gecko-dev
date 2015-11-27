@@ -94,6 +94,13 @@ ChildDNSRecord::GetNextAddr(uint16_t port, NetAddr *addr)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+ChildDNSRecord::GetAddresses(nsTArray<NetAddr> & aAddressArray)
+{
+  aAddressArray = mAddresses;
+  return NS_OK;
+}
+
 // shamelessly copied from nsDNSRecord
 NS_IMETHODIMP
 ChildDNSRecord::GetScriptableNextAddr(uint16_t port, nsINetAddr **result)
@@ -165,12 +172,13 @@ public:
     if (mDnsRequest->mIPCOpen) {
       // Send request to Parent process.
       mDnsRequest->SendCancelDNSRequest(mDnsRequest->mHost, mDnsRequest->mFlags,
-                                      mReasonForCancel);
+                                        mDnsRequest->mNetworkInterface,
+                                        mReasonForCancel);
     }
     return NS_OK;
   }
 private:
-  nsRefPtr<DNSRequestChild> mDnsRequest;
+  RefPtr<DNSRequestChild> mDnsRequest;
   nsresult mReasonForCancel;
 };
 
@@ -180,6 +188,7 @@ private:
 
 DNSRequestChild::DNSRequestChild(const nsCString& aHost,
                                  const uint32_t& aFlags,
+                                 const nsCString& aNetworkInterface,
                                  nsIDNSListener *aListener,
                                  nsIEventTarget *target)
   : mListener(aListener)
@@ -187,6 +196,7 @@ DNSRequestChild::DNSRequestChild(const nsCString& aHost,
   , mResultStatus(NS_OK)
   , mHost(aHost)
   , mFlags(aFlags)
+  , mNetworkInterface(aNetworkInterface)
   , mIPCOpen(false)
 {
 }
@@ -202,7 +212,8 @@ DNSRequestChild::StartRequest()
   }
 
   // Send request to Parent process.
-  gNeckoChild->SendPDNSRequestConstructor(this, mHost, mFlags);
+  gNeckoChild->SendPDNSRequestConstructor(this, mHost, mFlags,
+                                          mNetworkInterface);
   mIPCOpen = true;
 
   // IPDL holds a reference until IPDL channel gets destroyed
@@ -253,7 +264,7 @@ DNSRequestChild::RecvLookupCompleted(const DNSRequestResponse& reply)
     mTarget->Dispatch(event, NS_DISPATCH_NORMAL);
   }
 
-  unused << Send__delete__(this);
+  Unused << Send__delete__(this);
 
   return true;
 }
@@ -262,7 +273,7 @@ void
 DNSRequestChild::ReleaseIPDLReference()
 {
   // Request is done or destroyed. Remove it from the hash table.
-  nsRefPtr<ChildDNSService> dnsServiceChild =
+  RefPtr<ChildDNSService> dnsServiceChild =
     dont_AddRef(ChildDNSService::GetSingleton());
   dnsServiceChild->NotifyRequestDone(this);
 
@@ -298,4 +309,5 @@ DNSRequestChild::Cancel(nsresult reason)
 }
 
 //------------------------------------------------------------------------------
-}} // mozilla::net
+} // namespace net
+} // namespace mozilla

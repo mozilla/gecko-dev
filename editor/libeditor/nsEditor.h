@@ -7,10 +7,9 @@
 #define __editor_h__
 
 #include "mozilla/Assertions.h"         // for MOZ_ASSERT, etc.
-#include "mozilla/TypedEnum.h"          // for MOZ_BEGIN_ENUM_CLASS, etc.
+#include "mozilla/OwningNonNull.h"      // for OwningNonNull
 #include "mozilla/dom/Text.h"
 #include "nsAutoPtr.h"                  // for nsRefPtr
-#include "nsCOMArray.h"                 // for nsCOMArray
 #include "nsCOMPtr.h"                   // for already_AddRefed, nsCOMPtr
 #include "nsCycleCollectionParticipant.h"
 #include "nsGkAtoms.h"
@@ -19,6 +18,7 @@
 #include "nsIObserver.h"                // for NS_DECL_NSIOBSERVER, etc
 #include "nsIPhonetic.h"                // for NS_DECL_NSIPHONETIC, etc
 #include "nsIPlaintextEditor.h"         // for nsIPlaintextEditor, etc
+#include "nsISelectionController.h"     // for nsISelectionController constants
 #include "nsISupportsImpl.h"            // for nsEditor::Release, etc
 #include "nsIWeakReferenceUtils.h"      // for nsWeakPtr
 #include "nsLiteralString.h"            // for NS_LITERAL_STRING
@@ -30,21 +30,15 @@
 class AddStyleSheetTxn;
 class DeleteNodeTxn;
 class EditAggregateTxn;
-class JoinElementTxn;
 class RemoveStyleSheetTxn;
-class SplitElementTxn;
 class nsIAtom;
 class nsIContent;
-class nsIDOMCharacterData;
-class nsIDOMDataTransfer;
 class nsIDOMDocument;
-class nsIDOMElement;
 class nsIDOMEvent;
 class nsIDOMEventListener;
 class nsIDOMEventTarget;
 class nsIDOMKeyEvent;
 class nsIDOMNode;
-class nsIDOMRange;
 class nsIDocument;
 class nsIDocumentStateListener;
 class nsIEditActionListener;
@@ -52,13 +46,13 @@ class nsIEditorObserver;
 class nsIInlineSpellChecker;
 class nsINode;
 class nsIPresShell;
-class nsISelection;
 class nsISupports;
 class nsITransaction;
 class nsIWidget;
 class nsRange;
 class nsString;
 class nsTransactionManager;
+struct DOMPoint;
 
 namespace mozilla {
 class CSSStyleSheet;
@@ -75,10 +69,12 @@ class EventTarget;
 class IMETextTxn;
 class InsertTextTxn;
 class InsertNodeTxn;
+class JoinNodeTxn;
 class Selection;
+class SplitNodeTxn;
 class Text;
-}  // namespace dom
-}  // namespace mozilla
+} // namespace dom
+} // namespace mozilla
 
 namespace mozilla {
 namespace widget {
@@ -91,7 +87,7 @@ struct IMEState;
 
 // This is int32_t instead of int16_t because nsIInlineSpellChecker.idl's
 // spellCheckAfterEditorChange is defined to take it as a long.
-MOZ_BEGIN_ENUM_CLASS(EditAction, int32_t)
+enum class EditAction : int32_t {
   ignore = -1,
   none = 0,
   undo,
@@ -129,22 +125,21 @@ MOZ_BEGIN_ENUM_CLASS(EditAction, int32_t)
   removeAbsolutePosition = 3016,
   decreaseZIndex      = 3017,
   increaseZIndex      = 3018
-MOZ_END_ENUM_CLASS(EditAction)
+};
 
 inline bool operator!(const EditAction& aOp)
 {
   return aOp == EditAction::none;
 }
 
-/** implementation of an editor object.  it will be the controller/focal point 
- *  for the main editor services. i.e. the GUIManager, publishing, transaction 
- *  manager, event interfaces. the idea for the event interfaces is to have them 
+/** implementation of an editor object.  it will be the controller/focal point
+ *  for the main editor services. i.e. the GUIManager, publishing, transaction
+ *  manager, event interfaces. the idea for the event interfaces is to have them
  *  delegate the actual commands to the editor independent of the XPFE implementation.
  */
 class nsEditor : public nsIEditor,
                  public nsIEditorIMESupport,
                  public nsSupportsWeakReference,
-                 public nsIObserver,
                  public nsIPhonetic
 {
 public:
@@ -161,7 +156,7 @@ public:
   nsEditor();
 
 protected:
-  /** The default destructor. This should suffice. Should this be pure virtual 
+  /** The default destructor. This should suffice. Should this be pure virtual
    *  for someone to derive from the nsEditor later? I don't believe so.
    */
   virtual ~nsEditor();
@@ -192,9 +187,6 @@ public:
   /* ------------ nsIEditorIMESupport methods -------------- */
   NS_DECL_NSIEDITORIMESUPPORT
 
-  /* ------------ nsIObserver methods -------------- */
-  NS_DECL_NSIOBSERVER
-
   // nsIPhonetic
   NS_DECL_NSIPHONETIC
 
@@ -202,18 +194,19 @@ public:
 
   virtual bool IsModifiableNode(nsINode *aNode);
 
-  NS_IMETHOD InsertTextImpl(const nsAString& aStringToInsert, 
-                               nsCOMPtr<nsIDOMNode> *aInOutNode, 
-                               int32_t *aInOutOffset,
-                               nsIDOMDocument *aDoc);
+  virtual nsresult InsertTextImpl(const nsAString& aStringToInsert,
+                                  nsCOMPtr<nsINode>* aInOutNode,
+                                  int32_t* aInOutOffset,
+                                  nsIDocument* aDoc);
   nsresult InsertTextIntoTextNodeImpl(const nsAString& aStringToInsert,
                                       mozilla::dom::Text& aTextNode,
                                       int32_t aOffset,
                                       bool aSuppressIME = false);
   NS_IMETHOD DeleteSelectionImpl(EDirection aAction,
                                  EStripWrappers aStripWrappers);
-  NS_IMETHOD DeleteSelectionAndCreateNode(const nsAString& aTag,
-                                           nsIDOMNode ** aNewNode);
+
+  already_AddRefed<mozilla::dom::Element>
+  DeleteSelectionAndCreateElement(nsIAtom& aTag);
 
   /* helper routines for node/parent manipulations */
   nsresult DeleteNode(nsINode* aNode);
@@ -234,10 +227,12 @@ public:
                                 nsIAtom* aNodeType,
                                 nsIAtom* aAttribute = nullptr,
                                 const nsAString* aValue = nullptr);
-  nsresult JoinNodes(nsINode* aNodeToKeep, nsIContent* aNodeToMove);
+  nsIContent* SplitNode(nsIContent& aNode, int32_t aOffset,
+                        mozilla::ErrorResult& aResult);
+  nsresult JoinNodes(nsINode& aLeftNode, nsINode& aRightNode);
   nsresult MoveNode(nsIContent* aNode, nsINode* aParent, int32_t aOffset);
 
-  /* Method to replace certain CreateElementNS() calls. 
+  /* Method to replace certain CreateElementNS() calls.
      Arguments:
       nsIAtom* aTag          - tag you want
   */
@@ -295,8 +290,8 @@ protected:
                                        int32_t* aOffset,
                                        int32_t* aLength);
 
-  nsresult CreateTxnForDeleteInsertionPoint(nsRange* aRange, 
-                                            EDirection aAction, 
+  nsresult CreateTxnForDeleteInsertionPoint(nsRange* aRange,
+                                            EDirection aAction,
                                             EditAggregateTxn* aTxn,
                                             nsINode** aNode,
                                             int32_t* aOffset,
@@ -323,7 +318,7 @@ protected:
     */
   NS_IMETHOD CreateTxnForRemoveStyleSheet(mozilla::CSSStyleSheet* aSheet,
                                           RemoveStyleSheetTxn* *aTxn);
-  
+
   nsresult DeleteText(nsGenericDOMDataNode& aElement,
                       uint32_t aOffset, uint32_t aLength);
 
@@ -336,14 +331,12 @@ protected:
   already_AddRefed<mozilla::dom::DeleteTextTxn>
   CreateTxnForDeleteCharacter(nsGenericDOMDataNode& aData, uint32_t aOffset,
                               EDirection aDirection);
-	
-  NS_IMETHOD CreateTxnForSplitNode(nsIDOMNode *aNode,
-                                   uint32_t    aOffset,
-                                   SplitElementTxn **aTxn);
 
-  NS_IMETHOD CreateTxnForJoinNode(nsIDOMNode  *aLeftNode,
-                                  nsIDOMNode  *aRightNode,
-                                  JoinElementTxn **aTxn);
+  already_AddRefed<mozilla::dom::SplitNodeTxn>
+  CreateTxnForSplitNode(nsIContent& aNode, uint32_t aOffset);
+
+  already_AddRefed<mozilla::dom::JoinNodeTxn>
+  CreateTxnForJoinNode(nsINode& aLeftNode, nsINode& aRightNode);
 
   /**
    * This method first deletes the selection, if it's not collapsed.  Then if
@@ -367,12 +360,12 @@ protected:
     eDocumentToBeDestroyed,
     eDocumentStateChanged
   } TDocumentListenerNotification;
-  
+
   // tell the doc state listeners that the doc state has changed
   NS_IMETHOD NotifyDocumentListeners(TDocumentListenerNotification aNotificationType);
-  
+
   /** make the given selection span the entire document */
-  NS_IMETHOD SelectEntireDocument(nsISelection *aSelection);
+  virtual nsresult SelectEntireDocument(mozilla::dom::Selection* aSelection);
 
   /** helper method for scrolling the selection into view after
    *  an edit operation. aScrollToAnchor should be true if you
@@ -388,15 +381,15 @@ protected:
 
   // Convenience method; forwards to IsBlockNode(nsINode*).
   bool IsBlockNode(nsIDOMNode* aNode);
-  // stub.  see comment in source.                     
+  // stub.  see comment in source.
   virtual bool IsBlockNode(nsINode* aNode);
-  
+
   // helper for GetPriorNode and GetNextNode
   nsIContent* FindNextLeafNode(nsINode  *aCurrentNode,
                                bool      aGoForward,
                                bool      bNoBlockCrossing);
 
-  // install the event listeners for the editor 
+  // install the event listeners for the editor
   virtual nsresult InstallEventListeners();
 
   virtual void CreateEventListeners();
@@ -417,11 +410,12 @@ protected:
   }
 
   /**
-   * EnsureComposition() should be composition event handlers or text event
-   * handler.  This tries to get the composition for the event and set it to
-   * mComposition.
+   * EnsureComposition() should be called by composition event handlers.  This
+   * tries to get the composition for the event and set it to mComposition.
    */
   void EnsureComposition(mozilla::WidgetGUIEvent* aEvent);
+
+  nsresult GetSelection(int16_t aSelectionType, nsISelection** aSelection);
 
 public:
 
@@ -434,26 +428,28 @@ public:
    *  with a call to EndOperation */
   NS_IMETHOD EndOperation();
 
-  /** routines for managing the preservation of selection across 
+  /** routines for managing the preservation of selection across
    *  various editor actions */
   bool     ArePreservingSelection();
   void     PreserveSelectionAcrossActions(mozilla::dom::Selection* aSel);
-  nsresult RestorePreservedSelection(nsISelection *aSel);
+  nsresult RestorePreservedSelection(mozilla::dom::Selection* aSel);
   void     StopPreservingSelection();
 
-  /** 
-   * SplitNode() creates a new node identical to an existing node, and split the contents between the two nodes
-   * @param aExistingRightNode   the node to split.  It will become the new node's next sibling.
-   * @param aOffset              the offset of aExistingRightNode's content|children to do the split at
-   * @param aNewLeftNode         [OUT] the new node resulting from the split, becomes aExistingRightNode's previous sibling.
-   * @param aParent              the parent of aExistingRightNode
+  /**
+   * SplitNode() creates a new node identical to an existing node, and split
+   * the contents between the two nodes
+   * @param aExistingRightNode  The node to split.  It will become the new
+   *                            node's next sibling.
+   * @param aOffset             The offset of aExistingRightNode's
+   *                            content|children to do the split at
+   * @param aNewLeftNode        The new node resulting from the split, becomes
+   *                            aExistingRightNode's previous sibling.
    */
-  nsresult SplitNodeImpl(nsIDOMNode *aExistingRightNode,
-                         int32_t     aOffset,
-                         nsIDOMNode *aNewLeftNode,
-                         nsIDOMNode *aParent);
+  nsresult SplitNodeImpl(nsIContent& aExistingRightNode,
+                         int32_t aOffset,
+                         nsIContent& aNewLeftNode);
 
-  /** 
+  /**
    * JoinNodes() takes 2 nodes and merge their content|children.
    * @param aNodeToKeep   The node that will remain after the join.
    * @param aNodeToJoin   The node that will be joined with aNodeToKeep.
@@ -479,9 +475,9 @@ public:
                                                       int32_t* outOffset);
   static nsINode* GetNodeLocation(nsINode* aChild, int32_t* aOffset);
 
-  /** returns the number of things inside aNode in the out-param aCount.  
-    * @param  aNode is the node to get the length of.  
-    *         If aNode is text, returns number of characters. 
+  /** returns the number of things inside aNode in the out-param aCount.
+    * @param  aNode is the node to get the length of.
+    *         If aNode is text, returns number of characters.
     *         If not, returns number of children nodes.
     * @param  aCount [OUT] the result of the above calculation.
     */
@@ -495,19 +491,10 @@ public:
     *                       If there is no prior node, aResultNode will be nullptr.
     * @param bNoBlockCrossing If true, don't move across "block" nodes, whatever that means.
     */
-  nsresult GetPriorNode(nsIDOMNode  *aCurrentNode, 
-                        bool         aEditableNode,
-                        nsCOMPtr<nsIDOMNode> *aResultNode,
-                        bool         bNoBlockCrossing = false);
   nsIContent* GetPriorNode(nsINode* aCurrentNode, bool aEditableNode,
                            bool aNoBlockCrossing = false);
 
   // and another version that takes a {parent,offset} pair rather than a node
-  nsresult GetPriorNode(nsIDOMNode  *aParentNode, 
-                        int32_t      aOffset, 
-                        bool         aEditableNode, 
-                        nsCOMPtr<nsIDOMNode> *aResultNode,
-                        bool         bNoBlockCrossing = false);
   nsIContent* GetPriorNode(nsINode* aParentNode,
                            int32_t aOffset,
                            bool aEditableNode,
@@ -521,20 +508,11 @@ public:
     *                       skipping non-editable nodes if aEditableNode is true.
     *                       If there is no prior node, aResultNode will be nullptr.
     */
-  nsresult GetNextNode(nsIDOMNode  *aCurrentNode, 
-                       bool         aEditableNode,
-                       nsCOMPtr<nsIDOMNode> *aResultNode,
-                       bool         bNoBlockCrossing = false);
   nsIContent* GetNextNode(nsINode* aCurrentNode,
                           bool aEditableNode,
                           bool bNoBlockCrossing = false);
 
   // and another version that takes a {parent,offset} pair rather than a node
-  nsresult GetNextNode(nsIDOMNode  *aParentNode, 
-                       int32_t      aOffset, 
-                       bool         aEditableNode, 
-                       nsCOMPtr<nsIDOMNode> *aResultNode,
-                       bool         bNoBlockCrossing = false);
   nsIContent* GetNextNode(nsINode* aParentNode,
                           int32_t aOffset,
                           bool aEditableNode,
@@ -549,8 +527,6 @@ public:
    * Get the rightmost child of aCurrentNode;
    * return nullptr if aCurrentNode has no children.
    */
-  nsIDOMNode* GetRightmostChild(nsIDOMNode* aCurrentNode,
-                                bool bNoBlockCrossing = false);
   nsIContent* GetRightmostChild(nsINode *aCurrentNode,
                                 bool     bNoBlockCrossing = false);
 
@@ -558,8 +534,6 @@ public:
    * Get the leftmost child of aCurrentNode;
    * return nullptr if aCurrentNode has no children.
    */
-  nsIDOMNode* GetLeftmostChild(nsIDOMNode* aCurrentNode,
-                               bool bNoBlockCrossing = false);
   nsIContent* GetLeftmostChild(nsINode *aCurrentNode,
                                bool     bNoBlockCrossing = false);
 
@@ -570,10 +544,10 @@ public:
   }
 
   /** returns true if aParent can contain a child of type aTag */
-  bool CanContain(nsIDOMNode* aParent, nsIDOMNode* aChild);
-  bool CanContainTag(nsIDOMNode* aParent, nsIAtom* aTag);
-  bool TagCanContain(nsIAtom* aParentTag, nsIDOMNode* aChild);
-  virtual bool TagCanContainTag(nsIAtom* aParentTag, nsIAtom* aChildTag);
+  bool CanContain(nsINode& aParent, nsIContent& aChild);
+  bool CanContainTag(nsINode& aParent, nsIAtom& aTag);
+  bool TagCanContain(nsIAtom& aParentTag, nsIContent& aChild);
+  virtual bool TagCanContainTag(nsIAtom& aParentTag, nsIAtom& aChildTag);
 
   /** returns true if aNode is our root node */
   bool IsRoot(nsIDOMNode* inNode);
@@ -599,7 +573,7 @@ public:
 
   /** counts number of editable child nodes */
   uint32_t CountEditableChildren(nsINode* aNode);
-  
+
   /** Find the deep first and last children. */
   nsINode* GetFirstEditableNode(nsINode* aRoot);
 
@@ -611,6 +585,10 @@ public:
    * Returns true if there is composition string and not fixed.
    */
   bool IsIMEComposing() const;
+  /**
+   * Returns true when inserting text should be a part of current composition.
+   */
+  bool ShouldHandleIMEComposition() const;
 
   /** from html rules code - migration in progress */
   static nsresult GetTagString(nsIDOMNode *aNode, nsAString& outString);
@@ -621,28 +599,33 @@ public:
 
   static bool IsTextNode(nsIDOMNode *aNode);
   static bool IsTextNode(nsINode *aNode);
-  
+
   static nsCOMPtr<nsIDOMNode> GetChildAt(nsIDOMNode *aParent, int32_t aOffset);
   static nsCOMPtr<nsIDOMNode> GetNodeAtRangeOffsetPoint(nsIDOMNode* aParentOrNode, int32_t aOffset);
 
-  static nsresult GetStartNodeAndOffset(nsISelection *aSelection, nsIDOMNode **outStartNode, int32_t *outStartOffset);
+  static nsresult GetStartNodeAndOffset(mozilla::dom::Selection* aSelection,
+                                        nsIDOMNode** outStartNode,
+                                        int32_t* outStartOffset);
   static nsresult GetStartNodeAndOffset(mozilla::dom::Selection* aSelection,
                                         nsINode** aStartNode,
                                         int32_t* aStartOffset);
-  static nsresult GetEndNodeAndOffset(nsISelection *aSelection, nsIDOMNode **outEndNode, int32_t *outEndOffset);
+  static nsresult GetEndNodeAndOffset(mozilla::dom::Selection* aSelection,
+                                      nsIDOMNode** outEndNode,
+                                      int32_t* outEndOffset);
   static nsresult GetEndNodeAndOffset(mozilla::dom::Selection* aSelection,
                                       nsINode** aEndNode,
                                       int32_t* aEndOffset);
 #if DEBUG_JOE
   static void DumpNode(nsIDOMNode *aNode, int32_t indent=0);
 #endif
-  mozilla::dom::Selection* GetSelection();
+  mozilla::dom::Selection* GetSelection(int16_t aSelectionType =
+      nsISelectionController::SELECTION_NORMAL);
 
-  // Helpers to add a node to the selection. 
+  // Helpers to add a node to the selection.
   // Used by table cell selection methods
   nsresult CreateRange(nsIDOMNode *aStartParent, int32_t aStartOffset,
                        nsIDOMNode *aEndParent, int32_t aEndOffset,
-                       nsIDOMRange **aRange);
+                       nsRange** aRange);
 
   // Creates a range with just the supplied node and appends that to the selection
   nsresult AppendNodeToSelectionAsRange(nsIDOMNode *aNode);
@@ -651,14 +634,14 @@ public:
 
   nsresult IsPreformatted(nsIDOMNode *aNode, bool *aResult);
 
-  nsresult SplitNodeDeep(nsIDOMNode *aNode, 
-                         nsIDOMNode *aSplitPointParent, 
-                         int32_t aSplitPointOffset,
-                         int32_t *outOffset,
-                         bool    aNoEmptyContainers = false,
-                         nsCOMPtr<nsIDOMNode> *outLeftNode = 0,
-                         nsCOMPtr<nsIDOMNode> *outRightNode = 0);
-  nsresult JoinNodeDeep(nsIDOMNode *aLeftNode, nsIDOMNode *aRightNode, nsCOMPtr<nsIDOMNode> *aOutJoinNode, int32_t *outOffset); 
+  enum class EmptyContainers { no, yes };
+  int32_t SplitNodeDeep(nsIContent& aNode, nsIContent& aSplitPointParent,
+                        int32_t aSplitPointOffset,
+                        EmptyContainers aEmptyContainers =
+                          EmptyContainers::yes,
+                        nsIContent** outLeftNode = nullptr,
+                        nsIContent** outRightNode = nullptr);
+  ::DOMPoint JoinNodeDeep(nsIContent& aLeftNode, nsIContent& aRightNode);
 
   nsresult GetString(const nsAString& name, nsAString& value);
 
@@ -670,7 +653,7 @@ public:
   virtual nsresult HandleKeyPressEvent(nsIDOMKeyEvent* aKeyEvent);
 
   nsresult HandleInlineSpellCheck(EditAction action,
-                                    nsISelection *aSelection,
+                                  mozilla::dom::Selection* aSelection,
                                     nsIDOMNode *previousSelectedNode,
                                     int32_t previousSelectedOffset,
                                     nsIDOMNode *aStartNode,
@@ -751,7 +734,7 @@ public:
   {
     return (mFlags & nsIPlaintextEditor::eEditorDontEchoPassword) != 0;
   }
-  
+
   bool ShouldSkipSpellCheck() const
   {
     return (mFlags & nsIPlaintextEditor::eEditorSkipSpellCheck) != 0;
@@ -820,6 +803,26 @@ public:
 
   virtual already_AddRefed<nsIDOMNode> FindUserSelectAllNode(nsIDOMNode* aNode) { return nullptr; }
 
+  /**
+   * GetIMESelectionStartOffsetIn() returns the start offset of IME selection in
+   * the aTextNode.  If there is no IME selection, returns -1.
+   */
+  int32_t GetIMESelectionStartOffsetIn(nsINode* aTextNode);
+
+  /**
+   * FindBetterInsertionPoint() tries to look for better insertion point which
+   * is typically the nearest text node and offset in it.
+   */
+  void FindBetterInsertionPoint(nsCOMPtr<nsINode>& aNode,
+                                int32_t& aOffset);
+
+  /**
+   * HideCaret() hides caret with nsCaret::AddForceHide() or may show carent
+   * with nsCaret::RemoveForceHide().  This does NOT set visibility of
+   * nsCaret.  Therefore, this is stateless.
+   */
+  void HideCaret(bool aHide);
+
 protected:
   enum Tristate {
     eTriUnset,
@@ -831,9 +834,9 @@ protected:
 
   nsCOMPtr<nsIInlineSpellChecker> mInlineSpellChecker;
 
-  nsRefPtr<nsTransactionManager> mTxnMgr;
+  RefPtr<nsTransactionManager> mTxnMgr;
   nsCOMPtr<mozilla::dom::Element> mRootElement; // cached root node
-  nsRefPtr<mozilla::dom::Text>    mIMETextNode; // current IME text node
+  RefPtr<mozilla::dom::Text>    mIMETextNode; // current IME text node
   nsCOMPtr<mozilla::dom::EventTarget> mEventTarget; // The form field as an event receiver
   nsCOMPtr<nsIDOMEventListener> mEventListener;
   nsWeakPtr        mSelConWeak;          // weak reference to the nsISelectionController
@@ -844,12 +847,15 @@ protected:
   nsString         *mPhonetic;
   // IME composition this is not null between compositionstart and
   // compositionend.
-  nsRefPtr<mozilla::TextComposition> mComposition;
+  RefPtr<mozilla::TextComposition> mComposition;
 
   // various listeners
-  nsCOMArray<nsIEditActionListener> mActionListeners;  // listens to all low level actions on the doc
-  nsCOMArray<nsIEditorObserver> mEditorObservers;  // just notify once per high level change
-  nsCOMArray<nsIDocumentStateListener> mDocStateListeners;// listen to overall doc state (dirty or not, just created, etc)
+  // Listens to all low level actions on the doc
+  nsTArray<mozilla::OwningNonNull<nsIEditActionListener>> mActionListeners;
+  // Just notify once per high level change
+  nsTArray<mozilla::OwningNonNull<nsIEditorObserver>> mEditorObservers;
+  // Listen to overall doc state (dirty or not, just created, etc)
+  nsTArray<mozilla::OwningNonNull<nsIDocumentStateListener>> mDocStateListeners;
 
   nsSelectionState  mSavedSel;           // cached selection for nsAutoSelectionReset
   nsRangeUpdater    mRangeUpdater;       // utility class object for maintaining preserved ranges
@@ -863,6 +869,9 @@ protected:
   EditAction        mAction;             // the current editor action
 
   uint32_t          mIMETextOffset;    // offset in text node where IME comp string begins
+  // The Length of the composition string or commit string.  If this is length
+  // of commit string, the length is truncated by maxlength attribute.
+  uint32_t          mIMETextLength;
 
   EDirection        mDirection;          // the current direction of editor action
   int8_t            mDocDirtyState;      // -1 = not initialized
@@ -873,6 +882,7 @@ protected:
   bool mDidPostCreate;    // whether PostCreate has been called
   bool mDispatchInputEvent;
   bool mIsInEditAction;   // true while the instance is handling an edit action
+  bool mHidingCaret;      // whether caret is hidden forcibly.
 
   friend bool NSCanUnload(nsISupports* serviceMgr);
   friend class nsAutoTxnsConserveSelection;

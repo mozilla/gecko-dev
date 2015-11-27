@@ -4,7 +4,6 @@
 
 package org.mozilla.mozstumbler.service;
 
-import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -14,7 +13,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 public  final class Prefs {
-    private static final String LOG_TAG = Prefs.class.getSimpleName();
+    private static final String LOG_TAG = AppGlobals.makeLogTag(Prefs.class.getSimpleName());
     private static final String NICKNAME_PREF = "nickname";
     private static final String USER_AGENT_PREF = "user-agent";
     private static final String VALUES_VERSION_PREF = "values_version";
@@ -34,7 +33,7 @@ public  final class Prefs {
     static private Prefs sInstance;
 
     private Prefs(Context context) {
-        mSharedPrefs = context.getSharedPreferences(PREFS_FILE, Context.MODE_MULTI_PROCESS | Context.MODE_PRIVATE);
+        mSharedPrefs = context.getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE);
         if (getPrefs().getInt(VALUES_VERSION_PREF, -1) != AppGlobals.appVersionCode) {
             Log.i(LOG_TAG, "Version of the application has changed. Updating default values.");
             // Remove old keys
@@ -48,18 +47,15 @@ public  final class Prefs {
         }
     }
 
-    /* Prefs must be created on application startup or service startup.
-     * TODO: turn into regular singleton if Context dependency can be removed. */
-    public static void createGlobalInstance(Context c) {
-        if (sInstance != null) {
-            return;
+    public static Prefs getInstance(Context c) {
+        if (sInstance == null) {
+            sInstance = new Prefs(c);
         }
-        sInstance = new Prefs(c);
+        return sInstance;
     }
 
-    /* Only access after CreatePrefsInstance(Context) has been called at startup. */
-    public static Prefs getInstance() {
-        assert(sInstance != null);
+    // Allows code without a context handle to grab the prefs. The caller must null check the return value.
+    public static Prefs getInstanceWithoutContext() {
         return sInstance;
     }
 
@@ -203,7 +199,6 @@ public  final class Prefs {
         }
     }
 
-    @SuppressLint("InlinedApi")
     private SharedPreferences getPrefs() {
         return mSharedPrefs;
     }

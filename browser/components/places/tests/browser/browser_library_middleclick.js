@@ -39,13 +39,13 @@ var gTabsListener = {
     // When a new tab is opened, location is first set to "about:blank", so
     // we can ignore those calls.
     // Ignore multiple notifications for the same URI too.
-    if (spec == "about:blank" || this._loadedURIs.indexOf(spec) != -1)
+    if (spec == "about:blank" || this._loadedURIs.includes(spec))
       return;
 
-    ok(gCurrentTest.URIs.indexOf(spec) != -1,
+    ok(gCurrentTest.URIs.includes(spec),
        "Opened URI found in list: " + spec);
 
-    if (gCurrentTest.URIs.indexOf(spec) != -1 )
+    if (gCurrentTest.URIs.includes(spec))
       this._loadedURIs.push(spec);
 
     if (this._loadedURIs.length == gCurrentTest.URIs.length) {
@@ -272,10 +272,8 @@ function mouseEventOnCell(aTree, aRowIndex, aColumnIndex, aEventDetails) {
   var column = aTree.columns[aColumnIndex];
 
   // get cell coordinates
-  var x = {}, y = {}, width = {}, height = {};
-  aTree.treeBoxObject.getCoordsForCellItem(aRowIndex, column, "text",
-                                           x, y, width, height);
+  var rect = aTree.treeBoxObject.getCoordsForCellItem(aRowIndex, column, "text");
 
-  EventUtils.synthesizeMouse(aTree.body, x.value, y.value,
+  EventUtils.synthesizeMouse(aTree.body, rect.x, rect.y,
                              aEventDetails, gLibrary);
 }

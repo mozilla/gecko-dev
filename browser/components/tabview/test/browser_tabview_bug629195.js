@@ -1,9 +1,9 @@
 /* Any copyright is dedicated to the Public Domain.
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
-let win;
-let contentWindow;
-let originalTab;
+var win;
+var contentWindow;
+var originalTab;
 
 function test() {
   waitForExplicitFinish();
@@ -19,7 +19,7 @@ function test() {
 
       // show the undo close group button
       let group = contentWindow.GroupItems.groupItems[0];
-      hideGroupItem(group, function () restore(group.id));
+      hideGroupItem(group, () => restore(group.id));
     },
     function(newWin) {
       win = newWin;

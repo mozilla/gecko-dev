@@ -2,88 +2,79 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import os
+from .base import Browser, ExecutorBrowser, require_arg
+from .webdriver import ChromedriverLocalServer
+from ..executors import executor_kwargs as base_executor_kwargs
+from ..executors.executorselenium import (SeleniumTestharnessExecutor,
+                                          SeleniumRefTestExecutor)
 
-import mozprocess
-
-from .base import get_free_port, Browser, ExecutorBrowser, require_arg, cmd_arg
-from ..executors.executorselenium import SeleniumTestharnessExecutor, required_files
-
-
-here = os.path.split(__file__)[0]
 
 __wptrunner__ = {"product": "chrome",
                  "check_args": "check_args",
                  "browser": "ChromeBrowser",
-                 "executor": {"testharness": "SeleniumTestharnessExecutor"},
+                 "executor": {"testharness": "SeleniumTestharnessExecutor",
+                              "reftest": "SeleniumRefTestExecutor"},
                  "browser_kwargs": "browser_kwargs",
                  "executor_kwargs": "executor_kwargs",
                  "env_options": "env_options"}
 
 
 def check_args(**kwargs):
-    require_arg(kwargs, "binary")
+    require_arg(kwargs, "webdriver_binary")
 
 
 def browser_kwargs(**kwargs):
-    return {"binary": kwargs["binary"]}
+    return {"binary": kwargs["binary"],
+            "webdriver_binary": kwargs["webdriver_binary"]}
 
 
-def executor_kwargs(http_server_url, **kwargs):
-    from selenium import webdriver
+def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
+                    **kwargs):
+    from selenium.webdriver import DesiredCapabilities
 
-    timeout_multiplier = kwargs["timeout_multiplier"]
-    if timeout_multiplier is None:
-        timeout_multiplier = 1
+    executor_kwargs = base_executor_kwargs(test_type, server_config,
+                                           cache_manager, **kwargs)
+    executor_kwargs["close_after_done"] = True
+    executor_kwargs["capabilities"] = dict(DesiredCapabilities.CHROME.items())
+    if kwargs["binary"] is not None:
+        executor_kwargs["capabilities"]["chromeOptions"] = {"binary": kwargs["binary"]}
 
-    return {"http_server_url": http_server_url,
-            "timeout_multiplier": timeout_multiplier,
-            "capabilities": webdriver.DesiredCapabilities.CHROME}
+    return executor_kwargs
 
 
 def env_options():
-    return {"host": "localhost",
-            "bind_hostname": "true",
-            "required_files": required_files}
+    return {"host": "web-platform.test",
+            "bind_hostname": "true"}
 
 
 class ChromeBrowser(Browser):
-    used_ports = set()
+    """Chrome is backed by chromedriver, which is supplied through
+    ``browsers.webdriver.ChromedriverLocalServer``."""
 
-    def __init__(self, logger, binary):
+    def __init__(self, logger, binary, webdriver_binary="chromedriver"):
+        """Creates a new representation of Chrome.  The `binary` argument gives
+        the browser binary to use for testing."""
         Browser.__init__(self, logger)
         self.binary = binary
-        self.webdriver_port = get_free_port(4444, exclude=self.used_ports)
-        self.used_ports.add(self.webdriver_port)
-        self.proc = None
-        self.cmd = None
+        self.driver = ChromedriverLocalServer(self.logger, binary=webdriver_binary)
 
     def start(self):
-        self.cmd = [self.binary,
-                    cmd_arg("port", str(self.webdriver_port)),
-                    cmd_arg("url-base", "wd/url")]
-        self.proc = mozprocess.ProcessHandler(self.cmd, processOutputLine=self.on_output)
-        self.logger.debug("Starting chromedriver")
-        self.proc.run()
+        self.driver.start()
 
     def stop(self):
-        if self.proc is not None and hasattr(self.proc, "proc"):
-            self.proc.kill()
+        self.driver.stop()
 
     def pid(self):
-        if self.proc is not None:
-            return self.proc.pid
-
-    def on_output(self, line):
-        self.logger.process_output(self.pid(),
-                                   line.decode("utf8", "replace"),
-                                   command=" ".join(self.cmd))
+        return self.driver.pid
 
     def is_alive(self):
-        return self.pid() is not None
+        # TODO(ato): This only indicates the driver is alive,
+        # and doesn't say anything about whether a browser session
+        # is active.
+        return self.driver.is_alive()
 
     def cleanup(self):
         self.stop()
 
     def executor_browser(self):
-        return ExecutorBrowser, {"webdriver_port": self.webdriver_port}
+        return ExecutorBrowser, {"webdriver_url": self.driver.url}

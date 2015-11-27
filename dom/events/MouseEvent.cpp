@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -16,8 +17,9 @@ MouseEvent::MouseEvent(EventTarget* aOwner,
                        nsPresContext* aPresContext,
                        WidgetMouseEventBase* aEvent)
   : UIEvent(aOwner, aPresContext,
-            aEvent ? aEvent : new WidgetMouseEvent(false, 0, nullptr,
-                                                   WidgetMouseEvent::eReal))
+            aEvent ? aEvent :
+                     new WidgetMouseEvent(false, eVoidEvent, nullptr,
+                                          WidgetMouseEvent::eReal))
 {
   // There's no way to make this class' ctor allocate an WidgetMouseScrollEvent.
   // It's not that important, though, since a scroll event is not a real
@@ -137,6 +139,15 @@ MouseEvent::InitMouseEvent(const nsAString& aType,
   }
 }
 
+void
+MouseEvent::InitializeExtraMouseEventDictionaryMembers(const MouseEventInit& aParam)
+{
+  InitModifiers(aParam);
+  mEvent->AsMouseEventBase()->buttons = aParam.mButtons;
+  mMovementPoint.x = aParam.mMovementX;
+  mMovementPoint.y = aParam.mMovementY;
+}
+
 already_AddRefed<MouseEvent>
 MouseEvent::Constructor(const GlobalObject& aGlobal,
                         const nsAString& aType,
@@ -144,7 +155,7 @@ MouseEvent::Constructor(const GlobalObject& aGlobal,
                         ErrorResult& aRv)
 {
   nsCOMPtr<EventTarget> t = do_QueryInterface(aGlobal.GetAsSupports());
-  nsRefPtr<MouseEvent> e = new MouseEvent(t, nullptr, nullptr);
+  RefPtr<MouseEvent> e = new MouseEvent(t, nullptr, nullptr);
   bool trusted = e->Init(t);
   e->InitMouseEvent(aType, aParam.mBubbles, aParam.mCancelable,
                     aParam.mView, aParam.mDetail, aParam.mScreenX,
@@ -152,20 +163,8 @@ MouseEvent::Constructor(const GlobalObject& aGlobal,
                     aParam.mCtrlKey, aParam.mAltKey, aParam.mShiftKey,
                     aParam.mMetaKey, aParam.mButton, aParam.mRelatedTarget,
                     aRv);
+  e->InitializeExtraMouseEventDictionaryMembers(aParam);
   e->SetTrusted(trusted);
-
-  switch (e->mEvent->mClass) {
-    case eMouseEventClass:
-    case eMouseScrollEventClass:
-    case eWheelEventClass:
-    case eDragEventClass:
-    case ePointerEventClass:
-    case eSimpleGestureEventClass:
-      e->mEvent->AsMouseEventBase()->buttons = aParam.mButtons;
-      break;
-    default:
-      break;
-  }
 
   return e.forget();
 }
@@ -313,7 +312,7 @@ NS_IMETHODIMP
 MouseEvent::GetMozMovementX(int32_t* aMovementX)
 {
   NS_ENSURE_ARG_POINTER(aMovementX);
-  *aMovementX = MozMovementX();
+  *aMovementX = MovementX();
 
   return NS_OK;
 }
@@ -322,7 +321,7 @@ NS_IMETHODIMP
 MouseEvent::GetMozMovementY(int32_t* aMovementY)
 {
   NS_ENSURE_ARG_POINTER(aMovementY);
-  *aMovementY = MozMovementY();
+  *aMovementY = MovementY();
 
   return NS_OK;
 }
@@ -383,6 +382,20 @@ int32_t
 MouseEvent::ClientY()
 {
   return Event::GetClientCoords(mPresContext, mEvent, mEvent->refPoint,
+                                mClientPoint).y;
+}
+
+int32_t
+MouseEvent::OffsetX()
+{
+  return Event::GetOffsetCoords(mPresContext, mEvent, mEvent->refPoint,
+                                mClientPoint).x;
+}
+
+int32_t
+MouseEvent::OffsetY()
+{
+  return Event::GetOffsetCoords(mPresContext, mEvent, mEvent->refPoint,
                                 mClientPoint).y;
 }
 
@@ -466,6 +479,12 @@ MouseEvent::GetMozPressure(float* aPressure)
   return NS_OK;
 }
 
+bool
+MouseEvent::HitCluster() const
+{
+  return mEvent->AsMouseEventBase()->hitCluster;
+}
+
 uint16_t
 MouseEvent::MozInputSource() const
 {
@@ -486,14 +505,11 @@ MouseEvent::GetMozInputSource(uint16_t* aInputSource)
 using namespace mozilla;
 using namespace mozilla::dom;
 
-nsresult
-NS_NewDOMMouseEvent(nsIDOMEvent** aInstancePtrResult,
-                    EventTarget* aOwner,
+already_AddRefed<MouseEvent>
+NS_NewDOMMouseEvent(EventTarget* aOwner,
                     nsPresContext* aPresContext,
                     WidgetMouseEvent* aEvent)
 {
-  MouseEvent* it = new MouseEvent(aOwner, aPresContext, aEvent);
-  NS_ADDREF(it);
-  *aInstancePtrResult = static_cast<Event*>(it);
-  return NS_OK;
+  RefPtr<MouseEvent> it = new MouseEvent(aOwner, aPresContext, aEvent);
+  return it.forget();
 }

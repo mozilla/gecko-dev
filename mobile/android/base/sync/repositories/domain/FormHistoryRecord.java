@@ -22,7 +22,7 @@ public class FormHistoryRecord extends Record {
   public static final String  COLLECTION_NAME = "forms";
   private static final String PAYLOAD_NAME    = "name";
   private static final String PAYLOAD_VALUE   = "value";
-  public static final long FORMS_TTL = 60 * 24 * 60 * 60; // 60 days in seconds.
+  public static final long FORMS_TTL = 3 * 365 * 24 * 60 * 60;   // Three years in seconds.
 
   /**
    * The name of the saved form field.
@@ -86,7 +86,7 @@ public class FormHistoryRecord extends Record {
    */
   @Override
   public boolean congruentWith(Object o) {
-    if (o == null || !(o instanceof FormHistoryRecord)) {
+    if (!(o instanceof FormHistoryRecord)) {
       return false;
     }
     FormHistoryRecord other = (FormHistoryRecord) o;
@@ -99,7 +99,7 @@ public class FormHistoryRecord extends Record {
 
   @Override
   public boolean equalPayloads(Object o) {
-    if (o == null || !(o instanceof FormHistoryRecord)) {
+    if (!(o instanceof FormHistoryRecord)) {
       Logger.debug(LOG_TAG, "Not a FormHistoryRecord: " + o.getClass());
       return false;
     }

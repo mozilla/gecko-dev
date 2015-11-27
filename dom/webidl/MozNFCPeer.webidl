@@ -8,16 +8,31 @@
  * Copyright © 2013 Deutsche Telekom, Inc.
  */
 
-[JSImplementation="@mozilla.org/nfc/NFCPeer;1", AvailableIn="CertifiedApps"]
+[JSImplementation="@mozilla.org/nfc/peer;1", AvailableIn="PrivilegedApps"]
 interface MozNFCPeer {
+  /**
+   * Indicate if this peer is already lost.
+   */
+  readonly attribute boolean isLost;
+
+  /**
+   * Send NDEF data to peer device.
+   */
   [Throws]
-  DOMRequest sendNDEF(sequence<MozNDEFRecord> records);
-  [Throws]
-  DOMRequest sendFile(Blob blob);
+  Promise<void> sendNDEF(sequence<MozNDEFRecord> records);
+
+  /**
+   * Send file to peer device.
+   */
+  [Throws, CheckAnyPermissions="nfc-share", AvailableIn="CertifiedApps"]
+  Promise<void> sendFile(Blob blob);
 };
 
 // Mozilla Only
 partial interface MozNFCPeer {
   [ChromeOnly]
   attribute DOMString session;
+
+  [ChromeOnly]
+  void notifyLost();
 };

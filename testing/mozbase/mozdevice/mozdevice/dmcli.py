@@ -7,6 +7,7 @@ Command-line client to control a device
 """
 
 import errno
+import logging
 import os
 import posixpath
 import StringIO
@@ -134,9 +135,13 @@ class DMCli(object):
         self.parser = argparse.ArgumentParser()
         self.add_options(self.parser)
         self.add_commands(self.parser)
+        mozlog.commandline.add_logging_group(self.parser)
 
     def run(self, args=sys.argv[1:]):
         args = self.parser.parse_args()
+
+        mozlog.commandline.setup_logging(
+            'mozdevice', args, {'mach': sys.stdout})
 
         if args.dmtype == "sut" and not args.host and not args.hwid:
             self.parser.error("Must specify device ip in TEST_DEVICE or "
@@ -198,9 +203,9 @@ class DMCli(object):
         '''
         Returns a device with the specified parameters
         '''
-        logLevel = mozlog.ERROR
+        logLevel = logging.ERROR
         if verbose:
-            logLevel = mozlog.DEBUG
+            logLevel = logging.DEBUG
 
         if hwid:
             return mozdevice.DroidConnectByHWID(hwid, logLevel=logLevel)
@@ -282,14 +287,11 @@ class DMCli(object):
         info = self.dm.getInfo(directive=args.directive)
         for (infokey, infoitem) in sorted(info.iteritems()):
             if infokey == "process":
-                pass # skip process list: get that through ps
-            elif not args.directive and not infoitem:
-                print "%s:" % infokey.upper()
-            elif not args.directive:
-                for line in infoitem:
-                    print "%s: %s" % (infokey.upper(), line)
+                pass  # skip process list: get that through ps
+            elif args.directive is None:
+                print "%s: %s" % (infokey.upper(), infoitem)
             else:
-                print "%s" % "\n".join(infoitem)
+                print infoitem
 
     def logcat(self, args):
         print ''.join(self.dm.getLogcat())

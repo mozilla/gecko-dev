@@ -4,7 +4,18 @@
 
 package org.mozilla.search.autocomplete;
 
-import android.app.Activity;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.mozilla.gecko.R;
+import org.mozilla.gecko.SuggestClient;
+import org.mozilla.gecko.Telemetry;
+import org.mozilla.gecko.TelemetryContract;
+import org.mozilla.gecko.util.ColorUtils;
+import org.mozilla.search.AcceptsSearchQuery;
+import org.mozilla.search.AcceptsSearchQuery.SuggestionAnimation;
+import org.mozilla.search.providers.SearchEngine;
+
 import android.content.Context;
 import android.graphics.Rect;
 import android.os.Bundle;
@@ -21,17 +32,6 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ListView;
 
-import org.mozilla.gecko.SuggestClient;
-import org.mozilla.gecko.Telemetry;
-import org.mozilla.gecko.TelemetryContract;
-import org.mozilla.search.AcceptsSearchQuery;
-import org.mozilla.search.AcceptsSearchQuery.SuggestionAnimation;
-import org.mozilla.search.R;
-import org.mozilla.search.providers.SearchEngine;
-
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * A fragment to show search suggestions.
  */
@@ -47,9 +47,6 @@ public class SuggestionsFragment extends Fragment {
 
     // Number of search suggestions to show.
     private static final int SUGGESTION_MAX = 5;
-
-    // Color of search term match in search suggestion
-    private static final int SUGGESTION_HIGHLIGHT_COLOR = 0xFF999999;
 
     public static final String GECKO_SEARCH_TERMS_URL_PARAM = "__searchTerms__";
 
@@ -70,17 +67,17 @@ public class SuggestionsFragment extends Fragment {
     }
 
     @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
+    public void onAttach(Context context) {
+        super.onAttach(context);
 
-        if (activity instanceof AcceptsSearchQuery) {
-            searchListener = (AcceptsSearchQuery) activity;
+        if (context instanceof AcceptsSearchQuery) {
+            searchListener = (AcceptsSearchQuery) context;
         } else {
-            throw new ClassCastException(activity.toString() + " must implement AcceptsSearchQuery.");
+            throw new ClassCastException(context.toString() + " must implement AcceptsSearchQuery.");
         }
 
         suggestionLoaderCallbacks = new SuggestionLoaderCallbacks();
-        autoCompleteAdapter = new AutoCompleteAdapter(activity);
+        autoCompleteAdapter = new AutoCompleteAdapter(context);
     }
 
     @Override
@@ -109,7 +106,7 @@ public class SuggestionsFragment extends Fragment {
                 view.getGlobalVisibleRect(startBounds);
 
                 // The user tapped on a suggestion from the search engine.
-                Telemetry.sendUIEvent(TelemetryContract.Event.SEARCH, TelemetryContract.Method.SUGGESTION, "suggest");
+                Telemetry.sendUIEvent(TelemetryContract.Event.SEARCH, TelemetryContract.Method.SUGGESTION, position);
 
                 searchListener.onSearch(suggestion.value, new SuggestionAnimation() {
                     @Override
@@ -136,7 +133,7 @@ public class SuggestionsFragment extends Fragment {
 
     public void setEngine(SearchEngine engine) {
         suggestClient = new SuggestClient(getActivity(), engine.getSuggestionTemplate(GECKO_SEARCH_TERMS_URL_PARAM),
-                SUGGESTION_TIMEOUT, SUGGESTION_MAX);
+                                          SUGGESTION_TIMEOUT, SUGGESTION_MAX, true);
     }
 
     public void loadSuggestions(String query) {
@@ -156,21 +153,21 @@ public class SuggestionsFragment extends Fragment {
 
     public static class Suggestion {
 
-        private static final ForegroundColorSpan COLOR_SPAN =
-                new ForegroundColorSpan(SUGGESTION_HIGHLIGHT_COLOR);
-
         public final String value;
         public final SpannableString display;
+        public final ForegroundColorSpan colorSpan;
 
-        public Suggestion(String value, String searchTerm) {
+        public Suggestion(String value, String searchTerm, int suggestionHighlightColor) {
             this.value = value;
 
             display = new SpannableString(value);
 
+            colorSpan = new ForegroundColorSpan(suggestionHighlightColor);
+
             // Highlight mixed-case matches.
             final int start = value.toLowerCase().indexOf(searchTerm.toLowerCase());
             if (start >= 0) {
-                display.setSpan(COLOR_SPAN, start, start + searchTerm.length(), 0);
+                display.setSpan(colorSpan, start, start + searchTerm.length(), 0);
             }
         }
     }
@@ -206,12 +203,16 @@ public class SuggestionsFragment extends Fragment {
         private final SuggestClient suggestClient;
         private final String searchTerm;
         private List<Suggestion> suggestions;
+        private final int suggestionHighlightColor;
 
         public SuggestionAsyncLoader(Context context, SuggestClient suggestClient, String searchTerm) {
             super(context);
             this.suggestClient = suggestClient;
             this.searchTerm = searchTerm;
             this.suggestions = null;
+
+            // Color of search term match in search suggestion
+            suggestionHighlightColor = ColorUtils.getColor(context, R.color.suggestion_highlight);
         }
 
         @Override
@@ -220,7 +221,7 @@ public class SuggestionsFragment extends Fragment {
 
             final List<Suggestion> result = new ArrayList<Suggestion>(values.size());
             for (String value : values) {
-                result.add(new Suggestion(value, searchTerm));
+                result.add(new Suggestion(value, searchTerm, suggestionHighlightColor));
             }
 
             return result;

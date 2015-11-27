@@ -24,7 +24,7 @@ Cu.import("resource://gre/modules/Services.jsm");
  * This object handles channel registration, origin validation and message multiplexing.
  */
 
-let WebChannelBroker = Object.create({
+var WebChannelBroker = Object.create({
   /**
    * Register a new channel that callbacks messages
    * based on proper origin and channel name
@@ -66,26 +66,30 @@ let WebChannelBroker = Object.create({
    */
   _listener: function (event) {
     let data = event.data;
-    let sender = event.target;
+    let sendingContext = {
+      browser: event.target,
+      eventTarget: event.objects.eventTarget,
+      principal: event.principal,
+    };
 
     if (data && data.id) {
       if (!event.principal) {
-        this._sendErrorEventToContent(data.id, sender, "Message principal missing");
+        this._sendErrorEventToContent(data.id, sendingContext, "Message principal missing");
       } else {
         let validChannelFound = false;
         data.message = data.message || {};
 
         for (var channel of this._channelMap.keys()) {
           if (channel.id === data.id &&
-            channel.origin.prePath === event.principal.origin) {
+            channel._originCheckCallback(event.principal)) {
             validChannelFound = true;
-            channel.deliver(data, sender);
+            channel.deliver(data, sendingContext);
           }
         }
 
         // if no valid origins send an event that there is no such valid channel
         if (!validChannelFound) {
-          this._sendErrorEventToContent(data.id, sender, "No Such Channel");
+          this._sendErrorEventToContent(data.id, sendingContext, "No Such Channel");
         }
       }
     } else {
@@ -108,20 +112,24 @@ let WebChannelBroker = Object.create({
    *
    * @param id {String}
    *        The WebChannel id to include in the message
-   * @param sender {EventTarget}
-   *        EventTarget with a "messageManager" that will send be used to send the message
+   * @param sendingContext {Object}
+   *        Message sending context
    * @param [errorMsg] {String}
    *        Error message
    * @private
    */
-  _sendErrorEventToContent: function (id, sender, errorMsg) {
+  _sendErrorEventToContent: function (id, sendingContext, errorMsg) {
+    let { browser: targetBrowser, eventTarget, principal: targetPrincipal } = sendingContext;
+
     errorMsg = errorMsg || "Web Channel Broker error";
 
-    if (sender.messageManager) {
-      sender.messageManager.sendAsyncMessage("WebChannelMessageToContent", {
+    if (targetBrowser && targetBrowser.messageManager) {
+      targetBrowser.messageManager.sendAsyncMessage("WebChannelMessageToContent", {
         id: id,
         error: errorMsg,
-      }, sender);
+      }, { eventTarget: eventTarget }, targetPrincipal);
+    } else {
+      Cu.reportError("Failed to send a WebChannel error. Target invalid.");
     }
     Cu.reportError(id.toString() + " error message. " + errorMsg);
   },
@@ -133,17 +141,43 @@ let WebChannelBroker = Object.create({
  *
  * @param id {String}
  *        WebChannel id
- * @param origin {nsIURI}
- *        Valid origin that should be part of requests for this channel
+ * @param originOrPermission {nsIURI/string}
+ *        If an nsIURI, a valid origin that should be part of requests for
+ *        this channel.  If a string, a permission for which the permission
+ *        manager will be checked to determine if the request is allowed. Note
+ *        that in addition to the permission manager check, the request must
+ *        be made over https://
  * @constructor
  */
-this.WebChannel = function(id, origin) {
-  if (!id || !origin) {
-    throw new Error("WebChannel id and origin are required.");
+this.WebChannel = function(id, originOrPermission) {
+  if (!id || !originOrPermission) {
+    throw new Error("WebChannel id and originOrPermission are required.");
   }
 
   this.id = id;
-  this.origin = origin;
+  // originOrPermission can be either an nsIURI or a string representing a
+  // permission name.
+  if (typeof originOrPermission == "string") {
+    this._originCheckCallback = requestPrincipal => {
+      // The permission manager operates on domain names rather than true
+      // origins (bug 1066517).  To mitigate that, we explicitly check that
+      // the scheme is https://.
+      let uri = Services.io.newURI(requestPrincipal.origin, null, null);
+      if (uri.scheme != "https") {
+        return false;
+      }
+      // OK - we have https - now we can check the permission.
+      let perm = Services.perms.testExactPermissionFromPrincipal(requestPrincipal,
+                                                                 originOrPermission);
+      return perm == Ci.nsIPermissionManager.ALLOW_ACTION;
+    }
+  } else {
+    // a simple URI, so just check for an exact match.
+    this._originCheckCallback = requestPrincipal => {
+      return originOrPermission.prePath === requestPrincipal.origin;
+    }
+  }
+  this._originOrPermission = originOrPermission;
 };
 
 this.WebChannel.prototype = {
@@ -154,9 +188,16 @@ this.WebChannel.prototype = {
   id: null,
 
   /**
-   * WebChannel origin
+   * The originOrPermission value passed to the constructor, mainly for
+   * debugging and tests.
    */
-  origin: null,
+  _originOrPermission: null,
+
+  /**
+   * Callback that will be called with the principal of an incoming message
+   * to check if the request should be dispatched to the listeners.
+   */
+  _originCheckCallback: null,
 
   /**
    * WebChannelBroker that manages WebChannels
@@ -178,8 +219,17 @@ this.WebChannel.prototype = {
    *        The WebChannel id that was used for this message
    *        @param {Object} message
    *        The message itself
-   *        @param {EventTarget} sender
-   *        The source of the message
+   *        @param sendingContext {Object}
+   *        The sending context of the source of the message. Can be passed to
+   *        `send` to respond to a message.
+   *               @param sendingContext.browser {browser}
+   *                      The <browser> object that captured the
+   *                      WebChannelMessageToChrome.
+   *               @param sendingContext.eventTarget {EventTarget}
+   *                      The <EventTarget> where the message was sent.
+   *               @param sendingContext.principal {Principal}
+   *                      The <Principal> of the EventTarget where the
+   *                      message was sent.
    */
   listen: function (callback) {
     if (this._deliverCallback) {
@@ -206,16 +256,27 @@ this.WebChannel.prototype = {
    *
    * @param message {Object}
    *        The message object that will be sent
-   * @param target {browser}
-   *        The <browser> object that has a "messageManager" that sends messages
-   *
+   * @param target {Object}
+   *        A <target> with the information of where to send the message.
+   *        @param target.browser {browser}
+   *               The <browser> object with a "messageManager" that will
+   *               be used to send the message.
+   *        @param target.principal {Principal}
+   *               Principal of the target. Prevents messages from
+   *               being dispatched to unexpected origins. The system principal
+   *               can be specified to send to any target.
+   *        @param [target.eventTarget] {EventTarget}
+   *               Optional eventTarget within the browser, use to send to a
+   *               specific element, e.g., an iframe.
    */
   send: function (message, target) {
-    if (message && target && target.messageManager) {
-      target.messageManager.sendAsyncMessage("WebChannelMessageToContent", {
+    let { browser, principal, eventTarget } = target;
+
+    if (message && browser && browser.messageManager && principal) {
+      browser.messageManager.sendAsyncMessage("WebChannelMessageToContent", {
         id: this.id,
         message: message
-      });
+      }, { eventTarget }, principal);
     } else if (!message) {
       Cu.reportError("Failed to send a WebChannel message. Message not set.");
     } else {
@@ -228,19 +289,28 @@ this.WebChannel.prototype = {
    *
    * @param data {Object}
    *        Message data
-   * @param sender {browser}
-   *        Message sender
+   * @param sendingContext {Object}
+   *        Message sending context.
+   *        @param sendingContext.browser {browser}
+   *               The <browser> object that captured the
+   *               WebChannelMessageToChrome.
+   *        @param sendingContext.eventTarget {EventTarget}
+   *               The <EventTarget> where the message was sent.
+   *        @param sendingContext.principal {Principal}
+   *               The <Principal> of the EventTarget where the message was sent.
+   *
    */
-  deliver: function(data, sender) {
+  deliver: function(data, sendingContext) {
     if (this._deliverCallback) {
       try {
-        this._deliverCallback(data.id, data.message, sender);
+        this._deliverCallback(data.id, data.message, sendingContext);
       } catch (ex) {
         this.send({
           errno: ERRNO_UNKNOWN_ERROR,
           error: ex.message ? ex.message : ERROR_UNKNOWN
-        }, sender);
-        Cu.reportError("Failed to execute callback:" + ex);
+        }, sendingContext);
+        Cu.reportError("Failed to execute WebChannel callback:");
+        Cu.reportError(ex);
       }
     } else {
       Cu.reportError("No callback set for this channel.");

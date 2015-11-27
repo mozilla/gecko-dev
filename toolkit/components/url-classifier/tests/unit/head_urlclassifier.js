@@ -6,10 +6,10 @@ function dumpn(s) {
 const NS_APP_USER_PROFILE_50_DIR = "ProfD";
 const NS_APP_USER_PROFILE_LOCAL_50_DIR = "ProfLD";
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
-const Cr = Components.results;
+var Cc = Components.classes;
+var Ci = Components.interfaces;
+var Cu = Components.utils;
+var Cr = Components.results;
 
 Cu.import("resource://testing-common/httpd.js");
 
@@ -53,13 +53,27 @@ function cleanUp() {
   delFile("safebrowsing/classifier.hashkey");
   delFile("safebrowsing/test-phish-simple.sbstore");
   delFile("safebrowsing/test-malware-simple.sbstore");
+  delFile("safebrowsing/test-unwanted-simple.sbstore");
+  delFile("safebrowsing/test-forbid-simple.sbstore");
+  delFile("safebrowsing/test-track-simple.sbstore");
+  delFile("safebrowsing/test-trackwhite-simple.sbstore");
   delFile("safebrowsing/test-phish-simple.cache");
   delFile("safebrowsing/test-malware-simple.cache");
+  delFile("safebrowsing/test-unwanted-simple.cache");
+  delFile("safebrowsing/test-forbid-simple.cache");
+  delFile("safebrowsing/test-track-simple.cache");
+  delFile("safebrowsing/test-trackwhite-simple.cache");
   delFile("safebrowsing/test-phish-simple.pset");
   delFile("safebrowsing/test-malware-simple.pset");
+  delFile("safebrowsing/test-unwanted-simple.pset");
+  delFile("safebrowsing/test-forbid-simple.pset");
+  delFile("safebrowsing/test-track-simple.pset");
+  delFile("safebrowsing/test-trackwhite-simple.pset");
+  delFile("testLarge.pset");
+  delFile("testNoDelta.pset");
 }
 
-var allTables = "test-phish-simple,test-malware-simple";
+var allTables = "test-phish-simple,test-malware-simple,test-unwanted-simple,test-forbid-simple,test-track-simple,test-trackwhite-simple";
 
 var dbservice = Cc["@mozilla.org/url-classifier/dbservice;1"].getService(Ci.nsIUrlClassifierDBService);
 var streamUpdater = Cc["@mozilla.org/url-classifier/streamupdater;1"]
@@ -112,6 +126,14 @@ function buildMalwareUpdate(chunks, hashSize) {
   return buildUpdate({"test-malware-simple" : chunks}, hashSize);
 }
 
+function buildUnwantedUpdate(chunks, hashSize) {
+  return buildUpdate({"test-unwanted-simple" : chunks}, hashSize);
+}
+
+function buildForbiddenUpdate(chunks, hashSize) {
+  return buildUpdate({"test-forbid-simple" : chunks}, hashSize);
+}
+
 function buildBareUpdate(chunks, hashSize) {
   return buildUpdate({"" : chunks}, hashSize);
 }
@@ -135,8 +157,7 @@ function doSimpleUpdate(updateText, success, failure) {
     updateSuccess: function(requestedTimeout) { success(requestedTimeout); }
   };
 
-  dbservice.beginUpdate(listener,
-                        "test-phish-simple,test-malware-simple");
+  dbservice.beginUpdate(listener, allTables);
   dbservice.beginStream("", "");
   dbservice.updateStream(updateText);
   dbservice.finishStream();
@@ -174,10 +195,11 @@ function doErrorUpdate(tables, success, failure) {
 function doStreamUpdate(updateText, success, failure, downloadFailure) {
   var dataUpdate = "data:," + encodeURIComponent(updateText);
 
-  if (!downloadFailure)
+  if (!downloadFailure) {
     downloadFailure = failure;
+  }
 
-  streamUpdater.downloadUpdates("test-phish-simple,test-malware-simple", "",
+  streamUpdater.downloadUpdates(allTables, "",
                                 dataUpdate, success, failure, downloadFailure);
 }
 
@@ -206,7 +228,7 @@ checkUrls: function(urls, expected, cb)
   var doLookup = function() {
     if (urls.length > 0) {
       var fragment = urls.shift();
-      var principal = secMan.getNoAppCodebasePrincipal(iosvc.newURI("http://" + fragment, null, null));
+      var principal = secMan.createCodebasePrincipal(iosvc.newURI("http://" + fragment, null, null), {});
       dbservice.lookup(principal, allTables,
                                 function(arg) {
                                   do_check_eq(expected, arg);
@@ -232,6 +254,16 @@ urlsExist: function(urls, cb)
 malwareUrlsExist: function(urls, cb)
 {
   this.checkUrls(urls, 'test-malware-simple', cb);
+},
+
+unwantedUrlsExist: function(urls, cb)
+{
+  this.checkUrls(urls, 'test-unwanted-simple', cb);
+},
+
+forbiddenUrlsExist: function(urls, cb)
+{
+  this.checkUrls(urls, 'test-forbid-simple', cb);
 },
 
 subsDontExist: function(urls, cb)

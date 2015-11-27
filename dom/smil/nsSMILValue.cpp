@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -43,6 +44,35 @@ nsSMILValue::operator=(const nsSMILValue& aVal)
   return *this;
 }
 
+// Move constructor / reassignment operator:
+nsSMILValue::nsSMILValue(nsSMILValue&& aVal)
+  : mU(aVal.mU), // Copying union is only OK because we clear aVal.mType below.
+    mType(aVal.mType)
+{
+  // Leave aVal with a null type, so that it's safely destructible (and won't
+  // mess with anything referenced by its union, which we've copied).
+  aVal.mType = nsSMILNullType::Singleton();
+}
+
+nsSMILValue&
+nsSMILValue::operator=(nsSMILValue&& aVal)
+{
+  if (!IsNull()) {
+    // Clean up any data we're currently tracking.
+    DestroyAndCheckPostcondition();
+  }
+
+  // Copy the union (which could include a pointer to external memory) & mType:
+  mU = aVal.mU;
+  mType = aVal.mType;
+
+  // Leave aVal with a null type, so that it's safely destructible (and won't
+  // mess with anything referenced by its union, which we've now copied).
+  aVal.mType = nsSMILNullType::Singleton();
+
+  return *this;
+}
+
 bool
 nsSMILValue::operator==(const nsSMILValue& aVal) const
 {
@@ -50,19 +80,6 @@ nsSMILValue::operator==(const nsSMILValue& aVal) const
     return true;
 
   return mType == aVal.mType && mType->IsEqual(*this, aVal);
-}
-
-void
-nsSMILValue::Swap(nsSMILValue& aOther)
-{
-  nsSMILValue tmp;
-  memcpy(&tmp,    &aOther, sizeof(nsSMILValue));  // tmp    = aOther
-  memcpy(&aOther, this,    sizeof(nsSMILValue));  // aOther = this
-  memcpy(this,    &tmp,    sizeof(nsSMILValue));  // this   = tmp
-
-  // |tmp| is about to die -- we need to clear its mType, so that its
-  // destructor doesn't muck with the data we just transferred out of it.
-  tmp.mType = nsSMILNullType::Singleton();
 }
 
 nsresult
@@ -124,16 +141,17 @@ void
 nsSMILValue::InitAndCheckPostcondition(const nsISMILType* aNewType)
 {
   aNewType->Init(*this);
-  NS_ABORT_IF_FALSE(mType == aNewType,
-                    "Post-condition of Init failed. nsSMILValue is invalid");
+  MOZ_ASSERT(mType == aNewType,
+             "Post-condition of Init failed. nsSMILValue is invalid");
 }
                 
 void
 nsSMILValue::DestroyAndCheckPostcondition()
 {
   mType->Destroy(*this);
-  NS_ABORT_IF_FALSE(IsNull(), "Post-condition of Destroy failed. "
-                    "nsSMILValue not null after destroying");
+  MOZ_ASSERT(IsNull(),
+             "Post-condition of Destroy failed. "
+             "nsSMILValue not null after destroying");
 }
 
 void

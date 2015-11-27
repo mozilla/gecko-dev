@@ -1,3 +1,4 @@
+// |reftest| skip-if(!xulRuntime.shell)
 /* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -81,46 +82,6 @@ function test()
     s = e + "";
   }
   expect("hello", s);
-
-/*
- * __noSuchMethod__
- */
-  o = {};
-  s = "no exception";
-  try {
-    o.hello();
-  } catch (e) {
-    s = e + "";
-  }
-  expect("TypeError: o.hello is not a function", s);
-  o.__noSuchMethod__ = (function() { return "world"; });
-  expect("world", o.hello());
-  o.__noSuchMethod__ = 1;
-  s = "no exception";
-  try {
-    o.hello();
-  } catch (e) {
-    s = e + "";
-  }
-  expect("TypeError: o.hello is not a function", s);
-  o.__noSuchMethod__ = {};
-  s = "no exception";
-  try {
-    o.hello();
-  } catch (e) {
-    s = e + "";
-  }
-  expect("TypeError: ({}) is not a function", s);
-  s = "no exception";
-  try {
-    eval("o.hello()");
-  } catch (e) {
-    s = e + "";
-  }
-  expect("TypeError: ({}) is not a function", s);
-  s = "no exception";
-  try { [2, 3, 0].sort({}); } catch (e) { s = e + ""; }
-  expect("TypeError: ({}) is not a function", s);
 
 /*
  * Generator expressions.

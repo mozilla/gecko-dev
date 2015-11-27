@@ -10,11 +10,13 @@
 
 #include "webrtc/modules/remote_bitrate_estimator/test/bwe_test.h"
 
-#include "webrtc/modules/remote_bitrate_estimator/test/bwe_test_baselinefile.h"
+#include "webrtc/base/common.h"
+#include "webrtc/base/scoped_ptr.h"
+#include "webrtc/modules/interface/module_common_types.h"
 #include "webrtc/modules/remote_bitrate_estimator/test/bwe_test_framework.h"
-#include "webrtc/modules/remote_bitrate_estimator/include/remote_bitrate_estimator.h"
+#include "webrtc/modules/remote_bitrate_estimator/test/packet_receiver.h"
+#include "webrtc/modules/remote_bitrate_estimator/test/packet_sender.h"
 #include "webrtc/system_wrappers/interface/clock.h"
-#include "webrtc/system_wrappers/interface/scoped_ptr.h"
 
 using std::string;
 using std::vector;
@@ -23,149 +25,78 @@ namespace webrtc {
 namespace testing {
 namespace bwe {
 
-namespace stl_helpers {
-template<typename T> void DeleteElements(T* container) {
-  if (!container) return;
-  for (typename T::iterator it = container->begin(); it != container->end();
-      ++it) {
-    delete *it;
-  }
-  container->clear();
+PacketProcessorRunner::PacketProcessorRunner(PacketProcessor* processor)
+    : processor_(processor) {
 }
-}  // namespace stl_helpers
 
-class BweTest::TestedEstimator : public RemoteBitrateObserver {
- public:
-  static const uint32_t kRemoteBitrateEstimatorMinBitrateBps = 30000;
+PacketProcessorRunner::~PacketProcessorRunner() {
+  for (Packet* packet : queue_)
+    delete packet;
+}
 
-  TestedEstimator(const string& test_name,
-                  const BweTestConfig::EstimatorConfig& config)
-      : debug_name_(config.debug_name),
-        clock_(0),
-        stats_(),
-        relative_estimator_stats_(),
-        latest_estimate_bps_(-1),
-        estimator_(config.estimator_factory->Create(
-            this, &clock_, kRemoteBitrateEstimatorMinBitrateBps)),
-        relative_estimator_(NULL),
-        baseline_(BaseLineFileInterface::Create(test_name + "_" + debug_name_,
-                                                config.update_baseline)) {
-    assert(estimator_.get());
-    assert(baseline_.get());
-    // Default RTT in RemoteRateControl is 200 ms ; 50 ms is more realistic.
-    estimator_->OnRttUpdate(50);
+bool PacketProcessorRunner::RunsProcessor(
+    const PacketProcessor* processor) const {
+  return processor == processor_;
+}
+
+void PacketProcessorRunner::RunFor(int64_t time_ms,
+                                   int64_t time_now_ms,
+                                   Packets* in_out) {
+  Packets to_process;
+  FindPacketsToProcess(processor_->flow_ids(), in_out, &to_process);
+  processor_->RunFor(time_ms, &to_process);
+  QueuePackets(&to_process, time_now_ms * 1000);
+  if (!to_process.empty()) {
+    processor_->Plot((to_process.back()->send_time_us() + 500) / 1000);
   }
+  in_out->merge(to_process, DereferencingComparator<Packet>);
+}
 
-  void SetRelativeEstimator(TestedEstimator* relative_estimator) {
-    relative_estimator_ = relative_estimator;
-  }
-
-  void EatPacket(const Packet& packet) {
-    BWE_TEST_LOGGING_CONTEXT(debug_name_);
-
-    latest_estimate_bps_ = -1;
-
-    // We're treating the send time (from previous filter) as the arrival
-    // time once packet reaches the estimator.
-    int64_t packet_time_ms = (packet.send_time_us() + 500) / 1000;
-    BWE_TEST_LOGGING_TIME(packet_time_ms);
-    BWE_TEST_LOGGING_PLOT("Delay_#2", clock_.TimeInMilliseconds(),
-                          packet_time_ms -
-                          (packet.creation_time_us() + 500) / 1000);
-
-    int64_t step_ms = estimator_->TimeUntilNextProcess();
-    while ((clock_.TimeInMilliseconds() + step_ms) < packet_time_ms) {
-      clock_.AdvanceTimeMilliseconds(step_ms);
-      estimator_->Process();
-      step_ms = estimator_->TimeUntilNextProcess();
-    }
-    estimator_->IncomingPacket(packet_time_ms, packet.payload_size(),
-                               packet.header());
-    clock_.AdvanceTimeMilliseconds(packet_time_ms -
-                                   clock_.TimeInMilliseconds());
-    ASSERT_TRUE(packet_time_ms == clock_.TimeInMilliseconds());
-  }
-
-  bool CheckEstimate(PacketSender::Feedback* feedback) {
-    assert(feedback);
-    BWE_TEST_LOGGING_CONTEXT(debug_name_);
-    uint32_t estimated_bps = 0;
-    if (LatestEstimate(&estimated_bps)) {
-      feedback->estimated_bps = estimated_bps;
-      baseline_->Estimate(clock_.TimeInMilliseconds(), estimated_bps);
-
-      double estimated_kbps = static_cast<double>(estimated_bps) / 1000.0;
-      stats_.Push(estimated_kbps);
-      BWE_TEST_LOGGING_PLOT("Estimate_#1", clock_.TimeInMilliseconds(),
-                            estimated_kbps);
-      uint32_t relative_estimate_bps = 0;
-      if (relative_estimator_ &&
-          relative_estimator_->LatestEstimate(&relative_estimate_bps)) {
-        double relative_estimate_kbps =
-            static_cast<double>(relative_estimate_bps) / 1000.0;
-        relative_estimator_stats_.Push(estimated_kbps - relative_estimate_kbps);
-      }
-      return true;
-    }
-    return false;
-  }
-
-  void LogStats() {
-    BWE_TEST_LOGGING_CONTEXT(debug_name_);
-    BWE_TEST_LOGGING_CONTEXT("Mean");
-    stats_.Log("kbps");
-    if (relative_estimator_) {
-      BWE_TEST_LOGGING_CONTEXT("Diff");
-      relative_estimator_stats_.Log("kbps");
+void PacketProcessorRunner::FindPacketsToProcess(const FlowIds& flow_ids,
+                                                 Packets* in,
+                                                 Packets* out) {
+  assert(out->empty());
+  for (Packets::iterator it = in->begin(); it != in->end();) {
+    // TODO(holmer): Further optimize this by looking for consecutive flow ids
+    // in the packet list and only doing the binary search + splice once for a
+    // sequence.
+    if (flow_ids.find((*it)->flow_id()) != flow_ids.end()) {
+      Packets::iterator next = it;
+      ++next;
+      out->splice(out->end(), *in, it);
+      it = next;
+    } else {
+      ++it;
     }
   }
+}
 
-  void VerifyOrWriteBaseline() {
-    EXPECT_TRUE(baseline_->VerifyOrWrite());
+void PacketProcessorRunner::QueuePackets(Packets* batch,
+                                         int64_t end_of_batch_time_us) {
+  queue_.merge(*batch, DereferencingComparator<Packet>);
+  if (queue_.empty()) {
+    return;
   }
-
-  virtual void OnReceiveBitrateChanged(const vector<unsigned int>& ssrcs,
-                                       unsigned int bitrate) {
-  }
-
- private:
-  bool LatestEstimate(uint32_t* estimate_bps) {
-    if (latest_estimate_bps_ < 0) {
-      vector<unsigned int> ssrcs;
-      unsigned int bps = 0;
-      if (!estimator_->LatestEstimate(&ssrcs, &bps)) {
-        return false;
-      }
-      latest_estimate_bps_ = bps;
+  Packets::iterator it = queue_.begin();
+  for (; it != queue_.end(); ++it) {
+    if ((*it)->send_time_us() > end_of_batch_time_us) {
+      break;
     }
-    *estimate_bps = latest_estimate_bps_;
-    return true;
   }
-
-  string debug_name_;
-  SimulatedClock clock_;
-  Stats<double> stats_;
-  Stats<double> relative_estimator_stats_;
-  int64_t latest_estimate_bps_;
-  scoped_ptr<RemoteBitrateEstimator> estimator_;
-  TestedEstimator* relative_estimator_;
-  scoped_ptr<BaseLineFileInterface> baseline_;
-
-  DISALLOW_IMPLICIT_CONSTRUCTORS(TestedEstimator);
-};
+  Packets to_transfer;
+  to_transfer.splice(to_transfer.begin(), queue_, queue_.begin(), it);
+  batch->merge(to_transfer, DereferencingComparator<Packet>);
+}
 
 BweTest::BweTest()
-    : run_time_ms_(0),
-      simulation_interval_ms_(-1),
-      previous_packets_(),
-      packet_senders_(),
-      estimators_(),
-      processors_() {
+    : run_time_ms_(0), time_now_ms_(-1), simulation_interval_ms_(-1) {
+  links_.push_back(&uplink_);
+  links_.push_back(&downlink_);
 }
 
 BweTest::~BweTest() {
-  stl_helpers::DeleteElements(&estimators_);
-  stl_helpers::DeleteElements(&packet_senders_);
+  for (Packet* packet : packets_)
+    delete packet;
 }
 
 void BweTest::SetUp() {
@@ -174,65 +105,41 @@ void BweTest::SetUp() {
   string test_name =
       string(test_info->test_case_name()) + "_" + string(test_info->name());
   BWE_TEST_LOGGING_GLOBAL_CONTEXT(test_name);
-
-  const BweTestConfig& config = GetParam();
-
-  uint32_t total_capacity = 0;
-  for (vector<const PacketSenderFactory*>::const_iterator it =
-      config.sender_factories.begin(); it != config.sender_factories.end();
-      ++it) {
-    PacketSender* sender = (*it)->Create();
-    assert(sender);
-    total_capacity += sender->GetCapacityKbps();
-    packet_senders_.push_back(sender);
-    processors_.push_back(sender);
-  }
-  BWE_TEST_LOGGING_LOG1("RequiredLinkCapacity", "%d kbps", total_capacity)
-
-  // Set simulation interval from first packet sender.
-  if (packet_senders_.size() > 0) {
-    simulation_interval_ms_ = packet_senders_[0]->GetFeedbackIntervalMs();
-  }
-
-  for (vector<BweTestConfig::EstimatorConfig>:: const_iterator it =
-      config.estimator_configs.begin(); it != config.estimator_configs.end();
-      ++it) {
-    estimators_.push_back(new TestedEstimator(test_name, *it));
-  }
-  if (estimators_.size() > 1) {
-    // Set all estimators as relative to the first one.
-    for (uint32_t i = 1; i < estimators_.size(); ++i) {
-      estimators_[i]->SetRelativeEstimator(estimators_[0]);
-    }
-  }
-
   BWE_TEST_LOGGING_GLOBAL_ENABLE(false);
 }
 
-void BweTest::TearDown() {
-  BWE_TEST_LOGGING_GLOBAL_ENABLE(true);
-
-  for (vector<TestedEstimator*>::iterator eit = estimators_.begin();
-      eit != estimators_.end(); ++eit) {
-    (*eit)->VerifyOrWriteBaseline();
-    (*eit)->LogStats();
-  }
-
-  BWE_TEST_LOGGING_GLOBAL_CONTEXT("");
-}
-
-void BweTest::AddPacketProcessor(
-    PacketProcessor* processor) {
+void Link::AddPacketProcessor(PacketProcessor* processor,
+                              ProcessorType processor_type) {
   assert(processor);
-  processors_.push_back(processor);
+  switch (processor_type) {
+    case kSender:
+      senders_.push_back(static_cast<PacketSender*>(processor));
+      break;
+    case kReceiver:
+      receivers_.push_back(static_cast<PacketReceiver*>(processor));
+      break;
+    case kRegular:
+      break;
+  }
+  processors_.push_back(PacketProcessorRunner(processor));
 }
 
-void BweTest::RemovePacketProcessor(
-    PacketProcessor* processor) {
-  vector<PacketProcessor*>::iterator it =
-      std::find(processors_.begin(), processors_.end(), processor);
-  assert(it != processors_.end());
-  processors_.erase(it);
+void Link::RemovePacketProcessor(PacketProcessor* processor) {
+  for (vector<PacketProcessorRunner>::iterator it = processors_.begin();
+       it != processors_.end(); ++it) {
+    if (it->RunsProcessor(processor)) {
+      processors_.erase(it);
+      return;
+    }
+  }
+  assert(false);
+}
+
+// Ownership of the created packets is handed over to the caller.
+void Link::Run(int64_t run_for_ms, int64_t now_ms, Packets* packets) {
+  for (auto& processor : processors_) {
+    processor.RunFor(run_for_ms, now_ms, packets);
+  }
 }
 
 void BweTest::VerboseLogging(bool enable) {
@@ -240,45 +147,33 @@ void BweTest::VerboseLogging(bool enable) {
 }
 
 void BweTest::RunFor(int64_t time_ms) {
-  for (run_time_ms_ += time_ms; run_time_ms_ >= simulation_interval_ms_;
-      run_time_ms_ -= simulation_interval_ms_) {
-    Packets packets;
-    for (vector<PacketProcessor*>::const_iterator it =
-         processors_.begin(); it != processors_.end(); ++it) {
-      (*it)->RunFor(simulation_interval_ms_, &packets);
-      (*it)->Plot((packets.back().send_time_us() + 500) / 1000);
-    }
-
-    // Verify packets are in order between batches.
-    if (!packets.empty() && !previous_packets_.empty()) {
-      packets.splice(packets.begin(), previous_packets_,
-                     --previous_packets_.end());
-      ASSERT_TRUE(IsTimeSorted(packets));
-      packets.erase(packets.begin());
-    } else {
-      ASSERT_TRUE(IsTimeSorted(packets));
-    }
-
-    for (PacketsConstIt pit = packets.begin(); pit != packets.end(); ++pit) {
-      for (vector<TestedEstimator*>::iterator eit = estimators_.begin();
-          eit != estimators_.end(); ++eit) {
-        (*eit)->EatPacket(*pit);
-      }
-    }
-
-    previous_packets_.swap(packets);
-
-    for (vector<TestedEstimator*>::iterator eit = estimators_.begin();
-        eit != estimators_.end(); ++eit) {
-      PacketSender::Feedback feedback = {0};
-      if ((*eit)->CheckEstimate(&feedback)) {
-        for (vector<PacketSender*>::iterator psit = packet_senders_.begin();
-            psit != packet_senders_.end(); ++psit) {
-          (*psit)->GiveFeedback(feedback);
-        }
-      }
-    }
+  // Set simulation interval from first packet sender.
+  // TODO(holmer): Support different feedback intervals for different flows.
+  if (!uplink_.senders().empty()) {
+    simulation_interval_ms_ = uplink_.senders()[0]->GetFeedbackIntervalMs();
+  } else if (!downlink_.senders().empty()) {
+    simulation_interval_ms_ = downlink_.senders()[0]->GetFeedbackIntervalMs();
   }
+  assert(simulation_interval_ms_ > 0);
+  if (time_now_ms_ == -1) {
+    time_now_ms_ = simulation_interval_ms_;
+  }
+  for (run_time_ms_ += time_ms;
+       time_now_ms_ <= run_time_ms_ - simulation_interval_ms_;
+       time_now_ms_ += simulation_interval_ms_) {
+    // Packets are first generated on the first link, passed through all the
+    // PacketProcessors and PacketReceivers. The PacketReceivers produces
+    // FeedbackPackets which are then processed by the next link, where they
+    // at some point will be consumed by a PacketSender.
+    for (Link* link : links_)
+      link->Run(simulation_interval_ms_, time_now_ms_, &packets_);
+  }
+}
+
+string BweTest::GetTestName() const {
+  const ::testing::TestInfo* const test_info =
+      ::testing::UnitTest::GetInstance()->current_test_info();
+  return string(test_info->name());
 }
 }  // namespace bwe
 }  // namespace testing

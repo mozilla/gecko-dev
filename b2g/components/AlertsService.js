@@ -68,7 +68,8 @@ AlertsService.prototype = {
   // nsIAlertsService
   showAlertNotification: function(aImageUrl, aTitle, aText, aTextClickable,
                                   aCookie, aAlertListener, aName, aBidi,
-                                  aLang, aDataStr) {
+                                  aLang, aDataStr, aPrincipal,
+                                  aInPrivateBrowsing) {
     cpmm.sendAsyncMessage(kMessageAlertNotificationSend, {
       imageURL: aImageUrl,
       title: aTitle,
@@ -79,7 +80,8 @@ AlertsService.prototype = {
       id: aName,
       dir: aBidi,
       lang: aLang,
-      dataStr: aDataStr
+      dataStr: aDataStr,
+      inPrivateBrowsing: aInPrivateBrowsing
     });
   },
 
@@ -152,7 +154,6 @@ AlertsService.prototype = {
               dir: listener.dir,
               id: listener.id,
               tag: listener.tag,
-              dbId: listener.dbId,
               timestamp: listener.timestamp,
               data: listener.dataObj || undefined,
             },

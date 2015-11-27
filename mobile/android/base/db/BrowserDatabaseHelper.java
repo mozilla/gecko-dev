@@ -5,20 +5,23 @@
 
 package org.mozilla.gecko.db;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.mozilla.gecko.GeckoProfile;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.db.BrowserContract.Bookmarks;
 import org.mozilla.gecko.db.BrowserContract.Combined;
-import org.mozilla.gecko.db.BrowserContract.FaviconColumns;
 import org.mozilla.gecko.db.BrowserContract.Favicons;
 import org.mozilla.gecko.db.BrowserContract.History;
-import org.mozilla.gecko.db.BrowserContract.Obsolete;
 import org.mozilla.gecko.db.BrowserContract.ReadingListItems;
 import org.mozilla.gecko.db.BrowserContract.SearchHistory;
 import org.mozilla.gecko.db.BrowserContract.Thumbnails;
-import org.mozilla.gecko.sync.Utils;
+import org.mozilla.gecko.util.FileUtils;
+
+import static org.mozilla.gecko.db.DBUtils.qualifyColumn;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -26,6 +29,7 @@ import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
 import android.os.Build;
@@ -33,9 +37,9 @@ import android.util.Log;
 
 
 final class BrowserDatabaseHelper extends SQLiteOpenHelper {
-
     private static final String LOGTAG = "GeckoBrowserDBHelper";
-    public static final int DATABASE_VERSION = 21;
+
+    public static final int DATABASE_VERSION = 25;
     public static final String DATABASE_NAME = "browser.db";
 
     final protected Context mContext;
@@ -45,6 +49,8 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
     static final String TABLE_FAVICONS = Favicons.TABLE_NAME;
     static final String TABLE_THUMBNAILS = Thumbnails.TABLE_NAME;
     static final String TABLE_READING_LIST = ReadingListItems.TABLE_NAME;
+    static final String TABLE_TABS = TabsProvider.TABLE_TABS;
+    static final String TABLE_CLIENTS = TabsProvider.TABLE_CLIENTS;
 
     static final String VIEW_COMBINED = Combined.VIEW_NAME;
     static final String VIEW_BOOKMARKS_WITH_FAVICONS = Bookmarks.VIEW_WITH_FAVICONS;
@@ -61,7 +67,6 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
 
     static final String TABLE_BOOKMARKS_TMP = TABLE_BOOKMARKS + "_tmp";
     static final String TABLE_HISTORY_TMP = TABLE_HISTORY + "_tmp";
-    static final String TABLE_IMAGES_TMP = Obsolete.TABLE_IMAGES + "_tmp";
 
     private static final String[] mobileIdColumns = new String[] { Bookmarks._ID };
     private static final String[] mobileIdSelectionArgs = new String[] { Bookmarks.MOBILE_FOLDER_GUID };
@@ -72,37 +77,6 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
     }
 
     private void createBookmarksTable(SQLiteDatabase db) {
-        debug("Creating " + TABLE_BOOKMARKS + " table");
-
-        db.execSQL("CREATE TABLE " + TABLE_BOOKMARKS + "(" +
-                Bookmarks._ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
-                Bookmarks.TITLE + " TEXT," +
-                Bookmarks.URL + " TEXT," +
-                Bookmarks.TYPE + " INTEGER NOT NULL DEFAULT " + Bookmarks.TYPE_BOOKMARK + "," +
-                Bookmarks.PARENT + " INTEGER," +
-                Bookmarks.POSITION + " INTEGER NOT NULL," +
-                Bookmarks.KEYWORD + " TEXT," +
-                Bookmarks.DESCRIPTION + " TEXT," +
-                Bookmarks.TAGS + " TEXT," +
-                Bookmarks.DATE_CREATED + " INTEGER," +
-                Bookmarks.DATE_MODIFIED + " INTEGER," +
-                Bookmarks.GUID + " TEXT NOT NULL," +
-                Bookmarks.IS_DELETED + " INTEGER NOT NULL DEFAULT 0, " +
-                "FOREIGN KEY (" + Bookmarks.PARENT + ") REFERENCES " +
-                TABLE_BOOKMARKS + "(" + Bookmarks._ID + ")" +
-                ");");
-
-        db.execSQL("CREATE INDEX bookmarks_url_index ON " + TABLE_BOOKMARKS + "("
-                + Bookmarks.URL + ")");
-        db.execSQL("CREATE INDEX bookmarks_type_deleted_index ON " + TABLE_BOOKMARKS + "("
-                + Bookmarks.TYPE + ", " + Bookmarks.IS_DELETED + ")");
-        db.execSQL("CREATE UNIQUE INDEX bookmarks_guid_index ON " + TABLE_BOOKMARKS + "("
-                + Bookmarks.GUID + ")");
-        db.execSQL("CREATE INDEX bookmarks_modified_index ON " + TABLE_BOOKMARKS + "("
-                + Bookmarks.DATE_MODIFIED + ")");
-    }
-
-    private void createBookmarksTableOn13(SQLiteDatabase db) {
         debug("Creating " + TABLE_BOOKMARKS + " table");
 
         db.execSQL("CREATE TABLE " + TABLE_BOOKMARKS + "(" +
@@ -141,30 +115,6 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                 History.TITLE + " TEXT," +
                 History.URL + " TEXT NOT NULL," +
                 History.VISITS + " INTEGER NOT NULL DEFAULT 0," +
-                History.DATE_LAST_VISITED + " INTEGER," +
-                History.DATE_CREATED + " INTEGER," +
-                History.DATE_MODIFIED + " INTEGER," +
-                History.GUID + " TEXT NOT NULL," +
-                History.IS_DELETED + " INTEGER NOT NULL DEFAULT 0" +
-                ");");
-
-        db.execSQL("CREATE INDEX history_url_index ON " + TABLE_HISTORY + "("
-                + History.URL + ")");
-        db.execSQL("CREATE UNIQUE INDEX history_guid_index ON " + TABLE_HISTORY + "("
-                + History.GUID + ")");
-        db.execSQL("CREATE INDEX history_modified_index ON " + TABLE_HISTORY + "("
-                + History.DATE_MODIFIED + ")");
-        db.execSQL("CREATE INDEX history_visited_index ON " + TABLE_HISTORY + "("
-                + History.DATE_LAST_VISITED + ")");
-    }
-
-    private void createHistoryTableOn13(SQLiteDatabase db) {
-        debug("Creating " + TABLE_HISTORY + " table");
-        db.execSQL("CREATE TABLE " + TABLE_HISTORY + "(" +
-                History._ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
-                History.TITLE + " TEXT," +
-                History.URL + " TEXT NOT NULL," +
-                History.VISITS + " INTEGER NOT NULL DEFAULT 0," +
                 History.FAVICON_ID + " INTEGER," +
                 History.DATE_LAST_VISITED + " INTEGER," +
                 History.DATE_CREATED + " INTEGER," +
@@ -173,36 +123,14 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                 History.IS_DELETED + " INTEGER NOT NULL DEFAULT 0" +
                 ");");
 
-        db.execSQL("CREATE INDEX history_url_index ON " + TABLE_HISTORY + "("
-                + History.URL + ")");
-        db.execSQL("CREATE UNIQUE INDEX history_guid_index ON " + TABLE_HISTORY + "("
-                + History.GUID + ")");
-        db.execSQL("CREATE INDEX history_modified_index ON " + TABLE_HISTORY + "("
-                + History.DATE_MODIFIED + ")");
-        db.execSQL("CREATE INDEX history_visited_index ON " + TABLE_HISTORY + "("
-                + History.DATE_LAST_VISITED + ")");
-    }
-
-    private void createImagesTable(SQLiteDatabase db) {
-        debug("Creating " + Obsolete.TABLE_IMAGES + " table");
-        db.execSQL("CREATE TABLE " + Obsolete.TABLE_IMAGES + " (" +
-                Obsolete.Images._ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
-                Obsolete.Images.URL + " TEXT UNIQUE NOT NULL," +
-                Obsolete.Images.FAVICON + " BLOB," +
-                Obsolete.Images.FAVICON_URL + " TEXT," +
-                Obsolete.Images.THUMBNAIL + " BLOB," +
-                Obsolete.Images.DATE_CREATED + " INTEGER," +
-                Obsolete.Images.DATE_MODIFIED + " INTEGER," +
-                Obsolete.Images.GUID + " TEXT NOT NULL," +
-                Obsolete.Images.IS_DELETED + " INTEGER NOT NULL DEFAULT 0" +
-                ");");
-
-        db.execSQL("CREATE INDEX images_url_index ON " + Obsolete.TABLE_IMAGES + "("
-                + Obsolete.Images.URL + ")");
-        db.execSQL("CREATE UNIQUE INDEX images_guid_index ON " + Obsolete.TABLE_IMAGES + "("
-                + Obsolete.Images.GUID + ")");
-        db.execSQL("CREATE INDEX images_modified_index ON " + Obsolete.TABLE_IMAGES + "("
-                + Obsolete.Images.DATE_MODIFIED + ")");
+        db.execSQL("CREATE INDEX history_url_index ON " + TABLE_HISTORY + '('
+                + History.URL + ')');
+        db.execSQL("CREATE UNIQUE INDEX history_guid_index ON " + TABLE_HISTORY + '('
+                + History.GUID + ')');
+        db.execSQL("CREATE INDEX history_modified_index ON " + TABLE_HISTORY + '('
+                + History.DATE_MODIFIED + ')');
+        db.execSQL("CREATE INDEX history_visited_index ON " + TABLE_HISTORY + '('
+                + History.DATE_LAST_VISITED + ')');
     }
 
     private void createFaviconsTable(SQLiteDatabase db) {
@@ -233,15 +161,6 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                 + Thumbnails.URL + ")");
     }
 
-    private void createBookmarksWithImagesView(SQLiteDatabase db) {
-        debug("Creating " + Obsolete.VIEW_BOOKMARKS_WITH_IMAGES + " view");
-
-        db.execSQL("CREATE VIEW IF NOT EXISTS " + Obsolete.VIEW_BOOKMARKS_WITH_IMAGES + " AS " +
-                "SELECT " + qualifyColumn(TABLE_BOOKMARKS, "*") +
-                ", " + Obsolete.Images.FAVICON + ", " + Obsolete.Images.THUMBNAIL + " FROM " +
-                Obsolete.TABLE_BOOKMARKS_JOIN_IMAGES);
-    }
-
     private void createBookmarksWithFaviconsView(SQLiteDatabase db) {
         debug("Creating " + VIEW_BOOKMARKS_WITH_FAVICONS + " view");
 
@@ -250,15 +169,6 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                 ", " + qualifyColumn(TABLE_FAVICONS, Favicons.DATA) + " AS " + Bookmarks.FAVICON +
                 ", " + qualifyColumn(TABLE_FAVICONS, Favicons.URL) + " AS " + Bookmarks.FAVICON_URL +
                 " FROM " + TABLE_BOOKMARKS_JOIN_FAVICONS);
-    }
-
-    private void createHistoryWithImagesView(SQLiteDatabase db) {
-        debug("Creating " + Obsolete.VIEW_HISTORY_WITH_IMAGES + " view");
-
-        db.execSQL("CREATE VIEW IF NOT EXISTS " + Obsolete.VIEW_HISTORY_WITH_IMAGES + " AS " +
-                "SELECT " + qualifyColumn(TABLE_HISTORY, "*") +
-                ", " + Obsolete.Images.FAVICON + ", " + Obsolete.Images.THUMBNAIL + " FROM " +
-                Obsolete.TABLE_HISTORY_JOIN_IMAGES);
     }
 
     private void createHistoryWithFaviconsView(SQLiteDatabase db) {
@@ -271,361 +181,57 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                 " FROM " + TABLE_HISTORY_JOIN_FAVICONS);
     }
 
-    private void createCombinedWithImagesView(SQLiteDatabase db) {
-        debug("Creating " + Obsolete.VIEW_COMBINED_WITH_IMAGES + " view");
+    private void createClientsTable(SQLiteDatabase db) {
+        debug("Creating " + TABLE_CLIENTS + " table");
 
-        db.execSQL("CREATE VIEW IF NOT EXISTS " + Obsolete.VIEW_COMBINED_WITH_IMAGES + " AS" +
-                " SELECT " + Combined.BOOKMARK_ID + ", " +
-                             Combined.HISTORY_ID + ", " +
-                             // We need to return an _id column because CursorAdapter requires it for its
-                             // default implementation for the getItemId() method. However, since
-                             // we're not using this feature in the parts of the UI using this view,
-                             // we can just use 0 for all rows.
-                             "0 AS " + Combined._ID + ", " +
-                             Combined.URL + ", " +
-                             Combined.TITLE + ", " +
-                             Combined.VISITS + ", " +
-                             Combined.DATE_LAST_VISITED + ", " +
-                             qualifyColumn(Obsolete.TABLE_IMAGES, Obsolete.Images.FAVICON) + " AS " + Combined.FAVICON + ", " +
-                             qualifyColumn(Obsolete.TABLE_IMAGES, Obsolete.Images.THUMBNAIL) + " AS " + Obsolete.Combined.THUMBNAIL +
-                " FROM (" +
-                    // Bookmarks without history.
-                    " SELECT " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks._ID) + " AS " + Combined.BOOKMARK_ID + ", " +
-                                 qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) + " AS " + Combined.URL + ", " +
-                                 qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TITLE) + " AS " + Combined.TITLE + ", " +
-                                 "-1 AS " + Combined.HISTORY_ID + ", " +
-                                 "-1 AS " + Combined.VISITS + ", " +
-                                 "-1 AS " + Combined.DATE_LAST_VISITED +
-                    " FROM " + TABLE_BOOKMARKS +
-                    " WHERE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TYPE)  + " = " + Bookmarks.TYPE_BOOKMARK + " AND " +
-                                qualifyColumn(TABLE_BOOKMARKS, Bookmarks.IS_DELETED)  + " = 0 AND " +
-                                qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) +
-                                    " NOT IN (SELECT " + History.URL + " FROM " + TABLE_HISTORY + ")" +
-                    " UNION ALL" +
-                    // History with and without bookmark.
-                    " SELECT " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks._ID) + " AS " + Combined.BOOKMARK_ID + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History.URL) + " AS " + Combined.URL + ", " +
-                                 // Prioritze bookmark titles over history titles, since the user may have
-                                 // customized the title for a bookmark.
-                                 "COALESCE(" + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TITLE) + ", " +
-                                               qualifyColumn(TABLE_HISTORY, History.TITLE) +")" + " AS " + Combined.TITLE + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History._ID) + " AS " + Combined.HISTORY_ID + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History.VISITS) + " AS " + Combined.VISITS + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History.DATE_LAST_VISITED) + " AS " + Combined.DATE_LAST_VISITED +
-                    " FROM " + TABLE_HISTORY + " LEFT OUTER JOIN " + TABLE_BOOKMARKS +
-                        " ON " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) + " = " + qualifyColumn(TABLE_HISTORY, History.URL) +
-                    " WHERE " + qualifyColumn(TABLE_HISTORY, History.URL) + " IS NOT NULL AND " +
-                                qualifyColumn(TABLE_HISTORY, History.IS_DELETED)  + " = 0 AND (" +
-                                    qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TYPE) + " IS NULL OR " +
-                                    qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TYPE)  + " = " + Bookmarks.TYPE_BOOKMARK + ")" +
-                ") LEFT OUTER JOIN " + Obsolete.TABLE_IMAGES +
-                    " ON " + Combined.URL + " = " + qualifyColumn(Obsolete.TABLE_IMAGES, Obsolete.Images.URL));
+        // Table for client's name-guid mapping.
+        db.execSQL("CREATE TABLE " + TABLE_CLIENTS + "(" +
+                BrowserContract.Clients.GUID + " TEXT PRIMARY KEY," +
+                BrowserContract.Clients.NAME + " TEXT," +
+                BrowserContract.Clients.LAST_MODIFIED + " INTEGER," +
+                BrowserContract.Clients.DEVICE_TYPE + " TEXT" +
+                ");");
+
+        // Index on GUID.
+        db.execSQL("CREATE INDEX " + TabsProvider.INDEX_CLIENTS_GUID +
+                " ON " + TABLE_CLIENTS + "(" + BrowserContract.Clients.GUID + ")");
     }
 
-    private void createCombinedWithImagesViewOn9(SQLiteDatabase db) {
-        debug("Creating " + Obsolete.VIEW_COMBINED_WITH_IMAGES + " view");
+    private boolean didCreateTabsTable = false;
+    private void createTabsTable(SQLiteDatabase db, final String tableName) {
+        debug("Creating tabs.db: " + db.getPath());
+        debug("Creating " + tableName + " table");
 
-        db.execSQL("CREATE VIEW IF NOT EXISTS " + Obsolete.VIEW_COMBINED_WITH_IMAGES + " AS" +
-                " SELECT " + Combined.BOOKMARK_ID + ", " +
-                             Combined.HISTORY_ID + ", " +
-                             // We need to return an _id column because CursorAdapter requires it for its
-                             // default implementation for the getItemId() method. However, since
-                             // we're not using this feature in the parts of the UI using this view,
-                             // we can just use 0 for all rows.
-                             "0 AS " + Combined._ID + ", " +
-                             Combined.URL + ", " +
-                             Combined.TITLE + ", " +
-                             Combined.VISITS + ", " +
-                             Obsolete.Combined.DISPLAY + ", " +
-                             Combined.DATE_LAST_VISITED + ", " +
-                             qualifyColumn(Obsolete.TABLE_IMAGES, Obsolete.Images.FAVICON) + " AS " + Combined.FAVICON + ", " +
-                             qualifyColumn(Obsolete.TABLE_IMAGES, Obsolete.Images.THUMBNAIL) + " AS " + Obsolete.Combined.THUMBNAIL +
-                " FROM (" +
-                    // Bookmarks without history.
-                    " SELECT " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks._ID) + " AS " + Combined.BOOKMARK_ID + ", " +
-                                 qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) + " AS " + Combined.URL + ", " +
-                                 qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TITLE) + " AS " + Combined.TITLE + ", " +
-                                 "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT) + " WHEN " +
-                                    Bookmarks.FIXED_READING_LIST_ID + " THEN " + Obsolete.Combined.DISPLAY_READER + " ELSE " +
-                                    Obsolete.Combined.DISPLAY_NORMAL + " END AS " + Obsolete.Combined.DISPLAY + ", " +
-                                 "-1 AS " + Combined.HISTORY_ID + ", " +
-                                 "-1 AS " + Combined.VISITS + ", " +
-                                 "-1 AS " + Combined.DATE_LAST_VISITED +
-                    " FROM " + TABLE_BOOKMARKS +
-                    " WHERE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TYPE)  + " = " + Bookmarks.TYPE_BOOKMARK + " AND " +
-                                qualifyColumn(TABLE_BOOKMARKS, Bookmarks.IS_DELETED)  + " = 0 AND " +
-                                qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) +
-                                    " NOT IN (SELECT " + History.URL + " FROM " + TABLE_HISTORY + ")" +
-                    " UNION ALL" +
-                    // History with and without bookmark.
-                    " SELECT " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks._ID) + " AS " + Combined.BOOKMARK_ID + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History.URL) + " AS " + Combined.URL + ", " +
-                                 // Prioritze bookmark titles over history titles, since the user may have
-                                 // customized the title for a bookmark.
-                                 "COALESCE(" + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TITLE) + ", " +
-                                               qualifyColumn(TABLE_HISTORY, History.TITLE) +")" + " AS " + Combined.TITLE + ", " +
-                                 "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT) + " WHEN " +
-                                    Bookmarks.FIXED_READING_LIST_ID + " THEN " + Obsolete.Combined.DISPLAY_READER + " ELSE " +
-                                    Obsolete.Combined.DISPLAY_NORMAL + " END AS " + Obsolete.Combined.DISPLAY + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History._ID) + " AS " + Combined.HISTORY_ID + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History.VISITS) + " AS " + Combined.VISITS + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History.DATE_LAST_VISITED) + " AS " + Combined.DATE_LAST_VISITED +
-                    " FROM " + TABLE_HISTORY + " LEFT OUTER JOIN " + TABLE_BOOKMARKS +
-                        " ON " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) + " = " + qualifyColumn(TABLE_HISTORY, History.URL) +
-                    " WHERE " + qualifyColumn(TABLE_HISTORY, History.URL) + " IS NOT NULL AND " +
-                                qualifyColumn(TABLE_HISTORY, History.IS_DELETED)  + " = 0 AND (" +
-                                    qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TYPE) + " IS NULL OR " +
-                                    qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TYPE)  + " = " + Bookmarks.TYPE_BOOKMARK + ")" +
-                ") LEFT OUTER JOIN " + Obsolete.TABLE_IMAGES +
-                    " ON " + Combined.URL + " = " + qualifyColumn(Obsolete.TABLE_IMAGES, Obsolete.Images.URL));
+        // Table for each tab on any client.
+        db.execSQL("CREATE TABLE " + tableName + "(" +
+                BrowserContract.Tabs._ID + " INTEGER PRIMARY KEY AUTOINCREMENT," +
+                BrowserContract.Tabs.CLIENT_GUID + " TEXT," +
+                BrowserContract.Tabs.TITLE + " TEXT," +
+                BrowserContract.Tabs.URL + " TEXT," +
+                BrowserContract.Tabs.HISTORY + " TEXT," +
+                BrowserContract.Tabs.FAVICON + " TEXT," +
+                BrowserContract.Tabs.LAST_USED + " INTEGER," +
+                BrowserContract.Tabs.POSITION + " INTEGER, " +
+                "FOREIGN KEY (" + BrowserContract.Tabs.CLIENT_GUID + ") REFERENCES " +
+                TABLE_CLIENTS + "(" + BrowserContract.Clients.GUID + ") ON DELETE CASCADE" +
+                ");");
     }
 
-    private void createCombinedWithImagesViewOn10(SQLiteDatabase db) {
-        debug("Creating " + Obsolete.VIEW_COMBINED_WITH_IMAGES + " view");
-
-        db.execSQL("CREATE VIEW IF NOT EXISTS " + Obsolete.VIEW_COMBINED_WITH_IMAGES + " AS" +
-                " SELECT " + Combined.BOOKMARK_ID + ", " +
-                             Combined.HISTORY_ID + ", " +
-                             // We need to return an _id column because CursorAdapter requires it for its
-                             // default implementation for the getItemId() method. However, since
-                             // we're not using this feature in the parts of the UI using this view,
-                             // we can just use 0 for all rows.
-                             "0 AS " + Combined._ID + ", " +
-                             Combined.URL + ", " +
-                             Combined.TITLE + ", " +
-                             Combined.VISITS + ", " +
-                             Obsolete.Combined.DISPLAY + ", " +
-                             Combined.DATE_LAST_VISITED + ", " +
-                             qualifyColumn(Obsolete.TABLE_IMAGES, Obsolete.Images.FAVICON) + " AS " + Combined.FAVICON + ", " +
-                             qualifyColumn(Obsolete.TABLE_IMAGES, Obsolete.Images.THUMBNAIL) + " AS " + Obsolete.Combined.THUMBNAIL +
-                " FROM (" +
-                    // Bookmarks without history.
-                    " SELECT " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks._ID) + " AS " + Combined.BOOKMARK_ID + ", " +
-                                 qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) + " AS " + Combined.URL + ", " +
-                                 qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TITLE) + " AS " + Combined.TITLE + ", " +
-                                 "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT) + " WHEN " +
-                                    Bookmarks.FIXED_READING_LIST_ID + " THEN " + Obsolete.Combined.DISPLAY_READER + " ELSE " +
-                                    Obsolete.Combined.DISPLAY_NORMAL + " END AS " + Obsolete.Combined.DISPLAY + ", " +
-                                 "-1 AS " + Combined.HISTORY_ID + ", " +
-                                 "-1 AS " + Combined.VISITS + ", " +
-                                 "-1 AS " + Combined.DATE_LAST_VISITED +
-                    " FROM " + TABLE_BOOKMARKS +
-                    " WHERE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TYPE)  + " = " + Bookmarks.TYPE_BOOKMARK + " AND " +
-                                qualifyColumn(TABLE_BOOKMARKS, Bookmarks.IS_DELETED)  + " = 0 AND " +
-                                qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) +
-                                    " NOT IN (SELECT " + History.URL + " FROM " + TABLE_HISTORY + ")" +
-                    " UNION ALL" +
-                    // History with and without bookmark.
-                    " SELECT " + "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.IS_DELETED) + " WHEN 0 THEN " +
-                                 qualifyColumn(TABLE_BOOKMARKS, Bookmarks._ID) +  " ELSE NULL END AS " + Combined.BOOKMARK_ID + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History.URL) + " AS " + Combined.URL + ", " +
-                                 // Prioritze bookmark titles over history titles, since the user may have
-                                 // customized the title for a bookmark.
-                                 "COALESCE(" + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TITLE) + ", " +
-                                               qualifyColumn(TABLE_HISTORY, History.TITLE) +")" + " AS " + Combined.TITLE + ", " +
-                                 "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT) + " WHEN " +
-                                    Bookmarks.FIXED_READING_LIST_ID + " THEN " + Obsolete.Combined.DISPLAY_READER + " ELSE " +
-                                    Obsolete.Combined.DISPLAY_NORMAL + " END AS " + Obsolete.Combined.DISPLAY + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History._ID) + " AS " + Combined.HISTORY_ID + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History.VISITS) + " AS " + Combined.VISITS + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History.DATE_LAST_VISITED) + " AS " + Combined.DATE_LAST_VISITED +
-                    " FROM " + TABLE_HISTORY + " LEFT OUTER JOIN " + TABLE_BOOKMARKS +
-                        " ON " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) + " = " + qualifyColumn(TABLE_HISTORY, History.URL) +
-                    " WHERE " + qualifyColumn(TABLE_HISTORY, History.URL) + " IS NOT NULL AND " +
-                                qualifyColumn(TABLE_HISTORY, History.IS_DELETED)  + " = 0 AND (" +
-                                    qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TYPE) + " IS NULL OR " +
-                                    qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TYPE)  + " = " + Bookmarks.TYPE_BOOKMARK + ")" +
-                ") LEFT OUTER JOIN " + Obsolete.TABLE_IMAGES +
-                    " ON " + Combined.URL + " = " + qualifyColumn(Obsolete.TABLE_IMAGES, Obsolete.Images.URL));
+    private void createTabsTableIndices(SQLiteDatabase db, final String tableName) {
+        // Indices on CLIENT_GUID and POSITION.
+        db.execSQL("CREATE INDEX " + TabsProvider.INDEX_TABS_GUID +
+                " ON " + tableName + "(" + BrowserContract.Tabs.CLIENT_GUID + ")");
+        db.execSQL("CREATE INDEX " + TabsProvider.INDEX_TABS_POSITION +
+                " ON " + tableName + "(" + BrowserContract.Tabs.POSITION + ")");
     }
 
-    private void createCombinedWithImagesViewOn11(SQLiteDatabase db) {
-        debug("Creating " + Obsolete.VIEW_COMBINED_WITH_IMAGES + " view");
+    // Insert a client row for our local Fennec client.
+    private void createLocalClient(SQLiteDatabase db) {
+        debug("Inserting local Fennec client into " + TABLE_CLIENTS + " table");
 
-        db.execSQL("CREATE VIEW IF NOT EXISTS " + Obsolete.VIEW_COMBINED_WITH_IMAGES + " AS" +
-                " SELECT " + Combined.BOOKMARK_ID + ", " +
-                             Combined.HISTORY_ID + ", " +
-                             // We need to return an _id column because CursorAdapter requires it for its
-                             // default implementation for the getItemId() method. However, since
-                             // we're not using this feature in the parts of the UI using this view,
-                             // we can just use 0 for all rows.
-                             "0 AS " + Combined._ID + ", " +
-                             Combined.URL + ", " +
-                             Combined.TITLE + ", " +
-                             Combined.VISITS + ", " +
-                             Obsolete.Combined.DISPLAY + ", " +
-                             Combined.DATE_LAST_VISITED + ", " +
-                             qualifyColumn(Obsolete.TABLE_IMAGES, Obsolete.Images.FAVICON) + " AS " + Combined.FAVICON + ", " +
-                             qualifyColumn(Obsolete.TABLE_IMAGES, Obsolete.Images.THUMBNAIL) + " AS " + Obsolete.Combined.THUMBNAIL +
-                " FROM (" +
-                    // Bookmarks without history.
-                    " SELECT " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks._ID) + " AS " + Combined.BOOKMARK_ID + ", " +
-                                 qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) + " AS " + Combined.URL + ", " +
-                                 qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TITLE) + " AS " + Combined.TITLE + ", " +
-                                 "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT) + " WHEN " +
-                                    Bookmarks.FIXED_READING_LIST_ID + " THEN " + Obsolete.Combined.DISPLAY_READER + " ELSE " +
-                                    Obsolete.Combined.DISPLAY_NORMAL + " END AS " + Obsolete.Combined.DISPLAY + ", " +
-                                 "-1 AS " + Combined.HISTORY_ID + ", " +
-                                 "-1 AS " + Combined.VISITS + ", " +
-                                 "-1 AS " + Combined.DATE_LAST_VISITED +
-                    " FROM " + TABLE_BOOKMARKS +
-                    " WHERE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TYPE)  + " = " + Bookmarks.TYPE_BOOKMARK + " AND " +
-                                qualifyColumn(TABLE_BOOKMARKS, Bookmarks.IS_DELETED)  + " = 0 AND " +
-                                qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) +
-                                    " NOT IN (SELECT " + History.URL + " FROM " + TABLE_HISTORY + ")" +
-                    " UNION ALL" +
-                    // History with and without bookmark.
-                    " SELECT " + "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.IS_DELETED) + " WHEN 0 THEN " +
-                                 qualifyColumn(TABLE_BOOKMARKS, Bookmarks._ID) +  " ELSE NULL END AS " + Combined.BOOKMARK_ID + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History.URL) + " AS " + Combined.URL + ", " +
-                                 // Prioritze bookmark titles over history titles, since the user may have
-                                 // customized the title for a bookmark.
-                                 "COALESCE(" + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TITLE) + ", " +
-                                               qualifyColumn(TABLE_HISTORY, History.TITLE) +")" + " AS " + Combined.TITLE + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History._ID) + " AS " + Combined.HISTORY_ID + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History.VISITS) + " AS " + Combined.VISITS + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History.DATE_LAST_VISITED) + " AS " + Combined.DATE_LAST_VISITED +
-                    " FROM " + TABLE_HISTORY + " LEFT OUTER JOIN " + TABLE_BOOKMARKS +
-                        " ON " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) + " = " + qualifyColumn(TABLE_HISTORY, History.URL) +
-                    " WHERE " + qualifyColumn(TABLE_HISTORY, History.URL) + " IS NOT NULL AND " +
-                                qualifyColumn(TABLE_HISTORY, History.IS_DELETED)  + " = 0 AND (" +
-                                    qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TYPE) + " IS NULL OR " +
-                                    qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TYPE)  + " = " + Bookmarks.TYPE_BOOKMARK + ") " +
-                ") LEFT OUTER JOIN " + Obsolete.TABLE_IMAGES +
-                    " ON " + Combined.URL + " = " + qualifyColumn(Obsolete.TABLE_IMAGES, Obsolete.Images.URL));
-    }
-
-    private void createCombinedViewOn12(SQLiteDatabase db) {
-        debug("Creating " + VIEW_COMBINED + " view");
-
-        db.execSQL("CREATE VIEW IF NOT EXISTS " + VIEW_COMBINED + " AS" +
-                " SELECT " + Combined.BOOKMARK_ID + ", " +
-                             Combined.HISTORY_ID + ", " +
-                             // We need to return an _id column because CursorAdapter requires it for its
-                             // default implementation for the getItemId() method. However, since
-                             // we're not using this feature in the parts of the UI using this view,
-                             // we can just use 0 for all rows.
-                             "0 AS " + Combined._ID + ", " +
-                             Combined.URL + ", " +
-                             Combined.TITLE + ", " +
-                             Combined.VISITS + ", " +
-                             Obsolete.Combined.DISPLAY + ", " +
-                             Combined.DATE_LAST_VISITED +
-                " FROM (" +
-                    // Bookmarks without history.
-                    " SELECT " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks._ID) + " AS " + Combined.BOOKMARK_ID + ", " +
-                                 qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) + " AS " + Combined.URL + ", " +
-                                 qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TITLE) + " AS " + Combined.TITLE + ", " +
-                                 "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT) + " WHEN " +
-                                    Bookmarks.FIXED_READING_LIST_ID + " THEN " + Obsolete.Combined.DISPLAY_READER + " ELSE " +
-                                    Obsolete.Combined.DISPLAY_NORMAL + " END AS " + Obsolete.Combined.DISPLAY + ", " +
-                                 "-1 AS " + Combined.HISTORY_ID + ", " +
-                                 "-1 AS " + Combined.VISITS + ", " +
-                                 "-1 AS " + Combined.DATE_LAST_VISITED +
-                    " FROM " + TABLE_BOOKMARKS +
-                    " WHERE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TYPE)  + " = " + Bookmarks.TYPE_BOOKMARK + " AND " +
-                                qualifyColumn(TABLE_BOOKMARKS, Bookmarks.IS_DELETED)  + " = 0 AND " +
-                                qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) +
-                                    " NOT IN (SELECT " + History.URL + " FROM " + TABLE_HISTORY + ")" +
-                    " UNION ALL" +
-                    // History with and without bookmark.
-                    " SELECT " + "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.IS_DELETED) + " WHEN 0 THEN " +
-                                 qualifyColumn(TABLE_BOOKMARKS, Bookmarks._ID) +  " ELSE NULL END AS " + Combined.BOOKMARK_ID + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History.URL) + " AS " + Combined.URL + ", " +
-                                 // Prioritize bookmark titles over history titles, since the user may have
-                                 // customized the title for a bookmark.
-                                 "COALESCE(" + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TITLE) + ", " +
-                                               qualifyColumn(TABLE_HISTORY, History.TITLE) +")" + " AS " + Combined.TITLE + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History._ID) + " AS " + Combined.HISTORY_ID + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History.VISITS) + " AS " + Combined.VISITS + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History.DATE_LAST_VISITED) + " AS " + Combined.DATE_LAST_VISITED +
-                    " FROM " + TABLE_HISTORY + " LEFT OUTER JOIN " + TABLE_BOOKMARKS +
-                        " ON " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) + " = " + qualifyColumn(TABLE_HISTORY, History.URL) +
-                    " WHERE " + qualifyColumn(TABLE_HISTORY, History.URL) + " IS NOT NULL AND " +
-                                qualifyColumn(TABLE_HISTORY, History.IS_DELETED)  + " = 0 AND (" +
-                                    qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TYPE) + " IS NULL OR " +
-                                    qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TYPE)  + " = " + Bookmarks.TYPE_BOOKMARK + ") " +
-                ")");
-
-        debug("Creating " + Obsolete.VIEW_COMBINED_WITH_IMAGES + " view");
-
-        db.execSQL("CREATE VIEW IF NOT EXISTS " + Obsolete.VIEW_COMBINED_WITH_IMAGES + " AS" +
-                " SELECT *, " +
-                    qualifyColumn(Obsolete.TABLE_IMAGES, Obsolete.Images.FAVICON) + " AS " + Combined.FAVICON + ", " +
-                    qualifyColumn(Obsolete.TABLE_IMAGES, Obsolete.Images.THUMBNAIL) + " AS " + Obsolete.Combined.THUMBNAIL +
-                " FROM " + VIEW_COMBINED + " LEFT OUTER JOIN " + Obsolete.TABLE_IMAGES +
-                    " ON " + Combined.URL + " = " + qualifyColumn(Obsolete.TABLE_IMAGES, Obsolete.Images.URL));
-    }
-
-    private void createCombinedViewOn13(SQLiteDatabase db) {
-        debug("Creating " + VIEW_COMBINED + " view");
-
-        db.execSQL("CREATE VIEW IF NOT EXISTS " + VIEW_COMBINED + " AS" +
-                " SELECT " + Combined.BOOKMARK_ID + ", " +
-                             Combined.HISTORY_ID + ", " +
-                             // We need to return an _id column because CursorAdapter requires it for its
-                             // default implementation for the getItemId() method. However, since
-                             // we're not using this feature in the parts of the UI using this view,
-                             // we can just use 0 for all rows.
-                             "0 AS " + Combined._ID + ", " +
-                             Combined.URL + ", " +
-                             Combined.TITLE + ", " +
-                             Combined.VISITS + ", " +
-                             Obsolete.Combined.DISPLAY + ", " +
-                             Combined.DATE_LAST_VISITED + ", " +
-                             Combined.FAVICON_ID +
-                " FROM (" +
-                    // Bookmarks without history.
-                    " SELECT " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks._ID) + " AS " + Combined.BOOKMARK_ID + ", " +
-                                 qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) + " AS " + Combined.URL + ", " +
-                                 qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TITLE) + " AS " + Combined.TITLE + ", " +
-                                 "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT) + " WHEN " +
-                                    Bookmarks.FIXED_READING_LIST_ID + " THEN " + Obsolete.Combined.DISPLAY_READER + " ELSE " +
-                                    Obsolete.Combined.DISPLAY_NORMAL + " END AS " + Obsolete.Combined.DISPLAY + ", " +
-                                 "-1 AS " + Combined.HISTORY_ID + ", " +
-                                 "-1 AS " + Combined.VISITS + ", " +
-                                 "-1 AS " + Combined.DATE_LAST_VISITED + ", " +
-                                 qualifyColumn(TABLE_BOOKMARKS, Bookmarks.FAVICON_ID) + " AS " + Combined.FAVICON_ID +
-                    " FROM " + TABLE_BOOKMARKS +
-                    " WHERE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TYPE)  + " = " + Bookmarks.TYPE_BOOKMARK + " AND " +
-                                qualifyColumn(TABLE_BOOKMARKS, Bookmarks.IS_DELETED)  + " = 0 AND " +
-                                qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) +
-                                    " NOT IN (SELECT " + History.URL + " FROM " + TABLE_HISTORY + ")" +
-                    " UNION ALL" +
-                    // History with and without bookmark.
-                    " SELECT " + "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.IS_DELETED) + " WHEN 0 THEN " +
-                                 qualifyColumn(TABLE_BOOKMARKS, Bookmarks._ID) +  " ELSE NULL END AS " + Combined.BOOKMARK_ID + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History.URL) + " AS " + Combined.URL + ", " +
-                                 // Prioritize bookmark titles over history titles, since the user may have
-                                 // customized the title for a bookmark.
-                                 "COALESCE(" + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TITLE) + ", " +
-                                               qualifyColumn(TABLE_HISTORY, History.TITLE) +")" + " AS " + Combined.TITLE + ", " +
-                                 // Only use DISPLAY_READER if the matching bookmark entry inside reading
-                                 // list folder is not marked as deleted.
-                                 "CASE " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.IS_DELETED) + " WHEN 0 THEN CASE " +
-                                    qualifyColumn(TABLE_BOOKMARKS, Bookmarks.PARENT) + " WHEN " + Bookmarks.FIXED_READING_LIST_ID +
-                                    " THEN " + Obsolete.Combined.DISPLAY_READER + " ELSE " + Obsolete.Combined.DISPLAY_NORMAL + " END ELSE " +
-                                    Obsolete.Combined.DISPLAY_NORMAL + " END AS " + Obsolete.Combined.DISPLAY + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History._ID) + " AS " + Combined.HISTORY_ID + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History.VISITS) + " AS " + Combined.VISITS + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History.DATE_LAST_VISITED) + " AS " + Combined.DATE_LAST_VISITED + ", " +
-                                 qualifyColumn(TABLE_HISTORY, History.FAVICON_ID) + " AS " + Combined.FAVICON_ID +
-                    " FROM " + TABLE_HISTORY + " LEFT OUTER JOIN " + TABLE_BOOKMARKS +
-                        " ON " + qualifyColumn(TABLE_BOOKMARKS, Bookmarks.URL) + " = " + qualifyColumn(TABLE_HISTORY, History.URL) +
-                    " WHERE " + qualifyColumn(TABLE_HISTORY, History.URL) + " IS NOT NULL AND " +
-                                qualifyColumn(TABLE_HISTORY, History.IS_DELETED)  + " = 0 AND (" +
-                                    qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TYPE) + " IS NULL OR " +
-                                    qualifyColumn(TABLE_BOOKMARKS, Bookmarks.TYPE)  + " = " + Bookmarks.TYPE_BOOKMARK + ") " +
-                ")");
-
-        debug("Creating " + VIEW_COMBINED_WITH_FAVICONS + " view");
-
-        db.execSQL("CREATE VIEW IF NOT EXISTS " + VIEW_COMBINED_WITH_FAVICONS + " AS" +
-                " SELECT " + qualifyColumn(VIEW_COMBINED, "*") + ", " +
-                    qualifyColumn(TABLE_FAVICONS, Favicons.URL) + " AS " + Combined.FAVICON_URL + ", " +
-                    qualifyColumn(TABLE_FAVICONS, Favicons.DATA) + " AS " + Combined.FAVICON +
-                " FROM " + VIEW_COMBINED + " LEFT OUTER JOIN " + TABLE_FAVICONS +
-                    " ON " + Combined.FAVICON_ID + " = " + qualifyColumn(TABLE_FAVICONS, Favicons._ID));
+        ContentValues values = new ContentValues();
+        values.put(BrowserContract.Clients.LAST_MODIFIED, System.currentTimeMillis());
+        db.insertOrThrow(TABLE_CLIENTS, null, values);
     }
 
     private void createCombinedViewOn19(SQLiteDatabase db) {
@@ -725,6 +331,7 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                     qualifyColumn(TABLE_FAVICONS, Favicons.DATA) + " AS " + Combined.FAVICON +
                 " FROM " + VIEW_COMBINED + " LEFT OUTER JOIN " + TABLE_FAVICONS +
                     " ON " + Combined.FAVICON_ID + " = " + qualifyColumn(TABLE_FAVICONS, Favicons._ID));
+
     }
 
     @Override
@@ -735,10 +342,16 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
             table.onCreate(db);
         }
 
-        createBookmarksTableOn13(db);
-        createHistoryTableOn13(db);
+        createBookmarksTable(db);
+        createHistoryTable(db);
         createFaviconsTable(db);
         createThumbnailsTable(db);
+        createClientsTable(db);
+        createLocalClient(db);
+        createTabsTable(db, TABLE_TABS);
+        didCreateTabsTable = true;
+        createTabsTableIndices(db, TABLE_TABS);
+
 
         createBookmarksWithFaviconsView(db);
         createHistoryWithFaviconsView(db);
@@ -748,8 +361,42 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
             R.string.bookmarks_folder_places, 0);
 
         createOrUpdateAllSpecialFolders(db);
-        createReadingListTable(db);
         createSearchHistoryTable(db);
+        createReadingListTable(db, TABLE_READING_LIST);
+        didCreateCurrentReadingListTable = true;      // Mostly correct, in the absence of transactions.
+        createReadingListIndices(db, TABLE_READING_LIST);
+    }
+
+    /**
+     * Copies the tabs and clients tables out of the given tabs.db file and into the destinationDB.
+     *
+     * @param tabsDBFile Path to existing tabs.db.
+     * @param destinationDB The destination database.
+     */
+    public void copyTabsDB(File tabsDBFile, SQLiteDatabase destinationDB) {
+        createClientsTable(destinationDB);
+        createTabsTable(destinationDB, TABLE_TABS);
+        didCreateTabsTable = true;
+        createTabsTableIndices(destinationDB, TABLE_TABS);
+
+        SQLiteDatabase oldTabsDB = null;
+        try {
+            oldTabsDB = SQLiteDatabase.openDatabase(tabsDBFile.getPath(), null, SQLiteDatabase.OPEN_READONLY);
+
+            if (!DBUtils.copyTable(oldTabsDB, TABLE_CLIENTS, destinationDB, TABLE_CLIENTS)) {
+                Log.e(LOGTAG, "Failed to migrate table clients; ignoring.");
+            }
+            if (!DBUtils.copyTable(oldTabsDB, TABLE_TABS, destinationDB, TABLE_TABS)) {
+                Log.e(LOGTAG, "Failed to migrate table tabs; ignoring.");
+            }
+        } catch (Exception e) {
+            Log.e(LOGTAG, "Exception occurred while trying to copy from " + tabsDBFile.getPath() +
+                    " to " + destinationDB.getPath() + "; ignoring.", e);
+        } finally {
+            if (oldTabsDB != null) {
+                oldTabsDB.close();
+            }
+        }
     }
 
     private void createSearchHistoryTable(SQLiteDatabase db) {
@@ -765,25 +412,54 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                 SearchHistory.TABLE_NAME + "(" + SearchHistory.DATE_LAST_VISITED + ")");
     }
 
-    private void createReadingListTable(SQLiteDatabase db) {
+    private boolean didCreateCurrentReadingListTable = false;
+    private void createReadingListTable(final SQLiteDatabase db, final String tableName) {
         debug("Creating " + TABLE_READING_LIST + " table");
 
-        db.execSQL("CREATE TABLE " + TABLE_READING_LIST + "(" +
-                    ReadingListItems._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    ReadingListItems.URL + " TEXT NOT NULL, " +
-                    ReadingListItems.TITLE + " TEXT, " +
-                    ReadingListItems.EXCERPT + " TEXT, " +
-                    ReadingListItems.READ + " TINYINT DEFAULT 0, " +
-                    ReadingListItems.IS_DELETED + " TINYINT DEFAULT 0, " +
-                    ReadingListItems.GUID + " TEXT UNIQUE NOT NULL, " +
-                    ReadingListItems.DATE_MODIFIED + " INTEGER NOT NULL, " +
-                    ReadingListItems.DATE_CREATED  + " INTEGER NOT NULL, " +
-                    ReadingListItems.LENGTH + " INTEGER DEFAULT 0 ); ");
+        db.execSQL("CREATE TABLE " + tableName + "(" +
+                   ReadingListItems._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                   ReadingListItems.GUID + " TEXT UNIQUE, " +                          // Server-assigned.
 
-        db.execSQL("CREATE INDEX reading_list_url ON " + TABLE_READING_LIST + "("
-                + ReadingListItems.URL + ")");
-        db.execSQL("CREATE UNIQUE INDEX reading_list_guid ON " + TABLE_READING_LIST + "("
-                + ReadingListItems.GUID + ")");
+                   ReadingListItems.CONTENT_STATUS + " TINYINT NOT NULL DEFAULT " + ReadingListItems.STATUS_UNFETCHED + ", " +
+                   ReadingListItems.SYNC_STATUS + " TINYINT NOT NULL DEFAULT " + ReadingListItems.SYNC_STATUS_NEW + ", " +
+                   ReadingListItems.SYNC_CHANGE_FLAGS + " TINYINT NOT NULL DEFAULT " + ReadingListItems.SYNC_CHANGE_NONE + ", " +
+
+                   ReadingListItems.CLIENT_LAST_MODIFIED + " INTEGER NOT NULL, " +     // Client time.
+                   ReadingListItems.SERVER_LAST_MODIFIED + " INTEGER, " +              // Server-assigned.
+
+                   // Server-assigned.
+                   ReadingListItems.SERVER_STORED_ON + " INTEGER, " +
+                   ReadingListItems.ADDED_ON + " INTEGER, " +                   // Client time. Shouldn't be null, but not enforced. Formerly DATE_CREATED.
+                   ReadingListItems.MARKED_READ_ON + " INTEGER, " +
+
+                   // These boolean flags represent the server 'status', 'unread', 'is_article', and 'favorite' fields.
+                   ReadingListItems.IS_DELETED + " TINYINT NOT NULL DEFAULT 0, " +
+                   ReadingListItems.IS_ARCHIVED + " TINYINT NOT NULL DEFAULT 0, " +
+                   ReadingListItems.IS_UNREAD + " TINYINT NOT NULL DEFAULT 1, " +
+                   ReadingListItems.IS_ARTICLE + " TINYINT NOT NULL DEFAULT 0, " +
+                   ReadingListItems.IS_FAVORITE + " TINYINT NOT NULL DEFAULT 0, " +
+
+                   ReadingListItems.URL + " TEXT NOT NULL, " +
+                   ReadingListItems.TITLE + " TEXT, " +
+                   ReadingListItems.RESOLVED_URL + " TEXT, " +
+                   ReadingListItems.RESOLVED_TITLE + " TEXT, " +
+
+                   ReadingListItems.EXCERPT + " TEXT, " +
+
+                   ReadingListItems.ADDED_BY + " TEXT, " +
+                   ReadingListItems.MARKED_READ_BY + " TEXT, " +
+
+                   ReadingListItems.WORD_COUNT + " INTEGER DEFAULT 0, " +
+                   ReadingListItems.READ_POSITION + " INTEGER DEFAULT 0 " +
+                "); ");
+    }
+
+    private void createReadingListIndices(final SQLiteDatabase db, final String tableName) {
+        // No need to create an index on GUID; it's a UNIQUE column.
+        db.execSQL("CREATE INDEX reading_list_url ON " + tableName + "("
+                           + ReadingListItems.URL + ")");
+        db.execSQL("CREATE INDEX reading_list_content_status ON " + tableName + "("
+                           + ReadingListItems.CONTENT_STATUS + ")");
     }
 
     private void createOrUpdateAllSpecialFolders(SQLiteDatabase db) {
@@ -797,10 +473,8 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
             R.string.bookmarks_folder_tags, 3);
         createOrUpdateSpecialFolder(db, Bookmarks.UNFILED_FOLDER_GUID,
             R.string.bookmarks_folder_unfiled, 4);
-        createOrUpdateSpecialFolder(db, Bookmarks.READING_LIST_FOLDER_GUID,
-            R.string.bookmarks_folder_reading_list, 5);
         createOrUpdateSpecialFolder(db, Bookmarks.PINNED_FOLDER_GUID,
-            R.string.bookmarks_folder_pinned, 6);
+            R.string.bookmarks_folder_pinned, 5);
     }
 
     private void createOrUpdateSpecialFolder(SQLiteDatabase db,
@@ -810,12 +484,11 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
         values.put(Bookmarks.TYPE, Bookmarks.TYPE_FOLDER);
         values.put(Bookmarks.POSITION, position);
 
-        if (guid.equals(Bookmarks.PLACES_FOLDER_GUID))
+        if (guid.equals(Bookmarks.PLACES_FOLDER_GUID)) {
             values.put(Bookmarks._ID, Bookmarks.FIXED_ROOT_ID);
-        else if (guid.equals(Bookmarks.READING_LIST_FOLDER_GUID))
-            values.put(Bookmarks._ID, Bookmarks.FIXED_READING_LIST_ID);
-        else if (guid.equals(Bookmarks.PINNED_FOLDER_GUID))
+        } else if (guid.equals(Bookmarks.PINNED_FOLDER_GUID)) {
             values.put(Bookmarks._ID, Bookmarks.FIXED_PINNED_LIST_ID);
+        }
 
         // Set the parent to 0, which sync assumes is the root
         values.put(Bookmarks.PARENT, Bookmarks.FIXED_ROOT_ID);
@@ -841,8 +514,9 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
 
     private boolean isSpecialFolder(ContentValues values) {
         String guid = values.getAsString(Bookmarks.GUID);
-        if (guid == null)
+        if (guid == null) {
             return false;
+        }
 
         return guid.equals(Bookmarks.MOBILE_FOLDER_GUID) ||
                guid.equals(Bookmarks.MENU_FOLDER_GUID) ||
@@ -958,7 +632,6 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                    " RENAME TO " + TABLE_BOOKMARKS_TMP);
 
         debug("Dropping views and indexes related to " + TABLE_BOOKMARKS);
-        db.execSQL("DROP VIEW IF EXISTS " + Obsolete.VIEW_BOOKMARKS_WITH_IMAGES);
 
         db.execSQL("DROP INDEX IF EXISTS bookmarks_url_index");
         db.execSQL("DROP INDEX IF EXISTS bookmarks_type_deleted_index");
@@ -966,7 +639,6 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("DROP INDEX IF EXISTS bookmarks_modified_index");
 
         createBookmarksTable(db);
-        createBookmarksWithImagesView(db);
 
         createOrUpdateSpecialFolder(db, Bookmarks.PLACES_FOLDER_GUID,
             R.string.bookmarks_folder_places, 0);
@@ -981,15 +653,16 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_BOOKMARKS_TMP);
     }
 
-
+    /**
+     * Migrate a history table from some old version to the newest one by creating the new table and
+     * copying all the data over.
+     */
     private void migrateHistoryTable(SQLiteDatabase db) {
         debug("Renaming history table to " + TABLE_HISTORY_TMP);
         db.execSQL("ALTER TABLE " + TABLE_HISTORY +
                    " RENAME TO " + TABLE_HISTORY_TMP);
 
         debug("Dropping views and indexes related to " + TABLE_HISTORY);
-        db.execSQL("DROP VIEW IF EXISTS " + Obsolete.VIEW_HISTORY_WITH_IMAGES);
-        db.execSQL("DROP VIEW IF EXISTS " + Obsolete.VIEW_COMBINED_WITH_IMAGES);
 
         db.execSQL("DROP INDEX IF EXISTS history_url_index");
         db.execSQL("DROP INDEX IF EXISTS history_guid_index");
@@ -997,8 +670,6 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("DROP INDEX IF EXISTS history_visited_index");
 
         createHistoryTable(db);
-        createHistoryWithImagesView(db);
-        createCombinedWithImagesView(db);
 
         db.execSQL("INSERT INTO " + TABLE_HISTORY + " SELECT * FROM " + TABLE_HISTORY_TMP);
 
@@ -1006,86 +677,16 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_HISTORY_TMP);
     }
 
-    private void migrateImagesTable(SQLiteDatabase db) {
-        debug("Renaming images table to " + TABLE_IMAGES_TMP);
-        db.execSQL("ALTER TABLE " + Obsolete.TABLE_IMAGES +
-                   " RENAME TO " + TABLE_IMAGES_TMP);
-
-        debug("Dropping views and indexes related to " + Obsolete.TABLE_IMAGES);
-        db.execSQL("DROP VIEW IF EXISTS " + Obsolete.VIEW_HISTORY_WITH_IMAGES);
-        db.execSQL("DROP VIEW IF EXISTS " + Obsolete.VIEW_COMBINED_WITH_IMAGES);
-
-        db.execSQL("DROP INDEX IF EXISTS images_url_index");
-        db.execSQL("DROP INDEX IF EXISTS images_guid_index");
-        db.execSQL("DROP INDEX IF EXISTS images_modified_index");
-
-        createImagesTable(db);
-        createHistoryWithImagesView(db);
-        createCombinedWithImagesView(db);
-
-        db.execSQL("INSERT INTO " + Obsolete.TABLE_IMAGES + " SELECT * FROM " + TABLE_IMAGES_TMP);
-
-        debug("Dropping images temporary table");
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_IMAGES_TMP);
-    }
-
-    private void upgradeDatabaseFrom1to2(SQLiteDatabase db) {
-        migrateBookmarksTable(db);
-    }
-
-    private void upgradeDatabaseFrom2to3(SQLiteDatabase db) {
-        debug("Dropping view: " + Obsolete.VIEW_BOOKMARKS_WITH_IMAGES);
-        db.execSQL("DROP VIEW IF EXISTS " + Obsolete.VIEW_BOOKMARKS_WITH_IMAGES);
-
-        createBookmarksWithImagesView(db);
-
-        debug("Dropping view: " + Obsolete.VIEW_HISTORY_WITH_IMAGES);
-        db.execSQL("DROP VIEW IF EXISTS " + Obsolete.VIEW_HISTORY_WITH_IMAGES);
-
-        createHistoryWithImagesView(db);
-    }
-
     private void upgradeDatabaseFrom3to4(SQLiteDatabase db) {
         migrateBookmarksTable(db, new BookmarkMigrator3to4());
-    }
-
-    private void upgradeDatabaseFrom4to5(SQLiteDatabase db) {
-        createCombinedWithImagesView(db);
-    }
-
-    private void upgradeDatabaseFrom5to6(SQLiteDatabase db) {
-        debug("Dropping view: " + Obsolete.VIEW_COMBINED_WITH_IMAGES);
-        db.execSQL("DROP VIEW IF EXISTS " + Obsolete.VIEW_COMBINED_WITH_IMAGES);
-
-        createCombinedWithImagesView(db);
     }
 
     private void upgradeDatabaseFrom6to7(SQLiteDatabase db) {
         debug("Removing history visits with NULL GUIDs");
         db.execSQL("DELETE FROM " + TABLE_HISTORY + " WHERE " + History.GUID + " IS NULL");
 
-        debug("Update images with NULL GUIDs");
-        String[] columns = new String[] { Obsolete.Images._ID };
-        Cursor cursor = null;
-        try {
-          cursor = db.query(Obsolete.TABLE_IMAGES, columns, Obsolete.Images.GUID + " IS NULL", null, null ,null, null, null);
-          ContentValues values = new ContentValues();
-          if (cursor.moveToFirst()) {
-              do {
-                  values.put(Obsolete.Images.GUID, Utils.generateGuid());
-                  db.update(Obsolete.TABLE_IMAGES, values, Obsolete.Images._ID + " = ?", new String[] {
-                    cursor.getString(cursor.getColumnIndexOrThrow(Obsolete.Images._ID))
-                  });
-              } while (cursor.moveToNext());
-          }
-        } finally {
-          if (cursor != null)
-            cursor.close();
-        }
-
         migrateBookmarksTable(db);
         migrateHistoryTable(db);
-        migrateImagesTable(db);
     }
 
     private void upgradeDatabaseFrom7to8(SQLiteDatabase db) {
@@ -1122,157 +723,38 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE " + TABLE_DUPES);
     }
 
-    private void upgradeDatabaseFrom8to9(SQLiteDatabase db) {
-        createOrUpdateSpecialFolder(db, Bookmarks.READING_LIST_FOLDER_GUID,
-            R.string.bookmarks_folder_reading_list, 5);
-
-        debug("Dropping view: " + Obsolete.VIEW_COMBINED_WITH_IMAGES);
-        db.execSQL("DROP VIEW IF EXISTS " + Obsolete.VIEW_COMBINED_WITH_IMAGES);
-
-        createCombinedWithImagesViewOn9(db);
-    }
-
-    private void upgradeDatabaseFrom9to10(SQLiteDatabase db) {
-        debug("Dropping view: " + Obsolete.VIEW_COMBINED_WITH_IMAGES);
-        db.execSQL("DROP VIEW IF EXISTS " + Obsolete.VIEW_COMBINED_WITH_IMAGES);
-
-        createCombinedWithImagesViewOn10(db);
-    }
-
     private void upgradeDatabaseFrom10to11(SQLiteDatabase db) {
-        debug("Dropping view: " + Obsolete.VIEW_COMBINED_WITH_IMAGES);
-        db.execSQL("DROP VIEW IF EXISTS " + Obsolete.VIEW_COMBINED_WITH_IMAGES);
-
         db.execSQL("CREATE INDEX bookmarks_type_deleted_index ON " + TABLE_BOOKMARKS + "("
                 + Bookmarks.TYPE + ", " + Bookmarks.IS_DELETED + ")");
-
-        createCombinedWithImagesViewOn11(db);
-    }
-
-    private void upgradeDatabaseFrom11to12(SQLiteDatabase db) {
-        debug("Dropping view: " + Obsolete.VIEW_COMBINED_WITH_IMAGES);
-        db.execSQL("DROP VIEW IF EXISTS " + Obsolete.VIEW_COMBINED_WITH_IMAGES);
-
-        createCombinedViewOn12(db);
     }
 
     private void upgradeDatabaseFrom12to13(SQLiteDatabase db) {
-        // Update images table with favicon URLs
-        SQLiteDatabase faviconsDb = null;
-        Cursor c = null;
-        try {
-            final String FAVICON_TABLE = "favicon_urls";
-            final String FAVICON_URL = "favicon_url";
-            final String FAVICON_PAGE = "page_url";
-
-            String dbPath = mContext.getDatabasePath(Obsolete.FAVICON_DB).getPath();
-            faviconsDb = SQLiteDatabase.openDatabase(dbPath, null, SQLiteDatabase.OPEN_READONLY);
-            String[] columns = new String[] { FAVICON_URL, FAVICON_PAGE };
-            c = faviconsDb.query(FAVICON_TABLE, columns, null, null, null, null, null, null);
-            int faviconIndex = c.getColumnIndexOrThrow(FAVICON_URL);
-            int pageIndex = c.getColumnIndexOrThrow(FAVICON_PAGE);
-            while (c.moveToNext()) {
-                ContentValues values = new ContentValues(1);
-                String faviconUrl = c.getString(faviconIndex);
-                String pageUrl = c.getString(pageIndex);
-                values.put(FAVICON_URL, faviconUrl);
-                db.update(Obsolete.TABLE_IMAGES, values, Obsolete.Images.URL + " = ?", new String[] { pageUrl });
-            }
-        } catch (SQLException e) {
-            // If we can't read from the database for some reason, we won't
-            // be able to import the favicon URLs. This isn't a fatal
-            // error, so continue the upgrade.
-            Log.e(LOGTAG, "Exception importing from " + Obsolete.FAVICON_DB, e);
-        } finally {
-            if (c != null)
-                c.close();
-            if (faviconsDb != null)
-                faviconsDb.close();
-        }
-
         createFaviconsTable(db);
 
-        // Import favicons into the favicons table
-        db.execSQL("ALTER TABLE " + TABLE_HISTORY
-                + " ADD COLUMN " + History.FAVICON_ID + " INTEGER");
-        db.execSQL("ALTER TABLE " + TABLE_BOOKMARKS
-                + " ADD COLUMN " + Bookmarks.FAVICON_ID + " INTEGER");
-
+        // Add favicon_id column to the history/bookmarks tables. We wrap this in a try-catch
+        // because the column *may* already exist at this point (depending on how many upgrade
+        // steps have been performed in this operation). In which case these queries will throw,
+        // but we don't care.
         try {
-            c = db.query(Obsolete.TABLE_IMAGES,
-                    new String[] {
-                        Obsolete.Images.URL,
-                        Obsolete.Images.FAVICON_URL,
-                        Obsolete.Images.FAVICON,
-                        Obsolete.Images.DATE_MODIFIED,
-                        Obsolete.Images.DATE_CREATED
-                    },
-                    Obsolete.Images.FAVICON + " IS NOT NULL",
-                    null, null, null, null);
-
-            while (c.moveToNext()) {
-                long faviconId = -1;
-                int faviconUrlIndex = c.getColumnIndexOrThrow(Obsolete.Images.FAVICON_URL);
-                String faviconUrl = null;
-                if (!c.isNull(faviconUrlIndex)) {
-                    faviconUrl = c.getString(faviconUrlIndex);
-                    Cursor c2 = null;
-                    try {
-                        c2 = db.query(TABLE_FAVICONS,
-                                new String[] { Favicons._ID },
-                                Favicons.URL + " = ?",
-                                new String[] { faviconUrl },
-                                null, null, null);
-                        if (c2.moveToFirst()) {
-                            faviconId = c2.getLong(c2.getColumnIndexOrThrow(Favicons._ID));
-                        }
-                    } finally {
-                        if (c2 != null)
-                            c2.close();
-                    }
-                }
-
-                if (faviconId == -1) {
-                    ContentValues values = new ContentValues(4);
-                    values.put(Favicons.URL, faviconUrl);
-                    values.put(Favicons.DATA, c.getBlob(c.getColumnIndexOrThrow(Obsolete.Images.FAVICON)));
-                    values.put(Favicons.DATE_MODIFIED, c.getLong(c.getColumnIndexOrThrow(Obsolete.Images.DATE_MODIFIED)));
-                    values.put(Favicons.DATE_CREATED, c.getLong(c.getColumnIndexOrThrow(Obsolete.Images.DATE_CREATED)));
-                    faviconId = db.insert(TABLE_FAVICONS, null, values);
-                }
-
-                ContentValues values = new ContentValues(1);
-                values.put(FaviconColumns.FAVICON_ID, faviconId);
-                db.update(TABLE_HISTORY, values, History.URL + " = ?",
-                        new String[] { c.getString(c.getColumnIndexOrThrow(Obsolete.Images.URL)) });
-                db.update(TABLE_BOOKMARKS, values, Bookmarks.URL + " = ?",
-                        new String[] { c.getString(c.getColumnIndexOrThrow(Obsolete.Images.URL)) });
-            }
-        } finally {
-            if (c != null)
-                c.close();
+            db.execSQL("ALTER TABLE " + TABLE_HISTORY +
+                                    " ADD COLUMN " + History.FAVICON_ID + " INTEGER");
+            db.execSQL("ALTER TABLE " + TABLE_BOOKMARKS +
+                               " ADD COLUMN " + Bookmarks.FAVICON_ID + " INTEGER");
+        } catch (SQLException e) {
+            // Don't care.
+            debug("Exception adding favicon_id column. We're probably fine." + e);
         }
 
         createThumbnailsTable(db);
 
-        // Import thumbnails into the thumbnails table
-        db.execSQL("INSERT INTO " + TABLE_THUMBNAILS + " ("
-                + Thumbnails.URL + ", "
-                + Thumbnails.DATA + ") "
-                + "SELECT " + Obsolete.Images.URL + ", " + Obsolete.Images.THUMBNAIL
-                + " FROM " + Obsolete.TABLE_IMAGES
-                + " WHERE " + Obsolete.Images.THUMBNAIL + " IS NOT NULL");
-
-        db.execSQL("DROP VIEW IF EXISTS " + Obsolete.VIEW_BOOKMARKS_WITH_IMAGES);
-        db.execSQL("DROP VIEW IF EXISTS " + Obsolete.VIEW_HISTORY_WITH_IMAGES);
-        db.execSQL("DROP VIEW IF EXISTS " + Obsolete.VIEW_COMBINED_WITH_IMAGES);
-        db.execSQL("DROP VIEW IF EXISTS " + VIEW_COMBINED);
+        db.execSQL("DROP VIEW IF EXISTS bookmarks_with_images");
+        db.execSQL("DROP VIEW IF EXISTS history_with_images");
+        db.execSQL("DROP VIEW IF EXISTS combined_with_images");
 
         createBookmarksWithFaviconsView(db);
         createHistoryWithFaviconsView(db);
-        createCombinedViewOn13(db);
 
-        db.execSQL("DROP TABLE IF EXISTS " + Obsolete.TABLE_IMAGES);
+        db.execSQL("DROP TABLE IF EXISTS images");
     }
 
     private void upgradeDatabaseFrom13to14(SQLiteDatabase db) {
@@ -1331,8 +813,7 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
     }
 
     /*
-     * Moves reading list items from 'bookmarks' table to 'reading_list' table. Uses the
-     * same item GUID.
+     * Moves reading list items from 'bookmarks' table to 'reading_list' table.
      */
     private void upgradeDatabaseFrom17to18(SQLiteDatabase db) {
         debug("Moving reading list items from 'bookmarks' table to 'reading_list' table");
@@ -1345,49 +826,60 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                                         Bookmarks.DATE_MODIFIED,
                                         Bookmarks.DATE_CREATED,
                                         Bookmarks.TITLE };
-        Cursor cursor = null;
+
         try {
-            // Start transaction
             db.beginTransaction();
 
-            // Create 'reading_list' table
-            createReadingListTable(db);
+            // Create 'reading_list' table.
+            createReadingListTable(db, TABLE_READING_LIST);
 
-            // Get all the reading list items from bookmarks table
-            cursor = db.query(TABLE_BOOKMARKS, projection, selection, selectionArgs,
-                         null, null, null);
+            // Get all the reading list items from bookmarks table.
+            final Cursor cursor = db.query(TABLE_BOOKMARKS, projection, selection, selectionArgs, null, null, null);
 
-            // Insert reading list items into reading_list table
-            while (cursor.moveToNext()) {
-                debug(DatabaseUtils.dumpCurrentRowToString(cursor));
-                ContentValues values = new ContentValues();
-                DatabaseUtils.cursorStringToContentValues(cursor, Bookmarks.URL, values, ReadingListItems.URL);
-                DatabaseUtils.cursorStringToContentValues(cursor, Bookmarks.GUID, values, ReadingListItems.GUID);
-                DatabaseUtils.cursorStringToContentValues(cursor, Bookmarks.TITLE, values, ReadingListItems.TITLE);
-                DatabaseUtils.cursorLongToContentValues(cursor, Bookmarks.DATE_CREATED, values, ReadingListItems.DATE_CREATED);
-                DatabaseUtils.cursorLongToContentValues(cursor, Bookmarks.DATE_MODIFIED, values, ReadingListItems.DATE_MODIFIED);
-
-                db.insertOrThrow(TABLE_READING_LIST, null, values);
+            if (cursor == null) {
+                // This should never happen.
+                db.setTransactionSuccessful();
+                return;
             }
 
-            // Delete reading list items from bookmarks table
+            try {
+                // Insert reading list items into reading_list table.
+                while (cursor.moveToNext()) {
+                    debug(DatabaseUtils.dumpCurrentRowToString(cursor));
+                    final ContentValues values = new ContentValues();
+
+                    // We don't preserve bookmark GUIDs.
+                    DatabaseUtils.cursorStringToContentValues(cursor, Bookmarks.URL, values, ReadingListItems.URL);
+                    DatabaseUtils.cursorStringToContentValues(cursor, Bookmarks.TITLE, values, ReadingListItems.TITLE);
+                    DatabaseUtils.cursorLongToContentValues(cursor, Bookmarks.DATE_CREATED, values, ReadingListItems.ADDED_ON);
+                    DatabaseUtils.cursorLongToContentValues(cursor, Bookmarks.DATE_MODIFIED, values, ReadingListItems.CLIENT_LAST_MODIFIED);
+
+                    db.insertOrThrow(TABLE_READING_LIST, null, values);
+                }
+            } finally {
+                cursor.close();
+            }
+
+            // Delete reading list items from bookmarks table.
             db.delete(TABLE_BOOKMARKS,
                       Bookmarks.PARENT + " = ? ",
                       new String[] { String.valueOf(Bookmarks.FIXED_READING_LIST_ID) });
 
-            // Delete reading list special folder
+            // Delete reading list special folder.
             db.delete(TABLE_BOOKMARKS,
                       Bookmarks._ID + " = ? ",
                       new String[] { String.valueOf(Bookmarks.FIXED_READING_LIST_ID) });
-            // Done
+
+            // Create indices.
+            createReadingListIndices(db, TABLE_READING_LIST);
+
+            // Done.
             db.setTransactionSuccessful();
+            didCreateCurrentReadingListTable = true;
 
         } catch (SQLException e) {
             Log.e(LOGTAG, "Error migrating reading list items", e);
         } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
             db.endTransaction();
         }
     }
@@ -1409,6 +901,137 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
         createSearchHistoryTable(db);
     }
 
+    private void upgradeDatabaseFrom21to22(SQLiteDatabase db) {
+        if (didCreateCurrentReadingListTable) {
+            debug("No need to add CONTENT_STATUS to reading list; we just created with the current schema.");
+            return;
+        }
+
+        debug("Adding CONTENT_STATUS column to reading list table.");
+
+        try {
+            db.execSQL("ALTER TABLE " + TABLE_READING_LIST +
+                       " ADD COLUMN " + ReadingListItems.CONTENT_STATUS +
+                       " TINYINT DEFAULT " + ReadingListItems.STATUS_UNFETCHED);
+
+            db.execSQL("CREATE INDEX reading_list_content_status ON " + TABLE_READING_LIST + "("
+                    + ReadingListItems.CONTENT_STATUS + ")");
+        } catch (SQLiteException e) {
+            // We're betting that an error here means that the table already has the column,
+            // so we're failing due to the duplicate column name.
+            Log.e(LOGTAG, "Error upgrading database from 21 to 22", e);
+        }
+    }
+
+    private void upgradeDatabaseFrom22to23(SQLiteDatabase db) {
+        if (didCreateCurrentReadingListTable) {
+            debug("No need to rev reading list schema; we just created with the current schema.");
+            return;
+        }
+
+        debug("Rewriting reading list table.");
+        createReadingListTable(db, "tmp_rl");
+
+        // Remove indexes. We don't need them now, and we'll be throwing away the table.
+        db.execSQL("DROP INDEX IF EXISTS reading_list_url");
+        db.execSQL("DROP INDEX IF EXISTS reading_list_guid");
+        db.execSQL("DROP INDEX IF EXISTS reading_list_content_status");
+
+        final String thisDevice = ReadingListProvider.PLACEHOLDER_THIS_DEVICE;
+        db.execSQL("INSERT INTO tmp_rl (" +
+                   // Here are the columns we can preserve.
+                   ReadingListItems._ID + ", " +
+                   ReadingListItems.URL + ", " +
+                   ReadingListItems.TITLE + ", " +
+                   ReadingListItems.RESOLVED_TITLE + ", " +       // = TITLE (if CONTENT_STATUS = STATUS_FETCHED_ARTICLE)
+                   ReadingListItems.RESOLVED_URL + ", " +         // = URL (if CONTENT_STATUS = STATUS_FETCHED_ARTICLE)
+                   ReadingListItems.EXCERPT + ", " +
+                   ReadingListItems.IS_UNREAD + ", " +            // = !READ
+                   ReadingListItems.IS_DELETED + ", " +           // = 0
+                   ReadingListItems.GUID + ", " +                 // = NULL
+                   ReadingListItems.CLIENT_LAST_MODIFIED + ", " + // = DATE_MODIFIED
+                   ReadingListItems.ADDED_ON + ", " +             // = DATE_CREATED
+                   ReadingListItems.CONTENT_STATUS + ", " +
+                   ReadingListItems.MARKED_READ_BY + ", " +       // if READ + ", = this device
+                   ReadingListItems.ADDED_BY +                    // = this device
+                   ") " +
+                   "SELECT " +
+                   "_id, url, title, " +
+                   "CASE content_status WHEN " + ReadingListItems.STATUS_FETCHED_ARTICLE + " THEN title ELSE NULL END, " +   // RESOLVED_TITLE.
+                   "CASE content_status WHEN " + ReadingListItems.STATUS_FETCHED_ARTICLE + " THEN url ELSE NULL END, " +     // RESOLVED_URL.
+                   "excerpt, " +
+                   "CASE read WHEN 1 THEN 0 ELSE 1 END, " +            // IS_UNREAD.
+                   "0, " +                                             // IS_DELETED.
+                   "NULL, modified, created, content_status, " +
+                   "CASE read WHEN 1 THEN ? ELSE NULL END, " +         // MARKED_READ_BY.
+                   "?" +                                               // ADDED_BY.
+                   " FROM " + TABLE_READING_LIST +
+                   " WHERE deleted = 0",
+                   new String[] {thisDevice, thisDevice});
+
+        // Now switch these tables over and recreate the indices.
+        db.execSQL("DROP TABLE " + TABLE_READING_LIST);
+        db.execSQL("ALTER TABLE tmp_rl RENAME TO " + TABLE_READING_LIST);
+
+        createReadingListIndices(db, TABLE_READING_LIST);
+    }
+
+    private void upgradeDatabaseFrom23to24(SQLiteDatabase db) {
+        // Version 24 consolidates the tabs and clients table into browser.db.  Before, they lived in tabs.db.
+        // It's easier to copy the existing data than to arrange for Sync to re-populate it.
+        try {
+            final File oldTabsDBFile = new File(GeckoProfile.get(mContext).getDir(), "tabs.db");
+            copyTabsDB(oldTabsDBFile, db);
+        } catch (Exception e) {
+            Log.e(LOGTAG, "Got exception copying tabs and clients data from tabs.db to browser.db; ignoring.", e);
+        }
+
+        // Delete the database, the shared memory, and the log.
+        for (String filename : new String[] { "tabs.db", "tabs.db-shm", "tabs.db-wal" }) {
+            final File file = new File(GeckoProfile.get(mContext).getDir(), filename);
+            try {
+                FileUtils.delete(file);
+            } catch (Exception e) {
+                Log.e(LOGTAG, "Exception occurred while trying to delete " + file.getPath() + "; ignoring.", e);
+            }
+        }
+    }
+
+    private void upgradeDatabaseFrom24to25(SQLiteDatabase db) {
+        if (didCreateTabsTable) {
+            debug("No need to rev tabs schema; foreign key constraint exists.");
+            return;
+        }
+
+        debug("Rewriting tabs table.");
+        createTabsTable(db, "tmp_tabs");
+
+        // Remove indexes. We don't need them now, and we'll be throwing away the table.
+        db.execSQL("DROP INDEX IF EXISTS " + TabsProvider.INDEX_TABS_GUID);
+        db.execSQL("DROP INDEX IF EXISTS " + TabsProvider.INDEX_TABS_POSITION);
+
+        db.execSQL("INSERT INTO tmp_tabs (" +
+                        // Here are the columns we can preserve.
+                        BrowserContract.Tabs._ID + ", " +
+                        BrowserContract.Tabs.CLIENT_GUID + ", " +
+                        BrowserContract.Tabs.TITLE + ", " +
+                        BrowserContract.Tabs.URL + ", " +
+                        BrowserContract.Tabs.HISTORY + ", " +
+                        BrowserContract.Tabs.FAVICON + ", " +
+                        BrowserContract.Tabs.LAST_USED + ", " +
+                        BrowserContract.Tabs.POSITION +
+                        ") " +
+                        "SELECT " +
+                        "_id, client_guid, title, url, history, favicon, last_used, position" +
+                        " FROM " + TABLE_TABS);
+
+        // Now switch these tables over and recreate the indices.
+        db.execSQL("DROP TABLE " + TABLE_TABS);
+        db.execSQL("ALTER TABLE tmp_tabs RENAME TO " + TABLE_TABS);
+        createTabsTableIndices(db, TABLE_TABS);
+        didCreateTabsTable =true;
+    }
+
     private void createV19CombinedView(SQLiteDatabase db) {
         db.execSQL("DROP VIEW IF EXISTS " + VIEW_COMBINED);
         db.execSQL("DROP VIEW IF EXISTS " + VIEW_COMBINED_WITH_FAVICONS);
@@ -1425,24 +1048,8 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
         // database schema version.
         for (int v = oldVersion + 1; v <= newVersion; v++) {
             switch(v) {
-                case 2:
-                    upgradeDatabaseFrom1to2(db);
-                    break;
-
-                case 3:
-                    upgradeDatabaseFrom2to3(db);
-                    break;
-
                 case 4:
                     upgradeDatabaseFrom3to4(db);
-                    break;
-
-                case 5:
-                    upgradeDatabaseFrom4to5(db);
-                    break;
-
-                case 6:
-                    upgradeDatabaseFrom5to6(db);
                     break;
 
                 case 7:
@@ -1453,20 +1060,8 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                     upgradeDatabaseFrom7to8(db);
                     break;
 
-                case 9:
-                    upgradeDatabaseFrom8to9(db);
-                    break;
-
-                case 10:
-                    upgradeDatabaseFrom9to10(db);
-                    break;
-
                 case 11:
                     upgradeDatabaseFrom10to11(db);
-                    break;
-
-                case 12:
-                    upgradeDatabaseFrom11to12(db);
                     break;
 
                 case 13:
@@ -1500,6 +1095,22 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
                 case 20:
                     upgradeDatabaseFrom19to20(db);
                     break;
+
+                case 22:
+                    upgradeDatabaseFrom21to22(db);
+                    break;
+
+                case 23:
+                    upgradeDatabaseFrom22to23(db);
+                    break;
+
+                case 24:
+                    upgradeDatabaseFrom23to24(db);
+                    break;
+
+                case 25:
+                    upgradeDatabaseFrom24to25(db);
+                    break;
             }
         }
 
@@ -1507,14 +1118,12 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
             table.onUpgrade(db, oldVersion, newVersion);
         }
 
-        // If an upgrade after 12->13 fails, the entire upgrade is rolled
-        // back, but we can't undo the deletion of favicon_urls.db if we
-        // delete this in step 13; therefore, we wait until all steps are
-        // complete before removing it.
-        if (oldVersion < 13 && newVersion >= 13
-                            && mContext.getDatabasePath(Obsolete.FAVICON_DB).exists()
-                            && !mContext.deleteDatabase(Obsolete.FAVICON_DB)) {
-            throw new SQLException("Could not delete " + Obsolete.FAVICON_DB);
+        // Delete the obsolete favicon database after all other upgrades complete.
+        // This can probably equivalently be moved into upgradeDatabaseFrom12to13.
+        if (oldVersion < 13 && newVersion >= 13) {
+            if (mContext.getDatabasePath("favicon_urls.db").exists()) {
+                mContext.deleteDatabase("favicon_urls.db");
+            }
         }
     }
 
@@ -1559,14 +1168,10 @@ final class BrowserDatabaseHelper extends SQLiteOpenHelper {
         }
     }
 
-    private static final String qualifyColumn(String table, String column) {
-        return DBUtils.qualifyColumn(table, column);
-    }
-
     // Calculate these once, at initialization. isLoggable is too expensive to
     // have in-line in each log call.
-    private static boolean logDebug   = Log.isLoggable(LOGTAG, Log.DEBUG);
-    private static boolean logVerbose = Log.isLoggable(LOGTAG, Log.VERBOSE);
+    private static final boolean logDebug   = Log.isLoggable(LOGTAG, Log.DEBUG);
+    private static final boolean logVerbose = Log.isLoggable(LOGTAG, Log.VERBOSE);
     protected static void trace(String message) {
         if (logVerbose) {
             Log.v(LOGTAG, message);

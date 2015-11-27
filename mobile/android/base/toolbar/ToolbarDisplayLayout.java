@@ -12,17 +12,22 @@ import java.util.List;
 import org.mozilla.gecko.AboutPages;
 import org.mozilla.gecko.AppConstants.Versions;
 import org.mozilla.gecko.BrowserApp;
-import org.mozilla.gecko.NewTabletUI;
 import org.mozilla.gecko.R;
+import org.mozilla.gecko.ReaderModeUtils;
 import org.mozilla.gecko.SiteIdentity;
+import org.mozilla.gecko.SiteIdentity.MixedMode;
 import org.mozilla.gecko.SiteIdentity.SecurityMode;
+import org.mozilla.gecko.SiteIdentity.TrackingMode;
 import org.mozilla.gecko.Tab;
 import org.mozilla.gecko.animation.PropertyAnimator;
 import org.mozilla.gecko.animation.ViewHelper;
+import org.mozilla.gecko.favicons.Favicons;
 import org.mozilla.gecko.toolbar.BrowserToolbarTabletBase.ForwardButtonAnimation;
+import org.mozilla.gecko.util.ColorUtils;
+import org.mozilla.gecko.util.HardwareUtils;
 import org.mozilla.gecko.util.StringUtils;
-import org.mozilla.gecko.widget.ThemedLinearLayout;
-import org.mozilla.gecko.widget.ThemedTextView;
+import org.mozilla.gecko.widget.themed.ThemedLinearLayout;
+import org.mozilla.gecko.widget.themed.ThemedTextView;
 
 import android.content.Context;
 import android.content.res.Resources;
@@ -61,6 +66,7 @@ public class ToolbarDisplayLayout extends ThemedLinearLayout
                                   implements Animation.AnimationListener {
 
     private static final String LOGTAG = "GeckoToolbarDisplayLayout";
+    private boolean mTrackingProtectionEnabled;
 
     // To be used with updateFromTab() to allow the caller
     // to give enough context for the requested state change.
@@ -96,30 +102,37 @@ public class ToolbarDisplayLayout extends ThemedLinearLayout
 
     private boolean mIsAttached;
 
-    private ThemedTextView mTitle;
-    private int mTitlePadding;
+    private final ThemedTextView mTitle;
+    private final int mTitlePadding;
     private ToolbarPrefs mPrefs;
     private OnTitleChangeListener mTitleChangeListener;
 
-    private ImageButton mSiteSecurity;
+    private final ImageButton mSiteSecurity;
     private boolean mSiteSecurityVisible;
 
     // To de-bounce sets.
     private Bitmap mLastFavicon;
-    private ImageButton mFavicon;
+    private final ImageButton mFavicon;
     private int mFaviconSize;
 
-    private ImageButton mStop;
+    private final ImageButton mStop;
     private OnStopListener mStopListener;
 
-    private PageActionLayout mPageActionLayout;
+    private final PageActionLayout mPageActionLayout;
 
     private AlphaAnimation mLockFadeIn;
     private TranslateAnimation mTitleSlideLeft;
     private TranslateAnimation mTitleSlideRight;
 
-    private SiteIdentityPopup mSiteIdentityPopup;
-    private SecurityMode mSecurityMode;
+    private final SiteIdentityPopup mSiteIdentityPopup;
+    private int mSecurityImageLevel;
+
+    // Levels for displaying Mixed Content state icons.
+    private final int LEVEL_WARNING_MINOR = 3;
+    private final int LEVEL_LOCK_DISABLED = 4;
+    // Levels for displaying Tracking Protection state icons.
+    private final int LEVEL_SHIELD_ENABLED = 5;
+    private final int LEVEL_SHIELD_DISABLED = 6;
 
     private PropertyAnimator mForwardAnim;
 
@@ -141,28 +154,32 @@ public class ToolbarDisplayLayout extends ThemedLinearLayout
 
         final Resources res = getResources();
 
-        mUrlColor = new ForegroundColorSpan(res.getColor(R.color.url_bar_urltext));
-        mBlockedColor = new ForegroundColorSpan(res.getColor(R.color.url_bar_blockedtext));
-        mDomainColor = new ForegroundColorSpan(res.getColor(R.color.url_bar_domaintext));
-        mPrivateDomainColor = new ForegroundColorSpan(res.getColor(R.color.url_bar_domaintext_private));
+        mUrlColor = new ForegroundColorSpan(ColorUtils.getColor(context, R.color.url_bar_urltext));
+        mBlockedColor = new ForegroundColorSpan(ColorUtils.getColor(context, R.color.url_bar_blockedtext));
+        mDomainColor = new ForegroundColorSpan(ColorUtils.getColor(context, R.color.url_bar_domaintext));
+        mPrivateDomainColor = new ForegroundColorSpan(ColorUtils.getColor(context, R.color.url_bar_domaintext_private));
 
         mFavicon = (ImageButton) findViewById(R.id.favicon);
-        if (NewTabletUI.isEnabled(context)) {
-            // We don't show favicons in the toolbar on new tablet.
-            // TODO: removeView(mFavicon);
-            mFavicon.setVisibility(View.GONE);
+        mSiteSecurity = (ImageButton) findViewById(R.id.site_security);
+
+        if (HardwareUtils.isTablet()) {
+            mSiteSecurity.setVisibility(View.VISIBLE);
+
+            // We don't show favicons in the toolbar on new tablet. Note that while we could
+            // null the favicon reference, we don't do so to avoid excessive null-checking.
+            removeView(mFavicon);
         } else {
             if (Versions.feature16Plus) {
                 mFavicon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
             }
-            mFaviconSize = Math.round(res.getDimension(R.dimen.browser_toolbar_favicon_size));
+            mFaviconSize = Math.round(Favicons.browserToolbarFaviconSize);
         }
 
-        mSiteSecurity = (ImageButton) findViewById(R.id.site_security);
         mSiteSecurityVisible = (mSiteSecurity.getVisibility() == View.VISIBLE);
 
         mSiteIdentityPopup = new SiteIdentityPopup(mActivity);
-        mSiteIdentityPopup.setAnchor(mSiteSecurity);
+        mSiteIdentityPopup.setAnchor(this);
+        mSiteIdentityPopup.setOnVisibilityChangeListener(mActivity);
 
         mStop = (ImageButton) findViewById(R.id.stop);
         mPageActionLayout = (PageActionLayout) findViewById(R.id.page_action_layout);
@@ -175,10 +192,6 @@ public class ToolbarDisplayLayout extends ThemedLinearLayout
         Button.OnClickListener faviconListener = new Button.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (mSiteSecurity.getVisibility() != View.VISIBLE) {
-                    return;
-                }
-
                 mSiteIdentityPopup.show();
             }
         };
@@ -194,13 +207,13 @@ public class ToolbarDisplayLayout extends ThemedLinearLayout
                     // immediately based on the stopped tab.
                     final Tab tab = mStopListener.onStop();
                     if (tab != null) {
-                        updateUiMode(tab, UIMode.DISPLAY, EnumSet.noneOf(UpdateFlags.class));
+                        updateUiMode(UIMode.DISPLAY, EnumSet.noneOf(UpdateFlags.class));
                     }
                 }
             }
         });
 
-        float slideWidth = getResources().getDimension(R.dimen.browser_toolbar_lock_width);
+        float slideWidth = getResources().getDimension(R.dimen.browser_toolbar_site_security_width);
 
         LayoutParams siteSecParams = (LayoutParams) mSiteSecurity.getLayoutParams();
         final float scale = getResources().getDisplayMetrics().density;
@@ -223,6 +236,7 @@ public class ToolbarDisplayLayout extends ThemedLinearLayout
 
     @Override
     public void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
         mIsAttached = false;
     }
 
@@ -329,16 +343,13 @@ public class ToolbarDisplayLayout extends ThemedLinearLayout
             return;
         }
 
-        // If the pref to show the URL isn't set, just use the tab's display title.
-        if (!mPrefs.shouldShowUrl(mActivity) || url == null) {
-            setTitle(tab.getDisplayTitle());
-            return;
+        String strippedURL = stripAboutReaderURL(url);
+
+        if (mPrefs.shouldTrimUrls()) {
+            strippedURL = StringUtils.stripCommonSubdomains(StringUtils.stripScheme(strippedURL));
         }
 
-        CharSequence title = url;
-        if (mPrefs.shouldTrimUrls()) {
-            title = StringUtils.stripCommonSubdomains(StringUtils.stripScheme(url));
-        }
+        CharSequence title = strippedURL;
 
         final String baseDomain = tab.getBaseDomain();
         if (!TextUtils.isEmpty(baseDomain)) {
@@ -357,9 +368,17 @@ public class ToolbarDisplayLayout extends ThemedLinearLayout
         setTitle(title);
     }
 
+    private String stripAboutReaderURL(final String url) {
+        if (!AboutPages.isAboutReader(url)) {
+            return url;
+        }
+
+        return ReaderModeUtils.getUrlFromAboutReader(url);
+    }
+
     private void updateFavicon(Tab tab) {
-        if (NewTabletUI.isEnabled(getContext())) {
-            // We don't display favicons in the toolbar for the new Tablet UI.
+        if (HardwareUtils.isTablet()) {
+            // We don't display favicons in the toolbar on tablet.
             return;
         }
 
@@ -384,7 +403,7 @@ public class ToolbarDisplayLayout extends ThemedLinearLayout
             image = Bitmap.createScaledBitmap(image, mFaviconSize, mFaviconSize, false);
             mFavicon.setImageBitmap(image);
         } else {
-            mFavicon.setImageResource(R.drawable.favicon);
+            mFavicon.setImageResource(R.drawable.favicon_globe);
         }
     }
 
@@ -399,27 +418,62 @@ public class ToolbarDisplayLayout extends ThemedLinearLayout
         mSiteIdentityPopup.setSiteIdentity(siteIdentity);
 
         final SecurityMode securityMode;
+        final MixedMode activeMixedMode;
+        final MixedMode displayMixedMode;
+        final TrackingMode trackingMode;
+        final boolean loginInsecure;
         if (siteIdentity == null) {
             securityMode = SecurityMode.UNKNOWN;
+            activeMixedMode = MixedMode.UNKNOWN;
+            displayMixedMode = MixedMode.UNKNOWN;
+            trackingMode = TrackingMode.UNKNOWN;
+            loginInsecure = false;
         } else {
             securityMode = siteIdentity.getSecurityMode();
+            activeMixedMode = siteIdentity.getMixedModeActive();
+            displayMixedMode = siteIdentity.getMixedModeDisplay();
+            trackingMode = siteIdentity.getTrackingMode();
+            loginInsecure = siteIdentity.loginInsecure();
         }
 
-        if (mSecurityMode != securityMode) {
-            mSecurityMode = securityMode;
-            mSiteSecurity.setImageLevel(mSecurityMode.ordinal());
+        // This is a bit tricky, but we have one icon and three potential indicators.
+        // Default to the identity level
+        int imageLevel = securityMode.ordinal();
+
+        // Check to see if any protection was overridden first
+        if (loginInsecure) {
+            imageLevel = LEVEL_LOCK_DISABLED;
+        } else if (trackingMode == TrackingMode.TRACKING_CONTENT_LOADED) {
+            imageLevel = LEVEL_SHIELD_DISABLED;
+        } else if (trackingMode == TrackingMode.TRACKING_CONTENT_BLOCKED) {
+            imageLevel = LEVEL_SHIELD_ENABLED;
+        } else if (activeMixedMode == MixedMode.MIXED_CONTENT_LOADED) {
+            imageLevel = LEVEL_LOCK_DISABLED;
+        } else if (displayMixedMode == MixedMode.MIXED_CONTENT_LOADED) {
+            imageLevel = LEVEL_WARNING_MINOR;
+        }
+
+        if (mSecurityImageLevel != imageLevel) {
+            mSecurityImageLevel = imageLevel;
+            mSiteSecurity.setImageLevel(mSecurityImageLevel);
             updatePageActions(flags);
         }
+
+        mTrackingProtectionEnabled = trackingMode == TrackingMode.TRACKING_CONTENT_BLOCKED;
     }
 
     private void updateProgress(Tab tab, EnumSet<UpdateFlags> flags) {
         final boolean shouldShowThrobber = (tab != null &&
                                             tab.getState() == Tab.STATE_LOADING);
 
-        updateUiMode(tab, shouldShowThrobber ? UIMode.PROGRESS : UIMode.DISPLAY, flags);
+        updateUiMode(shouldShowThrobber ? UIMode.PROGRESS : UIMode.DISPLAY, flags);
+
+        if (Tab.STATE_SUCCESS == tab.getState() && mTrackingProtectionEnabled) {
+            mActivity.showTrackingProtectionPromptIfApplicable();
+        }
     }
 
-    private void updateUiMode(Tab tab, UIMode uiMode, EnumSet<UpdateFlags> flags) {
+    private void updateUiMode(UIMode uiMode, EnumSet<UpdateFlags> flags) {
         if (mUiMode == uiMode) {
             return;
         }
@@ -444,8 +498,7 @@ public class ToolbarDisplayLayout extends ThemedLinearLayout
         mStop.setVisibility(isShowingProgress ? View.VISIBLE : View.GONE);
         mPageActionLayout.setVisibility(!isShowingProgress ? View.VISIBLE : View.GONE);
 
-        boolean shouldShowSiteSecurity = (!isShowingProgress &&
-                                          mSecurityMode != SecurityMode.UNKNOWN);
+        boolean shouldShowSiteSecurity = (!isShowingProgress && mSecurityImageLevel > 0);
 
         setSiteSecurityVisibility(shouldShowSiteSecurity, flags);
 
@@ -456,7 +509,8 @@ public class ToolbarDisplayLayout extends ThemedLinearLayout
     }
 
     private void setSiteSecurityVisibility(boolean visible, EnumSet<UpdateFlags> flags) {
-        if (visible == mSiteSecurityVisible) {
+        // We don't hide site security on tablet.
+        if (visible == mSiteSecurityVisible || HardwareUtils.isTablet()) {
             return;
         }
 
@@ -500,18 +554,23 @@ public class ToolbarDisplayLayout extends ThemedLinearLayout
         mTitleChangeListener = listener;
     }
 
-    View getDoorHangerAnchor() {
-        if (!NewTabletUI.isEnabled(getContext())) {
-            return mFavicon;
-        } else {
-            return mSiteSecurity;
-        }
+    /**
+     * Update the Site Identity popup anchor.
+     *
+     * Tablet UI has a tablet-specific doorhanger anchor, so update it after all the views
+     * are inflated.
+     * @param view View to use as the anchor for the Site Identity popup.
+     */
+    void updateSiteIdentityAnchor(View view) {
+        mSiteIdentityPopup.setAnchor(view);
     }
 
     void prepareForwardAnimation(PropertyAnimator anim, ForwardButtonAnimation animation, int width) {
         mForwardAnim = anim;
 
         if (animation == ForwardButtonAnimation.HIDE) {
+            // We animate these items individually, rather than this entire view,
+            // so that we don't animate certain views, e.g. the stop button.
             anim.attach(mTitle,
                         PropertyAnimator.Property.TRANSLATION_X,
                         0);
@@ -557,7 +616,7 @@ public class ToolbarDisplayLayout extends ThemedLinearLayout
 
     void prepareStopEditingAnimation(PropertyAnimator anim) {
         // Fade toolbar buttons (page actions, stop) after the entry
-        // is schrunk back to its original size.
+        // is shrunk back to its original size.
         anim.attach(mPageActionLayout,
                     PropertyAnimator.Property.ALPHA,
                     1);
@@ -574,5 +633,9 @@ public class ToolbarDisplayLayout extends ThemedLinearLayout
         }
 
         return false;
+    }
+
+    void destroy() {
+        mSiteIdentityPopup.destroy();
     }
 }

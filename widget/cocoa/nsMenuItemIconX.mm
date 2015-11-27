@@ -26,7 +26,7 @@
 #include "nsNameSpaceManager.h"
 #include "nsGkAtoms.h"
 #include "nsIDOMElement.h"
-#include "nsIDOMCSSStyleDeclaration.h"
+#include "nsICSSDeclaration.h"
 #include "nsIDOMCSSValue.h"
 #include "nsIDOMCSSPrimitiveValue.h"
 #include "nsIDOMRect.h"
@@ -40,9 +40,10 @@
 #include "imgIContainer.h"
 #include "nsCocoaUtils.h"
 #include "nsContentUtils.h"
+#include "nsIContentPolicy.h"
 
+using mozilla::dom::Element;
 using mozilla::gfx::SourceSurface;
-using mozilla::RefPtr;
 
 static const uint32_t kIconWidth = 16;
 static const uint32_t kIconHeight = 16;
@@ -167,7 +168,7 @@ nsMenuItemIconX::GetIconURI(nsIURI** aIconURI)
 
   nsresult rv;
   nsCOMPtr<nsIDOMCSSValue> cssValue;
-  nsCOMPtr<nsIDOMCSSStyleDeclaration> cssStyleDecl;
+  nsCOMPtr<nsICSSDeclaration> cssStyleDecl;
   nsCOMPtr<nsIDOMCSSPrimitiveValue> primitiveValue;
   uint16_t primitiveType;
   if (!hasImageAttr) {
@@ -181,14 +182,19 @@ nsMenuItemIconX::GetIconURI(nsIURI** aIconURI)
     if (!window)
       return NS_ERROR_FAILURE;
 
-    nsCOMPtr<nsIDOMElement> domElement = do_QueryInterface(mContent);
+    window = window->GetCurrentInnerWindow();
+    if (!window)
+      return NS_ERROR_FAILURE;
+
+    nsCOMPtr<Element> domElement = do_QueryInterface(mContent);
     if (!domElement)
       return NS_ERROR_FAILURE;
 
-    rv = window->GetComputedStyle(domElement, EmptyString(),
-                                  getter_AddRefs(cssStyleDecl));
-    if (NS_FAILED(rv))
-      return rv;
+    ErrorResult dummy;
+    cssStyleDecl = window->GetComputedStyle(*domElement, EmptyString(), dummy);
+    dummy.SuppressException();
+    if (!cssStyleDecl)
+      return NS_ERROR_FAILURE;
 
     NS_NAMED_LITERAL_STRING(listStyleImage, "list-style-image");
     rv = cssStyleDecl->GetPropertyCSSValue(listStyleImage,
@@ -281,7 +287,7 @@ nsMenuItemIconX::LoadIcon(nsIURI* aIconURI)
   nsCOMPtr<nsILoadGroup> loadGroup = document->GetDocumentLoadGroup();
   if (!loadGroup) return NS_ERROR_FAILURE;
 
-  nsRefPtr<imgLoader> loader = nsContentUtils::GetImgLoaderForDocument(document);
+  RefPtr<imgLoader> loader = nsContentUtils::GetImgLoaderForDocument(document);
   if (!loader) return NS_ERROR_FAILURE;
 
   if (!mSetIcon) {
@@ -305,15 +311,13 @@ nsMenuItemIconX::LoadIcon(nsIURI* aIconURI)
       [mNativeMenuItem setImage:sPlaceholderIconImage];
   }
 
-  // Passing in null for channelPolicy here since nsMenuItemIconX::LoadIcon is
-  // not exposed to web content
-  nsresult rv = loader->LoadImage(aIconURI, nullptr, nullptr, nullptr, loadGroup, this,
-                                   nullptr, nsIRequest::LOAD_NORMAL, nullptr,
-                                   nullptr, EmptyString(), getter_AddRefs(mIconRequest));
+  nsresult rv = loader->LoadImage(aIconURI, nullptr, nullptr,
+                                  mozilla::net::RP_Default,
+                                  nullptr, loadGroup, this,
+                                  nullptr, nsIRequest::LOAD_NORMAL, nullptr,
+                                  nsIContentPolicy::TYPE_INTERNAL_IMAGE, EmptyString(),
+                                  getter_AddRefs(mIconRequest));
   if (NS_FAILED(rv)) return rv;
-
-  // We need to request the icon be decoded (bug 573583, bug 705516).
-  mIconRequest->StartDecoding();
 
   return NS_OK;
 
@@ -325,10 +329,33 @@ nsMenuItemIconX::LoadIcon(nsIURI* aIconURI)
 //
 
 NS_IMETHODIMP
-nsMenuItemIconX::Notify(imgIRequest *aRequest, int32_t aType, const nsIntRect* aData)
+nsMenuItemIconX::Notify(imgIRequest* aRequest,
+                        int32_t aType,
+                        const nsIntRect* aData)
 {
+  if (aType == imgINotificationObserver::LOAD_COMPLETE) {
+    // Make sure the image loaded successfully.
+    uint32_t status = imgIRequest::STATUS_ERROR;
+    if (NS_FAILED(aRequest->GetImageStatus(&status)) ||
+        (status & imgIRequest::STATUS_ERROR)) {
+      mIconRequest->Cancel(NS_BINDING_ABORTED);
+      mIconRequest = nullptr;
+      return NS_ERROR_FAILURE;
+    }
+
+    nsCOMPtr<imgIContainer> image;
+    aRequest->GetImage(getter_AddRefs(image));
+    MOZ_ASSERT(image);
+
+    // Ask the image to decode at its intrinsic size.
+    int32_t width = 0, height = 0;
+    image->GetWidth(&width);
+    image->GetHeight(&height);
+    image->RequestDecodeForSize(nsIntSize(width, height), imgIContainer::FLAG_NONE);
+  }
+
   if (aType == imgINotificationObserver::FRAME_COMPLETE) {
-    return OnStopFrame(aRequest);
+    return OnFrameComplete(aRequest);
   }
 
   if (aType == imgINotificationObserver::DECODE_COMPLETE) {
@@ -342,7 +369,7 @@ nsMenuItemIconX::Notify(imgIRequest *aRequest, int32_t aType, const nsIntRect* a
 }
 
 nsresult
-nsMenuItemIconX::OnStopFrame(imgIRequest*    aRequest)
+nsMenuItemIconX::OnFrameComplete(imgIRequest* aRequest)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
 

@@ -57,7 +57,7 @@
         <![CDATA[
           var closedNotification = this._closedNotification;
           var notifications = this.getElementsByTagName('notification');
-          return Array.filter(notifications, function(n) n != closedNotification);
+          return Array.filter(notifications, n => n != closedNotification);
         ]]>
         </getter>
       </property>
@@ -101,7 +101,11 @@
 
             const XULNS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
             var newitem = document.createElementNS(XULNS, "notification");
-            newitem.setAttribute("label", aLabel);
+            // Can't use instanceof in case this was created from a different document:
+            let labelIsDocFragment = aLabel && typeof aLabel == "object" && aLabel.nodeType &&
+                                     aLabel.nodeType == aLabel.DOCUMENT_FRAGMENT_NODE;
+            if (!labelIsDocFragment)
+              newitem.setAttribute("label", aLabel);
             newitem.setAttribute("value", aValue);
             if (aImage)
               newitem.setAttribute("image", aImage);
@@ -118,7 +122,18 @@
                 var button = aButtons[b];
                 var buttonElem = document.createElementNS(XULNS, "button");
                 buttonElem.setAttribute("label", button.label);
-                buttonElem.setAttribute("accesskey", button.accessKey);
+                if (typeof button.accessKey == "string")
+                  buttonElem.setAttribute("accesskey", button.accessKey);
+                if (typeof button.type == "string") {
+                  buttonElem.setAttribute("type", button.type);
+                  if ((button.type == "menu-button" || button.type == "menu") &&
+                      "popup" in button) {
+                    buttonElem.appendChild(button.popup);
+                    delete button.popup;
+                  }
+                  if (typeof button.anchor == "string")
+                    buttonElem.setAttribute("anchor", button.anchor);
+                }
                 buttonElem.classList.add("notification-button");
 
                 if (button.isDefault ||
@@ -148,6 +163,13 @@
               newitem.style.opacity = "0";
             }
             this.insertBefore(newitem, insertPos);
+            // Can only insert the document fragment after the item has been created because
+            // otherwise the XBL structure isn't there yet:
+            if (labelIsDocFragment) {
+              document.getAnonymousElementByAttribute(newitem, "anonid", "messageText")
+                .appendChild(aLabel);
+            }
+
             if (!insertPos)
               this._showNotification(newitem, true);
 
@@ -361,7 +383,7 @@
 
   <binding id="notification" role="xul:alert">
     <content>
-      <xul:hbox class="notification-inner outset" flex="1" xbl:inherits="type">
+      <xul:hbox class="notification-inner" flex="1" xbl:inherits="type">
         <xul:hbox anonid="details" align="center" flex="1"
                   oncommand="this.parentNode.parentNode._doButtonCommand(event);">
           <xul:image anonid="messageImage" class="messageImage" xbl:inherits="src=image,type,value"/>
@@ -436,7 +458,7 @@
             else {
               var callback = button.callback;
               if (callback) {
-                var result = callback(this, button);
+                var result = callback(this, button, aEvent.target);
                 if (!result)
                   this.close();
                 aEvent.stopPropagation();
@@ -449,22 +471,36 @@
   </binding>
 
   <binding id="popup-notification">
-    <content align="start">
-      <xul:image class="popup-notification-icon"
-                 xbl:inherits="popupid,src=icon"/>
-      <xul:vbox flex="1">
-        <xul:description class="popup-notification-description"
-                         xbl:inherits="xbl:text=label"/>
+    <content>
+      <xul:vbox>
+        <xul:image class="popup-notification-icon"
+                   xbl:inherits="popupid,src=icon"/>
+      </xul:vbox>
+      <xul:vbox class="popup-notification-body" xbl:inherits="popupid">
+        <xul:hbox align="start">
+          <xul:vbox flex="1">
+            <xul:label class="popup-notification-origin header"
+                       xbl:inherits="value=origin,tooltiptext=origin"
+                       crop="center"/>
+            <xul:description class="popup-notification-description"
+                             xbl:inherits="xbl:text=label,popupid"/>
+          </xul:vbox>
+          <xul:toolbarbutton anonid="closebutton"
+                             class="messageCloseButton close-icon popup-notification-closebutton tabbable"
+                             xbl:inherits="oncommand=closebuttoncommand"
+                             tooltiptext="&closeNotification.tooltip;"/>
+        </xul:hbox>
         <children includes="popupnotificationcontent"/>
         <xul:label class="text-link popup-notification-learnmore-link"
-               xbl:inherits="href=learnmoreurl">&learnMore;</xul:label>
+               xbl:inherits="onclick=learnmoreclick,href=learnmoreurl">&learnMore;</xul:label>
         <xul:spacer flex="1"/>
         <xul:hbox class="popup-notification-button-container"
                   pack="end" align="center">
+          <children includes="button"/>
           <xul:button anonid="button"
                       class="popup-notification-menubutton"
                       type="menu-button"
-                      xbl:inherits="oncommand=buttoncommand,label=buttonlabel,accesskey=buttonaccesskey">
+                      xbl:inherits="oncommand=buttoncommand,onpopupshown=buttonpopupshown,label=buttonlabel,accesskey=buttonaccesskey">
             <xul:menupopup anonid="menupopup"
                            xbl:inherits="oncommand=menucommand">
               <children/>
@@ -474,12 +510,6 @@
             </xul:menupopup>
           </xul:button>
         </xul:hbox>
-      </xul:vbox>
-      <xul:vbox pack="start">
-        <xul:toolbarbutton anonid="closebutton"
-                           class="messageCloseButton close-icon popup-notification-closebutton tabbable"
-                           xbl:inherits="oncommand=closebuttoncommand"
-                           tooltiptext="&closeNotification.tooltip;"/>
       </xul:vbox>
     </content>
     <resources>

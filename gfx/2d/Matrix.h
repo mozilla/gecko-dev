@@ -9,11 +9,16 @@
 #include "Types.h"
 #include "Rect.h"
 #include "Point.h"
+#include <iosfwd>
 #include <math.h>
 #include "mozilla/Attributes.h"
+#include "mozilla/DebugOnly.h"
+#include "mozilla/FloatingPoint.h"
 
 namespace mozilla {
 namespace gfx {
+
+class Quaternion;
 
 static bool FuzzyEqual(Float aV1, Float aV2) {
   // XXX - Check if fabs does the smart thing and just negates the sign bit.
@@ -41,6 +46,8 @@ public:
   {
     return Matrix(*this);
   }
+
+  friend std::ostream& operator<<(std::ostream& aStream, const Matrix& aMatrix);
 
   Point operator *(const Point &aPoint) const
   {
@@ -82,8 +89,8 @@ public:
    * is multiplied by the resulting matrix will first be translated, then be
    * transformed by the original transform.
    *
-   * Thus calling this method will result in this matrix having the same value
-   * as the result of:
+   * Calling this method will result in this matrix having the same value as
+   * the result of:
    *
    *   Matrix::Translation(x, y) * this
    *
@@ -136,7 +143,7 @@ public:
   }
   
   /**
-   * Similar to PreTranslate, but applies a scale to this matrix.
+   * Similar to PreTranslate, but applies a scale instead of a translation.
    */
   Matrix &PreScale(Float aX, Float aY)
   {
@@ -147,11 +154,26 @@ public:
 
     return *this;
   }
-  
+
+  /**
+   * Similar to PostTranslate, but applies a scale instead of a translation.
+   */
+  Matrix &PostScale(Float aScaleX, Float aScaleY)
+  {
+    _11 *= aScaleX;
+    _12 *= aScaleY;
+    _21 *= aScaleX;
+    _22 *= aScaleY;
+    _31 *= aScaleX;
+    _32 *= aScaleY;
+
+    return *this;
+  }
+
   GFX2D_API static Matrix Rotation(Float aAngle);
 
   /**
-   * Similar to PreTranslate, but applies a rotation to this matrix.
+   * Similar to PreTranslate, but applies a rotation instead of a translation.
    */
   Matrix &PreRotate(Float aAngle)
   {
@@ -184,6 +206,14 @@ public:
     _32 = inv_det * F;
 
     return true;
+  }
+
+  Matrix Inverse() const
+  {
+    Matrix clone = *this;
+    DebugOnly<bool> inverted = clone.Invert();
+    MOZ_ASSERT(inverted, "Attempted to get the inverse of a non-invertible matrix");
+    return clone;
   }
 
   Float Determinant() const
@@ -233,6 +263,21 @@ public:
   bool operator!=(const Matrix& other) const
   {
     return !(*this == other);
+  }
+
+  bool ExactlyEquals(const Matrix& o) const
+  {
+    return _11 == o._11 && _12 == o._12 &&
+           _21 == o._21 && _22 == o._22 &&
+           _31 == o._31 && _32 == o._32;
+  }
+
+  /* Verifies that the matrix contains no Infs or NaNs. */
+  bool IsFinite() const
+  {
+    return mozilla::IsFinite(_11) && mozilla::IsFinite(_12) &&
+           mozilla::IsFinite(_21) && mozilla::IsFinite(_22) &&
+           mozilla::IsFinite(_31) && mozilla::IsFinite(_32);
   }
 
   /* Returns true if the matrix is a rectilinear transformation (i.e.
@@ -308,11 +353,21 @@ public:
            FuzzyEqual(_21, 0.0f) && FuzzyEqual(_22, 1.0f);
   }
 
+  static bool FuzzyIsInteger(Float aValue)
+  {
+    return FuzzyEqual(aValue, floorf(aValue + 0.5f));
+  }
+
   bool IsIntegerTranslation() const
   {
-    return IsTranslation() &&
-           FuzzyEqual(_31, floorf(_31 + 0.5f)) &&
-           FuzzyEqual(_32, floorf(_32 + 0.5f));
+    return IsTranslation() && FuzzyIsInteger(_31) && FuzzyIsInteger(_32);
+  }
+
+  bool IsAllIntegers() const
+  {
+    return FuzzyIsInteger(_11) && FuzzyIsInteger(_12) &&
+           FuzzyIsInteger(_21) && FuzzyIsInteger(_22) &&
+           FuzzyIsInteger(_31) && FuzzyIsInteger(_32);
   }
 
   Point GetTranslation() const {
@@ -331,18 +386,17 @@ public:
   /**
    * Returns true if the matrix has any transform other
    * than a translation or scale; this is, if there is
-   * no rotation.
+   * rotation.
    */
   bool HasNonAxisAlignedTransform() const {
       return !FuzzyEqual(_21, 0.0) || !FuzzyEqual(_12, 0.0);
   }
 
   /**
-   * Returns true if the matrix has non-integer scale
+   * Returns true if the matrix has negative scaling (i.e. flip).
    */
-  bool HasNonIntegerScale() const {
-      return !FuzzyEqual(_11, floor(_11 + 0.5)) ||
-             !FuzzyEqual(_22, floor(_22 + 0.5));
+  bool HasNegativeScaling() const {
+      return (_11 < 0.0) || (_22 < 0.0);
   }
 };
 
@@ -356,10 +410,27 @@ public:
     , _41(0.0f), _42(0.0f), _43(0.0f), _44(1.0f)
   {}
 
+  Matrix4x4(Float a11, Float a12, Float a13, Float a14,
+            Float a21, Float a22, Float a23, Float a24,
+            Float a31, Float a32, Float a33, Float a34,
+            Float a41, Float a42, Float a43, Float a44)
+    : _11(a11), _12(a12), _13(a13), _14(a14)
+    , _21(a21), _22(a22), _23(a23), _24(a24)
+    , _31(a31), _32(a32), _33(a33), _34(a34)
+    , _41(a41), _42(a42), _43(a43), _44(a44)
+  {}
+
+  Matrix4x4(const Matrix4x4& aOther)
+  {
+    memcpy(this, &aOther, sizeof(*this));
+  }
+
   Float _11, _12, _13, _14;
   Float _21, _22, _23, _24;
   Float _31, _32, _33, _34;
   Float _41, _42, _43, _44;
+
+  friend std::ostream& operator<<(std::ostream& aStream, const Matrix4x4& aMatrix);
 
   Point4D& operator[](int aIndex)
   {
@@ -436,18 +507,47 @@ public:
     return *this;
   }
 
-  Point4D ProjectPoint(const Point& aPoint) const {
+  template<class F>
+  Point4DTyped<UnknownUnits, F>
+  ProjectPoint(const PointTyped<UnknownUnits, F>& aPoint) const {
     // Find a value for z that will transform to 0.
 
     // The transformed value of z is computed as:
     // z' = aPoint.x * _13 + aPoint.y * _23 + z * _33 + _43;
 
     // Solving for z when z' = 0 gives us:
-    float z = -(aPoint.x * _13 + aPoint.y * _23 + _43) / _33;
+    F z = -(aPoint.x * _13 + aPoint.y * _23 + _43) / _33;
 
     // Compute the transformed point
-    return *this * Point4D(aPoint.x, aPoint.y, z, 1);
+    return *this * Point4DTyped<UnknownUnits, F>(aPoint.x, aPoint.y, z, 1);
   }
+
+  template<class F>
+  RectTyped<UnknownUnits, F>
+  ProjectRectBounds(const RectTyped<UnknownUnits, F>& aRect, const RectTyped<UnknownUnits, F>& aClip) const;
+
+  /**
+   * TransformAndClipBounds transforms aRect as a bounding box, while clipping
+   * the transformed bounds to the extents of aClip.
+   */
+  template<class F>
+  RectTyped<UnknownUnits, F> TransformAndClipBounds(const RectTyped<UnknownUnits, F>& aRect, const RectTyped<UnknownUnits, F>& aClip) const;
+
+  /**
+   * TransformAndClipRect projects a rectangle and clips against view frustum
+   * clipping planes in homogenous space so that its projected vertices are
+   * constrained within the 2d rectangle passed in aClip.
+   * The resulting vertices are populated in aVerts.  aVerts must be
+   * pre-allocated to hold at least kTransformAndClipRectMaxVerts Points.
+   * The vertex count is returned by TransformAndClipRect.  It is possible to
+   * emit fewer that 3 vertices, indicating that aRect will not be visible
+   * within aClip.
+   */
+  template<class F>
+  size_t TransformAndClipRect(const RectTyped<UnknownUnits, F>& aRect,
+                              const RectTyped<UnknownUnits, F>& aClip,
+                              PointTyped<UnknownUnits, F>* aVerts) const;
+  static const size_t kTransformAndClipRectMaxVerts = 32;
 
   static Matrix4x4 From2D(const Matrix &aMatrix) {
     Matrix4x4 matrix;
@@ -475,9 +575,10 @@ public:
       return Point4D(x, y, z, w);
   }
 
-  Point4D operator *(const Point4D& aPoint) const
+  template<class F>
+  Point4DTyped<UnknownUnits, F> operator *(const Point4DTyped<UnknownUnits, F>& aPoint) const
   {
-    Point4D retPoint;
+    Point4DTyped<UnknownUnits, F> retPoint;
 
     retPoint.x = aPoint.x * _11 + aPoint.y * _21 + aPoint.z * _31 + _41;
     retPoint.y = aPoint.x * _12 + aPoint.y * _22 + aPoint.z * _32 + _42;
@@ -487,46 +588,64 @@ public:
     return retPoint;
   }
 
-  Point3D operator *(const Point3D& aPoint) const
+  template<class F>
+  Point3DTyped<UnknownUnits, F> operator *(const Point3DTyped<UnknownUnits, F>& aPoint) const
   {
-    Point4D temp(aPoint.x, aPoint.y, aPoint.z, 1);
+    Point4DTyped<UnknownUnits, F> temp(aPoint.x, aPoint.y, aPoint.z, 1);
 
     temp = *this * temp;
     temp /= temp.w;
 
-    return Point3D(temp.x, temp.y, temp.z);
+    return Point3DTyped<UnknownUnits, F>(temp.x, temp.y, temp.z);
   }
 
-  Point operator *(const Point &aPoint) const
+  template<class F>
+  PointTyped<UnknownUnits, F> operator *(const PointTyped<UnknownUnits, F> &aPoint) const
   {
-    Point4D temp(aPoint.x, aPoint.y, 0, 1);
+    Point4DTyped<UnknownUnits, F> temp(aPoint.x, aPoint.y, 0, 1);
 
     temp = *this * temp;
     temp /= temp.w;
 
-    return Point(temp.x, temp.y);
+    return PointTyped<UnknownUnits, F>(temp.x, temp.y);
   }
 
-  GFX2D_API Rect TransformBounds(const Rect& rect) const;
+  template<class F>
+  GFX2D_API RectTyped<UnknownUnits, F> TransformBounds(const RectTyped<UnknownUnits, F>& aRect) const;
 
-  // Apply a scale to this matrix. This scale will be applied -before- the
-  // existing transformation of the matrix.
-  Matrix4x4 &Scale(Float aX, Float aY, Float aZ)
+  static Matrix4x4 Translation(Float aX, Float aY, Float aZ)
   {
-    _11 *= aX;
-    _12 *= aX;
-    _13 *= aX;
-    _21 *= aY;
-    _22 *= aY;
-    _23 *= aY;
-    _31 *= aZ;
-    _32 *= aZ;
-    _33 *= aZ;
-
-    return *this;
+    return Matrix4x4(1.0f, 0.0f, 0.0f, 0.0f,
+                     0.0f, 1.0f, 0.0f, 0.0f,
+                     0.0f, 0.0f, 1.0f, 0.0f,
+                       aX,   aY,   aZ, 1.0f);
   }
 
-  Matrix4x4 &Translate(Float aX, Float aY, Float aZ)
+  static Matrix4x4 Translation(const Point3D& aP)
+  {
+    return Translation(aP.x, aP.y, aP.z);
+  }
+
+  /**
+   * Apply a translation to this matrix.
+   *
+   * The "Pre" in this method's name means that the translation is applied
+   * -before- this matrix's existing transformation. That is, any vector that
+   * is multiplied by the resulting matrix will first be translated, then be
+   * transformed by the original transform.
+   *
+   * Calling this method will result in this matrix having the same value as
+   * the result of:
+   *
+   *   Matrix4x4::Translation(x, y) * this
+   *
+   * (Note that in performance critical code multiplying by the result of a
+   * Translation()/Scaling() call is not recommended since that results in a
+   * full matrix multiply involving 64 floating-point multiplications. Calling
+   * this method would be preferred since it only involves 12 floating-point
+   * multiplications.)
+   */
+  Matrix4x4 &PreTranslate(Float aX, Float aY, Float aZ)
   {
     _41 += aX * _11 + aY * _21 + aZ * _31;
     _42 += aX * _12 + aY * _22 + aZ * _32;
@@ -536,8 +655,22 @@ public:
     return *this;
   }
 
-  Rect ProjectRectBounds(const Rect& aRect) const;
+  Matrix4x4 &PreTranslate(const Point3D& aPoint) {
+    return PreTranslate(aPoint.x, aPoint.y, aPoint.z);
+  }
 
+  /**
+   * Similar to PreTranslate, but the translation is applied -after- this
+   * matrix's existing transformation instead of before it.
+   *
+   * This method is generally less used than PreTranslate since typically code
+   * wants to adjust an existing user space to device space matrix to create a
+   * transform to device space from a -new- user space (translated from the
+   * previous user space). In that case consumers will need to use the Pre*
+   * variants of the matrix methods rather than using the Post* methods, since
+   * the Post* methods add a transform to the device space end of the
+   * transformation.
+   */
   Matrix4x4 &PostTranslate(Float aX, Float aY, Float aZ)
   {
     _11 += _14 * aX;
@@ -552,6 +685,60 @@ public:
     _23 += _24 * aZ;
     _33 += _34 * aZ;
     _43 += _44 * aZ;
+
+    return *this;
+  }
+
+  Matrix4x4 &PostTranslate(const Point3D& aPoint) {
+    return PostTranslate(aPoint.x, aPoint.y, aPoint.z);
+  }
+
+  static Matrix4x4 Scaling(Float aScaleX, Float aScaleY, float aScaleZ)
+  {
+    return Matrix4x4(aScaleX, 0.0f, 0.0f, 0.0f,
+                     0.0f, aScaleY, 0.0f, 0.0f,
+                     0.0f, 0.0f, aScaleZ, 0.0f,
+                     0.0f, 0.0f, 0.0f, 1.0f);
+  }
+
+  /**
+   * Similar to PreTranslate, but applies a scale instead of a translation.
+   */
+  Matrix4x4 &PreScale(Float aX, Float aY, Float aZ)
+  {
+    _11 *= aX;
+    _12 *= aX;
+    _13 *= aX;
+    _14 *= aX;
+    _21 *= aY;
+    _22 *= aY;
+    _23 *= aY;
+    _24 *= aY;
+    _31 *= aZ;
+    _32 *= aZ;
+    _33 *= aZ;
+    _34 *= aZ;
+
+    return *this;
+  }
+
+  /**
+   * Similar to PostTranslate, but applies a scale instead of a translation.
+   */
+  Matrix4x4 &PostScale(Float aScaleX, Float aScaleY, Float aScaleZ)
+  {
+    _11 *= aScaleX;
+    _21 *= aScaleX;
+    _31 *= aScaleX;
+    _41 *= aScaleX;
+    _12 *= aScaleY;
+    _22 *= aScaleY;
+    _32 *= aScaleY;
+    _42 *= aScaleY;
+    _13 *= aScaleZ;
+    _23 *= aScaleZ;
+    _33 *= aScaleZ;
+    _43 *= aScaleZ;
 
     return *this;
   }
@@ -571,13 +758,31 @@ public:
       (*this)[2] += (*this)[1] * aSkew;
   }
 
+  Matrix4x4 &ChangeBasis(const Point3D& aOrigin)
+  {
+    return ChangeBasis(aOrigin.x, aOrigin.y, aOrigin.z);
+  }
+
   Matrix4x4 &ChangeBasis(Float aX, Float aY, Float aZ)
   {
     // Translate to the origin before applying this matrix
-    Translate(-aX, -aY, -aZ);
+    PreTranslate(-aX, -aY, -aZ);
 
     // Translate back into position after applying this matrix
     PostTranslate(aX, aY, aZ);
+
+    return *this;
+  }
+
+  Matrix4x4& Transpose() {
+    std::swap(_12, _21);
+    std::swap(_13, _31);
+    std::swap(_14, _41);
+
+    std::swap(_23, _32);
+    std::swap(_24, _42);
+
+    std::swap(_34, _43);
 
     return *this;
   }
@@ -671,6 +876,14 @@ public:
 
   bool Invert();
 
+  Matrix4x4 Inverse() const
+  {
+    Matrix4x4 clone = *this;
+    DebugOnly<bool> inverted = clone.Invert();
+    MOZ_ASSERT(inverted, "Attempted to get the inverse of a non-invertible matrix");
+    return clone;
+  }
+
   void Normalize()
   {
       for (int i = 0; i < 4; i++) {
@@ -678,42 +891,6 @@ public:
               (*this)[i][j] /= (*this)[3][3];
          }
       }
-  }
-
-  void ScalePost(Float aX, Float aY, Float aZ)
-  {
-    _11 *= aX;
-    _21 *= aX;
-    _31 *= aX;
-    _41 *= aX;
-
-    _12 *= aY;
-    _22 *= aY;
-    _32 *= aY;
-    _42 *= aY;
-
-    _13 *= aZ;
-    _23 *= aZ;
-    _33 *= aZ;
-    _43 *= aZ;
-  }
-
-  void TranslatePost(Float aX, Float aY, Float aZ)
-  {
-      _11 += _14 * aX;
-      _21 += _24 * aX;
-      _31 += _34 * aX;
-      _41 += _44 * aX;
-
-      _12 += _14 * aY;
-      _22 += _24 * aY;
-      _32 += _34 * aY;
-      _42 += _44 * aY;
-
-      _13 += _14 * aZ;
-      _23 += _24 * aZ;
-      _33 += _34 * aZ;
-      _43 += _44 * aZ;
   }
 
   bool FuzzyEqual(const Matrix4x4& o) const
@@ -728,6 +905,26 @@ public:
            gfx::FuzzyEqual(_43, o._43) && gfx::FuzzyEqual(_44, o._44);
   }
 
+  bool FuzzyEqualsMultiplicative(const Matrix4x4& o) const
+  {
+    return ::mozilla::FuzzyEqualsMultiplicative(_11, o._11) &&
+           ::mozilla::FuzzyEqualsMultiplicative(_12, o._12) &&
+           ::mozilla::FuzzyEqualsMultiplicative(_13, o._13) &&
+           ::mozilla::FuzzyEqualsMultiplicative(_14, o._14) &&
+           ::mozilla::FuzzyEqualsMultiplicative(_21, o._21) &&
+           ::mozilla::FuzzyEqualsMultiplicative(_22, o._22) &&
+           ::mozilla::FuzzyEqualsMultiplicative(_23, o._23) &&
+           ::mozilla::FuzzyEqualsMultiplicative(_24, o._24) &&
+           ::mozilla::FuzzyEqualsMultiplicative(_31, o._31) &&
+           ::mozilla::FuzzyEqualsMultiplicative(_32, o._32) &&
+           ::mozilla::FuzzyEqualsMultiplicative(_33, o._33) &&
+           ::mozilla::FuzzyEqualsMultiplicative(_34, o._34) &&
+           ::mozilla::FuzzyEqualsMultiplicative(_41, o._41) &&
+           ::mozilla::FuzzyEqualsMultiplicative(_42, o._42) &&
+           ::mozilla::FuzzyEqualsMultiplicative(_43, o._43) &&
+           ::mozilla::FuzzyEqualsMultiplicative(_44, o._44);
+  }
+
   bool IsBackfaceVisible() const
   {
     // Inverse()._33 < 0;
@@ -740,23 +937,41 @@ public:
 
   Matrix4x4 &NudgeToIntegersFixedEpsilon()
   {
+    NudgeToInteger(&_11);
+    NudgeToInteger(&_12);
+    NudgeToInteger(&_13);
+    NudgeToInteger(&_14);
+    NudgeToInteger(&_21);
+    NudgeToInteger(&_22);
+    NudgeToInteger(&_23);
+    NudgeToInteger(&_24);
+    NudgeToInteger(&_31);
+    NudgeToInteger(&_32);
+    NudgeToInteger(&_33);
+    NudgeToInteger(&_34);
     static const float error = 1e-5f;
-    NudgeToInteger(&_11, error);
-    NudgeToInteger(&_12, error);
-    NudgeToInteger(&_13, error);
-    NudgeToInteger(&_14, error);
-    NudgeToInteger(&_21, error);
-    NudgeToInteger(&_22, error);
-    NudgeToInteger(&_23, error);
-    NudgeToInteger(&_24, error);
-    NudgeToInteger(&_31, error);
-    NudgeToInteger(&_32, error);
-    NudgeToInteger(&_33, error);
-    NudgeToInteger(&_34, error);
     NudgeToInteger(&_41, error);
     NudgeToInteger(&_42, error);
     NudgeToInteger(&_43, error);
     NudgeToInteger(&_44, error);
+    return *this;
+  }
+
+  // Nudge the 3D components to integer so that this matrix will become 2D if
+  // it's very close to already being 2D.
+  // This doesn't change the _41 and _42 components.
+  Matrix4x4 &NudgeTo2D()
+  {
+    NudgeToInteger(&_13);
+    NudgeToInteger(&_14);
+    NudgeToInteger(&_23);
+    NudgeToInteger(&_24);
+    NudgeToInteger(&_31);
+    NudgeToInteger(&_32);
+    NudgeToInteger(&_33);
+    NudgeToInteger(&_34);
+    NudgeToInteger(&_43);
+    NudgeToInteger(&_44);
     return *this;
   }
 
@@ -775,8 +990,55 @@ public:
       *((&_41)+aIndex) = aVector.w;
   }
 
+  // Sets this matrix to a rotation matrix given by aQuat.
+  // This quaternion *MUST* be normalized!
+  // Implemented in Quaternion.cpp
+  void SetRotationFromQuaternion(const Quaternion& aQuat);
+
   // Set all the members of the matrix to NaN
   void SetNAN();
+
+  void SkewXY(double aXSkew, double aYSkew);
+
+  void RotateX(double aTheta);
+
+  void RotateY(double aTheta);
+
+  void RotateZ(double aTheta);
+
+  void Perspective(float aDepth);
+
+  Point3D GetNormalVector() const;
+
+  /**
+   * Returns true if the matrix has any transform other
+   * than a straight translation.
+   */
+  bool HasNonTranslation() const {
+    return !gfx::FuzzyEqual(_11, 1.0) || !gfx::FuzzyEqual(_22, 1.0) ||
+           !gfx::FuzzyEqual(_12, 0.0) || !gfx::FuzzyEqual(_21, 0.0) ||
+           !gfx::FuzzyEqual(_13, 0.0) || !gfx::FuzzyEqual(_23, 0.0) ||
+           !gfx::FuzzyEqual(_31, 0.0) || !gfx::FuzzyEqual(_32, 0.0) ||
+           !gfx::FuzzyEqual(_33, 1.0);
+  }
+
+  /**
+   * Returns true if the matrix is anything other than a straight
+   * translation by integers.
+  */
+  bool HasNonIntegerTranslation() const {
+    return HasNonTranslation() ||
+      !gfx::FuzzyEqual(_41, floor(_41 + 0.5)) ||
+      !gfx::FuzzyEqual(_42, floor(_42 + 0.5)) ||
+      !gfx::FuzzyEqual(_43, floor(_43 + 0.5));
+  }
+
+  /**
+   * Return true if the matrix is with perspective (w).
+   */
+  bool HasPerspectiveComponent() const {
+    return _14 != 0 || _24 != 0 || _34 != 0 || _44 != 1;
+  }
 };
 
 class Matrix5x4
@@ -856,7 +1118,7 @@ public:
   Float _51, _52, _53, _54;
 };
 
-}
-}
+} // namespace gfx
+} // namespace mozilla
 
 #endif /* MOZILLA_GFX_MATRIX_H_ */

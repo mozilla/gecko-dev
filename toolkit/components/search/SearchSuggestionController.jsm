@@ -23,7 +23,7 @@ const BROWSER_SUGGEST_PREF = "browser.search.suggest.enabled";
  * Remote search suggestions will be shown if gRemoteSuggestionsEnabled
  * is true. Global because only one pref observer is needed for all instances.
  */
-let gRemoteSuggestionsEnabled = Services.prefs.getBoolPref(BROWSER_SUGGEST_PREF);
+var gRemoteSuggestionsEnabled = Services.prefs.getBoolPref(BROWSER_SUGGEST_PREF);
 Services.prefs.addObserver(BROWSER_SUGGEST_PREF, function(aSubject, aTopic, aData) {
   gRemoteSuggestionsEnabled = Services.prefs.getBoolPref(BROWSER_SUGGEST_PREF);
 }, false);
@@ -47,12 +47,15 @@ this.SearchSuggestionController = function SearchSuggestionController(callback =
 
 this.SearchSuggestionController.prototype = {
   /**
-   * The maximum number of local form history results to return.
+   * The maximum number of local form history results to return. This limit is
+   * only enforced if remote results are also returned.
    */
-  maxLocalResults: 7,
+  maxLocalResults: 5,
 
   /**
    * The maximum number of remote search engine results to return.
+   * We'll actually only display at most
+   * maxRemoteResults - <displayed local results count> remote results.
    */
   maxRemoteResults: 10,
 
@@ -125,7 +128,7 @@ this.SearchSuggestionController.prototype = {
     if (!this.maxLocalResults && !this.maxRemoteResults) {
       throw new Error("Zero results expected, what are you trying to do?");
     }
-    if (this.maxLocalResults < 0 || this.remoteResult < 0) {
+    if (this.maxLocalResults < 0 || this.maxRemoteResults < 0) {
       throw new Error("Number of requested results must be positive");
     }
 
@@ -200,8 +203,7 @@ this.SearchSuggestionController.prototype = {
               return;
             }
             let fhEntries = [];
-            let maxHistoryItems = Math.min(result.matchCount, this.maxLocalResults);
-            for (let i = 0; i < maxHistoryItems; ++i) {
+            for (let i = 0; i < result.matchCount; ++i) {
               fhEntries.push(result.getValueAt(i));
             }
             deferredFormHistory.resolve({
@@ -284,7 +286,9 @@ this.SearchSuggestionController.prototype = {
       return;
     }
 
-    if (this._searchString !== serverResults[0]) {
+    if (!serverResults[0] ||
+        this._searchString.localeCompare(serverResults[0], undefined,
+                                         { sensitivity: "base" })) {
       // something is wrong here so drop remote results
       deferredResponse.resolve("Unexpected response, this._searchString does not match remote response");
       return;
@@ -316,7 +320,13 @@ this.SearchSuggestionController.prototype = {
    * @return {Object}
    */
   _dedupeAndReturnResults: function(suggestResults) {
-    NS_ASSERT(this._searchString !== null, "this._searchString shouldn't be null when returning results");
+    if (this._searchString === null) {
+      // _searchString can be null if stop() was called and remote suggestions
+      // were disabled (stopping if we are fetching remote suggestions will
+      // cause a promise rejection before we reach _dedupeAndReturnResults).
+      return null;
+    }
+
     let results = {
       term: this._searchString,
       remote: [],
@@ -335,8 +345,13 @@ this.SearchSuggestionController.prototype = {
       }
     }
 
+    // If we have remote results, cap the number of local results
+    if (results.remote.length) {
+      results.local = results.local.slice(0, this.maxLocalResults);
+    }
+
     // We don't want things to appear in both history and suggestions so remove entries from
-    // remote results that are alrady in local.
+    // remote results that are already in local.
     if (results.remote.length && results.local.length) {
       for (let i = 0; i < results.local.length; ++i) {
         let term = results.local[i];
@@ -348,7 +363,8 @@ this.SearchSuggestionController.prototype = {
     }
 
     // Trim the number of results to the maximum requested (now that we've pruned dupes).
-    results.remote = results.remote.slice(0, this.maxRemoteResults);
+    results.remote =
+      results.remote.slice(0, this.maxRemoteResults - results.local.length);
 
     if (this._callback) {
       this._callback(results);

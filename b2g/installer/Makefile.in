@@ -8,7 +8,13 @@ include $(topsrcdir)/config/rules.mk
 
 MOZ_PKG_REMOVALS = $(srcdir)/removed-files.in
 
-MOZ_PKG_MANIFEST_P = $(srcdir)/package-manifest.in
+MOZ_PKG_MANIFEST = $(srcdir)/package-manifest.in
+
+ifdef MOZ_CHROME_MULTILOCALE
+MOZ_PKG_MANIFEST_DEPS = locale-manifest.in
+
+DEFINES += -DPKG_LOCALE_MANIFEST=$(CURDIR)/locale-manifest.in
+endif
 
 DEFINES += \
 	-DMOZ_APP_NAME=$(MOZ_APP_NAME) \
@@ -25,6 +31,12 @@ ifdef MOZ_NO_DEBUG_RTL
 DEFINES += -DMOZ_PACKAGE_MSVC_DLLS=1
 DEFINES += -DMSVC_C_RUNTIME_DLL=$(MSVC_C_RUNTIME_DLL)
 DEFINES += -DMSVC_CXX_RUNTIME_DLL=$(MSVC_CXX_RUNTIME_DLL)
+ifdef MSVC_APPCRT_DLL
+DEFINES += -DMSVC_APPCRT_DLL=$(MSVC_APPCRT_DLL)
+endif
+ifdef MSVC_DESKTOPCRT_DLL
+DEFINES += -DMSVC_DESKTOPCRT_DLL=$(MSVC_DESKTOPCRT_DLL)
+endif
 endif
 endif
 
@@ -36,11 +48,19 @@ ifdef ENABLE_MARIONETTE
 DEFINES += -DENABLE_MARIONETTE=1
 endif
 
-ifdef MOZ_PKG_MANIFEST_P
-MOZ_PKG_MANIFEST = package-manifest
-endif
-
 MOZ_PACKAGER_MINIFY=1
+
+ifeq (cocoa,$(MOZ_WIDGET_TOOLKIT))
+ifndef _APPNAME
+_APPNAME = $(MOZ_MACBUNDLE_NAME)
+endif
+ifndef _BINPATH
+_BINPATH = /$(_APPNAME)/Contents/MacOS
+endif
+ifndef _RESPATH
+_RESPATH = /$(_APPNAME)/Contents/Resources
+endif
+endif
 
 include $(topsrcdir)/toolkit/mozapps/installer/packager.mk
 
@@ -48,17 +68,30 @@ include $(topsrcdir)/toolkit/mozapps/installer/packager.mk
 # including that file. MOZ_PACKAGER_MINIFY_JS is used in packager.mk, but since
 # recipe evaluation is deferred, we can set it here after the inclusion.
 ifneq (,$(JS_BINARY))
+ifndef MOZ_DEBUG
 MOZ_PACKAGER_MINIFY_JS=1
+endif
 endif
 
 ifeq (bundle, $(MOZ_FS_LAYOUT))
 BINPATH = $(_BINPATH)
+RESPATH = $(_RESPATH)
 DEFINES += -DAPPNAME=$(_APPNAME)
 else
 # Every other platform just winds up in dist/bin
 BINPATH = bin
+RESPATH = bin
 endif
 DEFINES += -DBINPATH=$(BINPATH)
+DEFINES += -DRESPATH=$(RESPATH)
+
+LPROJ_ROOT = $(firstword $(subst -, ,$(AB_CD)))
+ifeq (cocoa,$(MOZ_WIDGET_TOOLKIT))
+ifeq (zh-TW,$(AB_CD))
+LPROJ_ROOT := $(subst -,_,$(AB_CD))
+endif
+endif
+DEFINES += -DLPROJ_ROOT=$(LPROJ_ROOT)
 
 ifneq (,$(filter WINNT Darwin Android,$(OS_TARGET)))
 DEFINES += -DMOZ_SHARED_MOZGLUE=1
@@ -68,16 +101,14 @@ ifneq (,$(filter rtsp,$(NECKO_PROTOCOLS)))
 DEFINES += -DMOZ_RTSP
 endif
 
-ifdef GKMEDIAS_SHARED_LIBRARY
-DEFINES += -DGKMEDIAS_SHARED_LIBRARY
+DEFINES += -DMOZ_ICU_VERSION=$(MOZ_ICU_VERSION)
+ifdef MOZ_NATIVE_ICU
+DEFINES += -DMOZ_NATIVE_ICU
 endif
-
-ifdef MOZ_REPLACE_MALLOC
-DEFINES += -DMOZ_REPLACE_MALLOC
+ifdef MOZ_SHARED_ICU
+DEFINES += -DMOZ_SHARED_ICU
 endif
-ifdef MOZ_JEMALLOC3
-DEFINES += -DMOZ_JEMALLOC3
-endif
+DEFINES += -DMOZ_ICU_DBG_SUFFIX=$(MOZ_ICU_DBG_SUFFIX)
 
 ifdef MOZ_WIDGET_GTK
 DEFINES += -DMOZ_GTK=1
@@ -86,19 +117,16 @@ DEFINES += -DMOZ_GTK3=1
 endif
 endif
 
-ifdef MOZ_PKG_MANIFEST_P
-$(MOZ_PKG_MANIFEST): $(MOZ_PKG_MANIFEST_P) FORCE
-	$(call py_action,preprocessor,$(DEFINES) $(ACDEFINES) $< -o $@)
 ifdef MOZ_CHROME_MULTILOCALE
-	printf '\n[multilocale]\n' >> $@
+locale-manifest.in: $(GLOBAL_DEPS) FORCE
+	printf '\n[multilocale]\n' > $@
 	for LOCALE in $(MOZ_CHROME_MULTILOCALE) ;\
 	do \
 	  printf '$(BINPATH)/chrome/'"$$LOCALE"'$(JAREXT)\n' >> $@; \
 	  printf '$(BINPATH)/chrome/'"$$LOCALE"'.manifest\n' >> $@; \
 	done
-endif
 
-GARBAGE += $(MOZ_PKG_MANIFEST)
+GARBAGE += locale-manifest.in
 endif
 
 ifdef FXOS_SIMULATOR
