@@ -283,8 +283,8 @@ this.FxAccountsManager = {
 
     // We clear the local session cache as soon as we get the onlogout
     // notification triggered within FxAccounts.signOut, so we save the
-    // session token and device id to be able to destroy the device on
-    // the server.
+    // session token and device id to be able to destroy them on the server
+    // in case that we have network connection.
     let sessionToken = this._activeSession.sessionToken;
     let deviceId = this._activeSession.deviceId;
 
@@ -297,7 +297,7 @@ this.FxAccountsManager = {
         if (Services.io.offline) {
           return Promise.resolve();
         }
-        // Otherwise, we try to remove the remote session.
+        // Otherwise, we try to remove the remote device and session.
         let client = this._getFxAccountsClient();
         return client.deviceDestroy(sessionToken, deviceId).then(
           result => {
@@ -370,7 +370,6 @@ this.FxAccountsManager = {
   },
 
   signOut: function() {
-    log.debug("!!!!!!!!!! PHIL !!!!!!!!!! FxAccountsManager.signOut");
     if (!this._activeSession) {
       // If there is no cached active session, we try to get it from the
       // account storage.

@@ -128,7 +128,6 @@ AccountState.prototype = {
     this.oauthTokens = null;
     let storageManager = this.storageManager;
     this.storageManager = null;
-    log.debug("!!!!!!!!!! PHIL !!!!!!!!!! clobbering, ");
     return storageManager.deleteAccountData().then(() => {
       return storageManager.finalize();
     });
@@ -610,7 +609,6 @@ FxAccountsInternal.prototype = {
   signOut: function signOut(localOnly) {
     let currentState = this.currentAccountState;
     let sessionToken, tokensToRevoke, deviceId;
-    log.debug("!!!!!!!!!! PHIL !!!!!!!!!! signing out, localOnly=" + localOnly);
     return currentState.getUserAccountData().then(data => {
       if (data) {
         sessionToken = data.sessionToken;
@@ -664,7 +662,7 @@ FxAccountsInternal.prototype = {
     // For now we assume the service being logged out from is Sync - we might
     // need to revisit this when this FxA code is used in a context that
     // isn't Sync.
-    log.debug("!!!!!!!!!! PHIL !!!!!!!!!! destroying device " + deviceId);
+    log.debug("destroying device");
     return this.fxAccountsClient.deviceDestroy(sessionToken, deviceId, {
       service: "sync"
     });
@@ -1351,7 +1349,6 @@ FxAccountsInternal.prototype = {
       if (signedInUser && !signedInUser.deviceId) {
         return this._registerOrUpdateDevice(signedInUser);
       }
-      log.debug("!!!!!!!!!! PHIL !!!!!!!!!! not registering device", signedInUser);
     })
   },
 
@@ -1360,7 +1357,6 @@ FxAccountsInternal.prototype = {
       if (signedInUser) {
         return this._registerOrUpdateDevice(signedInUser);
       }
-      log.debug("!!!!!!!!!! PHIL !!!!!!!!!! not updating device");
     });
   },
 
@@ -1368,7 +1364,6 @@ FxAccountsInternal.prototype = {
     let deviceName = this._getDeviceName(), promise;
 
     if (signedInUser.deviceId) {
-      log.debug("!!!!!!!!!! PHIL !!!!!!!!!! using existing device id " + signedInUser.deviceId);
       log.debug("updating existing device details");
       promise = this.fxAccountsClient.deviceUpdate(
         signedInUser.sessionToken,
@@ -1376,7 +1371,6 @@ FxAccountsInternal.prototype = {
         deviceName
       );
     } else {
-      log.debug("!!!!!!!!!! PHIL !!!!!!!!!! requesting new device id ");
       log.debug("registering new device details");
       promise = this.fxAccountsClient.deviceRegister(
         signedInUser.sessionToken,
@@ -1384,7 +1378,6 @@ FxAccountsInternal.prototype = {
         // TODO: check this is ok
         "desktop"
       ).then(response => {
-        log.debug("!!!!!!!!!! PHIL !!!!!!!!!! saving device id " + response.id);
         return this.currentAccountState.updateUserAccountData({
           deviceId: response.id
         });
@@ -1401,6 +1394,7 @@ FxAccountsInternal.prototype = {
     try {
       return Services.prefs.getCharPref("services.sync.client.name");
     } catch (ignore) {
+      // TODO: fix tests to stop this throwing
       return Utils.getDefaultDeviceName();
     }
   },
