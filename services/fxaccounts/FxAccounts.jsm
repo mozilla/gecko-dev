@@ -1374,11 +1374,7 @@ FxAccountsInternal.prototype = {
         signedInUser.sessionToken,
         signedInUser.deviceId,
         deviceName
-      ).then(() => {
-        log.debug("!!!!!!!!!! PHIL !!!!!!!!!! send device refresh notification here");
-        // TODO: figure this out
-        //this.notifyObservers(DEVICE_REFRESH_NOTIFICATION)
-      });
+      );
     } else {
       log.debug("!!!!!!!!!! PHIL !!!!!!!!!! requesting new device id ");
       log.debug("registering new device details");
