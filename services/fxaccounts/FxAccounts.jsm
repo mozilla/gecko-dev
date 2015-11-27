@@ -1361,29 +1361,21 @@ FxAccountsInternal.prototype = {
   },
 
   _registerOrUpdateDevice(signedInUser) {
-    let deviceName = this._getDeviceName(), promise;
+    let deviceName = this._getDeviceName();
+    let handleError = this._handleDeviceError.bind(this);
 
     if (signedInUser.deviceId) {
       log.debug("updating existing device details");
-      promise = this.fxAccountsClient.deviceUpdate(
-        signedInUser.sessionToken,
-        signedInUser.deviceId,
-        deviceName
-      );
-    } else {
-      log.debug("registering new device details");
-      promise = this.fxAccountsClient.deviceRegister(
-        signedInUser.sessionToken,
-        deviceName,
-        "desktop"
-      ).then(response => {
-        return this.currentAccountState.updateUserAccountData({
-          deviceId: response.id
-        });
-      });
+      return this.fxAccountsClient.deviceUpdate(
+        signedInUser.sessionToken, signedInUser.deviceId, deviceName)
+        .catch(handleError);
     }
 
-    return promise.catch(this._handleDeviceError.bind(this));
+    log.debug("registering new device details");
+    return this.fxAccountsClient.deviceRegister(
+      signedInUser.sessionToken, deviceName, "desktop")
+      .then(d => this.currentAccountState.updateUserAccountData({ deviceId: d.id }))
+      .catch(handleError);
   },
 
   _getDeviceName() {
