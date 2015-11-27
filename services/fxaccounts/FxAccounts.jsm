@@ -1375,7 +1375,6 @@ FxAccountsInternal.prototype = {
       promise = this.fxAccountsClient.deviceRegister(
         signedInUser.sessionToken,
         deviceName,
-        // TODO: check this is ok
         "desktop"
       ).then(response => {
         return this.currentAccountState.updateUserAccountData({
@@ -1383,11 +1382,8 @@ FxAccountsInternal.prototype = {
         });
       });
     }
-    return promise.catch(err => {
-      log.error("device registration failed", err);
-      // TODO: error handling
-      return Promise.reject(this._errorToErrorClass(err));
-    });
+
+    return promise.catch(this._handleDeviceError.bind(this));
   },
 
   _getDeviceName() {
@@ -1398,6 +1394,44 @@ FxAccountsInternal.prototype = {
       return Utils.getDefaultDeviceName();
     }
   },
+
+  _handleDeviceError(error) {
+    if (error.code === 400) {
+      if (error.errno === ERRNO_UNKNOWN_DEVICE) {
+        log.warn("unknown device id, attempting to register new device instead");
+        return this._forceUpdateDevice(null);
+      }
+
+      if (error.errno === ERRNO_DEVICE_SESSION_CONFLICT) {
+        log.warn("device session conflict, attempting to untangle things");
+        return this._recoverFromDeviceError(error, signedInUser.sessionToken);
+      }
+    }
+
+    return this._failDeviceRegistration(error);
+  },
+
+  _forceUpdateDevice(deviceId) {
+    return this.currentAccountState.updateUserAccountData({ deviceId })
+      .then(this.updateDevice.bind(this));
+  },
+
+  _recoverFromDeviceError(error, sessionToken) {
+    return this.fxAccountsClient.deviceList(sessionToken)
+      .then(devices => {
+        let matchingDevices = devices.filter(device => device.isCurrentDevice)
+        if (matchingDevices.length === 1) {
+          return this._forceUpdateDevice(matchingDevices[0].id);
+        }
+        return this._failDeviceRegistration(error);
+      })
+      .catch(ignore => this._failDeviceRegistration(error));
+  },
+
+  _failDeviceRegistration(error) {
+    log.error("device registration failed", error);
+    return Promise.reject(this._errorToErrorClass(error));
+  }
 };
 
 
