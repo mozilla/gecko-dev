@@ -25,7 +25,7 @@
 
   <vbox id="alertBox" class="alertBox">
     <box id="alertTitleBox">
-      <label id="alertTitleLabel" class="alertTitle plain"/>
+      <label id="alertTitleLabel" class="alertTitle plain" crop="end"/>
       <vbox class="alertCloseBox">
         <toolbarbutton class="alertCloseButton close-icon"
                        tooltiptext="&closeAlert.tooltip;"
@@ -43,8 +43,7 @@
         <spacer flex="1"/>
         <box id="alertFooter">
           <label id="alertSourceLabel" class="alertSource plain"/>
-          <button type="menu" id="alertSettings" tooltiptext="&settings.label;"
-                  onclick="event.stopPropagation();">
+          <button type="menu" id="alertSettings" tooltiptext="&settings.label;">
             <menupopup position="after_end">
               <menuitem id="doNotDisturbMenuItem"
                         oncommand="doNotDisturb();"/>

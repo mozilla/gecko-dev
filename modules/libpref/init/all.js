@@ -1032,7 +1032,6 @@ pref("editor.positioning.offset",            0);
 
 // Scripts & Windows prefs
 pref("dom.disable_beforeunload",            false);
-pref("dom.disable_image_src_set",           false);
 pref("dom.disable_window_flip",             false);
 pref("dom.disable_window_move_resize",      false);
 pref("dom.disable_window_status_change",    false);
@@ -2284,13 +2283,6 @@ pref("layout.css.getBoxQuads.enabled", true);
 pref("layout.css.convertFromNode.enabled", false);
 #else
 pref("layout.css.convertFromNode.enabled", true);
-#endif
-
-// Is support for unicode-range enabled?
-#ifdef RELEASE_BUILD
-pref("layout.css.unicode-range.enabled", false);
-#else
-pref("layout.css.unicode-range.enabled", true);
 #endif
 
 // Is support for CSS "text-align: true X" enabled?
@@ -4479,9 +4471,13 @@ pref("dom.push.debug", false);
 pref("dom.push.serverURL", "wss://push.services.mozilla.com/");
 pref("dom.push.userAgentID", "");
 
-// The maximum number of notifications that a service worker can receive
+// The maximum number of push messages that a service worker can receive
 // without user interaction.
 pref("dom.push.maxQuotaPerSubscription", 16);
+
+// The delay between receiving a push message and updating the quota for a
+// subscription.
+pref("dom.push.quotaUpdateDelay", 3000); // 3 seconds
 
 // Is the network connection allowed to be up?
 // This preference should be used in UX to enable/disable push.

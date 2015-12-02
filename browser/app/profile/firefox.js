@@ -1347,8 +1347,10 @@ pref("browser.newtabpage.directory.source", "https://tiles.services.mozilla.com/
 // endpoint to send newtab click and view pings
 pref("browser.newtabpage.directory.ping", "https://tiles.services.mozilla.com/v3/links/");
 
-// activates the remote-hosted newtab page
+#ifndef RELEASE_BUILD
+// if true, it activates the remote-hosted newtab page
 pref("browser.newtabpage.remote", false);
+#endif
 
 // Enable the DOM fullscreen API.
 pref("full-screen-api.enabled", true);
@@ -1645,17 +1647,13 @@ pref("browser.pocket.enabledLocales", "cs de en-GB en-US en-ZA es-ES es-MX fr hu
 
 pref("view_source.tab", true);
 
-#ifndef RELEASE_BUILD
-// Enable ServiceWorkers for Push API consumers.
-// Interception is still disabled on beta and release.
 pref("dom.serviceWorkers.enabled", true);
-
 pref("dom.serviceWorkers.interception.enabled", true);
+pref("dom.serviceWorkers.openWindow.enabled", true);
 
+#ifndef RELEASE_BUILD
 // Enable Push API.
 pref("dom.push.enabled", true);
-
-pref("dom.serviceWorkers.openWindow.enabled", true);
 #endif
 
 // These are the thumbnail width/height set in about:newtab.
