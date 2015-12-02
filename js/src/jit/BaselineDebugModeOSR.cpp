@@ -321,7 +321,7 @@ SpewPatchBaselineFrame(uint8_t* oldReturnAddress, uint8_t* newReturnAddress,
     JitSpew(JitSpew_BaselineDebugModeOSR,
             "Patch return %p -> %p on BaselineJS frame (%s:%d) from %s at %s",
             oldReturnAddress, newReturnAddress, script->filename(), script->lineno(),
-            ICEntryKindToString(frameKind), js_CodeName[(JSOp)*pc]);
+            ICEntryKindToString(frameKind), CodeName[(JSOp)*pc]);
 }
 
 static void
@@ -331,7 +331,7 @@ SpewPatchBaselineFrameFromExceptionHandler(uint8_t* oldReturnAddress, uint8_t* n
     JitSpew(JitSpew_BaselineDebugModeOSR,
             "Patch return %p -> %p on BaselineJS frame (%s:%d) from exception handler at %s",
             oldReturnAddress, newReturnAddress, script->filename(), script->lineno(),
-            js_CodeName[(JSOp)*pc]);
+            CodeName[(JSOp)*pc]);
 }
 
 static void
@@ -1115,7 +1115,7 @@ JitRuntime::generateBaselineDebugModeOSRHandler(JSContext* cx, uint32_t* noFrame
 
     // Not all patched baseline frames are returning from a situation where
     // the frame reg is already fixed up.
-    CodeOffsetLabel noFrameRegPopOffset(masm.currentOffset());
+    CodeOffset noFrameRegPopOffset(masm.currentOffset());
 
     // Record the stack pointer for syncing.
     masm.moveStackPtrTo(syncedStackStart);

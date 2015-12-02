@@ -16,7 +16,7 @@ LOOPDIR=browser/extensions/loop
 ESLINT=standalone/node_modules/.bin/eslint
 if [ -x "${LOOPDIR}/${ESLINT}" ]; then
   echo 'running eslint; see http://eslint.org/docs/rules/ for error info'
-  (cd ${LOOPDIR} && ./${ESLINT} --ext .js --ext .jsm --ext .jsx .)
+  (./${LOOPDIR}/${ESLINT} --ext .js --ext .jsm --ext .jsx ${LOOPDIR})
   if [ $? != 0 ]; then
     exit 1;
   fi
@@ -44,6 +44,7 @@ fi
 
 TESTS="
   ${LOOPDIR}/test/mochitest
+  browser/components/uitour/test/browser_UITour_loop.js
   browser/base/content/test/general/browser_devices_get_user_media_about_urls.js
   browser/base/content/test/general/browser_parsable_css.js
 "
@@ -55,6 +56,7 @@ do
   ./mach mochitest $test
   # UITour & get user media aren't compatible with e10s currenly.
   if [ "$1" != "--skip-e10s" ] && \
+     [ "$test" != "browser/components/uitour/test/browser_UITour_loop.js" ] && \
      [ "$test" != "browser/base/content/test/general/browser_devices_get_user_media_about_urls.js" ];
   then
     ./mach mochitest --e10s $test

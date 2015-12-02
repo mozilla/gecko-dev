@@ -2154,10 +2154,13 @@ HTMLInputElement::MozSetFileNameArray(const char16_t** aFileNames, uint32_t aLen
   }
 
   Sequence<nsString> list;
+  nsString* names = list.AppendElements(aLength, fallible);
+  if (!names) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
   for (uint32_t i = 0; i < aLength; ++i) {
-    if (!list.AppendElement(nsDependentString(aFileNames[i]), fallible)) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
+    const char16_t* filename = aFileNames[i];
+    names[i].Rebind(filename, nsCharTraits<char16_t>::length(filename));
   }
 
   ErrorResult rv;
@@ -4934,8 +4937,14 @@ HTMLInputElement::GetFilesAndDirectories(ErrorResult& aRv)
       fs = MakeOrReuseFileSystem(dirname, fs, window);
       nsAutoString dompath(NS_LITERAL_STRING(FILESYSTEM_DOM_PATH_SEPARATOR));
       dompath.Append(Substring(path, leafSeparatorIndex + 1));
-      filesAndDirsSeq[i].SetAsDirectory() = new Directory(fs, dompath);
+      RefPtr<Directory> directory = new Directory(fs, dompath);
+      // In future we could refactor SetFilePickerFiltersFromAccept to return a
+      // semicolon separated list of file extensions and include that in the
+      // filter string passed here.
+      directory->SetContentFilters(NS_LITERAL_STRING("filter-out-sensitive"));
+      filesAndDirsSeq[i].SetAsDirectory() = directory;
     } else {
+      // This file was directly selected by the user, so don't filter it.
       filesAndDirsSeq[i].SetAsFile() = filesAndDirs[i];
     }
   }

@@ -15,8 +15,10 @@ import android.content.Intent;
 import android.content.RestrictionEntry;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.TextUtils;
 
 import java.util.ArrayList;
+import java.util.Map;
 
 /**
  * Broadcast receiver providing supported restrictions to the system.
@@ -52,13 +54,15 @@ public class RestrictionProvider extends BroadcastReceiver {
     private ArrayList<RestrictionEntry> initRestrictions(Context context, Bundle oldRestrictions) {
         ArrayList<RestrictionEntry> entries = new ArrayList<RestrictionEntry>();
 
-        for (Restrictable restrictable : RestrictedProfileConfiguration.DEFAULT_DISABLED_FEATURES) {
-            if (restrictable == Restrictable.LOCATION_SERVICE && !AppConstants.MOZ_STUMBLER_BUILD_TIME_ENABLED) {
+        final Map<Restrictable, Boolean> configuration = RestrictedProfileConfiguration.getConfiguration();
+
+        for (Restrictable restrictable : configuration.keySet()) {
+            if (RestrictedProfileConfiguration.shouldHide(restrictable)) {
                 continue;
             }
 
             RestrictionEntry entry = createRestrictionEntryWithDefaultValue(context, restrictable,
-                    oldRestrictions.getBoolean(restrictable.name, false));
+                    oldRestrictions.getBoolean(restrictable.name, configuration.get(restrictable)));
             entries.add(entry);
         }
 
@@ -69,6 +73,11 @@ public class RestrictionProvider extends BroadcastReceiver {
         RestrictionEntry entry = new RestrictionEntry(restrictable.name, defaultValue);
 
         entry.setTitle(restrictable.getTitle(context));
+
+        final String description = restrictable.getDescription(context);
+        if (!TextUtils.isEmpty(description)) {
+            entry.setDescription(description);
+        }
 
         return entry;
     }

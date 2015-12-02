@@ -731,9 +731,6 @@ public class BrowserApp extends GeckoApp
 
         // Set the maximum bits-per-pixel the favicon system cares about.
         IconDirectoryEntry.setMaxBPP(GeckoAppShell.getScreenDepth());
-
-        ViewStub stub = (ViewStub) findViewById(R.id.zoomed_view_stub);
-        mZoomedView = (ZoomedView) stub.inflate();
     }
 
     private void conditionallyNotifyHCEOL() {
@@ -1767,6 +1764,10 @@ public class BrowserApp extends GeckoApp
                         // Force tabs panel inflation once the initial
                         // pageload is finished.
                         ensureTabsPanelExists();
+                        if (mZoomedView == null) {
+                            ViewStub stub = (ViewStub) findViewById(R.id.zoomed_view_stub);
+                            mZoomedView = (ZoomedView) stub.inflate();
+                        }
                     }
                 });
 
@@ -1793,7 +1794,7 @@ public class BrowserApp extends GeckoApp
                     }
                 }
 
-                if (AppConstants.MOZ_STUMBLER_BUILD_TIME_ENABLED && Restrictions.isAllowed(this, Restrictable.LOCATION_SERVICE)) {
+                if (AppConstants.MOZ_STUMBLER_BUILD_TIME_ENABLED && Restrictions.isAllowed(this, Restrictable.DATA_CHOICES)) {
                     // Start (this acts as ping if started already) the stumbler lib; if the stumbler has queued data it will upload it.
                     // Stumbler operates on its own thread, and startup impact is further minimized by delaying work (such as upload) a few seconds.
                     // Avoid any potential startup CPU/thread contention by delaying the pref broadcast.
@@ -1823,7 +1824,7 @@ public class BrowserApp extends GeckoApp
                 });
 
                 // Display notification for Mozilla data reporting, if data should be collected.
-                if (AppConstants.MOZ_DATA_REPORTING) {
+                if (AppConstants.MOZ_DATA_REPORTING && Restrictions.isAllowed(this, Restrictable.DATA_CHOICES)) {
                     DataReportingNotification.checkAndNotifyPolicy(GeckoAppShell.getContext());
                 }
 

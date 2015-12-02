@@ -49,6 +49,7 @@ class JitContext
     JitContext(ExclusiveContext* cx, TempAllocator* temp);
     JitContext(CompileRuntime* rt, CompileCompartment* comp, TempAllocator* temp);
     explicit JitContext(CompileRuntime* rt);
+    JitContext(CompileRuntime* rt, TempAllocator* temp);
     ~JitContext();
 
     // Running context when executing on the main thread. Not available during
@@ -174,7 +175,7 @@ IsIonInlinablePC(jsbytecode* pc) {
 inline bool
 TooManyActualArguments(unsigned nargs)
 {
-    return nargs > js_JitOptions.maxStackArgs;
+    return nargs > JitOptions.maxStackArgs;
 }
 
 inline bool

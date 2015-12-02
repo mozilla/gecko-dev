@@ -16,20 +16,40 @@ import android.os.StrictMode;
 import android.os.UserManager;
 
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class RestrictedProfileConfiguration implements RestrictionConfiguration {
-    static List<Restrictable> DEFAULT_DISABLED_FEATURES = Arrays.asList(
-            Restrictable.INSTALL_EXTENSION,
-            Restrictable.PRIVATE_BROWSING,
-            Restrictable.LOCATION_SERVICE,
-            Restrictable.CLEAR_HISTORY,
+    // Mapping from restrictable feature to default state (on/off)
+    private static Map<Restrictable, Boolean> configuration = new LinkedHashMap<>();
+    static {
+        configuration.put(Restrictable.INSTALL_EXTENSION, false);
+        configuration.put(Restrictable.PRIVATE_BROWSING, false);
+        configuration.put(Restrictable.CLEAR_HISTORY, false);
+        configuration.put(Restrictable.MASTER_PASSWORD, false);
+        configuration.put(Restrictable.GUEST_BROWSING, false);
+        configuration.put(Restrictable.ADVANCED_SETTINGS, false);
+        configuration.put(Restrictable.CAMERA_MICROPHONE, false);
+        configuration.put(Restrictable.DATA_CHOICES, true);
+    }
+
+    /**
+     * These restrictions are hidden from the admin configuration UI.
+     */
+    private static List<Restrictable> hiddenRestrictions = Arrays.asList(
             Restrictable.MASTER_PASSWORD,
-            Restrictable.GUEST_BROWSING,
-            Restrictable.ADVANCED_SETTINGS,
-            Restrictable.CAMERA_MICROPHONE
+            Restrictable.GUEST_BROWSING
     );
+
+    /* package-private */ static boolean shouldHide(Restrictable restrictable) {
+        return hiddenRestrictions.contains(restrictable);
+    }
+
+    /* package-private */ static Map<Restrictable, Boolean> getConfiguration() {
+        return configuration;
+    }
 
     private Context context;
     private Bundle cachedAppRestrictions;
@@ -52,7 +72,7 @@ public class RestrictedProfileConfiguration implements RestrictionConfiguration 
             return !cachedUserRestrictions.getBoolean(restrictable.name);
         }
 
-        return cachedAppRestrictions.getBoolean(restrictable.name, !DEFAULT_DISABLED_FEATURES.contains(restrictable));
+        return cachedAppRestrictions.getBoolean(restrictable.name, configuration.get(restrictable));
     }
 
     private void readRestrictions() {
@@ -111,20 +131,8 @@ public class RestrictedProfileConfiguration implements RestrictionConfiguration 
             bundle.putBoolean(Restrictable.PRIVATE_BROWSING.name, !bundle.getBoolean("no_private_browsing"));
         }
 
-        if (!bundle.containsKey(Restrictable.LOCATION_SERVICE.name) && bundle.containsKey("no_location_service")) {
-            bundle.putBoolean(Restrictable.LOCATION_SERVICE.name, !bundle.getBoolean("no_location_service"));
-        }
-
         if (!bundle.containsKey(Restrictable.CLEAR_HISTORY.name) && bundle.containsKey("no_clear_history")) {
             bundle.putBoolean(Restrictable.CLEAR_HISTORY.name, !bundle.getBoolean("no_clear_history"));
-        }
-
-        if (!bundle.containsKey(Restrictable.MASTER_PASSWORD.name) && bundle.containsKey("no_master_password")) {
-            bundle.putBoolean(Restrictable.MASTER_PASSWORD.name, !bundle.getBoolean("no_master_password"));
-        }
-
-        if (!bundle.containsKey(Restrictable.GUEST_BROWSING.name) && bundle.containsKey("no_guest_browsing")) {
-            bundle.putBoolean(Restrictable.GUEST_BROWSING.name, !bundle.getBoolean("no_guest_browsing"));
         }
 
         if (!bundle.containsKey(Restrictable.ADVANCED_SETTINGS.name) && bundle.containsKey("no_advanced_settings")) {
