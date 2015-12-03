@@ -62,7 +62,6 @@ public:
   NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent) override;
 
   AudioChannel MozAudioChannelType() const;
-  void SetMozAudioChannelType(AudioChannel aValue, ErrorResult& aRv);
 
   virtual void NotifyMainThreadStateChanged() override;
   void FireOfflineCompletionEvent();
@@ -91,6 +90,7 @@ protected:
   virtual ~AudioDestinationNode();
 
 private:
+  void SetMozAudioChannelType(AudioChannel aValue, ErrorResult& aRv);
   bool CheckAudioChannelPermissions(AudioChannel aValue);
 
   void SetCanPlay(bool aCanPlay);
