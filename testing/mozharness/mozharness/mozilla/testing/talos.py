@@ -12,6 +12,7 @@ import os
 import pprint
 import copy
 import re
+import json
 
 from mozharness.base.config import parse_config_file
 from mozharness.base.errors import PythonErrorList
@@ -41,13 +42,13 @@ TalosErrorList = PythonErrorList + [
 
 class TalosOutputParser(OutputParser):
     minidump_regex = re.compile(r'''talosError: "error executing: '(\S+) (\S+) (\S+)'"''')
-    RE_TALOSDATA = re.compile(r'.*?TALOSDATA:\s+(\[.*\])')
+    RE_PERF_DATA = re.compile(r'.*PERFHERDER_DATA:\s+(\{.*\})')
     worst_tbpl_status = TBPL_SUCCESS
 
     def __init__(self, **kwargs):
         super(TalosOutputParser, self).__init__(**kwargs)
         self.minidump_output = None
-        self.num_times_found_talosdata = 0
+        self.found_perf_data = []
 
     def update_worst_log_and_tbpl_levels(self, log_level, tbpl_level):
         self.worst_log_level = self.worst_level(log_level,
@@ -66,8 +67,9 @@ class TalosOutputParser(OutputParser):
         if m:
             self.minidump_output = (m.group(1), m.group(2), m.group(3))
 
-        if self.RE_TALOSDATA.match(line):
-            self.num_times_found_talosdata += 1
+        m = self.RE_PERF_DATA.match(line)
+        if m:
+            self.found_perf_data.append(m.group(1))
 
         # now let's check if buildbot should retry
         harness_retry_re = TinderBoxPrintRe['harness_error']['retry_regex']
@@ -198,59 +200,12 @@ class Talos(TestingMixin, MercurialScript, BlobUploadMixin):
         self.abs_dirs = abs_dirs
         return self.abs_dirs
 
-    def query_talos_json_url(self):
-        """Hacky, but I haven't figured out a better way to get the
-        talos json url before we install the build.
-
-        We can't get this information after we install the build, because
-        we have to create the virtualenv to use mozinstall, and talos_url
-        is specified in the talos json.
-        """
-        if self.talos_json_url:
-            return self.talos_json_url
-        self.info("Guessing talos json url...")
-        if not self.installer_url:
-            self.read_buildbot_config()
-            self.postflight_read_buildbot_config()
-            if not self.installer_url:
-                self.fatal("Can't figure out talos_json_url without an installer_url!")
-        for suffix in INSTALLER_SUFFIXES:
-            if self.installer_url.endswith(suffix):
-                build_txt_url = self.installer_url[:-len(suffix)] + '.txt'
-                break
-        else:
-            self.fatal("Can't figure out talos_json_url from installer_url %s!" % self.installer_url)
-        build_txt_file = self.download_file(build_txt_url, parent_dir=self.workdir)
-        if not build_txt_file:
-            self.fatal("Can't download %s to guess talos_json_url!" % build_txt_url)
-        # HG hardcode?
-        revision_re = re.compile(r'''([a-zA-Z]+://.+)/rev/([0-9a-fA-F]{10})''')
-        contents = self.read_from_file(build_txt_file, error_level=FATAL).splitlines()
-        for line in contents:
-            m = revision_re.match(line)
-            if m:
-                break
-        else:
-            self.fatal("Can't figure out talos_json_url from %s!" % build_txt_file)
-        self.talos_json_url = "%s/raw-file/%s/testing/talos/talos.json" % (m.group(1), m.group(2))
-        return self.talos_json_url
-
-    def download_talos_json(self):
-        talos_json_url = self.query_talos_json_url()
-        self.talos_json = self.download_file(talos_json_url,
-                                             parent_dir=self.workdir,
-                                             error_level=FATAL)
-
     def query_talos_json_config(self):
-        """Return the talos json config; download and read from the
-        talos_json_url if need be."""
+        """Return the talos json config."""
         if self.talos_json_config:
             return self.talos_json_config
         if not self.talos_json:
-            talos_json_url = self.query_talos_json_url()
-            if not talos_json_url:
-                self.fatal("Can't download talos_json without a talos_json_url!")
-            self.download_talos_json()
+            self.talos_json = os.path.join(self.talos_path, 'talos.json')
         self.talos_json_config = parse_config_file(self.talos_json)
         self.info(pprint.pformat(self.talos_json_config))
         return self.talos_json_config
@@ -303,12 +258,6 @@ class Talos(TestingMixin, MercurialScript, BlobUploadMixin):
         if 'talos_extra_options' in self.config:
             options += self.config['talos_extra_options']
         return options
-
-    def talos_conf_path(self, conf):
-        """return the full path for a talos .yml configuration file"""
-        if os.path.isabs(conf):
-            return conf
-        return os.path.join(self.workdir, conf)
 
     def populate_webroot(self):
         """Populate the production test slaves' webroots"""
@@ -369,6 +318,38 @@ class Talos(TestingMixin, MercurialScript, BlobUploadMixin):
             requirements=[os.path.join(self.talos_path,
                                        'requirements.txt')]
         )
+        # install jsonschema for perfherder validation
+        self.install_module(module="jsonschema")
+        # install flake8 for static code validation
+        self.install_module(module="flake8")
+
+    def _validate_treeherder_data(self, parser):
+        # late import is required, because install is done in create_virtualenv
+        import jsonschema
+
+        if len(parser.found_perf_data) != 1:
+            self.critical("PERFHERDER_DATA was seen %d times, expected 1."
+                          % len(parser.found_perf_data))
+            parser.update_worst_log_and_tbpl_levels(WARNING, TBPL_WARNING)
+            return
+
+        schema_path = os.path.join(self.talos_path, 'treeherder-schemas',
+                                   'performance-artifact.json')
+        self.info("Validating PERFHERDER_DATA against %s" % schema_path)
+        try:
+            with open(schema_path) as f:
+                schema = json.load(f)
+            data = json.loads(parser.found_perf_data[0])
+            jsonschema.validate(data, schema)
+        except:
+            self.exception("Error while validating PERFHERDER_DATA")
+            parser.update_worst_log_and_tbpl_levels(WARNING, TBPL_WARNING)
+
+    def _flake8_check(self, parser):
+        if self.run_command([self.query_python_path('flake8'),
+                             os.path.join(self.talos_path, 'talos')]) != 0:
+            self.critical('flake8 check failed.')
+            parser.update_worst_log_and_tbpl_levels(WARNING, TBPL_WARNING)
 
     def run_tests(self, args=None, **kw):
         """run Talos tests"""
@@ -395,6 +376,8 @@ class Talos(TestingMixin, MercurialScript, BlobUploadMixin):
         else:
             env['PYTHONPATH'] = self.talos_path
 
+        self._flake8_check(parser)
+
         # sets a timeout for how long talos should run without output
         output_timeout = self.config.get('talos_output_timeout', 3600)
         # run talos tests
@@ -408,10 +391,6 @@ class Talos(TestingMixin, MercurialScript, BlobUploadMixin):
             self.info("Looking at the minidump files for debugging purposes...")
             for item in parser.minidump_output:
                 self.run_command(["ls", "-l", item])
-        if parser.num_times_found_talosdata != 1:
-            self.critical("TALOSDATA was seen %d times, expected 1."
-                          % parser.num_times_found_talosdata)
-            parser.update_worst_log_and_tbpl_levels(WARNING, TBPL_WARNING)
 
         if self.return_code not in [0]:
             # update the worst log level and tbpl status
@@ -425,6 +404,8 @@ class Talos(TestingMixin, MercurialScript, BlobUploadMixin):
                 tbpl_level = TBPL_RETRY
 
             parser.update_worst_log_and_tbpl_levels(log_level, tbpl_level)
+        else:
+            self._validate_treeherder_data(parser)
 
         self.buildbot_status(parser.worst_tbpl_status,
                              level=parser.worst_log_level)
