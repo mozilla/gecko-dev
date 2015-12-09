@@ -517,6 +517,9 @@ status_t MPEG4Extractor::readMetaData() {
     }
     if (psshsize) {
         char *buf = (char*)malloc(psshsize);
+        if (!buf) {
+            return ERROR_MALFORMED;
+        }
         char *ptr = buf;
         for (size_t i = 0; i < mPssh.size(); i++) {
             memcpy(ptr, mPssh[i].uuid, 20); // uuid + length
