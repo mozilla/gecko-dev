@@ -304,9 +304,7 @@ AudioContext::CreateMediaElementSource(HTMLMediaElement& aMediaElement,
   if (aRv.Failed()) {
     return nullptr;
   }
-  nsRefPtr<MediaElementAudioSourceNode> mediaElementAudioSourceNode =
-    new MediaElementAudioSourceNode(this, stream);
-  return mediaElementAudioSourceNode.forget();
+  return MediaElementAudioSourceNode::Create(this, stream, aRv);
 }
 
 already_AddRefed<MediaStreamAudioSourceNode>
@@ -317,9 +315,8 @@ AudioContext::CreateMediaStreamSource(DOMMediaStream& aMediaStream,
     aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
     return nullptr;
   }
-  nsRefPtr<MediaStreamAudioSourceNode> mediaStreamAudioSourceNode =
-    new MediaStreamAudioSourceNode(this, &aMediaStream);
-  return mediaStreamAudioSourceNode.forget();
+
+  return MediaStreamAudioSourceNode::Create(this, &aMediaStream, aRv);
 }
 
 already_AddRefed<GainNode>

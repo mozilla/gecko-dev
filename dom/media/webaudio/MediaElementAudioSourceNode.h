@@ -15,8 +15,8 @@ namespace dom {
 class MediaElementAudioSourceNode : public MediaStreamAudioSourceNode
 {
 public:
-  MediaElementAudioSourceNode(AudioContext* aContext,
-                              DOMMediaStream* aStream);
+  static already_AddRefed<MediaElementAudioSourceNode>
+  Create(AudioContext* aContext, DOMMediaStream* aStream, ErrorResult& aRv);
 
   virtual JSObject* WrapObject(JSContext* aCx) override;
 
@@ -29,6 +29,8 @@ public:
   {
     return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
   }
+private:
+  explicit MediaElementAudioSourceNode(AudioContext* aContext);
 };
 
 }
