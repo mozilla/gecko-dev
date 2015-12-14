@@ -17,6 +17,7 @@ Cu.import("resource://gre/modules/Timer.jsm");
 Cu.import("resource://gre/modules/Task.jsm");
 Cu.import("resource://gre/modules/FxAccountsStorage.jsm");
 Cu.import("resource://gre/modules/FxAccountsCommon.js");
+Cu.import("resource://services-sync/util.js");
 
 XPCOMUtils.defineLazyModuleGetter(this, "FxAccountsClient",
   "resource://gre/modules/FxAccountsClient.jsm");
@@ -47,10 +48,12 @@ var publicProperties = [
   "promiseAccountsForceSigninURI",
   "promiseAccountsChangeProfileURI",
   "promiseAccountsManageURI",
+  "registerDeviceIfNotRegistered",
   "removeCachedOAuthToken",
   "resendVerificationEmail",
   "setSignedInUser",
   "signOut",
+  "updateDevice",
   "whenVerified"
 ];
 
@@ -343,6 +346,7 @@ FxAccountsInternal.prototype = {
   initialize() {
     this.currentTimer = null;
     this.currentAccountState = this.newAccountState();
+    return this.registerDeviceIfNotRegistered();
   },
 
   get fxAccountsClient() {
@@ -492,6 +496,7 @@ FxAccountsInternal.prototype = {
       // the background? Already does for updateAccountData ;)
       return currentAccountState.promiseInitialized.then(() => {
         Services.telemetry.getHistogramById("FXA_CONFIGURED").add(1);
+        this.updateDevice();
         this.notifyObservers(ONLOGIN_NOTIFICATION);
         if (!this.isUserEmailVerified(credentials)) {
           this.startVerifiedCheck(credentials);
@@ -603,12 +608,13 @@ FxAccountsInternal.prototype = {
 
   signOut: function signOut(localOnly) {
     let currentState = this.currentAccountState;
-    let sessionToken;
-    let tokensToRevoke;
+    let sessionToken, tokensToRevoke, deviceId;
     return currentState.getUserAccountData().then(data => {
-      // Save the session token for use in the call to signOut below.
-      sessionToken = data && data.sessionToken;
-      tokensToRevoke = data && data.oauthTokens;
+      if (data) {
+        sessionToken = data.sessionToken;
+        tokensToRevoke = data.oauthTokens;
+        deviceId = data.deviceId;
+      }
       return this._signOutLocal();
     }).then(() => {
       // FxAccountsManager calls here, then does its own call
@@ -620,7 +626,7 @@ FxAccountsInternal.prototype = {
           // This can happen in the background and shouldn't block
           // the user from signing out. The server must tolerate
           // clients just disappearing, so this call should be best effort.
-          return this._signOutServer(sessionToken);
+          return this._signOutServer(sessionToken, deviceId);
         }).catch(err => {
           log.error("Error during remote sign out of Firefox Accounts", err);
         }).then(() => {
@@ -652,11 +658,14 @@ FxAccountsInternal.prototype = {
     });
   },
 
-  _signOutServer: function signOutServer(sessionToken) {
+  _signOutServer: function signOutServer(sessionToken, deviceId) {
     // For now we assume the service being logged out from is Sync - we might
     // need to revisit this when this FxA code is used in a context that
     // isn't Sync.
-    return this.fxAccountsClient.signOut(sessionToken, {service: "sync"});
+    log.debug("destroying device");
+    return this.fxAccountsClient.deviceDestroy(sessionToken, deviceId, {
+      service: "sync"
+    });
   },
 
   /**
@@ -1334,6 +1343,87 @@ FxAccountsInternal.prototype = {
       }
     ).catch(err => Promise.reject(this._errorToErrorClass(err)));
   },
+
+  registerDeviceIfNotRegistered() {
+    return this.getSignedInUser().then(signedInUser => {
+      if (signedInUser && !signedInUser.deviceId) {
+        return this._registerOrUpdateDevice(signedInUser);
+      }
+    })
+  },
+
+  updateDevice() {
+    return this.getSignedInUser().then(signedInUser => {
+      if (signedInUser) {
+        return this._registerOrUpdateDevice(signedInUser);
+      }
+    });
+  },
+
+  _registerOrUpdateDevice(signedInUser) {
+    let deviceName = this._getDeviceName();
+    let handleError = this._handleDeviceError.bind(this);
+
+    if (signedInUser.deviceId) {
+      log.debug("updating existing device details");
+      return this.fxAccountsClient.deviceUpdate(
+        signedInUser.sessionToken, signedInUser.deviceId, deviceName)
+        .catch(handleError);
+    }
+
+    log.debug("registering new device details");
+    return this.fxAccountsClient.deviceRegister(
+      signedInUser.sessionToken, deviceName, "desktop")
+      .then(d => this.currentAccountState.updateUserAccountData({ deviceId: d.id }))
+      .catch(handleError);
+  },
+
+  _getDeviceName() {
+    try {
+      return Services.prefs.getCharPref("services.sync.client.name");
+    } catch (ignore) {
+      // TODO: fix tests to stop this throwing
+      return Utils.getDefaultDeviceName();
+    }
+  },
+
+  _handleDeviceError(error) {
+    if (error.code === 400) {
+      if (error.errno === ERRNO_UNKNOWN_DEVICE) {
+        log.warn("unknown device id, attempting to register new device instead");
+        return this._forceUpdateDevice(null);
+      }
+
+      if (error.errno === ERRNO_DEVICE_SESSION_CONFLICT) {
+        log.warn("device session conflict, attempting to untangle things");
+        return this._recoverFromDeviceError(error, signedInUser.sessionToken);
+      }
+    }
+
+    return this._failDeviceRegistration(error);
+  },
+
+  _forceUpdateDevice(deviceId) {
+    return this.currentAccountState.updateUserAccountData({ deviceId })
+      .then(this.updateDevice.bind(this));
+  },
+
+  _recoverFromDeviceError(error, sessionToken) {
+    return this.fxAccountsClient.deviceList(sessionToken)
+      .then(devices => {
+        let matchingDevices = devices.filter(device => device.isCurrentDevice)
+        if (matchingDevices.length === 1) {
+          return this._forceUpdateDevice(matchingDevices[0].id);
+        }
+        return this._failDeviceRegistration(error);
+      })
+      .catch(ignore => this._failDeviceRegistration(error));
+  },
+
+  _failDeviceRegistration(error) {
+    log.error("device registration failed", error);
+    return Promise.reject(this._errorToErrorClass(error));
+  }
 };
 
 

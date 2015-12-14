@@ -294,9 +294,10 @@ this.FxAccountsManager = {
 
     // We clear the local session cache as soon as we get the onlogout
     // notification triggered within FxAccounts.signOut, so we save the
-    // session token value to be able to remove the remote server session
+    // session token and device id to be able to destroy them on the server
     // in case that we have network connection.
     let sessionToken = this._activeSession.sessionToken;
+    let deviceId = this._activeSession.deviceId;
 
     return this._localSignOut().then(
       () => {
@@ -307,9 +308,9 @@ this.FxAccountsManager = {
         if (Services.io.offline) {
           return Promise.resolve();
         }
-        // Otherwise, we try to remove the remote session.
+        // Otherwise, we try to remove the remote device and session.
         let client = this._getFxAccountsClient();
-        return client.signOut(sessionToken).then(
+        return client.deviceDestroy(sessionToken, deviceId).then(
           result => {
             let error = this._getError(result);
             if (error) {
