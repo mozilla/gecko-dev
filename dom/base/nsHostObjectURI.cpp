@@ -81,6 +81,15 @@ nsHostObjectURI::Write(nsIObjectOutputStream* aStream)
                                         true);
 }
 
+NS_IMETHODIMP
+nsHostObjectURI::SetScheme(const nsACString& aScheme)
+{
+  // Disallow setting the scheme, since that could cause us to be associated
+  // with a different protocol handler that doesn't expect us to be carrying
+  // around a principal with nsIURIWithPrincipal.
+  return NS_ERROR_FAILURE;
+}
+
 // nsIURI methods:
 nsresult
 nsHostObjectURI::CloneInternal(nsSimpleURI::RefHandlingEnum aRefHandlingMode,
