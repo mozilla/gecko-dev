@@ -4,6 +4,7 @@
 
 #include "BrowserElementAudioChannel.h"
 
+#include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
 #include "mozilla/dom/BrowserElementAudioChannelBinding.h"
 #include "mozilla/dom/Element.h"
@@ -11,6 +12,7 @@
 #include "mozilla/dom/DOMRequest.h"
 #include "mozilla/dom/ToJSValue.h"
 #include "AudioChannelService.h"
+#include "nsIAppsService.h"
 #include "nsIBrowserElementAPI.h"
 #include "nsIDocShell.h"
 #include "nsIDOMDOMRequest.h"
@@ -290,6 +292,25 @@ protected:
   }
 };
 
+uint32_t
+GetSystemAppID()
+{
+  uint32_t systemAppId = nsIScriptSecurityManager::NO_APP_ID;
+  nsCOMPtr<nsIAppsService> appsService = do_GetService(APPS_SERVICE_CONTRACTID);
+  if (NS_WARN_IF(!appsService)) {
+    return systemAppId;
+  }
+
+  nsAdoptingString systemAppManifest =
+    mozilla::Preferences::GetString("b2g.system_manifest_url");
+  if (!systemAppManifest) {
+    return systemAppId;
+  }
+
+  appsService->GetAppLocalIdByManifestURL(systemAppManifest, &systemAppId);
+  return systemAppId;
+}
+
 } // anonymous namespace
 
 already_AddRefed<dom::DOMRequest>
@@ -467,7 +488,7 @@ BrowserElementAudioChannel::Observe(nsISupports* aSubject, const char* aTopic,
   }
 
   nsCOMPtr<nsISupportsPRUint64> wrapper = do_QueryInterface(aSubject);
-  // This can be a nested iframe.
+  // This might be a nested iframe.
   if (!wrapper) {
     nsCOMPtr<nsITabParent> iTabParent = do_QueryInterface(aSubject);
     if (!iTabParent) {
@@ -485,7 +506,7 @@ BrowserElementAudioChannel::Observe(nsISupports* aSubject, const char* aTopic,
     }
 
     nsCOMPtr<nsPIDOMWindow> window = element->OwnerDoc()->GetWindow();
-    if (window == mFrameWindow) {
+    if (window == mFrameWindow && !IsSystemAppWindow(window)) {
       ProcessStateChanged(aData);
     }
 
@@ -512,6 +533,32 @@ BrowserElementAudioChannel::ProcessStateChanged(const char16_t* aData)
   nsAutoString value(aData);
   mState = value.EqualsASCII("active") ? eStateActive : eStateInactive;
   DispatchTrustedEvent(NS_LITERAL_STRING("activestatechanged"));
+}
+
+bool
+BrowserElementAudioChannel::IsSystemAppWindow(nsPIDOMWindow* aWindow)
+{
+  nsCOMPtr<nsIDocument> doc = aWindow->GetExtantDoc();
+  if (!doc) {
+    return false;
+  }
+
+  uint32_t appId;
+  nsCOMPtr<nsIPrincipal> principal = doc->NodePrincipal();
+  nsresult rv = principal->GetAppId(&appId);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return false;
+  }
+
+  if (appId == nsIScriptSecurityManager::NO_APP_ID ||
+      appId == nsIScriptSecurityManager::UNKNOWN_APP_ID) {
+    return false;
+  }
+
+  if (GetSystemAppID() == appId) {
+    return true;
+  }
+  return false;
 }
 
 } // dom namespace

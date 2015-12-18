@@ -65,6 +65,8 @@ private:
                              nsIBrowserElementAPI* aAPI,
                              AudioChannel aAudioChannel);
 
+  bool IsSystemAppWindow(nsPIDOMWindow* aWindow);
+
   ~BrowserElementAudioChannel();
 
   nsresult Initialize();
