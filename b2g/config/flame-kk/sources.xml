@@ -11,6 +11,8 @@
   <remote fetch="https://git.mozilla.org/external/caf" name="caf"/>
   <!--original fetch url was https://git.mozilla.org/releases-->
   <remote fetch="https://git.mozilla.org/releases" name="mozillaorg"/>
+  <!--original fetch url was https://git.mozilla.org/integration-->
+  <remote fetch="https://git.mozilla.org/integration" name="mozorg_int"/>
   <!-- B2G specific things. -->
   <project name="platform_build" path="build" remote="b2g" revision="8d83715f08b7849f16a0dfc88f78d5c3a89c0a54">
     <copyfile dest="Makefile" src="core/root.mk"/>

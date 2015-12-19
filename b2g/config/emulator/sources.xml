@@ -13,6 +13,8 @@
   <remote fetch="https://git.mozilla.org/b2g" name="mozilla"/>
   <!--original fetch url was https://git.mozilla.org/releases-->
   <remote fetch="https://git.mozilla.org/releases" name="mozillaorg"/>
+  <!--original fetch url was https://git.mozilla.org/integration-->
+  <remote fetch="https://git.mozilla.org/integration" name="mozorg_int"/>
   <default remote="caf" revision="refs/tags/android-4.0.4_r2.1" sync-j="4"/>
   <!-- Gecko and Gaia -->
   <project name="gaia.git" path="gaia" remote="mozillaorg" revision="d379f6f96cd716467568a4d8ca2472fc5be5c577"/>
