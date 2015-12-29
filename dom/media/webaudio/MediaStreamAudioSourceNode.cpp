@@ -56,11 +56,19 @@ MediaStreamAudioSourceNode::Create(AudioContext* aContext,
 void
 MediaStreamAudioSourceNode::Init(DOMMediaStream* aMediaStream, ErrorResult& aRv)
 {
+  MOZ_ASSERT(aMediaStream);
+  MediaStream* inputStream = aMediaStream->GetStream();
+  MediaStreamGraph* graph = Context()->Graph();
+  if (NS_WARN_IF(graph != inputStream->Graph())) {
+    aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+    return;
+  }
+
   mInputStream = aMediaStream;
   AudioNodeEngine* engine = new MediaStreamAudioSourceNodeEngine(this);
-  mStream = Context()->Graph()->CreateAudioNodeExternalInputStream(engine);
+  mStream = graph->CreateAudioNodeExternalInputStream(engine);
   ProcessedMediaStream* outputStream = static_cast<ProcessedMediaStream*>(mStream.get());
-  mInputPort = outputStream->AllocateInputPort(aMediaStream->GetStream(),
+  mInputPort = outputStream->AllocateInputPort(inputStream,
                                                MediaInputPort::FLAG_BLOCK_INPUT);
   mInputStream->AddConsumerToKeepAlive(static_cast<nsIDOMEventTarget*>(this));
 
