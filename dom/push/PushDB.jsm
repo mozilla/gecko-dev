@@ -131,7 +131,10 @@ this.PushDB.prototype = {
         this._dbStoreName,
         function txnCb(aTxn, aStore) {
           debug("Going to delete " + aKeyID);
-          aStore.delete(aKeyID);
+          aStore.get(aKeyID).onsuccess = event => {
+            aTxn.result = event.target.result;
+            aStore.delete(aKeyID);
+          };
         },
         resolve,
         reject
@@ -227,15 +230,27 @@ this.PushDB.prototype = {
     );
   },
 
-  getAllByOrigin: function(origin, originAttributes) {
-    debug("getAllByOrigin()");
+  /**
+   * Reduces all records associated with an origin to a single value.
+   *
+   * @param {String} origin The origin, matched as a prefix against the scope.
+   * @param {String} originAttributes Additional origin attributes. Requires
+   *  an exact match.
+   * @param {Function} callback A function with the signature `(result,
+   *  record, cursor)`, where `result` is the value returned by the previous
+   *  invocation, `record` is the registration, and `cursor` is an `IDBCursor`.
+   * @param {Object} [initialValue] The value to use for the first invocation.
+   * @returns {Promise} Resolves with the value of the last invocation.
+   */
+  reduceByOrigin: function(origin, originAttributes, callback, initialValue) {
+    debug("forEachOrigin()");
 
     return new Promise((resolve, reject) =>
       this.newTxn(
-        "readonly",
+        "readwrite",
         this._dbStoreName,
         (aTxn, aStore) => {
-          aTxn.result = [];
+          aTxn.result = initialValue;
 
           let index = aStore.index("identifiers");
           let range = IDBKeyRange.bound(
@@ -244,10 +259,12 @@ this.PushDB.prototype = {
           );
           index.openCursor(range).onsuccess = event => {
             let cursor = event.target.result;
-            if (cursor) {
-              aTxn.result.push(this.toPushRecord(cursor.value));
-              cursor.continue();
+            if (!cursor) {
+              return;
             }
+            let record = this.toPushRecord(cursor.value);
+            aTxn.result = callback(aTxn.result, record, cursor);
+            cursor.continue();
           };
         },
         resolve,

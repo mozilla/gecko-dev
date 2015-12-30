@@ -5,6 +5,7 @@
 
 package org.mozilla.gecko;
 
+import org.mozilla.gecko.adjust.AdjustHelperInterface;
 import org.mozilla.gecko.annotation.RobocopTarget;
 import org.mozilla.gecko.AdjustConstants;
 import org.mozilla.gecko.AppConstants.Versions;
@@ -694,12 +695,14 @@ public class BrowserApp extends GeckoApp
         mReadingListHelper = new ReadingListHelper(appContext, getProfile(), this);
         mAccountsHelper = new AccountsHelper(appContext, getProfile());
 
-        if (AppConstants.MOZ_INSTALL_TRACKING) {
-            final SharedPreferences prefs = GeckoSharedPrefs.forApp(this);
-            if (prefs.getBoolean(GeckoPreferences.PREFS_HEALTHREPORT_UPLOAD_ENABLED, true)) {
-                AdjustConstants.getAdjustHelper().onCreate(this, AdjustConstants.MOZ_INSTALL_TRACKING_ADJUST_SDK_APP_TOKEN);
-            }
-        }
+        final AdjustHelperInterface adjustHelper = AdjustConstants.getAdjustHelper();
+        adjustHelper.onCreate(this, AdjustConstants.MOZ_INSTALL_TRACKING_ADJUST_SDK_APP_TOKEN);
+
+        // Adjust stores enabled state so this is only necessary because users may have set
+        // their data preferences before this feature was implemented and we need to respect
+        // those before upload can occur in Adjust.onResume.
+        final SharedPreferences prefs = GeckoSharedPrefs.forApp(this);
+        adjustHelper.setEnabled(prefs.getBoolean(GeckoPreferences.PREFS_HEALTHREPORT_UPLOAD_ENABLED, true));
 
         if (AppConstants.MOZ_ANDROID_BEAM) {
             NfcAdapter nfc = NfcAdapter.getDefaultAdapter(this);
@@ -856,6 +859,9 @@ public class BrowserApp extends GeckoApp
     public void onResume() {
         super.onResume();
 
+        // Needed for Adjust to get accurate session measurements
+        AdjustConstants.getAdjustHelper().onResume();
+
         final String args = ContextUtils.getStringExtra(getIntent(), "args");
         // If an external intent tries to start Fennec in guest mode, and it's not already
         // in guest mode, this will change modes before opening the url.
@@ -876,6 +882,10 @@ public class BrowserApp extends GeckoApp
     @Override
     public void onPause() {
         super.onPause();
+
+        // Needed for Adjust to get accurate session measurements
+        AdjustConstants.getAdjustHelper().onPause();
+
         // Register for Prompt:ShowTop so we can foreground this activity even if it's hidden.
         EventDispatcher.getInstance().registerGeckoThreadListener((GeckoEventListener) this,
             "Prompt:ShowTop");

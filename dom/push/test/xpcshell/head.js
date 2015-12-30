@@ -7,6 +7,7 @@ var {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.import('resource://gre/modules/XPCOMUtils.jsm');
 Cu.import('resource://gre/modules/Services.jsm');
+Cu.import('resource://gre/modules/Task.jsm');
 Cu.import('resource://gre/modules/Timer.jsm');
 Cu.import('resource://gre/modules/Promise.jsm');
 Cu.import('resource://gre/modules/Preferences.jsm');
@@ -180,7 +181,7 @@ function disableServiceWorkerEvents(...scopes) {
   for (let scope of scopes) {
     Services.perms.add(
       Services.io.newURI(scope, null, null),
-      'push',
+      'desktop-notification',
       Ci.nsIPermissionManager.DENY_ACTION
     );
   }
