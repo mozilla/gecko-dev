@@ -1868,6 +1868,11 @@ HTMLMediaElement::CaptureStreamInternal(bool aFinishWhenEnded,
     aGraph = MediaStreamGraph::GetInstance(graphDriverType, mAudioChannel);
   }
 
+  if (!mOutputStreams.IsEmpty() &&
+      aGraph != mOutputStreams[0].mStream->GetInputStream()->Graph()) {
+    return nullptr;
+  }
+
   OutputMediaStream* out = mOutputStreams.AppendElement();
   out->mStream = DOMMediaStream::CreateTrackUnionStream(window, aGraph);
   RefPtr<nsIPrincipal> principal = GetCurrentPrincipal();
@@ -4348,8 +4353,6 @@ void HTMLMediaElement::DoRemoveSelfReference()
 nsresult HTMLMediaElement::Observe(nsISupports* aSubject,
                                    const char* aTopic, const char16_t* aData)
 {
-  NS_ENSURE_TRUE(nsContentUtils::IsCallerChrome(), NS_ERROR_NOT_AVAILABLE);
-
   if (strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID) == 0) {
     mShuttingDown = true;
     AddRemoveSelfReference();
@@ -4386,6 +4389,9 @@ void HTMLMediaElement::NotifyAddedSource()
   // A load was paused in the resource selection algorithm, waiting for
   // a new source child to be added, resume the resource selection algorithm.
   if (mLoadWaitStatus == WAITING_FOR_SOURCE) {
+    // Rest the flag so we don't queue multiple LoadFromSourceTask() when
+    // multiple <source> are attached in an event loop.
+    mLoadWaitStatus = NOT_WAITING;
     QueueLoadFromSourceTask();
   }
 }
