@@ -73,7 +73,7 @@ class BouncerSubmitter(BaseScript, PurgeMixin, BouncerSubmitterMixin, BuildbotMi
         self.read_buildbot_config()
 
         #check if release promotion is true first before overwriting these properties
-        if self.buildbot_config["properties"].get("release_promotion"):
+        if self.buildbot_config["properties"].get("enable_release_promotion"):
             for prop in ['product', 'version', 'build_number', 'revision', 'bouncer_submitter_config']:
                 if self.buildbot_config["properties"].get(prop):
                     self.info("Overriding %s with %s" %
