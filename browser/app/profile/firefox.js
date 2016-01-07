@@ -1442,8 +1442,8 @@ pref("security.insecure_password.ui.enabled", false);
 // 1 = allow MITM for certificate pinning checks.
 pref("security.cert_pinning.enforcement_level", 1);
 
-// 2 = allow SHA-1 only before 2016-01-01
-pref("security.pki.sha1_enforcement_level", 2);
+// 0 = allow SHA-1
+pref("security.pki.sha1_enforcement_level", 0);
 
 // Required blocklist freshness for OneCRL OCSP bypass
 // (default is 1.25x extensions.blocklist.interval, or 30 hours)
@@ -1609,8 +1609,8 @@ pref("layers.async-pan-zoom.enabled", true);
 #ifdef E10S_TESTING_ONLY
 // Enable e10s add-on interposition by default.
 pref("extensions.interposition.enabled", true);
-pref("extensions.interposition.prefetching", true);
 #endif
+pref("extensions.interposition.prefetching", true);
 
 pref("browser.defaultbrowser.notificationbar", false);
 
@@ -1650,11 +1650,10 @@ pref("view_source.tab", true);
 pref("dom.serviceWorkers.enabled", true);
 pref("dom.serviceWorkers.interception.enabled", true);
 pref("dom.serviceWorkers.openWindow.enabled", true);
+pref("dom.webnotifications.serviceworker.enabled", true);
 
-#ifndef RELEASE_BUILD
 // Enable Push API.
 pref("dom.push.enabled", true);
-#endif
 
 // These are the thumbnail width/height set in about:newtab.
 // If you change this, ENSURE IT IS THE SAME SIZE SET
