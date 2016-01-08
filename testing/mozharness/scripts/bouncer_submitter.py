@@ -62,6 +62,9 @@ class BouncerSubmitter(BaseScript, PurgeMixin, BouncerSubmitterMixin, BuildbotMi
                                 'download-shipped-locales',
                                 'submit',
                             ],
+                            config={
+                                 'buildbot_json_path' : 'buildprops.json'
+                            }
                             )
         self.locales = None
         self.credentials = None
@@ -73,14 +76,13 @@ class BouncerSubmitter(BaseScript, PurgeMixin, BouncerSubmitterMixin, BuildbotMi
         self.read_buildbot_config()
 
         #check if release promotion is true first before overwriting these properties
-        if self.buildbot_config["properties"].get("enable_release_promotion"):
+        if self.buildbot_config["properties"].get("release_promotion"):
             for prop in ['product', 'version', 'build_number', 'revision', 'bouncer_submitter_config']:
                 if self.buildbot_config["properties"].get(prop):
-                    self.info("Overriding %s with %s" %
-                              prop, self.buildbot_config["properties"][prop])
-                    self.config[prop] = self.buildbot_config["properties"][prop]
-            if self.buildbot_config["properties"].get("partial_versions"):
-                self.config["prev_versions"] = self.buildbot_config["properties"].get("partial_versions").split()
+                    self.info("Overriding %s with %s" % (prop,  self.buildbot_config["properties"].get(prop)))
+                    self.config[prop] = self.buildbot_config["properties"].get(prop)
+                if self.buildbot_config["properties"].get("partial_versions"):
+                    self.config["prev_versions"] = self.buildbot_config["properties"].get("partial_versions").split()
 
         for opt in ["version", "credentials_file", "bouncer-api-prefix"]:
             if opt not in self.config:
