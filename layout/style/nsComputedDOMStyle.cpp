@@ -439,8 +439,6 @@ nsComputedDOMStyle::GetStyleContextForElementNoFlush(Element* aElement,
   // mPrimaryFrame). Remove it once that's fixed.
   if (!aPseudo && aStyleType == eAll && inDocWithShell &&
       !aElement->IsHTML(nsGkAtoms::area)) {
-  if (!aPseudo && aStyleType == eAll && inDocWithShell &&
-      !aElement->IsHTMLElement(nsGkAtoms::area)) {
     nsIFrame* frame = nsLayoutUtils::GetStyleFrame(aElement);
     if (frame) {
       nsStyleContext* result = frame->StyleContext();
