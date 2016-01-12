@@ -47,13 +47,6 @@ static CriticalAddress gCriticalAddress;
    ((defined(__GNUC__) && (defined(__i386) || defined(PPC))) || \
     defined(HAVE__UNWIND_BACKTRACE)))
 
-#if MOZ_STACKWALK_SUPPORTS_MACOSX
-#include <pthread.h>
-#include <sys/errno.h>
-#ifdef MOZ_WIDGET_COCOA
-#include <CoreServices/CoreServices.h>
-#endif
-
 #if __GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 1)
 #define HAVE___LIBC_STACK_END 1
 #else
@@ -62,6 +55,19 @@ static CriticalAddress gCriticalAddress;
 
 #if HAVE___LIBC_STACK_END
 extern MOZ_EXPORT void* __libc_stack_end; // from ld-linux.so
+#endif
+
+#ifdef ANDROID
+#include <algorithm>
+#include <unistd.h>
+#include <pthread.h>
+#endif
+
+#if MOZ_STACKWALK_SUPPORTS_MACOSX
+#include <pthread.h>
+#include <sys/errno.h>
+#ifdef MOZ_WIDGET_COCOA
+#include <CoreServices/CoreServices.h>
 #endif
 
 typedef void
@@ -896,21 +902,40 @@ MozStackWalk(MozWalkStackCallback aCallback, uint32_t aSkipFrames,
   StackWalkInitCriticalAddress();
 
   // Get the frame pointer
-  void** bp;
-#if defined(__i386)
-  __asm__("movl %%ebp, %0" : "=g"(bp));
-#else
-  // It would be nice if this worked uniformly, but at least on i386 and
-  // x86_64, it stopped working with gcc 4.1, because it points to the
-  // end of the saved registers instead of the start.
-  bp = (void**)__builtin_frame_address(0);
-#endif
+  void** bp = (void**)__builtin_frame_address(0);
 
   void* stackEnd;
 #if HAVE___LIBC_STACK_END
   stackEnd = __libc_stack_end;
+#elif defined(XP_DARWIN)
+  stackEnd = pthread_get_stackaddr_np(pthread_self());
+#elif defined(ANDROID)
+  pthread_attr_t sattr;
+  pthread_attr_init(&sattr);
+  pthread_getattr_np(pthread_self(), &sattr);
+  void* stackBase = stackEnd = nullptr;
+  size_t stackSize = 0;
+  if (gettid() != getpid()) {
+    // bionic's pthread_attr_getstack doesn't tell the truth for the main
+    // thread (see bug 846670). So don't use it for the main thread.
+    if (!pthread_attr_getstack(&sattr, &stackBase, &stackSize)) {
+      stackEnd = static_cast<char*>(stackBase) + stackSize;
+    } else {
+      stackEnd = nullptr;
+    }
+  }
+  if (!stackEnd) {
+    // So consider the current frame pointer + an arbitrary size of 8MB
+    // (modulo overflow ; not really arbitrary as it's the default stack
+    // size for the main thread) if pthread_attr_getstack failed for
+    // some reason (or was skipped).
+    static const uintptr_t kMaxStackSize = 8 * 1024 * 1024;
+    uintptr_t maxStackStart = uintptr_t(-1) - kMaxStackSize;
+    uintptr_t stackStart = std::max(maxStackStart, uintptr_t(bp));
+    stackEnd = reinterpret_cast<void*>(stackStart + kMaxStackSize);
+  }
 #else
-  stackEnd = reinterpret_cast<void*>(-1);
+#  error Unsupported configuration
 #endif
   return FramePointerStackWalk(aCallback, aSkipFrames, aMaxFrames,
                                aClosure, bp, stackEnd);

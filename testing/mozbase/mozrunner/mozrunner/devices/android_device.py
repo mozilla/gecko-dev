@@ -99,7 +99,7 @@ def verify_android_device(build_obj, install=False, xre=False, debugger=False):
     device_verified = False
     emulator = AndroidEmulator('*', substs=build_obj.substs)
     devices = emulator.dm.devices()
-    if len(devices) > 0:
+    if (len(devices) > 0) and ('device' in [d[1] for d in devices]):
         device_verified = True
     elif emulator.is_available():
         response = raw_input(
@@ -162,7 +162,6 @@ def verify_android_device(build_obj, install=False, xre=False, debugger=False):
                 "Download and setup your host utilities? (Y/n) ").strip()
             if response.lower().startswith('y') or response == '':
                 _log_info("Installing host utilities. This may take a while...")
-                _download_file(TOOLTOOL_URL, 'tooltool.py', EMULATOR_HOME_DIR)
                 host_platform = _get_host_platform()
                 if host_platform:
                     path = os.path.join(MANIFEST_PATH, host_platform, 'hostutils.manifest')
@@ -278,7 +277,7 @@ class AndroidEmulator(object):
                 emulator.wait()
     """
 
-    def __init__(self, avd_type='4.3', verbose=False, substs=None):
+    def __init__(self, avd_type='4.3', verbose=False, substs=None, device_serial=None):
         global verbose_logging
         self.emulator_log = None
         self.emulator_path = 'emulator'
@@ -289,7 +288,8 @@ class AndroidEmulator(object):
         adb_path = _find_sdk_exe(substs, 'adb', False)
         if not adb_path:
             adb_path = 'adb'
-        self.dm = DeviceManagerADB(autoconnect=False, adbPath=adb_path, retryLimit=1)
+        self.dm = DeviceManagerADB(autoconnect=False, adbPath=adb_path, retryLimit=1,
+            deviceSerial=device_serial)
         self.dm.default_timeout = 10
         _log_debug("Emulator created with type %s" % self.avd_type)
 
@@ -353,7 +353,6 @@ class AndroidEmulator(object):
         if force and os.path.exists(avd):
             shutil.rmtree(avd)
         if not os.path.exists(avd):
-            _download_file(TOOLTOOL_URL, 'tooltool.py', EMULATOR_HOME_DIR)
             url = '%s/%s' % (TRY_URL, self.avd_info.tooltool_manifest)
             _download_file(url, 'releng.manifest', EMULATOR_HOME_DIR)
             _tooltool_fetch()
@@ -370,6 +369,9 @@ class AndroidEmulator(object):
         command = [self.emulator_path, "-avd",
                    self.avd_info.name, "-port", "5554"]
         if self.avd_info.extra_args:
+            # -enable-kvm option is not valid on OSX
+            if _get_host_platform() == 'macosx64' and '-enable-kvm' in self.avd_info.extra_args:
+                self.avd_info.extra_args.remove('-enable-kvm')
             command += self.avd_info.extra_args
         log_path = os.path.join(EMULATOR_HOME_DIR, 'emulator.log')
         self.emulator_log = open(log_path, 'w')
@@ -578,6 +580,11 @@ def _find_sdk_exe(substs, exe, tools):
         except KeyError:
             _log_debug("%s not set" % exe.upper())
 
+    # Append '.exe' to the name on Windows if it's not present,
+    # so that the executable can be found.
+    if (os.name == 'nt' and not exe.lower().endswith('.exe')):
+        exe += '.exe'
+
     if not found:
         # Can exe be found in the Android SDK?
         try:
@@ -643,6 +650,11 @@ def _download_file(url, filename, path):
     return True
 
 def _get_tooltool_manifest(substs, src_path, dst_path, filename):
+    if not os.path.isdir(dst_path):
+        try:
+            os.makedirs(dst_path)
+        except Exception, e:
+            _log_warning(str(e))
     copied = False
     if substs and 'top_srcdir' in substs:
         src = os.path.join(substs['top_srcdir'], src_path)
@@ -658,6 +670,7 @@ def _get_tooltool_manifest(substs, src_path, dst_path, filename):
 def _tooltool_fetch():
     def outputHandler(line):
         _log_debug(line)
+    _download_file(TOOLTOOL_URL, 'tooltool.py', EMULATOR_HOME_DIR)
     command = ['python', 'tooltool.py', 'fetch', '-o', '-m', 'releng.manifest']
     proc = ProcessHandler(
         command, processOutputLine=outputHandler, storeOutput=False,

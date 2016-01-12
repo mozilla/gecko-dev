@@ -161,8 +161,8 @@ class LIRGenerator : public LIRGeneratorSpecific
     void visitToString(MToString* convert);
     void visitToObjectOrNull(MToObjectOrNull* convert);
     void visitRegExp(MRegExp* ins);
-    void visitRegExpExec(MRegExpExec* ins);
-    void visitRegExpTest(MRegExpTest* ins);
+    void visitRegExpMatcher(MRegExpMatcher* ins);
+    void visitRegExpTester(MRegExpTester* ins);
     void visitRegExpReplace(MRegExpReplace* ins);
     void visitStringReplace(MStringReplace* ins);
     void visitBinarySharedStub(MBinarySharedStub* ins);
@@ -230,6 +230,7 @@ class LIRGenerator : public LIRGeneratorSpecific
     void visitGetPropertyPolymorphic(MGetPropertyPolymorphic* ins);
     void visitSetPropertyPolymorphic(MSetPropertyPolymorphic* ins);
     void visitBindNameCache(MBindNameCache* ins);
+    void visitCallBindVar(MCallBindVar* ins);
     void visitGuardObjectIdentity(MGuardObjectIdentity* ins);
     void visitGuardClass(MGuardClass* ins);
     void visitGuardObject(MGuardObject* ins);
@@ -284,7 +285,6 @@ class LIRGenerator : public LIRGeneratorSpecific
     void visitSimdUnbox(MSimdUnbox* ins);
     void visitSimdExtractElement(MSimdExtractElement* ins);
     void visitSimdInsertElement(MSimdInsertElement* ins);
-    void visitSimdSignMask(MSimdSignMask* ins);
     void visitSimdSwizzle(MSimdSwizzle* ins);
     void visitSimdGeneralShuffle(MSimdGeneralShuffle* ins);
     void visitSimdShuffle(MSimdShuffle* ins);
@@ -295,6 +295,8 @@ class LIRGenerator : public LIRGeneratorSpecific
     void visitSimdConstant(MSimdConstant* ins);
     void visitSimdConvert(MSimdConvert* ins);
     void visitSimdReinterpretCast(MSimdReinterpretCast* ins);
+    void visitSimdAllTrue(MSimdAllTrue* ins);
+    void visitSimdAnyTrue(MSimdAnyTrue* ins);
     void visitPhi(MPhi* ins);
     void visitBeta(MBeta* ins);
     void visitObjectState(MObjectState* ins);
@@ -307,7 +309,10 @@ class LIRGenerator : public LIRGeneratorSpecific
     void visitNewTarget(MNewTarget* ins);
     void visitArrowNewTarget(MArrowNewTarget* ins);
     void visitAtomicIsLockFree(MAtomicIsLockFree* ins);
+    void visitGuardSharedTypedArray(MGuardSharedTypedArray* ins);
     void visitCheckReturn(MCheckReturn* ins);
+    void visitCheckObjCoercible(MCheckObjCoercible* ins);
+    void visitDebugCheckSelfHosted(MDebugCheckSelfHosted* ins);
 };
 
 } // namespace jit

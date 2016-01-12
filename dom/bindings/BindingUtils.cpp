@@ -93,8 +93,7 @@ ThrowErrorMessage(JSContext* aCx, const ErrNum aErrorNumber, ...)
 
 bool
 ThrowInvalidThis(JSContext* aCx, const JS::CallArgs& aArgs,
-                 const ErrNum aErrorNumber,
-                 const char* aInterfaceName)
+                 bool aSecurityError, const char* aInterfaceName)
 {
   NS_ConvertASCIItoUTF16 ifaceName(aInterfaceName);
   // This should only be called for DOM methods/getters/setters, which
@@ -109,19 +108,22 @@ ThrowInvalidThis(JSContext* aCx, const JS::CallArgs& aArgs,
   if (!funcNameStr.init(aCx, funcName)) {
     return false;
   }
-  MOZ_RELEASE_ASSERT(GetErrorArgCount(aErrorNumber) <= 2);
+  const ErrNum errorNumber = aSecurityError ?
+                             MSG_METHOD_THIS_UNWRAPPING_DENIED :
+                             MSG_METHOD_THIS_DOES_NOT_IMPLEMENT_INTERFACE;
+  MOZ_RELEASE_ASSERT(GetErrorArgCount(errorNumber) <= 2);
   JS_ReportErrorNumberUC(aCx, GetErrorMessage, nullptr,
-                         static_cast<const unsigned>(aErrorNumber),
+                         static_cast<const unsigned>(errorNumber),
                          funcNameStr.get(), ifaceName.get());
   return false;
 }
 
 bool
 ThrowInvalidThis(JSContext* aCx, const JS::CallArgs& aArgs,
-                 const ErrNum aErrorNumber,
+                 bool aSecurityError,
                  prototypes::ID aProtoId)
 {
-  return ThrowInvalidThis(aCx, aArgs, aErrorNumber,
+  return ThrowInvalidThis(aCx, aArgs, aSecurityError,
                           NamesOfInterfacesWithProtos(aProtoId));
 }
 
@@ -2534,6 +2536,55 @@ CheckAllPermissions(JSContext* aCx, JSObject* aObj, const char* const aPermissio
   return true;
 }
 
+bool
+IsNonExposedGlobal(JSContext* aCx, JSObject* aGlobal,
+                   uint32_t aNonExposedGlobals)
+{
+  MOZ_ASSERT(aNonExposedGlobals, "Why did we get called?");
+  MOZ_ASSERT((aNonExposedGlobals &
+              ~(GlobalNames::Window |
+                GlobalNames::BackstagePass |
+                GlobalNames::DedicatedWorkerGlobalScope |
+                GlobalNames::SharedWorkerGlobalScope |
+                GlobalNames::ServiceWorkerGlobalScope |
+                GlobalNames::WorkerDebuggerGlobalScope)) == 0,
+             "Unknown non-exposed global type");
+
+  const char* name = js::GetObjectClass(aGlobal)->name;
+
+  if ((aNonExposedGlobals & GlobalNames::Window) &&
+      !strcmp(name, "Window")) {
+    return true;
+  }
+
+  if ((aNonExposedGlobals & GlobalNames::BackstagePass) &&
+      !strcmp(name, "BackstagePass")) {
+    return true;
+  }
+
+  if ((aNonExposedGlobals & GlobalNames::DedicatedWorkerGlobalScope) &&
+      !strcmp(name, "DedicatedWorkerGlobalScope")) {
+    return true;
+  }
+
+  if ((aNonExposedGlobals & GlobalNames::SharedWorkerGlobalScope) &&
+      !strcmp(name, "SharedWorkerGlobalScope")) {
+    return true;
+  }
+
+  if ((aNonExposedGlobals & GlobalNames::ServiceWorkerGlobalScope) &&
+      !strcmp(name, "ServiceWorkerGlobalScope")) {
+    return true;
+  }
+
+  if ((aNonExposedGlobals & GlobalNames::WorkerDebuggerGlobalScope) &&
+      !strcmp(name, "WorkerDebuggerGlobalScopex")) {
+    return true;
+  }
+
+  return false;
+}
+
 void
 HandlePrerenderingViolation(nsPIDOMWindow* aWindow)
 {
@@ -2578,9 +2629,7 @@ GenericBindingGetter(JSContext* cx, unsigned argc, JS::Value* vp)
   const JSJitInfo *info = FUNCTION_VALUE_TO_JITINFO(args.calleev());
   prototypes::ID protoID = static_cast<prototypes::ID>(info->protoID);
   if (!args.thisv().isObject()) {
-    return ThrowInvalidThis(cx, args,
-                            MSG_GETTER_THIS_DOES_NOT_IMPLEMENT_INTERFACE,
-                            protoID);
+    return ThrowInvalidThis(cx, args, false, protoID);
   }
   JS::Rooted<JSObject*> obj(cx, &args.thisv().toObject());
 
@@ -2589,7 +2638,7 @@ GenericBindingGetter(JSContext* cx, unsigned argc, JS::Value* vp)
     nsresult rv = UnwrapObject<void>(obj, self, protoID, info->depth);
     if (NS_FAILED(rv)) {
       return ThrowInvalidThis(cx, args,
-                              GetInvalidThisErrorForGetter(rv == NS_ERROR_XPC_SECURITY_MANAGER_VETO),
+                              rv == NS_ERROR_XPC_SECURITY_MANAGER_VETO,
                               protoID);
     }
   }
@@ -2612,9 +2661,7 @@ GenericBindingSetter(JSContext* cx, unsigned argc, JS::Value* vp)
   const JSJitInfo *info = FUNCTION_VALUE_TO_JITINFO(args.calleev());
   prototypes::ID protoID = static_cast<prototypes::ID>(info->protoID);
   if (!args.thisv().isObject()) {
-    return ThrowInvalidThis(cx, args,
-                            MSG_SETTER_THIS_DOES_NOT_IMPLEMENT_INTERFACE,
-                            protoID);
+    return ThrowInvalidThis(cx, args, false, protoID);
   }
   JS::Rooted<JSObject*> obj(cx, &args.thisv().toObject());
 
@@ -2623,7 +2670,7 @@ GenericBindingSetter(JSContext* cx, unsigned argc, JS::Value* vp)
     nsresult rv = UnwrapObject<void>(obj, self, protoID, info->depth);
     if (NS_FAILED(rv)) {
       return ThrowInvalidThis(cx, args,
-                              GetInvalidThisErrorForSetter(rv == NS_ERROR_XPC_SECURITY_MANAGER_VETO),
+                              rv == NS_ERROR_XPC_SECURITY_MANAGER_VETO,
                               protoID);
     }
   }
@@ -2649,9 +2696,7 @@ GenericBindingMethod(JSContext* cx, unsigned argc, JS::Value* vp)
   const JSJitInfo *info = FUNCTION_VALUE_TO_JITINFO(args.calleev());
   prototypes::ID protoID = static_cast<prototypes::ID>(info->protoID);
   if (!args.thisv().isObject()) {
-    return ThrowInvalidThis(cx, args,
-                            MSG_METHOD_THIS_DOES_NOT_IMPLEMENT_INTERFACE,
-                            protoID);
+    return ThrowInvalidThis(cx, args, false, protoID);
   }
   JS::Rooted<JSObject*> obj(cx, &args.thisv().toObject());
 
@@ -2660,7 +2705,7 @@ GenericBindingMethod(JSContext* cx, unsigned argc, JS::Value* vp)
     nsresult rv = UnwrapObject<void>(obj, self, protoID, info->depth);
     if (NS_FAILED(rv)) {
       return ThrowInvalidThis(cx, args,
-                              GetInvalidThisErrorForMethod(rv == NS_ERROR_XPC_SECURITY_MANAGER_VETO),
+                              rv == NS_ERROR_XPC_SECURITY_MANAGER_VETO,
                               protoID);
     }
   }
@@ -2687,9 +2732,7 @@ GenericPromiseReturningBindingMethod(JSContext* cx, unsigned argc, JS::Value* vp
   const JSJitInfo *info = FUNCTION_VALUE_TO_JITINFO(args.calleev());
   prototypes::ID protoID = static_cast<prototypes::ID>(info->protoID);
   if (!args.thisv().isObject()) {
-    ThrowInvalidThis(cx, args,
-                     MSG_METHOD_THIS_DOES_NOT_IMPLEMENT_INTERFACE,
-                     protoID);
+    ThrowInvalidThis(cx, args, false, protoID);
     return ConvertExceptionToPromise(cx, xpc::XrayAwareCalleeGlobal(callee),
                                      args.rval());
   }
@@ -2699,8 +2742,7 @@ GenericPromiseReturningBindingMethod(JSContext* cx, unsigned argc, JS::Value* vp
   {
     nsresult rv = UnwrapObject<void>(obj, self, protoID, info->depth);
     if (NS_FAILED(rv)) {
-      ThrowInvalidThis(cx, args,
-                       GetInvalidThisErrorForMethod(rv == NS_ERROR_XPC_SECURITY_MANAGER_VETO),
+      ThrowInvalidThis(cx, args, rv == NS_ERROR_XPC_SECURITY_MANAGER_VETO,
                        protoID);
       return ConvertExceptionToPromise(cx, xpc::XrayAwareCalleeGlobal(callee),
                                        args.rval());

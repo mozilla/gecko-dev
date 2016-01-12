@@ -654,7 +654,9 @@
                 if (this._shouldShowProgress(aRequest)) {
                   if (!(aStateFlags & nsIWebProgressListener.STATE_RESTORING)) {
                     this.mTab.setAttribute("busy", "true");
-                    if (!(aWebProgress.loadType & Ci.nsIDocShell.LOAD_CMD_RELOAD))
+
+                    if (aWebProgress.isTopLevel &&
+                        !(aWebProgress.loadType & Ci.nsIDocShell.LOAD_CMD_RELOAD))
                       this.mTabBrowser.setTabTitleLoading(this.mTab);
                   }
 
@@ -761,7 +763,9 @@
                 }
 
                 // If the browser was playing audio, we should remove the playing state.
-                if (this.mTab.hasAttribute("soundplaying")) {
+                if (this.mTab.hasAttribute("soundplaying") &&
+                    (!this.mBrowser.lastURI ||
+                     this.mBrowser.lastURI.spec != aLocation.spec)) {
                   this.mTab.removeAttribute("soundplaying");
                   this.mTabBrowser._tabAttrModified(this.mTab, ["soundplaying"]);
                 }
@@ -3099,6 +3103,9 @@
             // Map from tabs to STATE_* (below).
             tabState: new Map(),
 
+            // True if we're in the midst of switching tabs.
+            switchInProgress: false,
+
             // Keep an exact list of content processes (tabParent) in which
             // we're actively suppressing the display port. This gives a robust
             // way to make sure we don't forget to un-suppress.
@@ -3408,7 +3415,7 @@
               let tab = this.tabbrowser.getTabForBrowser(browser);
               this.setTabState(tab, this.STATE_LOADED);
 
-              this.finishTabSwitch();
+              this.maybeFinishTabSwitch();
 
               if (this.loadingTab === tab) {
                 clearTimeout(this.loadTimer);
@@ -3422,7 +3429,7 @@
             // around.
             onPaint: function() {
               this.maybeVisibleTabs.clear();
-              this.finishTabSwitch();
+              this.maybeFinishTabSwitch();
             },
 
             // Called when we're done clearing the layers for a tab.
@@ -3521,10 +3528,18 @@
               TelemetryStopwatch.cancel("FX_TAB_SWITCH_TOTAL_E10S_MS", window);
               TelemetryStopwatch.start("FX_TAB_SWITCH_TOTAL_E10S_MS", window);
               this.addMarker("AsyncTabSwitch:Start");
+              this.switchInProgress = true;
             },
 
-            finishTabSwitch: function () {
-              if (this.requestedTab && this.getTabState(this.requestedTab) == this.STATE_LOADED) {
+            /**
+             * Something has occurred that might mean that we've completed
+             * the tab switch (layers are ready, paints are done, spinners
+             * are hidden). This checks to make sure all conditions are
+             * satisfied, and then records the tab switch as finished.
+             */
+            maybeFinishTabSwitch: function () {
+              if (this.switchInProgress && this.requestedTab &&
+                  this.getTabState(this.requestedTab) == this.STATE_LOADED) {
                 // After this point the tab has switched from the content thread's point of view.
                 // The changes will be visible after the next refresh driver tick + composite.
                 let event = new CustomEvent("TabSwitched", {
@@ -3538,6 +3553,7 @@
                   this.log("DEBUG: tab switch time = " + time);
                   this.addMarker("AsyncTabSwitch:Finish");
                 }
+                this.switchInProgress = false;
               }
             },
 
@@ -3554,7 +3570,7 @@
               TelemetryStopwatch.finish("FX_TAB_SWITCH_SPINNER_VISIBLE_MS", window);
               this.addMarker("AsyncTabSwitch:SpinnerHidden");
               // we do not get a onPaint after displaying the spinner
-              this.finishTabSwitch();
+              this.maybeFinishTabSwitch();
             },
 
             addMarker: function(marker) {
@@ -4027,7 +4043,7 @@
             case "DOMTitleChanged": {
               let tab = this.getTabForBrowser(browser);
               if (!tab || tab.hasAttribute("pending"))
-                return;
+                return undefined;
               let titleChanged = this.setTabTitle(tab);
               if (titleChanged && !tab.selected && !tab.hasAttribute("busy"))
                 tab.setAttribute("titlechanged", "true");
@@ -4040,7 +4056,7 @@
                 // need to do it again for any tabs.
                 window.skipNextCanClose = true;
                 window.close();
-                return;
+                return undefined;
               }
 
               let tab = this.getTabForBrowser(browser);
@@ -4088,7 +4104,7 @@
             case "DOMWebNotificationClicked": {
               let tab = this.getTabForBrowser(browser);
               if (!tab)
-                return;
+                return undefined;
               this.selectedTab = tab;
               window.focus();
               break;
@@ -4096,7 +4112,7 @@
             case "Browser:Init": {
               let tab = this.getTabForBrowser(browser);
               if (!tab)
-                return;
+                return undefined;
 
               this._outerWindowIDBrowserMap.set(browser.outerWindowID, browser);
               browser.messageManager.sendAsyncMessage("Browser:AppTab", { isAppTab: tab.pinned })
@@ -4367,9 +4383,11 @@
           if (tabForEvent.selected)
             return;
 
-          // If this is a tabprompt, we won't switch tabs
-          // (unless this behaviour has been disabled entirely using the pref)
+          // If this is a tabprompt, we won't switch tabs, unless:
+          // - this is a beforeunload prompt
+          // - this behaviour has been disabled entirely using the pref
           if (event.detail && event.detail.tabPrompt &&
+              !event.detail.inPermitUnload &&
               Services.prefs.getBoolPref("browser.tabs.dontfocusfordialogs")) {
             let docPrincipal = targetIsWindow ? event.target.document.nodePrincipal : null;
             // At least one of these should/will be non-null:
@@ -4689,6 +4707,9 @@
           let hoveredTab = this._hoveredTab;
           if (hoveredTab) {
             hoveredTab._mouseleave();
+          }
+          hoveredTab = this.querySelector("tab:hover");
+          if (hoveredTab) {
             hoveredTab._mouseenter();
           }
         ]]></body>
@@ -5202,10 +5223,9 @@
             return "none";
 
           var types = dt.mozTypesAt(0);
-          var sourceNode = null;
           // tabs are always added as the first type
           if (types[0] == TAB_DROP_TYPE) {
-            var sourceNode = dt.mozGetDataAt(TAB_DROP_TYPE, 0);
+            let sourceNode = dt.mozGetDataAt(TAB_DROP_TYPE, 0);
             if (sourceNode instanceof XULElement &&
                 sourceNode.localName == "tab" &&
                 sourceNode.ownerDocument.defaultView instanceof ChromeWindow &&
@@ -5533,6 +5553,7 @@
         canvas.width = 160 * scale;
         canvas.height = 90 * scale;
         let toDrag;
+        let dragImageOffset = -16;
         if (gMultiProcessBrowser) {
           var context = canvas.getContext('2d');
           context.fillStyle = "white";
@@ -5544,7 +5565,13 @@
             this._dndCanvas = canvas;
             this._dndPanel = document.createElement("panel");
             this._dndPanel.setAttribute("type", "drag");
-            this._dndPanel.appendChild(canvas);
+            let wrapper = document.createElementNS("http://www.w3.org/1999/xhtml", "div");
+            wrapper.style.width = "160px";
+            wrapper.style.height = "90px";
+            wrapper.appendChild(canvas);
+            canvas.style.width = "100%";
+            canvas.style.height = "100%";
+            this._dndPanel.appendChild(wrapper);
             document.documentElement.appendChild(this._dndPanel);
           }
           // PageThumb is async with e10s but that's fine
@@ -5557,8 +5584,9 @@
           // be fine, so let's use the canvas for setDragImage.
           PageThumbs.captureToCanvas(browser, canvas);
           toDrag = canvas;
+          dragImageOffset = dragImageOffset * scale;
         }
-        dt.setDragImage(toDrag, -16 * scale, -16 * scale);
+        dt.setDragImage(toDrag, dragImageOffset, dragImageOffset);
 
         // _dragData.offsetX/Y give the coordinates that the mouse should be
         // positioned relative to the corner of the new window created upon
@@ -6115,6 +6143,16 @@
             this.setAttribute("muted", "true");
           }
           tabContainer.tabbrowser._tabAttrModified(this, ["muted"]);
+        ]]>
+        </body>
+      </method>
+
+      <method name="setUserContextId">
+        <parameter name="aUserContextId"/>
+        <body>
+        <![CDATA[
+          this.linkedBrowser.setAttribute("usercontextid", aUserContextId);
+          this.setAttribute("usercontextid", aUserContextId);
         ]]>
         </body>
       </method>

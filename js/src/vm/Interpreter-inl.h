@@ -204,6 +204,10 @@ FetchName(JSContext* cx, HandleObject obj, HandleObject obj2, HandlePropertyName
         }
     }
 
+    // We do our own explicit checking for |this|
+    if (name == cx->names().dotThis)
+        return true;
+
     // NAME operations are the slow paths already, so unconditionally check
     // for uninitialized lets.
     return CheckUninitializedLexical(cx, name, vp);
@@ -391,17 +395,13 @@ NegOperation(JSContext* cx, HandleScript script, jsbytecode* pc, HandleValue val
 }
 
 static MOZ_ALWAYS_INLINE bool
-ToIdOperation(JSContext* cx, HandleScript script, jsbytecode* pc, HandleValue objval,
-              HandleValue idval, MutableHandleValue res)
+ToIdOperation(JSContext* cx, HandleScript script, jsbytecode* pc, HandleValue idval,
+              MutableHandleValue res)
 {
     if (idval.isInt32()) {
         res.set(idval);
         return true;
     }
-
-    JSObject* obj = ToObjectFromStack(cx, objval);
-    if (!obj)
-        return false;
 
     RootedId id(cx);
     if (!ToPropertyKey(cx, idval, &id))
@@ -455,17 +455,15 @@ GetObjectElementOperation(JSContext* cx, JSOp op, JS::HandleObject obj, JS::Hand
 }
 
 static MOZ_ALWAYS_INLINE bool
-GetPrimitiveElementOperation(JSContext* cx, JSOp op, JS::HandleValue receiver_,
+GetPrimitiveElementOperation(JSContext* cx, JSOp op, JS::HandleValue receiver,
                              HandleValue key, MutableHandleValue res)
 {
     MOZ_ASSERT(op == JSOP_GETELEM || op == JSOP_CALLELEM);
 
-    // FIXME: We shouldn't be boxing here or exposing the boxed object as
-    //        receiver anywhere below (bug 603201).
-    RootedObject boxed(cx, ToObjectFromStack(cx, receiver_));
+    // FIXME: Bug 1234324 We shouldn't be boxing here.
+    RootedObject boxed(cx, ToObjectFromStack(cx, receiver));
     if (!boxed)
         return false;
-    RootedValue receiver(cx, ObjectValue(*boxed));
 
     do {
         uint32_t index;
@@ -495,7 +493,7 @@ GetPrimitiveElementOperation(JSContext* cx, JSOp op, JS::HandleValue receiver_,
         RootedId id(cx);
         if (!ToPropertyKey(cx, key, &id))
             return false;
-        if (!GetProperty(cx, boxed, boxed, id, res))
+        if (!GetProperty(cx, boxed, receiver, id, res))
             return false;
     } while (false);
 

@@ -75,7 +75,7 @@ public:
     return mDiscoverable;
   }
 
-  BluetoothPairingListener* PairingReqs() const
+  BluetoothPairingListener* GetPairingReqs() const
   {
     return mPairingReqs;
   }
@@ -192,6 +192,9 @@ public:
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
   virtual void DisconnectFromOwner() override;
+
+  void GetPairedDeviceProperties(
+    const nsTArray<BluetoothAddress>& aDeviceAddresses);
 
   /**
    * Set this adapter's discovery handle in use (mDiscoveryHandleInUse).

@@ -61,8 +61,7 @@ NS_EXPORT void JNICALL
 Java_org_mozilla_gecko_GeckoAppShell_notifyGeckoOfEvent(JNIEnv *jenv, jclass jc, jobject event)
 {
     // poke the appshell
-    if (nsAppShell::gAppShell)
-        nsAppShell::gAppShell->PostEvent(AndroidGeckoEvent::MakeFromJavaObject(jenv, event));
+    nsAppShell::PostEvent(AndroidGeckoEvent::MakeFromJavaObject(jenv, event));
 }
 
 NS_EXPORT void JNICALL
@@ -88,14 +87,6 @@ Java_org_mozilla_gecko_GeckoAppShell_notifyGeckoObservers(JNIEnv *aEnv, jclass,
     obsServ->NotifyObservers(nullptr, topic.get(), data.get());
 }
 
-NS_EXPORT void JNICALL
-Java_org_mozilla_gecko_GeckoAppShell_processNextNativeEvent(JNIEnv *jenv, jclass, jboolean mayWait)
-{
-    // poke the appshell
-    if (nsAppShell::gAppShell)
-        nsAppShell::gAppShell->ProcessNextNativeEvent(mayWait != JNI_FALSE);
-}
-
 NS_EXPORT jlong JNICALL
 Java_org_mozilla_gecko_GeckoAppShell_runUiThreadCallback(JNIEnv* env, jclass)
 {
@@ -104,13 +95,6 @@ Java_org_mozilla_gecko_GeckoAppShell_runUiThreadCallback(JNIEnv* env, jclass)
     }
 
     return AndroidBridge::Bridge()->RunDelayedUiThreadTasks();
-}
-
-NS_EXPORT void JNICALL
-Java_org_mozilla_gecko_GeckoAppShell_onResume(JNIEnv *jenv, jclass jc)
-{
-    if (nsAppShell::gAppShell)
-        nsAppShell::gAppShell->OnResume();
 }
 
 NS_EXPORT void JNICALL
@@ -161,12 +145,6 @@ NS_EXPORT void JNICALL
 Java_org_mozilla_gecko_GeckoAppShell_invalidateAndScheduleComposite(JNIEnv*, jclass)
 {
     nsWindow::InvalidateAndScheduleComposite();
-}
-
-NS_EXPORT void JNICALL
-Java_org_mozilla_gecko_GeckoAppShell_scheduleResumeComposition(JNIEnv*, jclass, jint width, jint height)
-{
-    nsWindow::ScheduleResumeComposition(width, height);
 }
 
 NS_EXPORT float JNICALL
@@ -363,7 +341,7 @@ Java_org_mozilla_gecko_gfx_NativePanZoomController_handleTouchEvent(JNIEnv* env,
     MultiTouchInput input = wrapper->MakeMultiTouchInput(nsWindow::TopWindow());
     delete wrapper;
 
-    if (input.mType < 0 || !nsAppShell::gAppShell) {
+    if (input.mType < 0) {
         return false;
     }
 
@@ -371,7 +349,7 @@ Java_org_mozilla_gecko_gfx_NativePanZoomController_handleTouchEvent(JNIEnv* env,
     uint64_t blockId;
     nsEventStatus status = controller->ReceiveInputEvent(input, &guid, &blockId);
     if (status != nsEventStatus_eConsumeNoDefault) {
-        nsAppShell::gAppShell->PostEvent(AndroidGeckoEvent::MakeApzInputEvent(input, guid, blockId, status));
+        nsAppShell::PostEvent(AndroidGeckoEvent::MakeApzInputEvent(input, guid, blockId, status));
     }
     return true;
 }
@@ -401,20 +379,6 @@ Java_org_mozilla_gecko_gfx_NativePanZoomController_getRedrawHint(JNIEnv* env, jo
     // FIXME implement this
     return true;
 }
-
-NS_EXPORT void JNICALL
-Java_org_mozilla_gecko_gfx_NativePanZoomController_setOverScrollMode(JNIEnv* env, jobject instance, jint overscrollMode)
-{
-    // FIXME implement this
-}
-
-NS_EXPORT jint JNICALL
-Java_org_mozilla_gecko_gfx_NativePanZoomController_getOverScrollMode(JNIEnv* env, jobject instance)
-{
-    // FIXME implement this
-    return 0;
-}
-
 
 NS_EXPORT void JNICALL
 Java_org_mozilla_gecko_gfx_NativePanZoomController_setIsLongpressEnabled(JNIEnv* env, jobject instance, jboolean isLongpressEnabled)

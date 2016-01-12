@@ -338,6 +338,11 @@ Error(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
+    // ES6 19.5.1.1 mandates the .prototype lookup happens before the toString
+    RootedObject proto(cx);
+    if (!GetPrototypeFromCallableConstructor(cx, args, &proto))
+        return false;
+
     /* Compute the error message, if any. */
     RootedString message(cx, nullptr);
     if (args.hasDefined(0)) {
@@ -356,7 +361,7 @@ Error(JSContext* cx, unsigned argc, Value* vp)
     } else {
         fileName = cx->runtime()->emptyString;
         if (!iter.done()) {
-            if (const char* cfilename = iter.scriptFilename())
+            if (const char* cfilename = iter.filename())
                 fileName = JS_NewStringCopyZ(cx, cfilename);
         }
     }
@@ -389,7 +394,7 @@ Error(JSContext* cx, unsigned argc, Value* vp)
     JSExnType exnType = JSExnType(args.callee().as<JSFunction>().getExtendedSlot(0).toInt32());
 
     RootedObject obj(cx, ErrorObject::create(cx, exnType, stack, fileName,
-                                             lineNumber, columnNumber, nullptr, message));
+                                             lineNumber, columnNumber, nullptr, message, proto));
     if (!obj)
         return false;
 
@@ -722,7 +727,7 @@ ErrorReport::ReportAddonExceptionToTelementry(JSContext* cx)
         return;
 
     JSCompartment* comp = stack->compartment();
-    JSAddonId* addonId = comp->addonId;
+    JSAddonId* addonId = comp->creationOptions().addonIdOrNull();
 
     // We only want to send the report if the scope that just have thrown belongs to an add-on.
     // Let's check the compartment of the youngest function on the stack, to determine that.
@@ -931,7 +936,7 @@ ErrorReport::populateUncaughtExceptionReportVA(JSContext* cx, va_list ap)
     // could accept a passed-in stack of some sort instead.
     NonBuiltinFrameIter iter(cx, cx->compartment()->principals());
     if (!iter.done()) {
-        ownedReport.filename = iter.scriptFilename();
+        ownedReport.filename = iter.filename();
         ownedReport.lineno = iter.computeLine(&ownedReport.column);
         // XXX: Make the column 1-based as in other browsers, instead of 0-based
         // which is how SpiderMonkey stores it internally. This will be

@@ -11,10 +11,6 @@ Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
 
-XPCOMUtils.defineLazyModuleGetter(this, "CustomizableUI",
-  "resource:///modules/CustomizableUI.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Pocket",
-  "resource:///modules/Pocket.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "LoginHelper",
   "resource://gre/modules/LoginHelper.jsm");
 
@@ -216,25 +212,6 @@ nsContextMenu.prototype = {
                      SimpleServiceDiscovery.services.length > 0 &&
                      CastingApps.getServicesForVideo(this.target).length > 0;
     this.setItemAttr("context-castvideo", "disabled", !shouldShowCast);
-
-    this.initPocketItems();
-  },
-
-  initPocketItems: function CM_initPocketItems() {
-    var showSaveCurrentPageToPocket = !(this.onTextInput || this.onLink ||
-                                        this.isContentSelected || this.onImage ||
-                                        this.onCanvas || this.onVideo || this.onAudio);
-    let targetURI = (this.onSaveableLink || this.onPlainTextLink) ? this.linkURI : this.browser.currentURI;
-    let canPocket = CustomizableUI.getPlacementOfWidget("pocket-button") &&
-                    window.pktApi && window.pktApi.isUserLoggedIn();
-    canPocket = canPocket && (targetURI.schemeIs("http") || targetURI.schemeIs("https") ||
-                              (targetURI.schemeIs("about") && ReaderMode.getOriginalUrl(targetURI.spec)));
-    canPocket = canPocket && window.gBrowser && this.browser.getTabBrowser() == window.gBrowser;
-
-    this.showItem("context-pocket", canPocket && showSaveCurrentPageToPocket);
-    let showSaveLinkToPocket = canPocket && !showSaveCurrentPageToPocket &&
-                               (this.onSaveableLink || this.onPlainTextLink);
-    this.showItem("context-savelinktopocket", showSaveLinkToPocket);
   },
 
   initViewItems: function CM_initViewItems() {
@@ -359,14 +336,18 @@ nsContextMenu.prototype = {
     this.showItem("context-markpageMenu", enablePageMarks && markProviders.length > SocialMarks.MENU_LIMIT);
     let enablePageMarkItems = enablePageMarks && markProviders.length <= SocialMarks.MENU_LIMIT;
     let linkmenus = document.getElementsByClassName("context-markpage");
-    [m.hidden = !enablePageMarkItems for (m of linkmenus)];
+    for (let m of linkmenus) {
+      m.hidden = !enablePageMarkItems;
+    }
 
     let enableLinkMarks = markProviders.length > 0 &&
                             ((this.onLink && !this.onMailtoLink) || this.onPlainTextLink);
     this.showItem("context-marklinkMenu", enableLinkMarks && markProviders.length > SocialMarks.MENU_LIMIT);
     let enableLinkMarkItems = enableLinkMarks && markProviders.length <= SocialMarks.MENU_LIMIT;
     linkmenus = document.getElementsByClassName("context-marklink");
-    [m.hidden = !enableLinkMarkItems for (m of linkmenus)];
+    for (let m of linkmenus) {
+      m.hidden = !enableLinkMarkItems;
+    }
 
     // SocialShare
     let shareButton = SocialShare.shareButton;
@@ -1721,14 +1702,6 @@ nsContextMenu.prototype = {
     saveBrowser(this.browser);
   },
 
-  saveLinkToPocket: function CM_saveLinkToPocket() {
-    Pocket.savePage(this.browser, this.linkURL);
-  },
-
-  savePageToPocket: function CM_saveToPocket() {
-    Pocket.savePage(this.browser, this.browser.currentURI.spec, this.browser.contentTitle);
-  },
-
   printFrame: function CM_printFrame() {
     PrintUtils.printWindow(this.frameOuterWindowID, this.browser);
   },
@@ -1786,17 +1759,8 @@ nsContextMenu.prototype = {
       selectedText = selectedText.substr(0,truncLength) + this.ellipsis;
     }
 
-    // Use the current engine if the search bar is visible, the default
-    // engine otherwise.
-    var engineName = "";
-    var ss = Cc["@mozilla.org/browser/search-service;1"].
-             getService(Ci.nsIBrowserSearchService);
-    if (isElementVisible(BrowserSearch.searchBar))
-      engineName = ss.currentEngine.name;
-    else
-      engineName = ss.defaultEngine.name;
-
     // format "Search <engine> for <selection>" string to show in menu
+    let engineName = Services.search.currentEngine.name;
     var menuLabel = gNavigatorBundle.getFormattedString("contextMenuSearch",
                                                         [engineName,
                                                          selectedText]);

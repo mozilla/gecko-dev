@@ -47,11 +47,11 @@ class AsyncPanZoomController;
 class CompositorParent;
 class OverscrollHandoffChain;
 struct OverscrollHandoffState;
+struct FlingHandoffState;
 class LayerMetricsWrapper;
 class InputQueue;
 class GeckoContentController;
 class HitTestingTreeNode;
-class TaskThrottler;
 
 /**
  * ****************** NOTE ON LOCK ORDERING IN APZ **************************
@@ -135,17 +135,6 @@ public:
                             bool aIsFirstPaint,
                             uint64_t aOriginatingLayersId,
                             uint32_t aPaintSequenceNumber);
-
-  /**
-   * Do any per-layers-id setup needed. This will be called on the main thread,
-   * and may be called multiple times for the same layers id.
-   */
-  void InitializeForLayersId(uint64_t aLayersId);
-
-  /**
-   * Move any per-layers-id state from the old APZCTreeManager to this one.
-   */
-  void AdoptLayersId(uint64_t aLayersId, APZCTreeManager* aOldManager);
 
   /**
    * Walk the tree of APZCs and flushes the repaint requests for all the APZCS
@@ -285,8 +274,7 @@ public:
    */
   static const ScreenMargin CalculatePendingDisplayPort(
     const FrameMetrics& aFrameMetrics,
-    const ParentLayerPoint& aVelocity,
-    double aEstimatedPaintDuration);
+    const ParentLayerPoint& aVelocity);
 
   /**
    * Set the dpi value used by all AsyncPanZoomControllers.
@@ -376,25 +364,26 @@ public:
    * first APZC to fling may not be the one that is receiving the touch events.
    *
    * @param aApzc the APZC that wants to start or hand off the fling
-   * @param aVelocity the current velocity of the fling, in |aApzc|'s screen
-   *                  pixels per millisecond
-   * @param aOverscrollHandoffChain the chain of APZCs along which the fling
-   *                                should be handed off
-   * @param aHandoff is true if |aApzc| is handing off an existing fling (in
-   *                 this case the fling is given to the next APZC in the
-   *                 handoff chain after |aApzc|), and false is |aApzc| wants
-   *                 start a fling (in this case the fling is given to the
-   *                 first APZC in the chain)
+   * @param aHandoffState a collection of state about the operation,
+   *                      which contains the following:
    *
-   * aVelocity will be modified depending on how much of that velocity has
-   * been consumed by APZCs in the overscroll hand-off chain. The caller can
-   * use this value to determine whether it should consume the excess velocity
-   * by going into an overscroll fling.
+   *        mVelocity the current velocity of the fling, in |aApzc|'s screen
+   *                  pixels per millisecond
+   *        mChain the chain of APZCs along which the fling
+   *                   should be handed off
+   *        mIsHandoff is true if |aApzc| is handing off an existing fling (in
+   *                   this case the fling is given to the next APZC in the
+   *                   handoff chain after |aApzc|), and false is |aApzc| wants
+   *                   start a fling (in this case the fling is given to the
+   *                   first APZC in the chain)
+   *
+   * aHandoffState.mVelocity will be modified depending on how much of that
+   * velocity has been consumed by APZCs in the overscroll hand-off chain.
+   * The caller can use this value to determine whether it should consume
+   * the excess velocity by going into an overscroll fling.
    */
   void DispatchFling(AsyncPanZoomController* aApzc,
-                     ParentLayerPoint& aVelocity,
-                     RefPtr<const OverscrollHandoffChain> aOverscrollHandoffChain,
-                     bool aHandoff);
+                     FlingHandoffState& aHandoffState);
 
   void StartScrollbarDrag(const ScrollableLayerGuid& aGuid,
                           const AsyncDragMetrics& aDragMetrics);
@@ -418,8 +407,7 @@ protected:
 
   // Protected hooks for gtests subclass
   virtual AsyncPanZoomController* NewAPZCInstance(uint64_t aLayersId,
-                                                  GeckoContentController* aController,
-                                                  TaskThrottler* aPaintThrottler);
+                                                  GeckoContentController* aController);
 public:
   // Public hooks for gtests subclass
   virtual TimeStamp GetFrameTime();
@@ -434,8 +422,8 @@ public:
   RefPtr<HitTestingTreeNode> GetRootNode() const;
   already_AddRefed<AsyncPanZoomController> GetTargetAPZC(const ScreenPoint& aPoint,
                                                          HitTestResult* aOutHitResult);
-  gfx::Matrix4x4 GetScreenToApzcTransform(const AsyncPanZoomController *aApzc) const;
-  gfx::Matrix4x4 GetApzcToGeckoTransform(const AsyncPanZoomController *aApzc) const;
+  ScreenToParentLayerMatrix4x4 GetScreenToApzcTransform(const AsyncPanZoomController *aApzc) const;
+  ParentLayerToScreenMatrix4x4 GetApzcToGeckoTransform(const AsyncPanZoomController *aApzc) const;
 private:
   typedef bool (*GuidComparator)(const ScrollableLayerGuid&, const ScrollableLayerGuid&);
 
@@ -534,10 +522,6 @@ private:
   /* Holds the zoom constraints for scrollable layers, as determined by the
    * the main-thread gecko code. */
   std::map<ScrollableLayerGuid, ZoomConstraints> mZoomConstraints;
-  /* Stores a paint throttler for each layers id. There is one for each layers
-   * id to ensure that one child process painting slowly doesn't hold up
-   * another. */
-  std::map<uint64_t, RefPtr<TaskThrottler>> mPaintThrottlerMap;
   /* This tracks the APZC that should receive all inputs for the current input event block.
    * This allows touch points to move outside the thing they started on, but still have the
    * touch events delivered to the same initial APZC. This will only ever be touched on the

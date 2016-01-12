@@ -32,6 +32,7 @@
 #include "nsTArray.h"                   // for nsAutoTArray
 #include "TextRenderer.h"               // for TextRenderer
 #include <vector>
+#include "VRManager.h"                  // for VRManager
 #include "GeckoProfiler.h"              // for GeckoProfiler
 #ifdef MOZ_ENABLE_PROFILER_SPS
 #include "ProfilerMarkers.h"            // for ProfilerMarkers
@@ -138,7 +139,7 @@ template<class ContainerT> void
 ContainerRenderVR(ContainerT* aContainer,
                   LayerManagerComposite* aManager,
                   const gfx::IntRect& aClipRect,
-                  gfx::VRHMDInfo* aHMD)
+                  RefPtr<gfx::VRHMDInfo> aHMD)
 {
   RefPtr<CompositingRenderTarget> surface;
 
@@ -149,7 +150,7 @@ ContainerRenderVR(ContainerT* aContainer,
   float opacity = aContainer->GetEffectiveOpacity();
 
   // The size of each individual eye surface
-  gfx::IntSize eyeResolution = aHMD->SuggestedEyeResolution();
+  gfx::IntSize eyeResolution = aHMD->GetDeviceInfo().SuggestedEyeResolution();
   gfx::IntRect eyeRect[2];
   eyeRect[0] = gfx::IntRect(0, 0, eyeResolution.width, eyeResolution.height);
   eyeRect[1] = gfx::IntRect(eyeResolution.width, 0, eyeResolution.width, eyeResolution.height);
@@ -323,6 +324,14 @@ ContainerRenderVR(ContainerT* aContainer,
   DUMP("<<< ContainerRenderVR [%p]\n", aContainer);
 }
 
+static bool
+NeedToDrawCheckerboardingForLayer(Layer* aLayer, Color* aOutCheckerboardingColor)
+{
+  return (aLayer->GetContentFlags() & Layer::CONTENT_OPAQUE) &&
+         aLayer->IsOpaqueForVisibility() &&
+         LayerHasCheckerboardingAPZC(aLayer, aOutCheckerboardingColor);
+}
+
 /* all of the prepared data that we need in RenderLayer() */
 struct PreparedData
 {
@@ -340,7 +349,7 @@ ContainerPrepare(ContainerT* aContainer,
   aContainer->mPrepared = MakeUnique<PreparedData>();
   aContainer->mPrepared->mNeedsSurfaceCopy = false;
 
-  gfx::VRHMDInfo *hmdInfo = aContainer->GetVRHMDInfo();
+  RefPtr<gfx::VRHMDInfo> hmdInfo = gfx::VRManager::Get()->GetDevice(aContainer->GetVRDeviceID());
   if (hmdInfo && hmdInfo->GetConfiguration().IsValid()) {
     // we're not going to do anything here; instead, we'll do it all in ContainerRender.
     // XXX fix this; we can win with the same optimizations.  Specifically, we
@@ -368,7 +377,8 @@ ContainerPrepare(ContainerT* aContainer,
     // We don't want to skip container layers because otherwise their mPrepared
     // may be null which is not allowed.
     if (!layerToRender->GetLayer()->AsContainerLayer()) {
-      if (!layerToRender->GetLayer()->IsVisible()) {
+      if (!layerToRender->GetLayer()->IsVisible() &&
+          !NeedToDrawCheckerboardingForLayer(layerToRender->GetLayer(), nullptr)) {
         CULLING_LOG("Sublayer %p has no effective visible region\n", layerToRender->GetLayer());
         continue;
       }
@@ -444,7 +454,7 @@ RenderMinimap(ContainerT* aContainer, LayerManagerComposite* aManager,
     return;
   }
 
-  ViewTransform asyncTransformWithoutOverscroll;
+  AsyncTransform asyncTransformWithoutOverscroll;
   ParentLayerPoint scrollOffset;
   controller->SampleContentTransformForFrame(&asyncTransformWithoutOverscroll,
                                            scrollOffset);
@@ -533,9 +543,7 @@ RenderLayers(ContainerT* aContainer,
     Layer* layer = layerToRender->GetLayer();
 
     Color color;
-    if ((layer->GetContentFlags() & Layer::CONTENT_OPAQUE) &&
-        layer->IsOpaqueForVisibility() &&
-        LayerHasCheckerboardingAPZC(layer, &color)) {
+    if (NeedToDrawCheckerboardingForLayer(layer, &color)) {
       if (gfxPrefs::APZHighlightCheckerboardedAreas()) {
         color = Color(255 / 255.f, 188 / 255.f, 217 / 255.f, 1.f); // "Cotton Candy"
       }
@@ -595,7 +603,7 @@ RenderLayers(ContainerT* aContainer,
                                                    gfx::Rect(aClipRect.ToUnknownRect()),
                                                    asyncTransform * aContainer->GetEffectiveTransform());
         if (AsyncPanZoomController* apzc = layer->GetAsyncPanZoomController(i - 1)) {
-          asyncTransform = apzc->GetCurrentAsyncTransformWithOverscroll()
+          asyncTransform = apzc->GetCurrentAsyncTransformWithOverscroll().ToUnknownMatrix()
                          * asyncTransform;
         }
       }
@@ -686,7 +694,7 @@ ContainerRender(ContainerT* aContainer,
 {
   MOZ_ASSERT(aContainer->mPrepared);
 
-  gfx::VRHMDInfo *hmdInfo = aContainer->GetVRHMDInfo();
+  RefPtr<gfx::VRHMDInfo> hmdInfo = gfx::VRManager::Get()->GetDevice(aContainer->GetVRDeviceID());
   if (hmdInfo && hmdInfo->GetConfiguration().IsValid()) {
     ContainerRenderVR(aContainer, aManager, aClipRect, hmdInfo);
     aContainer->mPrepared = nullptr;
@@ -745,7 +753,7 @@ ContainerRender(ContainerT* aContainer,
     for (LayerMetricsWrapper i(aContainer); i; i = i.GetFirstChild()) {
       if (AsyncPanZoomController* apzc = i.GetApzc()) {
         if (!apzc->GetAsyncTransformAppliedToContent()
-            && !Matrix4x4(apzc->GetCurrentAsyncTransform()).IsIdentity()) {
+            && !AsyncTransformComponentMatrix(apzc->GetCurrentAsyncTransform()).IsIdentity()) {
           aManager->UnusedApzTransformWarning();
           break;
         }

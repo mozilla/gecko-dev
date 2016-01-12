@@ -1644,6 +1644,22 @@ CSS_PROP_POSITION(
     kFlexDirectionKTable,
     offsetof(nsStylePosition, mFlexDirection),
     eStyleAnimType_EnumU8)
+/* We treat -webkit-box-orient as a writing-mode-aware logical alias
+ * for "flex-direction": */
+CSS_PROP_LOGICAL(
+    -webkit-box-orient,
+    webkit_box_orient,
+    WebkitBoxOrient,
+    CSS_PROPERTY_PARSE_VALUE |
+      CSS_PROPERTY_LOGICAL |
+      CSS_PROPERTY_LOGICAL_SINGLE_CUSTOM_VALMAPPING,
+    "layout.css.prefixes.webkit",
+    VARIANT_HK,
+    kBoxOrientKTable,
+    WebkitBoxOrient,
+    Position,
+    CSS_PROP_NO_OFFSET,
+    eStyleAnimType_None)
 CSS_PROP_SHORTHAND(
     flex-flow,
     flex_flow,
@@ -3029,7 +3045,8 @@ CSS_PROP_DISPLAY(
     Position,
     CSS_PROPERTY_PARSE_VALUE |
         // For position: sticky/fixed
-        CSS_PROPERTY_CREATES_STACKING_CONTEXT,
+        CSS_PROPERTY_CREATES_STACKING_CONTEXT |
+        CSS_PROPERTY_ABSPOS_CB,
     "",
     VARIANT_HK,
     kPositionKTable,
@@ -3269,14 +3286,16 @@ CSS_PROP_SHORTHAND(
     text-emphasis,
     text_emphasis,
     TextEmphasis,
-    CSS_PROPERTY_PARSE_FUNCTION,
+    CSS_PROPERTY_PARSE_FUNCTION |
+        CSS_PROPERTY_ENABLED_IN_UA_SHEETS,
     "layout.css.text-emphasis.enabled")
 CSS_PROP_TEXT(
     text-emphasis-color,
     text_emphasis_color,
     TextEmphasisColor,
     CSS_PROPERTY_PARSE_VALUE |
-        CSS_PROPERTY_IGNORED_WHEN_COLORS_DISABLED,
+        CSS_PROPERTY_IGNORED_WHEN_COLORS_DISABLED |
+        CSS_PROPERTY_ENABLED_IN_UA_SHEETS,
     "layout.css.text-emphasis.enabled",
     VARIANT_HC,
     nullptr,
@@ -3287,7 +3306,8 @@ CSS_PROP_TEXT(
     text_emphasis_position,
     TextEmphasisPosition,
     CSS_PROPERTY_PARSE_VALUE |
-        CSS_PROPERTY_VALUE_PARSER_FUNCTION,
+        CSS_PROPERTY_VALUE_PARSER_FUNCTION |
+        CSS_PROPERTY_ENABLED_IN_UA_SHEETS,
     "layout.css.text-emphasis.enabled",
     0,
     kTextEmphasisPositionKTable,
@@ -3298,7 +3318,8 @@ CSS_PROP_TEXT(
     text_emphasis_style,
     TextEmphasisStyle,
     CSS_PROPERTY_PARSE_VALUE |
-        CSS_PROPERTY_VALUE_PARSER_FUNCTION,
+        CSS_PROPERTY_VALUE_PARSER_FUNCTION |
+        CSS_PROPERTY_ENABLED_IN_UA_SHEETS,
     "layout.css.text-emphasis.enabled",
     0,
     nullptr,

@@ -279,7 +279,8 @@ WebGLContext::CheckFramebufferStatus(GLenum target)
     if (!fb)
         return LOCAL_GL_FRAMEBUFFER_COMPLETE;
 
-    return fb->CheckFramebufferStatus().get();
+    nsCString fbErrorInfo;
+    return fb->CheckFramebufferStatus(&fbErrorInfo).get();
 }
 
 already_AddRefed<WebGLProgram>
@@ -535,6 +536,11 @@ WebGLContext::FramebufferTexture2D(GLenum target,
 
     if (!ValidateFramebufferTarget(target, "framebufferTexture2D"))
         return;
+
+    if (level < 0) {
+        ErrorInvalidValue("framebufferTexture2D: level must not be negative.");
+        return;
+    }
 
     if (!IsWebGL2() && level != 0) {
         ErrorInvalidValue("framebufferTexture2D: level must be 0.");
@@ -1338,6 +1344,24 @@ IsFormatAndTypeUnpackable(GLenum format, GLenum type)
     }
 }
 
+static bool
+IsIntegerFormatAndTypeUnpackable(GLenum format, GLenum type)
+{
+    switch (type) {
+    case LOCAL_GL_UNSIGNED_INT:
+    case LOCAL_GL_INT:
+        switch (format) {
+        case LOCAL_GL_RGBA_INTEGER:
+            return true;
+        default:
+            return false;
+        }
+    default:
+        return false;
+    }
+}
+
+
 CheckedUint32
 WebGLContext::GetPackSize(uint32_t width, uint32_t height, uint8_t bytesPerPixel,
                           CheckedUint32* const out_startOffset,
@@ -1369,33 +1393,10 @@ WebGLContext::GetPackSize(uint32_t width, uint32_t height, uint8_t bytesPerPixel
     return bytesNeeded;
 }
 
-// This function is temporary, and will be removed once https://bugzilla.mozilla.org/show_bug.cgi?id=1176214 lands, which will
-// collapse the SharedArrayBufferView and ArrayBufferView into one.
-void
-ComputeLengthAndData(const dom::ArrayBufferViewOrSharedArrayBufferView& view,
-                     void** const out_data, size_t* const out_length,
-                     js::Scalar::Type* const out_type)
-{
-    if (view.IsArrayBufferView()) {
-        const auto& view2 = view.GetAsArrayBufferView();
-        view2.ComputeLengthAndData();
-
-        *out_length = view2.Length();
-        *out_data = view2.Data();
-        *out_type = JS_GetArrayBufferViewType(view2.Obj());
-    } else {
-        const auto& view2 = view.GetAsSharedArrayBufferView();
-        view2.ComputeLengthAndData();
-        *out_length = view2.Length();
-        *out_data = view2.Data();
-        *out_type = JS_GetSharedArrayBufferViewType(view2.Obj());
-    }
-}
-
 void
 WebGLContext::ReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format,
                          GLenum type,
-                         const dom::Nullable<dom::ArrayBufferViewOrSharedArrayBufferView>& pixels,
+                         const dom::Nullable<dom::ArrayBufferView>& pixels,
                          ErrorResult& out_error)
 {
     if (IsContextLost())
@@ -1416,8 +1417,10 @@ WebGLContext::ReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum
     if (pixels.IsNull())
         return ErrorInvalidValue("readPixels: null destination buffer");
 
-    if (!IsFormatAndTypeUnpackable(format, type))
+    if (!(IsWebGL2() && IsIntegerFormatAndTypeUnpackable(format, type)) &&
+        !IsFormatAndTypeUnpackable(format, type)) {
         return ErrorInvalidEnum("readPixels: Bad format or type.");
+    }
 
     int channels = 0;
 
@@ -1430,6 +1433,7 @@ WebGLContext::ReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum
         channels = 3;
         break;
     case LOCAL_GL_RGBA:
+    case LOCAL_GL_RGBA_INTEGER:
         channels = 4;
         break;
     default:
@@ -1453,6 +1457,16 @@ WebGLContext::ReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum
         requiredDataType = js::Scalar::Uint16;
         break;
 
+    case LOCAL_GL_UNSIGNED_INT:
+        bytesPerPixel = 4;
+        requiredDataType = js::Scalar::Uint32;
+        break;
+
+    case LOCAL_GL_INT:
+        bytesPerPixel = 4;
+        requiredDataType = js::Scalar::Int32;
+        break;
+
     case LOCAL_GL_FLOAT:
         bytesPerPixel = 4*channels;
         requiredDataType = js::Scalar::Float32;
@@ -1469,12 +1483,13 @@ WebGLContext::ReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum
     }
 
     const auto& view = pixels.Value();
+
     // Compute length and data.  Don't reenter after this point, lest the
     // precomputed go out of sync with the instant length/data.
-    void* data;
-    size_t bytesAvailable;
-    js::Scalar::Type dataType;
-    ComputeLengthAndData(view, &data, &bytesAvailable, &dataType);
+    view.ComputeLengthAndData();
+    void* data = view.DataAllowShared();
+    size_t bytesAvailable = view.LengthAllowShared();
+    js::Scalar::Type dataType = JS_GetArrayBufferViewType(view.Obj());
 
     // Check the pixels param type
     if (dataType != requiredDataType)
@@ -1545,6 +1560,7 @@ WebGLContext::ReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum
     Intersect(srcHeight, y, height, &readY, &writeY, &rwHeight);
 
     if (rwWidth == uint32_t(width) && rwHeight == uint32_t(height)) {
+        // Warning: Possibly shared memory.  See bug 1225033.
         DoReadPixelsAndConvert(x, y, width, height, format, type, data, auxReadFormat,
                                auxReadType);
         return;
@@ -1593,7 +1609,7 @@ WebGLContext::ReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum
 
     if (!rwWidth || !rwHeight) {
         // There aren't any, so we're 'done'.
-        DummyFramebufferOperation("readPixels");
+        DummyReadFramebufferOperation("readPixels");
         return;
     }
 
@@ -2345,35 +2361,6 @@ WebGLContext::RestoreContext()
         return ErrorInvalidOperation("restoreContext: Context cannot be restored.");
 
     ForceRestoreContext();
-}
-
-WebGLTexelFormat
-GetWebGLTexelFormat(TexInternalFormat effectiveInternalFormat)
-{
-    switch (effectiveInternalFormat.get()) {
-        case LOCAL_GL_RGBA8:                  return WebGLTexelFormat::RGBA8;
-        case LOCAL_GL_SRGB8_ALPHA8:           return WebGLTexelFormat::RGBA8;
-        case LOCAL_GL_RGB8:                   return WebGLTexelFormat::RGB8;
-        case LOCAL_GL_SRGB8:                  return WebGLTexelFormat::RGB8;
-        case LOCAL_GL_ALPHA8:                 return WebGLTexelFormat::A8;
-        case LOCAL_GL_LUMINANCE8:             return WebGLTexelFormat::R8;
-        case LOCAL_GL_LUMINANCE8_ALPHA8:      return WebGLTexelFormat::RA8;
-        case LOCAL_GL_RGBA32F:                return WebGLTexelFormat::RGBA32F;
-        case LOCAL_GL_RGB32F:                 return WebGLTexelFormat::RGB32F;
-        case LOCAL_GL_ALPHA32F_EXT:           return WebGLTexelFormat::A32F;
-        case LOCAL_GL_LUMINANCE32F_EXT:       return WebGLTexelFormat::R32F;
-        case LOCAL_GL_LUMINANCE_ALPHA32F_EXT: return WebGLTexelFormat::RA32F;
-        case LOCAL_GL_RGBA16F:                return WebGLTexelFormat::RGBA16F;
-        case LOCAL_GL_RGB16F:                 return WebGLTexelFormat::RGB16F;
-        case LOCAL_GL_ALPHA16F_EXT:           return WebGLTexelFormat::A16F;
-        case LOCAL_GL_LUMINANCE16F_EXT:       return WebGLTexelFormat::R16F;
-        case LOCAL_GL_LUMINANCE_ALPHA16F_EXT: return WebGLTexelFormat::RA16F;
-        case LOCAL_GL_RGBA4:                  return WebGLTexelFormat::RGBA4444;
-        case LOCAL_GL_RGB5_A1:                return WebGLTexelFormat::RGBA5551;
-        case LOCAL_GL_RGB565:                 return WebGLTexelFormat::RGB565;
-        default:
-            return WebGLTexelFormat::FormatNotSupportingAnyConversion;
-    }
 }
 
 void

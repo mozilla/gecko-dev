@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-[.] chrome.jar:
+[features/loop@mozilla.org] chrome.jar:
 % content loop %content/ contentaccessible=yes
 % skin loop classic/1.0 %skin/linux/ os=Linux
 % skin loop classic/1.0 %skin/osx/ os=Darwin
@@ -19,13 +19,13 @@
 % override chrome://loop/skin/toolbar.png         chrome://loop/skin/toolbar-XP.png               os=WINNT osversion<6
 % override chrome://loop/skin/toolbar.png         chrome://loop/skin/toolbar-aero.png             os=WINNT osversion=6
 % override chrome://loop/skin/toolbar.png         chrome://loop/skin/toolbar-aero.png             os=WINNT osversion=6.1
-% override chrome://loop/skin/toolbar.png         chrome://loop/skin/toolbar-win8.png             os=WINNT osversion=6.2
-% override chrome://loop/skin/toolbar.png         chrome://loop/skin/toolbar-win8.png             os=WINNT osversion=6.3
+% override chrome://loop/skin/toolbar.png         chrome://loop/skin/toolbar-win10.png            os=WINNT osversion=6.2
+% override chrome://loop/skin/toolbar.png         chrome://loop/skin/toolbar-win10.png            os=WINNT osversion=6.3
 % override chrome://loop/skin/toolbar@2x.png      chrome://loop/skin/toolbar-XP@2x.png            os=WINNT osversion<6
 % override chrome://loop/skin/toolbar@2x.png      chrome://loop/skin/toolbar-aero@2x.png          os=WINNT osversion=6
 % override chrome://loop/skin/toolbar@2x.png      chrome://loop/skin/toolbar-aero@2x.png          os=WINNT osversion=6.1
-% override chrome://loop/skin/toolbar@2x.png      chrome://loop/skin/toolbar-win8@2x.png          os=WINNT osversion=6.2
-% override chrome://loop/skin/toolbar@2x.png      chrome://loop/skin/toolbar-win8@2x.png          os=WINNT osversion=6.3
+% override chrome://loop/skin/toolbar@2x.png      chrome://loop/skin/toolbar-win10@2x.png         os=WINNT osversion=6.2
+% override chrome://loop/skin/toolbar@2x.png      chrome://loop/skin/toolbar-win10@2x.png         os=WINNT osversion=6.3
   skin/  (skin/*)
   content/modules/ (content/modules/*)
 * content/preferences/prefs.js (content/preferences/prefs.js)
@@ -107,9 +107,9 @@
   content/shared/img/vivo@2x.png                   (content/shared/img/vivo@2x.png)
   content/shared/img/02.png                        (content/shared/img/02.png)
   content/shared/img/02@2x.png                     (content/shared/img/02@2x.png)
-  content/shared/img/telefonica.png                (content/shared/img/telefonica.png)
+  content/shared/img/telefonica-logo.svg           (content/shared/img/telefonica-logo.svg)
   content/shared/img/hello_logo.svg                (content/shared/img/hello_logo.svg)
-  content/shared/img/telefonica@2x.png             (content/shared/img/telefonica@2x.png)
+  content/shared/img/hello-web-share.svg           (content/shared/img/hello-web-share.svg)
   content/shared/img/ellipsis-v.svg                (content/shared/img/ellipsis-v.svg)
   content/shared/img/empty_conversations.svg       (content/shared/img/empty_conversations.svg)
   content/shared/img/empty_search.svg              (content/shared/img/empty_search.svg)

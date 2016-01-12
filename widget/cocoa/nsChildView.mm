@@ -65,6 +65,7 @@
 #include "mozilla/layers/CompositorOGL.h"
 #include "mozilla/layers/CompositorParent.h"
 #include "mozilla/layers/BasicCompositor.h"
+#include "mozilla/layers/InputAPZContext.h"
 #include "gfxUtils.h"
 #include "gfxPrefs.h"
 #include "mozilla/gfx/2D.h"
@@ -335,7 +336,9 @@ class GLPresenter : public GLManager
 public:
   static GLPresenter* CreateForWindow(nsIWidget* aWindow)
   {
-    RefPtr<GLContext> context = gl::GLContextProvider::CreateForWindow(aWindow);
+    // Contrary to CompositorOGL, we allow unaccelerated OpenGL contexts to be
+    // used. BasicCompositor only requires very basic GL functionality.
+    RefPtr<GLContext> context = gl::GLContextProvider::CreateForWindow(aWindow, false);
     return context ? new GLPresenter(context) : nullptr;
   }
 
@@ -464,10 +467,10 @@ nsChildView::ReleaseTitlebarCGContext()
   }
 }
 
-nsresult nsChildView::Create(nsIWidget *aParent,
+nsresult nsChildView::Create(nsIWidget* aParent,
                              nsNativeWidget aNativeParent,
-                             const nsIntRect &aRect,
-                             nsWidgetInitData *aInitData)
+                             const LayoutDeviceIntRect& aRect,
+                             nsWidgetInitData* aInitData)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
 
@@ -492,7 +495,7 @@ nsresult nsChildView::Create(nsIWidget *aParent,
     gChildViewMethodsSwizzled = true;
   }
 
-  mBounds = aRect;
+  mBounds = aRect.ToUnknownRect();
 
   // Ensure that the toolkit is created.
   nsToolkit::GetToolkit();
@@ -682,6 +685,17 @@ void* nsChildView::GetNativeData(uint32_t aDataType)
 
     case NS_NATIVE_OFFSETY:
       retVal = 0;
+      break;
+
+    case NS_RAW_NATIVE_IME_CONTEXT:
+      retVal = [mView inputContext];
+      // If input context isn't available on this widget, we should set |this|
+      // instead of nullptr since if this returns nullptr, IMEStateManager
+      // cannot manage composition with TextComposition instance.  Although,
+      // this case shouldn't occur.
+      if (NS_WARN_IF(!retVal)) {
+        retVal = this;
+      }
       break;
   }
 
@@ -1353,7 +1367,7 @@ static void blinkRgn(RgnHandle rgn)
 #endif
 
 // Invalidate this component's visible area
-NS_IMETHODIMP nsChildView::Invalidate(const nsIntRect &aRect)
+NS_IMETHODIMP nsChildView::Invalidate(const LayoutDeviceIntRect& aRect)
 {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
 
@@ -1366,10 +1380,10 @@ NS_IMETHODIMP nsChildView::Invalidate(const nsIntRect &aRect)
   if ([NSView focusView]) {
     // if a view is focussed (i.e. being drawn), then postpone the invalidate so that we
     // don't lose it.
-    [mView setNeedsPendingDisplayInRect:UntypedDevPixelsToCocoaPoints(aRect)];
+    [mView setNeedsPendingDisplayInRect:DevPixelsToCocoaPoints(aRect)];
   }
   else {
-    [mView setNeedsDisplayInRect:UntypedDevPixelsToCocoaPoints(aRect)];
+    [mView setNeedsDisplayInRect:DevPixelsToCocoaPoints(aRect)];
   }
 
   return NS_OK;
@@ -1487,7 +1501,7 @@ void nsChildView::WillPaintWindow()
   }
 }
 
-bool nsChildView::PaintWindow(nsIntRegion aRegion)
+bool nsChildView::PaintWindow(LayoutDeviceIntRegion aRegion)
 {
   nsCOMPtr<nsIWidget> widget = GetWidgetForListenerEvents();
 
@@ -1767,13 +1781,6 @@ nsChildView::GetInputContext()
     default:
       mInputContext.mIMEState.mOpen = IMEState::CLOSED;
       break;
-  }
-  mInputContext.mNativeIMEContext = [mView inputContext];
-  // If input context isn't available on this widget, we should set |this|
-  // instead of nullptr since nullptr means that the platform has only one
-  // context per process.
-  if (!mInputContext.mNativeIMEContext) {
-    mInputContext.mNativeIMEContext = this;
   }
   return mInputContext;
 }
@@ -2404,7 +2411,7 @@ FindFirstRectOfType(const nsTArray<nsIWidget::ThemeGeometry>& aThemeGeometries,
   for (uint32_t i = 0; i < aThemeGeometries.Length(); ++i) {
     const nsIWidget::ThemeGeometry& g = aThemeGeometries[i];
     if (g.mType == aThemeGeometryType) {
-      return LayoutDeviceIntRect::FromUnknownRect(g.mRect);
+      return g.mRect;
     }
   }
   return LayoutDeviceIntRect();
@@ -2445,11 +2452,11 @@ nsChildView::UpdateThemeGeometries(const nsTArray<ThemeGeometry>& aThemeGeometri
   [win placeFullScreenButton:[mView convertRect:DevPixelsToCocoaPoints(fullScreenButtonRect) toView:nil]];
 }
 
-static nsIntRegion
+static LayoutDeviceIntRegion
 GatherThemeGeometryRegion(const nsTArray<nsIWidget::ThemeGeometry>& aThemeGeometries,
                           nsITheme::ThemeGeometryType aThemeGeometryType)
 {
-  nsIntRegion region;
+  LayoutDeviceIntRegion region;
   for (size_t i = 0; i < aThemeGeometries.Length(); ++i) {
     const nsIWidget::ThemeGeometry& g = aThemeGeometries[i];
     if (g.mType == aThemeGeometryType) {
@@ -2488,17 +2495,17 @@ nsChildView::UpdateVibrancy(const nsTArray<ThemeGeometry>& aThemeGeometries)
     return;
   }
 
-  nsIntRegion sheetRegion =
+  LayoutDeviceIntRegion sheetRegion =
     GatherThemeGeometryRegion(aThemeGeometries, nsNativeThemeCocoa::eThemeGeometryTypeSheet);
-  nsIntRegion vibrantLightRegion =
+  LayoutDeviceIntRegion vibrantLightRegion =
     GatherThemeGeometryRegion(aThemeGeometries, nsNativeThemeCocoa::eThemeGeometryTypeVibrancyLight);
-  nsIntRegion vibrantDarkRegion =
+  LayoutDeviceIntRegion vibrantDarkRegion =
     GatherThemeGeometryRegion(aThemeGeometries, nsNativeThemeCocoa::eThemeGeometryTypeVibrancyDark);
-  nsIntRegion menuRegion =
+  LayoutDeviceIntRegion menuRegion =
     GatherThemeGeometryRegion(aThemeGeometries, nsNativeThemeCocoa::eThemeGeometryTypeMenu);
-  nsIntRegion tooltipRegion =
+  LayoutDeviceIntRegion tooltipRegion =
     GatherThemeGeometryRegion(aThemeGeometries, nsNativeThemeCocoa::eThemeGeometryTypeTooltip);
-  nsIntRegion highlightedMenuItemRegion =
+  LayoutDeviceIntRegion highlightedMenuItemRegion =
     GatherThemeGeometryRegion(aThemeGeometries, nsNativeThemeCocoa::eThemeGeometryTypeHighlightedMenuItem);
 
   MakeRegionsNonOverlapping(sheetRegion, vibrantLightRegion, vibrantDarkRegion,
@@ -2616,6 +2623,10 @@ nsChildView::TrackScrollEventAsSwipe(const mozilla::PanGestureInput& aSwipeStart
 
   mSwipeTracker = new SwipeTracker(*this, aSwipeStartEvent,
                                    aAllowedDirections, direction);
+
+  if (!mAPZC) {
+    mCurrentPanGestureBelongsToSwipe = true;
+  }
 }
 
 void
@@ -2708,12 +2719,10 @@ nsChildView::DoRemoteComposition(const LayoutDeviceIntRect& aRenderRect)
 }
 
 void
-nsChildView::UpdateWindowDraggingRegion(const nsIntRegion& aRegion)
+nsChildView::UpdateWindowDraggingRegion(const LayoutDeviceIntRegion& aRegion)
 {
-  LayoutDeviceIntRegion region =
-    LayoutDeviceIntRegion::FromUnknownRegion(aRegion);
-  if (mDraggableRegion != region) {
-    mDraggableRegion = region;
+  if (mDraggableRegion != aRegion) {
+    mDraggableRegion = aRegion;
     [(ChildView*)mView updateWindowDraggableState];
   }
 }
@@ -2826,11 +2835,27 @@ nsChildView::DispatchAPZWheelInputEvent(InputData& aEvent, bool aCanTriggerSwipe
       event = panInput.ToWidgetWheelEvent(this);
       if (aCanTriggerSwipe) {
         SwipeInfo swipeInfo = SendMayStartSwipe(panInput);
+
+        // We're in the non-APZ case here, but we still want to know whether
+        // the event was routed to a child process, so we use InputAPZContext
+        // to get that piece of information.
+        ScrollableLayerGuid guid;
+        InputAPZContext context(guid, 0, nsEventStatus_eIgnore);
+
         event.mCanTriggerSwipe = swipeInfo.wantsSwipe;
         DispatchEvent(&event, status);
-        if (event.TriggersSwipe()) {
-          TrackScrollEventAsSwipe(panInput, swipeInfo.allowedDirections);
-          mCurrentPanGestureBelongsToSwipe = true;
+        if (swipeInfo.wantsSwipe) {
+          if (context.WasRoutedToChildProcess()) {
+            // We don't know whether this event can start a swipe, so we need
+            // to queue up events and wait for a call to ReportSwipeStarted.
+            mSwipeEventQueue = MakeUnique<SwipeEventQueue>(swipeInfo.allowedDirections, 0);
+          } else if (event.TriggersSwipe()) {
+            TrackScrollEventAsSwipe(panInput, swipeInfo.allowedDirections);
+          }
+        }
+
+        if (mSwipeEventQueue && mSwipeEventQueue->inputBlockId == 0) {
+          mSwipeEventQueue->queuedEvents.AppendElement(panInput);
         }
         return;
       }
@@ -3737,10 +3762,10 @@ NSEvent* gLastDragMouseDownEvent = nil;
   if (mGeckoChild->GetLayerManager()->GetBackendType() == LayersBackend::LAYERS_BASIC) {
     nsBaseWidget::AutoLayerManagerSetup
       setupLayerManager(mGeckoChild, targetContext, BufferMode::BUFFER_NONE);
-    painted = mGeckoChild->PaintWindow(region.ToUnknownRegion());
+    painted = mGeckoChild->PaintWindow(region);
   } else if (mGeckoChild->GetLayerManager()->GetBackendType() == LayersBackend::LAYERS_CLIENT) {
     // We only need this so that we actually get DidPaintWindow fired
-    painted = mGeckoChild->PaintWindow(region.ToUnknownRegion());
+    painted = mGeckoChild->PaintWindow(region);
   }
 
   targetContext = nullptr;
@@ -3811,7 +3836,7 @@ NSEvent* gLastDragMouseDownEvent = nil;
   mGeckoChild->GetBounds(geckoBounds);
   LayoutDeviceIntRegion region(geckoBounds);
 
-  mGeckoChild->PaintWindow(region.ToUnknownRegion());
+  mGeckoChild->PaintWindow(region);
 
   // Force OpenGL to refresh the very first time we draw. This works around a
   // Mac OS X bug that stops windows updating on OS X when we use OpenGL.

@@ -5,14 +5,13 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 DIRS += ['locales']
-SPHINX_TREES['fennec'] = 'docs'
 
 include('android-services.mozbuild')
 
 thirdparty_source_dir = TOPSRCDIR + '/mobile/android/thirdparty/'
 
 constants_jar = add_java_jar('constants')
-constants_jar.sources = [
+constants_jar.sources = ['java/org/mozilla/gecko/' + x for x in [
     'adjust/AdjustHelperInterface.java',
     'annotation/JNITarget.java',
     'annotation/ReflectionTarget.java',
@@ -23,7 +22,7 @@ constants_jar.sources = [
     'LocaleManager.java',
     'Locales.java',
     'SysInfo.java',
-]
+]]
 constants_jar.generated_sources = [
     'preprocessed/org/mozilla/gecko/AdjustConstants.java',
     'preprocessed/org/mozilla/gecko/AppConstants.java',
@@ -32,19 +31,20 @@ constants_jar.extra_jars = [
     CONFIG['ANDROID_SUPPORT_ANNOTATIONS_JAR_LIB'],
     CONFIG['ANDROID_SUPPORT_V4_AAR_LIB'],
     CONFIG['ANDROID_SUPPORT_V4_AAR_INTERNAL_LIB'],
+    CONFIG['ANDROID_APPCOMPAT_V7_AAR_LIB'],
 ]
 
 if CONFIG['MOZ_INSTALL_TRACKING']:
-    constants_jar.sources += [
+    constants_jar.sources += ['java/org/mozilla/gecko/' + x for x in [
         'adjust/AdjustHelper.java',
-    ]
-    constants_jar.extra_jars = [
+    ]]
+    constants_jar.extra_jars += [
         'gecko-thirdparty-adjust_sdk.jar',
     ]
 else:
-    constants_jar.sources += [
+    constants_jar.sources += ['java/org/mozilla/gecko/' + x for x in [
         'adjust/StubAdjustHelper.java',
-    ]
+    ]]
 
 resjar = add_java_jar('gecko-R')
 resjar.sources = []
@@ -72,7 +72,7 @@ if CONFIG['ANDROID_RECYCLERVIEW_V7_AAR']:
 resjar.javac_flags += ['-Xlint:all']
 
 mgjar = add_java_jar('gecko-mozglue')
-mgjar.sources += [
+mgjar.sources += ['java/org/mozilla/gecko/' + x for x in [
     'mozglue/ByteBufferInputStream.java',
     'mozglue/ContextUtils.java',
     'mozglue/DirectBufferAllocator.java',
@@ -80,7 +80,7 @@ mgjar.sources += [
     'mozglue/JNIObject.java',
     'mozglue/NativeReference.java',
     'mozglue/NativeZip.java',
-]
+]]
 mgjar.generated_sources = [] # Keep it this way.
 mgjar.extra_jars += [
     'constants.jar',
@@ -88,7 +88,7 @@ mgjar.extra_jars += [
 mgjar.javac_flags += ['-Xlint:all']
 
 gujar = add_java_jar('gecko-util')
-gujar.sources += [
+gujar.sources += ['java/org/mozilla/gecko/' + x for x in [
     'util/ActivityResultHandler.java',
     'util/ActivityResultHandlerMap.java',
     'util/ActivityUtils.java',
@@ -119,13 +119,14 @@ gujar.sources += [
     'util/PrefUtils.java',
     'util/ProxySelector.java',
     'util/RawResource.java',
+    'util/ScreenshotObserver.java',
     'util/StringUtils.java',
     'util/ThreadUtils.java',
     'util/UIAsyncTask.java',
     'util/WeakReferenceHandler.java',
     'util/WebActivityMapper.java',
     'util/WindowUtils.java',
-]
+]]
 gujar.extra_jars = [
     CONFIG['ANDROID_SUPPORT_ANNOTATIONS_JAR_LIB'],
     CONFIG['ANDROID_SUPPORT_V4_AAR_LIB'],
@@ -183,7 +184,7 @@ if CONFIG['MOZ_WEBRTC']:
     wrjar.javac_flags += ['-Xlint:all,-deprecation,-cast']
 
 gbjar = add_java_jar('gecko-browser')
-gbjar.sources += [
+gbjar.sources += ['java/org/mozilla/gecko/' + x for x in [
     'AboutPages.java',
     'AccountsHelper.java',
     'ActionModeCompat.java',
@@ -247,6 +248,14 @@ gbjar.sources += [
     'distribution/Distribution.java',
     'distribution/ReferrerDescriptor.java',
     'distribution/ReferrerReceiver.java',
+    'dlc/BaseAction.java',
+    'dlc/catalog/DownloadContent.java',
+    'dlc/catalog/DownloadContentBootstrap.java',
+    'dlc/catalog/DownloadContentCatalog.java',
+    'dlc/DownloadAction.java',
+    'dlc/DownloadContentService.java',
+    'dlc/StudyAction.java',
+    'dlc/VerifyAction.java',
     'DoorHangerPopup.java',
     'DownloadsIntegration.java',
     'DynamicToolbar.java',
@@ -266,9 +275,9 @@ gbjar.sources += [
     'FilePicker.java',
     'FilePickerResultHandler.java',
     'FindInPageBar.java',
+    'firstrun/FirstrunAnimationContainer.java',
     'firstrun/FirstrunPager.java',
     'firstrun/FirstrunPagerConfig.java',
-    'firstrun/FirstrunPane.java',
     'firstrun/FirstrunPanel.java',
     'firstrun/ImportPanel.java',
     'firstrun/RestrictedWelcomePanel.java',
@@ -343,8 +352,6 @@ gbjar.sources += [
     'gfx/VirtualLayer.java',
     'GlobalHistory.java',
     'GuestSession.java',
-    'health/BrowserHealthRecorder.java',
-    'health/BrowserHealthReporter.java',
     'health/HealthRecorder.java',
     'health/SessionInformation.java',
     'health/StubbedHealthRecorder.java',
@@ -533,8 +540,6 @@ gbjar.sources += [
     'TextSelection.java',
     'TextSelectionHandle.java',
     'ThumbnailHelper.java',
-    'tiles/Tile.java',
-    'tiles/TilesRecorder.java',
     'toolbar/AutocompleteHandler.java',
     'toolbar/BackButton.java',
     'toolbar/BrowserToolbar.java',
@@ -612,11 +617,11 @@ gbjar.sources += [
     'widget/TwoWayView.java',
     'ZoomConstraints.java',
     'ZoomedView.java',
-]
+]]
 # The following sources are checked in to version control but
-# generated by a script (widget/themed/generate_themed_views.py).
+# generated by a script (java/org/mozilla/gecko/widget/themed/generate_themed_views.py).
 # If you're editing this list, make sure to edit that script.
-gbjar.sources += [
+gbjar.sources += ['java/org/mozilla/gecko/' + x for x in [
     'widget/themed/ThemedEditText.java',
     'widget/themed/ThemedFrameLayout.java',
     'widget/themed/ThemedImageButton.java',
@@ -626,7 +631,7 @@ gbjar.sources += [
     'widget/themed/ThemedTextSwitcher.java',
     'widget/themed/ThemedTextView.java',
     'widget/themed/ThemedView.java',
-]
+]]
 gbjar.sources += [ thirdparty_source_dir + f for f in [
     'com/googlecode/eyesfree/braille/selfbraille/ISelfBrailleService.java',
     'com/googlecode/eyesfree/braille/selfbraille/SelfBrailleClient.java',
@@ -641,7 +646,7 @@ gbjar.extra_jars += [
     'constants.jar'
 ]
 if CONFIG['MOZ_CRASHREPORTER']:
-    gbjar.sources += [ 'CrashReporter.java' ]
+    gbjar.sources += [ 'java/org/mozilla/gecko/CrashReporter.java' ]
     ANDROID_RES_DIRS += [ 'crashreporter/res' ]
 
 if (CONFIG['MOZ_ANDROID_MAX_SDK_VERSION']):
@@ -652,12 +657,12 @@ else:
 # Only bother to include new tablet code if we're building for tablet-capable
 # OS releases.
 if max_sdk_version >= 11:
-    gbjar.sources += [
+    gbjar.sources += ['java/org/mozilla/gecko/' + x for x in [
         'tabs/TabStrip.java',
         'tabs/TabStripAdapter.java',
         'tabs/TabStripItemView.java',
         'tabs/TabStripView.java'
-    ]
+    ]]
 
 # Selectively include reading list service code.
 if CONFIG['MOZ_ANDROID_READING_LIST_SERVICE']:
@@ -680,12 +685,12 @@ moz_native_devices_jars = [
     CONFIG['ANDROID_PLAY_SERVICES_BASEMENT_AAR_LIB'],
     CONFIG['ANDROID_PLAY_SERVICES_CAST_AAR_LIB'],
 ]
-moz_native_devices_sources = [
+moz_native_devices_sources = ['java/org/mozilla/gecko/' + x for x in [
     'ChromeCast.java',
     'GeckoMediaPlayer.java',
     'MediaPlayerManager.java',
     'PresentationMediaPlayerManager.java',
-]
+]]
 if CONFIG['MOZ_NATIVE_DEVICES']:
     gbjar.extra_jars += moz_native_devices_jars
     gbjar.sources += moz_native_devices_sources
@@ -853,11 +858,15 @@ if CONFIG['MOZ_INSTALL_TRACKING']:
         'com/adjust/sdk/UnitTestActivity.java',
         'com/adjust/sdk/Util.java'
     ] ]
+    adjustjar.extra_jars += [
+        'sync-thirdparty.jar',
+    ]
 
 # Putting branding earlier allows branders to override default resources.
 ANDROID_RES_DIRS += [
     '/' + CONFIG['MOZ_BRANDING_DIRECTORY'] + '/res',
     'resources',
+    '/mobile/android/services/src/main/res',
     '!res',
 ]
 
@@ -877,7 +886,7 @@ ANDROID_ASSETS_DIRS += [
 for var in ('MOZ_ANDROID_ANR_REPORTER', 'MOZ_LINKER_EXTRACT', 'MOZ_DEBUG',
             'MOZ_ANDROID_SEARCH_ACTIVITY', 'MOZ_NATIVE_DEVICES', 'MOZ_ANDROID_MLS_STUMBLER',
             'MOZ_ANDROID_DOWNLOADS_INTEGRATION', 'MOZ_INSTALL_TRACKING',
-            'MOZ_ANDROID_GCM', 'MOZ_ANDROID_TAB_QUEUE'):
+            'MOZ_ANDROID_GCM'):
     if CONFIG[var]:
         DEFINES[var] = 1
 

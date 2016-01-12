@@ -249,9 +249,7 @@ public:
 
     void TraceScriptObject(JSTracer* aTrc)
     {
-        if (mScriptObject) {
-            JS_CallScriptTracer(aTrc, &mScriptObject, "active window XUL prototype script");
-        }
+        JS::TraceNullableEdge(aTrc, &mScriptObject, "active window XUL prototype script");
     }
 
     void Trace(const TraceCallbacks& aCallbacks, void* aClosure)
@@ -412,6 +410,7 @@ public:
     virtual mozilla::EventStates IntrinsicState() const override;
 
     nsresult GetFrameLoader(nsIFrameLoader** aFrameLoader);
+    nsresult GetParentApplication(mozIApplication** aApplication);
     nsresult SetIsPrerendered();
     nsresult SwapFrameLoaders(nsIFrameLoaderOwner* aOtherOwner);
 

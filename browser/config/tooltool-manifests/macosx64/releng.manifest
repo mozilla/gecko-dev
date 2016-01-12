@@ -10,17 +10,17 @@
 "unpack": true
 },
 {
+"size": 215952362,
+"digest": "5e9825dbe83b2a157879076da70fc5c989a1638e30d3b14a9901b166db09013c356a9dc4eaf6c16209a1832d9cb1c67ca869e9b9003cab8355a7f03b3dc08775",
+"algorithm": "sha512",
+"filename": "rustc.tar.bz2",
+"unpack": true
+},
+{
 "size": 167175,
 "digest": "0b71a936edf5bd70cf274aaa5d7abc8f77fe8e7b5593a208f805cc9436fac646b9c4f0b43c2b10de63ff3da671497d35536077ecbc72dba7f8159a38b580f831",
 "algorithm": "sha512",
 "filename": "sccache.tar.bz2",
 "unpack": true
-},
-{
-"algorithm": "sha512",
-"filename": "rustc.tar.bz2",
-"unpack": true,
-"digest": "28e0d27846cfa6fac5be2df4debb469b6f488d45357d21f2bec14c7c2b6abe5713965497961e7ac10120d3687751ccced95b9498cc54c529cbdfcd59d51a67ec",
-"size": 84116661
 }
 ]

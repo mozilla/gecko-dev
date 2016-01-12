@@ -34,6 +34,7 @@
 #include "MediaStreamAudioDestinationNode.h"
 #include "MediaStreamAudioSourceNode.h"
 #include "MediaStreamGraph.h"
+#include "nsContentUtils.h"
 #include "nsNetCID.h"
 #include "nsNetUtil.h"
 #include "nsPIDOMWindow.h"
@@ -364,9 +365,7 @@ AudioContext::CreateMediaElementSource(HTMLMediaElement& aMediaElement,
   if (aRv.Failed()) {
     return nullptr;
   }
-  RefPtr<MediaElementAudioSourceNode> mediaElementAudioSourceNode =
-    new MediaElementAudioSourceNode(this, stream);
-  return mediaElementAudioSourceNode.forget();
+  return MediaElementAudioSourceNode::Create(this, stream, aRv);
 }
 
 already_AddRefed<MediaStreamAudioSourceNode>
@@ -382,9 +381,7 @@ AudioContext::CreateMediaStreamSource(DOMMediaStream& aMediaStream,
     return nullptr;
   }
 
-  RefPtr<MediaStreamAudioSourceNode> mediaStreamAudioSourceNode =
-    new MediaStreamAudioSourceNode(this, &aMediaStream);
-  return mediaStreamAudioSourceNode.forget();
+  return MediaStreamAudioSourceNode::Create(this, &aMediaStream, aRv);
 }
 
 already_AddRefed<GainNode>
@@ -571,6 +568,12 @@ AudioContext::DecodeAudioData(const ArrayBuffer& aBuffer,
   }
 
   aBuffer.ComputeLengthAndData();
+
+  if (aBuffer.IsShared()) {
+    // Throw if the object is mapping shared memory (must opt in).
+    aRv.ThrowTypeError<MSG_TYPEDARRAY_IS_SHARED>(NS_LITERAL_STRING("Argument of AudioContext.decodeAudioData"));
+    return nullptr;
+  }
 
   // Neuter the array buffer
   size_t length = aBuffer.Length();

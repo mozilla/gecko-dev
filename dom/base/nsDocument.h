@@ -111,7 +111,7 @@ private:
   RefPtr<nsDocument> mDocument;
 
 public:
-  RefPtr<gfx::VRHMDInfo> mVRHMDDevice;
+  RefPtr<gfx::VRDeviceProxy> mVRHMDDevice;
   // This value should be true if the fullscreen request is
   // originated from chrome code.
   bool mIsCallerChrome = false;
@@ -427,7 +427,7 @@ protected:
                            mozilla::dom::CustomElementDefinition>
     DefinitionMap;
   typedef nsClassHashtable<mozilla::dom::CustomElementHashKey,
-                           nsTArray<RefPtr<mozilla::dom::Element>>>
+                           nsTArray<nsWeakPtr>>
     CandidateMap;
 
   // Hashtable for custom element definitions in web components.
@@ -787,6 +787,8 @@ public:
 
   static bool IsWebAnimationsEnabled(JSContext* aCx, JSObject* aObject);
   virtual mozilla::dom::DocumentTimeline* Timeline() override;
+  virtual void GetAnimations(
+      nsTArray<RefPtr<mozilla::dom::Animation>>& aAnimations) override;
 
   virtual nsresult SetSubDocumentFor(Element* aContent,
                                      nsIDocument* aSubDoc) override;
@@ -1494,8 +1496,7 @@ public:
 protected:
   already_AddRefed<nsIPresShell> doCreateShell(nsPresContext* aContext,
                                                nsViewManager* aViewManager,
-                                               nsStyleSet* aStyleSet,
-                                               nsCompatibility aCompatMode);
+                                               nsStyleSet* aStyleSet);
 
   void RemoveDocStyleSheetsFromStyleSets();
   void RemoveStyleSheetsFromStyleSets(

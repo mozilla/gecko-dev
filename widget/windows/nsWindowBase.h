@@ -78,19 +78,11 @@ public:
   virtual bool DispatchPluginEvent(const MSG& aMsg);
 
   /*
-   * Returns true if a plugin has focus on this widget.  Otherwise, false.
-   */
-  virtual bool PluginHasFocus() const final
-  {
-    return (mInputContext.mIMEState.mEnabled == IMEState::PLUGIN);
-  }
-
-  /*
    * Touch input injection apis
    */
   virtual nsresult SynthesizeNativeTouchPoint(uint32_t aPointerId,
                                               TouchPointerState aPointerState,
-                                              nsIntPoint aPointerScreenPoint,
+                                              ScreenIntPoint aPointerScreenPoint,
                                               double aPointerPressure,
                                               uint32_t aPointerOrientation,
                                               nsIObserver* aObserver) override;
@@ -105,21 +97,21 @@ public:
 
 protected:
   static bool InitTouchInjection();
-  bool InjectTouchPoint(uint32_t aId, nsIntPoint& aPointerScreenPoint,
+  bool InjectTouchPoint(uint32_t aId, ScreenIntPoint& aPointerScreenPoint,
                         POINTER_FLAGS aFlags, uint32_t aPressure = 1024,
                         uint32_t aOrientation = 90);
 
   class PointerInfo
   {
   public:
-    PointerInfo(int32_t aPointerId, nsIntPoint& aPoint) :
+    PointerInfo(int32_t aPointerId, ScreenIntPoint& aPoint) :
       mPointerId(aPointerId),
       mPosition(aPoint)
     {
     }
 
     int32_t mPointerId;
-    nsIntPoint mPosition;
+    ScreenIntPoint mPosition;
   };
 
   nsClassHashtable<nsUint32HashKey, PointerInfo> mActivePointers;

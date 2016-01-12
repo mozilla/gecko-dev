@@ -14,6 +14,12 @@ loader.lazyRequireGetter(this, "FileUtils",
                          "resource://gre/modules/FileUtils.jsm", true);
 loader.lazyRequireGetter(this, "setTimeout", "Timer", true);
 
+// Re-export the thread-safe utils.
+const ThreadSafeDevToolsUtils = require("./ThreadSafeDevToolsUtils.js");
+for (let key of Object.keys(ThreadSafeDevToolsUtils)) {
+  exports[key] = ThreadSafeDevToolsUtils[key];
+}
+
 /**
  * Turn the error |aError| into a string, without fail.
  */
@@ -124,13 +130,25 @@ exports.zip = function zip(a, b) {
 /**
  * Converts an object into an array with 2-element arrays as key/value
  * pairs of the object. `{ foo: 1, bar: 2}` would become
- * `[[foo, 1], [bar 2]]` (order not guaranteed);
+ * `[[foo, 1], [bar 2]]` (order not guaranteed).
  *
  * @param object obj
  * @returns array
  */
 exports.entries = function entries(obj) {
   return Object.keys(obj).map(k => [k, obj[k]]);
+}
+
+/*
+ * Takes an array of 2-element arrays as key/values pairs and
+ * constructs an object using them.
+ */
+exports.toObject = function(arr) {
+  const obj = {};
+  for(let pair of arr) {
+    obj[pair[0]] = pair[1];
+  }
+  return obj;
 }
 
 /**
@@ -171,8 +189,19 @@ exports.executeSoon = function executeSoon(aFn) {
   if (isWorker) {
     setImmediate(aFn);
   } else {
+    let executor;
+    // Only enable async stack reporting when DEBUG_JS_MODULES is set
+    // (customized local builds) to avoid a performance penalty.
+    if (AppConstants.DEBUG_JS_MODULES || exports.testing) {
+      let stack = components.stack;
+      executor = () => {
+        Cu.callFunctionWithAsyncStack(aFn, stack, "DevToolsUtils.executeSoon");
+      };
+    } else {
+      executor = aFn;
+    }
     Services.tm.mainThread.dispatch({
-      run: exports.makeInfallible(aFn)
+      run: exports.makeInfallible(executor)
     }, Ci.nsIThread.DISPATCH_NORMAL);
   }
 };
@@ -443,24 +472,6 @@ exports.defineLazyGetter = function defineLazyGetter(aObject, aName, aLambda) {
     configurable: true,
     enumerable: true
   });
-};
-
-// DEPRECATED: use DevToolsUtils.assert(condition, message) instead!
-let haveLoggedDeprecationMessage = false;
-exports.dbg_assert = function dbg_assert(cond, e) {
-  if (!haveLoggedDeprecationMessage) {
-    haveLoggedDeprecationMessage = true;
-    const deprecationMessage = "DevToolsUtils.dbg_assert is deprecated! Use DevToolsUtils.assert instead!\n"
-          + Error().stack;
-    dump(deprecationMessage);
-    if (typeof console === "object" && console && console.warn) {
-      console.warn(deprecationMessage);
-    }
-  }
-
-  if (!cond) {
-    return e;
-  }
 };
 
 exports.defineLazyGetter(this, "AppConstants", () => {

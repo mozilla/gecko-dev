@@ -132,7 +132,13 @@ enum class DeviceResetReason
   DRIVER_ERROR,
   INVALID_CALL,
   OUT_OF_MEMORY,
+  FORCED_RESET,
   UNKNOWN
+};
+
+enum class ForcedDeviceResetReason
+{
+  OPENSHAREDHANDLE = 0
 };
 
 class gfxPlatform {
@@ -530,7 +536,7 @@ public:
     virtual gfxImageFormat OptimalFormatForContent(gfxContentType aContent);
 
     virtual gfxImageFormat GetOffscreenFormat()
-    { return gfxImageFormat::RGB24; }
+    { return mozilla::gfx::SurfaceFormat::X8R8G8B8_UINT32; }
 
     /**
      * Returns a logger if one is available and logging is enabled
@@ -605,6 +611,12 @@ public:
 
     virtual void FlushContentDrawing() {}
 
+    // If a device reset has occurred, update the necessary platform backend
+    // bits.
+    virtual bool UpdateForDeviceReset() {
+      return false;
+    }
+
     /**
      * Helper method, creates a draw target for a specific Azure backend.
      * Used by CreateOffscreenDrawTarget.
@@ -633,6 +645,17 @@ public:
     // devices. Currently this is only used on Windows.
     virtual void GetDeviceInitData(mozilla::gfx::DeviceInitData* aOut);
 
+    // Plugin async drawing support.
+    virtual bool SupportsPluginDirectBitmapDrawing() {
+      return false;
+    }
+
+    // Some platforms don't support CompositorOGL in an unaccelerated OpenGL
+    // context. These platforms should return true here.
+    virtual bool RequiresAcceleratedGLContextForCompositorOGL() const {
+      return false;
+    }
+
 protected:
     gfxPlatform();
     virtual ~gfxPlatform();
@@ -647,11 +670,6 @@ protected:
 
     // Returns a prioritized list of available compositor backends for acceleration.
     virtual void GetAcceleratedCompositorBackends(nsTArray<mozilla::layers::LayersBackend>& aBackends);
-
-    // Returns whether or not the basic compositor is supported.
-    virtual bool SupportsBasicCompositor() const {
-      return true;
-    }
 
     /**
      * Initialise the preferred and fallback canvas backends

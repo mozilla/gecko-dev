@@ -613,7 +613,19 @@ nsCSSFontDesc
 nsCSSProps::LookupFontDesc(const nsACString& aFontDesc)
 {
   MOZ_ASSERT(gFontDescTable, "no lookup table, needs addref");
-  return nsCSSFontDesc(gFontDescTable->Lookup(aFontDesc));
+  nsCSSFontDesc which = nsCSSFontDesc(gFontDescTable->Lookup(aFontDesc));
+
+  if (which == eCSSFontDesc_Display &&
+      !Preferences::GetBool("layout.css.font-display.enabled")) {
+    which = eCSSFontDesc_UNKNOWN;
+  } else if (which == eCSSFontDesc_UNKNOWN) {
+    // check for unprefixed font-feature-settings/font-language-override
+    nsAutoCString prefixedProp;
+    prefixedProp.AppendLiteral("-moz-");
+    prefixedProp.Append(aFontDesc);
+    which = nsCSSFontDesc(gFontDescTable->Lookup(prefixedProp));
+  }
+  return which;
 }
 
 nsCSSFontDesc
@@ -622,8 +634,11 @@ nsCSSProps::LookupFontDesc(const nsAString& aFontDesc)
   MOZ_ASSERT(gFontDescTable, "no lookup table, needs addref");
   nsCSSFontDesc which = nsCSSFontDesc(gFontDescTable->Lookup(aFontDesc));
 
-  // check for unprefixed font-feature-settings/font-language-override
-  if (which == eCSSFontDesc_UNKNOWN) {
+  if (which == eCSSFontDesc_Display &&
+      !Preferences::GetBool("layout.css.font-display.enabled")) {
+    which = eCSSFontDesc_UNKNOWN;
+  } else if (which == eCSSFontDesc_UNKNOWN) {
+    // check for unprefixed font-feature-settings/font-language-override
     nsAutoString prefixedProp;
     prefixedProp.AppendLiteral("-moz-");
     prefixedProp.Append(aFontDesc);
@@ -780,6 +795,8 @@ const KTableEntry nsCSSProps::kAppearanceKTable[] = {
   { eCSSKeyword_spinner_textfield,      NS_THEME_SPINNER_TEXTFIELD },
   { eCSSKeyword_scrollbar,              NS_THEME_SCROLLBAR },
   { eCSSKeyword_scrollbar_small,        NS_THEME_SCROLLBAR_SMALL },
+  { eCSSKeyword_scrollbar_horizontal,   NS_THEME_SCROLLBAR_HORIZONTAL },
+  { eCSSKeyword_scrollbar_vertical,     NS_THEME_SCROLLBAR_VERTICAL },
   { eCSSKeyword_scrollbarbutton_up,     NS_THEME_SCROLLBAR_BUTTON_UP },
   { eCSSKeyword_scrollbarbutton_down,   NS_THEME_SCROLLBAR_BUTTON_DOWN },
   { eCSSKeyword_scrollbarbutton_left,   NS_THEME_SCROLLBAR_BUTTON_LEFT },
@@ -1246,6 +1263,7 @@ const KTableEntry nsCSSProps::kEmptyCellsKTable[] = {
 
 const KTableEntry nsCSSProps::kAlignAllKeywords[] = {
   { eCSSKeyword_auto,          NS_STYLE_ALIGN_AUTO },
+  { eCSSKeyword_normal,        NS_STYLE_ALIGN_NORMAL },
   { eCSSKeyword_start,         NS_STYLE_ALIGN_START },
   { eCSSKeyword_end,           NS_STYLE_ALIGN_END },
   { eCSSKeyword_flex_start,    NS_STYLE_ALIGN_FLEX_START },
@@ -1263,12 +1281,12 @@ const KTableEntry nsCSSProps::kAlignAllKeywords[] = {
   { eCSSKeyword_space_evenly,  NS_STYLE_ALIGN_SPACE_EVENLY },
   { eCSSKeyword_legacy,        NS_STYLE_ALIGN_LEGACY },
   { eCSSKeyword_safe,          NS_STYLE_ALIGN_SAFE },
-  { eCSSKeyword_true,          NS_STYLE_ALIGN_TRUE },
+  { eCSSKeyword_unsafe,        NS_STYLE_ALIGN_UNSAFE },
   { eCSSKeyword_UNKNOWN,       -1 }
 };
 
 const KTableEntry nsCSSProps::kAlignOverflowPosition[] = {
-  { eCSSKeyword_true,          NS_STYLE_ALIGN_TRUE },
+  { eCSSKeyword_unsafe,        NS_STYLE_ALIGN_UNSAFE },
   { eCSSKeyword_safe,          NS_STYLE_ALIGN_SAFE },
   { eCSSKeyword_UNKNOWN,       -1 }
 };
@@ -1298,16 +1316,25 @@ const KTableEntry nsCSSProps::kAlignLegacyPosition[] = {
   { eCSSKeyword_UNKNOWN,       -1 }
 };
 
-const KTableEntry nsCSSProps::kAlignAutoStretchBaseline[] = {
+const KTableEntry nsCSSProps::kAlignAutoNormalStretchBaseline[] = {
   { eCSSKeyword_auto,          NS_STYLE_ALIGN_AUTO },
+  { eCSSKeyword_normal,        NS_STYLE_ALIGN_NORMAL },
   { eCSSKeyword_stretch,       NS_STYLE_ALIGN_STRETCH },
   { eCSSKeyword_baseline,      NS_STYLE_ALIGN_BASELINE },
   { eCSSKeyword_last_baseline, NS_STYLE_ALIGN_LAST_BASELINE },
   { eCSSKeyword_UNKNOWN,       -1 }
 };
 
-const KTableEntry nsCSSProps::kAlignAutoBaseline[] = {
-  { eCSSKeyword_auto,          NS_STYLE_ALIGN_AUTO },
+const KTableEntry nsCSSProps::kAlignNormalStretchBaseline[] = {
+  { eCSSKeyword_normal,        NS_STYLE_ALIGN_NORMAL },
+  { eCSSKeyword_stretch,       NS_STYLE_ALIGN_STRETCH },
+  { eCSSKeyword_baseline,      NS_STYLE_ALIGN_BASELINE },
+  { eCSSKeyword_last_baseline, NS_STYLE_ALIGN_LAST_BASELINE },
+  { eCSSKeyword_UNKNOWN,       -1 }
+};
+
+const KTableEntry nsCSSProps::kAlignNormalBaseline[] = {
+  { eCSSKeyword_normal,        NS_STYLE_ALIGN_NORMAL },
   { eCSSKeyword_baseline,      NS_STYLE_ALIGN_BASELINE },
   { eCSSKeyword_last_baseline, NS_STYLE_ALIGN_LAST_BASELINE },
   { eCSSKeyword_UNKNOWN,       -1 }
@@ -1366,6 +1393,15 @@ KTableEntry nsCSSProps::kFloatKTable[] = {
 const KTableEntry nsCSSProps::kFloatEdgeKTable[] = {
   { eCSSKeyword_content_box, NS_STYLE_FLOAT_EDGE_CONTENT },
   { eCSSKeyword_margin_box, NS_STYLE_FLOAT_EDGE_MARGIN },
+  { eCSSKeyword_UNKNOWN, -1 }
+};
+
+const KTableEntry nsCSSProps::kFontDisplayKTable[] = {
+  { eCSSKeyword_auto, NS_FONT_DISPLAY_AUTO },
+  { eCSSKeyword_block, NS_FONT_DISPLAY_BLOCK },
+  { eCSSKeyword_swap, NS_FONT_DISPLAY_SWAP },
+  { eCSSKeyword_fallback, NS_FONT_DISPLAY_FALLBACK },
+  { eCSSKeyword_optional, NS_FONT_DISPLAY_OPTIONAL },
   { eCSSKeyword_UNKNOWN, -1 }
 };
 
@@ -2863,12 +2899,19 @@ static const nsCSSProperty gSizeLogicalGroupTable[] = {
   eCSSProperty_UNKNOWN
 };
 
+static const nsCSSProperty gWebkitBoxOrientLogicalGroupTable[] = {
+  eCSSProperty_flex_direction,
+  eCSSProperty_UNKNOWN
+};
+
 const nsCSSProperty* const
 nsCSSProps::kLogicalGroupTable[eCSSPropertyLogicalGroup_COUNT] = {
 #define CSS_PROP_LOGICAL_GROUP_SHORTHAND(id_) g##id_##SubpropTable,
 #define CSS_PROP_LOGICAL_GROUP_AXIS(name_) g##name_##LogicalGroupTable,
 #define CSS_PROP_LOGICAL_GROUP_BOX(name_) g##name_##LogicalGroupTable,
+#define CSS_PROP_LOGICAL_GROUP_SINGLE(name_) g##name_##LogicalGroupTable,
 #include "nsCSSPropLogicalGroupList.h"
+#undef CSS_PROP_LOGICAL_GROUP_SINGLE
 #undef CSS_PROP_LOGICAL_GROUP_BOX
 #undef CSS_PROP_LOGICAL_GROUP_AXIS
 #undef CSS_PROP_LOGICAL_GROUP_SHORTHAND
@@ -3169,7 +3212,10 @@ nsCSSProps::gPropertyUseCounter[eCSSProperty_COUNT_no_shorthands] = {
                 "the CSS_PROPERTY_LOGICAL_BLOCK_AXIS flag");                \
   static_assert(!((flags_) & CSS_PROPERTY_LOGICAL_END_EDGE),                \
                 "only properties defined with CSS_PROP_LOGICAL can use "    \
-                "the CSS_PROPERTY_LOGICAL_END_EDGE flag");
+                "the CSS_PROPERTY_LOGICAL_END_EDGE flag");                  \
+  static_assert(!((flags_) & CSS_PROPERTY_LOGICAL_SINGLE_CUSTOM_VALMAPPING),\
+                "only properties defined with CSS_PROP_LOGICAL can use "    \
+                "the CSS_PROPERTY_LOGICAL_SINGLE_CUSTOM_VALMAPPING flag");
 #define CSS_PROP_LOGICAL(name_, id_, method_, flags_, pref_, parsevariant_, \
                          kwtable_, group_, stylestruct_,                    \
                          stylestructoffset_, animtype_)                     \
@@ -3182,7 +3228,21 @@ nsCSSProps::gPropertyUseCounter[eCSSProperty_COUNT_no_shorthands] = {
   static_assert(!(((flags_) & CSS_PROPERTY_LOGICAL_AXIS) &&                 \
                   ((flags_) & CSS_PROPERTY_LOGICAL_END_EDGE)),              \
                 "CSS_PROPERTY_LOGICAL_END_EDGE makes no sense when used "   \
-                "with CSS_PROPERTY_LOGICAL_AXIS");
+                "with CSS_PROPERTY_LOGICAL_AXIS");                          \
+  /* Make sure CSS_PROPERTY_LOGICAL_SINGLE_CUSTOM_VALMAPPING isn't used */  \
+  /* with other mutually-exclusive flags: */                                \
+  static_assert(!(((flags_) & CSS_PROPERTY_LOGICAL_AXIS) &&                 \
+                  ((flags_) & CSS_PROPERTY_LOGICAL_SINGLE_CUSTOM_VALMAPPING)),\
+                "CSS_PROPERTY_LOGICAL_SINGLE_CUSTOM_VALMAPPING makes no "   \
+                "sense when used with CSS_PROPERTY_LOGICAL_AXIS");          \
+  static_assert(!(((flags_) & CSS_PROPERTY_LOGICAL_BLOCK_AXIS) &&           \
+                  ((flags_) & CSS_PROPERTY_LOGICAL_SINGLE_CUSTOM_VALMAPPING)),\
+                "CSS_PROPERTY_LOGICAL_SINGLE_CUSTOM_VALMAPPING makes no "   \
+                "sense when used with CSS_PROPERTY_LOGICAL_BLOCK_AXIS");    \
+  static_assert(!(((flags_) & CSS_PROPERTY_LOGICAL_END_EDGE) &&             \
+                  ((flags_) & CSS_PROPERTY_LOGICAL_SINGLE_CUSTOM_VALMAPPING)),\
+                "CSS_PROPERTY_LOGICAL_SINGLE_CUSTOM_VALMAPPING makes no "   \
+                "sense when used with CSS_PROPERTY_LOGICAL_END_EDGE");
 #include "nsCSSPropList.h"
 #undef CSS_PROP_LOGICAL
 #undef CSS_PROP

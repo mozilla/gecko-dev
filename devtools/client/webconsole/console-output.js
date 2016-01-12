@@ -779,7 +779,6 @@ Messages.Simple.prototype = Heritage.extend(Messages.BaseMessage.prototype,
    */
   _message: null,
 
-  _afterMessage: null,
   _objectActors: null,
   _groupDepthCompat: 0,
 
@@ -941,11 +940,6 @@ Messages.Simple.prototype = Heritage.extend(Messages.BaseMessage.prototype,
 
     if (this.private) {
       this.element.setAttribute("private", true);
-    }
-
-    if (this._afterMessage) {
-      this.element._outputAfterNode = this._afterMessage.element;
-      this._afterMessage = null;
     }
 
     // TODO: handle object releasing in a more elegant way once all console
@@ -3376,6 +3370,54 @@ Widgets.ObjectRenderers.add({
     this._renderObjectSuffix();
   }
 }); // Widgets.ObjectRenderers.byClass.Promise
+
+/*
+ * A renderer used for wrapped primitive objects.
+ */
+
+function WrappedPrimitiveRenderer() {
+  let { ownProperties, safeGetterValues } = this.objectActor.preview || {};
+  if ((!ownProperties && !safeGetterValues) || this.options.concise) {
+    this._renderConciseObject();
+    return;
+  }
+
+  this._renderObjectPrefix();
+
+  let elem =
+      this.message._renderValueGrip(this.objectActor.preview.wrappedValue);
+  this.element.appendChild(elem);
+
+  this._renderObjectProperties(this.element, true);
+  this._renderObjectSuffix();
+}
+
+/**
+ * The widget used for displaying Boolean previews.
+ */
+Widgets.ObjectRenderers.add({
+  byClass: "Boolean",
+
+  render: WrappedPrimitiveRenderer,
+});
+
+/**
+ * The widget used for displaying Number previews.
+ */
+Widgets.ObjectRenderers.add({
+  byClass: "Number",
+
+  render: WrappedPrimitiveRenderer,
+});
+
+/**
+ * The widget used for displaying String previews.
+ */
+Widgets.ObjectRenderers.add({
+  byClass: "String",
+
+  render: WrappedPrimitiveRenderer,
+});
 
 /**
  * The widget used for displaying generic JS object previews.

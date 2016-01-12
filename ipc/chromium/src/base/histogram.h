@@ -41,6 +41,7 @@
 #define BASE_METRICS_HISTOGRAM_H_
 #pragma once
 
+#include "mozilla/Atomics.h"
 #include "mozilla/MemoryReporting.h"
 
 #include <map>
@@ -292,7 +293,6 @@ class Histogram {
   enum Flags {
     kNoFlags = 0,
     kUmaTargetedHistogramFlag = 0x1,  // Histogram should be UMA uploaded.
-    kExtendedStatisticsFlag = 0x2, // OK to gather extended statistics on histograms.
 
     // Indicate that the histogram was pickled to be sent across an IPC Channel.
     // If we observe this flag on a histogram being aggregated into after IPC,
@@ -335,10 +335,6 @@ class Histogram {
 
     // Accessor for histogram to make routine additions.
     void AccumulateWithLinearStats(Sample value, Count count, size_t index);
-    // Alternate routine for exponential histograms.
-    // computeExpensiveStatistics should be true if we want to compute log sums.
-    void AccumulateWithExponentialStats(Sample value, Count count, size_t index,
-					bool computeExtendedStatistics);
 
     // Accessor methods.
     Count counts(size_t i) const { return counts_[i]; }
@@ -404,6 +400,12 @@ class Histogram {
 
   void Add(int value);
   void Subtract(int value);
+
+  // TODO: Currently recording_enabled_ is not used by any Histogram class, but
+  //       rather examined only by the telemetry code (via IsRecordingEnabled).
+  //       Move handling to Histogram's Add() etc after simplifying Histogram.
+  void SetRecordingEnabled(bool aEnabled) { recording_enabled_ = aEnabled; };
+  bool IsRecordingEnabled() const { return recording_enabled_; };
 
   // This method is an interface, used only by BooleanHistogram.
   virtual void AddBoolean(bool value);
@@ -588,6 +590,9 @@ class Histogram {
   // are generated.  If ever there is ever a difference, then the histogram must
   // have been corrupted.
   uint32_t range_checksum_;
+
+  // When false, new samples are completely ignored.
+  mozilla::Atomic<bool, mozilla::Relaxed> recording_enabled_;
 
   DISALLOW_COPY_AND_ASSIGN(Histogram);
 };

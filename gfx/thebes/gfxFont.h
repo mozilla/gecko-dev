@@ -29,6 +29,7 @@
 #include "harfbuzz/hb.h"
 #include "mozilla/gfx/2D.h"
 
+typedef struct _cairo cairo_t;
 typedef struct _cairo_scaled_font cairo_scaled_font_t;
 //typedef struct gr_face            gr_face;
 
@@ -453,6 +454,8 @@ class gfxTextRunFactory {
     NS_INLINE_DECL_REFCOUNTING(gfxTextRunFactory)
 
 public:
+    typedef mozilla::gfx::DrawTarget DrawTarget;
+
     // Flags in the mask 0xFFFF0000 are reserved for textrun clients
     // Flags in the mask 0x0000F000 are reserved for per-platform fonts
     // Flags in the mask 0x00000FFF are set by the textrun creator.
@@ -571,8 +574,8 @@ public:
      * This record contains all the parameters needed to initialize a textrun.
      */
     struct Parameters {
-        // A reference context suggesting where the textrun will be rendered
-        gfxContext   *mContext;
+        // Shape text params suggesting where the textrun will be rendered
+        DrawTarget   *mDrawTarget;
         // Pointer to arbitrary user data (which should outlive the textrun)
         void         *mUserData;
         // A description of which characters have been stripped from the original
@@ -612,6 +615,8 @@ protected:
 
 class gfxFontShaper {
 public:
+    typedef mozilla::gfx::DrawTarget DrawTarget;
+
     explicit gfxFontShaper(gfxFont *aFont)
         : mFont(aFont)
     {
@@ -623,7 +628,7 @@ public:
     // Shape a piece of text and store the resulting glyph data into
     // aShapedText. Parameters aOffset/aLength indicate the range of
     // aShapedText to be updated; aLength is also the length of aText.
-    virtual bool ShapeText(gfxContext     *aContext,
+    virtual bool ShapeText(DrawTarget     *aDrawTarget,
                            const char16_t *aText,
                            uint32_t        aOffset,
                            uint32_t        aLength,
@@ -644,6 +649,10 @@ public:
                       void* aHandleFeatureData);
 
 protected:
+    // Work out whether cairo will snap inter-glyph spacing to pixels.
+    static void GetRoundOffsetsToPixels(DrawTarget* aDrawTarget,
+                                        bool* aRoundX, bool* aRoundY);
+
     // the font this shaper is working with. The font owns a nsAutoPtr reference
     // to this object, and will destroy it before it dies. Thus, mFont will always
     // be valid.
@@ -1479,7 +1488,7 @@ public:
         return 0;
     }
     // Return the horizontal advance of a glyph.
-    gfxFloat GetGlyphHAdvance(gfxContext *aCtx, uint16_t aGID);
+    gfxFloat GetGlyphHAdvance(DrawTarget* aDrawTarget, uint16_t aGID);
 
     // Return Azure GlyphRenderingOptions for drawing this font.
     virtual already_AddRefed<mozilla::gfx::GlyphRenderingOptions>
@@ -1619,7 +1628,7 @@ public:
      * the advance width for the character run,y=-(font ascent), and height=
      * font ascent + font descent). Otherwise, we must return as tight as possible
      * an approximation to the area actually painted by glyphs.
-     * @param aContextForTightBoundingBox when aTight is true, this must
+     * @param aDrawTargetForTightBoundingBox when aTight is true, this must
      * be non-null.
      * @param aSpacing spacing to insert before and after glyphs. The bounding box
      * need not include the spacing itself, but the spacing affects the glyph
@@ -1636,7 +1645,7 @@ public:
     virtual RunMetrics Measure(gfxTextRun *aTextRun,
                                uint32_t aStart, uint32_t aEnd,
                                BoundingBoxType aBoundingBoxType,
-                               gfxContext *aContextForTightBoundingBox,
+                               DrawTarget* aDrawTargetForTightBoundingBox,
                                Spacing *aSpacing, uint16_t aOrientation);
     /**
      * Line breaks have been changed at the beginning and/or end of a substring
@@ -1655,12 +1664,12 @@ public:
 
     gfxGlyphExtents *GetOrCreateGlyphExtents(int32_t aAppUnitsPerDevUnit);
 
-    // You need to call SetupCairoFont on the aCR just before calling this
-    virtual void SetupGlyphExtents(gfxContext *aContext, uint32_t aGlyphID,
+    // You need to call SetupCairoFont on aDrawTarget just before calling this.
+    virtual void SetupGlyphExtents(DrawTarget* aDrawTarget, uint32_t aGlyphID,
                                    bool aNeedTight, gfxGlyphExtents *aExtents);
 
     // This is called by the default Draw() implementation above.
-    virtual bool SetupCairoFont(gfxContext *aContext) = 0;
+    virtual bool SetupCairoFont(DrawTarget* aDrawTarget) = 0;
 
     virtual bool AllowSubpixelAA() { return true; }
 
@@ -1702,7 +1711,7 @@ public:
     }
 
     template<typename T>
-    bool InitFakeSmallCapsRun(gfxContext *aContext,
+    bool InitFakeSmallCapsRun(DrawTarget *aDrawTarget,
                               gfxTextRun *aTextRun,
                               const T    *aText,
                               uint32_t    aOffset,
@@ -1717,7 +1726,7 @@ public:
     // limiting the length of text passed by processing the run in multiple
     // segments if necessary
     template<typename T>
-    bool SplitAndInitTextRun(gfxContext *aContext,
+    bool SplitAndInitTextRun(DrawTarget *aDrawTarget,
                              gfxTextRun *aTextRun,
                              const T *aString,
                              uint32_t aRunStart,
@@ -1728,7 +1737,7 @@ public:
     // Get a ShapedWord representing the given text (either 8- or 16-bit)
     // for use in setting up a gfxTextRun.
     template<typename T>
-    gfxShapedWord* GetShapedWord(gfxContext *aContext,
+    gfxShapedWord* GetShapedWord(DrawTarget *aDrawTarget,
                                  const T *aText,
                                  uint32_t aLength,
                                  uint32_t aHash,
@@ -1842,6 +1851,11 @@ public:
     virtual already_AddRefed<gfxFont>
     GetSubSuperscriptFont(int32_t aAppUnitsPerDevPixel);
 
+    /**
+     * Return the reference cairo_t object from aDT.
+     */
+    static cairo_t* RefCairo(mozilla::gfx::DrawTarget* aDT);
+
 protected:
     virtual const Metrics& GetHorizontalMetrics() = 0;
 
@@ -1893,7 +1907,8 @@ protected:
         return -1;
     }
 
-    bool IsSpaceGlyphInvisible(gfxContext *aRefContext, gfxTextRun *aTextRun);
+    bool IsSpaceGlyphInvisible(DrawTarget* aRefDrawTarget,
+                               gfxTextRun* aTextRun);
 
     void AddGlyphChangeObserver(GlyphChangeObserver *aObserver);
     void RemoveGlyphChangeObserver(GlyphChangeObserver *aObserver);
@@ -1905,7 +1920,7 @@ protected:
     bool SpaceMayParticipateInShaping(int32_t aRunScript);
 
     // For 8-bit text, expand to 16-bit and then call the following method.
-    bool ShapeText(gfxContext    *aContext,
+    bool ShapeText(DrawTarget    *aContext,
                    const uint8_t *aText,
                    uint32_t       aOffset, // dest offset in gfxShapedText
                    uint32_t       aLength,
@@ -1915,7 +1930,7 @@ protected:
 
     // Call the appropriate shaper to generate glyphs for aText and store
     // them into aShapedText.
-    virtual bool ShapeText(gfxContext      *aContext,
+    virtual bool ShapeText(DrawTarget      *aContext,
                            const char16_t *aText,
                            uint32_t         aOffset,
                            uint32_t         aLength,
@@ -1926,12 +1941,12 @@ protected:
     // Helper to adjust for synthetic bold and set character-type flags
     // in the shaped text; implementations of ShapeText should call this
     // after glyph shaping has been completed.
-    void PostShapingFixup(gfxContext      *aContext,
-                          const char16_t *aText,
-                          uint32_t         aOffset, // position within aShapedText
-                          uint32_t         aLength,
-                          bool             aVertical,
-                          gfxShapedText   *aShapedText);
+    void PostShapingFixup(DrawTarget*     aContext,
+                          const char16_t* aText,
+                          uint32_t        aOffset, // position within aShapedText
+                          uint32_t        aLength,
+                          bool            aVertical,
+                          gfxShapedText*  aShapedText);
 
     // Shape text directly into a range within a textrun, without using the
     // font's word cache. Intended for use when the font has layout features
@@ -1941,7 +1956,7 @@ protected:
     // not handled via normal shaping, but does not otherwise divide up the
     // text.
     template<typename T>
-    bool ShapeTextWithoutWordCache(gfxContext *aContext,
+    bool ShapeTextWithoutWordCache(DrawTarget *aDrawTarget,
                                    const T    *aText,
                                    uint32_t    aOffset,
                                    uint32_t    aLength,
@@ -1955,7 +1970,7 @@ protected:
     // that will ensure we don't pass excessively long runs to the various
     // platform shapers.
     template<typename T>
-    bool ShapeFragmentWithoutWordCache(gfxContext *aContext,
+    bool ShapeFragmentWithoutWordCache(DrawTarget *aDrawTarget,
                                        const T    *aText,
                                        uint32_t    aOffset,
                                        uint32_t    aLength,
@@ -2125,7 +2140,7 @@ protected:
                         gfxTextRunDrawCallbacks *aCallbacks,
                         bool& aEmittedGlyphs) const;
 
-    bool RenderColorGlyph(gfxContext* aContext,
+    bool RenderColorGlyph(DrawTarget* aDrawTarget,
                           mozilla::gfx::ScaledFont* scaledFont,
                           mozilla::gfx::GlyphRenderingOptions* renderingOptions,
                           mozilla::gfx::DrawOptions drawOptions,
@@ -2139,7 +2154,7 @@ protected:
     // the second draw occurs at a constant offset in device pixels.
     // This helper calculates the scale factor we need to apply to the
     // synthetic-bold offset.
-    static double CalcXScale(gfxContext *aContext);
+    static double CalcXScale(DrawTarget* aDrawTarget);
 };
 
 // proportion of ascent used for x-height, if unable to read value from font

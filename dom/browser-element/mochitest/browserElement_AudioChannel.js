@@ -173,6 +173,7 @@ function audio() {
     ac.onactivestatechanged = function() {
       ok("activestatechanged event received.");
       ac.onactivestatechanged = null;
+      document.body.removeChild(iframe);
       runTests();
     }
   }
@@ -181,60 +182,7 @@ function audio() {
   document.body.appendChild(iframe);
 }
 
-function audioMutedByDefault() {
-  info("Test : audio-muted-by-default");
-  SpecialPowers.pushPrefEnv(
-    {'set': [["dom.audiochannel.mutedByDefault", true]]}, function () {
-      var iframe = document.createElement('iframe');
-      iframe.setAttribute('mozbrowser', 'true');
-      iframe.setAttribute('mozapp', 'http://example.org/manifest.webapp');
-      iframe.src = 'http://example.org/tests/dom/browser-element/mochitest/file_processingAudioSample.html';
-
-      function audio_loadend_MutedByDefault() {
-        ok("allowedAudioChannels" in iframe, "allowedAudioChannels exist");
-        var channels = iframe.allowedAudioChannels;
-        is(channels.length, 1, "1 audio channel by default");
-
-        var ac = channels[0];
-
-        ok(ac instanceof BrowserElementAudioChannel, "Correct class");
-        ok("getMuted" in ac, "ac.getMuted exists");
-        ok("setMuted" in ac, "ac.setMuted exists");
-
-        ac.onactivestatechanged = function() {
-          ok(true, "activestatechanged event received.");
-          ac.onactivestatechanged = null;
-
-          new Promise(function(r, rr) {
-            ac.getMuted().onsuccess = function(e) {
-              is(e.target.result, true, "Muted channel by default");
-              r();
-            }
-          })
-          .then(function() {
-            ac.setMuted(false).onsuccess = function(e) {
-              ok(true, "Unmuted the channel.");
-            }
-          })
-        }
-
-        var complete = false;
-        iframe.addEventListener("mozbrowsershowmodalprompt", function (e) {
-          is(e.detail.message, "playback-success", "Audio playback success!");
-          if (!complete) {
-            document.body.removeChild(iframe);
-            SpecialPowers.popPrefEnv(runTests);
-            complete = true;
-          }
-        });
-      }
-
-      iframe.addEventListener('mozbrowserloadend', audio_loadend_MutedByDefault);
-      document.body.appendChild(iframe);
-  });
-}
-
-var tests = [ noaudio, audio, audioMutedByDefault ];
+var tests = [ noaudio, audio ];
 
 function runTests() {
   if (tests.length == 0) {
@@ -246,6 +194,9 @@ function runTests() {
   test();
 }
 
-addEventListener('load', function() {
-  SimpleTest.executeSoon(runTests);
+addEventListener('testready', function() {
+  SpecialPowers.pushPrefEnv({'set': [["b2g.system_manifest_url", "http://mochi.test:8888/manifest.webapp"]]},
+                            function() {
+    SimpleTest.executeSoon(runTests);
+  });
 });

@@ -121,7 +121,7 @@ function TypedArrayEvery(callbackfn, thisArg = undefined) {
         var kValue = O[k];
 
         // Steps 9.d.iii-9.d.iv.
-        var testResult = callFunction(callbackfn, T, kValue, k, O);
+        var testResult = callContentFunction(callbackfn, T, kValue, k, O);
 
         // Step 9.d.v.
         if (!testResult)
@@ -212,7 +212,7 @@ function TypedArrayFilter(callbackfn, thisArg = undefined) {
         // Steps 13.b-c.
         var kValue = O[k];
         // Steps 13.d-e.
-        var selected = ToBoolean(callFunction(callbackfn, T, kValue, k, O));
+        var selected = ToBoolean(callContentFunction(callbackfn, T, kValue, k, O));
         // Step 13.f.
         if (selected) {
             // Step 13.f.i.
@@ -264,7 +264,7 @@ function TypedArrayFind(predicate, thisArg = undefined) {
         // Steps a-c.
         var kValue = O[k];
         // Steps d-f.
-        if (callFunction(predicate, T, kValue, k, O))
+        if (callContentFunction(predicate, T, kValue, k, O))
             return kValue;
     }
 
@@ -299,7 +299,7 @@ function TypedArrayFindIndex(predicate, thisArg = undefined) {
     // Steps a (implicit), and g.
     for (var k = 0; k < len; k++) {
         // Steps a-f.
-        if (callFunction(predicate, T, O[k], k, O))
+        if (callContentFunction(predicate, T, O[k], k, O))
             return k;
     }
 
@@ -311,8 +311,8 @@ function TypedArrayFindIndex(predicate, thisArg = undefined) {
 function TypedArrayForEach(callbackfn, thisArg = undefined) {
     // This function is not generic.
     if (!IsObject(this) || !IsTypedArray(this)) {
-	return callFunction(CallTypedArrayMethodIfWrapped, this, callbackfn, thisArg,
-			    "TypedArrayForEach");
+        return callFunction(CallTypedArrayMethodIfWrapped, this, callbackfn, thisArg,
+                            "TypedArrayForEach");
     }
 
     // Step 1-2.
@@ -323,9 +323,9 @@ function TypedArrayForEach(callbackfn, thisArg = undefined) {
 
     // Step 5.
     if (arguments.length === 0)
-	ThrowTypeError(JSMSG_MISSING_FUN_ARG, 0, 'TypedArray.prototype.forEach');
+        ThrowTypeError(JSMSG_MISSING_FUN_ARG, 0, 'TypedArray.prototype.forEach');
     if (!IsCallable(callbackfn))
-	ThrowTypeError(JSMSG_NOT_FUNCTION, DecompileArg(0, callbackfn));
+        ThrowTypeError(JSMSG_NOT_FUNCTION, DecompileArg(0, callbackfn));
 
     // Step 6.
     var T = thisArg;
@@ -333,9 +333,9 @@ function TypedArrayForEach(callbackfn, thisArg = undefined) {
     // Step 7-8.
     // Step 7, 8a (implicit) and 8e.
     for (var k = 0; k < len; k++) {
-	// Step 8b-8c are unnecessary since the condition always holds true for TypedArray.
-	// Step 8d.
-	callFunction(callbackfn, T, O[k], k, O);
+        // Step 8b-8c are unnecessary since the condition always holds true for TypedArray.
+        // Step 8d.
+        callContentFunction(callbackfn, T, O[k], k, O);
     }
 
     // Step 9.
@@ -526,7 +526,7 @@ function TypedArrayMap(callbackfn, thisArg = undefined) {
     // Steps 12, 13.a (implicit) and 13.h.
     for (var k = 0; k < len; k++) {
         // Steps 13.d-e.
-        var mappedValue = callFunction(callbackfn, T, O[k], k, O);
+        var mappedValue = callContentFunction(callbackfn, T, O[k], k, O);
         // Steps 13.f-g.
         A[k] = mappedValue;
     }
@@ -567,7 +567,7 @@ function TypedArrayReduce(callbackfn/*, initialValue*/) {
     // Step 11.
     // Omit steps 11.b-11.c and the 'if' clause in step 11.d, since there are no holes in typed arrays.
     for (; k < len; k++) {
-        accumulator = callFunction(callbackfn, undefined, accumulator, O[k], k, O);
+        accumulator = callContentFunction(callbackfn, undefined, accumulator, O[k], k, O);
     }
 
     // Step 12.
@@ -606,7 +606,7 @@ function TypedArrayReduceRight(callbackfn/*, initialValue*/) {
     // Step 11.
     // Omit steps 11.b-11.c and the 'if' clause in step 11.d, since there are no holes in typed arrays.
     for (; k >= 0; k--) {
-        accumulator = callFunction(callbackfn, undefined, accumulator, O[k], k, O);
+        accumulator = callContentFunction(callbackfn, undefined, accumulator, O[k], k, O);
     }
 
     // Step 12.
@@ -655,7 +655,7 @@ function ViewedArrayBufferIfReified(tarray) {
     assert(IsTypedArray(tarray), "non-typed array asked for its buffer");
 
     var buf = UnsafeGetReservedSlot(tarray, JS_TYPEDARRAYLAYOUT_BUFFER_SLOT);
-    assert(buf === null || (IsObject(buf) && IsArrayBuffer(buf)),
+    assert(buf === null || (IsObject(buf) && (IsArrayBuffer(buf) || IsSharedArrayBuffer(buf))),
            "unexpected value in buffer slot");
     return buf;
 }
@@ -666,8 +666,17 @@ function IsDetachedBuffer(buffer) {
     if (buffer === null)
         return false;
 
-    assert(IsArrayBuffer(buffer),
+    assert(IsArrayBuffer(buffer) || IsSharedArrayBuffer(buffer),
            "non-ArrayBuffer passed to IsDetachedBuffer");
+
+    // Typed arrays whose buffers map shared memory can't have been neutered.
+    //
+    // This check is more expensive than desirable, but IsDetachedBuffer is
+    // only hot for non-shared memory in SetFromNonTypedArray, so there is an
+    // optimization in place there to avoid incurring the cost here.  An
+    // alternative is to give SharedArrayBuffer the same layout as ArrayBuffer.
+    if (IsSharedArrayBuffer(buffer))
+	return false;
 
     var flags = UnsafeGetInt32FromReservedSlot(buffer, JS_ARRAYBUFFER_FLAGS_SLOT);
     return (flags & JS_ARRAYBUFFER_NEUTERED_FLAG) !== 0;
@@ -694,6 +703,11 @@ function SetFromNonTypedArray(target, array, targetOffset, targetLength, targetB
     // Step 22.
     var k = 0;
 
+    // Optimization: if the buffer is shared then it is not detachable
+    // and also not inline, so avoid checking overhead inside the loop in
+    // that case.
+    var isShared = targetBuffer !== null && IsSharedArrayBuffer(targetBuffer);
+
     // Steps 12-15, 21, 23-24.
     while (targetOffset < limitOffset) {
         // Steps 24a-c.
@@ -701,13 +715,15 @@ function SetFromNonTypedArray(target, array, targetOffset, targetLength, targetB
 
         // Step 24d.  This explicit check will be unnecessary when we implement
         // throw-on-getting/setting-element-in-detached-buffer semantics.
-        if (targetBuffer === null) {
-            // A typed array previously using inline storage may acquire a
-            // buffer, so we must check with the source.
-            targetBuffer = ViewedArrayBufferIfReified(target);
+        if (!isShared) {
+            if (targetBuffer === null) {
+                // A typed array previously using inline storage may acquire a
+                // buffer, so we must check with the source.
+                targetBuffer = ViewedArrayBufferIfReified(target);
+            }
+            if (IsDetachedBuffer(targetBuffer))
+                ThrowTypeError(JSMSG_TYPED_ARRAY_DETACHED);
         }
-        if (IsDetachedBuffer(targetBuffer))
-            ThrowTypeError(JSMSG_TYPED_ARRAY_DETACHED);
 
         // Step 24e.
         target[targetOffset] = kNumber;
@@ -876,7 +892,7 @@ function TypedArraySome(callbackfn, thisArg = undefined) {
         var kValue = O[k];
 
         // Steps 9.d.iii-9.d.iv.
-        var testResult = callFunction(callbackfn, T, kValue, k, O);
+        var testResult = callContentFunction(callbackfn, T, kValue, k, O);
 
         // Step 9.d.v.
         if (testResult)
@@ -885,6 +901,182 @@ function TypedArraySome(callbackfn, thisArg = undefined) {
 
     // Step 10.
     return false;
+}
+
+// For sorting small arrays
+function InsertionSort(array, from, to, comparefn) {
+    var item, swap;
+    for (var i = from + 1; i <= to; i++) {
+        item = array[i];
+        for (var j = i - 1; j >= from; j--) {
+            swap = array[j];
+            if (comparefn(swap, item) <= 0)
+                break
+            array[j + 1] = swap;
+        }
+        array[j + 1] = item;
+    }
+}
+
+function SwapArrayElements(array, i, j) {
+    var swap = array[i];
+    array[i] = array[j];
+    array[j] = swap;
+}
+
+// Rearranges the elements in array[from:to + 1] and returns an index j such that:
+// - from < j < to
+// - each element in array[from:j] is less than or equal to array[j]
+// - each element in array[j + 1:to + 1] greater than or equal to array[j].
+function Partition(array, from, to, comparefn) {
+    assert(to - from >= 3,
+           "Partition will not work with less than three elements");
+
+    var median_i = (from + to) >> 1;
+
+    var i = from + 1;
+    var j = to;
+
+    SwapArrayElements(array, median_i, i);
+
+    // Median of three pivot selection
+    if (comparefn(array[from], array[to]) > 0)
+        SwapArrayElements(array, from, to);
+
+    if (comparefn(array[i], array[to]) > 0)
+        SwapArrayElements(array, i, to);
+
+    if (comparefn(array[from], array[i]) > 0)
+        SwapArrayElements(array, from, i);
+
+    var pivot_i = i;
+
+    // Hoare partition method
+    for(;;) {
+        do i++; while (comparefn(array[i], array[pivot_i]) < 0);
+        do j--; while (comparefn(array[j], array[pivot_i]) > 0);
+        if (i > j)
+            break;
+        SwapArrayElements(array, i, j);
+    }
+
+    SwapArrayElements(array, pivot_i, j);
+    return j;
+}
+
+// In-place QuickSort
+function QuickSort(array, len, comparefn) {
+    // Managing the stack ourselves seems to provide a small performance boost
+    var stack = new List();
+    var top = 0;
+
+    var start = 0;
+    var end   = len - 1;
+
+    var pivot_i, i, j, l_len, r_len;
+
+    for (;;) {
+        // Insertion sort for the first N elements where N is some value
+        // determined by performance testing.
+        if (end - start <= 23) {
+            InsertionSort(array, start, end, comparefn);
+            if (top < 1)
+                break;
+            end   = stack[--top];
+            start = stack[--top];
+        } else {
+            pivot_i = Partition(array, start, end, comparefn);
+
+            // Calculate the left and right sub-array lengths and save
+            // stack space by directly modifying start/end so that
+            // we sort the longest of the two during the next iteration.
+            // This reduces the maximum stack size to log2(len)
+            l_len = (pivot_i - 1) - start;
+            r_len = end - (pivot_i + 1);
+
+            if (r_len > l_len) {
+                stack[top++] = start;
+                stack[top++] = pivot_i - 1;
+                start = pivot_i + 1;
+            } else {
+                stack[top++] = pivot_i + 1;
+                stack[top++] = end;
+                end = pivot_i - 1;
+            }
+
+        }
+    }
+    return array;
+}
+
+// ES6 draft 20151210 22.2.3.26
+// Cases are ordered according to likelihood of occurrence
+// as opposed to the ordering in the spec.
+function TypedArrayCompare(x, y) {
+    // Step 1.
+    assert(typeof x === "number" && typeof y === "number",
+           "x and y are not numbers.");
+
+    // Steps 6 - 7.
+    var diff = x - y;
+    if (diff)
+        return diff;
+
+    // Steps 8 - 10.
+    if (x === 0 && y === 0)
+        return (1/x > 0 ? 1 : 0) - (1/y > 0 ? 1 : 0);
+
+    // Step 2. Implemented in TypedArraySort
+
+    // Step 3.
+    if (Number_isNaN(x) && Number_isNaN(y))
+        return 0;
+
+    // Steps 4 - 5.
+    if (Number_isNaN(x) || Number_isNaN(y))
+        return Number_isNaN(x) ? 1 : -1;
+
+}
+
+// ES6 draft 20151210 22.2.3.26 %TypedArray%.prototype.sort ( comparefn ).
+function TypedArraySort(comparefn) {
+    // This function is not generic.
+    if (!IsObject(this) || !IsTypedArray(this)) {
+        return callFunction(CallTypedArrayMethodIfWrapped, this, comparefn,
+                            "TypedArraySort");
+    }
+
+    // Step 1.
+    var obj = this;
+
+    // Step 2.
+    var buffer = TypedArrayBuffer(obj);
+    if (IsDetachedBuffer(buffer))
+        ThrowTypeError(JSMSG_TYPED_ARRAY_DETACHED);
+
+    // Step 3.
+    var len = TypedArrayLength(obj);
+
+    if (comparefn === undefined) {
+        comparefn = TypedArrayCompare;
+    } else {
+        // To satisfy step 2 from TypedArray SortCompare described in 22.2.3.26
+        // the user supplied comparefn is wrapped.
+        var wrappedCompareFn = comparefn;
+        comparefn = function(x, y) {
+            // Step a.
+            var v = wrappedCompareFn(x, y);
+            // Step b.
+            if (IsDetachedBuffer(buffer))
+                ThrowTypeError(JSMSG_TYPED_ARRAY_DETACHED);
+            // Step c. is redundant, see:
+            // https://bugzilla.mozilla.org/show_bug.cgi?id=1121937#c36
+            // Step d.
+            return v;
+        }
+    }
+
+    return QuickSort(obj, len, comparefn);
 }
 
 // ES6 draft 20150304 %TypedArray%.prototype.subarray
@@ -948,6 +1140,7 @@ function TypedArrayValues() {
     // Step 7.
     return CreateArrayIterator(O, ITEM_KIND_VALUE);
 }
+_SetCanonicalName(TypedArrayValues, "values");
 
 // Proposed for ES7:
 // https://github.com/tc39/Array.prototype.includes/blob/7c023c19a0/spec.md
@@ -1058,7 +1251,7 @@ function TypedArrayFrom(constructor, target, items, mapfn, thisArg) {
         // Steps 10.d-e.
         while (true) {
             // Steps 10.e.i-ii.
-            var next = callFunction(iterator.next, iterator);
+            var next = callContentFunction(iterator.next, iterator);
             if (!IsObject(next))
                 ThrowTypeError(JSMSG_NEXT_RETURNED_PRIMITIVE);
 
@@ -1082,7 +1275,7 @@ function TypedArrayFrom(constructor, target, items, mapfn, thisArg) {
             var kValue = values[k];
 
             // Steps 10.j.iii-iv.
-            var mappedValue = mapping ? callFunction(mapfn, T, kValue, k) : kValue;
+            var mappedValue = mapping ? callContentFunction(mapfn, T, kValue, k) : kValue;
 
             // Steps 10.j.v-vi.
             targetObj[k] = mappedValue;
@@ -1116,7 +1309,7 @@ function TypedArrayFrom(constructor, target, items, mapfn, thisArg) {
         var kValue = arrayLike[k];
 
         // Steps 20.d-e.
-        var mappedValue = mapping ? callFunction(mapfn, T, kValue, k) : kValue;
+        var mappedValue = mapping ? callContentFunction(mapfn, T, kValue, k) : kValue;
 
         // Steps 20.f-g.
         targetObj[k] = mappedValue;

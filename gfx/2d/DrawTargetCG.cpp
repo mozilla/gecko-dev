@@ -257,7 +257,7 @@ GetRetainedImageFromSourceSurface(SourceSurface *aSurface)
     {
       RefPtr<DataSourceSurface> data = aSurface->GetDataSurface();
       if (!data) {
-        MOZ_CRASH("unsupported source surface");
+        MOZ_CRASH("GFX: unsupported source CG surface");
       }
       data.get()->AddRef();
       return CreateCGImage(releaseDataSurface, data.get(),
@@ -808,7 +808,7 @@ CreateCGPattern(const Pattern &aPattern, CGAffineTransform aUserSpace)
       yStep = static_cast<CGFloat>(1 << 22);
       break;
     case ExtendMode::REFLECT:
-      assert(0);
+      MOZ_FALLTHROUGH_ASSERT("ExtendMode::REFLECT");
     case ExtendMode::REPEAT:
       xStep = static_cast<CGFloat>(CGImageGetWidth(image));
       yStep = static_cast<CGFloat>(CGImageGetHeight(image));
@@ -1554,7 +1554,8 @@ DrawTargetCG::FillGlyphs(ScaledFont *aFont, const GlyphBuffer &aBuffer, const Pa
   Vector<CGPoint, 64> positions;
   if (!glyphs.resizeUninitialized(aBuffer.mNumGlyphs) ||
       !positions.resizeUninitialized(aBuffer.mNumGlyphs)) {
-    MOZ_CRASH("glyphs/positions allocation failed");
+    gfxDevCrash(LogReason::GlyphAllocFailedCG) << "glyphs/positions allocation failed";
+    return;
   }
 
   // Handle the flip

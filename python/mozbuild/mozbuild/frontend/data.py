@@ -18,7 +18,6 @@ structures.
 from __future__ import absolute_import, unicode_literals
 
 from mozbuild.util import StrictOrderingOnAppendList
-from mozbuild.shellutil import quote as shell_quote
 from mozpack.chrome.manifest import ManifestEntry
 
 import mozpack.path as mozpath
@@ -78,8 +77,20 @@ class ContextDerived(TreeMetadata):
         return self._context['FINAL_TARGET']
 
     @property
+    def defines(self):
+        defines = self._context['DEFINES']
+        return Defines(self._context, defines) if defines else None
+
+    @property
     def relobjdir(self):
         return mozpath.relpath(self.objdir, self.topobjdir)
+
+
+class HostMixin(object):
+    @property
+    def defines(self):
+        defines = self._context['HOST_DEFINES']
+        return HostDefines(self._context, defines) if defines else None
 
 
 class DirectoryTraversal(ContextDerived):
@@ -96,14 +107,12 @@ class DirectoryTraversal(ContextDerived):
     """
     __slots__ = (
         'dirs',
-        'test_dirs',
     )
 
     def __init__(self, context):
         ContextDerived.__init__(self, context)
 
         self.dirs = []
-        self.test_dirs = []
 
 
 class BaseConfigSubstitution(ContextDerived):
@@ -125,10 +134,6 @@ class BaseConfigSubstitution(ContextDerived):
 
 class ConfigFileSubstitution(BaseConfigSubstitution):
     """Describes a config file that will be generated using substitutions."""
-
-
-class HeaderFileSubstitution(BaseConfigSubstitution):
-    """Describes a header file that will be generated using substitutions."""
 
 
 class VariablePassthru(ContextDerived):
@@ -180,7 +185,7 @@ class BaseDefines(ContextDerived):
             elif value is False:
                 yield('-U%s' % define)
             else:
-                yield('-D%s=%s' % (define, shell_quote(value)))
+                yield('-D%s=%s' % (define, value))
 
     def update(self, more_defines):
         if isinstance(more_defines, Defines):
@@ -193,21 +198,6 @@ class Defines(BaseDefines):
 
 class HostDefines(BaseDefines):
     pass
-
-class Exports(ContextDerived):
-    """Context derived container object for EXPORTS, which is a
-    HierarchicalStringList.
-
-    We need an object derived from ContextDerived for use in the backend, so
-    this object fills that role. It just has a reference to the underlying
-    HierarchicalStringList, which is created when parsing EXPORTS.
-    """
-    __slots__ = ('exports', 'dist_install')
-
-    def __init__(self, context, exports, dist_install=True):
-        ContextDerived.__init__(self, context)
-        self.exports = exports
-        self.dist_install = dist_install
 
 class TestHarnessFiles(ContextDerived):
     """Sandbox container object for TEST_HARNESS_FILES,
@@ -224,20 +214,6 @@ class TestHarnessFiles(ContextDerived):
         self.srcdir_files = srcdir_files
         self.srcdir_pattern_files = srcdir_pattern_files
         self.objdir_files = objdir_files
-
-class BrandingFiles(ContextDerived):
-    """Sandbox container object for BRANDING_FILES, which is a
-    HierarchicalStringList.
-
-    We need an object derived from ContextDerived for use in the backend, so
-    this object fills that role. It just has a reference to the underlying
-    HierarchicalStringList, which is created when parsing BRANDING_FILES.
-    """
-    __slots__ = ('files')
-
-    def __init__(self, sandbox, files):
-        ContextDerived.__init__(self, sandbox)
-        self.files = files
 
 class IPDLFile(ContextDerived):
     """Describes an individual .ipdl source file."""
@@ -346,7 +322,7 @@ class LinkageWrongKindError(Exception):
 class Linkable(ContextDerived):
     """Generic context derived container object for programs and libraries"""
     __slots__ = (
-        'defines',
+        'lib_defines',
         'linked_libraries',
         'linked_system_libs',
     )
@@ -355,7 +331,7 @@ class Linkable(ContextDerived):
         ContextDerived.__init__(self, context)
         self.linked_libraries = []
         self.linked_system_libs = []
-        self.defines = Defines(context, {})
+        self.lib_defines = Defines(context, {})
 
     def link_library(self, obj):
         assert isinstance(obj, BaseLibrary)
@@ -409,7 +385,7 @@ class Program(BaseProgram):
     KIND = 'target'
 
 
-class HostProgram(BaseProgram):
+class HostProgram(HostMixin, BaseProgram):
     """Context derived container object for HOST_PROGRAM"""
     SUFFIX_VAR = 'HOST_BIN_SUFFIX'
     KIND = 'host'
@@ -421,7 +397,7 @@ class SimpleProgram(BaseProgram):
     KIND = 'target'
 
 
-class HostSimpleProgram(BaseProgram):
+class HostSimpleProgram(HostMixin, BaseProgram):
     """Context derived container object for each program in
     HOST_SIMPLE_PROGRAMS"""
     SUFFIX_VAR = 'HOST_BIN_SUFFIX'
@@ -484,6 +460,7 @@ class SharedLibrary(Library):
     __slots__ = (
         'soname',
         'variant',
+        'symbols_file',
     )
 
     FRAMEWORK = 1
@@ -491,7 +468,7 @@ class SharedLibrary(Library):
     MAX_VARIANT = 3
 
     def __init__(self, context, basename, real_name=None, is_sdk=False,
-            soname=None, variant=None):
+            soname=None, variant=None, symbols_file=False):
         assert(variant in range(1, self.MAX_VARIANT) or variant is None)
         Library.__init__(self, context, basename, real_name, is_sdk)
         self.variant = variant
@@ -520,6 +497,11 @@ class SharedLibrary(Library):
         else:
             self.soname = self.lib_name
 
+        if symbols_file:
+            self.symbols_file = '%s.symbols' % self.lib_name
+        else:
+            self.symbols_file = None
+
 
 class ExternalLibrary(object):
     """Empty mixin for libraries built by an external build system."""
@@ -535,7 +517,7 @@ class ExternalSharedLibrary(SharedLibrary, ExternalLibrary):
     build system."""
 
 
-class HostLibrary(BaseLibrary):
+class HostLibrary(HostMixin, BaseLibrary):
     """Context derived container object for a host library"""
     KIND = 'host'
 
@@ -729,7 +711,7 @@ class GeneratedSources(BaseSources):
         BaseSources.__init__(self, context, files, canonical_suffix)
 
 
-class HostSources(BaseSources):
+class HostSources(HostMixin, BaseSources):
     """Represents files to be compiled for the host during the build."""
 
     def __init__(self, context, files, canonical_suffix):
@@ -830,6 +812,32 @@ class TestingFiles(FinalTargetFiles):
     @property
     def install_target(self):
         return '_tests'
+
+
+class Exports(FinalTargetFiles):
+    """Context derived container object for EXPORTS, which is a
+    HierarchicalStringList.
+
+    We need an object derived from ContextDerived for use in the backend, so
+    this object fills that role. It just has a reference to the underlying
+    HierarchicalStringList, which is created when parsing EXPORTS.
+    """
+    @property
+    def install_target(self):
+        return 'dist/include'
+
+
+class BrandingFiles(FinalTargetFiles):
+    """Sandbox container object for BRANDING_FILES, which is a
+    HierarchicalStringList.
+
+    We need an object derived from ContextDerived for use in the backend, so
+    this object fills that role. It just has a reference to the underlying
+    HierarchicalStringList, which is created when parsing BRANDING_FILES.
+    """
+    @property
+    def install_target(self):
+        return 'dist/branding'
 
 
 class GeneratedFile(ContextDerived):

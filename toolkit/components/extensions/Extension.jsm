@@ -6,6 +6,8 @@
 
 this.EXPORTED_SYMBOLS = ["Extension", "ExtensionData"];
 
+/* globals Extension ExtensionData */
+
 /*
  * This file is the main entry point for extensions. When an extension
  * loads, its bootstrap.js file creates a Extension instance
@@ -21,8 +23,9 @@ const Cr = Components.results;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://devtools/shared/event-emitter.js");
 
+XPCOMUtils.defineLazyModuleGetter(this, "EventEmitter",
+                                  "resource://devtools/shared/event-emitter.js");
 XPCOMUtils.defineLazyModuleGetter(this, "Locale",
                                   "resource://gre/modules/Locale.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Log",
@@ -39,8 +42,12 @@ XPCOMUtils.defineLazyModuleGetter(this, "PrivateBrowsingUtils",
                                   "resource://gre/modules/PrivateBrowsingUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Preferences",
                                   "resource://gre/modules/Preferences.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Schemas",
+                                  "resource://gre/modules/Schemas.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "AppConstants",
+                                  "resource://gre/modules/AppConstants.jsm");
 
 Cu.import("resource://gre/modules/ExtensionManagement.jsm");
 
@@ -59,6 +66,15 @@ ExtensionManagement.registerScript("chrome://extensions/content/ext-webRequest.j
 ExtensionManagement.registerScript("chrome://extensions/content/ext-storage.js");
 ExtensionManagement.registerScript("chrome://extensions/content/ext-test.js");
 
+ExtensionManagement.registerSchema("chrome://extensions/content/schemas/cookies.json");
+ExtensionManagement.registerSchema("chrome://extensions/content/schemas/extension.json");
+ExtensionManagement.registerSchema("chrome://extensions/content/schemas/extension_types.json");
+ExtensionManagement.registerSchema("chrome://extensions/content/schemas/i18n.json");
+ExtensionManagement.registerSchema("chrome://extensions/content/schemas/idle.json");
+ExtensionManagement.registerSchema("chrome://extensions/content/schemas/runtime.json");
+ExtensionManagement.registerSchema("chrome://extensions/content/schemas/web_navigation.json");
+ExtensionManagement.registerSchema("chrome://extensions/content/schemas/web_request.json");
+
 Cu.import("resource://gre/modules/ExtensionUtils.jsm");
 var {
   LocaleData,
@@ -67,26 +83,32 @@ var {
   injectAPI,
   extend,
   flushJarCache,
-  instanceOf,
 } = ExtensionUtils;
 
 const LOGGER_ID_BASE = "addons.webextension.";
 
 var scriptScope = this;
 
+var ExtensionPage, GlobalManager;
+
 // This object loads the ext-*.js scripts that define the extension API.
 var Management = {
-  initialized: false,
+  initialized: null,
   scopes: [],
   apis: [],
+  schemaApis: [],
   emitter: new EventEmitter(),
 
   // Loads all the ext-*.js scripts currently registered.
   lazyInit() {
     if (this.initialized) {
-      return;
+      return this.initialized;
     }
-    this.initialized = true;
+
+    let promises = [];
+    for (let schema of ExtensionManagement.getSchemas()) {
+      promises.push(Schemas.load(schema));
+    }
 
     for (let script of ExtensionManagement.getScripts()) {
       let scope = {extensions: this,
@@ -98,6 +120,9 @@ var Management = {
       // Save the scope to avoid it being garbage collected.
       this.scopes.push(scope);
     }
+
+    this.initialized = Promise.all(promises);
+    return this.initialized;
   },
 
   // Called by an ext-*.js script to register an API. The |api|
@@ -119,9 +144,13 @@ var Management = {
     this.apis.push({api, permission});
   },
 
+  registerSchemaAPI(namespace, permission, api) {
+    this.schemaApis.push({namespace, permission, api});
+  },
+
   // Mash together into a single object all the APIs registered by the
   // functions above. Return the merged object.
-  generateAPIs(extension, context) {
+  generateAPIs(extension, context, apis) {
     let obj = {};
 
     // Recursively copy properties from source to dest.
@@ -138,7 +167,7 @@ var Management = {
       }
     }
 
-    for (let api of this.apis) {
+    for (let api of apis) {
       if (api.permission) {
         if (!extension.hasPermission(api.permission)) {
           continue;
@@ -159,13 +188,12 @@ var Management = {
 
   // Ask to run all the callbacks that are registered for a given hook.
   emit(hook, ...args) {
-    this.lazyInit();
     this.emitter.emit(hook, ...args);
   },
 
   off(hook, callback) {
     this.emitter.off(hook, callback);
-  }
+  },
 };
 
 // A MessageBroker that's used to send and receive messages for
@@ -183,9 +211,8 @@ var globalBroker = new MessageBroker([Services.mm, Services.ppmm]);
 // |uri| is the URI of the content (optional).
 // |docShell| is the docshell the content runs in (optional).
 // |incognito| is the content running in a private context (default: false).
-function ExtensionPage(extension, params)
-{
-  let {type, contentWindow, uri, docShell} = params;
+ExtensionPage = function(extension, params) {
+  let {type, contentWindow, uri} = params;
   this.extension = extension;
   this.type = type;
   this.contentWindow = contentWindow || null;
@@ -193,24 +220,51 @@ function ExtensionPage(extension, params)
   this.incognito = params.incognito || false;
   this.onClose = new Set();
 
-  // This is the sender property passed to the Messenger for this
-  // page. It can be augmented by the "page-open" hook.
-  let sender = {id: extension.id};
+  // This is the MessageSender property passed to extension.
+  // It can be augmented by the "page-open" hook.
+  let sender = {id: extension.uuid};
   if (uri) {
     sender.url = uri.spec;
   }
-  let delegate = {};
+  let delegate = {
+    getSender() {},
+  };
   Management.emit("page-load", this, params, sender, delegate);
 
-  let filter = {id: extension.id};
+  // Properties in |filter| must match those in the |recipient|
+  // parameter of sendMessage.
+  let filter = {extensionId: extension.id};
   this.messenger = new Messenger(this, globalBroker, sender, filter, delegate);
 
   this.extension.views.add(this);
-}
+};
 
 ExtensionPage.prototype = {
   get cloneScope() {
     return this.contentWindow;
+  },
+
+  get principal() {
+    return this.contentWindow.document.nodePrincipal;
+  },
+
+  checkLoadURL(url, options = {}) {
+    let ssm = Services.scriptSecurityManager;
+
+    let flags = ssm.STANDARD;
+    if (!options.allowScript) {
+      flags |= ssm.DISALLOW_SCRIPT;
+    }
+    if (!options.allowInheritsPrincipal) {
+      flags |= ssm.DISALLOW_INHERIT_PRINCIPAL;
+    }
+
+    try {
+      ssm.checkLoadURIStrWithPrincipal(this.principal, url, flags);
+    } catch (e) {
+      return false;
+    }
+    return true;
   },
 
   callOnClose(obj) {
@@ -241,7 +295,7 @@ ExtensionPage.prototype = {
 };
 
 // Responsible for loading extension APIs into the right globals.
-var GlobalManager = {
+GlobalManager = {
   // Number of extensions currently enabled.
   count: 0,
 
@@ -281,12 +335,30 @@ var GlobalManager = {
   },
 
   observe(contentWindow, topic, data) {
-    function inject(extension, context) {
+    let inject = (extension, context) => {
       let chromeObj = Cu.createObjectIn(contentWindow, {defineAs: "browser"});
       contentWindow.wrappedJSObject.chrome = contentWindow.wrappedJSObject.browser;
-      let api = Management.generateAPIs(extension, context);
+      let api = Management.generateAPIs(extension, context, Management.apis);
       injectAPI(api, chromeObj);
-    }
+
+      let schemaApi = Management.generateAPIs(extension, context, Management.schemaApis);
+      let schemaWrapper = {
+        callFunction(ns, name, args) {
+          return schemaApi[ns][name].apply(null, args);
+        },
+
+        addListener(ns, name, listener, args) {
+          return schemaApi[ns][name].addListener.call(null, listener, ...args);
+        },
+        removeListener(ns, name, listener) {
+          return schemaApi[ns][name].removeListener.call(null, listener);
+        },
+        hasListener(ns, name, listener) {
+          return schemaApi[ns][name].hasListener.call(null, listener);
+        },
+      };
+      Schemas.inject(chromeObj, schemaWrapper);
+    };
 
     // Find the add-on associated with this document via the
     // principal's originAttributes. This value is computed by
@@ -327,7 +399,7 @@ var GlobalManager = {
       if (event.target != docShell.contentViewer.DOMDocument) {
         return;
       }
-      eventHandler.removeEventListener("unload", listener);
+      eventHandler.removeEventListener("unload", listener, true);
       context.unload();
     };
     eventHandler.addEventListener("unload", listener, true);
@@ -342,8 +414,7 @@ var GlobalManager = {
 //
 // No functionality of this class is guaranteed to work before
 // |readManifest| has been called, and completed.
-this.ExtensionData = function(rootURI)
-{
+this.ExtensionData = function(rootURI) {
   this.rootURI = rootURI;
 
   this.manifest = null;
@@ -352,7 +423,7 @@ this.ExtensionData = function(rootURI)
   this._promiseLocales = null;
 
   this.errors = [];
-}
+};
 
 ExtensionData.prototype = {
   get logger() {
@@ -383,11 +454,12 @@ ExtensionData.prototype = {
         yield iter.forEach(entry => {
           results.push(entry);
         });
-      } catch (e) {}
+      } catch (e) {
+        // Always return a list, even if the directory does not exist (or is
+        // not a directory) for symmetry with the ZipReader behavior.
+      }
       iter.close();
 
-      // Always return a list, even if the directory does not exist (or is
-      // not a directory) for symmetry with the ZipReader behavior.
       return results;
     }
 
@@ -465,7 +537,9 @@ ExtensionData.prototype = {
 
       try {
         this.id = this.manifest.applications.gecko.id;
-      } catch (e) {}
+      } catch (e) {
+        // Errors are handled by the type check below.
+      }
 
       if (typeof this.id != "string") {
         this.manifestError("Missing required `applications.gecko.id` property");
@@ -558,7 +632,7 @@ ExtensionData.prototype = {
       if (!locales.has(defaultLocale)) {
         this.manifestError('Value for "default_locale" property must correspond to ' +
                            'a directory in "_locales/". Not found: ' +
-                           JSON.stringify(`_locales/${default_locale}/`));
+                           JSON.stringify(`_locales/${this.manifest.default_locale}/`));
       }
     } else if (locales.size) {
       this.manifestError('The "default_locale" property is required when a ' +
@@ -603,8 +677,7 @@ ExtensionData.prototype = {
 // installed (by trying to load a moz-extension URI referring to a
 // web_accessible_resource from the extension). getExtensionUUID
 // returns the UUID for a given add-on ID.
-function getExtensionUUID(id)
-{
+function getExtensionUUID(id) {
   const PREF_NAME = "extensions.webextensions.uuids";
 
   let pref = Preferences.get(PREF_NAME, "{}");
@@ -630,8 +703,7 @@ function getExtensionUUID(id)
 
 // We create one instance of this class per extension. |addonData|
 // comes directly from bootstrap.js when initializing.
-this.Extension = function(addonData)
-{
+this.Extension = function(addonData) {
   ExtensionData.call(this, addonData.resourceURI);
 
   this.uuid = getExtensionUUID(addonData.id);
@@ -660,7 +732,7 @@ this.Extension = function(addonData)
   this.webAccessibleResources = new Set();
 
   this.emitter = new EventEmitter();
-}
+};
 
 /**
  * This code is designed to make it easy to test a WebExtension
@@ -687,8 +759,7 @@ this.Extension = function(addonData)
  * The generated extension is stored in the system temporary directory,
  * and an nsIFile object pointing to it is returned.
  */
-this.Extension.generateXPI = function(id, data)
-{
+this.Extension.generateXPI = function(id, data) {
   let manifest = data.manifest;
   if (!manifest) {
     manifest = {};
@@ -776,8 +847,7 @@ this.Extension.generateXPI = function(id, data)
  * Generates a new extension using |Extension.generateXPI|, and initializes a
  * new |Extension| instance which will execute it.
  */
-this.Extension.generate = function(id, data)
-{
+this.Extension.generate = function(id, data) {
   let file = this.generateXPI(id, data);
 
   flushJarCache(file);
@@ -789,7 +859,7 @@ this.Extension.generate = function(id, data)
   return new Extension({
     id,
     resourceURI: jarURI,
-    cleanupFile: file
+    cleanupFile: file,
   });
 };
 
@@ -833,7 +903,7 @@ Extension.prototype = extend(Object.create(ExtensionData.prototype), {
       manifest: this.manifest,
       resourceURL: this.addonData.resourceURI.spec,
       baseURL: this.baseURI.spec,
-      content_scripts: this.manifest.content_scripts || [],
+      content_scripts: this.manifest.content_scripts || [],  // eslint-disable-line camelcase
       webAccessibleResources: this.webAccessibleResources,
       whiteListedHosts: this.whiteListedHosts.serialize(),
       localeData: this.localeData.serialize(),
@@ -843,6 +913,10 @@ Extension.prototype = extend(Object.create(ExtensionData.prototype), {
   broadcast(msg, data) {
     return new Promise(resolve => {
       let count = Services.ppmm.childCount;
+      if (AppConstants.MOZ_NUWA_PROCESS) {
+        // The nuwa process is frozen, so don't expect it to answer.
+        count--;
+      }
       Services.ppmm.addMessageListener(msg + "Complete", function listener() {
         count--;
         if (count == 0) {
@@ -860,10 +934,10 @@ Extension.prototype = extend(Object.create(ExtensionData.prototype), {
 
     let whitelist = [];
     for (let perm of permissions) {
-      if (perm.match(/:\/\//)) {
-        whitelist.push(perm);
-      } else {
+      if (/^\w+(\.\w+)*$/.test(perm)) {
         this.permissions.add(perm);
+      } else {
+        whitelist.push(perm);
       }
     }
     this.whiteListedHosts = new MatchPattern(whitelist);
@@ -921,7 +995,11 @@ Extension.prototype = extend(Object.create(ExtensionData.prototype), {
       return Promise.reject(e);
     }
 
-    return this.readManifest().then(() => {
+    let lazyInit = Management.lazyInit();
+
+    return lazyInit.then(() => {
+      return this.readManifest();
+    }).then(() => {
       return this.initLocale();
     }).then(() => {
       if (this.hasShutdown) {

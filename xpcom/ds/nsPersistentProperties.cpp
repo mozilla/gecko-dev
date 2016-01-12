@@ -524,11 +524,11 @@ nsPersistentProperties::SetStringProperty(const nsACString& aKey,
 {
   const nsAFlatCString&  flatKey = PromiseFlatCString(aKey);
   auto entry = static_cast<PropertyTableEntry*>
-                          (mTable.Add(flatKey.get(), mozilla::fallible));
+                          (mTable.Add(flatKey.get()));
 
   if (entry->mKey) {
     aOldValue = entry->mValue;
-    NS_WARNING(nsPrintfCString("the property %s already exists\n",
+    NS_WARNING(nsPrintfCString("the property %s already exists",
                                flatKey.get()).get());
   } else {
     aOldValue.Truncate();

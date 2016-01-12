@@ -143,6 +143,8 @@ class MochitestB2G(MochitestBase):
                             'stream': None}
             self.marionette_args['process_args'] = process_args
             self.marionette_args['profile'] = self.profile
+            # Increase the timeout to fix bug 1208725
+            self.marionette_args['socket_timeout'] = 720
 
             self.marionette = Marionette(**self.marionette_args)
             self.runner = self.marionette.runner
@@ -361,7 +363,6 @@ class MochitestB2G(MochitestBase):
         if len(self.urlOpts) > 0:
             test_url += "?" + "&".join(self.urlOpts)
         self.test_script_args.append(test_url)
-
 
         options.profilePath = self.app_ctx.remote_profile
         options.logFile = self.local_log

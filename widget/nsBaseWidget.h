@@ -139,7 +139,7 @@ public:
   virtual void            ClearCachedCursor() override { mUpdateCursor = true; }
   virtual void            SetTransparencyMode(nsTransparencyMode aMode) override;
   virtual nsTransparencyMode GetTransparencyMode() override;
-  virtual void            GetWindowClipRegion(nsTArray<nsIntRect>* aRects) override;
+  virtual void            GetWindowClipRegion(nsTArray<LayoutDeviceIntRect>* aRects) override;
   NS_IMETHOD              SetWindowShadowStyle(int32_t aStyle) override;
   virtual void            SetShowsToolbarButton(bool aShow) override {}
   virtual void            SetShowsFullScreenButton(bool aShow) override {}
@@ -166,7 +166,7 @@ public:
   virtual void            CleanupWindowEffects() override {}
   virtual bool            PreRender(LayerManagerComposite* aManager) override { return true; }
   virtual void            PostRender(LayerManagerComposite* aManager) override {}
-  virtual void            DrawWindowUnderlay(LayerManagerComposite* aManager, nsIntRect aRect) override {}
+  virtual void            DrawWindowUnderlay(LayerManagerComposite* aManager, LayoutDeviceIntRect aRect) override {}
   virtual void            DrawWindowOverlay(LayerManagerComposite* aManager, LayoutDeviceIntRect aRect) override {}
   virtual already_AddRefed<mozilla::gfx::DrawTarget> StartRemoteDrawing() override;
   virtual void            EndRemoteDrawing() override { };
@@ -175,7 +175,7 @@ public:
   NS_IMETHOD              SetModal(bool aModal) override;
   virtual uint32_t        GetMaxTouchPoints() const override;
   NS_IMETHOD              SetWindowClass(const nsAString& xulWinType) override;
-  virtual nsresult        SetWindowClipRegion(const nsTArray<nsIntRect>& aRects, bool aIntersectWithExisting) override;
+  virtual nsresult        SetWindowClipRegion(const nsTArray<LayoutDeviceIntRect>& aRects, bool aIntersectWithExisting) override;
   // Return whether this widget interprets parameters to Move and Resize APIs
   // as "global display pixels" rather than "device pixels", and therefore
   // applies its GetDefaultScale() value to them before using them as mBounds
@@ -217,6 +217,12 @@ public:
                           { return NS_ERROR_NOT_IMPLEMENTED; }
   NS_IMETHOD              SetPluginFocused(bool& aFocused) override
                           { return NS_ERROR_NOT_IMPLEMENTED; }
+  virtual void            SetCandidateWindowForPlugin(int32_t aX,
+                                                      int32_t aY) override
+                          { }
+  virtual void            DefaultProcOfPluginEvent(
+                            const mozilla::WidgetPluginEvent& aEvent) override
+                          { }
   NS_IMETHOD              AttachNativeKeyEvent(mozilla::WidgetKeyboardEvent& aEvent) override { return NS_ERROR_NOT_IMPLEMENTED; }
   NS_IMETHOD_(bool)       ExecuteNativeKeyBinding(
                             NativeKeyBindingsType aType,
@@ -231,9 +237,9 @@ public:
                                                          double& aOverriddenDeltaX,
                                                          double& aOverriddenDeltaY) override;
   virtual already_AddRefed<nsIWidget>
-  CreateChild(const nsIntRect  &aRect,
-              nsWidgetInitData *aInitData = nullptr,
-              bool             aForceUseIWidgetParent = false) override;
+  CreateChild(const LayoutDeviceIntRect& aRect,
+              nsWidgetInitData* aInitData = nullptr,
+              bool aForceUseIWidgetParent = false) override;
   NS_IMETHOD              AttachViewToTopLevel(bool aUseAttachedEvents) override;
   virtual nsIWidgetListener* GetAttachedWidgetListener() override;
   virtual void               SetAttachedWidgetListener(nsIWidgetListener* aListener) override;
@@ -350,8 +356,8 @@ protected:
                                   nsIFile **aResult);
   virtual void    OnDestroy();
   void            BaseCreate(nsIWidget *aParent,
-                             const nsIntRect &aRect,
-                             nsWidgetInitData *aInitData);
+                             const LayoutDeviceIntRect& aRect,
+                             nsWidgetInitData* aInitData);
 
   virtual void ConfigureAPZCTreeManager();
   virtual void ConfigureAPZControllerThread();
@@ -363,8 +369,9 @@ protected:
                                              uint64_t aInputBlockId,
                                              nsEventStatus aApzResponse);
 
-  const nsIntRegion RegionFromArray(const nsTArray<nsIntRect>& aRects);
-  void ArrayFromRegion(const nsIntRegion& aRegion, nsTArray<nsIntRect>& aRects);
+  const LayoutDeviceIntRegion RegionFromArray(const nsTArray<LayoutDeviceIntRect>& aRects);
+  void ArrayFromRegion(const LayoutDeviceIntRegion& aRegion,
+                       nsTArray<LayoutDeviceIntRect>& aRects);
 
   virtual nsIContent* GetLastRollup() override
   {
@@ -413,7 +420,7 @@ protected:
 
   virtual nsresult SynthesizeNativeTouchPoint(uint32_t aPointerId,
                                               TouchPointerState aPointerState,
-                                              nsIntPoint aPointerScreenPoint,
+                                              ScreenIntPoint aPointerScreenPoint,
                                               double aPointerPressure,
                                               uint32_t aPointerOrientation,
                                               nsIObserver* aObserver) override
@@ -428,10 +435,10 @@ protected:
 protected:
   // Utility to check if an array of clip rects is equal to our
   // internally stored clip rect array mClipRects.
-  bool IsWindowClipRegionEqual(const nsTArray<nsIntRect>& aRects);
+  bool IsWindowClipRegionEqual(const nsTArray<LayoutDeviceIntRect>& aRects);
 
   // Stores the clip rectangles in aRects into mClipRects.
-  void StoreWindowClipRegion(const nsTArray<nsIntRect>& aRects);
+  void StoreWindowClipRegion(const nsTArray<LayoutDeviceIntRect>& aRects);
 
   virtual already_AddRefed<nsIWidget>
   AllocateChildPopupWidget()
@@ -510,7 +517,7 @@ protected:
   nsIntRect         mBounds;
   CSSIntRect*       mOriginalBounds;
   // When this pointer is null, the widget is not clipped
-  mozilla::UniquePtr<nsIntRect[]> mClipRects;
+  mozilla::UniquePtr<LayoutDeviceIntRect[]> mClipRects;
   uint32_t          mClipRectCount;
   nsSizeMode        mSizeMode;
   nsPopupLevel      mPopupLevel;
@@ -520,7 +527,9 @@ protected:
   bool              mUpdateCursor;
   bool              mUseAttachedEvents;
   bool              mIMEHasFocus;
-
+#ifdef XP_WIN
+  bool              mAccessibilityInUseFlag;
+#endif
   static nsIRollupListener* gRollupListener;
 
   // the last rolled up popup. Only set this when an nsAutoRollup is in scope,
@@ -547,11 +556,11 @@ protected:
   static nsAutoString debug_GuiEventToString(mozilla::WidgetGUIEvent* aGuiEvent);
   static bool debug_WantPaintFlashing();
 
-  static void debug_DumpInvalidate(FILE *                aFileOut,
-                                   nsIWidget *           aWidget,
-                                   const nsIntRect *     aRect,
-                                   const nsAutoCString & aWidgetName,
-                                   int32_t               aWindowID);
+  static void debug_DumpInvalidate(FILE* aFileOut,
+                                   nsIWidget* aWidget,
+                                   const LayoutDeviceIntRect* aRect,
+                                   const nsAutoCString& aWidgetName,
+                                   int32_t aWindowID);
 
   static void debug_DumpEvent(FILE* aFileOut,
                               nsIWidget* aWidget,

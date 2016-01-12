@@ -125,7 +125,7 @@ MediaKeys::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)
 void
 MediaKeys::GetKeySystem(nsString& aOutKeySystem) const
 {
-  ConstructKeySystem(mKeySystem, mCDMVersion, aOutKeySystem);
+  aOutKeySystem.Assign(mKeySystem);
 }
 
 already_AddRefed<DetailedPromise>
@@ -502,6 +502,13 @@ MediaKeys::Bind(HTMLMediaElement* aElement)
   mElement = aElement;
 
   return NS_OK;
+}
+
+void
+MediaKeys::Unbind()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  mElement = nullptr;
 }
 
 } // namespace dom

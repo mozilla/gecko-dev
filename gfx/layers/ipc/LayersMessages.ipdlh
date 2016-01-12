@@ -36,6 +36,7 @@ using mozilla::LayerPoint from "Units.h";
 using mozilla::LayerRect from "Units.h";
 using mozilla::LayerIntRegion from "Units.h";
 using mozilla::ParentLayerIntRect from "Units.h";
+using mozilla::LayoutDeviceIntRect from "Units.h";
 using mozilla::layers::ScaleMode from "mozilla/layers/LayersTypes.h";
 using mozilla::layers::EventRegions from "mozilla/layers/LayersTypes.h";
 using mozilla::layers::EventRegionsOverride from "mozilla/layers/LayersTypes.h";
@@ -247,10 +248,7 @@ struct ContainerLayerAttributes {
   float presShellResolution;
   bool scaleToResolution;
   EventRegionsOverride eventRegionsOverride;
-  // This is a bare pointer; LayerTransactionParent::RecvUpdate prevents this
-  // from being used when !IsSameProcess(), but we should make this truly
-  // cross process at some point by passing the HMDConfig
-  uint64_t hmdInfo;
+  uint32_t hmdDeviceID;
 };
 struct ColorLayerAttributes     { LayerColor color; IntRect bounds; };
 struct CanvasLayerAttributes    { Filter filter; IntRect bounds; };
@@ -280,8 +278,8 @@ struct LayerAttributes {
 // See nsIWidget Configurations
 struct PluginWindowData {
   uintptr_t windowId;
-  IntRect[] clip;
-  IntRect bounds;
+  LayoutDeviceIntRect[] clip;
+  LayoutDeviceIntRect bounds;
   bool visible;
 };
 
@@ -473,6 +471,12 @@ union Edit {
   CompositableOperation;
 };
 
+// Operations related to destroying resources, always handled after the other
+// operations for safety.
+union OpDestroy {
+  PTexture;
+  PCompositable;
+};
 
 // Replies to operations
 

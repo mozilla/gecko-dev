@@ -895,6 +895,12 @@ Layer::GetTransform() const
   return transform;
 }
 
+const CSSTransformMatrix
+Layer::GetTransformTyped() const
+{
+  return ViewAs<CSSTransformMatrix>(GetTransform());
+}
+
 const Matrix4x4
 Layer::GetLocalTransform()
 {
@@ -910,6 +916,12 @@ Layer::GetLocalTransform()
   }
 
   return transform;
+}
+
+const LayerToParentLayerMatrix4x4
+Layer::GetLocalTransformTyped()
+{
+  return ViewAs<LayerToParentLayerMatrix4x4>(GetLocalTransform());
 }
 
 bool
@@ -941,7 +953,7 @@ Layer::ApplyPendingUpdatesForThisTransaction()
   }
 }
 
-const float
+float
 Layer::GetLocalOpacity()
 {
   float opacity = mOpacity;
@@ -1117,7 +1129,8 @@ ContainerLayer::ContainerLayer(LayerManager* aManager, void* aImplData)
     mSupportsComponentAlphaChildren(false),
     mMayHaveReadbackChild(false),
     mChildrenChanged(false),
-    mEventRegionsOverride(EventRegionsOverride::NoOverride)
+    mEventRegionsOverride(EventRegionsOverride::NoOverride),
+    mVRDeviceID(0)
 {
   MOZ_COUNT_CTOR(ContainerLayer);
   mContentFlags = 0; // Clear NO_TEXT, NO_TEXT_OVER_TRANSPARENT
@@ -1279,7 +1292,7 @@ ContainerLayer::FillSpecificAttributes(SpecificLayerAttributes& aAttrs)
                                     mInheritedXScale, mInheritedYScale,
                                     mPresShellResolution, mScaleToResolution,
                                     mEventRegionsOverride,
-                                    reinterpret_cast<uint64_t>(mHMDInfo.get()));
+                                    mVRDeviceID);
 }
 
 bool
@@ -2143,8 +2156,8 @@ ContainerLayer::PrintInfo(std::stringstream& aStream, const char* aPrefix)
   if (mEventRegionsOverride & EventRegionsOverride::ForceEmptyHitRegion) {
     aStream << " [force-ehr]";
   }
-  if (mHMDInfo) {
-    aStream << nsPrintfCString(" [hmd=%p]", mHMDInfo.get()).get();
+  if (mVRDeviceID) {
+    aStream << nsPrintfCString(" [hmd=%lu]", mVRDeviceID).get();
   }
 }
 
@@ -2430,7 +2443,7 @@ void
 SetAntialiasingFlags(Layer* aLayer, DrawTarget* aTarget)
 {
   bool permitSubpixelAA = !(aLayer->GetContentFlags() & Layer::CONTENT_DISABLE_SUBPIXEL_AA);
-  if (aTarget->GetFormat() != SurfaceFormat::B8G8R8A8) {
+  if (aTarget->IsCurrentGroupOpaque()) {
     aTarget->SetPermitSubpixelAA(permitSubpixelAA);
     return;
   }

@@ -15,7 +15,7 @@ var {HostType} = require("devtools/client/framework/toolbox").Toolbox;
 
 loader.lazyRequireGetter(this, "CSS", "CSS");
 
-loader.lazyGetter(this, "MarkupView", () => require("devtools/client/markupview/markup-view").MarkupView);
+loader.lazyGetter(this, "MarkupView", () => require("devtools/client/inspector/markup/markup").MarkupView);
 loader.lazyGetter(this, "HTMLBreadcrumbs", () => require("devtools/client/inspector/breadcrumbs").HTMLBreadcrumbs);
 loader.lazyGetter(this, "ToolSidebar", () => require("devtools/client/framework/sidebar").ToolSidebar);
 loader.lazyGetter(this, "InspectorSearch", () => require("devtools/client/inspector/inspector-search").InspectorSearch);
@@ -172,7 +172,7 @@ InspectorPanel.prototype = {
         let notificationBox = this._toolbox.getNotificationBox();
         let notification = notificationBox.getNotificationWithValue("inspector-script-paused");
         if (!notification && this._toolbox.currentToolId == "inspector" &&
-            this.target.isThreadPaused) {
+            this._toolbox.threadClient.paused) {
           let message = strings.GetStringFromName("debuggerPausedWarning.message");
           notificationBox.appendNotification(message,
             "inspector-script-paused", "", notificationBox.PRIORITY_WARNING_HIGH);
@@ -182,7 +182,7 @@ InspectorPanel.prototype = {
           notificationBox.removeNotification(notification);
         }
 
-        if (notification && !this.target.isThreadPaused) {
+        if (notification && !this._toolbox.threadClient.paused) {
           notificationBox.removeNotification(notification);
         }
 
@@ -353,21 +353,21 @@ InspectorPanel.prototype = {
     this.sidebar.on("select", this._setDefaultSidebar);
 
     this.sidebar.addTab("ruleview",
-                        "chrome://devtools/content/styleinspector/cssruleview.xhtml",
+                        "chrome://devtools/content/inspector/rules/rules.xhtml",
                         "ruleview" == defaultTab);
 
     this.sidebar.addTab("computedview",
-                        "chrome://devtools/content/styleinspector/computedview.xhtml",
+                        "chrome://devtools/content/inspector/computed/computed.xhtml",
                         "computedview" == defaultTab);
 
     if (Services.prefs.getBoolPref("devtools.fontinspector.enabled") && this.canGetUsedFontFaces) {
       this.sidebar.addTab("fontinspector",
-                          "chrome://devtools/content/fontinspector/font-inspector.xhtml",
+                          "chrome://devtools/content/inspector/fonts/fonts.xhtml",
                           "fontinspector" == defaultTab);
     }
 
     this.sidebar.addTab("layoutview",
-                        "chrome://devtools/content/layoutview/view.xhtml",
+                        "chrome://devtools/content/inspector/layout/layout.xhtml",
                         "layoutview" == defaultTab);
 
     if (this.target.form.animationsActor) {
@@ -924,7 +924,7 @@ InspectorPanel.prototype = {
 
     this._markupBox.setAttribute("collapsed", true);
     this._markupBox.appendChild(this._markupFrame);
-    this._markupFrame.setAttribute("src", "chrome://devtools/content/markupview/markup-view.xhtml");
+    this._markupFrame.setAttribute("src", "chrome://devtools/content/inspector/markup/markup.xhtml");
     this._markupFrame.setAttribute("aria-label", strings.GetStringFromName("inspector.panelLabel.markupView"));
   },
 

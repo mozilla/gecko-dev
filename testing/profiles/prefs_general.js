@@ -83,9 +83,9 @@ user_pref("geo.wifi.logging.enabled", true);
 // Make url-classifier updates so rare that they won't affect tests
 user_pref("urlclassifier.updateinterval", 172800);
 // Point the url-classifier to the local testing server for fast failures
+user_pref("browser.safebrowsing.appRepURL", "http://%(server)s/safebrowsing-dummy/update");
 user_pref("browser.safebrowsing.provider.google.gethashURL", "http://%(server)s/safebrowsing-dummy/gethash");
 user_pref("browser.safebrowsing.provider.google.updateURL", "http://%(server)s/safebrowsing-dummy/update");
-user_pref("browser.safebrowsing.provider.google.appRepURL", "http://%(server)s/safebrowsing-dummy/update");
 user_pref("browser.safebrowsing.provider.mozilla.gethashURL", "http://%(server)s/safebrowsing-dummy/gethash");
 user_pref("browser.safebrowsing.provider.mozilla.updateURL", "http://%(server)s/safebrowsing-dummy/update");
 user_pref("privacy.trackingprotection.introURL", "http://%(server)s/trackingprotection/tour");
@@ -97,6 +97,8 @@ user_pref("extensions.hotfix.url", "http://%(server)s/extensions-dummy/hotfixURL
 user_pref("extensions.systemAddon.update.url", "http://%(server)s/dummy-system-addons.xml");
 // Turn off extension updates so they don't bother tests
 user_pref("extensions.update.enabled", false);
+// Bug 1235627 Turn off pocket add-on so it doesn't bother tests
+user_pref("extensions.pocket.enabled", false);
 // Make sure opening about:addons won't hit the network
 user_pref("extensions.webservice.discoverURL", "http://%(server)s/extensions-dummy/discoveryURL");
 // Make sure AddonRepository won't hit the network
@@ -159,6 +161,9 @@ user_pref("layout.css.object-fit-and-position.enabled", true);
 
 // Enable webkit prefixed CSS features for testing
 user_pref("layout.css.prefixes.webkit", true);
+
+// Enable -webkit-{min|max}-device-pixel-ratio media queries for testing
+user_pref("layout.css.prefixes.device-pixel-ratio-webkit", true);
 
 // Disable spammy layout warnings because they pollute test logs
 user_pref("layout.spammy_warnings.enabled", false);
@@ -224,9 +229,6 @@ user_pref('browser.contentHandlers.types.2.uri', 'http://test1.example.org/rss?u
 user_pref('browser.contentHandlers.types.3.uri', 'http://test1.example.org/rss?url=%%s')
 user_pref('browser.contentHandlers.types.4.uri', 'http://test1.example.org/rss?url=%%s')
 user_pref('browser.contentHandlers.types.5.uri', 'http://test1.example.org/rss?url=%%s')
-
-// Set dummy server for Android tiles testing.
-user_pref('browser.tiles.reportURL', 'http://%(server)s/tests/robocop/robocop_tiles.sjs')
 
 // We want to collect telemetry, but we don't want to send in the results.
 user_pref('toolkit.telemetry.server', 'https://%(server)s/telemetry-dummy/');
@@ -308,6 +310,7 @@ user_pref("media.decoder.heuristic.dormant.timeout", 0);
 #endif
 
 // Don't prompt about e10s
+user_pref("browser.displayedE10SNotice", 5);
 user_pref("browser.displayedE10SPrompt.1", 5);
 // Don't use auto-enabled e10s
 user_pref("browser.tabs.remote.autostart.1", false);
@@ -338,3 +341,5 @@ user_pref("browser.urlbar.suggest.searches", false);
 user_pref("browser.urlbar.userMadeSearchSuggestionsChoice", true);
 
 user_pref("dom.audiochannel.mutedByDefault", false);
+
+user_pref("webextensions.tests", true);

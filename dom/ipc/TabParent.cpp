@@ -184,7 +184,7 @@ private:
         // Our TabParent may have been destroyed already.  If so, don't send any
         // fds over, just go back to the IO thread and close them.
         if (!tabParent->IsDestroyed()) {
-            mozilla::Unused << tabParent->SendCacheFileDescriptor(mPath, fd);
+            Unused << tabParent->SendCacheFileDescriptor(mPath, fd);
         }
 
         if (!mFD) {
@@ -232,7 +232,7 @@ private:
             // Intentionally leak the runnable (but not the fd) rather
             // than crash when trying to release a main thread object
             // off the main thread.
-            mozilla::Unused << mTabParent.forget();
+            Unused << mTabParent.forget();
             CloseFile();
         }
     }
@@ -387,6 +387,11 @@ TabParent::AddWindowListeners()
       mPresShellWithRefreshListener = shell;
       shell->AddPostRefreshObserver(this);
     }
+
+    RefPtr<AudioChannelService> acs = AudioChannelService::GetOrCreate();
+    if (acs) {
+      acs->RegisterTabParent(this);
+    }
   }
 }
 
@@ -404,6 +409,11 @@ TabParent::RemoveWindowListeners()
   if (mPresShellWithRefreshListener) {
     mPresShellWithRefreshListener->RemovePostRefreshObserver(this);
     mPresShellWithRefreshListener = nullptr;
+  }
+
+  RefPtr<AudioChannelService> acs = AudioChannelService::GetOrCreate();
+  if (acs) {
+    acs->UnregisterTabParent(this);
   }
 }
 
@@ -428,7 +438,7 @@ TabParent::GetAppType(nsAString& aOut)
 }
 
 bool
-TabParent::IsVisible()
+TabParent::IsVisible() const
 {
   RefPtr<nsFrameLoader> frameLoader = GetFrameLoader();
   if (!frameLoader) {
@@ -458,8 +468,31 @@ static void LogChannelRelevantInfo(nsIURI* aURI,
   LOG("Result principal origin: %s\n", resultPrincipalOrigin.get());
 }
 
+// This is similar to nsIScriptSecurityManager.getChannelResultPrincipal
+// but taking signedPkg into account. The reason we can't rely on channel
+// loadContext/loadInfo is it's dangerous to mutate them on parent process.
+static already_AddRefed<nsIPrincipal>
+GetChannelPrincipalWithSingedPkg(nsIChannel* aChannel, const nsACString& aSignedPkg)
+{
+  NeckoOriginAttributes neckoAttrs;
+  NS_GetOriginAttributes(aChannel, neckoAttrs);
+
+  PrincipalOriginAttributes attrs;
+  attrs.InheritFromNecko(neckoAttrs);
+  attrs.mSignedPkg = NS_ConvertUTF8toUTF16(aSignedPkg);
+
+  nsCOMPtr<nsIURI> uri;
+  nsresult rv = NS_GetFinalChannelURI(aChannel, getter_AddRefs(uri));
+  NS_ENSURE_SUCCESS(rv, nullptr);
+
+  nsCOMPtr<nsIPrincipal> principal =
+    BasePrincipal::CreateCodebasePrincipal(uri, attrs);
+
+  return principal.forget();
+}
+
 bool
-TabParent::ShouldSwitchProcess(nsIChannel* aChannel)
+TabParent::ShouldSwitchProcess(nsIChannel* aChannel, const nsACString& aSignedPkg)
 {
   // If we lack of any information which is required to decide the need of
   // process switch, consider that we should switch process.
@@ -473,19 +506,18 @@ TabParent::ShouldSwitchProcess(nsIChannel* aChannel)
   NS_ENSURE_TRUE(loadingPrincipal, true);
 
   // Prepare the channel result principal.
-  nsCOMPtr<nsIPrincipal> resultPrincipal;
-  nsContentUtils::GetSecurityManager()->
-    GetChannelResultPrincipal(aChannel, getter_AddRefs(resultPrincipal));
+  nsCOMPtr<nsIPrincipal> channelPrincipal =
+    GetChannelPrincipalWithSingedPkg(aChannel, aSignedPkg);
 
   // Log the debug info which is used to decide the need of proces switch.
   nsCOMPtr<nsIURI> uri;
   aChannel->GetURI(getter_AddRefs(uri));
-  LogChannelRelevantInfo(uri, loadingPrincipal, resultPrincipal,
+  LogChannelRelevantInfo(uri, loadingPrincipal, channelPrincipal,
                          loadInfo->InternalContentPolicyType());
 
   // Check if the signed package is loaded from the same origin.
   bool sameOrigin = false;
-  loadingPrincipal->Equals(resultPrincipal, &sameOrigin);
+  loadingPrincipal->Equals(channelPrincipal, &sameOrigin);
   if (sameOrigin) {
     LOG("Loading singed package from the same origin. Don't switch process.\n");
     return false;
@@ -516,7 +548,7 @@ void
 TabParent::OnStartSignedPackageRequest(nsIChannel* aChannel,
                                        const nsACString& aPackageId)
 {
-  if (!ShouldSwitchProcess(aChannel)) {
+  if (!ShouldSwitchProcess(aChannel, aPackageId)) {
     return;
   }
 
@@ -1633,7 +1665,7 @@ TabParent::RecvSynthesizeNativeMouseScrollEvent(const LayoutDeviceIntPoint& aPoi
 bool
 TabParent::RecvSynthesizeNativeTouchPoint(const uint32_t& aPointerId,
                                           const TouchPointerState& aPointerState,
-                                          const nsIntPoint& aPointerScreenPoint,
+                                          const ScreenIntPoint& aPointerScreenPoint,
                                           const double& aPointerPressure,
                                           const uint32_t& aPointerOrientation,
                                           const uint64_t& aObserverId)
@@ -1648,7 +1680,7 @@ TabParent::RecvSynthesizeNativeTouchPoint(const uint32_t& aPointerId,
 }
 
 bool
-TabParent::RecvSynthesizeNativeTouchTap(const nsIntPoint& aPointerScreenPoint,
+TabParent::RecvSynthesizeNativeTouchTap(const ScreenIntPoint& aPointerScreenPoint,
                                         const bool& aLongTap,
                                         const uint64_t& aObserverId)
 {
@@ -2316,21 +2348,24 @@ TabParent::GetTabIdFrom(nsIDocShell *docShell)
 RenderFrameParent*
 TabParent::GetRenderFrame()
 {
-  PRenderFrameParent* p = LoneManagedOrNull(ManagedPRenderFrameParent());
+  PRenderFrameParent* p = LoneManagedOrNullAsserts(ManagedPRenderFrameParent());
   return static_cast<RenderFrameParent*>(p);
 }
 
 bool
-TabParent::RecvEndIMEComposition(const bool& aCancel,
-                                 bool* aNoCompositionEvent,
-                                 nsString* aComposition)
+TabParent::RecvRequestIMEToCommitComposition(const bool& aCancel,
+                                             bool* aIsCommitted,
+                                             nsString* aCommittedString)
 {
   nsCOMPtr<nsIWidget> widget = GetWidget();
   if (!widget) {
+    *aIsCommitted = false;
     return true;
   }
-  *aNoCompositionEvent =
-    !mContentCache.RequestToCommitComposition(widget, aCancel, *aComposition);
+
+  *aIsCommitted =
+    mContentCache.RequestIMEToCommitComposition(widget, aCancel,
+                                                *aCommittedString);
   return true;
 }
 
@@ -2344,7 +2379,7 @@ TabParent::RecvStartPluginIME(const WidgetKeyboardEvent& aKeyboardEvent,
     return true;
   }
   widget->StartPluginIME(aKeyboardEvent,
-                         (int32_t&)aPanelX, 
+                         (int32_t&)aPanelX,
                          (int32_t&)aPanelY,
                          *aCommitted);
   return true;
@@ -2361,23 +2396,45 @@ TabParent::RecvSetPluginFocused(const bool& aFocused)
   return true;
 }
 
+ bool
+TabParent::RecvSetCandidateWindowForPlugin(const int32_t& aX,
+                                           const int32_t& aY)
+{
+  nsCOMPtr<nsIWidget> widget = GetWidget();
+  if (!widget) {
+    return true;
+  }
+
+  widget->SetCandidateWindowForPlugin(aX, aY);
+  return true;
+}
+
+bool
+TabParent::RecvDefaultProcOfPluginEvent(const WidgetPluginEvent& aEvent)
+{
+  nsCOMPtr<nsIWidget> widget = GetWidget();
+  if (!widget) {
+    return true;
+  }
+
+  widget->DefaultProcOfPluginEvent(aEvent);
+  return true;
+}
+
 bool
 TabParent::RecvGetInputContext(int32_t* aIMEEnabled,
-                               int32_t* aIMEOpen,
-                               intptr_t* aNativeIMEContext)
+                               int32_t* aIMEOpen)
 {
   nsCOMPtr<nsIWidget> widget = GetWidget();
   if (!widget) {
     *aIMEEnabled = IMEState::DISABLED;
     *aIMEOpen = IMEState::OPEN_STATE_NOT_SUPPORTED;
-    *aNativeIMEContext = 0;
     return true;
   }
 
   InputContext context = widget->GetInputContext();
   *aIMEEnabled = static_cast<int32_t>(context.mIMEState.mEnabled);
   *aIMEOpen = static_cast<int32_t>(context.mIMEState.mOpen);
-  *aNativeIMEContext = reinterpret_cast<intptr_t>(context.mNativeIMEContext);
   return true;
 }
 
@@ -2636,7 +2693,6 @@ TabParent::RecvAudioChannelActivityNotification(const uint32_t& aAudioChannel,
 
   nsCOMPtr<nsIObserverService> os = services::GetObserverService();
   if (os) {
-    RefPtr<AudioChannelService> service = AudioChannelService::GetOrCreate();
     nsAutoCString topic;
     topic.Assign("audiochannel-activity-");
     topic.Append(AudioChannelService::GetAudioChannelTable()[aAudioChannel].tag);
@@ -2694,6 +2750,12 @@ TabParent::ApzAwareEventRoutingToChild(ScrollableLayerGuid* aOutTargetGuid,
                                        uint64_t* aOutInputBlockId,
                                        nsEventStatus* aOutApzResponse)
 {
+  // Let the widget know that the event will be sent to the child process,
+  // which will (hopefully) send a confirmation notice back to APZ.
+  // Do this even if APZ is off since we need it for swipe gesture support on
+  // OS X without APZ.
+  InputAPZContext::SetRoutedToChildProcess();
+
   if (AsyncPanZoomEnabled()) {
     if (aOutTargetGuid) {
       *aOutTargetGuid = InputAPZContext::GetTargetLayerGuid();
@@ -2715,10 +2777,6 @@ TabParent::ApzAwareEventRoutingToChild(ScrollableLayerGuid* aOutTargetGuid,
     if (aOutApzResponse) {
       *aOutApzResponse = InputAPZContext::GetApzResponse();
     }
-
-    // Let the widget know that the event will be sent to the child process,
-    // which will (hopefully) send a confirmation notice back to APZ.
-    InputAPZContext::SetRoutedToChildProcess();
   } else {
     if (aOutInputBlockId) {
       *aOutInputBlockId = 0;
@@ -3393,6 +3451,33 @@ TabParent::GetShowInfo()
 
   return ShowInfo(EmptyString(), false, false, false,
                   mDPI, mDefaultScale.scale);
+}
+
+void
+TabParent::AudioChannelChangeNotification(nsPIDOMWindow* aWindow,
+                                          AudioChannel aAudioChannel,
+                                          float aVolume,
+                                          bool aMuted)
+{
+  if (!mFrameElement || !mFrameElement->OwnerDoc()) {
+    return;
+  }
+
+  nsCOMPtr<nsPIDOMWindow> window = mFrameElement->OwnerDoc()->GetWindow();
+  while (window) {
+    if (window == aWindow) {
+      Unused << SendAudioChannelChangeNotification(static_cast<uint32_t>(aAudioChannel),
+                                                   aVolume, aMuted);
+      break;
+    }
+
+    nsCOMPtr<nsPIDOMWindow> win = window->GetScriptableParent();
+    if (window == win) {
+      break;
+    }
+
+    window = win;
+  }
 }
 
 NS_IMETHODIMP

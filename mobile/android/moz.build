@@ -24,7 +24,6 @@ DIRS += [
     'app',
     'fonts',
     'geckoview_library',
-    'extensions',
 ]
 
 DIRS += ['../../xulrunner/tools/redit']
@@ -32,3 +31,5 @@ DIRS += ['../../xulrunner/tools/redit']
 TEST_DIRS += [
     'tests',
 ]
+
+SPHINX_TREES['fennec'] = 'docs'

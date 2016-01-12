@@ -1075,9 +1075,10 @@ nsDOMWindowUtils::SendNativeTouchPoint(uint32_t aPointerId,
   }
 
   NS_DispatchToMainThread(NS_NewRunnableMethodWithArgs
-    <uint32_t, nsIWidget::TouchPointerState, nsIntPoint, double, uint32_t, nsIObserver*>
+    <uint32_t, nsIWidget::TouchPointerState, ScreenIntPoint, double, uint32_t, nsIObserver*>
     (widget, &nsIWidget::SynthesizeNativeTouchPoint, aPointerId,
-    (nsIWidget::TouchPointerState)aTouchState, nsIntPoint(aScreenX, aScreenY),
+    (nsIWidget::TouchPointerState)aTouchState,
+    ScreenIntPoint(aScreenX, aScreenY),
     aPressure, aOrientation, aObserver));
   return NS_OK;
 }
@@ -1094,9 +1095,9 @@ nsDOMWindowUtils::SendNativeTouchTap(int32_t aScreenX,
   }
 
   NS_DispatchToMainThread(NS_NewRunnableMethodWithArgs
-    <nsIntPoint, bool, nsIObserver*>
+    <ScreenIntPoint, bool, nsIObserver*>
     (widget, &nsIWidget::SynthesizeNativeTouchTap,
-    nsIntPoint(aScreenX, aScreenY), aLongTap, aObserver));
+    ScreenIntPoint(aScreenX, aScreenY), aLongTap, aObserver));
   return NS_OK;
 }
 
@@ -3095,6 +3096,10 @@ nsDOMWindowUtils::ExitFullscreen()
 {
   nsCOMPtr<nsIDocument> doc = GetDocument();
   NS_ENSURE_STATE(doc);
+
+  // Although we would not use the old size if we have already exited
+  // fullscreen, we still want to cleanup in case we haven't.
+  nsSize oldSize = OldWindowSize::GetAndRemove(doc->GetWindow());
   if (!doc->IsFullScreenDoc()) {
     return NS_OK;
   }
@@ -3103,9 +3108,7 @@ nsDOMWindowUtils::ExitFullscreen()
   // set the window dimensions in advance. Since the resize message
   // comes after the fullscreen change call, doing so could avoid an
   // extra resize reflow after this point.
-  FullscreenChangePrepare prepare(
-    GetPresShell(), OldWindowSize::GetAndRemove(doc->GetWindow()));
-
+  FullscreenChangePrepare prepare(GetPresShell(), oldSize);
   nsIDocument::ExitFullscreenInDocTree(doc);
   return NS_OK;
 }

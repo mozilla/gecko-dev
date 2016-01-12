@@ -20,11 +20,11 @@ add_task(function* testPageActionPopup() {
   let extension = ExtensionTestUtils.loadExtension({
     manifest: {
       "background": {
-        "page": "data/background.html"
+        "page": "data/background.html",
       },
       "page_action": {
-        "default_popup": "popup-a.html"
-      }
+        "default_popup": "popup-a.html",
+      },
     },
 
     files: {
@@ -41,9 +41,10 @@ add_task(function* testPageActionPopup() {
       "data/background.html": `<script src="background.js"></script>`,
 
       "data/background.js": function() {
-        var tabId;
+        let tabId;
 
-        var tests = [
+        let sendClick;
+        let tests = [
           () => {
             sendClick({ expectEvent: false, expectPopup: "a" });
           },
@@ -70,11 +71,11 @@ add_task(function* testPageActionPopup() {
           },
         ];
 
-        var expect = {};
-        function sendClick({ expectEvent, expectPopup }) {
+        let expect = {};
+        sendClick = ({ expectEvent, expectPopup }) => {
           expect = { event: expectEvent, popup: expectPopup };
           browser.test.sendMessage("send-click");
-        }
+        };
 
         browser.runtime.onMessage.addListener(msg => {
           if (expect.popup) {
@@ -105,7 +106,7 @@ add_task(function* testPageActionPopup() {
           }
 
           if (tests.length) {
-            var test = tests.shift();
+            let test = tests.shift();
             test();
           } else {
             browser.test.notifyPass("pageaction-tests-done");
@@ -136,7 +137,7 @@ add_task(function* testPageActionPopup() {
       panel.hidePopup();
 
       panel = document.getElementById(panelId);
-      is(panel, undefined, "panel successfully removed from document after hiding");
+      is(panel, null, "panel successfully removed from document after hiding");
     }
 
     extension.sendMessage("next-test");
@@ -149,19 +150,15 @@ add_task(function* testPageActionPopup() {
   yield extension.unload();
 
   let node = document.getElementById(pageActionId);
-  is(node, undefined, "pageAction image removed from document");
+  is(node, null, "pageAction image removed from document");
 
   let panel = document.getElementById(panelId);
-  is(panel, undefined, "pageAction panel removed from document");
+  is(panel, null, "pageAction panel removed from document");
 });
 
 
 add_task(function* testPageActionSecurity() {
   const URL = "chrome://browser/content/browser.xul";
-
-  let matchURLForbidden = url => ({
-    message: new RegExp(`Loading extension.*Access to.*'${URL}' denied`),
-  });
 
   let messages = [/Access to restricted URI denied/,
                   /Access to restricted URI denied/];
@@ -180,9 +177,9 @@ add_task(function* testPageActionSecurity() {
       "page_action": { "default_popup": URL },
     },
 
-    background: function () {
+    background: function() {
       browser.tabs.query({ active: true, currentWindow: true }, tabs => {
-        var tabId = tabs[0].id;
+        let tabId = tabs[0].id;
 
         browser.pageAction.show(tabId);
         browser.test.sendMessage("ready");
@@ -200,7 +197,7 @@ add_task(function* testPageActionSecurity() {
 
   let pageActionId = makeWidgetId(extension.id) + "-page-action";
   let node = document.getElementById(pageActionId);
-  is(node, undefined, "pageAction image removed from document");
+  is(node, null, "pageAction image removed from document");
 
   SimpleTest.endMonitorConsole();
   yield waitForConsole;

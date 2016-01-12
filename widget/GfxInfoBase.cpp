@@ -566,6 +566,15 @@ BlacklistEntryToDriverInfo(nsIDOMNode* aBlacklistEntry,
       aDriverInfo.mDriverVersion = version;
   }
 
+  // <driverVersionMax> 8.52.322.2202 </driverVersionMax>
+  if (BlacklistNodeGetChildByName(element, NS_LITERAL_STRING("driverVersionMax"),
+                                  getter_AddRefs(dataNode))) {
+    BlacklistNodeToTextValue(dataNode, dataValue);
+    uint64_t version;
+    if (ParseDriverVersion(dataValue, &version))
+      aDriverInfo.mDriverVersionMax = version;
+  }
+
   // <driverVersionComparator> LESS_THAN_OR_EQUAL </driverVersionComparator>
   if (BlacklistNodeGetChildByName(element, NS_LITERAL_STRING("driverVersionComparator"),
                                   getter_AddRefs(dataNode))) {
@@ -1066,7 +1075,7 @@ NS_IMETHODIMP GfxInfoBase::GetFailures(uint32_t* failureCount,
   // and the strings in it should be small as well (the error messages in the
   // code.)  The second copy happens with the Clone() calls.  Technically,
   // we don't need the mutex lock after the StringVectorCopy() call.
-  std::vector<std::pair<int32_t,std::string> > loggedStrings = logForwarder->StringsVectorCopy();
+  LoggingRecord loggedStrings = logForwarder->LoggingRecordCopy();
   *failureCount = loggedStrings.size();
 
   if (*failureCount != 0) {
@@ -1084,11 +1093,11 @@ NS_IMETHODIMP GfxInfoBase::GetFailures(uint32_t* failureCount,
     }
 
     /* copy over the failure messages into the array we just allocated */
-    std::vector<std::pair<int32_t, std::string> >::const_iterator it;
+    LoggingRecord::const_iterator it;
     uint32_t i=0;
     for(it = loggedStrings.begin() ; it != loggedStrings.end(); ++it, i++) {
-      (*failures)[i] = (char*)nsMemory::Clone((*it).second.c_str(), (*it).second.size() + 1);
-      if (indices) (*indices)[i] = (*it).first;
+      (*failures)[i] = (char*)nsMemory::Clone(Get<1>(*it).c_str(), Get<1>(*it).size() + 1);
+      if (indices) (*indices)[i] = Get<0>(*it);
 
       if (!(*failures)[i]) {
         /* <sarcasm> I'm too afraid to use an inline function... </sarcasm> */
@@ -1136,7 +1145,7 @@ nsresult GfxInfoBase::GetInfo(JSContext* aCx, JS::MutableHandle<JS::Value> aResu
 const nsCString&
 GfxInfoBase::GetApplicationVersion()
 {
-  static nsAutoCString version;
+  static nsCString version;
   static bool versionInitialized = false;
   if (!versionInitialized) {
     // If we fail to get the version, we will not try again.

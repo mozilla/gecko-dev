@@ -61,7 +61,9 @@ static MOZ_CONSTEXPR_VAR Register CallTempReg4 = esi;
 static MOZ_CONSTEXPR_VAR Register CallTempReg5 = edx;
 
 // We have no arg regs, so our NonArgRegs are just our CallTempReg*
-static MOZ_CONSTEXPR_VAR Register CallTempNonArgRegs[] = { edi, eax, ebx, ecx, esi, edx };
+// Use "const" instead of MOZ_CONSTEXPR_VAR here to work around a bug
+// of VS2015 Update 1. See bug 1229604.
+static const Register CallTempNonArgRegs[] = { edi, eax, ebx, ecx, esi, edx };
 static const uint32_t NumCallTempNonArgRegs =
     mozilla::ArrayLength(CallTempNonArgRegs);
 
@@ -100,6 +102,18 @@ static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegReturnType = ecx;
 static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegD0 = edi;
 static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegD1 = eax;
 static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegD2 = esi;
+
+// Registerd used in RegExpMatcher instruction (do not use JSReturnOperand).
+static MOZ_CONSTEXPR_VAR Register RegExpMatcherRegExpReg = CallTempReg0;
+static MOZ_CONSTEXPR_VAR Register RegExpMatcherStringReg = CallTempReg1;
+static MOZ_CONSTEXPR_VAR Register RegExpMatcherLastIndexReg = CallTempReg2;
+static MOZ_CONSTEXPR_VAR Register RegExpMatcherStickyReg = CallTempReg4;
+
+// Registerd used in RegExpTester instruction (do not use ReturnReg).
+static MOZ_CONSTEXPR_VAR Register RegExpTesterRegExpReg = CallTempReg0;
+static MOZ_CONSTEXPR_VAR Register RegExpTesterStringReg = CallTempReg2;
+static MOZ_CONSTEXPR_VAR Register RegExpTesterLastIndexReg = CallTempReg3;
+static MOZ_CONSTEXPR_VAR Register RegExpTesterStickyReg = CallTempReg4;
 
 // GCC stack is aligned on 16 bytes. Ion does not maintain this for internal
 // calls. asm.js code does.
@@ -284,9 +298,9 @@ class Assembler : public AssemblerX86Shared
     void mov(ImmPtr imm, Register dest) {
         mov(ImmWord(uintptr_t(imm.value)), dest);
     }
-    void mov(AsmJSImmPtr imm, Register dest) {
+    void mov(wasm::SymbolicAddress imm, Register dest) {
         masm.movl_i32r(-1, dest.encoding());
-        append(AsmJSAbsoluteLink(CodeOffset(masm.currentOffset()), imm.kind()));
+        append(AsmJSAbsoluteAddress(CodeOffset(masm.currentOffset()), imm));
     }
     void mov(const Operand& src, Register dest) {
         movl(src, dest);
@@ -363,17 +377,20 @@ class Assembler : public AssemblerX86Shared
             MOZ_CRASH("unexpected operand kind");
         }
     }
-    void cmpl(Register rhs, AsmJSAbsoluteAddress lhs) {
+    void cmpl(Register rhs, wasm::SymbolicAddress lhs) {
         masm.cmpl_rm_disp32(rhs.encoding(), (void*)-1);
-        append(AsmJSAbsoluteLink(CodeOffset(masm.currentOffset()), lhs.kind()));
+        append(AsmJSAbsoluteAddress(CodeOffset(masm.currentOffset()), lhs));
     }
-    void cmpl(Imm32 rhs, AsmJSAbsoluteAddress lhs) {
+    void cmpl(Imm32 rhs, wasm::SymbolicAddress lhs) {
         JmpSrc src = masm.cmpl_im_disp32(rhs.value, (void*)-1);
-        append(AsmJSAbsoluteLink(CodeOffset(src.offset()), lhs.kind()));
+        append(AsmJSAbsoluteAddress(CodeOffset(src.offset()), lhs));
     }
 
     void adcl(Imm32 imm, Register dest) {
         masm.adcl_ir(imm.value, dest.encoding());
+    }
+    void adcl(Register src, Register dest) {
+        masm.adcl_rr(src.encoding(), dest.encoding());
     }
 
     void mull(Register multiplier) {
@@ -898,9 +915,9 @@ class Assembler : public AssemblerX86Shared
         return CodeOffset(masm.currentOffset());
     }
 
-    void loadAsmJSActivation(Register dest) {
+    void loadWasmActivation(Register dest) {
         CodeOffset label = movlWithPatch(PatchedAbsoluteAddress(), dest);
-        append(AsmJSGlobalAccess(label, AsmJSActivationGlobalDataOffset));
+        append(AsmJSGlobalAccess(label, wasm::ActivationGlobalDataOffset));
     }
     void loadAsmJSHeapRegisterFromGlobalData() {
         // x86 doesn't have a pinned heap register.

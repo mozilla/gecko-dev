@@ -217,7 +217,6 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
     case CompositableOperation::TOpUseOverlaySource: {
       const OpUseOverlaySource& op = aEdit.get_OpUseOverlaySource();
       CompositableHost* compositable = AsCompositable(op);
-      MOZ_ASSERT(compositable->GetType() == CompositableType::IMAGE_OVERLAY, "Invalid operation!");
       if (!ValidatePictureRect(op.overlay().size(), op.picture())) {
         return false;
       }
@@ -234,8 +233,33 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
 }
 
 void
+CompositableParentManager::DestroyActor(const OpDestroy& aOp)
+{
+  switch (aOp.type()) {
+    case OpDestroy::TPTextureParent: {
+      auto actor = aOp.get_PTextureParent();
+      TextureHost::ReceivedDestroy(actor);
+      break;
+    }
+    case OpDestroy::TPCompositableParent: {
+      auto actor = aOp.get_PCompositableParent();
+      CompositableHost::ReceivedDestroy(actor);
+      break;
+    }
+    default: {
+      MOZ_ASSERT(false, "unsupported type");
+    }
+  }
+}
+
+void
 CompositableParentManager::SendPendingAsyncMessages()
 {
+  for (auto& actor : mDestroyedTextures) {
+    TextureHost::SendDeleteIPDLActor(actor);
+  }
+  mDestroyedTextures.clear();
+
   if (mPendingAsyncMessage.empty()) {
     return;
   }

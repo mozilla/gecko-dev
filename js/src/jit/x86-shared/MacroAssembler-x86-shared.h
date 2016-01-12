@@ -49,40 +49,37 @@ class MacroAssemblerX86Shared : public Assembler
     typedef Vector<CodeOffset, 0, SystemAllocPolicy> UsesVector;
 
   protected:
+
     // For Double, Float and SimdData, make the move ctors explicit so that MSVC
     // knows what to use instead of copying these data structures.
-    struct Double {
-        double value;
+    template<class T>
+    struct Constant {
+        typedef T Pod;
+
+        T value;
         UsesVector uses;
-        explicit Double(double value) : value(value) {}
-        Double(Double&& other) : value(other.value), uses(mozilla::Move(other.uses)) {}
-        explicit Double(const Double&) = delete;
+
+        explicit Constant(const T& value) : value(value) {}
+        Constant(Constant<T>&& other) : value(other.value), uses(mozilla::Move(other.uses)) {}
+        explicit Constant(const Constant<T>&) = delete;
     };
 
-    // These use SystemAllocPolicy since asm.js releases memory after each
+    // Containers use SystemAllocPolicy since asm.js releases memory after each
     // function is compiled, and these need to live until after all functions
     // are compiled.
+    using Double = Constant<double>;
     Vector<Double, 0, SystemAllocPolicy> doubles_;
     typedef HashMap<double, size_t, DefaultHasher<double>, SystemAllocPolicy> DoubleMap;
     DoubleMap doubleMap_;
 
-    struct Float {
-        float value;
-        UsesVector uses;
-        explicit Float(float value) : value(value) {}
-        Float(Float&& other) : value(other.value), uses(mozilla::Move(other.uses)) {}
-        explicit Float(const Float&) = delete;
-    };
-
+    using Float = Constant<float>;
     Vector<Float, 0, SystemAllocPolicy> floats_;
     typedef HashMap<float, size_t, DefaultHasher<float>, SystemAllocPolicy> FloatMap;
     FloatMap floatMap_;
 
-    struct SimdData {
-        SimdConstant value;
-        UsesVector uses;
-        explicit SimdData(const SimdConstant& v) : value(v) {}
-        SimdData(SimdData&& other) : value(other.value), uses(mozilla::Move(other.uses)) {}
+    struct SimdData : public Constant<SimdConstant> {
+        explicit SimdData(SimdConstant d) : Constant<SimdConstant>(d) {}
+        SimdData(SimdData&& d) : Constant<SimdConstant>(mozilla::Move(d)) {}
         explicit SimdData(const SimdData&) = delete;
         SimdConstant::Type type() const { return value.type(); }
     };
@@ -90,6 +87,9 @@ class MacroAssemblerX86Shared : public Assembler
     Vector<SimdData, 0, SystemAllocPolicy> simds_;
     typedef HashMap<SimdConstant, size_t, SimdConstant, SystemAllocPolicy> SimdMap;
     SimdMap simdMap_;
+
+    template<class T, class Map>
+    T* getConstant(const typename T::Pod& value, Map& map, Vector<T, 0, SystemAllocPolicy>& vec);
 
     Float* getFloat(float f);
     Double* getDouble(double d);
@@ -175,9 +175,6 @@ class MacroAssemblerX86Shared : public Assembler
     void move32(Register src, const Operand& dest) {
         movl(src, dest);
     }
-    void neg32(Register reg) {
-        negl(reg);
-    }
     void test32(Register lhs, Register rhs) {
         testl(rhs, lhs);
     }
@@ -208,21 +205,9 @@ class MacroAssemblerX86Shared : public Assembler
     CodeOffset cmp32WithPatch(Register lhs, Imm32 rhs) {
         return cmplWithPatch(rhs, lhs);
     }
-    void add32(Register src, Register dest) {
-        addl(src, dest);
-    }
-    void add32(Imm32 imm, Register dest) {
-        addl(imm, dest);
-    }
-    void add32(Imm32 imm, const Operand& dest) {
-        addl(imm, dest);
-    }
-    void add32(Imm32 imm, const Address& dest) {
-        addl(imm, Operand(dest));
-    }
     template <typename T>
     void branchAdd32(Condition cond, T src, Register dest, Label* label) {
-        add32(src, dest);
+        addl(src, dest);
         j(cond, label);
     }
     template <typename T>
@@ -916,38 +901,6 @@ class MacroAssemblerX86Shared : public Assembler
     }
     void zeroFloat32(FloatRegister reg) {
         vxorps(reg, reg, reg);
-    }
-    void negateDouble(FloatRegister reg) {
-        // From MacroAssemblerX86Shared::maybeInlineDouble
-        ScratchDoubleScope scratch(asMasm());
-        vpcmpeqw(scratch, scratch, scratch);
-        vpsllq(Imm32(63), scratch, scratch);
-
-        // XOR the float in a float register with -0.0.
-        vxorpd(scratch, reg, reg); // s ^ 0x80000000000000
-    }
-    void negateFloat(FloatRegister reg) {
-        ScratchFloat32Scope scratch(asMasm());
-        vpcmpeqw(scratch, scratch, scratch);
-        vpsllq(Imm32(31), scratch, scratch);
-
-        // XOR the float in a float register with -0.0.
-        vxorps(scratch, reg, reg); // s ^ 0x80000000
-    }
-    void addDouble(FloatRegister src, FloatRegister dest) {
-        vaddsd(src, dest, dest);
-    }
-    void subDouble(FloatRegister src, FloatRegister dest) {
-        vsubsd(src, dest, dest);
-    }
-    void mulDouble(FloatRegister src, FloatRegister dest) {
-        vmulsd(src, dest, dest);
-    }
-    void divDouble(FloatRegister src, FloatRegister dest) {
-        vdivsd(src, dest, dest);
-    }
-    void addFloat32(FloatRegister src, FloatRegister dest) {
-        vaddss(src, dest, dest);
     }
     void convertFloat32ToDouble(FloatRegister src, FloatRegister dest) {
         vcvtss2sd(src, dest, dest);

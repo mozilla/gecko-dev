@@ -166,7 +166,12 @@ class FileAvoidWrite(BytesIO):
                 existing.close()
 
         ensureParentDir(self.name)
-        with open(self.name, 'w') as file:
+        # Maintain 'b' if specified.  'U' only applies to modes starting with
+        # 'r', so it is dropped.
+        writemode = 'w'
+        if 'b' in self.mode:
+            writemode += 'b'
+        with open(self.name, writemode) as file:
             file.write(buf)
 
         if self._capture_diff:
@@ -426,6 +431,14 @@ def FlagsFactory(flags):
     return Flags
 
 
+class StrictOrderingOnAppendListWithFlags(StrictOrderingOnAppendList):
+    """A list with flags specialized for moz.build environments.
+
+    Each subclass has a set of typed flags; this class lets us use `isinstance`
+    for natural testing.
+    """
+
+
 def StrictOrderingOnAppendListWithFlagsFactory(flags):
     """Returns a StrictOrderingOnAppendList-like object, with optional
     flags on each item.
@@ -441,9 +454,9 @@ def StrictOrderingOnAppendListWithFlagsFactory(flags):
         foo['a'].foo = True
         foo['b'].bar = 'bar'
     """
-    class StrictOrderingOnAppendListWithFlags(StrictOrderingOnAppendList):
+    class StrictOrderingOnAppendListWithFlagsSpecialization(StrictOrderingOnAppendListWithFlags):
         def __init__(self, iterable=[]):
-            StrictOrderingOnAppendList.__init__(self, iterable)
+            StrictOrderingOnAppendListWithFlags.__init__(self, iterable)
             self._flags_type = FlagsFactory(flags)
             self._flags = dict()
 
@@ -458,7 +471,50 @@ def StrictOrderingOnAppendListWithFlagsFactory(flags):
             raise TypeError("'%s' object does not support item assignment" %
                             self.__class__.__name__)
 
-    return StrictOrderingOnAppendListWithFlags
+        def _update_flags(self, other):
+            if self._flags_type._flags != other._flags_type._flags:
+                raise ValueError('Expected a list of strings with flags like %s, not like %s' %
+                                 (self._flags_type._flags, other._flags_type._flags))
+            intersection = set(self._flags.keys()) & set(other._flags.keys())
+            if intersection:
+                raise ValueError('Cannot update flags: both lists of strings with flags configure %s' %
+                                 intersection)
+            self._flags.update(other._flags)
+
+        def extend(self, l):
+            result = super(StrictOrderingOnAppendList, self).extend(l)
+            if isinstance(l, StrictOrderingOnAppendListWithFlags):
+                self._update_flags(l)
+            return result
+
+        def __setslice__(self, i, j, sequence):
+            result = super(StrictOrderingOnAppendList, self).__setslice__(i, j, sequence)
+            # We may have removed items.
+            for name in set(self._flags.keys()) - set(self):
+                del self._flags[name]
+            if isinstance(sequence, StrictOrderingOnAppendListWithFlags):
+                self._update_flags(sequence)
+            return result
+
+        def __add__(self, other):
+            result = super(StrictOrderingOnAppendList, self).__add__(other)
+            if isinstance(other, StrictOrderingOnAppendListWithFlags):
+                # Result has flags from other but not from self, since
+                # internally we duplicate self and then extend with other, and
+                # only extend knows about flags.  Since we don't allow updating
+                # when the set of flag keys intersect, which we instance we pass
+                # to _update_flags here matters.  This needs to be correct but
+                # is an implementation detail.
+                result._update_flags(self)
+            return result
+
+        def __iadd__(self, other):
+            result = super(StrictOrderingOnAppendList, self).__iadd__(other)
+            if isinstance(other, StrictOrderingOnAppendListWithFlags):
+                self._update_flags(other)
+            return result
+
+    return StrictOrderingOnAppendListWithFlagsSpecialization
 
 
 class HierarchicalStringList(object):
@@ -481,6 +537,8 @@ class HierarchicalStringList(object):
     __slots__ = ('_strings', '_children')
 
     def __init__(self):
+        # Please change ContextDerivedTypedHierarchicalStringList in context.py
+        # if you make changes here.
         self._strings = StrictOrderingOnAppendList()
         self._children = {}
 
@@ -494,17 +552,6 @@ class HierarchicalStringList(object):
         def __len__(self):
             return len(self._hsl._strings)
 
-        def flags_for(self, value):
-            try:
-                # Solely for the side-effect of throwing AttributeError
-                object.__getattribute__(self._hsl, '__flag_slots__')
-                # We now know we have a HierarchicalStringListWithFlags.
-                # Get the flags, but use |get| so we don't create the
-                # flags if they're not already there.
-                return self._hsl._flags.get(value, None)
-            except AttributeError:
-                return None
-
     def walk(self):
         """Walk over all HierarchicalStringLists in the hierarchy.
 
@@ -512,11 +559,7 @@ class HierarchicalStringList(object):
 
         The path is '' for the root level and '/'-delimited strings for
         any descendants.  The sequence is a read-only sequence of the
-        strings contained at that level.  To support accessing the flags
-        for a given string (e.g. when walking over a
-        HierarchicalStringListWithFlagsFactory), the sequence supports a
-        flags_for() method.  Given a string, the flags_for() method returns
-        the flags for the string, if any, or None if there are no flags set.
+        strings contained at that level.
         """
 
         if self._strings:
@@ -570,13 +613,23 @@ class HierarchicalStringList(object):
         self._set_exportvariable(name, value)
 
     def _get_exportvariable(self, name):
-        return self._children.setdefault(name, HierarchicalStringList())
+        # Please change ContextDerivedTypedHierarchicalStringList in context.py
+        # if you make changes here.
+        child = self._children.get(name)
+        if not child:
+            child = self._children[name] = HierarchicalStringList()
+        return child
 
     def _set_exportvariable(self, name, value):
+        if name in self._children:
+            if value is self._get_exportvariable(name):
+                return
+            raise KeyError('global_ns', 'reassign',
+                           '<some variable>.%s' % name)
+
         exports = self._get_exportvariable(name)
-        if not isinstance(value, HierarchicalStringList):
-            exports._check_list(value)
-            exports._strings = value
+        exports._check_list(value)
+        exports._strings += value
 
     def _check_list(self, value):
         if not isinstance(value, list):
@@ -586,58 +639,6 @@ class HierarchicalStringList(object):
                 raise ValueError(
                     'Expected a list of strings, not an element of %s' % type(v))
 
-
-def HierarchicalStringListWithFlagsFactory(flags):
-    """Returns a HierarchicalStringList-like object, with optional
-    flags on each item.
-
-    The flags are defined in the dict given as argument, where keys are
-    the flag names, and values the type used for the value of that flag.
-
-    Example:
-        FooList = HierarchicalStringListWithFlagsFactory({
-            'foo': bool, 'bar': unicode
-        })
-        foo = FooList(['a', 'b', 'c'])
-        foo['a'].foo = True
-        foo['b'].bar = 'bar'
-        foo.sub = ['x, 'y']
-        foo.sub['x'].foo = False
-        foo.sub['y'].bar = 'baz'
-    """
-    class HierarchicalStringListWithFlags(HierarchicalStringList):
-        __flag_slots__ = ('_flags_type', '_flags')
-
-        def __init__(self):
-            HierarchicalStringList.__init__(self)
-            self._flags_type = FlagsFactory(flags)
-            self._flags = dict()
-
-        def __setattr__(self, name, value):
-            if name in self.__flag_slots__:
-                return object.__setattr__(self, name, value)
-            HierarchicalStringList.__setattr__(self, name, value)
-
-        def __getattr__(self, name):
-            if name in self.__flag_slots__:
-                return object.__getattr__(self, name)
-            return HierarchicalStringList.__getattr__(self, name)
-
-        def __getitem__(self, name):
-            if name not in self._flags:
-                if name not in self._strings:
-                    raise KeyError("'%s'" % name)
-                self._flags[name] = self._flags_type()
-            return self._flags[name]
-
-        def __setitem__(self, name, value):
-            raise TypeError("'%s' object does not support item assignment" %
-                            self.__class__.__name__)
-
-        def _get_exportvariable(self, name):
-            return self._children.setdefault(name, HierarchicalStringListWithFlags())
-
-    return HierarchicalStringListWithFlags
 
 class LockFile(object):
     """LockFile is used by the lock_file method to hold the lock.

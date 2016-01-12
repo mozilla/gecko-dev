@@ -61,36 +61,13 @@ UnwrapArg(JS::Handle<JSObject*> src, Interface** ppArg)
                        reinterpret_cast<void**>(ppArg));
 }
 
-inline const ErrNum
-GetInvalidThisErrorForMethod(bool aSecurityError)
-{
-  return aSecurityError ? MSG_METHOD_THIS_UNWRAPPING_DENIED :
-                          MSG_METHOD_THIS_DOES_NOT_IMPLEMENT_INTERFACE;
-}
-
-inline const ErrNum
-GetInvalidThisErrorForGetter(bool aSecurityError)
-{
-  return aSecurityError ? MSG_GETTER_THIS_UNWRAPPING_DENIED :
-                          MSG_GETTER_THIS_DOES_NOT_IMPLEMENT_INTERFACE;
-}
-
-inline const ErrNum
-GetInvalidThisErrorForSetter(bool aSecurityError)
-{
-  return aSecurityError ? MSG_SETTER_THIS_UNWRAPPING_DENIED :
-                          MSG_SETTER_THIS_DOES_NOT_IMPLEMENT_INTERFACE;
-}
+bool
+ThrowInvalidThis(JSContext* aCx, const JS::CallArgs& aArgs,
+                 bool aSecurityError, const char* aInterfaceName);
 
 bool
 ThrowInvalidThis(JSContext* aCx, const JS::CallArgs& aArgs,
-                 const ErrNum aErrorNumber,
-                 const char* aInterfaceName);
-
-bool
-ThrowInvalidThis(JSContext* aCx, const JS::CallArgs& aArgs,
-                 const ErrNum aErrorNumber,
-                 prototypes::ID aProtoId);
+                 bool aSecurityError, prototypes::ID aProtoId);
 
 // Returns true if the JSClass is used for DOM objects.
 inline bool
@@ -334,9 +311,7 @@ class ProtoAndIfaceCache
 
     void Trace(JSTracer* aTracer) {
       for (size_t i = 0; i < ArrayLength(*this); ++i) {
-        if ((*this)[i]) {
-          JS_CallObjectTracer(aTracer, &(*this)[i], "protoAndIfaceCache[i]");
-        }
+        JS::TraceNullableEdge(aTracer, &(*this)[i], "protoAndIfaceCache[i]");
       }
     }
 
@@ -395,9 +370,7 @@ class ProtoAndIfaceCache
         Page* p = mPages[i];
         if (p) {
           for (size_t j = 0; j < ArrayLength(*p); ++j) {
-            if ((*p)[j]) {
-              JS_CallObjectTracer(trc, &(*p)[j], "protoAndIfaceCache[i]");
-            }
+            JS::TraceNullableEdge(trc, &(*p)[j], "protoAndIfaceCache[i]");
           }
         }
       }
@@ -770,7 +743,7 @@ CouldBeDOMBinding(nsWrapperCache* aCache)
 }
 
 inline bool
-TryToOuterize(JSContext* cx, JS::MutableHandle<JS::Value> rval)
+TryToOuterize(JS::MutableHandle<JS::Value> rval)
 {
   if (js::IsWindow(&rval.toObject())) {
     JSObject* obj = js::ToWindowProxyIfWindow(&rval.toObject());
@@ -812,7 +785,7 @@ MaybeWrapObjectValue(JSContext* cx, JS::MutableHandle<JS::Value> rval)
   // We're same-compartment, but even then we might need to wrap
   // objects specially.  Check for that.
   if (IsDOMObject(obj)) {
-    return TryToOuterize(cx, rval);
+    return TryToOuterize(rval);
   }
 
   // It's not a WebIDL object.  But it might be an XPConnect one, in which case
@@ -1005,13 +978,13 @@ DoGetOrCreateDOMReflector(JSContext* cx, T* value,
   bool sameCompartment =
     js::GetObjectCompartment(obj) == js::GetContextCompartment(cx);
   if (sameCompartment && couldBeDOMBinding) {
-    return TypeNeedsOuterization<T>::value ? TryToOuterize(cx, rval) : true;
+    return TypeNeedsOuterization<T>::value ? TryToOuterize(rval) : true;
   }
 
   if (wrapBehavior == eDontWrapIntoContextCompartment) {
     if (TypeNeedsOuterization<T>::value) {
       JSAutoCompartment ac(cx, obj);
-      return TryToOuterize(cx, rval);
+      return TryToOuterize(rval);
     }
 
     return true;
@@ -2122,7 +2095,7 @@ class SequenceTracer<JSObject*, false, false, false>
 public:
   static void TraceSequence(JSTracer* trc, JSObject** objp, JSObject** end) {
     for (; objp != end; ++objp) {
-      JS_CallUnbarrieredObjectTracer(trc, objp, "sequence<object>");
+      JS::UnsafeTraceRoot(trc, objp, "sequence<object>");
     }
   }
 };
@@ -2136,7 +2109,7 @@ class SequenceTracer<JS::Value, false, false, false>
 public:
   static void TraceSequence(JSTracer* trc, JS::Value* valp, JS::Value* end) {
     for (; valp != end; ++valp) {
-      JS_CallUnbarrieredValueTracer(trc, valp, "sequence<any>");
+      JS::UnsafeTraceRoot(trc, valp, "sequence<any>");
     }
   }
 };
@@ -3048,7 +3021,7 @@ CreateGlobal(JSContext* aCx, T* aNative, nsWrapperCache* aCache,
              JSPrincipals* aPrincipal, bool aInitStandardClasses,
              JS::MutableHandle<JSObject*> aGlobal)
 {
-  aOptions.setTrace(CreateGlobalOptions<T>::TraceGlobal);
+  aOptions.creationOptions().setTrace(CreateGlobalOptions<T>::TraceGlobal);
 
   aGlobal.set(JS_NewGlobalObject(aCx, aClass, aPrincipal,
                                  JS::DontFireOnNewGlobalHook, aOptions));
@@ -3159,16 +3132,6 @@ void
 AssertReturnTypeMatchesJitinfo(const JSJitInfo* aJitinfo,
                                JS::Handle<JS::Value> aValue);
 #endif
-
-// Returns true if aObj's global has any of the permissions named in aPermissions
-// set to nsIPermissionManager::ALLOW_ACTION. aPermissions must be null-terminated.
-bool
-CheckAnyPermissions(JSContext* aCx, JSObject* aObj, const char* const aPermissions[]);
-
-// Returns true if aObj's global has all of the permissions named in aPermissions
-// set to nsIPermissionManager::ALLOW_ACTION. aPermissions must be null-terminated.
-bool
-CheckAllPermissions(JSContext* aCx, JSObject* aObj, const char* const aPermissions[]);
 
 // This function is called by the bindings layer for methods/getters/setters
 // that are not safe to be called in prerendering mode.  It checks to make sure

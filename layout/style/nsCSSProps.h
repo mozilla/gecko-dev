@@ -247,20 +247,38 @@ static_assert((CSS_PROPERTY_PARSE_PROPERTY_MASK &
 // margin-block-start or margin-inline-start).
 #define CSS_PROPERTY_LOGICAL_END_EDGE             (1<<26)
 
+// This property is a logical property which always maps to the same physical
+// property, and its values have some custom processing when being mapped to
+// the physical property's values.  Must not be used in conjunction with
+// CSS_PROPERTY_LOGICAL_{AXIS,BLOCK_AXIS,END_EDGE}.
+#define CSS_PROPERTY_LOGICAL_SINGLE_CUSTOM_VALMAPPING (1<<27)
+
 // This property can be animated on the compositor.
-#define CSS_PROPERTY_CAN_ANIMATE_ON_COMPOSITOR    (1<<27)
+#define CSS_PROPERTY_CAN_ANIMATE_ON_COMPOSITOR    (1<<28)
 
 // This property is an internal property that is not represented
 // in the DOM.  Properties with this flag must be defined in an #ifndef
 // CSS_PROP_LIST_EXCLUDE_INTERNAL section of nsCSSPropList.h.
-#define CSS_PROPERTY_INTERNAL                     (1<<28)
+#define CSS_PROPERTY_INTERNAL                     (1<<29)
 
 // This property has values that can establish a containing block for
 // fixed positioned and absolutely positioned elements.
 // This should be set for any properties that can cause an element to be
 // such a containing block, as implemented in
 // nsStyleDisplay::IsFixedPosContainingBlock.
-#define CSS_PROPERTY_FIXPOS_CB                    (1<<29)
+#define CSS_PROPERTY_FIXPOS_CB                    (1<<30)
+
+// This property has values that can establish a containing block for
+// absolutely positioned elements.
+// This should be set for any properties that can cause an element to be
+// such a containing block, as implemented in
+// nsStyleDisplay::IsAbsPosContainingBlock.
+// It does not need to be set for properties that also have
+// CSS_PROPERTY_FIXPOS_CB set.
+#define CSS_PROPERTY_ABSPOS_CB                    (1u<<31)
+
+// NOTE: Before adding any new CSS_PROPERTY_* flags here, we'll need to
+// upgrade kFlagsTable to 64-bits -- see bug 1231384.
 
 /**
  * Types of animatable values.
@@ -534,8 +552,11 @@ public:
    * by the sentinel.
    *
    * When called with a property that has the CSS_PROPERTY_LOGICAL_AXIS
-   * flag, the returned array will have two values preceding the sentinel;
-   * otherwise it will have four.
+   * flag, the returned array will have two values preceding the sentinel.
+   * When called with a property that has the
+   * CSS_PROPERTY_LOGICAL_SINGLE_CUSTOM_VALMAPPING flag, the returned array
+   * will have one value preceding the sentinel.
+   * Otherwise it will have four values preceding the sentinel.
    *
    * (Note that the running time of this function is proportional to the
    * number of logical longhand properties that exist.  If we start
@@ -706,8 +727,9 @@ public:
   static const KTableEntry kAlignSelfPosition[];     // <self-position>
   static const KTableEntry kAlignLegacy[];           // 'legacy'
   static const KTableEntry kAlignLegacyPosition[];   // 'left/right/center'
-  static const KTableEntry kAlignAutoStretchBaseline[]; // 'auto/stretch/baseline/last-baseline'
-  static const KTableEntry kAlignAutoBaseline[]; // 'auto/baseline/last-baseline'
+  static const KTableEntry kAlignAutoNormalStretchBaseline[]; // 'auto/normal/stretch/baseline/last-baseline'
+  static const KTableEntry kAlignNormalStretchBaseline[]; // 'normal/stretch/baseline/last-baseline'
+  static const KTableEntry kAlignNormalBaseline[]; // 'normal/baseline/last-baseline'
   static const KTableEntry kAlignContentDistribution[]; // <content-distribution>
   static const KTableEntry kAlignContentPosition[]; // <content-position>
   static const KTableEntry kAlignSelfKTable[];
@@ -719,6 +741,7 @@ public:
   // "layout.css.float-logical-values.enabled" changes:
   static KTableEntry kFloatKTable[];
   static const KTableEntry kFloatEdgeKTable[];
+  static const KTableEntry kFontDisplayKTable[];
   static const KTableEntry kFontKTable[];
   static const KTableEntry kFontKerningKTable[];
   static const KTableEntry kFontSizeKTable[];

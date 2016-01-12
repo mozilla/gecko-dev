@@ -411,7 +411,7 @@ FrameIter::unaliasedForEachActual(JSContext* cx, Op op)
 {
     switch (data_.state_) {
       case DONE:
-      case ASMJS:
+      case WASM:
         break;
       case INTERP:
         interpFrame()->unaliasedForEachActual(op);
@@ -581,23 +581,25 @@ AbstractFramePtr::isFunctionFrame() const
 }
 
 inline bool
-AbstractFramePtr::isModuleFrame() const
+AbstractFramePtr::isGlobalOrModuleFrame() const
 {
     if (isInterpreterFrame())
-        return asInterpreterFrame()->isModuleFrame();
+        return asInterpreterFrame()->isGlobalOrModuleFrame();
     if (isBaselineFrame())
-        return asBaselineFrame()->isModuleFrame();
-    return asRematerializedFrame()->isModuleFrame();
+        return asBaselineFrame()->isGlobalOrModuleFrame();
+    return asRematerializedFrame()->isGlobalOrModuleFrame();
 }
 
 inline bool
 AbstractFramePtr::isGlobalFrame() const
 {
-    if (isInterpreterFrame())
-        return asInterpreterFrame()->isGlobalFrame();
-    if (isBaselineFrame())
-        return asBaselineFrame()->isGlobalFrame();
-    return asRematerializedFrame()->isGlobalFrame();
+    return isGlobalOrModuleFrame() && !script()->module();
+}
+
+inline bool
+AbstractFramePtr::isModuleFrame() const
+{
+    return isGlobalOrModuleFrame() && script()->module();
 }
 
 inline bool
@@ -943,8 +945,8 @@ Activation::isProfiling() const
     if (isJit())
         return asJit()->isProfiling();
 
-    MOZ_ASSERT(isAsmJS());
-    return asAsmJS()->isProfiling();
+    MOZ_ASSERT(isWasm());
+    return asWasm()->isProfiling();
 }
 
 Activation*
@@ -1023,16 +1025,10 @@ InterpreterActivation::resumeGeneratorFrame(HandleFunction callee, HandleValue n
     return true;
 }
 
-inline JSContext*
-AsmJSActivation::cx()
-{
-    return cx_->asJSContext();
-}
-
 inline bool
 FrameIter::hasCachedSavedFrame() const
 {
-    if (isAsmJS())
+    if (isWasm())
         return false;
 
     if (hasUsableAbstractFramePtr())
@@ -1048,7 +1044,7 @@ FrameIter::hasCachedSavedFrame() const
 inline void
 FrameIter::setHasCachedSavedFrame()
 {
-    MOZ_ASSERT(!isAsmJS());
+    MOZ_ASSERT(!isWasm());
 
     if (hasUsableAbstractFramePtr()) {
         abstractFramePtr().setHasCachedSavedFrame();

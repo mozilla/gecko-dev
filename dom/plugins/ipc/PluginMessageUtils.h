@@ -120,7 +120,7 @@ typedef mozilla::null_t DXGISharedSurfaceHandle;
 // XXX maybe not the best place for these. better one?
 
 #define VARSTR(v_)  case v_: return #v_
-inline const char* const
+inline const char*
 NPPVariableToString(NPPVariable aVar)
 {
     switch (aVar) {
@@ -219,6 +219,15 @@ inline void AssertPluginThread()
 
 void DeferNPObjectLastRelease(const NPNetscapeFuncs* f, NPObject* o);
 void DeferNPVariantLastRelease(const NPNetscapeFuncs* f, NPVariant* v);
+
+inline bool IsDrawingModelDirect(int16_t aModel)
+{
+    return aModel == NPDrawingModelAsyncBitmapSurface
+#if defined(XP_WIN)
+           || aModel == NPDrawingModelAsyncWindowsDXGISurface
+#endif
+           ;
+}
 
 // in NPAPI, char* == nullptr is sometimes meaningful.  the following is
 // helper code for dealing with nullable nsCString's

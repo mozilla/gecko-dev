@@ -45,6 +45,7 @@
 #include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/ProcessHangMonitor.h"
+#include "mozilla/UniquePtrExtensions.h"
 #include "AccessCheck.h"
 #include "nsGlobalWindow.h"
 #include "nsAboutProtocolUtils.h"
@@ -1328,16 +1329,25 @@ xpc::SimulateActivityCallback(bool aActive)
     XPCJSRuntime::ActivityCallback(XPCJSRuntime::Get(), aActive);
 }
 
-// static
-bool
+void
 XPCJSRuntime::EnvironmentPreparer::invoke(HandleObject scope, js::ScriptEnvironmentPreparer::Closure& closure)
 {
     MOZ_ASSERT(NS_IsMainThread());
     nsIGlobalObject* global = NativeGlobal(scope);
-    NS_ENSURE_TRUE(global && global->GetGlobalJSObject(), false);
+
+    // Not much we can do if we simply don't have a usable global here...
+    NS_ENSURE_TRUE_VOID(global && global->GetGlobalJSObject());
     AutoEntryScript aes(global, "JS-engine-initiated execution");
     aes.TakeOwnershipOfErrorReporting();
-    return closure(aes.cx());
+
+    MOZ_ASSERT(!JS_IsExceptionPending(aes.cx()));
+
+    DebugOnly<bool> ok = closure(aes.cx());
+
+    MOZ_ASSERT_IF(ok, !JS_IsExceptionPending(aes.cx()));
+
+    // The AutoEntryScript will check for JS_IsExceptionPending on the
+    // JSContext and report it as needed as it comes off the stack.
 }
 
 // static
@@ -1911,7 +1921,7 @@ ReportZoneStats(const JS::ZoneStats& zStats,
                 bool anonymize,
                 size_t* gcTotalOut = nullptr)
 {
-    const nsAutoCString& pathPrefix = extras.pathPrefix;
+    const nsCString& pathPrefix = extras.pathPrefix;
     size_t gcTotal = 0, sundriesGCHeap = 0, sundriesMallocHeap = 0;
 
     MOZ_ASSERT(!gcTotalOut == zStats.isTotals);
@@ -2223,8 +2233,8 @@ ReportCompartmentStats(const JS::CompartmentStats& cStats,
     static const nsDependentCString addonPrefix("explicit/add-ons/");
 
     size_t gcTotal = 0, sundriesGCHeap = 0, sundriesMallocHeap = 0;
-    nsAutoCString cJSPathPrefix = extras.jsPathPrefix;
-    nsAutoCString cDOMPathPrefix = extras.domPathPrefix;
+    nsAutoCString cJSPathPrefix(extras.jsPathPrefix);
+    nsAutoCString cDOMPathPrefix(extras.domPathPrefix);
     nsresult rv;
 
     MOZ_ASSERT(!gcTotalOut == cStats.isTotals);
@@ -3240,11 +3250,11 @@ ReadSourceFromFilename(JSContext* cx, const char* filename, char16_t** src, size
         return NS_ERROR_FILE_TOO_BIG;
 
     // Allocate an internal buf the size of the file.
-    nsAutoArrayPtr<unsigned char> buf(new unsigned char[rawLen]);
+    auto buf = MakeUniqueFallible<unsigned char[]>(rawLen);
     if (!buf)
         return NS_ERROR_OUT_OF_MEMORY;
 
-    unsigned char* ptr = buf;
+    unsigned char* ptr = buf.get();
     unsigned char* end = ptr + rawLen;
     while (ptr < end) {
         uint32_t bytesRead;
@@ -3255,7 +3265,7 @@ ReadSourceFromFilename(JSContext* cx, const char* filename, char16_t** src, size
         ptr += bytesRead;
     }
 
-    rv = nsScriptLoader::ConvertToUTF16(scriptChannel, buf, rawLen, EmptyString(),
+    rv = nsScriptLoader::ConvertToUTF16(scriptChannel, buf.get(), rawLen, EmptyString(),
                                         nullptr, *src, *len);
     NS_ENSURE_SUCCESS(rv, rv);
 

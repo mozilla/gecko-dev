@@ -81,11 +81,17 @@ function eventSource(aProto) {
    *        times, all instances will be removed.
    */
   aProto.removeListener = function (aName, aListener) {
-    if (!this._listeners || !this._listeners[aName]) {
+    if (!this._listeners || (aListener && !this._listeners[aName])) {
       return;
     }
-    this._listeners[aName] =
-      this._listeners[aName].filter(function (l) { return l != aListener });
+
+    if (!aListener) {
+      this._listeners[aName] = [];
+    }
+    else {
+      this._listeners[aName] =
+        this._listeners[aName].filter(function (l) { return l != aListener });
+    }
   };
 
   /**
@@ -237,6 +243,9 @@ const DebuggerClient = exports.DebuggerClient = function (aTransport)
  *        response, and the return value is considered the new response that
  *        will be passed to the callback. The |this| context is the instance of
  *        the client object we are defining a method for.
+ * @return Request
+ *         The `Request` object that is a Promise object and resolves once
+ *         we receive the response. (See request method for more details)
  */
 DebuggerClient.requester = function (aPacketSkeleton,
                                      { telemetry, before, after }) {
@@ -270,7 +279,7 @@ DebuggerClient.requester = function (aPacketSkeleton,
       outgoingPacket = before.call(this, outgoingPacket);
     }
 
-    this.request(outgoingPacket, DevToolsUtils.makeInfallible((aResponse) => {
+    return this.request(outgoingPacket, DevToolsUtils.makeInfallible((aResponse) => {
       if (after) {
         let { from } = aResponse;
         aResponse = after.call(this, aResponse);
@@ -289,7 +298,6 @@ DebuggerClient.requester = function (aPacketSkeleton,
         histogram.add(+new Date - startTime);
       }
     }, "DebuggerClient.requester request callback"));
-
   }, "DebuggerClient.requester");
 };
 
@@ -331,8 +339,8 @@ DebuggerClient.prototype = {
   connect: function (aOnConnected) {
     this.emit("connect");
 
-    // Also emit the event on the |DebuggerServer| object (not on
-    // the instance), so it's possible to track all instances.
+    // Also emit the event on the |DebuggerClient| object (not on the instance),
+    // so it's possible to track all instances.
     events.emit(DebuggerClient, "connect", this);
 
     this.addOneTimeListener("connected", (aName, aApplicationType, aTraits) => {
@@ -1428,6 +1436,9 @@ WorkerClient.prototype = {
   _onClose: function () {
     this.removeListener("close", this._onClose);
 
+    if (this.thread) {
+      this.client.unregisterClient(this.thread);
+    }
     this.client.unregisterClient(this);
     this._isClosed = true;
   },
@@ -2160,10 +2171,18 @@ ThreadClient.prototype = {
    */
   _onThreadState: function (aPacket) {
     this._state = ThreadStateTypes[aPacket.type];
+    // The debugger UI may not be initialized yet so we want to keep
+    // the packet around so it knows what to pause state to display
+    // when it's initialized
+    this._lastPausePacket = aPacket.type === 'resumed' ? null : aPacket;
     this._clearFrames();
     this._clearPauseGrips();
     aPacket.type === ThreadStateTypes.detached && this._clearThreadGrips();
     this.client._eventsEnabled && this.emit(aPacket.type, aPacket);
+  },
+
+  getLastPausePacket: function() {
+    return this._lastPausePacket;
   },
 
   /**

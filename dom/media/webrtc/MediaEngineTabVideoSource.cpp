@@ -196,7 +196,7 @@ MediaEngineTabVideoSource::NotifyPull(MediaStreamGraph*,
   MonitorAutoLock mon(mMonitor);
 
   // Note: we're not giving up mImage here
-  RefPtr<layers::CairoImage> image = mImage;
+  RefPtr<layers::SourceSurfaceImage> image = mImage;
   StreamTime delta = aDesiredTime - aSource->GetEndOfAppendedData(aID);
   if (delta > 0) {
     // nullptr images are allowed
@@ -244,7 +244,7 @@ MediaEngineTabVideoSource::Draw() {
     }
   }
 
-  gfxImageFormat format = gfxImageFormat::RGB24;
+  gfxImageFormat format = SurfaceFormat::X8R8G8B8_UINT32;
   uint32_t stride = gfxASurface::FormatStrideForWidth(format, size.width);
 
   if (mDataSize < static_cast<size_t>(stride * size.height)) {
@@ -298,7 +298,7 @@ MediaEngineTabVideoSource::Draw() {
     return;
   }
 
-  RefPtr<layers::CairoImage> image = new layers::CairoImage(size, surface);
+  RefPtr<layers::SourceSurfaceImage> image = new layers::SourceSurfaceImage(size, surface);
 
   MonitorAutoLock mon(mMonitor);
   mImage = image;

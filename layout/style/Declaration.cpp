@@ -438,6 +438,7 @@ Declaration::GetValue(nsCSSProperty aProperty, nsAString& aValue,
       }
       // tweak aProperty and fall through
       aProperty = eCSSProperty_border_top;
+      MOZ_FALLTHROUGH;
     }
     case eCSSProperty_border_top:
     case eCSSProperty_border_right:
@@ -1065,6 +1066,7 @@ Declaration::GetValue(nsCSSProperty aProperty, nsAString& aValue,
         return;
       }
       // Fall through to eCSSProperty_grid_template
+      MOZ_FALLTHROUGH;
     }
     case eCSSProperty_grid_template: {
       const nsCSSValue& areasValue =
@@ -1469,6 +1471,13 @@ Declaration::ToString(nsAString& aString) const
 /* virtual */ void
 Declaration::List(FILE* out, int32_t aIndent) const
 {
+  const Rule* owningRule = GetOwningRule();
+  if (owningRule) {
+    // More useful to print the selector and sheet URI too.
+    owningRule->List(out, aIndent);
+    return;
+  }
+
   nsAutoCString str;
   for (int32_t index = aIndent; --index >= 0; ) {
     str.AppendLiteral("  ");

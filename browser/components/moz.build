@@ -6,6 +6,7 @@
 
 DIRS += [
     'about',
+    'contextualidentity',
     'customizableui',
     'dirprovider',
     'downloads',
@@ -14,7 +15,6 @@ DIRS += [
     'migration',
     'newtab',
     'places',
-    'pocket',
     'preferences',
     'privatebrowsing',
     'search',

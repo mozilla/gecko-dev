@@ -128,6 +128,16 @@ BasicLayerManager::PushGroupForLayer(gfxContext* aContext, Layer* aLayer, const 
   Matrix maskTransform;
   RefPtr<SourceSurface> maskSurf = GetMaskForLayer(aLayer, &maskTransform);
 
+  if (maskSurf) {
+    // The returned transform will transform the mask to device space on the
+    // destination. Since the User->Device space transform will be applied
+    // to the mask by PopGroupAndBlend we need to adjust the transform to
+    // transform the mask to user space.
+    Matrix currentTransform = ToMatrix(group.mFinalTarget->CurrentMatrix());
+    currentTransform.Invert();
+    maskTransform = maskTransform * currentTransform;
+  }
+
   if (aLayer->CanUseOpaqueSurface() &&
       ((didCompleteClip && aRegion.GetNumRects() == 1) ||
        !aContext->CurrentMatrix().HasNonIntegerTranslation())) {
@@ -172,8 +182,12 @@ BasicLayerManager::PopGroupForLayer(PushedGroup &group)
   RefPtr<SourceSurface> src = sourceDT->Snapshot();
 
   if (group.mMaskSurface) {
-    dt->SetTransform(group.mMaskTransform * Matrix::Translation(-group.mFinalTarget->GetDeviceOffset()));
-    dt->MaskSurface(SurfacePattern(src, ExtendMode::CLAMP, Matrix::Translation(group.mGroupOffset.x, group.mGroupOffset.y)),
+    Point finalOffset = group.mFinalTarget->GetDeviceOffset();
+    dt->SetTransform(group.mMaskTransform * Matrix::Translation(-finalOffset));
+    Matrix surfTransform = group.mMaskTransform;
+    surfTransform.Invert();
+    dt->MaskSurface(SurfacePattern(src, ExtendMode::CLAMP, surfTransform *
+                                                           Matrix::Translation(group.mGroupOffset.x, group.mGroupOffset.y)),
                     group.mMaskSurface, Point(0, 0), DrawOptions(group.mOpacity, group.mOperator));
   } else {
     // For now this is required since our group offset is in device space of the final target,
@@ -742,9 +756,9 @@ Transform(const gfxImageSurface* aDest,
   SkPaint paint;
   paint.setXfermodeMode(SkXfermode::kSrc_Mode);
   paint.setAntiAlias(true);
-  paint.setFilterLevel(SkPaint::kLow_FilterLevel);
+  paint.setFilterQuality(kLow_SkFilterQuality);
   SkRect destRect = SkRect::MakeXYWH(0, 0, srcSize.width, srcSize.height);
-  destCanvas.drawBitmapRectToRect(src, nullptr, destRect, &paint);
+  destCanvas.drawBitmapRect(src, destRect, &paint);
 }
 #else
 static pixman_transform
@@ -775,7 +789,7 @@ Transform(const gfxImageSurface* aDest,
           gfxPoint aDestOffset)
 {
   IntSize destSize = aDest->GetSize();
-  pixman_image_t* dest = pixman_image_create_bits(aDest->Format() == gfxImageFormat::ARGB32 ? PIXMAN_a8r8g8b8 : PIXMAN_x8r8g8b8,
+  pixman_image_t* dest = pixman_image_create_bits(aDest->Format() == SurfaceFormat::A8R8G8B8_UINT32 ? PIXMAN_a8r8g8b8 : PIXMAN_x8r8g8b8,
                                                   destSize.width,
                                                   destSize.height,
                                                   (uint32_t*)aDest->Data(),
@@ -848,10 +862,9 @@ Transform3D(RefPtr<SourceSurface> aSource,
   aDestRect.RoundOut();
 
   // Create a surface the size of the transformed object.
-  RefPtr<gfxASurface> dest = aDest->CurrentSurface();
   RefPtr<gfxImageSurface> destImage = new gfxImageSurface(IntSize(aDestRect.width,
                                                                     aDestRect.height),
-                                                            gfxImageFormat::ARGB32);
+                                                            SurfaceFormat::A8R8G8B8_UINT32);
   gfxPoint offset = aDestRect.TopLeft();
 
   // Include a translation to the correct origin.
@@ -955,8 +968,7 @@ InstallLayerClipPreserves3D(gfxContext* aTarget, Layer* aLayer)
     Matrix4x4();
   Matrix transform;
   if (!transform3d.CanDraw2D(&transform)) {
-    MOZ_CRASH("We should not have a 3D transform that CanDraw2D() is false!");
-    return;
+    gfxDevCrash(LogReason::CannotDraw3D) << "GFX: We should not have a 3D transform that CanDraw2D() is false!";
   }
   gfxMatrix oldTransform = aTarget->CurrentMatrix();
   transform *= ToMatrix(oldTransform);

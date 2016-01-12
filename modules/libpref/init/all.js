@@ -128,11 +128,7 @@ pref("dom.indexedDB.logging.profiler-marks", false);
 pref("dom.fileHandle.enabled", true);
 
 // Whether or not the Permissions API is enabled.
-#ifdef NIGHTLY_BUILD
 pref("dom.permissions.enabled", true);
-#else
-pref("dom.permissions.enabled", false);
-#endif
 
 // Whether or not selection events are enabled
 #ifdef NIGHTLY_BUILD
@@ -206,11 +202,7 @@ pref("dom.url.getters_decode_hash", false);
 // Whether to run add-on code in different compartments from browser code. This
 // causes a separate compartment for each (addon, global) combination, which may
 // significantly increase the number of compartments in the system.
-#ifdef E10S_TESTING_ONLY
 pref("dom.compartment_per_addon", true);
-#else
-pref("dom.compartment_per_addon", false);
-#endif
 
 // Fastback caching - if this pref is negative, then we calculate the number
 // of content viewers to cache based on the amount of available memory.
@@ -339,19 +331,12 @@ pref("media.raw.enabled", true);
 #endif
 pref("media.ogg.enabled", true);
 pref("media.opus.enabled", true);
-#ifdef MOZ_WAVE
 pref("media.wave.enabled", true);
-#endif
-#ifdef MOZ_WEBM
 pref("media.webm.enabled", true);
 #if defined(MOZ_FMP4) && defined(MOZ_WMF)
 pref("media.webm.intel_decoder.enabled", false);
 #endif
-#endif
-#ifdef MOZ_GSTREAMER
-pref("media.gstreamer.enabled", true);
-pref("media.gstreamer.enable-blacklist", true);
-#endif
+
 #ifdef MOZ_APPLEMEDIA
 #ifdef MOZ_WIDGET_UIKIT
 pref("media.mp3.enabled", true);
@@ -500,9 +485,7 @@ pref("media.mediasource.webm.enabled", false);
 #else
 pref("media.mediasource.webm.enabled", true);
 #endif
-
-// Enable new MediaFormatReader architecture for plain webm.
-pref("media.format-reader.webm", true);
+pref("media.mediasource.webm.audio.enabled", true);
 
 #ifdef MOZ_WEBSPEECH
 pref("media.webspeech.recognition.enable", false);
@@ -535,12 +518,17 @@ pref("layers.amd-switchable-gfx.enabled", true);
 // Whether to use async panning and zooming
 pref("layers.async-pan-zoom.enabled", false);
 
+#ifdef MOZ_WIDGET_UIKIT
+pref("layers.async-pan-zoom.enabled", true);
+#endif
+
 // Whether to enable event region building during painting
 pref("layout.event-regions.enabled", false);
 
 // APZ preferences. For documentation/details on what these prefs do, check
 // gfx/layers/apz/src/AsyncPanZoomController.cpp.
 pref("apz.allow_checkerboarding", true);
+pref("apz.allow_immediate_handoff", true);
 pref("apz.allow_zooming", false);
 
 // Whether to lock touch scrolling to one axis at a time
@@ -566,6 +554,7 @@ pref("apz.fling_curve_function_x2", "1.0");
 pref("apz.fling_curve_function_y2", "1.0");
 pref("apz.fling_curve_threshold_inches_per_ms", "-1.0");
 pref("apz.fling_friction", "0.002");
+pref("apz.fling_repaint_interval", 16);
 pref("apz.fling_stop_on_tap_threshold", "0.05");
 pref("apz.fling_stopped_threshold", "0.01");
 pref("apz.highlight_checkerboarded_areas", false);
@@ -573,52 +562,43 @@ pref("apz.max_velocity_inches_per_ms", "-1.0");
 pref("apz.max_velocity_queue_size", 5);
 pref("apz.min_skate_speed", "1.0");
 pref("apz.minimap.enabled", false);
-pref("apz.num_paint_duration_samples", 3);
 pref("apz.overscroll.enabled", false);
 pref("apz.overscroll.min_pan_distance_ratio", "1.0");
-pref("apz.overscroll.stretch_factor", "0.5");
-pref("apz.overscroll.spring_stiffness", "0.001");
 pref("apz.overscroll.spring_friction", "0.015");
+pref("apz.overscroll.spring_stiffness", "0.0018");
 pref("apz.overscroll.stop_distance_threshold", "5.0");
 pref("apz.overscroll.stop_velocity_threshold", "0.01");
+pref("apz.overscroll.stretch_factor", "0.35");
+pref("apz.pan_repaint_interval", 16);
 
 // Whether to print the APZC tree for debugging
 pref("apz.printtree", false);
 
+pref("apz.smooth_scroll_repaint_interval", 16);
 pref("apz.test.logging_enabled", false);
-pref("apz.touch_start_tolerance", "0.2222222");  // 0.2222222 came from 1.0/4.5
-pref("apz.touch_move_tolerance", "0.0");
-pref("apz.use_paint_duration", true);
+pref("apz.touch_start_tolerance", "0.1");
+pref("apz.touch_move_tolerance", "0.03");
 pref("apz.velocity_bias", "1.0");
 pref("apz.velocity_relevance_time_ms", 150);
+pref("apz.x_skate_highmem_adjust", "0.0");
+pref("apz.y_skate_highmem_adjust", "0.0");
+pref("apz.x_skate_size_multiplier", "2.5");
+pref("apz.y_skate_size_multiplier", "3.5");
 pref("apz.x_stationary_size_multiplier", "3.0");
 pref("apz.y_stationary_size_multiplier", "3.5");
 pref("apz.zoom_animation_duration_ms", 250);
 
-#if !defined(MOZ_WIDGET_GONK) && !defined(MOZ_WIDGET_ANDROID)
-// Desktop prefs
-pref("apz.fling_repaint_interval", 16);
-pref("apz.smooth_scroll_repaint_interval", 16);
-pref("apz.pan_repaint_interval", 16);
-pref("apz.x_skate_size_multiplier", "2.5");
-pref("apz.y_skate_size_multiplier", "3.5");
-pref("apz.x_skate_highmem_adjust", "1.0");
-pref("apz.y_skate_highmem_adjust", "2.5");
-#else
+#if defined(MOZ_WIDGET_GONK) || defined(MOZ_WIDGET_ANDROID)
 // Mobile prefs
+pref("apz.allow_zooming", true);
+pref("apz.enlarge_displayport_when_clipped", true);
 pref("apz.fling_repaint_interval", 75);
 pref("apz.smooth_scroll_repaint_interval", 75);
-pref("apz.pan_repaint_interval", 250);
 pref("apz.x_skate_size_multiplier", "1.25");
 pref("apz.y_skate_size_multiplier", "1.5");
 pref("apz.x_stationary_size_multiplier", "1.5");
 pref("apz.y_stationary_size_multiplier", "1.8");
-pref("apz.x_skate_highmem_adjust", "0.0");
-pref("apz.y_skate_highmem_adjust", "0.0");
 #endif
-
-// APZ testing (bug 961289)
-pref("apz.test.logging_enabled", false);
 
 #ifdef XP_MACOSX
 // Whether to run in native HiDPI mode on machines with "Retina"/HiDPI display;
@@ -650,6 +630,7 @@ pref("gfx.color_management.enablev4", false);
 
 pref("gfx.downloadable_fonts.enabled", true);
 pref("gfx.downloadable_fonts.fallback_delay", 3000);
+pref("gfx.downloadable_fonts.fallback_delay_short", 100);
 
 // disable downloadable font cache so that behavior is consistently
 // the uncached load behavior across pages (useful for testing reflow problems)
@@ -1019,6 +1000,9 @@ pref("print.print_edge_top", 0);
 pref("print.print_edge_left", 0);
 pref("print.print_edge_right", 0);
 pref("print.print_edge_bottom", 0);
+
+// Print via the parent process. This is only used when e10s is enabled.
+pref("print.print_via_parent", false);
 
 // Pref used by the spellchecker extension to control the
 // maximum number of misspelled words that will be underlined
@@ -1696,6 +1680,13 @@ pref("network.dnsCacheExpirationGracePeriod", 60);
 // This preference can be used to turn off DNS prefetch.
 pref("network.dns.disablePrefetch", false);
 
+// This preference controls whether .onion hostnames are
+// rejected before being given to DNS. RFC 7686
+pref("network.dns.blockDotOnion", true);
+
+// These domains are treated as localhost equivalent
+pref("network.dns.localDomains", "");
+
 // Contols whether or not "localhost" should resolve when offline
 pref("network.dns.offline-localhost", true);
 
@@ -1828,23 +1819,16 @@ pref("network.proxy.socks_remote_dns",      false);
 pref("network.proxy.proxy_over_tls",        true);
 pref("network.proxy.no_proxies_on",         "localhost, 127.0.0.1");
 pref("network.proxy.failover_timeout",      1800); // 30 minutes
-
-// If this value is 'true' and a PAC or all given proxies are inaccessible or
-// failing, Firefox will attempt to connect to the server DIRECTly. Meaning
-// without a proxy. If set 'false', Firefox will not try to access without
-// proxy.
-pref("network.proxy.use_direct_on_fail",    true);
-
 pref("network.online",                      true); //online/offline
-pref("network.cookie.cookieBehavior",       0); // 0-Accept, 1-dontAcceptForeign, 2-dontUse, 3-limitForeign
+pref("network.cookie.cookieBehavior",       0); // 0-Accept, 1-dontAcceptForeign, 2-dontAcceptAny, 3-limitForeign
 #ifdef ANDROID
 pref("network.cookie.cookieBehavior",       0); // Keep the old default of accepting all cookies
 #endif
 pref("network.cookie.thirdparty.sessionOnly", false);
-pref("network.cookie.lifetimePolicy",       0); // 0-accept, 2-acceptForSession, 3-acceptForNDays
+pref("network.cookie.lifetimePolicy",       0); // 0-accept, 1-dontUse 2-acceptForSession, 3-acceptForNDays
 pref("network.cookie.alwaysAcceptSessionCookies", false);
 pref("network.cookie.prefsMigrated",        false);
-pref("network.cookie.lifetime.days",        90);
+pref("network.cookie.lifetime.days",        90); // Ignored unless network.cookie.lifetimePolicy is 3.
 
 // The PAC file to load.  Ignored unless network.proxy.type is 2.
 pref("network.proxy.autoconfig_url", "");
@@ -2143,6 +2127,9 @@ pref("general.smoothScroll.other", true);
 // intervals).
 // This defines how longer is the duration compared to events interval (percentage)
 pref("general.smoothScroll.durationToIntervalRatio", 200);
+// These two prefs determine the timing function.
+pref("general.smoothScroll.currentVelocityWeighting", "0.25");
+pref("general.smoothScroll.stopDecelerationWeighting", "0.4");
 
 pref("profile.confirm_automigration",true);
 // profile.migration_behavior determines how the profiles root is set
@@ -2314,6 +2301,9 @@ pref("layout.css.float-logical-values.enabled", false);
 // Is support for the CSS4 image-orientation property enabled?
 pref("layout.css.image-orientation.enabled", true);
 
+// Is support for the font-display @font-face descriptor enabled?
+pref("layout.css.font-display.enabled", false);
+
 // Are sets of prefixed properties supported?
 pref("layout.css.prefixes.border-image", true);
 pref("layout.css.prefixes.transforms", true);
@@ -2324,7 +2314,12 @@ pref("layout.css.prefixes.font-features", true);
 pref("layout.css.prefixes.gradients", true);
 
 // Are webkit-prefixed properties & property-values supported?
-pref("layout.css.prefixes.webkit", false);
+pref("layout.css.prefixes.webkit", true);
+
+// Are "-webkit-{min|max}-device-pixel-ratio" media queries supported?
+// (Note: this pref has no effect if the master 'layout.css.prefixes.webkit'
+// pref is set to false.)
+pref("layout.css.prefixes.device-pixel-ratio-webkit", false);
 
 // Is the CSS Unprefixing Service enabled? (This service emulates support
 // for certain vendor-prefixed properties & values, for sites on a "fixlist".)
@@ -2429,7 +2424,7 @@ pref("layout.css.control-characters.visible", true);
 #endif
 
 // Is support for text-emphasis enabled?
-pref("layout.css.text-emphasis.enabled", false);
+pref("layout.css.text-emphasis.enabled", true);
 
 // pref for which side vertical scrollbars should be on
 // 0 = end-side in UI direction
@@ -2588,6 +2583,9 @@ pref("dom.ipc.plugins.asyncInit.enabled", false);
 #else
 pref("dom.ipc.plugins.asyncInit.enabled", true);
 #endif
+
+// Allow the AsyncDrawing mode to be used for plugins.
+pref("dom.ipc.plugins.asyncdrawing.enabled", true);
 
 pref("dom.ipc.processCount", 1);
 
@@ -3171,9 +3169,6 @@ pref("plugin.scan.WindowsMediaPlayer", "7.0");
 // Which is currently HKLM\Software\MozillaPlugins\xxxPLIDxxx\Path
 pref("plugin.scan.plid.all", true);
 
-// Allow the new AsyncDrawing mode to be used for plugins.
-pref("plugin.allow.asyncdrawing", false);
-
 // Help Windows NT, 2000, and XP dialup a RAS connection
 // when a network address is unreachable.
 pref("network.autodial-helper.enabled", true);
@@ -3655,12 +3650,16 @@ pref("print.print_paper_size", 0);
 // around the content of the page for Print Preview only
 pref("print.print_extra_margin", 0); // twips
 
-// CSSOM-View scroll-behavior smooth scrolling requires the C++ APZC
+// CSSOM-View scroll-behavior smooth scrolling and scroll snap requires the C++ APZC
+#ifdef MOZ_ANDROID_APZ
+pref("layout.css.scroll-behavior.enabled", true);
+pref("layout.css.scroll-behavior.property-enabled", true);
+pref("layout.css.scroll-snap.enabled", true);
+#else
 pref("layout.css.scroll-behavior.enabled", false);
 pref("layout.css.scroll-behavior.property-enabled", false);
-
-// CSS Scroll Snapping requires the C++ APZC
 pref("layout.css.scroll-snap.enabled", false);
+#endif
 
 /* PostScript print module prefs */
 // pref("print.postscript.enabled",      true);
@@ -4069,7 +4068,11 @@ pref("font.name.monospace.x-unicode", "dt-interface user-ucs2.cjk_japan-0");
 
 // Login Manager prefs
 pref("signon.rememberSignons",              true);
+#ifdef NIGHTLY_BUILD
 pref("signon.rememberSignons.visibilityToggle", true);
+#else
+pref("signon.rememberSignons.visibilityToggle", false);
+#endif
 pref("signon.autofillForms",                true);
 pref("signon.autologin.proxy",              false);
 pref("signon.storeWhenAutocompleteOff",     true);
@@ -4177,7 +4180,7 @@ pref("gl.msaa-level", 2);
 #endif
 pref("gl.require-hardware", false);
 #ifdef XP_MACOSX
-pref("gl.multithreaded", false);
+pref("gl.multithreaded", true);
 #endif
 
 pref("webgl.force-enabled", false);
@@ -4196,10 +4199,15 @@ pref("webgl.max-warnings-per-context", 32);
 pref("webgl.enable-draft-extensions", false);
 pref("webgl.enable-privileged-extensions", false);
 pref("webgl.bypass-shader-validation", false);
-pref("webgl.enable-prototype-webgl2", false);
 pref("webgl.disable-fail-if-major-performance-caveat", false);
 pref("webgl.disable-DOM-blit-uploads", false);
 pref("webgl.webgl2-compat-mode", false);
+
+#ifdef NIGHTLY_BUILD
+pref("webgl.enable-prototype-webgl2", true);
+#else
+pref("webgl.enable-prototype-webgl2", false);
+#endif
 
 #ifdef RELEASE_BUILD
 // Keep this disabled on Release and Beta for now. (see bug 1171228)
@@ -4313,10 +4321,6 @@ pref("layers.offmainthreadcomposition.enabled", true);
 // 0  -> full-tilt mode: Recomposite even if not transaction occured.
 pref("layers.offmainthreadcomposition.frame-rate", -1);
 
-#ifdef MOZ_WIDGET_UIKIT
-pref("layers.async-pan-zoom.enabled", true);
-#endif
-
 #ifdef XP_MACOSX
 pref("layers.enable-tiles", true);
 pref("layers.tile-width", 512);
@@ -4338,9 +4342,6 @@ pref("layers.tiles.edge-padding", true);
 // use with tests.
 pref("layers.offmainthreadcomposition.testing.enabled", false);
 
-// whether to allow use of the basic compositor
-pref("layers.offmainthreadcomposition.force-basic", false);
-
 // Whether to animate simple opacity and transforms on the compositor
 pref("layers.offmainthreadcomposition.async-animations", true);
 
@@ -4351,17 +4352,23 @@ pref("layers.bufferrotation.enabled", true);
 
 pref("layers.componentalpha.enabled", true);
 
+// Use the DT-backend implemented PushLayer
+pref("gfx.content.use-native-pushlayer", false);
+
 #ifdef ANDROID
 pref("gfx.apitrace.enabled",false);
 #endif
 
 #ifdef MOZ_X11
+pref("gfx.content.use-native-pushlayer", true);
 #ifdef MOZ_WIDGET_GTK
 pref("gfx.xrender.enabled",true);
 #endif
 #endif
 
 #ifdef XP_WIN
+pref("gfx.content.use-native-pushlayer", true);
+
 // Whether to disable the automatic detection and use of direct2d.
 pref("gfx.direct2d.disabled", false);
 pref("gfx.direct2d.use1_1", true);
@@ -4430,9 +4437,7 @@ pref("notification.feature.enabled", false);
 
 // Web Notification
 pref("dom.webnotifications.enabled", true);
-#if !defined(RELEASE_BUILD)
 pref("dom.webnotifications.serviceworker.enabled", true);
-#endif
 
 // Alert animation effect, name is disableSlidingEffect for backwards-compat.
 pref("alerts.disableSlidingEffect", false);
@@ -4685,8 +4690,12 @@ pref("dom.browserElement.maxScreenshotDelayMS", 2000);
 // Whether we should show the placeholder when the element is focused but empty.
 pref("dom.placeholder.show_on_focus", true);
 
-// VR is disabled by default
+// VR is disabled by default in release and enabled for nightly and aurora
+#ifdef RELEASE_BUILD
 pref("dom.vr.enabled", false);
+#else
+pref("dom.vr.enabled", true);
+#endif
 // Oculus > 0.5
 pref("dom.vr.oculus.enabled", true);
 // Oculus <= 0.5; will only trigger if > 0.5 is not used or found
@@ -4694,7 +4703,7 @@ pref("dom.vr.oculus050.enabled", true);
 // Cardboard VR device is disabled by default
 pref("dom.vr.cardboard.enabled", false);
 // 0 = never; 1 = only if real devices aren't there; 2 = always
-pref("dom.vr.add-test-devices", 1);
+pref("dom.vr.add-test-devices", 0);
 // true = show the VR textures in our compositing output; false = don't.
 // true might have performance impact
 pref("gfx.vr.mirror-textures", false);
@@ -4856,44 +4865,6 @@ pref("browser.safebrowsing.allowOverride", true);
 // Turn off Spatial navigation by default.
 pref("snav.enabled", false);
 
-// Original caret implementation on collapsed selection.
-pref("touchcaret.enabled", false);
-
-// This will inflate the size of the touch caret frame when checking if user
-// clicks on the caret or not. In app units.
-pref("touchcaret.inflatesize.threshold", 40);
-
-// We'll start to increment time when user release the control of touch caret.
-// When time exceed this expiration time, we'll hide touch caret.
-// In milliseconds. (0 means disable this feature)
-pref("touchcaret.expiration.time", 3000);
-
-// Original caret implementation on non-collapsed selection.
-pref("selectioncaret.enabled", false);
-
-// This will inflate size of selection caret frame when we checking if
-// user click on selection caret or not. In app units.
-pref("selectioncaret.inflatesize.threshold", 40);
-
-// Selection carets will fall-back to internal LongTap detector.
-pref("selectioncaret.detects.longtap", true);
-
-// Selection carets do not affect caret visibility.
-pref("selectioncaret.visibility.affectscaret", false);
-
-// Selection caret visibility does not observe composition
-// selections generated by soft keyboard managers.
-pref("selectioncaret.observes.compositions", false);
-
-// The Touch caret by default observes the b2g visibility rules, and
-// not the extended Android visibility rules that allow for touchcaret
-// display in empty editable fields, for example.
-pref("touchcaret.extendedvisibility", false);
-
-// Desktop and b2g don't need to open or close the Android
-// TextSelection (Actionbar) utility.
-pref("caret.manages-android-actionbar", false);
-
 // New implementation to unify touch-caret and selection-carets.
 pref("layout.accessiblecaret.enabled", false);
 
@@ -4910,6 +4881,13 @@ pref("layout.accessiblecaret.timeout_ms", 3000);
 // Simulate long tap to select words on the platforms where APZ is not enabled
 // or long tap events does not fired by APZ.
 pref("layout.accessiblecaret.use_long_tap_injector", true);
+
+// Selection change notifications generated by Javascript, or misc internal
+// events hide AccessibleCarets by default.
+pref("layout.accessiblecaret.extendedvisibility", false);
+
+// Optionally provide haptic feedback on longPress selection events.
+pref("layout.accessiblecaret.hapticfeedback", false);
 
 // Wakelock is disabled by default.
 pref("dom.wakelock.enabled", false);
@@ -4956,9 +4934,6 @@ pref("dom.presentation.discovery.timeout_ms", 10000);
 pref("dom.presentation.discoverable", false);
 
 #ifdef XP_MACOSX
-// Use raw ICU instead of CoreServices API in Unicode collation
-pref("intl.collation.mac.use_icu", true);
-
 #if !defined(RELEASE_BUILD) || defined(DEBUG)
 // In non-release builds we crash by default on insecure text input (when a
 // password editor has focus but secure event input isn't enabled).  The
@@ -5137,3 +5112,8 @@ pref("dom.mozKillSwitch.enabled", false);
 pref("toolkit.pageThumbs.screenSizeDivisor", 7);
 pref("toolkit.pageThumbs.minWidth", 0);
 pref("toolkit.pageThumbs.minHeight", 0);
+
+pref("webextensions.tests", false);
+
+// Allow customization of the fallback directory for file uploads
+pref("dom.input.fallbackUploadDir", "");

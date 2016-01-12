@@ -2487,14 +2487,24 @@ CanvasRenderingContext2D::UpdateFilter()
 // rects
 //
 
-// bug 1074733
-// The canvas spec does not forbid rects with negative w or h, so given
-// corners (x, y), (x+w, y), (x+w, y+h), and (x, y+h) we must generate
-// the appropriate rect by flipping negative dimensions. This prevents
-// draw targets from receiving "empty" rects later on.
-static void
-NormalizeRect(double& aX, double& aY, double& aWidth, double& aHeight)
+static bool
+ValidateRect(double& aX, double& aY, double& aWidth, double& aHeight)
 {
+
+  // bug 1018527
+  // The values of canvas API input are in double precision, but Moz2D APIs are
+  // using float precision. Bypass canvas API calls when the input is out of
+  // float precision to avoid precision problem
+  if (!std::isfinite((float)aX) | !std::isfinite((float)aY) |
+      !std::isfinite((float)aWidth) | !std::isfinite((float)aHeight)) {
+    return false;
+  }
+
+  // bug 1074733
+  // The canvas spec does not forbid rects with negative w or h, so given
+  // corners (x, y), (x+w, y), (x+w, y+h), and (x, y+h) we must generate
+  // the appropriate rect by flipping negative dimensions. This prevents
+  // draw targets from receiving "empty" rects later on.
   if (aWidth < 0) {
     aWidth = -aWidth;
     aX -= aWidth;
@@ -2503,13 +2513,16 @@ NormalizeRect(double& aX, double& aY, double& aWidth, double& aHeight)
     aHeight = -aHeight;
     aY -= aHeight;
   }
+  return true;
 }
 
 void
 CanvasRenderingContext2D::ClearRect(double x, double y, double w,
                                     double h)
 {
-  NormalizeRect(x, y, w, h);
+  if(!ValidateRect(x, y, w, h)) {
+    return;
+  }
 
   EnsureTarget();
 
@@ -2524,7 +2537,9 @@ CanvasRenderingContext2D::FillRect(double x, double y, double w,
 {
   const ContextState &state = CurrentState();
 
-  NormalizeRect(x, y, w, h);
+  if(!ValidateRect(x, y, w, h)) {
+    return;
+  }
 
   if (state.patternStyles[Style::FILL]) {
     CanvasPattern::RepeatMode repeat =
@@ -2599,7 +2614,10 @@ CanvasRenderingContext2D::StrokeRect(double x, double y, double w,
   if (!w && !h) {
     return;
   }
-  NormalizeRect(x, y, w, h);
+
+  if(!ValidateRect(x, y, w, h)) {
+    return;
+  }
 
   EnsureTarget();
   if (!IsTargetValid()) {
@@ -3440,7 +3458,7 @@ struct MOZ_STACK_CLASS CanvasBidiProcessor : public nsBidiPresUtils::BidiProcess
     }
     mTextRun = mFontgrp->MakeTextRun(text,
                                      length,
-                                     mThebes,
+                                     mDrawTarget,
                                      mAppUnitsPerDevPixel,
                                      flags,
                                      mMissingFonts);
@@ -3453,7 +3471,7 @@ struct MOZ_STACK_CLASS CanvasBidiProcessor : public nsBidiPresUtils::BidiProcess
                                                                mDoMeasureBoundingBox ?
                                                                  gfxFont::TIGHT_INK_EXTENTS :
                                                                  gfxFont::LOOSE_INK_EXTENTS,
-                                                               mThebes,
+                                                               mDrawTarget,
                                                                nullptr);
 
     // this only measures the height; the total width is gotten from the
@@ -3489,7 +3507,7 @@ struct MOZ_STACK_CLASS CanvasBidiProcessor : public nsBidiPresUtils::BidiProcess
                               mDoMeasureBoundingBox ?
                                   gfxFont::TIGHT_INK_EXTENTS :
                                   gfxFont::LOOSE_INK_EXTENTS,
-                              mThebes,
+                              mDrawTarget,
                               nullptr);
       inlineCoord += textRunMetrics.mAdvanceWidth;
       // old code was:
@@ -3688,7 +3706,7 @@ struct MOZ_STACK_CLASS CanvasBidiProcessor : public nsBidiPresUtils::BidiProcess
   nsAutoPtr<gfxTextRun> mTextRun;
 
   // pointer to a screen reference context used to measure text and such
-  RefPtr<gfxContext> mThebes;
+  RefPtr<DrawTarget> mDrawTarget;
 
   // Pointer to the draw target we should fill our text to
   CanvasRenderingContext2D *mCtx;
@@ -3793,6 +3811,10 @@ CanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
     return NS_OK;
   }
 
+  if (!IsFinite(aX) || !IsFinite(aY)) {
+    return NS_OK;
+  }
+
   const ContextState &state = CurrentState();
 
   // This is only needed to know if we can know the drawing bounding box easily.
@@ -3810,15 +3832,14 @@ CanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
 
   GetAppUnitsValues(&processor.mAppUnitsPerDevPixel, nullptr);
   processor.mPt = gfxPoint(aX, aY);
-  processor.mThebes =
-    new gfxContext(gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget());
+  processor.mDrawTarget =
+    gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget();
 
   // If we don't have a target then we don't have a transform. A target won't
   // be needed in the case where we're measuring the text size. This allows
   // to avoid creating a target if it's only being used to measure text sizes.
   if (mTarget) {
-    Matrix matrix = mTarget->GetTransform();
-    processor.mThebes->SetMatrix(gfxMatrix(matrix._11, matrix._12, matrix._21, matrix._22, matrix._31, matrix._32));
+    processor.mDrawTarget->SetTransform(mTarget->GetTransform());
   }
   processor.mCtx = this;
   processor.mOp = aOp;
@@ -4375,8 +4396,10 @@ CanvasRenderingContext2D::DrawImage(const CanvasImageSource& image,
   MOZ_ASSERT(optional_argc == 0 || optional_argc == 2 || optional_argc == 6);
 
   if (optional_argc == 6) {
-    NormalizeRect(sx, sy, sw, sh);
-    NormalizeRect(dx, dy, dw, dh);
+    if (!ValidateRect(sx, sy, sw, sh) ||
+        !ValidateRect(dx, dy, dw, dh)) {
+      return;
+    }
   }
 
   RefPtr<SourceSurface> srcSurf;
@@ -5199,17 +5222,17 @@ CanvasRenderingContext2D::GetImageDataArray(JSContext* aCx,
   IntRect dstWriteRect = srcReadRect;
   dstWriteRect.MoveBy(-aX, -aY);
 
+  JS::AutoCheckCannotGC nogc;
+  bool isShared;
+  uint8_t* data = JS_GetUint8ClampedArrayData(darray, &isShared, nogc);
+  MOZ_ASSERT(!isShared);        // Should not happen, data was created above
+
   uint8_t* src;
   uint32_t srcStride;
-
   if (readback) {
     srcStride = rawData.mStride;
     src = rawData.mData + srcReadRect.y * srcStride + srcReadRect.x * 4;
-  }
-
-  JS::AutoCheckCannotGC nogc;
-  uint8_t* data = JS_GetUint8ClampedArrayData(darray, nogc);
-  if (!readback) {
+  } else {
     src = data;
     srcStride = aWidth * 4;
   }
@@ -5400,7 +5423,7 @@ CanvasRenderingContext2D::PutImageData_explicit(int32_t x, int32_t y, uint32_t w
   uint32_t copyWidth = dirtyRect.Width();
   uint32_t copyHeight = dirtyRect.Height();
   RefPtr<gfxImageSurface> imgsurf = new gfxImageSurface(gfx::IntSize(copyWidth, copyHeight),
-                                                          gfxImageFormat::ARGB32,
+                                                          SurfaceFormat::A8R8G8B8_UINT32,
                                                           false);
   if (!imgsurf || imgsurf->CairoStatus()) {
     return NS_ERROR_FAILURE;
@@ -5557,9 +5580,9 @@ CanvasRenderingContext2D::GetBufferProvider(LayerManager* aManager)
   return mBufferProvider;
 }
 
-already_AddRefed<CanvasLayer>
+already_AddRefed<Layer>
 CanvasRenderingContext2D::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
-                                         CanvasLayer *aOldLayer,
+                                         Layer *aOldLayer,
                                          LayerManager *aManager)
 {
   if (mOpaque || mIsSkiaGL) {
@@ -5602,8 +5625,10 @@ CanvasRenderingContext2D::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
       data.mBufferProvider = provider;
     }
 
-    if (userData && userData->IsForContext(this) && aOldLayer->IsDataValid(data)) {
-      RefPtr<CanvasLayer> ret = aOldLayer;
+    if (userData &&
+        userData->IsForContext(this) &&
+        static_cast<CanvasLayer*>(aOldLayer)->IsDataValid(data)) {
+      RefPtr<Layer> ret = aOldLayer;
       return ret.forget();
     }
   }

@@ -183,7 +183,7 @@ class LAllocation : public TempObject
         return bits_;
     }
 
-    const char* toString() const;
+    UniqueChars toString() const;
     bool aliases(const LAllocation& other) const;
     void dump() const;
 
@@ -568,6 +568,7 @@ class LDefinition
             return LDefinition::SLOTS;
           case MIRType_Pointer:
             return LDefinition::GENERAL;
+          case MIRType_Bool32x4:
           case MIRType_Int32x4:
             return LDefinition::INT32X4;
           case MIRType_Float32x4:
@@ -577,7 +578,7 @@ class LDefinition
         }
     }
 
-    const char* toString() const;
+    UniqueChars toString() const;
 
     void dump() const;
 };

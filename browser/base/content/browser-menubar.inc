@@ -367,9 +367,9 @@
                 <menuseparator id="sanitizeSeparator"/>
                 <menuitem id="sync-tabs-menuitem"
                           class="syncTabsMenuItem"
-                          label="&syncTabsMenu2.label;"
+                          label="&syncTabsMenu3.label;"
                           oncommand="BrowserOpenSyncTabs();"
-                          disabled="true"/>
+                          hidden="true"/>
                 <menuitem id="historyRestoreLastSession"
                           label="&historyRestoreLastSession.label;"
                           command="Browser:RestoreLastSession"/>
@@ -413,7 +413,6 @@
                oncommand="BookmarksEventHandler.onCommand(event, this.parentNode._placesView);"
                onclick="BookmarksEventHandler.onClick(event, this.parentNode._placesView);"
                onpopupshowing="BookmarkingUI.onMainMenuPopupShowing(event);
-                               BookmarkingUI.updatePocketItemVisibility('menu_');
                                if (!this.parentNode._placesView)
                                  new PlacesMenu(event, 'place:folder=BOOKMARKS_MENU');"
                tooltip="bhTooltip" popupsinherittooltip="true">
@@ -422,12 +421,6 @@
                 command="Browser:ShowAllBookmarks"
                 key="manBookmarkKb"/>
       <menuseparator id="organizeBookmarksSeparator"/>
-      <menuitem id="menu_pocket" label="&pocketMenuitem.label;"
-#ifndef XP_MACOSX
-                class="menuitem-iconic"
-#endif
-                oncommand="openUILink(Pocket.listURL, event);"/>
-      <menuseparator id="menu_pocketSeparator"/>
       <menuitem id="menu_bookmarkThisPage"
                 command="Browser:AddBookmarkAs"
                 observes="bookmarkThisPageBroadcaster"
@@ -499,15 +492,6 @@
                         accesskey="&addons.accesskey;"
                         key="key_openAddons"
                         command="Tools:Addons"/>
-              <menuitem id="menu_openApps"
-                        label="&webapps.label;"
-                        accesskey="&webapps.accesskey;"
-                        oncommand="BrowserOpenApps();"/>
-
-              <menuitem id="menu_openLoop"
-                        label="&loopMenuItem.label;"
-                        accesskey = "&loopMenuItem.accesskey;"
-                        oncommand="LoopUI.togglePanel();"/>
 
               <!-- only one of sync-setup, sync-syncnowitem or sync-reauthitem will be showing at once -->
               <menuitem id="sync-setup"

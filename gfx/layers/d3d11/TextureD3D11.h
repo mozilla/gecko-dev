@@ -42,7 +42,9 @@ public:
 protected:
   bool PrepareDrawTargetInLock(OpenMode aMode);
 
-  DXGITextureData(gfx::IntSize aSize, gfx::SurfaceFormat aFormat, bool aNeedsClear, bool aNeedsClearWhite);
+  DXGITextureData(gfx::IntSize aSize, gfx::SurfaceFormat aFormat,
+                  bool aNeedsClear, bool aNeedsClearWhite,
+                  bool aIsForOutOfBandContent);
 
   virtual void GetDXGIResource(IDXGIResource** aOutResource) = 0;
 
@@ -53,6 +55,7 @@ protected:
   bool mNeedsClear;
   bool mNeedsClearWhite;
   bool mHasSynchronization;
+  bool mIsForOutOfBandContent;
 };
 
 class D3D11TextureData : public DXGITextureData
@@ -84,11 +87,16 @@ public:
 
   virtual void Deallocate(ISurfaceAllocator* aAllocator) override;
 
+  D3D11TextureData* AsD3D11TextureData() override {
+    return this;
+  }
+
   ~D3D11TextureData();
 protected:
   D3D11TextureData(ID3D11Texture2D* aTexture,
                    gfx::IntSize aSize, gfx::SurfaceFormat aFormat,
-                   bool aNeedsClear, bool aNeedsClearWhite);
+                   bool aNeedsClear, bool aNeedsClearWhite,
+                   bool aIsForOutOfBandContent);
 
   virtual void GetDXGIResource(IDXGIResource** aOutResource) override;
 
@@ -132,7 +140,8 @@ public:
 protected:
   D3D10TextureData(ID3D10Texture2D* aTexture,
                    gfx::IntSize aSize, gfx::SurfaceFormat aFormat,
-                   bool aNeedsClear, bool aNeedsClearWhite);
+                   bool aNeedsClear, bool aNeedsClearWhite,
+                   bool aIsForOutOfBandContent);
 
   virtual void GetDXGIResource(IDXGIResource** aOutResource) override;
 
@@ -176,11 +185,11 @@ public:
 
   virtual gfx::IntSize GetSize() const override { return mSize; }
 
-  virtual gfx::SurfaceFormat GetFormat() const { return gfx::SurfaceFormat::YUV; }
+  virtual gfx::SurfaceFormat GetFormat() const override { return gfx::SurfaceFormat::YUV; }
 
-  virtual bool SupportsMoz2D() const { return false; }
+  virtual bool SupportsMoz2D() const override { return false; }
 
-  virtual already_AddRefed<gfx::DrawTarget> BorrowDrawTarget() { return nullptr; }
+  virtual already_AddRefed<gfx::DrawTarget> BorrowDrawTarget() override { return nullptr; }
 
   // This TextureData should not be used in a context where we use CreateSimilar
   // (ex. component alpha) because the underlying texture is always created by
@@ -212,7 +221,7 @@ protected:
 class TextureSourceD3D11
 {
 public:
-  TextureSourceD3D11() {}
+  TextureSourceD3D11() : mFormatOverride(DXGI_FORMAT_UNKNOWN) {}
   virtual ~TextureSourceD3D11() {}
 
   virtual ID3D11Texture2D* GetD3D11Texture() const { return mTexture; }
@@ -223,6 +232,7 @@ protected:
   gfx::IntSize mSize;
   RefPtr<ID3D11Texture2D> mTexture;
   RefPtr<ID3D11ShaderResourceView> mSRV;
+  DXGI_FORMAT mFormatOverride;
 };
 
 /**
@@ -395,7 +405,8 @@ class CompositingRenderTargetD3D11 : public CompositingRenderTarget,
 {
 public:
   CompositingRenderTargetD3D11(ID3D11Texture2D* aTexture,
-                               const gfx::IntPoint& aOrigin);
+                               const gfx::IntPoint& aOrigin,
+                               DXGI_FORMAT aFormatOverride = DXGI_FORMAT_UNKNOWN);
 
   virtual TextureSourceD3D11* AsSourceD3D11() override { return this; }
 

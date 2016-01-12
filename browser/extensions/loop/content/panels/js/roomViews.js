@@ -7,7 +7,6 @@ loop.roomViews = (function(mozL10n) {
   "use strict";
 
   var ROOM_STATES = loop.store.ROOM_STATES;
-  var SCREEN_SHARE_STATES = loop.shared.utils.SCREEN_SHARE_STATES;
   var FAILURE_DETAILS = loop.shared.utils.FAILURE_DETAILS;
   var sharedActions = loop.shared.actions;
   var sharedMixins = loop.shared.mixins;
@@ -281,6 +280,15 @@ loop.roomViews = (function(mozL10n) {
         }));
     },
 
+    handleFacebookButtonClick: function(event) {
+      event.preventDefault();
+
+      this.props.dispatcher.dispatch(new sharedActions.FacebookShareRoomUrl({
+        from: "conversation",
+        roomUrl: this.props.roomData.roomUrl
+      }));
+    },
+
     handleCopyButtonClick: function(event) {
       event.preventDefault();
 
@@ -300,20 +308,6 @@ loop.roomViews = (function(mozL10n) {
       if (this.state.copiedUrl) {
         this.setState({ copiedUrl: false });
       }
-    },
-
-    handleShareButtonClick: function(event) {
-      event.preventDefault();
-
-      var providers = this.props.socialShareProviders;
-      // If there are no providers available currently, save a click by dispatching
-      // the 'AddSocialShareProvider' right away.
-      if (!providers || !providers.length) {
-        this.props.dispatcher.dispatch(new sharedActions.AddSocialShareProvider());
-        return;
-      }
-
-      this.toggleDropdownMenu();
     },
 
     handleEditContextClose: function() {
@@ -355,6 +349,12 @@ loop.roomViews = (function(mozL10n) {
               onMouseOver: this.resetTriggeredButtons}, 
               React.createElement("img", {src: "shared/img/glyph-email-16x16.svg"}), 
               React.createElement("p", null, mozL10n.get("invite_email_link_button"))
+            ), 
+            React.createElement("div", {className: "btn-facebook invite-button", 
+              onClick: this.handleFacebookButtonClick, 
+              onMouseOver: this.resetTriggeredButtons}, 
+              React.createElement("img", {src: "shared/img/glyph-facebook-16x16.svg"}), 
+              React.createElement("p", null, mozL10n.get("invite_facebook_button3"))
             )
           ), 
           React.createElement(SocialShareDropdown, {
@@ -622,6 +622,12 @@ loop.roomViews = (function(mozL10n) {
           })
         }));
       }
+
+      // Automatically start sharing a tab now we're ready to share.
+      if (this.state.roomState !== ROOM_STATES.SESSION_CONNECTED &&
+          nextState.roomState === ROOM_STATES.SESSION_CONNECTED) {
+        this.props.dispatcher.dispatch(new sharedActions.StartBrowserShare());
+      }
     },
 
     /**
@@ -767,11 +773,6 @@ loop.roomViews = (function(mozL10n) {
         this.setTitle(roomTitle);
       }
 
-      var screenShareData = {
-        state: this.state.screenSharingState || SCREEN_SHARE_STATES.INACTIVE,
-        visible: true
-      };
-
       var shouldRenderInvitationOverlay = this._shouldRenderInvitationOverlay();
       var shouldRenderEditContextView = this.state.showEditContext;
       var roomData = this.props.roomStore.getStoreState("activeRoom");
@@ -827,7 +828,6 @@ loop.roomViews = (function(mozL10n) {
                   dispatcher: this.props.dispatcher, 
                   hangup: this.leaveRoom, 
                   publishStream: this.publishStream, 
-                  screenShare: screenShareData, 
                   settingsMenuItems: settingsMenuItems, 
                   show: !shouldRenderEditContextView, 
                   showHangup: this.props.chatWindowDetached, 

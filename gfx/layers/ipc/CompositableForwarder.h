@@ -10,6 +10,7 @@
 #include <stdint.h>                     // for int32_t, uint64_t
 #include "gfxTypes.h"
 #include "mozilla/Attributes.h"         // for override
+#include "mozilla/layers/CompositableClient.h"  // for CompositableClient
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/ISurfaceAllocator.h"  // for ISurfaceAllocator
 #include "mozilla/layers/LayersTypes.h"  // for LayersBackend
@@ -83,6 +84,9 @@ public:
                                 const gfx::IntRect& aPictureRect) = 0;
 #endif
 
+  virtual bool DestroyInTransaction(PTextureChild* aTexture, bool synchronously) = 0;
+  virtual bool DestroyInTransaction(PCompositableChild* aCompositable, bool synchronously) = 0;
+
   /**
    * Tell the CompositableHost on the compositor side to remove the texture
    * from the CompositableHost.
@@ -106,26 +110,6 @@ public:
   virtual void RemoveTextureFromCompositableAsync(AsyncTransactionTracker* aAsyncTransactionTracker,
                                                   CompositableClient* aCompositable,
                                                   TextureClient* aTexture) {}
-
-  /**
-   * Holds a reference to a TextureClient until after the next
-   * compositor transaction, and then drops it.
-   */
-  virtual void HoldUntilTransaction(TextureClient* aClient)
-  {
-    if (aClient) {
-      mTexturesToRemove.AppendElement(aClient);
-    }
-  }
-
-  /**
-   * Forcibly remove texture data from TextureClient
-   * This function needs to be called after a tansaction with Compositor.
-   */
-  virtual void RemoveTexturesIfNecessary()
-  {
-    mTexturesToRemove.Clear();
-  }
 
   struct TimedTextureClient {
     TimedTextureClient()
@@ -190,6 +174,7 @@ public:
 protected:
   TextureFactoryIdentifier mTextureFactoryIdentifier;
   nsTArray<RefPtr<TextureClient> > mTexturesToRemove;
+  nsTArray<RefPtr<CompositableClient>> mCompositableClientsToRemove;
   RefPtr<SyncObject> mSyncObject;
   const int32_t mSerial;
   static mozilla::Atomic<int32_t> sSerialCounter;

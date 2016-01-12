@@ -7,9 +7,11 @@
 #include "EventTokenBucket.h"
 
 #include "nsICancelable.h"
+#include "nsIIOService.h"
 #include "nsNetCID.h"
+#include "nsNetUtil.h"
+#include "nsServiceManagerUtils.h"
 #include "nsSocketTransportService2.h"
-
 #ifdef DEBUG
 #include "MainThreadUtils.h"
 #endif
@@ -203,6 +205,18 @@ EventTokenBucket::UnPause()
   mPaused = false;
   DispatchEvents();
   UpdateTimer();
+}
+
+void
+EventTokenBucket::Stop()
+{
+  MOZ_ASSERT(PR_GetCurrentThread() == gSocketThread);
+  SOCKET_LOG(("EventTokenBucket::Stop %p armed=%d\n", this, mTimerArmed));
+  mStopped = true;
+  if (mTimerArmed) {
+    mTimer->Cancel();
+    mTimerArmed = false;
+  }
 }
 
 nsresult

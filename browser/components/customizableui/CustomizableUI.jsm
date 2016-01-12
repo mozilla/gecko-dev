@@ -39,6 +39,9 @@ const kPrefCustomizationDebug        = "browser.uiCustomization.debug";
 const kPrefDrawInTitlebar            = "browser.tabs.drawInTitlebar";
 const kPrefWebIDEInNavbar            = "devtools.webide.widget.inNavbarByDefault";
 
+const kExpectedWindowURL = "chrome://browser/content/browser.xul";
+
+
 /**
  * The keys are the handlers that are fired when the event type (the value)
  * is fired on the subview. A widget that provides a subview has the option
@@ -53,14 +56,17 @@ const kSubviewEvents = [
  * The current version. We can use this to auto-add new default widgets as necessary.
  * (would be const but isn't because of testing purposes)
  */
-var kVersion = 4;
+var kVersion = 6;
 
 /**
  * Buttons removed from built-ins by version they were removed. kVersion must be
  * bumped any time a new id is added to this. Use the button id as key, and
  * version the button is removed in as the value.  e.g. "pocket-button": 5
  */
-var ObsoleteBuiltinButtons = {};
+var ObsoleteBuiltinButtons = {
+  "loop-button": 5,
+  "pocket-button": 6
+};
 
 /**
  * gPalette is a map of every widget that CustomizableUI.jsm knows about, keyed
@@ -178,6 +184,7 @@ var CustomizableUIInternal = {
 #ifndef MOZ_DEV_EDITION
       "developer-button",
 #endif
+      "sync-button",
     ];
 
 #ifdef E10S_TESTING_ONLY
@@ -215,15 +222,6 @@ var CustomizableUIInternal = {
       "home-button",
       "loop-button",
     ];
-
-    // Insert the Pocket button after the bookmarks button if it's present.
-    for (let widgetDefinition of CustomizableWidgets) {
-      if (widgetDefinition.id == "pocket-button") {
-        let idx = navbarPlacements.indexOf("bookmarks-menu-button") + 1;
-        navbarPlacements.splice(idx, 0, widgetDefinition.id);
-        break;
-      }
-    }
 
     if (Services.prefs.getBoolPref(kPrefWebIDEInNavbar)) {
       navbarPlacements.push("webide-button");
@@ -1297,6 +1295,9 @@ var CustomizableUIInternal = {
   },
 
   buildWidget: function(aDocument, aWidget) {
+    if (aDocument.documentURI != kExpectedWindowURL) {
+      throw new Error("buildWidget was called for a non-browser window!");
+    }
     if (typeof aWidget == "string") {
       aWidget = gPalette.get(aWidget);
     }
@@ -3351,7 +3352,7 @@ this.CustomizableUI = {
    * being affected.
    */
   get areas() {
-    return [area for ([area, props] of gAreas)];
+    return [...gAreas.keys()];
   },
   /**
    * Check what kind of area (toolbar or menu panel) an area is. This is
@@ -3464,8 +3465,8 @@ this.CustomizableUI = {
    *
    *   null // if the widget is not placed anywhere (ie in the palette)
    */
-  getPlacementOfWidget: function(aWidgetId) {
-    return CustomizableUIInternal.getPlacementOfWidget(aWidgetId, true);
+  getPlacementOfWidget: function(aWidgetId, aOnlyRegistered=true, aDeadAreas=false) {
+    return CustomizableUIInternal.getPlacementOfWidget(aWidgetId, aOnlyRegistered, aDeadAreas);
   },
   /**
    * Check if a widget can be removed from the area it's in.
@@ -3753,7 +3754,7 @@ function WidgetGroupWrapper(aWidget) {
     if (!buildAreas) {
       return [];
     }
-    return [this.forWindow(node.ownerDocument.defaultView) for (node of buildAreas)];
+    return Array.from(buildAreas, (node) => this.forWindow(node.ownerDocument.defaultView));
   });
 
   this.__defineGetter__("areaType", function() {
@@ -3864,7 +3865,7 @@ function XULWidgetGroupWrapper(aWidgetId) {
   });
 
   this.__defineGetter__("instances", function() {
-    return [this.forWindow(win) for ([win,] of gBuildWindows)];
+    return Array.from(gBuildWindows, ([win,]) => this.forWindow(win));
   });
 
   Object.freeze(this);

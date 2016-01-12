@@ -22,6 +22,7 @@
 #include "mozilla/layers/AsyncDragMetrics.h"
 #include "mozilla/layers/LayersTypes.h"
 #include "mozilla/layers/CompositorTypes.h"
+#include "ImageTypes.h"
 #include "FrameMetrics.h"
 #include "FilterSupport.h"
 #include "mozilla/layers/GeckoContentController.h"
@@ -229,14 +230,6 @@ struct ParamTraits<mozilla::layers::ScaleMode>
 {};
 
 template <>
-struct ParamTraits<gfxImageFormat>
-  : public ContiguousEnumSerializer<
-             gfxImageFormat,
-             gfxImageFormat::ARGB32,
-             gfxImageFormat::Unknown>
-{};
-
-template <>
 struct ParamTraits<mozilla::gfx::AttributeName>
   : public ContiguousEnumSerializer<
              mozilla::gfx::AttributeName,
@@ -286,8 +279,8 @@ struct ParamTraits<mozilla::layers::DiagnosticTypes>
 template <>
 struct ParamTraits<mozilla::PixelFormat>
   : public EnumSerializer<mozilla::PixelFormat,
-                          gfxImageFormat::ARGB32,
-                          gfxImageFormat::Unknown>
+                          SurfaceFormat::A8R8G8B8_UINT32,
+                          SurfaceFormat::UNKNOWN>
 {};
 */
 
@@ -376,7 +369,7 @@ struct RegionParamTraits
   {
     Iter it(param);
     while (const Rect* r = it.Next()) {
-      MOZ_ASSERT(!r->IsEmpty());
+      MOZ_RELEASE_ASSERT(!r->IsEmpty());
       WriteParam(msg, *r);
     }
     // empty rects are sentinel values because nsRegions will never
@@ -683,38 +676,39 @@ struct ParamTraits<mozilla::layers::FrameMetrics>
 
   static void Write(Message* aMsg, const paramType& aParam)
   {
-    WriteParam(aMsg, aParam.mScrollableRect);
-    WriteParam(aMsg, aParam.mViewport);
-    WriteParam(aMsg, aParam.mScrollOffset);
-    WriteParam(aMsg, aParam.mDisplayPort);
-    WriteParam(aMsg, aParam.mDisplayPortMargins);
-    WriteParam(aMsg, aParam.mUseDisplayPortMargins);
-    WriteParam(aMsg, aParam.mCriticalDisplayPort);
-    WriteParam(aMsg, aParam.mCompositionBounds);
-    WriteParam(aMsg, aParam.mRootCompositionSize);
     WriteParam(aMsg, aParam.mScrollId);
     WriteParam(aMsg, aParam.mScrollParentId);
     WriteParam(aMsg, aParam.mPresShellResolution);
+    WriteParam(aMsg, aParam.mCompositionBounds);
+    WriteParam(aMsg, aParam.mDisplayPort);
+    WriteParam(aMsg, aParam.mCriticalDisplayPort);
+    WriteParam(aMsg, aParam.mScrollableRect);
     WriteParam(aMsg, aParam.mCumulativeResolution);
-    WriteParam(aMsg, aParam.mZoom);
     WriteParam(aMsg, aParam.mDevPixelsPerCSSPixel);
+    WriteParam(aMsg, aParam.mScrollOffset);
+    WriteParam(aMsg, aParam.mZoom);
+    WriteParam(aMsg, aParam.mScrollGeneration);
+    WriteParam(aMsg, aParam.mSmoothScrollOffset);
+    WriteParam(aMsg, aParam.mRootCompositionSize);
+    WriteParam(aMsg, aParam.mDisplayPortMargins);
     WriteParam(aMsg, aParam.mPresShellId);
+    WriteParam(aMsg, aParam.mViewport);
+    WriteParam(aMsg, aParam.mExtraResolution);
+    WriteParam(aMsg, aParam.mBackgroundColor);
+    WriteParam(aMsg, aParam.GetContentDescription());
+    WriteParam(aMsg, aParam.mLineScrollAmount);
+    WriteParam(aMsg, aParam.mPageScrollAmount);
+    WriteParam(aMsg, aParam.mClipRect);
+    WriteParam(aMsg, aParam.mMaskLayerIndex);
     WriteParam(aMsg, aParam.mIsRootContent);
     WriteParam(aMsg, aParam.mHasScrollgrab);
     WriteParam(aMsg, aParam.mUpdateScrollOffset);
-    WriteParam(aMsg, aParam.mScrollGeneration);
-    WriteParam(aMsg, aParam.mExtraResolution);
-    WriteParam(aMsg, aParam.mBackgroundColor);
     WriteParam(aMsg, aParam.mDoSmoothScroll);
-    WriteParam(aMsg, aParam.mSmoothScrollOffset);
-    WriteParam(aMsg, aParam.GetLineScrollAmount());
-    WriteParam(aMsg, aParam.GetPageScrollAmount());
-    WriteParam(aMsg, aParam.AllowVerticalScrollWithWheel());
-    WriteParam(aMsg, aParam.mClipRect);
-    WriteParam(aMsg, aParam.mMaskLayerIndex);
+    WriteParam(aMsg, aParam.mUseDisplayPortMargins);
+    WriteParam(aMsg, aParam.mAllowVerticalScrollWithWheel);
     WriteParam(aMsg, aParam.mIsLayersIdRoot);
     WriteParam(aMsg, aParam.mUsesContainerScrolling);
-    WriteParam(aMsg, aParam.GetContentDescription());
+    WriteParam(aMsg, aParam.mIsScrollInfoLayer);
   }
 
   static bool ReadContentDescription(const Message* aMsg, void** aIter, paramType* aResult)
@@ -727,40 +721,55 @@ struct ParamTraits<mozilla::layers::FrameMetrics>
     return true;
   }
 
+  // We need this helper because we can't get the address of a bitfield to
+  // pass directly to ReadParam. So instead we read it into a temporary bool
+  // and set the bitfield using a setter function
+  static bool ReadBoolForBitfield(const Message* aMsg, void** aIter,
+        paramType* aResult, void (paramType::*aSetter)(bool))
+  {
+    bool value;
+    if (ReadParam(aMsg, aIter, &value)) {
+      (aResult->*aSetter)(value);
+      return true;
+    }
+    return false;
+  }
+
   static bool Read(const Message* aMsg, void** aIter, paramType* aResult)
   {
-    return (ReadParam(aMsg, aIter, &aResult->mScrollableRect) &&
-            ReadParam(aMsg, aIter, &aResult->mViewport) &&
-            ReadParam(aMsg, aIter, &aResult->mScrollOffset) &&
-            ReadParam(aMsg, aIter, &aResult->mDisplayPort) &&
-            ReadParam(aMsg, aIter, &aResult->mDisplayPortMargins) &&
-            ReadParam(aMsg, aIter, &aResult->mUseDisplayPortMargins) &&
-            ReadParam(aMsg, aIter, &aResult->mCriticalDisplayPort) &&
-            ReadParam(aMsg, aIter, &aResult->mCompositionBounds) &&
-            ReadParam(aMsg, aIter, &aResult->mRootCompositionSize) &&
-            ReadParam(aMsg, aIter, &aResult->mScrollId) &&
+    return (ReadParam(aMsg, aIter, &aResult->mScrollId) &&
             ReadParam(aMsg, aIter, &aResult->mScrollParentId) &&
             ReadParam(aMsg, aIter, &aResult->mPresShellResolution) &&
+            ReadParam(aMsg, aIter, &aResult->mCompositionBounds) &&
+            ReadParam(aMsg, aIter, &aResult->mDisplayPort) &&
+            ReadParam(aMsg, aIter, &aResult->mCriticalDisplayPort) &&
+            ReadParam(aMsg, aIter, &aResult->mScrollableRect) &&
             ReadParam(aMsg, aIter, &aResult->mCumulativeResolution) &&
-            ReadParam(aMsg, aIter, &aResult->mZoom) &&
             ReadParam(aMsg, aIter, &aResult->mDevPixelsPerCSSPixel) &&
-            ReadParam(aMsg, aIter, &aResult->mPresShellId) &&
-            ReadParam(aMsg, aIter, &aResult->mIsRootContent) &&
-            ReadParam(aMsg, aIter, &aResult->mHasScrollgrab) &&
-            ReadParam(aMsg, aIter, &aResult->mUpdateScrollOffset) &&
+            ReadParam(aMsg, aIter, &aResult->mScrollOffset) &&
+            ReadParam(aMsg, aIter, &aResult->mZoom) &&
             ReadParam(aMsg, aIter, &aResult->mScrollGeneration) &&
+            ReadParam(aMsg, aIter, &aResult->mSmoothScrollOffset) &&
+            ReadParam(aMsg, aIter, &aResult->mRootCompositionSize) &&
+            ReadParam(aMsg, aIter, &aResult->mDisplayPortMargins) &&
+            ReadParam(aMsg, aIter, &aResult->mPresShellId) &&
+            ReadParam(aMsg, aIter, &aResult->mViewport) &&
             ReadParam(aMsg, aIter, &aResult->mExtraResolution) &&
             ReadParam(aMsg, aIter, &aResult->mBackgroundColor) &&
-            ReadParam(aMsg, aIter, &aResult->mDoSmoothScroll) &&
-            ReadParam(aMsg, aIter, &aResult->mSmoothScrollOffset) &&
+            ReadContentDescription(aMsg, aIter, aResult) &&
             ReadParam(aMsg, aIter, &aResult->mLineScrollAmount) &&
             ReadParam(aMsg, aIter, &aResult->mPageScrollAmount) &&
-            ReadParam(aMsg, aIter, &aResult->mAllowVerticalScrollWithWheel) &&
             ReadParam(aMsg, aIter, &aResult->mClipRect) &&
             ReadParam(aMsg, aIter, &aResult->mMaskLayerIndex) &&
-            ReadParam(aMsg, aIter, &aResult->mIsLayersIdRoot) &&
-            ReadParam(aMsg, aIter, &aResult->mUsesContainerScrolling) &&
-            ReadContentDescription(aMsg, aIter, aResult));
+            ReadBoolForBitfield(aMsg, aIter, aResult, &paramType::SetIsRootContent) &&
+            ReadBoolForBitfield(aMsg, aIter, aResult, &paramType::SetHasScrollgrab) &&
+            ReadBoolForBitfield(aMsg, aIter, aResult, &paramType::SetUpdateScrollOffset) &&
+            ReadBoolForBitfield(aMsg, aIter, aResult, &paramType::SetDoSmoothScroll) &&
+            ReadBoolForBitfield(aMsg, aIter, aResult, &paramType::SetUseDisplayPortMargins) &&
+            ReadBoolForBitfield(aMsg, aIter, aResult, &paramType::SetAllowVerticalScrollWithWheel) &&
+            ReadBoolForBitfield(aMsg, aIter, aResult, &paramType::SetIsLayersIdRoot) &&
+            ReadBoolForBitfield(aMsg, aIter, aResult, &paramType::SetUsesContainerScrolling) &&
+            ReadBoolForBitfield(aMsg, aIter, aResult, &paramType::SetIsScrollInfoLayer));
   }
 };
 
@@ -797,7 +806,7 @@ template<>
 struct ParamTraits<mozilla::layers::TextureInfo>
 {
   typedef mozilla::layers::TextureInfo paramType;
-  
+
   static void Write(Message* aMsg, const paramType& aParam)
   {
     WriteParam(aMsg, aParam.mCompositableType);
@@ -828,6 +837,14 @@ struct ParamTraits<mozilla::gfx::SurfaceFormat>
 {};
 
 template <>
+struct ParamTraits<mozilla::StereoMode>
+  : public ContiguousEnumSerializer<
+             mozilla::StereoMode,
+             mozilla::StereoMode::MONO,
+             mozilla::StereoMode::TOP_BOTTOM>
+{};
+
+template <>
 struct ParamTraits<mozilla::layers::ScrollableLayerGuid>
 {
   typedef mozilla::layers::ScrollableLayerGuid paramType;
@@ -846,6 +863,7 @@ struct ParamTraits<mozilla::layers::ScrollableLayerGuid>
             ReadParam(aMsg, aIter, &aResult->mScrollId));
   }
 };
+
 
 template <>
 struct ParamTraits<mozilla::layers::ZoomConstraints>

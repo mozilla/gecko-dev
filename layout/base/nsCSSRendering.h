@@ -370,8 +370,7 @@ struct nsCSSRendering {
   static void PaintBoxShadowInner(nsPresContext* aPresContext,
                                   nsRenderingContext& aRenderingContext,
                                   nsIFrame* aForFrame,
-                                  const nsRect& aFrameArea,
-                                  const nsRect& aDirtyRect);
+                                  const nsRect& aFrameArea);
 
   static void PaintBoxShadowOuter(nsPresContext* aPresContext,
                                   nsRenderingContext& aRenderingContext,
@@ -432,7 +431,7 @@ struct nsCSSRendering {
    * Not used for controls, because the native theme may differ.
    */
   static void PaintFocus(nsPresContext* aPresContext,
-                         nsRenderingContext& aRenderingContext,
+                         DrawTarget* aDrawTarget,
                          const nsRect& aFocusRect,
                          nscolor aColor);
 
@@ -645,8 +644,8 @@ struct nsCSSRendering {
 
   // Draw a border segment in the table collapsing border model without
   // beveling corners
-  static void DrawTableBorderSegment(nsRenderingContext& aContext,
-                                     uint8_t              aBorderStyle,  
+  static void DrawTableBorderSegment(DrawTarget&          aDrawTarget,
+                                     uint8_t              aBorderStyle,
                                      nscolor              aBorderColor,
                                      const nsStyleBackground* aBGColor,
                                      const nsRect&        aBorderRect,
@@ -849,6 +848,7 @@ protected:
  */
 class nsContextBoxBlur {
   typedef mozilla::gfx::Color Color;
+  typedef mozilla::gfx::DrawTarget DrawTarget;
   typedef mozilla::gfx::RectCornerRadii RectCornerRadii;
 
 public:
@@ -997,7 +997,7 @@ public:
                     mozilla::gfx::Point aShadowOffset);
 
 protected:
-  static void GetBlurAndSpreadRadius(gfxContext* aContext,
+  static void GetBlurAndSpreadRadius(DrawTarget* aDestDrawTarget,
                                      int32_t aAppUnitsPerDevPixel,
                                      nscoord aBlurRadius,
                                      nscoord aSpreadRadius,

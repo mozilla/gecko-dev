@@ -204,23 +204,73 @@ LayerManagerComposite::BeginTransactionWithDrawTarget(DrawTarget* aTarget, const
   mTargetBounds = aRect;
 }
 
+template<typename RectType>
+Maybe<RectType>
+IntersectMaybeRects(const Maybe<RectType>& aRect1, const Maybe<RectType>& aRect2)
+{
+  if (aRect1) {
+    if (aRect2) {
+      return Some(aRect1->Intersect(*aRect2));
+    }
+    return aRect1;
+  }
+  return aRect2;
+}
+
 void
 LayerManagerComposite::PostProcessLayers(Layer* aLayer,
                                          nsIntRegion& aOpaqueRegion,
-                                         LayerIntRegion& aVisibleRegion)
+                                         LayerIntRegion& aVisibleRegion,
+                                         const Maybe<ParentLayerIntRect>& aClipFromAncestors)
 {
   nsIntRegion localOpaque;
+  Matrix4x4 transform = aLayer->GetLocalTransform();
   Matrix transform2d;
   Maybe<nsIntPoint> integerTranslation;
   // If aLayer has a simple transform (only an integer translation) then we
   // can easily convert aOpaqueRegion into pre-transform coordinates and include
   // that region.
-  if (aLayer->GetLocalTransform().Is2D(&transform2d)) {
+  if (transform.Is2D(&transform2d)) {
     if (transform2d.IsIntegerTranslation()) {
       integerTranslation = Some(TruncatedToInt(transform2d.GetTranslation()));
       localOpaque = aOpaqueRegion;
       localOpaque.MoveBy(-*integerTranslation);
     }
+  }
+ 
+  // Compute a clip that's the combination of our layer clip with the clip
+  // from our ancestors.
+  LayerComposite* composite = aLayer->AsLayerComposite();
+  Maybe<ParentLayerIntRect> layerClip = composite->GetShadowClipRect();
+  Maybe<ParentLayerIntRect> outsideClip =
+    IntersectMaybeRects(layerClip, aClipFromAncestors);
+
+  // Convert the combined clip into our pre-transform coordinate space, so
+  // that it can later be intersected with our visible region.
+  // If our transform is a perspective, there's no meaningful insideClip rect
+  // we can compute (it would need to be a cone).
+  Maybe<LayerIntRect> insideClip;
+  if (outsideClip && !transform.HasPerspectiveComponent()) {
+    Matrix4x4 inverse = transform;
+    if (inverse.Invert()) {
+      Maybe<LayerRect> insideClipFloat =
+        UntransformBy(ViewAs<ParentLayerToLayerMatrix4x4>(inverse),
+                      ParentLayerRect(*outsideClip),
+                      LayerRect::MaxIntRect());
+      if (insideClipFloat) {
+        insideClipFloat->RoundOut();
+        LayerIntRect insideClipInt;
+        if (insideClipFloat->ToIntRect(&insideClipInt)) {
+          insideClip = Some(insideClipInt);
+        }
+      }
+    }
+  }
+
+  Maybe<ParentLayerIntRect> ancestorClipForChildren;
+  if (insideClip) {
+    ancestorClipForChildren =
+      Some(ViewAs<ParentLayerPixel>(*insideClip, PixelCastJustification::MovingDownToChildren));
   }
 
   // Save the value of localOpaque, which currently stores the region obscured
@@ -229,15 +279,14 @@ LayerManagerComposite::PostProcessLayers(Layer* aLayer,
 
   // Recurse on our descendants, in front-to-back order. In this process:
   //  - Occlusions are computed for them, and they contribute to localOpaque.
-  //  - They recalculate their visible regions, and accumulate them into
-  //    descendantsVisibleRegion.
+  //  - They recalculate their visible regions, taking ancestorClipForChildren
+  //    into account, and accumulate them into descendantsVisibleRegion.
   LayerIntRegion descendantsVisibleRegion;
   for (Layer* child = aLayer->GetLastChild(); child; child = child->GetPrevSibling()) {
-    PostProcessLayers(child, localOpaque, descendantsVisibleRegion);
+    PostProcessLayers(child, localOpaque, descendantsVisibleRegion, ancestorClipForChildren);
   }
 
   // Recalculate our visible region.
-  LayerComposite* composite = aLayer->AsLayerComposite();
   LayerIntRegion visible = composite->GetShadowVisibleRegion();
 
   // If we have descendants, throw away the visible region stored on this
@@ -251,13 +300,17 @@ LayerManagerComposite::PostProcessLayers(Layer* aLayer,
     visible.SubOut(LayerIntRegion::FromUnknownRegion(obscured));
   }
 
+  // Clip the visible region using the combined clip.
+  if (insideClip) {
+    visible.AndWith(*insideClip);
+  }
   composite->SetShadowVisibleRegion(visible);
 
   // Transform the newly calculated visible region into our parent's space,
   // apply our clip to it (if any), and accumulate it into |aVisibleRegion|
   // for the caller to use.
-  ParentLayerIntRegion visibleParentSpace = TransformTo<ParentLayerPixel>(
-      aLayer->GetLocalTransform(), visible);
+  ParentLayerIntRegion visibleParentSpace = TransformBy(
+      ViewAs<LayerToParentLayerMatrix4x4>(transform), visible);
   if (const Maybe<ParentLayerIntRect>& clipRect = composite->GetShadowClipRect()) {
     visibleParentSpace.AndWith(*clipRect);
   }
@@ -273,9 +326,8 @@ LayerManagerComposite::PostProcessLayers(Layer* aLayer,
       localOpaque.OrWith(composite->GetFullyRenderedRegion());
     }
     localOpaque.MoveBy(*integerTranslation);
-    const Maybe<ParentLayerIntRect>& clip = aLayer->GetEffectiveClipRect();
-    if (clip) {
-      localOpaque.AndWith(clip->ToUnknownRect());
+    if (layerClip) {
+      localOpaque.AndWith(layerClip->ToUnknownRect());
     }
     aOpaqueRegion.OrWith(localOpaque);
   }
@@ -370,17 +422,15 @@ LayerManagerComposite::UpdateAndRender()
     mInvalidRegion.SetEmpty();
   }
 
-  // Update cached layer tree information.
-  mClonedLayerTreeProperties = LayerProperties::CloneFrom(GetRoot());
-
   if (invalid.IsEmpty() && !mWindowOverlayChanged) {
     // Composition requested, but nothing has changed. Don't do any work.
+    mClonedLayerTreeProperties = LayerProperties::CloneFrom(GetRoot());
     return;
   }
 
   // We don't want our debug overlay to cause more frames to happen
   // so we will invalidate after we've decided if something changed.
-  InvalidateDebugOverlay(mRenderBounds);
+  InvalidateDebugOverlay(invalid, mRenderBounds);
 
   if (!didEffectiveTransforms) {
     // The results of our drawing always go directly into a pixel buffer,
@@ -390,7 +440,7 @@ LayerManagerComposite::UpdateAndRender()
 
   nsIntRegion opaque;
   LayerIntRegion visible;
-  PostProcessLayers(mRoot, opaque, visible);
+  PostProcessLayers(mRoot, opaque, visible, Nothing());
 
   Render(invalid);
 #if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_GONK)
@@ -398,6 +448,9 @@ LayerManagerComposite::UpdateAndRender()
 #endif
   mGeometryChanged = false;
   mWindowOverlayChanged = false;
+
+  // Update cached layer tree information.
+  mClonedLayerTreeProperties = LayerProperties::CloneFrom(GetRoot());
 }
 
 already_AddRefed<DrawTarget>
@@ -468,23 +521,18 @@ LayerManagerComposite::RootLayer() const
 #endif
 
 void
-LayerManagerComposite::InvalidateDebugOverlay(const IntRect& aBounds)
+LayerManagerComposite::InvalidateDebugOverlay(nsIntRegion& aInvalidRegion, const IntRect& aBounds)
 {
   bool drawFps = gfxPrefs::LayersDrawFPS();
   bool drawFrameCounter = gfxPrefs::DrawFrameCounter();
   bool drawFrameColorBars = gfxPrefs::CompositorDrawColorBars();
 
   if (drawFps || drawFrameCounter) {
-    AddInvalidRegion(nsIntRect(0, 0, 256, 256));
+    aInvalidRegion.Or(aInvalidRegion, nsIntRect(0, 0, 256, 256));
   }
   if (drawFrameColorBars) {
-    AddInvalidRegion(nsIntRect(0, 0, 10, aBounds.height));
+    aInvalidRegion.Or(aInvalidRegion, nsIntRect(0, 0, 10, aBounds.height));
   }
-
-  if (drawFrameColorBars) {
-    AddInvalidRegion(nsIntRect(0, 0, 10, aBounds.height));
-  }
-
 }
 
 static uint16_t sFrameCount = 0;
@@ -808,10 +856,8 @@ LayerManagerComposite::Render(const nsIntRegion& aInvalidRegion)
   }
 
   // Allow widget to render a custom background.
-  mCompositor->GetWidget()->DrawWindowUnderlay(this, IntRect(actualBounds.x,
-                                                               actualBounds.y,
-                                                               actualBounds.width,
-                                                               actualBounds.height));
+  mCompositor->GetWidget()->DrawWindowUnderlay(
+    this, LayoutDeviceIntRect::FromUnknownRect(TruncatedToInt(actualBounds)));
 
   RefPtr<CompositingRenderTarget> previousTarget;
   if (haveLayerEffects) {
@@ -840,8 +886,7 @@ LayerManagerComposite::Render(const nsIntRegion& aInvalidRegion)
 
   // Allow widget to render a custom foreground.
   mCompositor->GetWidget()->DrawWindowOverlay(
-    this, LayoutDeviceIntRect(actualBounds.x, actualBounds.y,
-                              actualBounds.width, actualBounds.height));
+    this, LayoutDeviceIntRect::FromUnknownRect(TruncatedToInt(actualBounds)));
 
   // Debugging
   RenderDebugOverlay(actualBounds);
@@ -993,7 +1038,7 @@ LayerManagerComposite::RenderToPresentationSurface()
   EGLSurface surface = mirrorScreen->GetEGLSurface();
   if (surface == LOCAL_EGL_NO_SURFACE) {
     // Create GLContext
-    RefPtr<GLContext> gl = gl::GLContextProvider::CreateForWindow(mirrorScreenWidget);
+    RefPtr<GLContext> gl = gl::GLContextProvider::CreateForWindow(mirrorScreenWidget, false);
     mirrorScreenWidget->SetNativeData(NS_NATIVE_OPENGL_CONTEXT,
                                       reinterpret_cast<uintptr_t>(gl.get()));
     surface = mirrorScreen->GetEGLSurface();
@@ -1050,7 +1095,7 @@ LayerManagerComposite::RenderToPresentationSurface()
   mRoot->ComputeEffectiveTransforms(matrix);
   nsIntRegion opaque;
   LayerIntRegion visible;
-  PostProcessLayers(mRoot, opaque, visible);
+  PostProcessLayers(mRoot, opaque, visible, Nothing());
 
   nsIntRegion invalid;
   Rect bounds(0.0f, 0.0f, scale * pageWidth, (float)actualHeight);

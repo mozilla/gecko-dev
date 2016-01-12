@@ -10,6 +10,7 @@
 #include "CompositableHost.h"           // for CompositableHost
 #include "mozilla/Attributes.h"         // for override
 #include "mozilla/RefPtr.h"             // for RefPtr
+#include "mozilla/gfx/MatrixFwd.h"      // for Matrix4x4
 #include "mozilla/gfx/Point.h"          // for Point
 #include "mozilla/gfx/Rect.h"           // for Rect
 #include "mozilla/gfx/Types.h"          // for Filter
@@ -24,14 +25,12 @@
 #include "nscore.h"                     // for nsACString
 
 namespace mozilla {
-namespace gfx {
-class Matrix4x4;
-} // namespace gfx
 namespace layers {
 
 class Compositor;
 struct EffectChain;
 class ImageContainerParent;
+class ImageHostOverlay;
 
 /**
  * ImageHost. Works with ImageClientSingle and ImageClientBuffered
@@ -55,6 +54,9 @@ public:
   virtual void UseTextureHost(const nsTArray<TimedTexture>& aTextures) override;
 
   virtual void RemoveTextureHost(TextureHost* aTexture) override;
+
+  virtual void UseOverlaySource(OverlaySource aOverlay,
+                                const gfx::IntRect& aPictureRect) override;
 
   virtual TextureHost* GetAsTextureHost(gfx::IntRect* aPictureRect = nullptr) override;
 
@@ -139,38 +141,41 @@ protected:
   Bias mBias;
 
   bool mLocked;
+
+  RefPtr<ImageHostOverlay> mImageHostOverlay;
 };
 
-#ifdef MOZ_WIDGET_GONK
-
 /**
- * ImageHostOverlay works with ImageClientOverlay
+ * ImageHostOverlay handles OverlaySource compositing
  */
-class ImageHostOverlay : public CompositableHost {
+class ImageHostOverlay {
+protected:
+  virtual ~ImageHostOverlay();
+
 public:
-  ImageHostOverlay(const TextureInfo& aTextureInfo);
-  ~ImageHostOverlay();
+  NS_INLINE_DECL_REFCOUNTING(ImageHostOverlay)
+  ImageHostOverlay();
 
-  virtual CompositableType GetType() { return mTextureInfo.mCompositableType; }
+  static bool IsValid(OverlaySource aOverlay);
 
-  virtual void Composite(LayerComposite* aLayer,
+  virtual void Composite(Compositor* aCompositor,
+                         uint32_t aFlashCounter,
+                         LayerComposite* aLayer,
                          EffectChain& aEffectChain,
                          float aOpacity,
                          const gfx::Matrix4x4& aTransform,
                          const gfx::Filter& aFilter,
                          const gfx::Rect& aClipRect,
-                         const nsIntRegion* aVisibleRegion = nullptr) override;
-  virtual LayerRenderState GetRenderState() override;
+                         const nsIntRegion* aVisibleRegion);
+  virtual LayerRenderState GetRenderState();
   virtual void UseOverlaySource(OverlaySource aOverlay,
-                                const gfx::IntRect& aPictureRect) override;
-  virtual gfx::IntSize GetImageSize() const override;
+                                const gfx::IntRect& aPictureRect);
+  virtual gfx::IntSize GetImageSize() const;
   virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix);
 protected:
   gfx::IntRect mPictureRect;
   OverlaySource mOverlay;
 };
-
-#endif
 
 } // namespace layers
 } // namespace mozilla

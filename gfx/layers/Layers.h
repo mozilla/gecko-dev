@@ -1276,6 +1276,9 @@ public:
   virtual Layer* GetFirstChild() const { return nullptr; }
   virtual Layer* GetLastChild() const { return nullptr; }
   const gfx::Matrix4x4 GetTransform() const;
+  // Same as GetTransform(), but returns the transform as a strongly-typed
+  // matrix. Eventually this will replace GetTransform().
+  const CSSTransformMatrix GetTransformTyped() const;
   const gfx::Matrix4x4& GetBaseTransform() const { return mTransform; }
   // Note: these are virtual because ContainerLayerComposite overrides them.
   virtual float GetPostXScale() const { return mPostXScale; }
@@ -1346,15 +1349,22 @@ public:
 
   /**
    * Returns the local transform for this layer: either mTransform or,
-   * for shadow layers, GetShadowTransform()
+   * for shadow layers, GetShadowTransform(), in either case with the
+   * pre- and post-scales applied.
    */
   const gfx::Matrix4x4 GetLocalTransform();
+
+  /**
+   * Same as GetLocalTransform(), but returns a strongly-typed matrix.
+   * Eventually, this will replace GetLocalTransform().
+   */
+  const LayerToParentLayerMatrix4x4 GetLocalTransformTyped();
 
   /**
    * Returns the local opacity for this layer: either mOpacity or,
    * for shadow layers, GetShadowOpacity()
    */
-  const float GetLocalOpacity();
+  float GetLocalOpacity();
 
   /**
    * DRAWING PHASE ONLY
@@ -1637,7 +1647,7 @@ public:
    * marked as needed to be recomposited.
    */
   const nsIntRegion& GetInvalidRegion() { return mInvalidRegion; }
-  const void AddInvalidRegion(const nsIntRegion& aRegion) {
+  void AddInvalidRegion(const nsIntRegion& aRegion) {
     mInvalidRegion.Or(mInvalidRegion, aRegion);
   }
 
@@ -2129,8 +2139,12 @@ public:
   /**
    * VR
    */
-  void SetVRHMDInfo(gfx::VRHMDInfo* aHMD) { mHMDInfo = aHMD; }
-  gfx::VRHMDInfo* GetVRHMDInfo() { return mHMDInfo; }
+  void SetVRDeviceID(uint32_t aVRDeviceID) {
+    mVRDeviceID = aVRDeviceID;
+  }
+  uint32_t GetVRDeviceID() {
+    return mVRDeviceID;
+  }
 
   /**
    * Replace the current effective transform with the given one,
@@ -2206,7 +2220,7 @@ protected:
   // the intermediate surface.
   bool mChildrenChanged;
   EventRegionsOverride mEventRegionsOverride;
-  RefPtr<gfx::VRHMDInfo> mHMDInfo;
+  uint32_t mVRDeviceID;
 };
 
 /**

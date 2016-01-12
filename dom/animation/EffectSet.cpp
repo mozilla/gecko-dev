@@ -6,7 +6,9 @@
 
 #include "EffectSet.h"
 #include "mozilla/dom/Element.h" // For Element
+#include "RestyleManager.h"
 #include "nsCycleCollectionNoteChild.h" // For CycleCollectionNoteChild
+#include "nsPresContext.h"
 
 namespace mozilla {
 
@@ -42,6 +44,42 @@ EffectSet::GetEffectSet(dom::Element* aElement,
 }
 
 /* static */ EffectSet*
+EffectSet::GetEffectSet(const nsIFrame* aFrame)
+{
+  nsIContent* content = aFrame->GetContent();
+  if (!content) {
+    return nullptr;
+  }
+
+  nsIAtom* propName;
+  if (aFrame->IsGeneratedContentFrame()) {
+    nsIFrame* parent = aFrame->GetParent();
+    if (parent->IsGeneratedContentFrame()) {
+      return nullptr;
+    }
+    nsIAtom* name = content->NodeInfo()->NameAtom();
+    if (name == nsGkAtoms::mozgeneratedcontentbefore) {
+      propName = nsGkAtoms::animationEffectsForBeforeProperty;
+    } else if (name == nsGkAtoms::mozgeneratedcontentafter) {
+      propName = nsGkAtoms::animationEffectsForAfterProperty;
+    } else {
+      return nullptr;
+    }
+    content = content->GetParent();
+    if (!content) {
+      return nullptr;
+    }
+  } else {
+    if (!content->MayHaveAnimations()) {
+      return nullptr;
+    }
+    propName = nsGkAtoms::animationEffectsProperty;
+  }
+
+  return static_cast<EffectSet*>(content->GetProperty(propName));
+}
+
+/* static */ EffectSet*
 EffectSet::GetOrCreateEffectSet(dom::Element* aElement,
                                 nsCSSPseudoElements::Type aPseudoType)
 {
@@ -68,6 +106,13 @@ EffectSet::GetOrCreateEffectSet(dom::Element* aElement,
   }
 
   return effectSet;
+}
+
+void
+EffectSet::UpdateAnimationGeneration(nsPresContext* aPresContext)
+{
+  mAnimationGeneration =
+    aPresContext->RestyleManager()->GetAnimationGeneration();
 }
 
 /* static */ nsIAtom**
@@ -107,13 +152,23 @@ EffectSet::GetEffectSetPropertyAtom(nsCSSPseudoElements::Type aPseudoType)
 void
 EffectSet::AddEffect(dom::KeyframeEffectReadOnly& aEffect)
 {
+  if (mEffects.Contains(&aEffect)) {
+    return;
+  }
+
   mEffects.PutEntry(&aEffect);
+  MarkCascadeNeedsUpdate();
 }
 
 void
 EffectSet::RemoveEffect(dom::KeyframeEffectReadOnly& aEffect)
 {
+  if (!mEffects.Contains(&aEffect)) {
+    return;
+  }
+
   mEffects.RemoveEntry(&aEffect);
+  MarkCascadeNeedsUpdate();
 }
 
 } // namespace mozilla

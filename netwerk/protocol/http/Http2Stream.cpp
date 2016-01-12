@@ -67,6 +67,7 @@ Http2Stream::Http2Stream(nsAHttpTransaction *httpTransaction,
   , mRequestBodyLenRemaining(0)
   , mLocalUnacked(0)
   , mBlockedOnRwin(false)
+  , mSentPushWindowBump(false)
   , mTotalSent(0)
   , mTotalRead(0)
   , mPushSource(nullptr)
@@ -80,7 +81,7 @@ Http2Stream::Http2Stream(nsAHttpTransaction *httpTransaction,
   mServerReceiveWindow = session->GetServerInitialStreamWindow();
   mClientReceiveWindow = session->PushAllowance();
 
-  mTxInlineFrame = new uint8_t[mTxInlineFrameSize];
+  mTxInlineFrame = MakeUnique<uint8_t[]>(mTxInlineFrameSize);
 
   PR_STATIC_ASSERT(nsISupportsPriority::PRIORITY_LOWEST <= kNormalPriority);
 
@@ -478,8 +479,8 @@ Http2Stream::ParseHttpRequestHeaders(const char *buf,
           mSession, hashkey.get(), schedulingContext, cache, pushedStream));
 
     if (pushedStream) {
-      LOG3(("Pushed Stream Match located id=0x%X key=%s\n",
-            pushedStream->StreamID(), hashkey.get()));
+      LOG3(("Pushed Stream Match located %p id=0x%X key=%s\n",
+            pushedStream, pushedStream->StreamID(), hashkey.get()));
       pushedStream->SetConsumerStream(this);
       mPushSource = pushedStream;
       SetSentFin(true);
@@ -858,8 +859,7 @@ Http2Stream::TransmitFrame(const char *buf,
       mTxStreamFrameSize < Http2Session::kDefaultBufferSize &&
       mTxInlineFrameUsed + mTxStreamFrameSize < mTxInlineFrameSize) {
     LOG3(("Coalesce Transmit"));
-    memcpy (mTxInlineFrame + mTxInlineFrameUsed,
-            buf, mTxStreamFrameSize);
+    memcpy (&mTxInlineFrame[mTxInlineFrameUsed], buf, mTxStreamFrameSize);
     if (countUsed)
       *countUsed += mTxStreamFrameSize;
     mTxInlineFrameUsed += mTxStreamFrameSize;
@@ -1360,7 +1360,7 @@ Http2Stream::OnReadSegment(const char *buf,
     mRequestBodyLenRemaining -= dataLength;
     GenerateDataFrameHeader(dataLength, !mRequestBodyLenRemaining);
     ChangeState(SENDING_BODY);
-    // NO BREAK
+    MOZ_FALLTHROUGH;
 
   case SENDING_BODY:
     MOZ_ASSERT(mTxInlineFrameUsed, "OnReadSegment Send Data Header 0b");
@@ -1385,6 +1385,14 @@ Http2Stream::OnReadSegment(const char *buf,
 
   case SENDING_FIN_STREAM:
     MOZ_ASSERT(false, "resuming partial fin stream out of OnReadSegment");
+    break;
+
+  case UPSTREAM_COMPLETE:
+    MOZ_ASSERT(mPushSource && !mSentPushWindowBump, "unexpected upstream_complete");
+    rv = TransmitFrame(nullptr, nullptr, true);
+    if (NS_SUCCEEDED(rv)) {
+      mSentPushWindowBump = true;
+    }
     break;
 
   default:
@@ -1473,4 +1481,3 @@ Http2Stream::MapStreamToHttpConnection()
 
 } // namespace net
 } // namespace mozilla
-

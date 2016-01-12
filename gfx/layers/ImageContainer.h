@@ -15,6 +15,7 @@
 #include "mozilla/ReentrantMonitor.h"   // for ReentrantMonitorAutoEnter, etc
 #include "mozilla/TimeStamp.h"          // for TimeStamp
 #include "mozilla/gfx/Point.h"          // For IntSize
+#include "mozilla/layers/GonkNativeHandle.h"
 #include "mozilla/layers/LayersTypes.h"  // for LayersBackend, etc
 #include "mozilla/mozalloc.h"           // for operator delete, etc
 #include "nsAutoPtr.h"                  // for nsRefPtr, nsAutoArrayPtr, etc
@@ -81,6 +82,50 @@ public:
                  "Can only add a reference on the main thread");
     aRawRef->AddRef();
   }
+};
+
+class nsOwningThreadSourceSurfaceRef;
+
+template <>
+class nsAutoRefTraits<nsOwningThreadSourceSurfaceRef> {
+public:
+  typedef mozilla::gfx::SourceSurface* RawRef;
+
+  /**
+   * The XPCOM event that will do the actual release on the creation thread.
+   */
+  class SurfaceReleaser : public nsRunnable {
+  public:
+    explicit SurfaceReleaser(RawRef aRef) : mRef(aRef) {}
+    NS_IMETHOD Run() {
+      mRef->Release();
+      return NS_OK;
+    }
+    RawRef mRef;
+  };
+
+  static RawRef Void() { return nullptr; }
+  void Release(RawRef aRawRef)
+  {
+    MOZ_ASSERT(mOwningThread);
+    bool current;
+    mOwningThread->IsOnCurrentThread(&current);
+    if (current) {
+      aRawRef->Release();
+      return;
+    }
+    nsCOMPtr<nsIRunnable> runnable = new SurfaceReleaser(aRawRef);
+    mOwningThread->Dispatch(runnable, nsIThread::DISPATCH_NORMAL);
+  }
+  void AddRef(RawRef aRawRef)
+  {
+    MOZ_ASSERT(!mOwningThread);
+    NS_GetCurrentThread(getter_AddRefs(mOwningThread));
+    aRawRef->AddRef();
+  }
+
+private:
+  nsCOMPtr<nsIThread> mOwningThread;
 };
 
 #endif
@@ -306,7 +351,7 @@ class ImageContainer final : public SupportsWeakPtr<ImageContainer> {
 public:
   MOZ_DECLARE_WEAKREFERENCE_TYPENAME(ImageContainer)
 
-  enum Mode { SYNCHRONOUS = 0x0, ASYNCHRONOUS = 0x01, ASYNCHRONOUS_OVERLAY = 0x02 };
+  enum Mode { SYNCHRONOUS = 0x0, ASYNCHRONOUS = 0x01 };
 
   explicit ImageContainer(ImageContainer::Mode flag = SYNCHRONOUS);
 
@@ -763,11 +808,11 @@ protected:
 };
 
 /**
- * Currently, the data in a CairoImage surface is treated as being in the
+ * Currently, the data in a SourceSurfaceImage surface is treated as being in the
  * device output color space. This class is very simple as all backends
  * have to know about how to deal with drawing a cairo image.
  */
-class CairoImage final : public Image {
+class SourceSurfaceImage final : public Image {
 public:
   virtual already_AddRefed<gfx::SourceSurface> GetAsSourceSurface() override
   {
@@ -779,12 +824,12 @@ public:
 
   virtual gfx::IntSize GetSize() override { return mSize; }
 
-  CairoImage(const gfx::IntSize& aSize, gfx::SourceSurface* aSourceSurface);
-  ~CairoImage();
+  SourceSurfaceImage(const gfx::IntSize& aSize, gfx::SourceSurface* aSourceSurface);
+  ~SourceSurfaceImage();
 
 private:
   gfx::IntSize mSize;
-  nsCountedRef<nsMainThreadSourceSurfaceRef> mSourceSurface;
+  nsCountedRef<nsOwningThreadSourceSurfaceRef> mSourceSurface;
   nsDataHashtable<nsUint32HashKey, RefPtr<TextureClient> >  mTextureClients;
 };
 
@@ -802,6 +847,11 @@ public:
     gfx::IntSize mSize;
   };
 
+  struct SidebandStreamData {
+    GonkNativeHandle mStream;
+    gfx::IntSize mSize;
+  };
+
   OverlayImage() : Image(nullptr, ImageFormat::OVERLAY_IMAGE) { mOverlayId = INVALID_OVERLAY; }
 
   void SetData(const Data& aData)
@@ -810,13 +860,21 @@ public:
     mSize = aData.mSize;
   }
 
+  void SetData(const SidebandStreamData& aData)
+  {
+    mSidebandStream = aData.mStream;
+    mSize = aData.mSize;
+  }
+
   already_AddRefed<gfx::SourceSurface> GetAsSourceSurface() { return nullptr; } ;
   int32_t GetOverlayId() { return mOverlayId; }
+  const GonkNativeHandle& GetSidebandStream() { return mSidebandStream; }
 
   gfx::IntSize GetSize() { return mSize; }
 
 private:
   int32_t mOverlayId;
+  GonkNativeHandle mSidebandStream;
   gfx::IntSize mSize;
 };
 #endif

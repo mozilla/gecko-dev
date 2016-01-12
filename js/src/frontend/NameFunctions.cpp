@@ -156,7 +156,7 @@ class NameResolver
                  * flagged as a contributor.
                  */
                 pos--;
-                /* fallthrough */
+                MOZ_FALLTHROUGH;
 
               default:
                 /* Save any other nodes we encounter on the way up. */
@@ -448,6 +448,7 @@ class NameResolver
           case PNK_SWITCH:
           case PNK_LETBLOCK:
           case PNK_FOR:
+          case PNK_COMPREHENSIONFOR:
           case PNK_CLASSMETHOD:
           case PNK_SETTHIS:
             MOZ_ASSERT(cur->isArity(PN_BINARY));
@@ -687,13 +688,15 @@ class NameResolver
             }
             break;
 
-          // Array comprehension nodes are lists with a single child -- PNK_FOR for
-          // comprehensions, PNK_LEXICALSCOPE for legacy comprehensions.  Probably
-          // this should be a non-list eventually.
+          // Array comprehension nodes are lists with a single child:
+          // PNK_COMPREHENSIONFOR for comprehensions, PNK_LEXICALSCOPE for
+          // legacy comprehensions.  Probably this should be a non-list
+          // eventually.
           case PNK_ARRAYCOMP:
             MOZ_ASSERT(cur->isArity(PN_LIST));
             MOZ_ASSERT(cur->pn_count == 1);
-            MOZ_ASSERT(cur->pn_head->isKind(PNK_LEXICALSCOPE) || cur->pn_head->isKind(PNK_FOR));
+            MOZ_ASSERT(cur->pn_head->isKind(PNK_LEXICALSCOPE) ||
+                       cur->pn_head->isKind(PNK_COMPREHENSIONFOR));
             if (!resolve(cur->pn_head, prefix))
                 return false;
             break;
@@ -724,8 +727,8 @@ class NameResolver
           // Import/export spec lists contain import/export specs containing
           // only pairs of names. Alternatively, an export spec lists may
           // contain a single export batch specifier.
-          case PNK_IMPORT_SPEC_LIST: {
           case PNK_EXPORT_SPEC_LIST:
+          case PNK_IMPORT_SPEC_LIST: {
             MOZ_ASSERT(cur->isArity(PN_LIST));
 #ifdef DEBUG
             bool isImport = cur->isKind(PNK_IMPORT_SPEC_LIST);
@@ -785,6 +788,12 @@ class NameResolver
           case PNK_MODULE:
             MOZ_ASSERT(cur->isArity(PN_CODE));
             if (!resolve(cur->pn_body, prefix))
+                return false;
+            break;
+
+          case PNK_ANNEXB_FUNCTION:
+            MOZ_ASSERT(cur->isArity(PN_BINARY));
+            if (!resolve(cur->pn_left, prefix))
                 return false;
             break;
 

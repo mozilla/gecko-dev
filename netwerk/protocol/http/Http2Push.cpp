@@ -174,6 +174,22 @@ Http2PushedStream::ReadSegments(nsAHttpSegmentReader *,
 }
 
 void
+Http2PushedStream::AdjustInitialWindow()
+{
+  LOG3(("Http2PushStream %p 0x%X AdjustInitialWindow", this, mStreamID));
+  if (mConsumerStream) {
+    LOG3(("Http2PushStream::AdjustInitialWindow %p 0x%X calling super %p", this,
+          mStreamID, mConsumerStream));
+    Http2Stream::AdjustInitialWindow();
+    // We have to use mConsumerStream here because our ReadSegments is a nop for
+    // actually sending data.
+    mSession->TransactionHasDataToWrite(mConsumerStream);
+  }
+  // Otherwise, when we get hooked up, the initial window will get bumped
+  // anyway, so we're good to go.
+}
+
+void
 Http2PushedStream::SetConsumerStream(Http2Stream *consumer)
 {
   mConsumerStream = consumer;
@@ -254,7 +270,7 @@ Http2PushTransactionBuffer::Http2PushTransactionBuffer()
   , mBufferedHTTP1Used(0)
   , mBufferedHTTP1Consumed(0)
 {
-  mBufferedHTTP1 = new char[mBufferedHTTP1Size];
+  mBufferedHTTP1 = MakeUnique<char[]>(mBufferedHTTP1Size);
 }
 
 Http2PushTransactionBuffer::~Http2PushTransactionBuffer()
@@ -345,7 +361,7 @@ Http2PushTransactionBuffer::WriteSegments(nsAHttpSegmentWriter *writer,
   }
 
   count = std::min(count, mBufferedHTTP1Size - mBufferedHTTP1Used);
-  nsresult rv = writer->OnWriteSegment(mBufferedHTTP1 + mBufferedHTTP1Used,
+  nsresult rv = writer->OnWriteSegment(&mBufferedHTTP1[mBufferedHTTP1Used],
                                        count, countWritten);
   if (NS_SUCCEEDED(rv)) {
     mBufferedHTTP1Used += *countWritten;
@@ -432,7 +448,7 @@ Http2PushTransactionBuffer::GetBufferedData(char *buf,
 {
   *countWritten = std::min(count, static_cast<uint32_t>(Available()));
   if (*countWritten) {
-    memcpy(buf, mBufferedHTTP1 + mBufferedHTTP1Consumed, *countWritten);
+    memcpy(buf, &mBufferedHTTP1[mBufferedHTTP1Consumed], *countWritten);
     mBufferedHTTP1Consumed += *countWritten;
   }
 

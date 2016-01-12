@@ -184,7 +184,6 @@ var TrackingProtection = {
   },
 
   showIntroPanel: Task.async(function*() {
-    let mm = gBrowser.selectedBrowser.messageManager;
     let brandBundle = document.getElementById("bundle_brand");
     let brandShortName = brandBundle.getString("brandShortName");
 
@@ -218,8 +217,8 @@ var TrackingProtection = {
     ];
 
     let panelTarget = yield UITour.getTarget(window, "trackingProtection");
-    UITour.initForBrowser(gBrowser.selectedBrowser);
-    UITour.showInfo(window, mm, panelTarget,
+    UITour.initForBrowser(gBrowser.selectedBrowser, window);
+    UITour.showInfo(window, panelTarget,
                     gNavigatorBundle.getString("trackingProtection.intro.title"),
                     gNavigatorBundle.getFormattedString("trackingProtection.intro.description",
                                                         [brandShortName]),

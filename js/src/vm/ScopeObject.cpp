@@ -1007,7 +1007,7 @@ StaticBlockObject::addVar(ExclusiveContext* cx, Handle<StaticBlockObject*> block
 
     /* Inline NativeObject::addProperty in order to trap the redefinition case. */
     ShapeTable::Entry* entry;
-    if (Shape::search(cx, block->lastProperty(), id, &entry, true)) {
+    if (Shape::search<MaybeAdding::Adding>(cx, block->lastProperty(), id, &entry)) {
         *redeclared = true;
         return nullptr;
     }
@@ -1547,11 +1547,12 @@ MissingScopeKey::match(MissingScopeKey sk1, MissingScopeKey sk2)
     return sk1.frame_ == sk2.frame_ && sk1.staticScope_ == sk2.staticScope_;
 }
 
-void
-LiveScopeVal::sweep()
+bool
+LiveScopeVal::needsSweep()
 {
     if (staticScope_)
         MOZ_ALWAYS_FALSE(IsAboutToBeFinalized(&staticScope_));
+    return false;
 }
 
 // Live ScopeIter values may be added to DebugScopes::liveScopes, as
@@ -2207,8 +2208,11 @@ class DebugScopeProxy : public BaseProxyHandler
             *bp = true;
             return true;
         }
-        if (isThis(cx, id) && isFunctionScopeWithThis(scopeObj)) {
-            *bp = true;
+
+        // Be careful not to look up '.this' as a normal binding below, it will
+        // assert in with_HasProperty.
+        if (isThis(cx, id)) {
+            *bp = isFunctionScopeWithThis(scopeObj);
             return true;
         }
 
@@ -2350,7 +2354,7 @@ DebugScopes::DebugScopes(JSContext* cx)
 
 DebugScopes::~DebugScopes()
 {
-    MOZ_ASSERT(missingScopes.empty());
+    MOZ_ASSERT_IF(missingScopes.initialized(), missingScopes.empty());
 }
 
 bool
@@ -2402,16 +2406,11 @@ DebugScopes::sweep(JSRuntime* rt)
         }
     }
 
-    for (LiveScopeMap::Enum e(liveScopes); !e.empty(); e.popFront()) {
-        e.front().value().sweep();
-
-        /*
-         * Scopes can be finalized when a debugger-synthesized ScopeObject is
-         * no longer reachable via its DebugScopeObject.
-         */
-        if (IsAboutToBeFinalized(&e.front().mutableKey()))
-            e.removeFront();
-    }
+    /*
+     * Scopes can be finalized when a debugger-synthesized ScopeObject is
+     * no longer reachable via its DebugScopeObject.
+     */
+    liveScopes.sweep();
 }
 
 #ifdef JSGC_HASH_TABLE_CHECKS
@@ -2455,15 +2454,14 @@ DebugScopes::ensureCompartmentData(JSContext* cx)
     if (c->debugScopes)
         return c->debugScopes;
 
-    c->debugScopes = cx->runtime()->new_<DebugScopes>(cx);
-    if (c->debugScopes && c->debugScopes->init())
-        return c->debugScopes;
+    AutoInitGCManagedObject<DebugScopes> debugScopes(cx->make_unique<DebugScopes>(cx));
+    if (!debugScopes || !debugScopes->init()) {
+        ReportOutOfMemory(cx);
+        return nullptr;
+    }
 
-    if (c->debugScopes)
-        js_delete<DebugScopes>(c->debugScopes);
-    c->debugScopes = nullptr;
-    ReportOutOfMemory(cx);
-    return nullptr;
+    c->debugScopes = debugScopes.release();
+    return c->debugScopes;
 }
 
 DebugScopeObject*

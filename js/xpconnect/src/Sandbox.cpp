@@ -40,6 +40,7 @@
 #ifdef MOZ_WEBRTC
 #include "mozilla/dom/RTCIdentityProviderRegistrar.h"
 #endif
+#include "mozilla/dom/FileReaderBinding.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/TextDecoderBinding.h"
 #include "mozilla/dom/TextEncoderBinding.h"
@@ -710,8 +711,12 @@ WrapCallable(JSContext* cx, HandleObject callable, HandleObject sandboxProtoProx
                  &xpc::sandboxProxyHandler);
 
     RootedValue priv(cx, ObjectValue(*callable));
+    // We want to claim to have the same proto as our wrapped callable, so set
+    // ourselves up with a lazy proto.
+    js::ProxyOptions options;
+    options.setLazyProto(true);
     JSObject* obj = js::NewProxyObject(cx, &xpc::sandboxCallableProxyHandler,
-                                       priv, nullptr);
+                                       priv, nullptr, options);
     if (obj) {
         js::SetProxyExtra(obj, SandboxCallableProxyHandler::SandboxProxySlot,
                           ObjectValue(*sandboxProtoProxy));
@@ -892,6 +897,8 @@ xpc::GlobalProperties::Parse(JSContext* cx, JS::HandleObject obj)
             fetch = true;
         } else if (!strcmp(name.ptr(), "caches")) {
             caches = true;
+        } else if (!strcmp(name.ptr(), "FileReader")) {
+            fileReader = true;
         } else {
             JS_ReportError(cx, "Unknown property name: %s", name.ptr());
             return false;
@@ -960,6 +967,9 @@ xpc::GlobalProperties::Define(JSContext* cx, JS::HandleObject obj)
     if (caches && !dom::cache::CacheStorage::DefineCaches(cx, obj))
         return false;
 
+    if (fileReader && !dom::FileReaderBinding::GetConstructorObject(cx, obj))
+        return false;
+
     return true;
 }
 
@@ -982,16 +992,18 @@ xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp, nsISupports* prin
     MOZ_ASSERT(principal);
 
     JS::CompartmentOptions compartmentOptions;
-    if (options.sameZoneAs)
-        compartmentOptions.setSameZoneAs(js::UncheckedUnwrap(options.sameZoneAs));
-    else if (options.freshZone)
-        compartmentOptions.setZone(JS::FreshZone);
-    else
-        compartmentOptions.setZone(JS::SystemZone);
 
-    compartmentOptions.setInvisibleToDebugger(options.invisibleToDebugger)
-                      .setDiscardSource(options.discardSource)
-                      .setTrace(TraceXPCGlobal);
+    auto& creationOptions = compartmentOptions.creationOptions();
+
+    if (options.sameZoneAs)
+        creationOptions.setSameZoneAs(js::UncheckedUnwrap(options.sameZoneAs));
+    else if (options.freshZone)
+        creationOptions.setZone(JS::FreshZone);
+    else
+        creationOptions.setZone(JS::SystemZone);
+
+    creationOptions.setInvisibleToDebugger(options.invisibleToDebugger)
+                   .setTrace(TraceXPCGlobal);
 
     // Try to figure out any addon this sandbox should be associated with.
     // The addon could have been passed in directly, as part of the metadata,
@@ -1005,7 +1017,9 @@ xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp, nsISupports* prin
             addonId = id;
     }
 
-    compartmentOptions.setAddonId(addonId);
+    creationOptions.setAddonId(addonId);
+
+    compartmentOptions.behaviors().setDiscardSource(options.discardSource);
 
     const Class* clasp = options.writeToGlobalPrototype
                        ? &SandboxWriteToProtoClass

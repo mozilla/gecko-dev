@@ -112,30 +112,6 @@ OverscrollHandoffChain::SnapBackOverscrolledApzc(const AsyncPanZoomController* a
     }
   }
 }
-void
-OverscrollHandoffChain::RequestSnapOnLock(Layer::ScrollDirection aAxis) const
-{
-  for (uint32_t i = 0; i < Length(); ++i) {
-    AsyncPanZoomController* apzc = mChain[i];
-    if (!apzc->IsDestroyed()) {
-      switch (aAxis) {
-      case Layer::HORIZONTAL:
-        if (!apzc->CanScroll(Layer::VERTICAL)) {
-          apzc->RequestSnap();
-        }
-        break;
-      case Layer::VERTICAL:
-        if (!apzc->CanScroll(Layer::HORIZONTAL)) {
-          apzc->RequestSnap();
-        }
-        break;
-      default:
-        MOZ_ASSERT(false);
-        break;
-      }
-    }
-  }
-}
 
 bool
 OverscrollHandoffChain::CanBePanned(const AsyncPanZoomController* aApzc) const
@@ -173,9 +149,9 @@ OverscrollHandoffChain::CanScrollInDirection(const AsyncPanZoomController* aApzc
 }
 
 bool
-OverscrollHandoffChain::HasApzcPannedIntoOverscroll() const
+OverscrollHandoffChain::HasOverscrolledApzc() const
 {
-  return AnyApzc(&AsyncPanZoomController::IsPannedIntoOverscroll);
+  return AnyApzc(&AsyncPanZoomController::IsOverscrolled);
 }
 
 bool

@@ -160,24 +160,6 @@ html[dir="rtl"] .conversation-toolbar-btn-box.btn-edit-entry {
   background-image: url("../img/settings-hover.svg");
 }
 
-.btn-screen-share {
-  background-image: url("../img/sharing.svg");
-}
-
-.btn-screen-share:hover,
-.btn-screen-share:active {
-  background-image: url("../img/sharing-hover.svg");
-}
-
-.btn-screen-share.active {
-  background-image: url("../img/sharing-active.svg");
-}
-
-.btn-screen-share.disabled {
-  /* The screen share button is in its pending state when its disabled. */
-  background-image: url("../img/sharing-pending.svg");
-}
-
 /* General Call (incoming or outgoing). */
 
 .call-action-group {
@@ -237,6 +219,7 @@ html[dir="rtl"] .conversation-toolbar-btn-box.btn-edit-entry {
   margin: .5rem 0 0;
   position: absolute;
   right: -10rem;
+  font-size: 0.8rem;
 }
 
 .call-action-group > .invite-button.triggered > p,
@@ -319,7 +302,6 @@ html[dir="rtl"] .room-failure > .settings-control {
   color: #f00;
 }
 
-.screen-share-menu.dropdown-menu,
 .settings-menu.dropdown-menu {
   bottom: 3.1rem;
 }
@@ -330,14 +312,8 @@ html[dir="rtl"] .room-failure > .settings-control {
   right: 14px;
 }
 
-html[dir="rtl"] .screen-share-menu.dropdown-menu,
 html[dir="rtl"] .settings-menu.dropdown-menu {
   right: auto;
-}
-
-html[dir="rtl"] .screen-share-menu.dropdown-menu {
-  /*offset dropdown menu to be above menu button*/
-  left: 40px;
 }
 
 html[dir="rtl"] .settings-menu.dropdown-menu {
@@ -579,7 +555,7 @@ body[platform="win"] .share-service-dropdown.overflow > .dropdown-menu-item {
 .room-invitation-content,
 .room-context-header {
   color: #333;
-  font-size: 1.2rem;
+  font-size: 1rem;
   font-weight: bold;
   margin: 1rem auto;
 }

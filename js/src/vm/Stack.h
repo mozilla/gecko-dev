@@ -16,7 +16,7 @@
 #include "jsscript.h"
 #include "jsutil.h"
 
-#include "asmjs/AsmJSFrameIterator.h"
+#include "asmjs/WasmFrameIterator.h"
 #include "gc/Rooting.h"
 #include "jit/JitFrameIterator.h"
 #ifdef CHECK_OSIPOINT_REGISTERS
@@ -36,7 +36,6 @@ class AutoEntryMonitor;
 namespace js {
 
 class ArgumentsObject;
-class AsmJSModule;
 class InterpreterRegs;
 class CallObject;
 class FrameIter;
@@ -204,8 +203,9 @@ class AbstractFramePtr
 
     inline bool hasCallObj() const;
     inline bool isFunctionFrame() const;
-    inline bool isModuleFrame() const;
+    inline bool isGlobalOrModuleFrame() const;
     inline bool isGlobalFrame() const;
+    inline bool isModuleFrame() const;
     inline bool isEvalFrame() const;
     inline bool isDebuggerEvalFrame() const;
     inline bool hasCachedSavedFrame() const;
@@ -281,8 +281,7 @@ enum InitialFrameFlags {
 };
 
 enum ExecuteType {
-    EXECUTE_GLOBAL         =        0x1, /* == InterpreterFrame::GLOBAL */
-    EXECUTE_MODULE         =        0x4, /* == InterpreterFrame::GLOBAL */
+    EXECUTE_GLOBAL_OR_MODULE =      0x1, /* == InterpreterFrame::GLOBAL_OR_MODULE */
     EXECUTE_DIRECT_EVAL    =        0x8, /* == InterpreterFrame::EVAL */
     EXECUTE_INDIRECT_EVAL  =        0x9, /* == InterpreterFrame::GLOBAL | EVAL */
     EXECUTE_DEBUG          =       0x18, /* == InterpreterFrame::EVAL | DEBUGGER_EVAL */
@@ -295,9 +294,8 @@ class InterpreterFrame
   public:
     enum Flags : uint32_t {
         /* Primary frame type */
-        GLOBAL                 =        0x1,  /* frame pushed for a global script */
+        GLOBAL_OR_MODULE       =        0x1,  /* frame pushed for a global script */
         FUNCTION               =        0x2,  /* frame pushed for a scripted call */
-        MODULE                 =        0x4,  /* frame pushed for a module */
 
         /* Frame subtypes */
         EVAL                   =        0x8,  /* frame pushed for eval() or debugger eval */
@@ -478,12 +476,16 @@ class InterpreterFrame
         return !!(flags_ & FUNCTION);
     }
 
+    bool isGlobalOrModuleFrame() const {
+        return !!(flags_ & GLOBAL_OR_MODULE);
+    }
+
     bool isGlobalFrame() const {
-        return !!(flags_ & GLOBAL);
+        return isGlobalOrModuleFrame() && !script()->module();
     }
 
     bool isModuleFrame() const {
-        return !!(flags_ & MODULE);
+        return isGlobalOrModuleFrame() && script()->module();
     }
 
     /*
@@ -664,7 +666,7 @@ class InterpreterFrame
     JSScript* script() const {
         if (isFunctionFrame())
             return isEvalFrame() ? u.evalScript : fun()->nonLazyScript();
-        MOZ_ASSERT(isGlobalFrame() || isModuleFrame());
+        MOZ_ASSERT(isGlobalOrModuleFrame());
         return exec.script;
     }
 
@@ -740,7 +742,7 @@ class InterpreterFrame
     }
 
     const Value& maybeCalleev() const {
-        Value& calleev = flags_ & (EVAL | GLOBAL)
+        Value& calleev = flags_ & (EVAL | GLOBAL_OR_MODULE)
                          ? ((Value*)this)[-1]
                          : argv()[-2];
         MOZ_ASSERT(calleev.isObjectOrNull());
@@ -1274,7 +1276,7 @@ static_assert(sizeof(LiveSavedFrameCache) == sizeof(uintptr_t),
 /*****************************************************************************/
 
 class InterpreterActivation;
-class AsmJSActivation;
+class WasmActivation;
 
 namespace jit {
     class JitActivation;
@@ -1344,7 +1346,7 @@ class Activation
     // callFunctionWithAsyncStack.
     bool asyncCallIsExplicit_;
 
-    enum Kind { Interpreter, Jit, AsmJS };
+    enum Kind { Interpreter, Jit, Wasm };
     Kind kind_;
 
     inline Activation(JSContext* cx, Kind kind);
@@ -1369,8 +1371,8 @@ class Activation
     bool isJit() const {
         return kind_ == Jit;
     }
-    bool isAsmJS() const {
-        return kind_ == AsmJS;
+    bool isWasm() const {
+        return kind_ == Wasm;
     }
 
     inline bool isProfiling() const;
@@ -1385,9 +1387,9 @@ class Activation
         MOZ_ASSERT(isJit());
         return (jit::JitActivation*)this;
     }
-    AsmJSActivation* asAsmJS() const {
-        MOZ_ASSERT(isAsmJS());
-        return (AsmJSActivation*)this;
+    WasmActivation* asWasm() const {
+        MOZ_ASSERT(isWasm());
+        return (WasmActivation*)this;
     }
 
     void saveFrameChain() {
@@ -1787,32 +1789,31 @@ class InterpreterFrameIterator
     }
 };
 
-// An AsmJSActivation is part of two activation linked lists:
+// A WasmActivation is part of two activation linked lists:
 //  - the normal Activation list used by FrameIter
-//  - a list of only AsmJSActivations that is signal-safe since it is accessed
+//  - a list of only WasmActivations that is signal-safe since it is accessed
 //    from the profiler at arbitrary points
 //
-// An eventual goal is to remove AsmJSActivation and to run asm.js code in a
+// An eventual goal is to remove WasmActivation and to run asm code in a
 // JitActivation interleaved with Ion/Baseline jit code. This would allow
 // efficient calls back and forth but requires that we can walk the stack for
 // all kinds of jit code.
-class AsmJSActivation : public Activation
+class WasmActivation : public Activation
 {
-    AsmJSModule& module_;
-    AsmJSActivation* prevAsmJS_;
-    AsmJSActivation* prevAsmJSForModule_;
+    wasm::Module& module_;
+    WasmActivation* prevWasm_;
+    WasmActivation* prevWasmForModule_;
     void* entrySP_;
     void* resumePC_;
     uint8_t* fp_;
-    AsmJSExit::Reason exitReason_;
+    wasm::ExitReason exitReason_;
 
   public:
-    AsmJSActivation(JSContext* cx, AsmJSModule& module);
-    ~AsmJSActivation();
+    WasmActivation(JSContext* cx, wasm::Module& module);
+    ~WasmActivation();
 
-    inline JSContext* cx();
-    AsmJSModule& module() const { return module_; }
-    AsmJSActivation* prevAsmJS() const { return prevAsmJS_; }
+    wasm::Module& module() const { return module_; }
+    WasmActivation* prevWasm() const { return prevWasm_; }
 
     bool isProfiling() const {
         return true;
@@ -1823,16 +1824,16 @@ class AsmJSActivation : public Activation
     uint8_t* fp() const { return fp_; }
 
     // Returns the reason why asm.js code called out of asm.js code.
-    AsmJSExit::Reason exitReason() const { return exitReason_; }
+    wasm::ExitReason exitReason() const { return exitReason_; }
 
     // Read by JIT code:
-    static unsigned offsetOfContext() { return offsetof(AsmJSActivation, cx_); }
-    static unsigned offsetOfResumePC() { return offsetof(AsmJSActivation, resumePC_); }
+    static unsigned offsetOfContext() { return offsetof(WasmActivation, cx_); }
+    static unsigned offsetOfResumePC() { return offsetof(WasmActivation, resumePC_); }
 
     // Written by JIT code:
-    static unsigned offsetOfEntrySP() { return offsetof(AsmJSActivation, entrySP_); }
-    static unsigned offsetOfFP() { return offsetof(AsmJSActivation, fp_); }
-    static unsigned offsetOfExitReason() { return offsetof(AsmJSActivation, exitReason_); }
+    static unsigned offsetOfEntrySP() { return offsetof(WasmActivation, entrySP_); }
+    static unsigned offsetOfFP() { return offsetof(WasmActivation, fp_); }
+    static unsigned offsetOfExitReason() { return offsetof(WasmActivation, exitReason_); }
 
     // Read/written from SIGSEGV handler:
     void setResumePC(void* pc) { resumePC_ = pc; }
@@ -1868,7 +1869,7 @@ class FrameIter
     enum ContextOption { CURRENT_CONTEXT, ALL_CONTEXTS };
     enum DebuggerEvalOption { FOLLOW_DEBUGGER_EVAL_PREV_LINK,
                               IGNORE_DEBUGGER_EVAL_PREV_LINK };
-    enum State { DONE, INTERP, JIT, ASMJS };
+    enum State { DONE, INTERP, JIT, WASM };
 
     // Unlike ScriptFrameIter itself, ScriptFrameIter::Data can be allocated on
     // the heap, so this structure should not contain any GC things.
@@ -1889,7 +1890,7 @@ class FrameIter
 
         jit::JitFrameIterator jitFrames_;
         unsigned ionInlineFrameNo_;
-        AsmJSFrameIterator asmJSFrames_;
+        wasm::FrameIterator wasmFrames_;
 
         Data(JSContext* cx, SavedOption savedOption, ContextOption contextOption,
              DebuggerEvalOption debuggerEvalOption, JSPrincipals* principals);
@@ -1917,13 +1918,13 @@ class FrameIter
 
     bool isInterp() const { MOZ_ASSERT(!done()); return data_.state_ == INTERP;  }
     bool isJit() const { MOZ_ASSERT(!done()); return data_.state_ == JIT; }
-    bool isAsmJS() const { MOZ_ASSERT(!done()); return data_.state_ == ASMJS; }
+    bool isWasm() const { MOZ_ASSERT(!done()); return data_.state_ == WASM; }
     inline bool isIon() const;
     inline bool isBaseline() const;
     inline bool isPhysicalIonFrame() const;
 
     bool isFunctionFrame() const;
-    bool isGlobalFrame() const;
+    bool isGlobalOrModuleFrame() const;
     bool isEvalFrame() const;
     bool isNonEvalFunctionFrame() const;
     bool hasArgs() const { return isNonEvalFunctionFrame(); }
@@ -1932,14 +1933,13 @@ class FrameIter
     inline bool hasCachedSavedFrame() const;
     inline void setHasCachedSavedFrame();
 
-    ScriptSource* scriptSource() const;
-    const char* scriptFilename() const;
-    const char16_t* scriptDisplayURL() const;
+    const char* filename() const;
+    const char16_t* displayURL() const;
     unsigned computeLine(uint32_t* column = nullptr) const;
     JSAtom* functionDisplayAtom() const;
     bool mutedErrors() const;
 
-    bool hasScript() const { return !isAsmJS(); }
+    bool hasScript() const { return !isWasm(); }
 
     // -----------------------------------------------------------
     // The following functions can only be called when hasScript()
@@ -2027,7 +2027,7 @@ class FrameIter
     void popInterpreterFrame();
     void nextJitFrame();
     void popJitFrame();
-    void popAsmJSFrame();
+    void popWasmFrame();
     void settleOnActivation();
 };
 

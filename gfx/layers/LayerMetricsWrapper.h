@@ -7,6 +7,7 @@
 #define GFX_LAYERMETRICSWRAPPER_H
 
 #include "Layers.h"
+#include "UnitTransforms.h"
 
 namespace mozilla {
 namespace layers {
@@ -299,6 +300,11 @@ public:
     return gfx::Matrix4x4();
   }
 
+  CSSTransformMatrix GetTransformTyped() const
+  {
+    return ViewAs<CSSTransformMatrix>(GetTransform());
+  }
+
   bool TransformIsPerspective() const
   {
     MOZ_ASSERT(IsValid());
@@ -366,6 +372,17 @@ public:
     }
 
     return sNoClipRect;
+  }
+
+  float GetPresShellResolution() const
+  {
+    MOZ_ASSERT(IsValid());
+
+    if (AtTopLayer() && mLayer->AsContainerLayer()) {
+      return mLayer->AsContainerLayer()->GetPresShellResolution();
+    }
+
+    return 1.0f;
   }
 
   EventRegionsOverride GetEventRegionsOverride() const

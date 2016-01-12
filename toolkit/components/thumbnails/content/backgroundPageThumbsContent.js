@@ -4,7 +4,7 @@
 
 var { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
-Cu.importGlobalProperties(['Blob']);
+Cu.importGlobalProperties(['Blob', 'FileReader']);
 
 Cu.import("resource://gre/modules/PageThumbUtils.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -99,7 +99,7 @@ const backgroundPageThumbsContent = {
   onStateChange: function (webProgress, req, flags, status) {
     if (webProgress.isTopLevel &&
         (flags & Ci.nsIWebProgressListener.STATE_STOP) &&
-        this._currentCapture && Components.isSuccessCode(status)) {
+        this._currentCapture) {
       if (req.name == "about:blank") {
         if (this._state == STATE_CAPTURING) {
           // about:blank has loaded, ending the current capture.
@@ -114,10 +114,14 @@ const backgroundPageThumbsContent = {
           this._startNextCapture();
         }
       }
-      else if (this._state == STATE_LOADING) {
+      else if (this._state == STATE_LOADING &&
+               Components.isSuccessCode(status)) {
         // The requested page has loaded.  Capture it.
         this._state = STATE_CAPTURING;
         this._captureCurrentPage();
+      } else {
+        this._state = STATE_CANCELED;
+        this._loadAboutBlank();
       }
     }
   },
@@ -141,8 +145,7 @@ const backgroundPageThumbsContent = {
 
   _finishCurrentCapture: function () {
     let capture = this._currentCapture;
-    let fileReader = Cc["@mozilla.org/files/filereader;1"].
-                     createInstance(Ci.nsIDOMFileReader);
+    let fileReader = new FileReader();
     fileReader.onloadend = () => {
       sendAsyncMessage("BackgroundPageThumbs:didCapture", {
         id: capture.id,

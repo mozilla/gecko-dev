@@ -43,7 +43,7 @@ class DebuggerMemory;
 
 typedef HashSet<ReadBarrieredGlobalObject,
                 MovableCellHasher<ReadBarrieredGlobalObject>,
-                SystemAllocPolicy> WeakGlobalObjectSet;
+                RuntimeAllocPolicy> WeakGlobalObjectSet;
 
 /*
  * A weakmap from GC thing keys to JSObject values that supports the keys being
@@ -117,8 +117,9 @@ class DebuggerWeakMap : private WeakMap<RelocatablePtr<UnbarrieredKey>, Relocata
     template<typename KeyInput, typename ValueInput>
     bool relookupOrAdd(AddPtr& p, const KeyInput& k, const ValueInput& v) {
         MOZ_ASSERT(v->compartment() == this->compartment);
-        MOZ_ASSERT(!k->compartment()->options_.mergeable());
-        MOZ_ASSERT_IF(!InvisibleKeysOk, !k->compartment()->options_.invisibleToDebugger());
+        MOZ_ASSERT(!k->compartment()->creationOptions().mergeable());
+        MOZ_ASSERT_IF(!InvisibleKeysOk,
+                      !k->compartment()->creationOptions().invisibleToDebugger());
         MOZ_ASSERT(!Base::has(k));
         if (!incZoneCount(k->zone()))
             return false;
@@ -260,6 +261,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
     // Return true if this Debugger observed a debuggee that participated in the
     // GC identified by the given GC number. Return false otherwise.
+    // May return false negatives if we have hit OOM.
     bool observedGC(uint64_t majorGCNumber) const {
         return observedGCs.has(majorGCNumber);
     }
@@ -340,7 +342,8 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
     // The set of GC numbers for which one or more of this Debugger's observed
     // debuggees participated in.
-    js::HashSet<uint64_t> observedGCs;
+    using GCNumberSet = HashSet<uint64_t, DefaultHasher<uint64_t>, RuntimeAllocPolicy>;
+    GCNumberSet observedGCs;
 
     using TenurePromotionsLog = js::TraceableFifo<TenurePromotionsLogEntry>;
     TenurePromotionsLog tenurePromotionsLog;
@@ -446,10 +449,10 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
      * lost events.
      */
 #ifdef NIGHTLY_BUILD
-    uint32_t traceLoggerLastDrainedId;
+    uint32_t traceLoggerLastDrainedSize;
     uint32_t traceLoggerLastDrainedIteration;
 #endif
-    uint32_t traceLoggerScriptedCallsLastDrainedId;
+    uint32_t traceLoggerScriptedCallsLastDrainedSize;
     uint32_t traceLoggerScriptedCallsLastDrainedIteration;
 
     class FrameRange;
@@ -1079,7 +1082,7 @@ Debugger::onNewScript(JSContext* cx, HandleScript script)
 {
     // We early return in slowPathOnNewScript for self-hosted scripts, so we can
     // ignore those in our assertion here.
-    MOZ_ASSERT_IF(!script->compartment()->options().invisibleToDebugger() &&
+    MOZ_ASSERT_IF(!script->compartment()->creationOptions().invisibleToDebugger() &&
                   !script->selfHosted(),
                   script->compartment()->firedOnNewGlobalObject);
     if (script->compartment()->isDebuggee())

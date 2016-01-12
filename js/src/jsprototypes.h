@@ -36,7 +36,6 @@
 #define OCLASP(name)                (&name##Object::class_)
 #define TYPED_ARRAY_CLASP(type)     (&TypedArrayObject::classes[Scalar::type])
 #define ERROR_CLASP(type)           (&ErrorObject::classes[type])
-#define SHARED_TYPED_ARRAY_CLASP(type) (&SharedTypedArrayObject::classes[Scalar::type])
 
 #ifdef EXPOSE_INTL_API
 #define IF_INTL(real,imaginary) real
@@ -48,6 +47,12 @@
 #define IF_BDATA(real,imaginary) real
 #else
 #define IF_BDATA(real,imaginary) imaginary
+#endif
+
+#ifdef ENABLE_SIMD
+# define IF_SIMD(real,imaginary) real
+#else
+# define IF_SIMD(real,imaginary) imaginary
 #endif
 
 #ifdef ENABLE_SHARED_ARRAY_BUFFER
@@ -76,7 +81,7 @@
     real(SyntaxError,           16,     InitViaClassSpec,       ERROR_CLASP(JSEXN_SYNTAXERR)) \
     real(TypeError,             17,     InitViaClassSpec,       ERROR_CLASP(JSEXN_TYPEERR)) \
     real(URIError,              18,     InitViaClassSpec,       ERROR_CLASP(JSEXN_URIERR)) \
-    real(Iterator,              19,     InitIteratorClass,      OCLASP(PropertyIterator)) \
+    real(Iterator,              19,     InitLegacyIteratorClass,OCLASP(PropertyIterator)) \
     real(StopIteration,         20,     InitStopIterationClass, OCLASP(StopIteration)) \
     real(ArrayBuffer,           21,     InitArrayBufferClass,   &js::ArrayBufferObject::protoClass) \
     real(Int8Array,             22,     InitViaClassSpec,       TYPED_ARRAY_CLASP(Int8)) \
@@ -98,23 +103,11 @@ IF_SAB(real,imaginary)(SharedArrayBuffer,       37,     InitSharedArrayBufferCla
 IF_INTL(real,imaginary) (Intl,                  38,     InitIntlClass,          CLASP(Intl)) \
 IF_BDATA(real,imaginary)(TypedObject,           39,     InitTypedObjectModuleObject,   OCLASP(TypedObjectModule)) \
     real(Reflect,               40,     InitReflect,            nullptr) \
-IF_BDATA(real,imaginary)(SIMD,                  41,     InitSIMDClass, OCLASP(SIMD)) \
+IF_SIMD(real,imaginary)(SIMD,                   41,     InitSIMDClass, OCLASP(SIMD)) \
     real(WeakSet,               42,     InitWeakSetClass,       OCLASP(WeakSet)) \
-IF_SAB(real,imaginary)(SharedInt8Array,         43,     InitViaClassSpec,       SHARED_TYPED_ARRAY_CLASP(Int8)) \
-IF_SAB(real,imaginary)(SharedUint8Array,        44,     InitViaClassSpec,       SHARED_TYPED_ARRAY_CLASP(Uint8)) \
-IF_SAB(real,imaginary)(SharedInt16Array,        45,     InitViaClassSpec,       SHARED_TYPED_ARRAY_CLASP(Int16)) \
-IF_SAB(real,imaginary)(SharedUint16Array,       46,     InitViaClassSpec,       SHARED_TYPED_ARRAY_CLASP(Uint16)) \
-IF_SAB(real,imaginary)(SharedInt32Array,        47,     InitViaClassSpec,       SHARED_TYPED_ARRAY_CLASP(Int32)) \
-IF_SAB(real,imaginary)(SharedUint32Array,       48,     InitViaClassSpec,       SHARED_TYPED_ARRAY_CLASP(Uint32)) \
-IF_SAB(real,imaginary)(SharedFloat32Array,      49,     InitViaClassSpec,       SHARED_TYPED_ARRAY_CLASP(Float32)) \
-IF_SAB(real,imaginary)(SharedFloat64Array,      50,     InitViaClassSpec,       SHARED_TYPED_ARRAY_CLASP(Float64)) \
-IF_SAB(real,imaginary)(SharedUint8ClampedArray, 51,     InitViaClassSpec,       SHARED_TYPED_ARRAY_CLASP(Uint8Clamped)) \
-    real(TypedArray,            52,      InitViaClassSpec,      &js::TypedArrayObject::sharedTypedArrayPrototypeClass) \
-IF_SAB(real,imaginary)(Atomics,                 53,     InitAtomicsClass, OCLASP(Atomics)) \
-    real(SavedFrame,            54,      InitViaClassSpec,      &js::SavedFrame::class_) \
-    real(Module,                55,      InitModuleClass,       OCLASP(Module)) \
-    real(ImportEntry,           56,      InitImportEntryClass,  OCLASP(ImportEntry)) \
-    real(ExportEntry,           57,      InitExportEntryClass,  OCLASP(ExportEntry)) \
+    real(TypedArray,            43,      InitViaClassSpec,      &js::TypedArrayObject::sharedTypedArrayPrototypeClass) \
+IF_SAB(real,imaginary)(Atomics,                 44,     InitAtomicsClass, OCLASP(Atomics)) \
+    real(SavedFrame,            45,      InitViaClassSpec,      &js::SavedFrame::class_) \
 
 #define JS_FOR_EACH_PROTOTYPE(macro) JS_FOR_PROTOTYPES(macro,macro)
 

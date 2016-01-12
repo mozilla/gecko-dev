@@ -21,9 +21,18 @@
 
 #define ENSURE_GATT_INTF_IS_READY_VOID(runnable)                              \
   do {                                                                        \
-    if (!sBluetoothGattInterface) {                                           \
+    if (NS_WARN_IF(!sBluetoothGattInterface)) {                               \
       DispatchReplyError(runnable,                                            \
         NS_LITERAL_STRING("BluetoothGattInterface is not ready"));            \
+        runnable = nullptr;                                                   \
+      return;                                                                 \
+    }                                                                         \
+  } while(0)
+
+#define ENSURE_GATT_INTF_IN_ATTR_DISCOVER(client)                             \
+  do {                                                                        \
+    if (NS_WARN_IF(!sBluetoothGattInterface)) {                               \
+      client->NotifyDiscoverCompleted(false);                                 \
       return;                                                                 \
     }                                                                         \
   } while(0)
@@ -376,8 +385,25 @@ BluetoothGattManager::Get()
 
   // Create a new instance, register, and return
   BluetoothGattManager* manager = new BluetoothGattManager();
+  NS_ENSURE_TRUE(manager->Init(), nullptr);
   sBluetoothGattManager = manager;
   return sBluetoothGattManager;
+}
+
+bool
+BluetoothGattManager::Init()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
+  NS_ENSURE_TRUE(obs, false);
+
+  if (NS_FAILED(obs->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false))) {
+    BT_WARNING("Failed to add observers!");
+    return false;
+  }
+
+  return true;
 }
 
 class BluetoothGattManager::RegisterModuleResultHandler final
@@ -2564,11 +2590,13 @@ BluetoothGattManager::RegisterClientNotification(BluetoothGattStatus aStatus,
 
   if (client->mStartLeScanRunnable) {
     // Client just registered, proceed remaining startLeScan request.
+    ENSURE_GATT_INTF_IS_READY_VOID(client->mStartLeScanRunnable);
     sBluetoothGattInterface->Scan(
       aClientIf, true /* start */,
       new StartLeScanResultHandler(client));
   } else if (client->mConnectRunnable) {
     // Client just registered, proceed remaining connect request.
+    ENSURE_GATT_INTF_IS_READY_VOID(client->mConnectRunnable);
     sBluetoothGattInterface->Connect(
       aClientIf, client->mDeviceAddr, true /* direct connect */,
       TRANSPORT_AUTO,
@@ -2605,10 +2633,7 @@ private:
 
     InfallibleTArray<BluetoothNamedValue> properties;
 
-    nsAutoString addressStr;
-    AddressToString(mBdAddr, addressStr);
-
-    AppendNamedValue(properties, "Address", addressStr);
+    AppendNamedValue(properties, "Address", mBdAddr);
     AppendNamedValue(properties, "Rssi", mRssi);
     AppendNamedValue(properties, "GattAdv", mAdvData);
     AppendNamedValue(properties, "Type", static_cast<uint32_t>(type));
@@ -2773,6 +2798,7 @@ BluetoothGattManager::SearchCompleteNotification(int aConnId,
   // All services are discovered, continue to search included services of each
   // service if existed, otherwise, notify application that discover completed
   if (!client->mServices.IsEmpty()) {
+    ENSURE_GATT_INTF_IN_ATTR_DISCOVER(client);
     sBluetoothGattInterface->GetIncludedService(
       aConnId,
       client->mServices[0], // start from first service
@@ -2832,6 +2858,7 @@ BluetoothGattManager::GetCharacteristicNotification(
     client->mCharacteristics.AppendElement(attribute);
 
     // Get next characteristic of this service
+    ENSURE_GATT_INTF_IN_ATTR_DISCOVER(client);
     sBluetoothGattInterface->GetCharacteristic(
       aConnId,
       aServiceId,
@@ -2877,6 +2904,7 @@ BluetoothGattManager::GetDescriptorNotification(
     client->mDescriptors.AppendElement(aDescriptorId);
 
     // Get next descriptor of this characteristic
+    ENSURE_GATT_INTF_IN_ATTR_DISCOVER(client);
     sBluetoothGattInterface->GetDescriptor(
       aConnId,
       aServiceId,
@@ -2919,6 +2947,7 @@ BluetoothGattManager::GetIncludedServiceNotification(
   RefPtr<BluetoothGattClient> client = sClients->ElementAt(index);
   MOZ_ASSERT(client->mDiscoverRunnable);
 
+  ENSURE_GATT_INTF_IN_ATTR_DISCOVER(client);
   if (aStatus == GATT_STATUS_SUCCESS) {
     // Save to mIncludedServices for distributing to applications
     client->mIncludedServices.AppendElement(aIncludedServId);
@@ -3062,6 +3091,14 @@ BluetoothGattManager::ReadCharacteristicNotification(
   } else if (!client->mReadCharacteristicState.mAuthRetry &&
              (aStatus == GATT_STATUS_INSUFFICIENT_AUTHENTICATION ||
               aStatus == GATT_STATUS_INSUFFICIENT_ENCRYPTION)) {
+    if (NS_WARN_IF(!sBluetoothGattInterface)) {
+      client->mReadCharacteristicState.Reset();
+      // Reject the promise
+      DispatchReplyError(runnable,
+                         NS_LITERAL_STRING("ReadCharacteristicValue failed"));
+      return;
+    }
+
     client->mReadCharacteristicState.mAuthRetry = true;
     // Retry with another authentication requirement
     sBluetoothGattInterface->ReadCharacteristic(
@@ -3101,6 +3138,14 @@ BluetoothGattManager::WriteCharacteristicNotification(
   } else if (!client->mWriteCharacteristicState.mAuthRetry &&
              (aStatus == GATT_STATUS_INSUFFICIENT_AUTHENTICATION ||
               aStatus == GATT_STATUS_INSUFFICIENT_ENCRYPTION)) {
+    if (NS_WARN_IF(!sBluetoothGattInterface)) {
+      client->mWriteCharacteristicState.Reset();
+      // Reject the promise
+      DispatchReplyError(runnable,
+                         NS_LITERAL_STRING("WriteCharacteristicValue failed"));
+      return;
+    }
+
     client->mWriteCharacteristicState.mAuthRetry = true;
     // Retry with another authentication requirement
     sBluetoothGattInterface->WriteCharacteristic(
@@ -3156,6 +3201,14 @@ BluetoothGattManager::ReadDescriptorNotification(
   } else if (!client->mReadDescriptorState.mAuthRetry &&
              (aStatus == GATT_STATUS_INSUFFICIENT_AUTHENTICATION ||
               aStatus == GATT_STATUS_INSUFFICIENT_ENCRYPTION)) {
+    if (NS_WARN_IF(!sBluetoothGattInterface)) {
+      client->mReadDescriptorState.Reset();
+      // Reject the promise
+      DispatchReplyError(runnable,
+                         NS_LITERAL_STRING("ReadDescriptorValue failed"));
+      return;
+    }
+
     client->mReadDescriptorState.mAuthRetry = true;
     // Retry with another authentication requirement
     sBluetoothGattInterface->ReadDescriptor(
@@ -3196,6 +3249,14 @@ BluetoothGattManager::WriteDescriptorNotification(
   } else if (!client->mWriteDescriptorState.mAuthRetry &&
              (aStatus == GATT_STATUS_INSUFFICIENT_AUTHENTICATION ||
               aStatus == GATT_STATUS_INSUFFICIENT_ENCRYPTION)) {
+    if (NS_WARN_IF(!sBluetoothGattInterface)) {
+      client->mWriteDescriptorState.Reset();
+      // Reject the promise
+      DispatchReplyError(runnable,
+                         NS_LITERAL_STRING("WriteDescriptorValue failed"));
+      return;
+    }
+
     client->mWriteDescriptorState.mAuthRetry = true;
     // Retry with another authentication requirement
     sBluetoothGattInterface->WriteDescriptor(
@@ -3286,7 +3347,7 @@ BluetoothGattManager::RegisterServerNotification(BluetoothGattStatus aStatus,
   server->mIsRegistering = false;
 
   BluetoothService* bs = BluetoothService::Get();
-  if (!bs || aStatus != GATT_STATUS_SUCCESS) {
+  if (!bs || aStatus != GATT_STATUS_SUCCESS || !sBluetoothGattInterface) {
     nsAutoString appUuidStr;
     UuidToString(aAppUuid, appUuidStr);
 
@@ -3364,13 +3425,10 @@ BluetoothGattManager::ConnectionNotification(int aConnId,
     server->mConnectionMap.Remove(aBdAddr);
   }
 
-  nsAutoString bdAddrStr;
-  AddressToString(aBdAddr, bdAddrStr);
-
   // Notify BluetoothGattServer that connection status changed
   InfallibleTArray<BluetoothNamedValue> props;
   AppendNamedValue(props, "Connected", aConnected);
-  AppendNamedValue(props, "Address", bdAddrStr);
+  AppendNamedValue(props, "Address", aBdAddr);
   bs->DistributeSignal(
     NS_LITERAL_STRING(GATT_CONNECTION_STATE_CHANGED_ID),
     server->mAppUuid,
@@ -3655,6 +3713,7 @@ BluetoothGattManager::RequestReadNotification(
   MOZ_ASSERT(NS_IsMainThread());
 
   NS_ENSURE_TRUE_VOID(aConnId);
+  NS_ENSURE_TRUE_VOID(sBluetoothGattInterface);
   BluetoothService* bs = BluetoothService::Get();
   NS_ENSURE_TRUE_VOID(bs);
 
@@ -3677,15 +3736,12 @@ BluetoothGattManager::RequestReadNotification(
     return;
   }
 
-  nsAutoString bdAddrStr;
-  AddressToString(aBdAddr, bdAddrStr);
-
   // Distribute a signal to gattServer
   InfallibleTArray<BluetoothNamedValue> properties;
 
   AppendNamedValue(properties, "TransId", aTransId);
   AppendNamedValue(properties, "AttrHandle", aAttributeHandle);
-  AppendNamedValue(properties, "Address", bdAddrStr);
+  AppendNamedValue(properties, "Address", aBdAddr);
   AppendNamedValue(properties, "NeedResponse", true);
   AppendNamedValue(properties, "Value", nsTArray<uint8_t>());
 
@@ -3709,6 +3765,7 @@ BluetoothGattManager::RequestWriteNotification(
   MOZ_ASSERT(NS_IsMainThread());
 
   NS_ENSURE_TRUE_VOID(aConnId);
+  NS_ENSURE_TRUE_VOID(sBluetoothGattInterface);
   BluetoothService* bs = BluetoothService::Get();
   NS_ENSURE_TRUE_VOID(bs);
 
@@ -3733,15 +3790,12 @@ BluetoothGattManager::RequestWriteNotification(
     return;
   }
 
-  nsAutoString bdAddrStr;
-  AddressToString(aBdAddr, bdAddrStr);
-
   // Distribute a signal to gattServer
   InfallibleTArray<BluetoothNamedValue> properties;
 
   AppendNamedValue(properties, "TransId", aTransId);
   AppendNamedValue(properties, "AttrHandle", aAttributeHandle);
-  AppendNamedValue(properties, "Address", bdAddrStr);
+  AppendNamedValue(properties, "Address", aBdAddr);
   AppendNamedValue(properties, "NeedResponse", aNeedResponse);
 
   nsTArray<uint8_t> value;
@@ -3810,6 +3864,9 @@ BluetoothGattManager::ProceedDiscoverProcess(
    * 3) Both arrays are already empty:
    *      Discover is done, notify application.
    */
+  MOZ_ASSERT(aClient->mDiscoverRunnable);
+  ENSURE_GATT_INTF_IN_ATTR_DISCOVER(aClient);
+
   if (!aClient->mCharacteristics.IsEmpty()) {
     sBluetoothGattInterface->GetDescriptor(
       aClient->mConnId,

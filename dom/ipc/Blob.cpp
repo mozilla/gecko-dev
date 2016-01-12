@@ -904,13 +904,17 @@ CreateBlobImpl(const nsTArray<BlobData>& aBlobDatas,
     MOZ_ASSERT(!isMutable);
   }
 
+  ErrorResult rv;
   RefPtr<BlobImpl> blobImpl;
   if (!hasRecursed && aMetadata.IsFile()) {
-    blobImpl =
-      new MultipartBlobImpl(blobImpls, aMetadata.mName, aMetadata.mContentType);
+    blobImpl = MultipartBlobImpl::Create(blobImpls, aMetadata.mName,
+                                         aMetadata.mContentType, rv);
   } else {
-    blobImpl =
-      new MultipartBlobImpl(blobImpls, aMetadata.mContentType);
+    blobImpl = MultipartBlobImpl::Create(blobImpls, aMetadata.mContentType, rv);
+  }
+
+  if (NS_WARN_IF(rv.Failed())) {
+    return nullptr;
   }
 
   MOZ_ALWAYS_TRUE(NS_SUCCEEDED(blobImpl->SetMutable(false)));
@@ -1161,9 +1165,9 @@ RemoteInputStream::ReallyBlockAndWaitForStream()
 #ifdef DEBUG
   if (waited && mWeakSeekableStream) {
     int64_t position;
-    MOZ_ASSERT(NS_SUCCEEDED(mWeakSeekableStream->Tell(&position)),
-                "Failed to determine initial stream position!");
-    MOZ_ASSERT(!position, "Stream not starting at 0!");
+    if (NS_SUCCEEDED(mWeakSeekableStream->Tell(&position))) {
+      MOZ_ASSERT(!position, "Stream not starting at 0!");
+    }
   }
 #endif
 }
@@ -2035,8 +2039,7 @@ public:
   SetLazyData(const nsAString& aName,
               const nsAString& aContentType,
               uint64_t aLength,
-              int64_t aLastModifiedDate,
-              BlobDirState aDirState) override;
+              int64_t aLastModifiedDate) override;
 
   virtual bool
   IsMemoryFile() const override;
@@ -2778,8 +2781,7 @@ BlobParent::
 RemoteBlobImpl::SetLazyData(const nsAString& aName,
                             const nsAString& aContentType,
                             uint64_t aLength,
-                            int64_t aLastModifiedDate,
-                            BlobDirState aDirState)
+                            int64_t aLastModifiedDate)
 {
   MOZ_CRASH("This should never be called!");
 }
@@ -3483,8 +3485,7 @@ BlobChild::SetMysteryBlobInfo(const nsString& aName,
   MOZ_ASSERT(mRemoteBlobImpl);
   MOZ_ASSERT(aLastModifiedDate != INT64_MAX);
 
-  mBlobImpl->SetLazyData(aName, aContentType, aLength, aLastModifiedDate,
-                         aDirState);
+  mBlobImpl->SetLazyData(aName, aContentType, aLength, aLastModifiedDate);
 
   FileBlobConstructorParams params(aName,
                                    aContentType,
@@ -3505,8 +3506,7 @@ BlobChild::SetMysteryBlobInfo(const nsString& aContentType, uint64_t aLength)
   nsString voidString;
   voidString.SetIsVoid(true);
 
-  mBlobImpl->SetLazyData(voidString, aContentType, aLength, INT64_MAX,
-                         BlobDirState::eUnknownIfDir);
+  mBlobImpl->SetLazyData(voidString, aContentType, aLength, INT64_MAX);
 
   NormalBlobConstructorParams params(aContentType,
                                      aLength,
@@ -4332,8 +4332,7 @@ BlobParent::RecvResolveMystery(const ResolveMysteryParams& aParams)
       mBlobImpl->SetLazyData(voidString,
                              params.contentType(),
                              params.length(),
-                             INT64_MAX,
-                             BlobDirState::eUnknownIfDir);
+                             INT64_MAX);
       return true;
     }
 
@@ -4358,8 +4357,7 @@ BlobParent::RecvResolveMystery(const ResolveMysteryParams& aParams)
       mBlobImpl->SetLazyData(params.name(),
                              params.contentType(),
                              params.length(),
-                             params.modDate(),
-                             BlobDirState(params.dirState()));
+                             params.modDate());
       return true;
     }
 

@@ -423,6 +423,7 @@ public:
   typedef mozilla::layout::FrameChildListIDs ChildListIDs;
   typedef mozilla::layout::FrameChildListIterator ChildListIterator;
   typedef mozilla::layout::FrameChildListArrayIterator ChildListArrayIterator;
+  typedef mozilla::gfx::DrawTarget DrawTarget;
   typedef mozilla::gfx::Matrix Matrix;
   typedef mozilla::gfx::Matrix4x4 Matrix4x4;
   typedef mozilla::Sides Sides;
@@ -894,8 +895,7 @@ public:
   NS_DECLARE_FRAME_PROPERTY(LineBaselineOffset, nullptr)
 
   NS_DECLARE_FRAME_PROPERTY(CachedBackgroundImage, ReleaseValue<gfxASurface>)
-  NS_DECLARE_FRAME_PROPERTY(CachedBackgroundImageDT,
-                            ReleaseValue<mozilla::gfx::DrawTarget>)
+  NS_DECLARE_FRAME_PROPERTY(CachedBackgroundImageDT, ReleaseValue<DrawTarget>)
 
   NS_DECLARE_FRAME_PROPERTY(InvalidationRect, DeleteValue<nsRect>)
 
@@ -1632,12 +1632,11 @@ public:
     // current line total is negative.  When it is, we need to ignore
     // optional breaks to prevent min-width from ending up bigger than
     // pref-width.
-    void ForceBreak(nsRenderingContext *aRenderingContext);
+    void ForceBreak();
 
     // If the break here is actually taken, aHyphenWidth must be added to the
     // width of the current line.
-    void OptionallyBreak(nsRenderingContext *aRenderingContext,
-                         nscoord aHyphenWidth = 0);
+    void OptionallyBreak(nscoord aHyphenWidth = 0);
 
     // The last text frame processed so far in the current line, when
     // the last characters in that text frame are relevant for line
@@ -1651,7 +1650,7 @@ public:
   };
 
   struct InlinePrefISizeData : public InlineIntrinsicISizeData {
-    void ForceBreak(nsRenderingContext *aRenderingContext);
+    void ForceBreak();
   };
 
   /**
@@ -1800,10 +1799,10 @@ public:
    * text decorations, but today it sometimes includes other things that
    * contribute to visual overflow.
    *
-   * @param aContext a rendering context that can be used if we need
+   * @param aDrawTarget a draw target that can be used if we need
    * to do measurement
    */
-  virtual nsRect ComputeTightBounds(gfxContext* aContext) const;
+  virtual nsRect ComputeTightBounds(DrawTarget* aDrawTarget) const;
 
   /**
    * This function is similar to GetPrefISize and ComputeTightBounds: it
@@ -1938,10 +1937,17 @@ public:
     // Passed-in start and end offsets are within the rendered text.
     OFFSETS_IN_RENDERED_TEXT
   };
+  enum class TrailingWhitespace {
+    TRIM_TRAILING_WHITESPACE,
+    // Spaces preceding a caret at the end of a line should not be trimmed
+    DONT_TRIM_TRAILING_WHITESPACE
+  };
   virtual RenderedText GetRenderedText(uint32_t aStartOffset = 0,
                                        uint32_t aEndOffset = UINT32_MAX,
                                        TextOffsetType aOffsetType =
-                                           TextOffsetType::OFFSETS_IN_CONTENT_TEXT)
+                                           TextOffsetType::OFFSETS_IN_CONTENT_TEXT,
+                                       TrailingWhitespace aTrimTrailingWhitespace =
+                                           TrailingWhitespace::TRIM_TRAILING_WHITESPACE)
   { return RenderedText(); }
 
   /**
@@ -2774,7 +2780,7 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
   // Implemented in nsBox, used in nsBoxFrame
   uint32_t GetOrdinal();
 
-  virtual nscoord GetFlex(nsBoxLayoutState& aBoxLayoutState) = 0;
+  virtual nscoord GetFlex() = 0;
   virtual nscoord GetBoxAscent(nsBoxLayoutState& aBoxLayoutState) = 0;
   virtual bool IsCollapsed() = 0;
   // This does not alter the overflow area. If the caller is changing
@@ -2803,7 +2809,7 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
   bool IsNormalDirection() const { return (mState & NS_STATE_IS_DIRECTION_NORMAL) != 0; }
 
   nsresult Redraw(nsBoxLayoutState& aState);
-  virtual nsresult RelayoutChildAtOrdinal(nsBoxLayoutState& aState, nsIFrame* aChild)=0;
+  virtual nsresult RelayoutChildAtOrdinal(nsIFrame* aChild)=0;
   // XXX take this out after we've branched
   virtual bool GetMouseThrough() const { return false; }
 
@@ -2824,7 +2830,7 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
   static bool AddCSSMinSize(nsBoxLayoutState& aState, nsIFrame* aBox,
                             nsSize& aSize, bool& aWidth, bool& aHeightSet);
   static bool AddCSSMaxSize(nsIFrame* aBox, nsSize& aSize, bool& aWidth, bool& aHeightSet);
-  static bool AddCSSFlex(nsBoxLayoutState& aState, nsIFrame* aBox, nscoord& aFlex);
+  static bool AddCSSFlex(nsIFrame* aBox, nscoord& aFlex);
 
   // END OF BOX LAYOUT METHODS
   // The above methods have been migrated from nsIBox and are in the process of

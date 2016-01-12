@@ -34,7 +34,7 @@ class MediaEngineTabVideoSource : public MediaEngineVideoSource, nsIDOMEventList
                              const nsString& aDeviceId) override;
     virtual nsresult Config(bool, uint32_t, bool, uint32_t, bool, uint32_t, int32_t) override;
     virtual bool IsFake() override;
-    virtual const dom::MediaSourceEnum GetMediaSource() override {
+    virtual dom::MediaSourceEnum GetMediaSource() const override {
       return dom::MediaSourceEnum::Browser;
     }
     virtual uint32_t GetBestFitnessDistance(
@@ -88,7 +88,7 @@ private:
     ScopedFreePtr<unsigned char> mData;
     size_t mDataSize;
     nsCOMPtr<nsIDOMWindow> mWindow;
-    RefPtr<layers::CairoImage> mImage;
+    RefPtr<layers::SourceSurfaceImage> mImage;
     nsCOMPtr<nsITimer> mTimer;
     Monitor mMonitor;
     nsCOMPtr<nsITabSource> mTabSource;

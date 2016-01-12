@@ -408,7 +408,7 @@ static nsresult GetDownloadDirectory(nsIFile **_directory,
   // creating. Note that Creating directories with specified permission only
   // supported on Unix platform right now. That's why above if exists.
 
-  PRUint32 permissions;
+  uint32_t permissions;
   rv = dir->GetPermissions(&permissions);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -416,12 +416,12 @@ static nsresult GetDownloadDirectory(nsIFile **_directory,
     const char* userName = PR_GetEnv("USERNAME");
     if (!userName || !*userName) {
       userName = PR_GetEnv("USER");
-      if (!userName || !*userName) {
-        userName = PR_GetEnv("LOGNAME");
-      }
-      else {
-        userName = "mozillaUser";
-      }
+    }
+    if (!userName || !*userName) {
+      userName = PR_GetEnv("LOGNAME");
+    }
+    if (!userName || !*userName) {
+      userName = "mozillaUser";
     }
 
     nsAutoString userDir;
@@ -447,7 +447,12 @@ static nsresult GetDownloadDirectory(nsIFile **_directory,
         rv = finalPath->GetPermissions(&permissions);
         NS_ENSURE_SUCCESS(rv, rv);
 
-        if (permissions == PR_IRWXU) {
+        // Ensuring the path is writable by the current user.
+        bool isWritable;
+        rv = finalPath->IsWritable(&isWritable);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        if (permissions == PR_IRWXU && isWritable) {
           dir = finalPath;
           break;
         }
@@ -513,11 +518,9 @@ static nsDefaultMimeTypeEntry defaultMimeEntries [] =
   { APPLICATION_OGG, "ogg" },
   { AUDIO_OGG, "oga" },
   { AUDIO_OGG, "opus" },
-#ifdef MOZ_WEBM
   { VIDEO_WEBM, "webm" },
   { AUDIO_WEBM, "webm" },
-#endif
-#if defined(MOZ_GSTREAMER) || defined(MOZ_WMF)
+#if defined(MOZ_WMF)
   { VIDEO_MP4, "mp4" },
   { AUDIO_MP4, "m4a" },
   { AUDIO_MP3, "mp3" },
@@ -552,9 +555,7 @@ struct nsExtraMimeTypeEntry {
  */
 static nsExtraMimeTypeEntry extraMimeEntries [] =
 {
-#if defined(VMS)
-  { APPLICATION_OCTET_STREAM, "exe,com,bin,sav,bck,pcsi,dcx_axpexe,dcx_vaxexe,sfx_axpexe,sfx_vaxexe", "Binary File" },
-#elif defined(XP_MACOSX) // don't define .bin on the mac...use internet config to look that up...
+#if defined(XP_MACOSX) // don't define .bin on the mac...use internet config to look that up...
   { APPLICATION_OCTET_STREAM, "exe,com", "Binary File" },
 #else
   { APPLICATION_OCTET_STREAM, "exe,com,bin", "Binary File" },
@@ -1012,7 +1013,9 @@ nsExternalHelperAppService::LoadURI(nsIURI *aURI,
     URIParams uri;
     SerializeURI(aURI, uri);
 
-    mozilla::dom::ContentChild::GetSingleton()->SendLoadURIExternal(uri);
+    nsCOMPtr<nsITabChild> tabChild(do_GetInterface(aWindowContext));
+    mozilla::dom::ContentChild::GetSingleton()->
+      SendLoadURIExternal(uri, static_cast<dom::TabChild*>(tabChild.get()));
     return NS_OK;
   }
 

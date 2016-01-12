@@ -12,6 +12,7 @@ const INTEGER = /^[1-9]\d*$/;
 
 var {
   EventManager,
+  instanceOf,
 } = ExtensionUtils;
 
 // This file provides some useful code for the |tabs| and |windows|
@@ -31,14 +32,19 @@ global.IconDetails = {
   //
   // If no context is specified, instead of throwing an error, this
   // function simply logs a warning message.
-  normalize(details, extension, context=null, localize=false) {
+  normalize(details, extension, context = null, localize = false) {
     let result = {};
 
     try {
       if (details.imageData) {
         let imageData = details.imageData;
 
-        if (imageData instanceof Cu.getGlobalForObject(imageData).ImageData) {
+        // The global might actually be from Schema.jsm, which
+        // normalizes most of our arguments. In that case it won't have
+        // an ImageData property. But Schema.jsm doesn't normalize
+        // actual ImageData objects, so they will come from a global
+        // with the right property.
+        if (instanceOf(imageData, "ImageData")) {
           imageData = {"19": imageData};
         }
 
@@ -46,7 +52,6 @@ global.IconDetails = {
           if (!INTEGER.test(size)) {
             throw new Error(`Invalid icon size ${size}, must be an integer`);
           }
-
           result[size] = this.convertImageDataToPNG(imageData[size], context);
         }
       }
@@ -112,14 +117,14 @@ global.IconDetails = {
     canvas.getContext("2d").putImageData(imageData, 0, 0);
 
     return canvas.toDataURL("image/png");
-  }
+  },
 };
 
 global.makeWidgetId = id => {
   id = id.toLowerCase();
   // FIXME: This allows for collisions.
   return id.replace(/[^a-z0-9_-]/g, "_");
-}
+};
 
 // Open a panel anchored to the given node, containing a browser opened
 // to the given URL, owned by the given extension. If |popupURL| is not
@@ -161,14 +166,16 @@ global.openPanel = (node, popupURL, extension) => {
 
   let titleChangedListener = () => {
     panel.setAttribute("aria-label", browser.contentTitle);
-  }
+  };
 
   let context;
-  panel.addEventListener("popuphidden", () => {
+  let popuphidden = () => {
+    panel.removeEventListener("popuphidden", popuphidden);
     browser.removeEventListener("DOMTitleChanged", titleChangedListener, true);
     context.unload();
     panel.remove();
-  });
+  };
+  panel.addEventListener("popuphidden", popuphidden);
 
   let loadListener = () => {
     panel.removeEventListener("load", loadListener);
@@ -216,7 +223,7 @@ global.openPanel = (node, popupURL, extension) => {
   panel.addEventListener("load", loadListener);
 
   return panel;
-}
+};
 
 // Manages tab-specific context data, and dispatching tab select events
 // across all windows.
@@ -230,7 +237,7 @@ global.TabContext = function TabContext(getDefaults, extension) {
   AllWindowEvents.addListener("TabSelect", this);
 
   EventEmitter.decorate(this);
-}
+};
 
 TabContext.prototype = {
   get(tab) {
@@ -267,7 +274,86 @@ TabContext.prototype = {
   },
 };
 
-// Manages mapping between XUL tabs and extension tab IDs.
+// Manages tab mappings and permissions for a specific extension.
+function ExtensionTabManager(extension) {
+  this.extension = extension;
+
+  // A mapping of tab objects to the inner window ID the extension currently has
+  // the active tab permission for. The active permission for a given tab is
+  // valid only for the inner window that was active when the permission was
+  // granted. If the tab navigates, the inner window ID changes, and the
+  // permission automatically becomes stale.
+  //
+  // WeakMap[tab => inner-window-id<int>]
+  this.hasTabPermissionFor = new WeakMap();
+}
+
+ExtensionTabManager.prototype = {
+  addActiveTabPermission(tab = TabManager.activeTab) {
+    if (this.extension.hasPermission("activeTab")) {
+      // Note that, unlike Chrome, we don't currently clear this permission with
+      // the tab navigates. If the inner window is revived from BFCache before
+      // we've granted this permission to a new inner window, the extension
+      // maintains its permissions for it.
+      this.hasTabPermissionFor.set(tab, tab.linkedBrowser.innerWindowID);
+    }
+  },
+
+  // Returns true if the extension has the "activeTab" permission for this tab.
+  // This is somewhat more permissive than the generic "tabs" permission, as
+  // checked by |hasTabPermission|, in that it also allows programmatic script
+  // injection without an explicit host permission.
+  hasActiveTabPermission(tab) {
+    // This check is redundant with addTabPermission, but cheap.
+    if (this.extension.hasPermission("activeTab")) {
+      return (this.hasTabPermissionFor.has(tab) &&
+              this.hasTabPermissionFor.get(tab) === tab.linkedBrowser.innerWindowID);
+    }
+    return false;
+  },
+
+  hasTabPermission(tab) {
+    return this.extension.hasPermission("tabs") || this.hasActiveTabPermission(tab);
+  },
+
+  convert(tab) {
+    let window = tab.ownerDocument.defaultView;
+
+    let result = {
+      id: TabManager.getId(tab),
+      index: tab._tPos,
+      windowId: WindowManager.getId(window),
+      selected: tab.selected,
+      highlighted: tab.selected,
+      active: tab.selected,
+      pinned: tab.pinned,
+      status: TabManager.getStatus(tab),
+      incognito: PrivateBrowsingUtils.isBrowserPrivate(tab.linkedBrowser),
+      width: tab.linkedBrowser.clientWidth,
+      height: tab.linkedBrowser.clientHeight,
+    };
+
+    if (this.hasTabPermission(tab)) {
+      result.url = tab.linkedBrowser.currentURI.spec;
+      if (tab.linkedBrowser.contentTitle) {
+        result.title = tab.linkedBrowser.contentTitle;
+      }
+      let icon = window.gBrowser.getIcon(tab);
+      if (icon) {
+        result.favIconUrl = icon;
+      }
+    }
+
+    return result;
+  },
+
+  getTabs(window) {
+    return Array.from(window.gBrowser.tabs, tab => this.convert(tab));
+  },
+};
+
+
+// Manages global mappings between XUL tabs and extension tab IDs.
 global.TabManager = {
   _tabs: new WeakMap(),
   _nextId: 1,
@@ -322,49 +408,34 @@ global.TabManager = {
   },
 
   convert(extension, tab) {
-    let window = tab.ownerDocument.defaultView;
-    let windowActive = window == WindowManager.topWindow;
-    let result = {
-      id: this.getId(tab),
-      index: tab._tPos,
-      windowId: WindowManager.getId(window),
-      selected: tab.selected,
-      highlighted: tab.selected,
-      active: tab.selected,
-      pinned: tab.pinned,
-      status: this.getStatus(tab),
-      incognito: PrivateBrowsingUtils.isBrowserPrivate(tab.linkedBrowser),
-      width: tab.linkedBrowser.clientWidth,
-      height: tab.linkedBrowser.clientHeight,
-    };
-
-    if (extension.hasPermission("tabs")) {
-      result.url = tab.linkedBrowser.currentURI.spec;
-      if (tab.linkedBrowser.contentTitle) {
-        result.title = tab.linkedBrowser.contentTitle;
-      }
-      let icon = window.gBrowser.getIcon(tab);
-      if (icon) {
-        result.favIconUrl = icon;
-      }
-    }
-
-    return result;
-  },
-
-  getTabs(extension, window) {
-    if (!window.gBrowser) {
-      return [];
-    }
-    return Array.map(window.gBrowser.tabs, tab => this.convert(extension, tab));
+    return TabManager.for(extension).convert(tab);
   },
 };
+
+// WeakMap[Extension -> ExtensionTabManager]
+let tabManagers = new WeakMap();
+
+// Returns the extension-specific tab manager for the given extension, or
+// creates one if it doesn't already exist.
+TabManager.for = function(extension) {
+  if (!tabManagers.has(extension)) {
+    tabManagers.set(extension, new ExtensionTabManager(extension));
+  }
+  return tabManagers.get(extension);
+};
+
+/* eslint-disable mozilla/balanced-listeners */
+extensions.on("shutdown", (type, extension) => {
+  tabManagers.delete(extension);
+});
+/* eslint-enable mozilla/balanced-listeners */
 
 // Manages mapping between XUL windows and extension window IDs.
 global.WindowManager = {
   _windows: new WeakMap(),
   _nextId: 0,
 
+  // Note: These must match the values in windows.json.
   WINDOW_ID_NONE: -1,
   WINDOW_ID_CURRENT: -2,
 
@@ -411,7 +482,7 @@ global.WindowManager = {
     };
 
     if (getInfo && getInfo.populate) {
-      results.tabs = TabManager.getTabs(extension, window);
+      result.tabs = TabManager.for(extension).getTabs(window);
     }
 
     return result;
@@ -427,7 +498,7 @@ global.WindowListManager = {
 
   // Returns an iterator for all browser windows. Unless |includeIncomplete| is
   // true, only fully-loaded windows are returned.
-  *browserWindows(includeIncomplete = false) {
+  * browserWindows(includeIncomplete = false) {
     // The window type parameter is only available once the window's document
     // element has been created. This means that, when looking for incomplete
     // browser windows, we need to ignore the type entirely for windows which
@@ -592,15 +663,14 @@ AllWindowEvents.openListener = AllWindowEvents.openListener.bind(AllWindowEvents
 
 // Subclass of EventManager where we just need to call
 // add/removeEventListener on each XUL window.
-global.WindowEventManager = function(context, name, event, listener)
-{
+global.WindowEventManager = function(context, name, event, listener) {
   EventManager.call(this, context, name, fire => {
     let listener2 = (...args) => listener(fire, ...args);
     AllWindowEvents.addListener(event, listener2);
     return () => {
       AllWindowEvents.removeListener(event, listener2);
-    }
+    };
   });
-}
+};
 
 WindowEventManager.prototype = Object.create(EventManager.prototype);

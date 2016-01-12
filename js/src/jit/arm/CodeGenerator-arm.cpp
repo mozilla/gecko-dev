@@ -581,7 +581,7 @@ CodeGeneratorARM::visitSoftDivI(LSoftDivI* ins)
     masm.passABIArg(lhs);
     masm.passABIArg(rhs);
     if (gen->compilingAsmJS())
-        masm.callWithABI(AsmJSImm_aeabi_idivmod);
+        masm.callWithABI(wasm::SymbolicAddress::aeabi_idivmod);
     else
         masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, __aeabi_idivmod));
 
@@ -751,7 +751,7 @@ CodeGeneratorARM::visitSoftModI(LSoftModI* ins)
     masm.passABIArg(lhs);
     masm.passABIArg(rhs);
     if (gen->compilingAsmJS())
-        masm.callWithABI(AsmJSImm_aeabi_idivmod);
+        masm.callWithABI(wasm::SymbolicAddress::aeabi_idivmod);
     else
         masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, __aeabi_idivmod));
 
@@ -1742,7 +1742,6 @@ CodeGeneratorARM::atomicBinopToTypedIntArray(AtomicOp op, Scalar::Type arrayType
     MOZ_ASSERT(flagTemp != InvalidReg);
     MOZ_ASSERT_IF(arrayType == Scalar::Uint32, outTemp != InvalidReg);
 
-    // Uint8Clamped is explicitly not supported here
     switch (arrayType) {
       case Scalar::Int8:
         switch (op) {
@@ -1908,7 +1907,6 @@ CodeGeneratorARM::atomicBinopToTypedIntArray(AtomicOp op, Scalar::Type arrayType
 {
     MOZ_ASSERT(flagTemp != InvalidReg);
 
-    // Uint8Clamped is explicitly not supported here
     switch (arrayType) {
       case Scalar::Int8:
       case Scalar::Uint8:
@@ -2172,11 +2170,11 @@ CodeGeneratorARM::visitAsmJSLoadHeap(LAsmJSLoadHeap* ins)
         FloatRegister dst = ToFloatRegister(ins->output());
         VFPRegister vd(dst);
         if (size == 32) {
-            masm.ma_vldr(Address(GlobalReg, AsmJSNaN32GlobalDataOffset - AsmJSGlobalRegBias),
+            masm.ma_vldr(Address(GlobalReg, wasm::NaN32GlobalDataOffset - AsmJSGlobalRegBias),
                          vd.singleOverlay(), Assembler::AboveOrEqual);
             masm.ma_vldr(vd.singleOverlay(), HeapReg, ptrReg, 0, Assembler::Below);
         } else {
-            masm.ma_vldr(Address(GlobalReg, AsmJSNaN64GlobalDataOffset - AsmJSGlobalRegBias),
+            masm.ma_vldr(Address(GlobalReg, wasm::NaN64GlobalDataOffset - AsmJSGlobalRegBias),
                          vd, Assembler::AboveOrEqual);
             masm.ma_vldr(vd, HeapReg, ptrReg, 0, Assembler::Below);
         }
@@ -2189,7 +2187,7 @@ CodeGeneratorARM::visitAsmJSLoadHeap(LAsmJSLoadHeap* ins)
         masm.ma_dataTransferN(IsLoad, size, isSigned, HeapReg, ptrReg, d, Offset, Assembler::Below);
     }
     memoryBarrier(mir->barrierAfter());
-    masm.append(AsmJSHeapAccess(bo.getOffset()));
+    masm.append(wasm::HeapAccess(bo.getOffset()));
 }
 
 void
@@ -2262,7 +2260,7 @@ CodeGeneratorARM::visitAsmJSStoreHeap(LAsmJSStoreHeap* ins)
                               ToRegister(ins->value()), Offset, Assembler::Below);
     }
     memoryBarrier(mir->barrierAfter());
-    masm.append(AsmJSHeapAccess(bo.getOffset()));
+    masm.append(wasm::HeapAccess(bo.getOffset()));
 }
 
 void
@@ -2288,7 +2286,7 @@ CodeGeneratorARM::visitAsmJSCompareExchangeHeap(LAsmJSCompareExchangeHeap* ins)
                                         srcAddr, oldval, newval, InvalidReg,
                                         ToAnyRegister(ins->output()));
     if (mir->needsBoundsCheck())
-        masm.append(AsmJSHeapAccess(maybeCmpOffset));
+        masm.append(wasm::HeapAccess(maybeCmpOffset));
 }
 
 void
@@ -2311,7 +2309,7 @@ CodeGeneratorARM::visitAsmJSCompareExchangeCallout(LAsmJSCompareExchangeCallout*
         masm.passABIArg(oldval);
         masm.passABIArg(newval);
     }
-    masm.callWithABI(AsmJSImm_AtomicCmpXchg);
+    masm.callWithABI(wasm::SymbolicAddress::AtomicCmpXchg);
 }
 
 void
@@ -2335,7 +2333,7 @@ CodeGeneratorARM::visitAsmJSAtomicExchangeHeap(LAsmJSAtomicExchangeHeap* ins)
                                        srcAddr, value, InvalidReg, ToAnyRegister(ins->output()));
 
     if (mir->needsBoundsCheck())
-        masm.append(AsmJSHeapAccess(maybeCmpOffset));
+        masm.append(wasm::HeapAccess(maybeCmpOffset));
 }
 
 void
@@ -2357,7 +2355,7 @@ CodeGeneratorARM::visitAsmJSAtomicExchangeCallout(LAsmJSAtomicExchangeCallout* i
     masm.passABIArg(ptr);
     masm.passABIArg(value);
 
-    masm.callWithABI(AsmJSImm_AtomicXchg);
+    masm.callWithABI(wasm::SymbolicAddress::AtomicXchg);
 }
 
 void
@@ -2392,7 +2390,7 @@ CodeGeneratorARM::visitAsmJSAtomicBinopHeap(LAsmJSAtomicBinopHeap* ins)
                                    ToAnyRegister(ins->output()));
 
     if (mir->needsBoundsCheck())
-        masm.append(AsmJSHeapAccess(maybeCmpOffset));
+        masm.append(wasm::HeapAccess(maybeCmpOffset));
 }
 
 void
@@ -2423,7 +2421,7 @@ CodeGeneratorARM::visitAsmJSAtomicBinopHeapForEffect(LAsmJSAtomicBinopHeapForEff
         atomicBinopToTypedIntArray(op, vt, ToRegister(value), srcAddr, flagTemp);
 
     if (mir->needsBoundsCheck())
-        masm.append(AsmJSHeapAccess(maybeCmpOffset));
+        masm.append(wasm::HeapAccess(maybeCmpOffset));
 }
 
 void
@@ -2445,19 +2443,19 @@ CodeGeneratorARM::visitAsmJSAtomicBinopCallout(LAsmJSAtomicBinopCallout* ins)
 
     switch (mir->operation()) {
       case AtomicFetchAddOp:
-        masm.callWithABI(AsmJSImm_AtomicFetchAdd);
+        masm.callWithABI(wasm::SymbolicAddress::AtomicFetchAdd);
         break;
       case AtomicFetchSubOp:
-        masm.callWithABI(AsmJSImm_AtomicFetchSub);
+        masm.callWithABI(wasm::SymbolicAddress::AtomicFetchSub);
         break;
       case AtomicFetchAndOp:
-        masm.callWithABI(AsmJSImm_AtomicFetchAnd);
+        masm.callWithABI(wasm::SymbolicAddress::AtomicFetchAnd);
         break;
       case AtomicFetchOrOp:
-        masm.callWithABI(AsmJSImm_AtomicFetchOr);
+        masm.callWithABI(wasm::SymbolicAddress::AtomicFetchOr);
         break;
       case AtomicFetchXorOp:
-        masm.callWithABI(AsmJSImm_AtomicFetchXor);
+        masm.callWithABI(wasm::SymbolicAddress::AtomicFetchXor);
         break;
       default:
         MOZ_CRASH("Unknown op");
@@ -2585,7 +2583,7 @@ CodeGeneratorARM::visitSoftUDivOrMod(LSoftUDivOrMod* ins)
     masm.passABIArg(lhs);
     masm.passABIArg(rhs);
     if (gen->compilingAsmJS())
-        masm.callWithABI(AsmJSImm_aeabi_uidivmod);
+        masm.callWithABI(wasm::SymbolicAddress::aeabi_uidivmod);
     else
         masm.callWithABI(JS_FUNC_TO_DATA_PTR(void*, __aeabi_uidivmod));
 

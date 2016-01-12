@@ -16,10 +16,6 @@ const CUSTOM_BREAKDOWN_PREF = "devtools.memory.custom-breakdowns";
 const DevToolsUtils = require("devtools/shared/DevToolsUtils");
 const { snapshotState: states, diffingState, breakdowns } = require("./constants");
 
-exports.immutableUpdate = function (...objs) {
-  return Object.freeze(Object.assign({}, ...objs));
-};
-
 /**
  * Takes a snapshot object and returns the
  * localized form of its timestamp to be used as a title.
@@ -338,49 +334,6 @@ exports.getSnapshotTotals = function (census) {
   }
 
   return { bytes, count };
-};
-
-/**
- * Parse a source into a short and long name as well as a host name.
- *
- * @param {String} source
- *        The source to parse.
- *
- * @returns {Object}
- *          An object with the following properties:
- *            - {String} short: A short name for the source.
- *            - {String} long: The full, long name for the source.
- *            - {String?} host: If available, the host name for the source.
- */
-exports.parseSource = function (source) {
-  const sourceStr = source ? String(source) : "";
-
-  let short;
-  let long;
-  let host;
-
-  try {
-    const url = new URL(sourceStr);
-    short = url.fileName;
-    host = url.host;
-    long = url.toString();
-  } catch (e) {
-    // Malformed URI.
-    long = sourceStr;
-    short = sourceStr.slice(0, 100);
-  }
-
-  if (!short) {
-    // Last ditch effort.
-
-    if (!long) {
-      long = L10N.getStr("unknownSource");
-    }
-
-    short = long.slice(0, 100);
-  }
-
-  return { short, long, host };
 };
 
 /**

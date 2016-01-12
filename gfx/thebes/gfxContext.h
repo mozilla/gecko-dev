@@ -85,12 +85,6 @@ public:
         return CurrentSurface(nullptr, nullptr);
     }
 
-    /**
-     * Return the raw cairo_t object.
-     * XXX this should go away at some point.
-     */
-    cairo_t *GetCairo();
-
     mozilla::gfx::DrawTarget *GetDrawTarget() { return mDT; }
 
     /**
@@ -367,13 +361,6 @@ public:
     gfxFloat CurrentMiterLimit() const;
 
     /**
-     ** Fill Properties
-     **/
-
-    void SetFillRule(FillRule rule);
-    FillRule CurrentFillRule() const;
-
-    /**
      * Sets the operator used for all further drawing. The operator affects
      * how drawing something will modify the destination. For example, the
      * OVER operator will do alpha blending of source and destination, while
@@ -452,9 +439,6 @@ public:
 
     mozilla::gfx::Point GetDeviceOffset() const;
 
-    // Work out whether cairo will snap inter-glyph spacing to pixels.
-    void GetRoundOffsetsToPixels(bool *aRoundX, bool *aRoundY);
-
 #ifdef MOZ_DUMP_PAINTING
     /**
      * Debug functions to encode the current surface as a PNG and export it.
@@ -496,10 +480,9 @@ private:
     AzureState()
       : op(mozilla::gfx::CompositionOp::OP_OVER)
       , color(0, 0, 0, 1.0f)
-      , clipWasReset(false)
-      , fillRule(mozilla::gfx::FillRule::FILL_WINDING)
       , aaMode(mozilla::gfx::AntialiasMode::SUBPIXEL)
       , patternTransformChanged(false)
+      , mBlendOpacity(0.0f)
     {}
 
     mozilla::gfx::CompositionOp op;
@@ -517,11 +500,8 @@ private:
     };
     nsTArray<PushedClip> pushedClips;
     nsTArray<Float> dashPattern;
-    bool clipWasReset;
-    mozilla::gfx::FillRule fillRule;
     StrokeOptions strokeOptions;
     RefPtr<DrawTarget> drawTarget;
-    RefPtr<DrawTarget> parentTarget;
     mozilla::gfx::AntialiasMode aaMode;
     bool patternTransformChanged;
     Matrix patternTransform;
@@ -559,8 +539,6 @@ private:
 
   AzureState &CurrentState() { return mStateStack[mStateStack.Length() - 1]; }
   const AzureState &CurrentState() const { return mStateStack[mStateStack.Length() - 1]; }
-
-  cairo_t *mRefCairo;
 
   RefPtr<DrawTarget> mDT;
   RefPtr<DrawTarget> mOriginalDT;
@@ -660,17 +638,19 @@ private:
 };
 
 
-class gfxContextAutoDisableSubpixelAntialiasing {
+class DrawTargetAutoDisableSubpixelAntialiasing {
 public:
-    gfxContextAutoDisableSubpixelAntialiasing(gfxContext *aContext, bool aDisable)
+    typedef mozilla::gfx::DrawTarget DrawTarget;
+
+    DrawTargetAutoDisableSubpixelAntialiasing(DrawTarget *aDT, bool aDisable)
     {
         if (aDisable) {
-            mDT = aContext->GetDrawTarget();
+            mDT = aDT;
             mSubpixelAntialiasingEnabled = mDT->GetPermitSubpixelAA();
             mDT->SetPermitSubpixelAA(false);
         }
     }
-    ~gfxContextAutoDisableSubpixelAntialiasing()
+    ~DrawTargetAutoDisableSubpixelAntialiasing()
     {
         if (mDT) {
             mDT->SetPermitSubpixelAA(mSubpixelAntialiasingEnabled);
@@ -678,7 +658,7 @@ public:
     }
 
 private:
-    RefPtr<mozilla::gfx::DrawTarget> mDT;
+    RefPtr<DrawTarget> mDT;
     bool mSubpixelAntialiasingEnabled;
 };
 

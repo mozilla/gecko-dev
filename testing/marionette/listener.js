@@ -1907,10 +1907,12 @@ var _emu_cb_id = 0;
 var _emu_cbs = {};
 
 function runEmulatorCmd(cmd, callback) {
+  logger.info("listener runEmulatorCmd cmd=" + cmd);
   if (callback) {
     _emu_cbs[_emu_cb_id] = callback;
   }
-  sendAsyncMessage("Marionette:runEmulatorCmd", {emulator_cmd: cmd, id: _emu_cb_id});
+  sendAsyncMessage("Marionette:runEmulatorCmd",
+      {command: cmd, id: _emu_cb_id});
   _emu_cb_id += 1;
 }
 
@@ -1918,25 +1920,34 @@ function runEmulatorShell(args, callback) {
   if (callback) {
     _emu_cbs[_emu_cb_id] = callback;
   }
-  sendAsyncMessage("Marionette:runEmulatorShell", {emulator_shell: args, id: _emu_cb_id});
+  sendAsyncMessage("Marionette:runEmulatorShell",
+      {arguments: args, id: _emu_cb_id});
   _emu_cb_id += 1;
 }
 
 function emulatorCmdResult(msg) {
-  let message = msg.json;
+  let {error, result, id} = msg.json;
+
+  if (error) {
+    let err = new JavaScriptError(error);
+    sendError(err, id);
+    return;
+  }
+
   if (!sandboxes[sandboxName]) {
     return;
   }
-  let cb = _emu_cbs[message.id];
-  delete _emu_cbs[message.id];
+  let cb = _emu_cbs[id];
+  delete _emu_cbs[id];
   if (!cb) {
     return;
   }
+
   try {
-    cb(message.result);
+    cb(result);
   } catch (e) {
-    sendError(e, -1);
-    return;
+    let err = new JavaScriptError(e);
+    sendError(err, id);
   }
 }
 

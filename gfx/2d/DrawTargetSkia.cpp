@@ -12,11 +12,7 @@
 #include "FilterNodeSoftware.h"
 #include "HelpersSkia.h"
 
-#ifdef USE_SKIA_GPU
-#include "skia/include/gpu/SkGpuDevice.h"
-#include "skia/include/gpu/gl/GrGLInterface.h"
-#endif
-
+#include "skia/include/core/SkSurface.h"
 #include "skia/include/core/SkTypeface.h"
 #include "skia/include/effects/SkGradientShader.h"
 #include "skia/include/core/SkColorFilter.h"
@@ -100,7 +96,8 @@ GetBitmapForSurface(SourceSurface* aSurface)
 
   RefPtr<DataSourceSurface> surf = aSurface->GetDataSurface();
   if (!surf) {
-    MOZ_CRASH("Non-skia SourceSurfaces need to be DataSourceSurfaces");
+    gfxDevCrash(LogReason::SourceSurfaceIncompatible) << "Non-skia SourceSurfaces need to be DataSourceSurfaces";
+    return result;
   }
 
   SkAlphaType alphaType = (surf->GetFormat() == SurfaceFormat::B8G8R8X8) ?
@@ -148,29 +145,32 @@ bool
 DrawTargetSkia::LockBits(uint8_t** aData, IntSize* aSize,
                           int32_t* aStride, SurfaceFormat* aFormat)
 {
-  const SkBitmap &bitmap = mCanvas->getDevice()->accessBitmap(false);
-  if (!bitmap.lockPixelsAreWritable()) {
+  /* Test if the canvas' device has accessible pixels first, as actually
+   * accessing the pixels may trigger side-effects, even if it fails.
+   */
+  if (!mCanvas->peekPixels(nullptr, nullptr)) {
+    return false;
+  }
+
+  SkImageInfo info;
+  size_t rowBytes;
+  void* pixels = mCanvas->accessTopLayerPixels(&info, &rowBytes);
+  if (!pixels) {
     return false;
   }
 
   MarkChanged();
 
-  bitmap.lockPixels();
-  *aData = reinterpret_cast<uint8_t*>(bitmap.getPixels());
-  *aSize = IntSize(bitmap.width(), bitmap.height());
-  *aStride = int32_t(bitmap.rowBytes());
-  *aFormat = SkiaColorTypeToGfxFormat(bitmap.colorType());
+  *aData = reinterpret_cast<uint8_t*>(pixels);
+  *aSize = IntSize(info.width(), info.height());
+  *aStride = int32_t(rowBytes);
+  *aFormat = SkiaColorTypeToGfxFormat(info.colorType());
   return true;
 }
 
 void
 DrawTargetSkia::ReleaseBits(uint8_t* aData)
 {
-  const SkBitmap &bitmap = mCanvas->getDevice()->accessBitmap(false);
-  MOZ_ASSERT(bitmap.lockPixelsAreWritable());
-
-  bitmap.unlockPixels();
-  bitmap.notifyPixelsChanged();
 }
 
 static void
@@ -265,7 +265,7 @@ SetPaintPattern(SkPaint& aPaint, const Pattern& aPattern, TempBitmap& aTmpBitmap
       SkSafeUnref(shader);
       SkSafeUnref(aPaint.setShader(matrixShader));
       if (pat.mFilter == Filter::POINT) {
-        aPaint.setFilterLevel(SkPaint::kNone_FilterLevel);
+        aPaint.setFilterQuality(kNone_SkFilterQuality);
       }
       break;
     }
@@ -332,7 +332,7 @@ struct AutoPaintSetup {
       mPaint.setAlpha(ColorFloatToByte(aOptions.mAlpha));
       mAlpha = aOptions.mAlpha;
     }
-    mPaint.setFilterLevel(SkPaint::kLow_FilterLevel);
+    mPaint.setFilterQuality(kLow_SkFilterQuality);
   }
 
   // TODO: Maybe add an operator overload to access this easier?
@@ -380,10 +380,10 @@ DrawTargetSkia::DrawSurface(SourceSurface *aSurface,
 
   AutoPaintSetup paint(mCanvas.get(), aOptions, &aDest);
   if (aSurfOptions.mFilter == Filter::POINT) {
-    paint.mPaint.setFilterLevel(SkPaint::kNone_FilterLevel);
+    paint.mPaint.setFilterQuality(kNone_SkFilterQuality);
   }
 
-  mCanvas->drawBitmapRectToRect(bitmap.mBitmap, &sourceRect, destRect, &paint.mPaint);
+  mCanvas->drawBitmapRect(bitmap.mBitmap, sourceRect, destRect, &paint.mPaint);
 }
 
 DrawTargetType
@@ -493,6 +493,10 @@ DrawTargetSkia::Stroke(const Path *aPath,
     return;
   }
 
+  if (!skiaPath->GetPath().isFinite()) {
+    return;
+  }
+
   mCanvas->drawPath(skiaPath->GetPath(), paint.mPaint);
 }
 
@@ -543,6 +547,10 @@ DrawTargetSkia::Fill(const Path *aPath,
 
   AutoPaintSetup paint(mCanvas.get(), aOptions, aPattern);
 
+  if (!skiaPath->GetPath().isFinite()) {
+    return;
+  }
+
   mCanvas->drawPath(skiaPath->GetPath(), paint.mPaint);
 }
 
@@ -575,7 +583,8 @@ DrawTargetSkia::FillGlyphs(ScaledFont *aFont,
 {
   if (aFont->GetType() != FontType::MAC &&
       aFont->GetType() != FontType::SKIA &&
-      aFont->GetType() != FontType::GDI) {
+      aFont->GetType() != FontType::GDI &&
+      aFont->GetType() != FontType::DWRITE) {
     return;
   }
 
@@ -590,6 +599,7 @@ DrawTargetSkia::FillGlyphs(ScaledFont *aFont,
 
   bool shouldLCDRenderText = ShouldLCDRenderText(aFont->GetType(), aOptions.mAntialiasMode);
   paint.mPaint.setLCDRenderText(shouldLCDRenderText);
+  paint.mPaint.setSubpixelText(true);
 
   if (aRenderingOptions && aRenderingOptions->GetType() == FontType::CAIRO) {
     const GlyphRenderingOptionsCairo* cairoOptions =
@@ -753,7 +763,7 @@ DrawTargetSkia::OptimizeSourceSurface(SourceSurface *aSurface) const
 already_AddRefed<SourceSurface>
 DrawTargetSkia::CreateSourceSurfaceFromNativeSurface(const NativeSurface &aSurface) const
 {
-  if (aSurface.mType == NativeSurfaceType::CAIRO_SURFACE) {
+  if (aSurface.mType == NativeSurfaceType::CAIRO_CONTEXT) {
     if (aSurface.mSize.width <= 0 ||
         aSurface.mSize.height <= 0) {
       gfxWarning() << "Can't create a SourceSurface without a valid size";
@@ -795,9 +805,7 @@ DrawTargetSkia::CopySurface(SourceSurface *aSurface,
     SkBitmap bm(bitmap.mBitmap);
     bm.lockPixels();
     if (bm.getPixels()) {
-      SkImageInfo info = bm.info();
-      info.fWidth = aSourceRect.width;
-      info.fHeight = aSourceRect.height;
+      SkImageInfo info = bm.info().makeWH(aSourceRect.width, aSourceRect.height);
       uint8_t* pixels = static_cast<uint8_t*>(bm.getPixels());
       // adjust pixels for the source offset
       pixels += aSourceRect.x + aSourceRect.y*bm.rowBytes();
@@ -829,7 +837,7 @@ DrawTargetSkia::CopySurface(SourceSurface *aSurface,
     clearPaint.setXfermodeMode(SkXfermode::kSrc_Mode);
     mCanvas->drawPaint(clearPaint);
   }
-  mCanvas->drawBitmapRect(bitmap.mBitmap, &source, dest, &paint);
+  mCanvas->drawBitmapRect(bitmap.mBitmap, source, dest, &paint);
   mCanvas->restore();
 }
 
@@ -852,7 +860,7 @@ DrawTargetSkia::Init(const IntSize &aSize, SurfaceFormat aFormat)
 
   SkBitmap bitmap;
   bitmap.setInfo(skiInfo, stride);
-  if (!bitmap.allocPixels()) {
+  if (!bitmap.tryAllocPixels()) {
     return false;
   }
 
@@ -881,24 +889,28 @@ DrawTargetSkia::InitWithGrContext(GrContext* aGrContext,
   mSize = aSize;
   mFormat = aFormat;
 
-  GrTextureDesc targetDescriptor;
+  GrSurfaceDesc targetDescriptor;
 
-  targetDescriptor.fFlags = kRenderTarget_GrTextureFlagBit;
+  targetDescriptor.fFlags = kRenderTarget_GrSurfaceFlag;
   targetDescriptor.fWidth = mSize.width;
   targetDescriptor.fHeight = mSize.height;
   targetDescriptor.fConfig = GfxFormatToGrConfig(mFormat);
   targetDescriptor.fOrigin = kBottomLeft_GrSurfaceOrigin;
   targetDescriptor.fSampleCnt = 0;
 
-  SkAutoTUnref<GrTexture> skiaTexture(mGrContext->createUncachedTexture(targetDescriptor, NULL, 0));
+  SkAutoTUnref<GrTexture> skiaTexture(mGrContext->textureProvider()->createTexture(targetDescriptor, SkSurface::kNo_Budgeted, nullptr, 0));
   if (!skiaTexture) {
     return false;
   }
 
-  mTexture = (uint32_t)skiaTexture->getTextureHandle();
+  SkAutoTUnref<SkSurface> gpuSurface(SkSurface::NewRenderTargetDirect(skiaTexture->asRenderTarget()));
+  if (!gpuSurface) {
+    return false;
+  }
 
-  SkAutoTUnref<SkBaseDevice> device(new SkGpuDevice(mGrContext.get(), skiaTexture->asRenderTarget()));
-  mCanvas.adopt(new SkCanvas(device.get()));
+  mTexture = reinterpret_cast<GrGLTextureInfo *>(skiaTexture->getTextureHandle())->fID;
+
+  mCanvas = gpuSurface->getCanvas();
 
   return true;
 }

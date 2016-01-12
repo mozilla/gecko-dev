@@ -22,8 +22,8 @@
 #include "gc/Marking.h"
 #include "js/Conversions.h"
 #include "js/GCAPI.h"
+#include "js/GCVector.h"
 #include "js/HeapAPI.h"
-#include "js/TraceableVector.h"
 #include "vm/Shape.h"
 #include "vm/String.h"
 #include "vm/Xdr.h"
@@ -34,7 +34,7 @@ struct ClassInfo;
 
 namespace js {
 
-using PropertyDescriptorVector = TraceableVector<PropertyDescriptor>;
+using PropertyDescriptorVector = GCVector<PropertyDescriptor>;
 class GCMarker;
 class Nursery;
 
@@ -982,6 +982,20 @@ LookupProperty(JSContext* cx, HandleObject obj, PropertyName* name,
 extern bool
 HasOwnProperty(JSContext* cx, HandleObject obj, HandleId id, bool* result);
 
+/**
+ * This enum is used to select whether the defined functions should be marked as
+ * builtin native instrinsics for self-hosted code.
+ */
+enum DefineAsIntrinsic {
+    NotIntrinsic,
+    AsIntrinsic
+};
+
+extern bool
+DefineFunctions(JSContext* cx, HandleObject obj, const JSFunctionSpec* fs,
+                DefineAsIntrinsic intrinsic,
+                PropertyDefinitionBehavior behavior = DefineAllProperties);
+
 /*
  * Set a watchpoint: a synchronous callback when the given property of the
  * given object is set.
@@ -1088,6 +1102,17 @@ GetInitialHeap(NewObjectKind newKind, const Class* clasp)
         return gc::TenuredHeap;
     return gc::DefaultHeap;
 }
+
+bool
+NewObjectWithTaggedProtoIsCachable(ExclusiveContext* cxArg, Handle<TaggedProto> proto,
+                                   NewObjectKind newKind, const Class* clasp);
+
+// ES6 9.1.15 GetPrototypeFromConstructor.
+extern bool
+GetPrototypeFromConstructor(JSContext* cx, js::HandleObject newTarget, js::MutableHandleObject proto);
+
+extern bool
+GetPrototypeFromCallableConstructor(JSContext* cx, const CallArgs& args, js::MutableHandleObject proto);
 
 // Specialized call for constructing |this| with a known function callee,
 // and a known prototype.

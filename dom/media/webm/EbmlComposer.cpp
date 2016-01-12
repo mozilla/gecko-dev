@@ -4,6 +4,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "EbmlComposer.h"
+#include "mozilla/UniquePtr.h"
 #include "libmkv/EbmlIDs.h"
 #include "libmkv/EbmlWriter.h"
 #include "libmkv/WebMElement.h"
@@ -21,8 +22,8 @@ void EbmlComposer::GenerateHeader()
   // Write the EBML header.
   EbmlGlobal ebml;
   // The WEbM header default size usually smaller than 1k.
-  nsAutoArrayPtr<uint8_t> buffer(new uint8_t[DEFAULT_HEADER_SIZE +
-                                             mCodecPrivateData.Length()]);
+  auto buffer = MakeUnique<uint8_t[]>(DEFAULT_HEADER_SIZE +
+                                      mCodecPrivateData.Length());
   ebml.buf = buffer.get();
   ebml.offset = 0;
   writeHeader(&ebml);

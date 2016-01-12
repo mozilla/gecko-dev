@@ -53,16 +53,7 @@ toolbar[brighttext] #bookmarks-menu-button > .toolbarbutton-menubutton-dropmarke
 }
 
 #sync-button[cui-areatype="toolbar"] {
-  -moz-image-region: rect(0, 270px, 18px, 252px);
-}
-
-#sync-button[cui-areatype="toolbar"][status="active"] {
-  list-style-image: url("chrome://browser/skin/syncProgress-toolbar.png");
-  -moz-image-region: rect(0, 18px, 18px, 0px);
-}
-
-toolbar[brighttext] #sync-button[status="active"] {
-  list-style-image: url("chrome://browser/skin/syncProgress-toolbar-inverted.png");
+  -moz-image-region: rect(0, 792px, 18px, 774px);
 }
 
 #feed-button[cui-areatype="toolbar"] {
@@ -176,24 +167,8 @@ toolbar[brighttext] #sync-button[status="active"] {
   transform: scaleX(-1);
 }
 
-#web-apps-button[cui-areatype="toolbar"] {
-  -moz-image-region: rect(0, 720px, 18px, 702px);
-}
-
 #webide-button[cui-areatype="toolbar"] {
   -moz-image-region: rect(0, 738px, 18px, 720px);
-}
-
-#pocket-button[cui-areatype="toolbar"] {
-  -moz-image-region: rect(0, 774px, 18px, 756px);
-}
-
-#pocket-button[cui-areatype="toolbar"][open] {
-%ifdef XP_MACOSX
-  -moz-image-region: rect(36px, 774px, 54px, 756px);
-%else
-  -moz-image-region: rect(18px, 774px, 36px, 756px);
-%endif
 }
 
 %if defined(XP_WIN) || defined(XP_MACOSX)
@@ -253,16 +228,7 @@ toolbar[brighttext] #sync-button[status="active"] {
   }
 
   #sync-button[cui-areatype="toolbar"] {
-    -moz-image-region: rect(0, 540px, 36px, 504px);
-  }
-
-  #sync-button[cui-areatype="toolbar"][status="active"] {
-    list-style-image: url("chrome://browser/skin/syncProgress-toolbar@2x.png");
-    -moz-image-region: rect(0, 36px, 36px, 0px);
-  }
-
-  toolbar[brighttext] #sync-button[cui-areatype="toolbar"][status="active"] {
-    list-style-image: url("chrome://browser/skin/syncProgress-toolbar-inverted@2x.png");
+    -moz-image-region: rect(0, 1584px, 36px, 1548px);
   }
 
   #feed-button[cui-areatype="toolbar"] {
@@ -368,24 +334,8 @@ toolbar[brighttext] #sync-button[status="active"] {
 %endif
   }
 
-  #web-apps-button[cui-areatype="toolbar"] {
-    -moz-image-region: rect(0, 1440px, 36px, 1404px);
-  }
-
   #webide-button[cui-areatype="toolbar"] {
     -moz-image-region: rect(0, 1476px, 36px, 1440px);
-  }
-
-  #pocket-button[cui-areatype="toolbar"] {
-    -moz-image-region: rect(0, 1548px, 36px, 1512px);
-  }
-
-  #pocket-button[cui-areatype="toolbar"][open] {
-%ifdef XP_MACOSX
-    -moz-image-region: rect(72px, 1548px, 108px, 1512px);
-%else
-    -moz-image-region: rect(36px, 1548px, 72px, 1512px);
-%endif
   }
 }
 %endif

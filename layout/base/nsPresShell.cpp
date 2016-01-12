@@ -34,12 +34,15 @@
 #include "mozilla/TextEvents.h"
 #include "mozilla/TouchEvents.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/unused.h"
 #include <algorithm>
 
 #ifdef XP_WIN
 #include "winuser.h"
 #endif
 
+#include "gfxPrefs.h"
+#include "gfxUserFontSet.h"
 #include "nsPresShell.h"
 #include "nsPresContext.h"
 #include "nsIContent.h"
@@ -78,8 +81,6 @@
 #include "nsIMozBrowserFrame.h"
 #include "nsCaret.h"
 #include "AccessibleCaretEventHub.h"
-#include "TouchCaret.h"
-#include "SelectionCarets.h"
 #include "nsIDOMHTMLDocument.h"
 #include "nsFrameManager.h"
 #include "nsXPCOM.h"
@@ -348,7 +349,7 @@ public:
   void ClearGrandTotals();
   void DisplayTotals(const char * aStr);
   void DisplayHTMLTotals(const char * aStr);
-  void DisplayDiffsInTotals(const char * aStr);
+  void DisplayDiffsInTotals();
 
   void Add(const char * aName, nsIFrame * aFrame);
   ReflowCounter * LookUp(const char * aName);
@@ -705,32 +706,8 @@ nsIPresShell::FrameSelection()
 static bool sSynthMouseMove = true;
 static uint32_t sNextPresShellId;
 static bool sPointerEventEnabled = true;
-static bool sTouchCaretEnabled = false;
-static bool sSelectionCaretEnabled = false;
 static bool sAccessibleCaretEnabled = false;
 static bool sBeforeAfterKeyboardEventEnabled = false;
-
-/* static */ bool
-PresShell::TouchCaretPrefEnabled()
-{
-  static bool initialized = false;
-  if (!initialized) {
-    Preferences::AddBoolVarCache(&sTouchCaretEnabled, "touchcaret.enabled");
-    initialized = true;
-  }
-  return sTouchCaretEnabled;
-}
-
-/* static */ bool
-PresShell::SelectionCaretPrefEnabled()
-{
-  static bool initialized = false;
-  if (!initialized) {
-    Preferences::AddBoolVarCache(&sSelectionCaretEnabled, "selectioncaret.enabled");
-    initialized = true;
-  }
-  return sSelectionCaretEnabled;
-}
 
 /* static */ bool
 PresShell::AccessibleCaretEnabled()
@@ -843,8 +820,7 @@ void
 PresShell::Init(nsIDocument* aDocument,
                 nsPresContext* aPresContext,
                 nsViewManager* aViewManager,
-                nsStyleSet* aStyleSet,
-                nsCompatibility aCompatMode)
+                nsStyleSet* aStyleSet)
 {
   NS_PRECONDITION(aDocument, "null ptr");
   NS_PRECONDITION(aPresContext, "null ptr");
@@ -881,18 +857,6 @@ PresShell::Init(nsIDocument* aDocument,
 
   // Add the preference style sheet.
   UpdatePreferenceStyles();
-
-  if (TouchCaretPrefEnabled() && !AccessibleCaretEnabled()) {
-    // Create touch caret handle
-    mTouchCaret = new TouchCaret(this);
-    mTouchCaret->Init();
-  }
-
-  if (SelectionCaretPrefEnabled() && !AccessibleCaretEnabled()) {
-    // Create selection caret handle
-    mSelectionCarets = new SelectionCarets(this);
-    mSelectionCarets->Init();
-  }
 
   if (AccessibleCaretEnabled()) {
     // Need to happen before nsFrameSelection has been set up.
@@ -1193,16 +1157,6 @@ PresShell::Destroy()
 
   if (mSelection) {
     mSelection->DisconnectFromPresShell();
-  }
-
-  if (mTouchCaret) {
-    mTouchCaret->Terminate();
-    mTouchCaret = nullptr;
-  }
-
-  if (mSelectionCarets) {
-    mSelectionCarets->Terminate();
-    mSelectionCarets = nullptr;
   }
 
   if (mAccessibleCaretEventHub) {
@@ -1991,19 +1945,6 @@ already_AddRefed<nsCaret> PresShell::GetCaret() const
   return caret.forget();
 }
 
-// TouchCaret
-already_AddRefed<TouchCaret> PresShell::GetTouchCaret() const
-{
-  RefPtr<TouchCaret> touchCaret = mTouchCaret;
-  return touchCaret.forget();
-}
-
-already_AddRefed<SelectionCarets> PresShell::GetSelectionCarets() const
-{
-  RefPtr<SelectionCarets> selectionCaret = mSelectionCarets;
-  return selectionCaret.forget();
-}
-
 already_AddRefed<AccessibleCaretEventHub> PresShell::GetAccessibleCaretEventHub() const
 {
   RefPtr<AccessibleCaretEventHub> eventHub = mAccessibleCaretEventHub;
@@ -2032,12 +1973,6 @@ NS_IMETHODIMP PresShell::SetCaretEnabled(bool aInEnable)
     if (mCaret) {
       mCaret->SetVisible(mCaretEnabled);
     }
-  }
-
-  // We should sync touch caret's visibility with caret every time since touch
-  // caret might be hidden due to timeout while caret is enabled.
-  if (mTouchCaret) {
-    mTouchCaret->SyncVisibilityWithCaret();
   }
 
   return NS_OK;
@@ -2317,27 +2252,6 @@ PresShell::CheckVisibilityContent(nsIContent* aNode, int16_t aStartOffset,
   return NS_OK;
 }
 
-NS_IMETHODIMP
-PresShell::GetSelectionCaretsVisibility(bool* aOutVisibility)
-{
-  *aOutVisibility = (SelectionCaretPrefEnabled() &&
-    mSelectionCarets && mSelectionCarets->GetVisibility());
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-PresShell::SetSelectionCaretsVisibility(bool aVisibility)
-{
-  if (SelectionCaretPrefEnabled() && mSelectionCarets) {
-    if (aVisibility) {
-      mSelectionCarets->UpdateSelectionCarets();
-    } else {
-      mSelectionCarets->SetVisibility(false);
-    }
-  }
-  return NS_OK;
-}
-
 //end implementations nsISelectionController
 
 nsIFrame*
@@ -2389,24 +2303,6 @@ PresShell::GetCanvasFrame() const
 {
   nsIFrame* frame = mFrameConstructor->GetDocElementContainingBlock();
   return do_QueryFrame(frame);
-}
-
-Element*
-PresShell::GetTouchCaretElement() const
-{
-  return GetCanvasFrame() ? GetCanvasFrame()->GetTouchCaretElement() : nullptr;
-}
-
-Element*
-PresShell::GetSelectionCaretsStartElement() const
-{
-  return GetCanvasFrame() ? GetCanvasFrame()->GetSelectionCaretsStartElement() : nullptr;
-}
-
-Element*
-PresShell::GetSelectionCaretsEndElement() const
-{
-  return GetCanvasFrame() ? GetCanvasFrame()->GetSelectionCaretsEndElement() : nullptr;
 }
 
 void
@@ -3307,8 +3203,7 @@ ComputeWhereToScroll(int16_t aWhereToScroll,
  *
  * This needs to work even if aRect has a width or height of zero.
  */
-static void ScrollToShowRect(nsIFrame*                aFrame,
-                             nsIScrollableFrame*      aFrameAsScrollable,
+static void ScrollToShowRect(nsIScrollableFrame*      aFrameAsScrollable,
                              const nsRect&            aRect,
                              nsIPresShell::ScrollAxis aVertical,
                              nsIPresShell::ScrollAxis aHorizontal,
@@ -3528,7 +3423,7 @@ PresShell::ScrollFrameRectIntoView(nsIFrame*                aFrame,
         nsMargin padding = container->GetUsedPadding();
         targetRect.Inflate(padding);
       }
-      ScrollToShowRect(container, sf, targetRect - sf->GetScrolledFrame()->GetPosition(),
+      ScrollToShowRect(sf, targetRect - sf->GetScrolledFrame()->GetPosition(),
                        aVertical, aHorizontal, aFlags);
       nsPoint newPosition = sf->GetScrollPosition();
       // If the scroll position increased, that means our content moved up,
@@ -3807,10 +3702,6 @@ PresShell::UnsuppressAndInvalidate()
   if (rootFrame) {
     // let's assume that outline on a root frame is not supported
     rootFrame->InvalidateFrame();
-
-    if (mTouchCaret) {
-      mTouchCaret->SyncVisibilityWithCaret();
-    }
   }
 
   // now that painting is unsuppressed, focus may be set on the document
@@ -4400,8 +4291,7 @@ PresShell::ContentRemoved(nsIDocument *aDocument,
       if (data && data->mOverrideContent &&
           nsContentUtils::ContentIsDescendantOf(data->mOverrideContent,
                                                 aChild)) {
-        nsIPresShell::ReleasePointerCapturingContent(
-          iter.Key(), data->mOverrideContent);
+        nsIPresShell::ReleasePointerCapturingContent(iter.Key());
       }
     }
   }
@@ -4534,8 +4424,7 @@ PresShell::RecordStyleSheetChange(CSSStyleSheet* aStyleSheet)
 }
 
 void
-PresShell::StyleSheetAdded(nsIDocument* aDocument,
-                           CSSStyleSheet* aStyleSheet,
+PresShell::StyleSheetAdded(CSSStyleSheet* aStyleSheet,
                            bool aDocumentSheet)
 {
   // We only care when enabled sheets are added
@@ -4547,8 +4436,7 @@ PresShell::StyleSheetAdded(nsIDocument* aDocument,
 }
 
 void
-PresShell::StyleSheetRemoved(nsIDocument* aDocument,
-                             CSSStyleSheet* aStyleSheet,
+PresShell::StyleSheetRemoved(CSSStyleSheet* aStyleSheet,
                              bool aDocumentSheet)
 {
   // We only care when enabled sheets are removed
@@ -4560,9 +4448,7 @@ PresShell::StyleSheetRemoved(nsIDocument* aDocument,
 }
 
 void
-PresShell::StyleSheetApplicableStateChanged(nsIDocument* aDocument,
-                                            CSSStyleSheet* aStyleSheet,
-                                            bool aApplicable)
+PresShell::StyleSheetApplicableStateChanged(CSSStyleSheet* aStyleSheet)
 {
   if (aStyleSheet->HasRules()) {
     RecordStyleSheetChange(aStyleSheet);
@@ -4570,25 +4456,19 @@ PresShell::StyleSheetApplicableStateChanged(nsIDocument* aDocument,
 }
 
 void
-PresShell::StyleRuleChanged(nsIDocument* aDocument,
-                            CSSStyleSheet* aStyleSheet,
-                            mozilla::css::Rule* aStyleRule)
+PresShell::StyleRuleChanged(CSSStyleSheet* aStyleSheet)
 {
   RecordStyleSheetChange(aStyleSheet);
 }
 
 void
-PresShell::StyleRuleAdded(nsIDocument* aDocument,
-                          CSSStyleSheet* aStyleSheet,
-                          mozilla::css::Rule* aStyleRule)
+PresShell::StyleRuleAdded(CSSStyleSheet* aStyleSheet)
 {
   RecordStyleSheetChange(aStyleSheet);
 }
 
 void
-PresShell::StyleRuleRemoved(nsIDocument* aDocument,
-                            CSSStyleSheet* aStyleSheet,
-                            mozilla::css::Rule* aStyleRule)
+PresShell::StyleRuleRemoved(CSSStyleSheet* aStyleSheet)
 {
   RecordStyleSheetChange(aStyleSheet);
 }
@@ -5351,13 +5231,16 @@ float PresShell::GetCumulativeResolution()
   return resolution;
 }
 
-float PresShell::GetCumulativeScaleResolution()
+float PresShell::GetCumulativeNonRootScaleResolution()
 {
   float resolution = 1.0;
   nsIPresShell* currentShell = this;
   while (currentShell) {
-    resolution *=  currentShell->ScaleToResolution() ? currentShell->GetResolution() : 1.0f;
-    nsPresContext* parentCtx = currentShell->GetPresContext()->GetParentPresContext();
+    nsPresContext* currentCtx = currentShell->GetPresContext();
+    if (currentCtx != currentCtx->GetRootPresContext()) {
+      resolution *=  currentShell->ScaleToResolution() ? currentShell->GetResolution() : 1.0f;
+    }
+    nsPresContext* parentCtx = currentCtx->GetParentPresContext();
     if (parentCtx) {
       currentShell = parentCtx->PresShell();
     } else {
@@ -5694,8 +5577,8 @@ PresShell::MarkImagesInSubtreeVisible(nsIFrame* aFrame, const nsRect& aRect)
   if (scrollFrame) {
     nsRect displayPort;
     bool usingDisplayport =
-      nsLayoutUtils::GetDisplayPortForVisibilityTesting(aFrame->GetContent(),
-                                                        &displayPort);
+      nsLayoutUtils::GetDisplayPortForVisibilityTesting(
+        aFrame->GetContent(), &displayPort, RelativeTo::ScrollFrame);
     if (usingDisplayport) {
       rect = displayPort;
     } else {
@@ -5798,15 +5681,12 @@ PresShell::UpdateImageVisibility()
   if (rootScroll) {
     nsIContent* content = rootScroll->GetContent();
     if (content) {
-      nsLayoutUtils::GetDisplayPort(content, &updateRect);
+      Unused << nsLayoutUtils::GetDisplayPortForVisibilityTesting(content, &updateRect,
+        RelativeTo::ScrollFrame);
     }
 
     if (IgnoringViewportScrolling()) {
       builder.SetIgnoreScrollFrame(rootScroll);
-      // The ExpandRectToNearlyVisible that the root scroll frame would do gets short
-      // circuited due to us ignoring the root scroll frame, so we do it here.
-      nsIScrollableFrame* rootScrollable = do_QueryFrame(rootScroll);
-      updateRect = rootScrollable->ExpandRectToNearlyVisible(updateRect);
     }
   }
   builder.IgnorePaintSuppression();
@@ -6202,7 +6082,7 @@ nsIPresShell::SetPointerCapturingContent(uint32_t aPointerId, nsIContent* aConte
 }
 
 /* static */ void
-nsIPresShell::ReleasePointerCapturingContent(uint32_t aPointerId, nsIContent* aContent)
+nsIPresShell::ReleasePointerCapturingContent(uint32_t aPointerId)
 {
   if (gActivePointersIds->Get(aPointerId)) {
     SetCapturingContent(nullptr, CAPTURE_PREVENTDRAG);
@@ -6696,24 +6576,24 @@ class ReleasePointerCaptureCaller
 public:
   ReleasePointerCaptureCaller() :
     mPointerId(0),
-    mContent(nullptr)
+    mIsSet(false)
   {
   }
   ~ReleasePointerCaptureCaller()
   {
-    if (mContent) {
-      nsIPresShell::ReleasePointerCapturingContent(mPointerId, mContent);
+    if (mIsSet) {
+      nsIPresShell::ReleasePointerCapturingContent(mPointerId);
     }
   }
-  void SetTarget(uint32_t aPointerId, nsIContent* aContent)
+  void SetTarget(uint32_t aPointerId)
   {
     mPointerId = aPointerId;
-    mContent = aContent;
+    mIsSet = true;
   }
 
 private:
   int32_t mPointerId;
-  nsCOMPtr<nsIContent> mContent;
+  bool mIsSet;
 };
 
 static bool
@@ -6997,47 +6877,6 @@ PresShell::HandleEvent(nsIFrame* aFrame,
   }
 
   RecordMouseLocation(aEvent);
-
-  // Determine whether event need to be consumed by touch caret or not.
-  if (TouchCaretPrefEnabled() || SelectionCaretPrefEnabled()) {
-    // We have to target the focus window because regardless of where the
-    // touch goes, we want to access the touch caret when user is typing on an
-    // editable element.
-    nsCOMPtr<nsPIDOMWindow> window = GetFocusedDOMWindowInOurWindow();
-    nsCOMPtr<nsIDocument> retargetEventDoc = window ? window->GetExtantDoc() : nullptr;
-    nsCOMPtr<nsIPresShell> presShell = retargetEventDoc ?
-                                       retargetEventDoc->GetShell() :
-                                       nullptr;
-
-    // Bug 1057256: Touch caret should handle the event before selection carets.
-    // Otherwise, a long tap on touch caret will be incorrectly handled by
-    // selection carets which makes moving touch caret failed.
-    RefPtr<TouchCaret> touchCaret = presShell ?
-                                      presShell->GetTouchCaret() :
-                                      nullptr;
-    if (touchCaret) {
-      *aEventStatus = touchCaret->HandleEvent(aEvent);
-      if (*aEventStatus == nsEventStatus_eConsumeNoDefault) {
-        // If the event is consumed by the touch caret, cancel APZC panning by
-        // setting mMultipleActionsPrevented.
-        aEvent->mFlags.mMultipleActionsPrevented = true;
-        return NS_OK;
-      }
-    }
-
-    RefPtr<SelectionCarets> selectionCaret = presShell ?
-                                               presShell->GetSelectionCarets() :
-                                               nullptr;
-    if (selectionCaret) {
-      *aEventStatus = selectionCaret->HandleEvent(aEvent);
-      if (*aEventStatus == nsEventStatus_eConsumeNoDefault) {
-        // If the event is consumed by the selection carets, cancel APZC panning by
-        // setting mMultipleActionsPrevented.
-        aEvent->mFlags.mMultipleActionsPrevented = true;
-        return NS_OK;
-      }
-    }
-  }
 
   if (AccessibleCaretEnabled()) {
     // We have to target the focus window because regardless of where the
@@ -7428,7 +7267,7 @@ PresShell::HandleEvent(nsIFrame* aFrame,
             // Implicitly releasing capture for given pointer.
             // ePointerLostCapture should be send after ePointerUp or
             // ePointerCancel.
-            releasePointerCaptureCaller.SetTarget(pointerId, pointerCapturingContent);
+            releasePointerCaptureCaller.SetTarget(pointerId);
           }
         }
       }
@@ -8859,10 +8698,6 @@ PresShell::DidDoReflow(bool aInterruptible)
     SynthesizeMouseMove(false);
   }
 
-  if (mTouchCaret) {
-    mTouchCaret->UpdatePositionIfNeeded();
-  }
-
   mPresContext->NotifyMissingFonts();
 }
 
@@ -9958,7 +9793,7 @@ PresShell::DumpReflows()
     }
     mReflowCountMgr->DisplayTotals(uriStr.get());
     mReflowCountMgr->DisplayHTMLTotals(uriStr.get());
-    mReflowCountMgr->DisplayDiffsInTotals("Differences");
+    mReflowCountMgr->DisplayDiffsInTotals();
   }
 }
 
@@ -10203,7 +10038,7 @@ void ReflowCountMgr::PaintCount(const char*     aName,
       nscoord x = 0, y = fm->MaxAscent();
       nscoord width, height = fm->MaxHeight();
       fm->SetTextRunRTL(false);
-      width = fm->GetWidth(buf, len, aRenderingContext);;
+      width = fm->GetWidth(buf, len, drawTarget);
 
       Color color;
       Color color2;
@@ -10498,7 +10333,7 @@ int ReflowCountMgr::DoDisplayDiffTotals(PLHashEntry *he, int i, void *arg)
 }
 
 //------------------------------------------------------------------
-void ReflowCountMgr::DisplayDiffsInTotals(const char * aStr)
+void ReflowCountMgr::DisplayDiffsInTotals()
 {
   if (mCycledOnce) {
     printf("Differences\n");

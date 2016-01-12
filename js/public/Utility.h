@@ -302,14 +302,14 @@ static inline char* js_strdup(const char* s)
  * Note: Do not add a ; at the end of a use of JS_DECLARE_NEW_METHODS,
  * or the build will break.
  */
-#define JS_DECLARE_NEW_METHODS(NEWNAME, ALLOCATOR, QUALIFIERS)\
+#define JS_DECLARE_NEW_METHODS(NEWNAME, ALLOCATOR, QUALIFIERS) \
     template <class T, typename... Args> \
     QUALIFIERS T * \
     NEWNAME(Args&&... args) MOZ_HEAP_ALLOCATOR { \
         void* memory = ALLOCATOR(sizeof(T)); \
-        return memory \
-               ? new(memory) T(mozilla::Forward<Args>(args)...) \
-               : nullptr; \
+        return MOZ_LIKELY(memory) \
+            ? new(memory) T(mozilla::Forward<Args>(args)...) \
+            : nullptr; \
     }
 
 /*
@@ -460,6 +460,14 @@ namespace JS {
 template<typename T>
 struct DeletePolicy
 {
+    MOZ_CONSTEXPR DeletePolicy() {}
+
+    template<typename U>
+    MOZ_IMPLICIT DeletePolicy(DeletePolicy<U> other,
+                              typename mozilla::EnableIf<mozilla::IsConvertible<U*, T*>::value,
+                                                         int>::Type dummy = 0)
+    {}
+
     void operator()(const T* ptr) {
         js_delete(const_cast<T*>(ptr));
     }

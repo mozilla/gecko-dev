@@ -3,14 +3,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-/* globals AnimationsController, document, promise, gToolbox, gInspector */
+/* import-globals-from animation-controller.js */
+/* globals document */
 
 "use strict";
 
-const {
-  AnimationsTimeline,
-  RateSelector
-} = require("devtools/client/animationinspector/components");
+const {AnimationsTimeline} = require("devtools/client/animationinspector/components/animation-timeline");
+const {RateSelector} = require("devtools/client/animationinspector/components/rate-selector");
 const {formatStopwatchTime} = require("devtools/client/animationinspector/utils");
 
 var $ = (selector, target = document) => target.querySelector(selector);

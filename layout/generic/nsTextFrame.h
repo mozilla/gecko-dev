@@ -243,7 +243,7 @@ public:
               const mozilla::LogicalSize& aBorder,
               const mozilla::LogicalSize& aPadding,
               ComputeSizeFlags aFlags) override;
-  virtual nsRect ComputeTightBounds(gfxContext* aContext) const override;
+  virtual nsRect ComputeTightBounds(DrawTarget* aDrawTarget) const override;
   virtual nsresult GetPrefWidthTightBounds(nsRenderingContext* aContext,
                                            nscoord* aX,
                                            nscoord* aXMost) override;
@@ -262,11 +262,13 @@ public:
     // an amount to *subtract* from the frame's width (zero if !mChanged)
     nscoord      mDeltaWidth;
   };
-  TrimOutput TrimTrailingWhiteSpace(nsRenderingContext* aRC);
+  TrimOutput TrimTrailingWhiteSpace(DrawTarget* aDrawTarget);
   virtual RenderedText GetRenderedText(uint32_t aStartOffset = 0,
                                        uint32_t aEndOffset = UINT32_MAX,
                                        TextOffsetType aOffsetType =
-                                           TextOffsetType::OFFSETS_IN_CONTENT_TEXT) override;
+                                           TextOffsetType::OFFSETS_IN_CONTENT_TEXT,
+                                       TrailingWhitespace aTrimTrailingWhitespace =
+                                           TrailingWhitespace::TRIM_TRAILING_WHITESPACE) override;
 
   nsOverflowAreas RecomputeOverflow(nsIFrame* aBlockFrame);
 
@@ -444,6 +446,7 @@ public:
                          mozilla::WritingMode aWM,
                          const gfxPoint& aTextBaselinePt,
                          uint32_t aOffset, uint32_t aLength,
+                         const nscolor* aDecorationOverrideColor,
                          PropertyProvider& aProvider);
 
   virtual nscolor GetCaretColorAt(int32_t aOffset) override;
@@ -472,9 +475,8 @@ public:
    * Acquires the text run for this content, if necessary.
    * @param aWhichTextRun indicates whether to get an inflated or non-inflated
    * text run
-   * @param aReferenceContext the rendering context to use as a reference for
-   * creating the textrun, if available (if not, we'll create one which will
-   * just be slower)
+   * @param aRefDrawTarget the DrawTarget to use as a reference for creating the
+   * textrun, if available (if not, we'll create one which will just be slower)
    * @param aLineContainer the block ancestor for this frame, or nullptr if
    * unknown
    * @param aFlowEndInTextRun if non-null, this returns the textrun offset of
@@ -484,7 +486,7 @@ public:
    * content offset
    */
   gfxSkipCharsIterator EnsureTextRun(TextRunType aWhichTextRun,
-                                     gfxContext* aReferenceContext = nullptr,
+                                     DrawTarget* aRefDrawTarget = nullptr,
                                      nsIFrame* aLineContainer = nullptr,
                                      const nsLineList::iterator* aLine = nullptr,
                                      uint32_t* aFlowEndInTextRun = nullptr);
@@ -543,7 +545,7 @@ public:
 
   // Similar to Reflow(), but for use from nsLineLayout
   void ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
-                  nsRenderingContext* aRenderingContext,
+                  DrawTarget* aDrawTarget,
                   nsHTMLReflowMetrics& aMetrics, nsReflowStatus& aStatus);
 
   bool IsFloatingFirstLetterChild() const;

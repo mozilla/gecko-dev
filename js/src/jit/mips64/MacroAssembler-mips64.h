@@ -59,7 +59,7 @@ class MacroAssemblerMIPS64 : public MacroAssemblerMIPSShared
     using MacroAssemblerMIPSShared::ma_cmp_set;
     using MacroAssemblerMIPSShared::ma_subTestOverflow;
 
-    void ma_li(Register dest, AbsoluteLabel* label);
+    void ma_li(Register dest, CodeOffset* label);
     void ma_li(Register dest, ImmWord imm);
     void ma_liPatchable(Register dest, ImmPtr imm);
     void ma_liPatchable(Register dest, ImmWord imm, LiFlags flags = Li48);
@@ -185,14 +185,6 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64
     void convertInt32ToFloat32(Register src, FloatRegister dest);
     void convertInt32ToFloat32(const Address& src, FloatRegister dest);
 
-    void addDouble(FloatRegister src, FloatRegister dest);
-    void subDouble(FloatRegister src, FloatRegister dest);
-    void mulDouble(FloatRegister src, FloatRegister dest);
-    void divDouble(FloatRegister src, FloatRegister dest);
-
-    void negateDouble(FloatRegister reg);
-    void inc64(AbsoluteAddress dest);
-
     void movq(Register rs, Register rd);
 
     void computeScaledAddress(const BaseIndex& address, Register dest);
@@ -201,12 +193,7 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64
         ma_daddu(dest, address.base, Imm32(address.offset));
     }
 
-    void computeEffectiveAddress(const BaseIndex& address, Register dest) {
-        computeScaledAddress(address, dest);
-        if (address.offset) {
-            addPtr(Imm32(address.offset), dest);
-        }
-    }
+    inline void computeEffectiveAddress(const BaseIndex& address, Register dest);
 
     void j(Label* dest) {
         ma_b(dest);
@@ -256,13 +243,7 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64
         as_jr(ra);
         as_nop();
     }
-    void retn(Imm32 n) {
-        // pc <- [sp]; sp += n
-        loadPtr(Address(StackPointer, 0), ra);
-        addPtr(n, StackPointer);
-        as_jr(ra);
-        as_nop();
-    }
+    inline void retn(Imm32 n);
     void push(Imm32 imm) {
         ma_li(ScratchRegister, imm);
         ma_push(ScratchRegister);
@@ -338,10 +319,6 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64
 
     void jump(JitCode* code) {
         branch(code);
-    }
-
-    void neg32(Register reg) {
-        ma_negu(reg, reg);
     }
 
     void splitTag(Register src, Register dest) {
@@ -603,17 +580,14 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64
     void branchPtr(Condition cond, Register lhs, ImmPtr imm, Label* label) {
         ma_b(lhs, imm, label, cond);
     }
-    void branchPtr(Condition cond, Register lhs, AsmJSImmPtr imm, Label* label) {
+    void branchPtr(Condition cond, Register lhs, wasm::SymbolicAddress imm, Label* label) {
         movePtr(imm, SecondScratchReg);
         ma_b(lhs, SecondScratchReg, label, cond);
     }
     void branchPtr(Condition cond, Register lhs, Imm32 imm, Label* label) {
         ma_b(lhs, imm, label, cond);
     }
-    void decBranchPtr(Condition cond, Register lhs, Imm32 imm, Label* label) {
-        subPtr(imm, lhs);
-        branchPtr(cond, lhs, Imm32(0), label);
-    }
+    inline void decBranchPtr(Condition cond, Register lhs, Imm32 imm, Label* label);
 
     // higher level tag testing code
     Address ToPayload(Address value) {
@@ -666,7 +640,7 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64
         loadPtr(addr, SecondScratchReg);
         ma_b(SecondScratchReg, ptr, label, cond);
     }
-    void branchPtr(Condition cond, AsmJSAbsoluteAddress addr, Register ptr, Label* label) {
+    void branchPtr(Condition cond, wasm::SymbolicAddress addr, Register ptr, Label* label) {
         loadPtr(addr, SecondScratchReg);
         ma_b(SecondScratchReg, ptr, label, cond);
     }
@@ -678,7 +652,7 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64
         load32(lhs, SecondScratchReg);
         ma_b(SecondScratchReg, rhs, label, cond);
     }
-    void branch32(Condition cond, AsmJSAbsoluteAddress addr, Imm32 imm, Label* label) {
+    void branch32(Condition cond, wasm::SymbolicAddress addr, Imm32 imm, Label* label) {
         load32(addr, SecondScratchReg);
         ma_b(SecondScratchReg, imm, label, cond);
     }
@@ -1089,16 +1063,7 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64
                                        Register temp, Register valueTemp, Register offsetTemp, Register maskTemp,
                                        AnyRegister output);
 
-    void add32(Register src, Register dest);
-    void add32(Imm32 imm, Register dest);
-    void add32(Imm32 imm, const Address& dest);
-    void add64(Imm32 imm, Register64 dest) {
-        ma_daddu(dest.reg, imm);
-    }
-
-    void incrementInt32Value(const Address& addr) {
-        add32(Imm32(1), addr);
-    }
+    inline void incrementInt32Value(const Address& addr);
 
     template <typename T>
     void branchAdd32(Condition cond, T src, Register dest, Label* overflow) {
@@ -1126,10 +1091,6 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64
         }
     }
 
-    void addPtr(Register src, Register dest);
-    void subPtr(Register src, Register dest);
-    void addPtr(const Address& src, Register dest);
-
     void move32(Imm32 imm, Register dest);
     void move32(Register src, Register dest);
     void move64(Register64 src, Register64 dest) {
@@ -1139,7 +1100,7 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64
     void movePtr(Register src, Register dest);
     void movePtr(ImmWord imm, Register dest);
     void movePtr(ImmPtr imm, Register dest);
-    void movePtr(AsmJSImmPtr imm, Register dest);
+    void movePtr(wasm::SymbolicAddress imm, Register dest);
     void movePtr(ImmGCPtr imm, Register dest);
 
     void load8SignExtend(const Address& address, Register dest);
@@ -1157,7 +1118,7 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64
     void load32(const Address& address, Register dest);
     void load32(const BaseIndex& address, Register dest);
     void load32(AbsoluteAddress address, Register dest);
-    void load32(AsmJSAbsoluteAddress address, Register dest);
+    void load32(wasm::SymbolicAddress address, Register dest);
     void load64(const Address& address, Register64 dest) {
         loadPtr(address, dest.reg);
     }
@@ -1165,7 +1126,7 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64
     void loadPtr(const Address& address, Register dest);
     void loadPtr(const BaseIndex& src, Register dest);
     void loadPtr(AbsoluteAddress address, Register dest);
-    void loadPtr(AsmJSAbsoluteAddress address, Register dest);
+    void loadPtr(wasm::SymbolicAddress address, Register dest);
 
     void loadPrivate(const Address& address, Register dest);
 
@@ -1266,36 +1227,7 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64
 
     void clampIntToUint8(Register reg);
 
-    void subPtr(Imm32 imm, const Register dest);
-    void subPtr(const Address& addr, const Register dest);
-    void subPtr(Register src, const Address& dest);
-    void addPtr(Imm32 imm, const Register dest);
-    void addPtr(Imm32 imm, const Address& dest);
-    void addPtr(ImmWord imm, const Register dest) {
-        movePtr(imm, ScratchRegister);
-        addPtr(ScratchRegister, dest);
-    }
-    void addPtr(ImmPtr imm, const Register dest) {
-        addPtr(ImmWord(uintptr_t(imm.value)), dest);
-    }
-    void mulBy3(const Register& src, const Register& dest) {
-        as_daddu(dest, src, src);
-        as_daddu(dest, dest, src);
-    }
-
-    void mul64(Imm64 imm, const Register64& dest) {
-        MOZ_ASSERT(dest.reg != ScratchRegister);
-        mov(ImmWord(imm.value), ScratchRegister);
-        as_dmultu(dest.reg, ScratchRegister);
-        as_mflo(dest.reg);
-    }
-
     void convertUInt64ToDouble(Register64 src, Register temp, FloatRegister dest);
-    void mulDoublePtr(ImmPtr imm, Register temp, FloatRegister dest) {
-        movePtr(imm, ScratchRegister);
-        loadDouble(Address(ScratchRegister, 0), ScratchDoubleReg);
-        mulDouble(ScratchDoubleReg, dest);
-    }
 
     void breakpoint();
 
@@ -1364,12 +1296,12 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64
     void branchValueIsNurseryObject(Condition cond, ValueOperand value, Register temp,
                                     Label* label);
 
-    void loadAsmJSActivation(Register dest) {
-        loadPtr(Address(GlobalReg, AsmJSActivationGlobalDataOffset - AsmJSGlobalRegBias), dest);
+    void loadWasmActivation(Register dest) {
+        loadPtr(Address(GlobalReg, wasm::ActivationGlobalDataOffset - AsmJSGlobalRegBias), dest);
     }
     void loadAsmJSHeapRegisterFromGlobalData() {
-        MOZ_ASSERT(Imm16::IsInSignedRange(AsmJSHeapGlobalDataOffset - AsmJSGlobalRegBias));
-        loadPtr(Address(GlobalReg, AsmJSHeapGlobalDataOffset - AsmJSGlobalRegBias), HeapReg);
+        MOZ_ASSERT(Imm16::IsInSignedRange(wasm::HeapGlobalDataOffset - AsmJSGlobalRegBias));
+        loadPtr(Address(GlobalReg, wasm::HeapGlobalDataOffset - AsmJSGlobalRegBias), HeapReg);
     }
 
     // Instrumentation for entering and leaving the profiler.

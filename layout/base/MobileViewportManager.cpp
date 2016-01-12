@@ -5,9 +5,15 @@
 
 #include "MobileViewportManager.h"
 
+#include "gfxPrefs.h"
 #include "LayersLogging.h"
+#include "nsIDOMEvent.h"
+#include "nsIFrame.h"
+#include "nsLayoutUtils.h"
+#include "nsPresShell.h"
 #include "nsViewManager.h"
 #include "nsViewportInfo.h"
+#include "UnitTransforms.h"
 
 #define MVM_LOG(...)
 // #define MVM_LOG(...) printf_stderr("MVM: " __VA_ARGS__)
@@ -222,7 +228,7 @@ void
 MobileViewportManager::UpdateDisplayPortMargins()
 {
   if (nsIFrame* root = mPresShell->GetRootScrollFrame()) {
-    bool hasDisplayPort = nsLayoutUtils::GetDisplayPort(root->GetContent(), nullptr);
+    bool hasDisplayPort = nsLayoutUtils::HasDisplayPort(root->GetContent());
     bool hasResolution = mPresShell->ScaleToResolution() &&
         mPresShell->GetResolution() != 1.0f;
     if (!hasDisplayPort && !hasResolution) {

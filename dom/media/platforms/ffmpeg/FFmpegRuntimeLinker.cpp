@@ -8,7 +8,13 @@
 #include "mozilla/ArrayUtils.h"
 #include "FFmpegLog.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/Types.h"
 #include "prlink.h"
+
+#if defined(XP_WIN)
+#include "libavcodec/avcodec.h"
+#include "libavutil/avutil.h"
+#endif
 
 namespace mozilla
 {
@@ -24,12 +30,15 @@ public:
 
 static const char* sLibs[] = {
 #if defined(XP_DARWIN)
+  "libavcodec.57.dylib",
   "libavcodec.56.dylib",
   "libavcodec.55.dylib",
   "libavcodec.54.dylib",
   "libavcodec.53.dylib",
 #else
+  "libavcodec-ffmpeg.so.57",
   "libavcodec-ffmpeg.so.56",
+  "libavcodec.so.57",
   "libavcodec.so.56",
   "libavcodec.so.55",
   "libavcodec.so.54",
@@ -38,15 +47,26 @@ static const char* sLibs[] = {
 };
 
 PRLibrary* FFmpegRuntimeLinker::sLinkedLib = nullptr;
-const char* FFmpegRuntimeLinker::sLib = nullptr;
+PRLibrary* FFmpegRuntimeLinker::sLinkedUtilLib = nullptr;
 static unsigned (*avcodec_version)() = nullptr;
 
+#ifdef __GNUC__
 #define AV_FUNC(func, ver) void (*func)();
-
 #define LIBAVCODEC_ALLVERSION
+#else
+#define AV_FUNC(func, ver) decltype(func)* func;
+#endif
 #include "FFmpegFunctionList.h"
-#undef LIBAVCODEC_ALLVERSION
 #undef AV_FUNC
+
+static PRLibrary*
+MozAVLink(const char* aName)
+{
+  PRLibSpec lspec;
+  lspec.type = PR_LibSpec_Pathname;
+  lspec.value.pathname = aName;
+  return PR_LoadLibraryWithFlags(lspec, PR_LD_NOW | PR_LD_LOCAL);
+}
 
 /* static */ bool
 FFmpegRuntimeLinker::Link()
@@ -59,13 +79,10 @@ FFmpegRuntimeLinker::Link()
 
   for (size_t i = 0; i < ArrayLength(sLibs); i++) {
     const char* lib = sLibs[i];
-    PRLibSpec lspec;
-    lspec.type = PR_LibSpec_Pathname;
-    lspec.value.pathname = lib;
-    sLinkedLib = PR_LoadLibraryWithFlags(lspec, PR_LD_NOW | PR_LD_LOCAL);
+    sLinkedLib = MozAVLink(lib);
     if (sLinkedLib) {
+      sLinkedUtilLib = sLinkedLib;
       if (Bind(lib)) {
-        sLib = lib;
         sLinkStatus = LinkStatus_SUCCEEDED;
         return true;
       }
@@ -80,6 +97,25 @@ FFmpegRuntimeLinker::Link()
   }
   FFMPEG_LOG(" ]\n");
 
+#ifdef MOZ_FFVPX
+  char* libname = NULL;
+  /* Get the platform-dependent library name of the module */
+  libname = PR_GetLibraryName(nullptr, "mozavutil");
+  MOZ_ASSERT(libname);
+  sLinkedUtilLib = MozAVLink(libname);
+  PR_FreeLibraryName(libname);
+  libname = PR_GetLibraryName(nullptr, "mozavcodec");
+  MOZ_ASSERT(libname);
+  sLinkedLib = MozAVLink(libname);
+  PR_FreeLibraryName(libname);
+  if (sLinkedLib && sLinkedUtilLib) {
+    if (Bind("mozavcodec")) {
+      sLinkStatus = LinkStatus_SUCCEEDED;
+      return true;
+    }
+  }
+#endif
+
   Unlink();
 
   sLinkStatus = LinkStatus_FAILED;
@@ -89,28 +125,51 @@ FFmpegRuntimeLinker::Link()
 /* static */ bool
 FFmpegRuntimeLinker::Bind(const char* aLibName)
 {
-  avcodec_version = (typeof(avcodec_version))PR_FindSymbol(sLinkedLib,
+  avcodec_version = (decltype(avcodec_version))PR_FindSymbol(sLinkedLib,
                                                            "avcodec_version");
-  uint32_t major, minor;
-  if (!GetVersion(major, minor)) {
+  uint32_t major, minor, micro;
+  if (!GetVersion(major, minor, micro)) {
     return false;
   }
-  if (major > 55) {
-    // All major greater than 56 currently use the same ABI as 55.
-    major = 55;
+
+  int version;
+  switch (major) {
+    case 53:
+      version = AV_FUNC_53;
+      break;
+    case 54:
+      version = AV_FUNC_54;
+      break;
+    case 56:
+      // We use libavcodec 55 code instead. Fallback
+    case 55:
+      version = AV_FUNC_55;
+      break;
+    case 57:
+      if (micro != 100) {
+        // a micro version of 100 indicates that it's FFmpeg (as opposed to LibAV.
+        // Due to current AVCodecContext binary incompatibility we can only
+        // support FFmpeg at this stage.
+        return false;
+      }
+      version = AV_FUNC_57;
+      break;
+    default:
+      // Not supported at this stage.
+      return false;
   }
 
-#define LIBAVCODEC_ALLVERSION
 #define AV_FUNC(func, ver)                                                     \
-  if (ver == 0 || ver == major) {                                              \
-    if (!(func = (typeof(func))PR_FindSymbol(sLinkedLib, #func))) {            \
+  if ((ver) & version) {                                                       \
+    if (!(func = (decltype(func))PR_FindSymbol(((ver) & AV_FUNC_AVUTIL_MASK) ? sLinkedUtilLib : sLinkedLib, #func))) { \
       FFMPEG_LOG("Couldn't load function " #func " from %s.", aLibName);       \
       return false;                                                            \
     }                                                                          \
+  } else {                                                                     \
+    func = (decltype(func))nullptr;                                            \
   }
 #include "FFmpegFunctionList.h"
 #undef AV_FUNC
-#undef LIBAVCODEC_ALLVERSION
   return true;
 }
 
@@ -120,16 +179,21 @@ FFmpegRuntimeLinker::CreateDecoderModule()
   if (!Link()) {
     return nullptr;
   }
-  uint32_t major, minor;
-  if (!GetVersion(major, minor)) {
+  uint32_t major, minor, micro;
+  if (!GetVersion(major, minor, micro)) {
     return  nullptr;
   }
 
   RefPtr<PlatformDecoderModule> module;
   switch (major) {
+#ifndef XP_WIN
     case 53: module = FFmpegDecoderModule<53>::Create(); break;
     case 54: module = FFmpegDecoderModule<54>::Create(); break;
-    default: module = FFmpegDecoderModule<55>::Create(); break;
+    case 55:
+    case 56: module = FFmpegDecoderModule<55>::Create(); break;
+#endif
+    case 57: module = FFmpegDecoderModule<57>::Create(); break;
+    default: module = nullptr;
   }
   return module.forget();
 }
@@ -137,17 +201,20 @@ FFmpegRuntimeLinker::CreateDecoderModule()
 /* static */ void
 FFmpegRuntimeLinker::Unlink()
 {
+  if (sLinkedUtilLib && sLinkedUtilLib != sLinkedLib) {
+    PR_UnloadLibrary(sLinkedUtilLib);
+  }
   if (sLinkedLib) {
     PR_UnloadLibrary(sLinkedLib);
     sLinkedLib = nullptr;
-    sLib = nullptr;
     sLinkStatus = LinkStatus_INIT;
     avcodec_version = nullptr;
   }
+  sLinkedUtilLib = nullptr;
 }
 
 /* static */ bool
-FFmpegRuntimeLinker::GetVersion(uint32_t& aMajor, uint32_t& aMinor)
+FFmpegRuntimeLinker::GetVersion(uint32_t& aMajor, uint32_t& aMinor, uint32_t& aMicro)
 {
   if (!avcodec_version) {
     return false;
@@ -155,7 +222,9 @@ FFmpegRuntimeLinker::GetVersion(uint32_t& aMajor, uint32_t& aMinor)
   uint32_t version = avcodec_version();
   aMajor = (version >> 16) & 0xff;
   aMinor = (version >> 8) & 0xff;
+  aMicro = version & 0xff;
   return true;
 }
 
+#undef LIBAVCODEC_ALLVERSION
 } // namespace mozilla

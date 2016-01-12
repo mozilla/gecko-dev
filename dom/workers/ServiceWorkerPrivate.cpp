@@ -212,46 +212,26 @@ public:
 
 NS_IMPL_ISUPPORTS0(KeepAliveHandler)
 
-class SoftUpdateRequest : public nsRunnable
+class RegistrationUpdateRunnable : public nsRunnable
 {
-protected:
   nsMainThreadPtrHandle<ServiceWorkerRegistrationInfo> mRegistration;
+  const bool mNeedTimeCheck;
+
 public:
-  explicit SoftUpdateRequest(nsMainThreadPtrHandle<ServiceWorkerRegistrationInfo>& aRegistration)
+  RegistrationUpdateRunnable(nsMainThreadPtrHandle<ServiceWorkerRegistrationInfo>& aRegistration,
+                             bool aNeedTimeCheck)
     : mRegistration(aRegistration)
+    , mNeedTimeCheck(aNeedTimeCheck)
   {
-    MOZ_ASSERT(aRegistration);
   }
 
-  NS_IMETHOD Run()
+  NS_IMETHOD
+  Run() override
   {
-    AssertIsOnMainThread();
-
-    RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
-    MOZ_ASSERT(swm);
-
-    PrincipalOriginAttributes attrs =
-      mozilla::BasePrincipal::Cast(mRegistration->mPrincipal)->OriginAttributesRef();
-
-    swm->PropagateSoftUpdate(attrs,
-                             NS_ConvertUTF8toUTF16(mRegistration->mScope));
-    return NS_OK;
-  }
-};
-
-class CheckLastUpdateTimeRequest final : public SoftUpdateRequest
-{
-public:
-  explicit CheckLastUpdateTimeRequest(
-    nsMainThreadPtrHandle<ServiceWorkerRegistrationInfo>& aRegistration)
-    : SoftUpdateRequest(aRegistration)
-  {}
-
-  NS_IMETHOD Run()
-  {
-    AssertIsOnMainThread();
-    if (mRegistration->IsLastUpdateCheckTimeOverOneDay()) {
-      SoftUpdateRequest::Run();
+    if (mNeedTimeCheck) {
+      mRegistration->MaybeScheduleTimeCheckAndUpdate();
+    } else {
+      mRegistration->MaybeScheduleUpdate();
     }
     return NS_OK;
   }
@@ -335,9 +315,9 @@ public:
   void
   PostRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate, bool aRunResult)
   {
-    nsCOMPtr<nsIRunnable> runnable = new CheckLastUpdateTimeRequest(mRegistration);
-
-    MOZ_ALWAYS_TRUE(NS_SUCCEEDED(NS_DispatchToMainThread(runnable.forget())));
+    nsCOMPtr<nsIRunnable> runnable =
+      new RegistrationUpdateRunnable(mRegistration, true /* time check */);
+    NS_DispatchToMainThread(runnable.forget());
   }
 };
 
@@ -1016,6 +996,7 @@ class FetchEventRunnable : public ExtendableFunctionalEventWorkerRunnable
   nsTArray<nsCString> mHeaderValues;
   nsCString mSpec;
   nsCString mMethod;
+  nsString mClientId;
   bool mIsReload;
   DebugOnly<bool> mIsHttpChannel;
   RequestMode mRequestMode;
@@ -1032,12 +1013,13 @@ public:
                      // later on.
                      const nsACString& aScriptSpec,
                      nsMainThreadPtrHandle<ServiceWorkerRegistrationInfo>& aRegistration,
-                     UniquePtr<ServiceWorkerClientInfo>&& aClientInfo,
+                     const nsAString& aDocumentId,
                      bool aIsReload)
     : ExtendableFunctionalEventWorkerRunnable(
         aWorkerPrivate, aKeepAliveToken, aRegistration)
     , mInterceptedChannel(aChannel)
     , mScriptSpec(aScriptSpec)
+    , mClientId(aDocumentId)
     , mIsReload(aIsReload)
     , mIsHttpChannel(false)
     , mRequestMode(RequestMode::No_cors)
@@ -1070,7 +1052,7 @@ public:
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<nsIURI> uri;
-    rv = channel->GetURI(getter_AddRefs(uri));
+    rv = mInterceptedChannel->GetSecureUpgradedChannelURI(getter_AddRefs(uri));
     NS_ENSURE_SUCCESS(rv, rv);
 
     rv = uri->GetSpec(mSpec);
@@ -1257,10 +1239,12 @@ private:
                   request->Redirect() == RequestRedirect::Manual);
 
     RootedDictionary<FetchEventInit> init(aCx);
-    init.mRequest.Construct();
-    init.mRequest.Value() = request;
+    init.mRequest = request;
     init.mBubbles = false;
     init.mCancelable = true;
+    if (!mClientId.IsEmpty()) {
+      init.mClientId = mClientId;
+    }
     init.mIsReload = mIsReload;
     RefPtr<FetchEvent> event =
       FetchEvent::Constructor(globalObj, NS_LITERAL_STRING("fetch"), init, result);
@@ -1278,14 +1262,19 @@ private:
       nsCOMPtr<nsIRunnable> runnable;
       if (event->DefaultPrevented(aCx)) {
         event->ReportCanceled();
-        runnable = new CancelChannelRunnable(mInterceptedChannel,
-                                             NS_ERROR_INTERCEPTION_FAILED);
       } else if (event->GetInternalNSEvent()->mFlags.mExceptionHasBeenRisen) {
         // Exception logged via the WorkerPrivate ErrorReporter
-        runnable = new CancelChannelRunnable(mInterceptedChannel,
-                                             NS_ERROR_INTERCEPTION_FAILED);
       } else {
         runnable = new ResumeRequest(mInterceptedChannel);
+      }
+
+      if (!runnable) {
+        nsCOMPtr<nsIRunnable> updateRunnable =
+          new RegistrationUpdateRunnable(mRegistration, false /* time check */);
+        NS_DispatchToMainThread(runnable.forget());
+
+        runnable = new CancelChannelRunnable(mInterceptedChannel,
+                                             NS_ERROR_INTERCEPTION_FAILED);
       }
 
       MOZ_ALWAYS_TRUE(NS_SUCCEEDED(NS_DispatchToMainThread(runnable)));
@@ -1298,12 +1287,6 @@ private:
       waitUntilPromise->AppendNativeHandler(keepAliveHandler);
     }
 
-    // 9.8.22 If request is a non-subresource request, then: Invoke Soft Update algorithm
-    if (internalReq->IsNavigationRequest()) {
-      nsCOMPtr<nsIRunnable> runnable= new SoftUpdateRequest(mRegistration);
-
-      MOZ_ALWAYS_TRUE(NS_SUCCEEDED(NS_DispatchToMainThread(runnable.forget())));
-    }
     return true;
   }
 
@@ -1361,7 +1344,7 @@ NS_IMPL_ISUPPORTS_INHERITED(FetchEventRunnable, WorkerRunnable, nsIHttpHeaderVis
 nsresult
 ServiceWorkerPrivate::SendFetchEvent(nsIInterceptedChannel* aChannel,
                                      nsILoadGroup* aLoadGroup,
-                                     UniquePtr<ServiceWorkerClientInfo>&& aClientInfo,
+                                     const nsAString& aDocumentId,
                                      bool aIsReload)
 {
   AssertIsOnMainThread();
@@ -1393,7 +1376,7 @@ ServiceWorkerPrivate::SendFetchEvent(nsIInterceptedChannel* aChannel,
   RefPtr<FetchEventRunnable> r =
     new FetchEventRunnable(mWorkerPrivate, mKeepAliveToken, handle,
                            mInfo->ScriptSpec(), regInfo,
-                           Move(aClientInfo), aIsReload);
+                           aDocumentId, aIsReload);
   rv = r->Init();
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;

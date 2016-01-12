@@ -51,6 +51,8 @@
 #include "gfx2DGlue.h"
 #include "GeckoProfiler.h"
 
+class nsIWidget;
+
 namespace android {
     class GraphicBuffer;
 } // namespace android
@@ -302,6 +304,10 @@ public:
         return mVersionString.get();
     }
 
+    inline uint32_t ShadingLanguageVersion() const {
+        return mShadingLanguageVersion;
+    }
+
     GLVendor Vendor() const {
         return mVendor;
     }
@@ -345,6 +351,8 @@ protected:
     uint32_t mVersion;
     nsCString mVersionString;
     ContextProfile mProfile;
+
+    uint32_t mShadingLanguageVersion;
 
     GLVendor mVendor;
     GLRenderer mRenderer;
@@ -3324,7 +3332,7 @@ public:
 
     virtual GLenum GetPreferredARGB32Format() const { return LOCAL_GL_RGBA; }
 
-    virtual bool RenewSurface() { return false; }
+    virtual bool RenewSurface(nsIWidget* aWidget) { return false; }
 
     // Shared code for GL extensions and GLX extensions.
     static bool ListHasExtension(const GLubyte *extensions,

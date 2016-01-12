@@ -107,7 +107,7 @@ CompositorOGL::CreateContext()
 #ifdef XP_WIN
   if (gfxEnv::LayersPreferEGL()) {
     printf_stderr("Trying GL layers...\n");
-    context = gl::GLContextProviderEGL::CreateForWindow(mWidget);
+    context = gl::GLContextProviderEGL::CreateForWindow(mWidget, false);
   }
 #endif
 
@@ -115,14 +115,15 @@ CompositorOGL::CreateContext()
   if (!context && gfxEnv::LayersPreferOffscreen()) {
     SurfaceCaps caps = SurfaceCaps::ForRGB();
     caps.preserve = false;
-    caps.bpp16 = gfxPlatform::GetPlatform()->GetOffscreenFormat() == gfxImageFormat::RGB16_565;
+    caps.bpp16 = gfxPlatform::GetPlatform()->GetOffscreenFormat() == SurfaceFormat::R5G6B5_UINT16;
 
     context = GLContextProvider::CreateOffscreen(mSurfaceSize,
                                                  caps, CreateContextFlags::REQUIRE_COMPAT_PROFILE);
   }
 
   if (!context) {
-    context = gl::GLContextProvider::CreateForWindow(mWidget);
+    context = gl::GLContextProvider::CreateForWindow(mWidget,
+                gfxPlatform::GetPlatform()->RequiresAcceleratedGLContextForCompositorOGL());
   }
 
   if (!context) {
@@ -1538,7 +1539,7 @@ CompositorOGL::Resume()
     return false;
 
   // RenewSurface internally calls MakeCurrent.
-  return gl()->RenewSurface();
+  return gl()->RenewSurface(GetWidget());
 #endif
   return true;
 }

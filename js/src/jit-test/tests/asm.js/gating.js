@@ -1,69 +1,35 @@
-// Check gating of shared memory features in asm.js (bug 1171540).
+// Check gating of shared memory features in asm.js (bug 1171540,
+// bug 1231624, bug 1231338).
 //
-// When run with -w this should produce a slew of warnings if shared
-// memory is not enabled.  There are several cases here because there
-// are various checks within Odin.
-//
-// Note code is not run, so the only issue here is whether it compiles
-// properly as asm.js.
+// In asm.js, importing any atomic is a signal that shared memory is
+// being used.  If an atomic is imported, and if shared memory is
+// disabled in the build or in the run then a type error should be
+// signaled for the module at the end of the declaration section and
+// the module should not be an asm.js module.
 
-if (!this.SharedArrayBuffer || !isAsmJSCompilationAvailable())
+// Do not guard on the presence of SharedArrayBuffer, we test that later.
+
+if (!isAsmJSCompilationAvailable())
     quit(0);
 
+// This code is not run, we only care whether it compiles as asm.js.
+
 function module_a(stdlib, foreign, heap) {
-    "use asm";
-
-    // Without shared memory, this will be flagged as illegal view type
-    var view = stdlib.SharedInt32Array;
-    var i32a = new view(heap);
-    var ld = stdlib.Atomics.load;
-
-    function do_load() {
-	var v = 0;
-	v = ld(i32a, 0)|0;
-	return v|0;
-    }
-
-    return { load: do_load };
-}
-
-if (this.SharedArrayBuffer)
-    assertEq(isAsmJSModule(module_a), true);
-
-function module_b(stdlib, foreign, heap) {
-    "use asm";
-
-    // Without shared memory, this will be flagged as illegal view type
-    var i32a = new stdlib.SharedInt32Array(heap);
-    var ld = stdlib.Atomics.load;
-
-    function do_load() {
-	var v = 0;
-	v = ld(i32a, 0)|0;
-	return v|0;
-    }
-
-    return { load: do_load };
-}
-
-if (this.SharedArrayBuffer)
-    assertEq(isAsmJSModule(module_b), true);
-
-function module_d(stdlib, foreign, heap) {
     "use asm";
 
     var i32a = new stdlib.Int32Array(heap);
     var ld = stdlib.Atomics.load;
 
+    // There should be a type error around this line if shared memory
+    // is not enabled.
+
     function do_load() {
 	var v = 0;
-	// This should be flagged as a type error (needs shared view) regardless
-	// of whether shared memory is enabled.
-	v = ld(i32a, 0)|0;
+	v = ld(i32a, 0)|0;	// It's not actually necessary to use the atomic op
 	return v|0;
     }
 
     return { load: do_load };
 }
 
-// module_d should never load properly.
+assertEq(isAsmJSModule(module_a), !!this.SharedArrayBuffer);

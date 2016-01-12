@@ -6,6 +6,7 @@
 
 #include "InputBlockState.h"
 #include "AsyncPanZoomController.h"         // for AsyncPanZoomController
+#include "AsyncScrollBase.h"                // for kScrollSeriesTimeoutMs
 #include "gfxPrefs.h"                       // for gfxPrefs
 #include "mozilla/MouseEvents.h"
 #include "mozilla/SizePrintfMacros.h"       // for PRIuSIZE
@@ -58,7 +59,7 @@ InputBlockState::UpdateTargetApzc(const RefPtr<AsyncPanZoomController>& aTargetA
 {
   // note that aTargetApzc MAY be null here.
   mTargetApzc = aTargetApzc;
-  mTransformToApzc = aTargetApzc ? aTargetApzc->GetTransformToThis() : gfx::Matrix4x4();
+  mTransformToApzc = aTargetApzc ? aTargetApzc->GetTransformToThis() : ScreenToParentLayerMatrix4x4();
   mOverscrollHandoffChain = (mTargetApzc ? mTargetApzc->BuildOverscrollHandoffChain() : nullptr);
 }
 
@@ -84,6 +85,21 @@ bool
 InputBlockState::IsTargetConfirmed() const
 {
   return mTargetConfirmed;
+}
+
+void
+InputBlockState::SetScrolledApzc(AsyncPanZoomController* aApzc)
+{
+  // An input block should only have one scrolled APZC.
+  MOZ_ASSERT(!mScrolledApzc || mScrolledApzc == aApzc);
+
+  mScrolledApzc = aApzc;
+}
+
+AsyncPanZoomController*
+InputBlockState::GetScrolledApzc() const
+{
+  return mScrolledApzc;
 }
 
 CancelableBlockState::CancelableBlockState(const RefPtr<AsyncPanZoomController>& aTargetApzc,
@@ -244,6 +260,7 @@ WheelBlockState::WheelBlockState(const RefPtr<AsyncPanZoomController>& aTargetAp
                                  bool aTargetConfirmed,
                                  const ScrollWheelInput& aInitialEvent)
   : CancelableBlockState(aTargetApzc, aTargetConfirmed)
+  , mScrollSeriesCounter(0)
   , mTransactionEnded(false)
 {
   sLastWheelBlockId = GetBlockId();
@@ -295,13 +312,25 @@ WheelBlockState::SetConfirmedTargetApzc(const RefPtr<AsyncPanZoomController>& aT
 }
 
 void
-WheelBlockState::Update(const ScrollWheelInput& aEvent)
+WheelBlockState::Update(ScrollWheelInput& aEvent)
 {
   // We might not be in a transaction if the block never started in a
   // transaction - for example, if nothing was scrollable.
   if (!InTransaction()) {
     return;
   }
+
+  // The current "scroll series" is a like a sub-transaction. It has a separate
+  // timeout of 80ms. Since we need to compute wheel deltas at different phases
+  // of a transaction (for example, when it is updated, and later when the
+  // event action is taken), we affix the scroll series counter to the event.
+  // This makes GetScrollWheelDelta() consistent.
+  if (!mLastEventTime.IsNull() &&
+      (aEvent.mTimeStamp - mLastEventTime).ToMilliseconds() > kScrollSeriesTimeoutMs)
+  {
+    mScrollSeriesCounter = 0;
+  }
+  aEvent.mScrollSeriesNumber = ++mScrollSeriesCounter;
 
   // If we can't scroll in the direction of the wheel event, we don't update
   // the last move time. This allows us to timeout a transaction even if the
@@ -585,6 +614,7 @@ bool
 PanGestureBlockState::SetContentResponse(bool aPreventDefault)
 {
   if (aPreventDefault) {
+    TBS_LOG("%p setting interrupted flag\n", this);
     mInterrupted = true;
   }
   bool stateChanged = CancelableBlockState::SetContentResponse(aPreventDefault);

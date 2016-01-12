@@ -32,7 +32,7 @@ MacroAssemblerX64::loadConstantDouble(double d, FloatRegister dest)
     // PC-relative addressing. Use "jump" label support code, because we need
     // the same PC-relative address patching that jumps use.
     JmpSrc j = masm.vmovsd_ripr(dest.encoding());
-    dbl->uses.append(CodeOffset(j.offset()));
+    propagateOOM(dbl->uses.append(CodeOffset(j.offset())));
 }
 
 void
@@ -45,7 +45,7 @@ MacroAssemblerX64::loadConstantFloat32(float f, FloatRegister dest)
         return;
     // See comment in loadConstantDouble
     JmpSrc j = masm.vmovss_ripr(dest.encoding());
-    flt->uses.append(CodeOffset(j.offset()));
+    propagateOOM(flt->uses.append(CodeOffset(j.offset())));
 }
 
 void
@@ -59,7 +59,7 @@ MacroAssemblerX64::loadConstantInt32x4(const SimdConstant& v, FloatRegister dest
         return;
     MOZ_ASSERT(val->type() == SimdConstant::Int32x4);
     JmpSrc j = masm.vmovdqa_ripr(dest.encoding());
-    val->uses.append(CodeOffset(j.offset()));
+    propagateOOM(val->uses.append(CodeOffset(j.offset())));
 }
 
 void
@@ -73,7 +73,7 @@ MacroAssemblerX64::loadConstantFloat32x4(const SimdConstant&v, FloatRegister des
         return;
     MOZ_ASSERT(val->type() == SimdConstant::Float32x4);
     JmpSrc j = masm.vmovaps_ripr(dest.encoding());
-    val->uses.append(CodeOffset(j.offset()));
+    propagateOOM(val->uses.append(CodeOffset(j.offset())));
 }
 
 void
@@ -265,7 +265,7 @@ MacroAssemblerX64::branchPtrInNurseryRange(Condition cond, Register ptr, Registe
 
     const Nursery& nursery = GetJitContext()->runtime->gcNursery();
     movePtr(ImmWord(-ptrdiff_t(nursery.start())), scratch);
-    addPtr(ptr, scratch);
+    asMasm().addPtr(ptr, scratch);
     branchPtr(cond == Assembler::Equal ? Assembler::Below : Assembler::AboveOrEqual,
               scratch, Imm32(nursery.nurserySize()), label);
 }
@@ -287,7 +287,7 @@ MacroAssemblerX64::branchValueIsNurseryObject(Condition cond, ValueOperand value
 
     ScratchRegisterScope scratch(asMasm());
     movePtr(ImmWord(-ptrdiff_t(start.asRawBits())), scratch);
-    addPtr(value.valueReg(), scratch);
+    asMasm().addPtr(value.valueReg(), scratch);
     branchPtr(cond == Assembler::Equal ? Assembler::Below : Assembler::AboveOrEqual,
               scratch, Imm32(nursery.nurserySize()), label);
 }

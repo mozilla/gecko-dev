@@ -80,10 +80,7 @@ public:
   NS_DECL_NSIREQUEST
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIEVENTTARGET
-  // missing from NS_DECL_NSIEVENTTARGET because MSVC
-  nsresult Dispatch(nsIRunnable* aEvent, uint32_t aFlags) {
-    return Dispatch(nsCOMPtr<nsIRunnable>(aEvent).forget(), aFlags);
-  }
+  using nsIEventTarget::Dispatch;
 
   explicit WebSocketImpl(WebSocket* aWebSocket)
   : mWebSocket(aWebSocket)
@@ -1910,9 +1907,11 @@ WebSocket::CreateAndDispatchCloseEvent(bool aWasClean,
   MOZ_ASSERT(mImpl);
   AssertIsOnTargetThread();
 
-  mImpl->mService->WebSocketClosed(mImpl->mChannel->Serial(),
-                                   mImpl->mInnerWindowID,
-                                   aWasClean, aCode, aReason);
+  if (mImpl->mChannel) {
+    mImpl->mService->WebSocketClosed(mImpl->mChannel->Serial(),
+                                     mImpl->mInnerWindowID,
+                                     aWasClean, aCode, aReason);
+  }
 
   nsresult rv = CheckInnerWindowCorrectness();
   if (NS_FAILED(rv)) {
@@ -2117,17 +2116,6 @@ public:
                                       EmptyCString());
     }
 
-    return true;
-  }
-
-  bool Suspend(JSContext* aCx) override
-  {
-    {
-      MutexAutoLock lock(mWebSocketImpl->mMutex);
-      mWebSocketImpl->mWorkerShuttingDown = true;
-    }
-
-    mWebSocketImpl->CloseConnection(nsIWebSocketChannel::CLOSE_GOING_AWAY);
     return true;
   }
 

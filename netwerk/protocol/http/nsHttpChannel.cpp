@@ -7,7 +7,6 @@
 // HttpLog.h should generally be included first
 #include "HttpLog.h"
 
-#include "mozilla/dom/nsCSPUtils.h"
 #include "mozilla/dom/nsCSPContext.h"
 #include "nsHttp.h"
 #include "nsHttpChannel.h"
@@ -56,7 +55,6 @@
 #include "nsIClassOfService.h"
 #include "nsIPermissionManager.h"
 #include "nsIPrincipal.h"
-#include "nsIScriptError.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsISSLStatus.h"
 #include "nsISSLStatusProvider.h"
@@ -90,6 +88,8 @@
 #include "nsIDeprecationWarner.h"
 #include "nsIDocument.h"
 #include "nsICompressConvStats.h"
+#include "nsCORSListenerProxy.h"
+#include "nsISocketProvider.h"
 
 namespace mozilla { namespace net {
 
@@ -312,88 +312,24 @@ nsHttpChannel::Connect()
 
     LOG(("nsHttpChannel::Connect [this=%p]\n", this));
 
-    // Even if we're in private browsing mode, we still enforce existing STS
-    // data (it is read-only).
-    // if the connection is not using SSL and either the exact host matches or
-    // a superdomain wants to force HTTPS, do it.
     bool isHttps = false;
     rv = mURI->SchemeIs("https", &isHttps);
     NS_ENSURE_SUCCESS(rv,rv);
-
-    if (!isHttps) {
-        // If any of the documents up the chain to the root doucment makes use of
-        // the CSP directive 'upgrade-insecure-requests', then it's time to fulfill
-        // the promise to CSP and mixed content blocking to upgrade the channel
-        // from http to https.
-        if (mLoadInfo) {
-            bool isPreload = nsContentUtils::IsPreloadType(mLoadInfo->InternalContentPolicyType());
-            bool upgradeRequests =
-              ((isPreload && mLoadInfo->GetUpgradeInsecurePreloads()) ||
-               (mLoadInfo->GetUpgradeInsecureRequests()));
-
-            // Please note that cross origin top level navigations are not subject
-            // to upgrade-insecure-requests, see:
-            // http://www.w3.org/TR/upgrade-insecure-requests/#examples
-            nsCOMPtr<nsIPrincipal> resultPrincipal;
-            nsContentUtils::GetSecurityManager()->
-                GetChannelResultPrincipal(this, getter_AddRefs(resultPrincipal));
-            bool crossOriginNavigation =
-                (mLoadInfo->GetExternalContentPolicyType() == nsIContentPolicy::TYPE_DOCUMENT) &&
-                (!resultPrincipal->Equals(mLoadInfo->LoadingPrincipal()));
-
-            if (upgradeRequests && !crossOriginNavigation) {
-                // let's log a message to the console that we are upgrading a request
-                nsAutoCString spec, scheme;
-                mURI->GetSpec(spec);
-                mURI->GetScheme(scheme);
-                // append the additional 's' for security to the scheme :-)
-                scheme.AppendASCII("s");
-                NS_ConvertUTF8toUTF16 reportSpec(spec);
-                NS_ConvertUTF8toUTF16 reportScheme(scheme);
-
-                const char16_t* params[] = { reportSpec.get(), reportScheme.get() };
-                uint32_t innerWindowId = mLoadInfo ? mLoadInfo->GetInnerWindowID() : 0;
-                CSP_LogLocalizedStr(MOZ_UTF16("upgradeInsecureRequest"),
-                                    params, ArrayLength(params),
-                                    EmptyString(), // aSourceFile
-                                    EmptyString(), // aScriptSample
-                                    0, // aLineNumber
-                                    0, // aColumnNumber
-                                    nsIScriptError::warningFlag, "CSP",
-                                    innerWindowId);
-
-                Telemetry::Accumulate(Telemetry::HTTP_SCHEME_UPGRADE, 4);
-                return AsyncCall(&nsHttpChannel::HandleAsyncRedirectChannelToHttps);
-            }
-        }
-
-        // enforce Strict-Transport-Security
-        nsISiteSecurityService* sss = gHttpHandler->GetSSService();
-        NS_ENSURE_TRUE(sss, NS_ERROR_OUT_OF_MEMORY);
-
-        bool isStsHost = false;
-        uint32_t flags = mPrivateBrowsing ? nsISocketProvider::NO_PERMANENT_STORAGE : 0;
-        rv = sss->IsSecureURI(nsISiteSecurityService::HEADER_HSTS, mURI, flags,
-                              &isStsHost);
-
-        // if the SSS check fails, it's likely because this load is on a
-        // malformed URI or something else in the setup is wrong, so any error
-        // should be reported.
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        if (isStsHost) {
-            LOG(("nsHttpChannel::Connect() STS permissions found\n"));
-            if (mAllowSTS) {
-                Telemetry::Accumulate(Telemetry::HTTP_SCHEME_UPGRADE, 3);
-                return AsyncCall(&nsHttpChannel::HandleAsyncRedirectChannelToHttps);
-            } else {
-                Telemetry::Accumulate(Telemetry::HTTP_SCHEME_UPGRADE, 2);
-            }
-        } else {
-            Telemetry::Accumulate(Telemetry::HTTP_SCHEME_UPGRADE, 1);
-        }
-    } else {
-        Telemetry::Accumulate(Telemetry::HTTP_SCHEME_UPGRADE, 0);
+    nsCOMPtr<nsIPrincipal> resultPrincipal;
+    if (!isHttps && mLoadInfo) {
+        nsContentUtils::GetSecurityManager()->
+          GetChannelResultPrincipal(this, getter_AddRefs(resultPrincipal));
+    }
+    bool shouldUpgrade = false;
+    rv = NS_ShouldSecureUpgrade(mURI,
+                                mLoadInfo,
+                                resultPrincipal,
+                                mPrivateBrowsing,
+                                mAllowSTS,
+                                shouldUpgrade);
+    NS_ENSURE_SUCCESS(rv, rv);
+    if (shouldUpgrade) {
+        return AsyncCall(&nsHttpChannel::HandleAsyncRedirectChannelToHttps);
     }
 
     // ensure that we are using a valid hostname
@@ -451,9 +387,7 @@ nsHttpChannel::ContinueConnect()
         mInterceptCache != INTERCEPTED) {
         MOZ_ASSERT(!mPreflightChannel);
         nsresult rv =
-            nsCORSListenerProxy::StartCORSPreflight(this,
-                                                    mPreflightPrincipal, this,
-                                                    mWithCredentials,
+            nsCORSListenerProxy::StartCORSPreflight(this, this,
                                                     mUnsafeHeaders,
                                                     getter_AddRefs(mPreflightChannel));
         return rv;
@@ -1695,23 +1629,6 @@ nsHttpChannel::ProcessResponse()
     Telemetry::Accumulate(Telemetry::HTTP_RESPONSE_VERSION,
                           mResponseHead->Version());
 
-#if defined(ANDROID) || defined(MOZ_B2G)
-    if (gHttpHandler->IsTelemetryEnabled()) {
-      // Gather telemetry on being sent a WAP content-type
-      // This check will catch (at least) the following content types:
-      // application/wml+xml, application/vnd.wap.xhtml+xml,
-      // text/vnd.wap.wml, application/vnd.wap.wmlc
-      bool isWap = false;
-      if (!mResponseHead->ContentType().IsEmpty() && (
-          mResponseHead->ContentType().Find(".wap") != -1 ||
-          mResponseHead->ContentType().Find("/wml") != -1)) {
-        isWap = true;
-      }
-
-      Telemetry::Accumulate(Telemetry::HTTP_WAP_CONTENT_TYPE_RECEIVED, isWap);
-    }
-#endif
-
     return rv;
 }
 
@@ -1938,29 +1855,11 @@ nsHttpChannel::HandleAsyncRedirectChannelToHttps()
 nsresult
 nsHttpChannel::StartRedirectChannelToHttps()
 {
-    nsresult rv = NS_OK;
     LOG(("nsHttpChannel::HandleAsyncRedirectChannelToHttps() [STS]\n"));
 
     nsCOMPtr<nsIURI> upgradedURI;
-
-    rv = mURI->Clone(getter_AddRefs(upgradedURI));
+    nsresult rv = GetSecureUpgradedURI(mURI, getter_AddRefs(upgradedURI));
     NS_ENSURE_SUCCESS(rv,rv);
-
-    upgradedURI->SetScheme(NS_LITERAL_CSTRING("https"));
-
-    int32_t oldPort = -1;
-    rv = mURI->GetPort(&oldPort);
-    if (NS_FAILED(rv)) return rv;
-
-    // Keep any nonstandard ports so only the scheme is changed.
-    // For example:
-    //  http://foo.com:80 -> https://foo.com:443
-    //  http://foo.com:81 -> https://foo.com:81
-
-    if (oldPort == 80 || oldPort == -1)
-        upgradedURI->SetPort(-1);
-    else
-        upgradedURI->SetPort(oldPort);
 
     return StartRedirectChannelToURI(upgradedURI,
                                      nsIChannelEventSink::REDIRECT_PERMANENT |
@@ -2014,21 +1913,12 @@ nsHttpChannel::StartRedirectChannelToURI(nsIURI *upgradedURI, uint32_t flags)
     // Inform consumers about this fake redirect
     mRedirectChannel = newChannel;
 
-    if (!(flags & nsIChannelEventSink::REDIRECT_STS_UPGRADE)) {
-        // Ensure that internally-redirected channels cannot be intercepted, which would look
-        // like two separate requests to the nsINetworkInterceptController.
-        if (mInterceptCache == INTERCEPTED) {
-            nsCOMPtr<nsIHttpChannelInternal> httpRedirect = do_QueryInterface(mRedirectChannel);
-            if (httpRedirect) {
-                httpRedirect->ForceIntercepted(mInterceptionID);
-            }
-        } else {
-            nsLoadFlags loadFlags = nsIRequest::LOAD_NORMAL;
-            rv = mRedirectChannel->GetLoadFlags(&loadFlags);
-            NS_ENSURE_SUCCESS(rv, rv);
-            loadFlags |= nsIChannel::LOAD_BYPASS_SERVICE_WORKER;
-            rv = mRedirectChannel->SetLoadFlags(loadFlags);
-            NS_ENSURE_SUCCESS(rv, rv);
+    if (!(flags & nsIChannelEventSink::REDIRECT_STS_UPGRADE) &&
+        mInterceptCache == INTERCEPTED) {
+        // Mark the channel as intercepted in order to propagate the response URL.
+        nsCOMPtr<nsIHttpChannelInternal> httpRedirect = do_QueryInterface(mRedirectChannel);
+        if (httpRedirect) {
+            httpRedirect->ForceIntercepted(mInterceptionID);
         }
     }
 
@@ -3425,12 +3315,14 @@ nsHttpChannel::OnCacheEntryCheck(nsICacheEntry* entry, nsIApplicationCache* appC
         // expect it to be cached.  (we only keep it in our cache for the
         // purposes of back/forward, etc.)
         //
-        // the request method MUST be either GET or HEAD (see bug 175641).
+        // the request method MUST be either GET or HEAD (see bug 175641) and
+        // the cached response code must be < 400
         //
         // do not override conditional headers when consumer has defined its own
         if (!mCachedResponseHead->NoStore() &&
             (mRequestHead.IsGet() || mRequestHead.IsHead()) &&
-             !mCustomConditionalRequest) {
+            !mCustomConditionalRequest &&
+            (mCachedResponseHead->Status() < 400)) {
 
             if (mConcurentCacheAccess) {
                 // In case of concurrent read and also validation request we
@@ -4607,6 +4499,23 @@ nsHttpChannel::SetupReplacementChannel(nsIURI       *newURI,
         resumableChannel->ResumeAt(mStartPos, mEntityID);
     }
 
+    if (!(redirectFlags & nsIChannelEventSink::REDIRECT_STS_UPGRADE) &&
+        mInterceptCache != INTERCEPTED) {
+        // Ensure that internally-redirected channels, or loads with manual
+        // redirect mode cannot be intercepted, which would look like two
+        // separate requests to the nsINetworkInterceptController.
+        if (mRedirectMode != nsIHttpChannelInternal::REDIRECT_MODE_MANUAL ||
+            (redirectFlags & (nsIChannelEventSink::REDIRECT_TEMPORARY |
+                              nsIChannelEventSink::REDIRECT_PERMANENT)) == 0) {
+            nsLoadFlags loadFlags = nsIRequest::LOAD_NORMAL;
+            rv = newChannel->GetLoadFlags(&loadFlags);
+            NS_ENSURE_SUCCESS(rv, rv);
+            loadFlags |= nsIChannel::LOAD_BYPASS_SERVICE_WORKER;
+            rv = newChannel->SetLoadFlags(loadFlags);
+            NS_ENSURE_SUCCESS(rv, rv);
+        }
+    }
+
     return NS_OK;
 }
 
@@ -5039,6 +4948,9 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
     if (!(mLoadFlags & LOAD_REPLACE)) {
         gHttpHandler->OnOpeningRequest(this);
     }
+
+    // Set user agent override
+    HttpBaseChannel::SetDocshellUserAgentOverride();
 
     mIsPending = true;
     mWasOpened = true;

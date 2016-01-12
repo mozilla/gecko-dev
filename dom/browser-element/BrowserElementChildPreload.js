@@ -68,15 +68,6 @@ const OBSERVED_EVENTS = [
   'invalid-widget'
 ];
 
-const COMMAND_MAP = {
-  'cut': 'cmd_cut',
-  'copy': 'cmd_copyAndCollapseToEnd',
-  'copyImage': 'cmd_copyImage',
-  'copyLink': 'cmd_copyLink',
-  'paste': 'cmd_paste',
-  'selectall': 'cmd_selectAll'
-};
-
 /**
  * The BrowserElementChild implements one half of <iframe mozbrowser>.
  * (The other half is, unsurprisingly, BrowserElementParent.)
@@ -139,7 +130,6 @@ function BrowserElementChild() {
 
   this._isContentWindowCreated = false;
   this._pendingSetInputMethodActive = [];
-  this._selectionStateChangedTarget = null;
 
   this.forwarder = new BrowserElementProxyForwarder();
 
@@ -224,11 +214,6 @@ BrowserElementChild.prototype = {
                      /* useCapture = */ true,
                      /* wantsUntrusted = */ false);
 
-    addEventListener('mozselectionstatechanged',
-                     this._selectionStateChangedHandler.bind(this),
-                     /* useCapture = */ true,
-                     /* wantsUntrusted = */ false);
-
     addEventListener('scrollviewchange',
                      this._ScrollViewChangeHandler.bind(this),
                      /* useCapture = */ true,
@@ -284,7 +269,6 @@ BrowserElementChild.prototype = {
       "activate-next-paint-listener": this._activateNextPaintListener.bind(this),
       "set-input-method-active": this._recvSetInputMethodActive.bind(this),
       "deactivate-next-paint-listener": this._deactivateNextPaintListener.bind(this),
-      "do-command": this._recvDoCommand,
       "find-all": this._recvFindAll.bind(this),
       "find-next": this._recvFindNext.bind(this),
       "clear-match": this._recvClearMatch.bind(this),
@@ -411,15 +395,6 @@ BrowserElementChild.prototype = {
         args.promptType == 'custom-prompt') {
       return returnValue;
     }
-  },
-
-  _isCommandEnabled: function(cmd) {
-    let command = COMMAND_MAP[cmd];
-    if (!command) {
-      return false;
-    }
-
-    return docShell.isCommandEnabled(command);
   },
 
   /**
@@ -597,6 +572,7 @@ BrowserElementChild.prototype = {
     let handlers = {
       'icon': this._iconChangedHandler.bind(this),
       'apple-touch-icon': this._iconChangedHandler.bind(this),
+      'apple-touch-icon-precomposed': this._iconChangedHandler.bind(this),
       'search': this._openSearchHandler,
       'manifest': this._manifestChangedHandler
     };
@@ -716,97 +692,6 @@ BrowserElementChild.prototype = {
         sendAsyncMsg('opentab', {url: node.href});
       }
     }
-  },
-
-  _selectionStateChangedHandler: function(e) {
-    e.stopPropagation();
-
-    if (!this._isContentWindowCreated) {
-      return;
-    }
-
-    let boundingClientRect = e.boundingClientRect;
-
-    let isCollapsed = (e.selectedText.length == 0);
-    let isMouseUp = (e.states.indexOf('mouseup') == 0);
-    let canPaste = this._isCommandEnabled("paste");
-
-    if (this._selectionStateChangedTarget != e.target) {
-      // SelectionStateChanged events with the following states are not
-      // necessary to trigger the text dialog, bypass these events
-      // by default.
-      //
-      if(e.states.length == 0 ||
-         e.states.indexOf('drag') == 0 ||
-         e.states.indexOf('keypress') == 0 ||
-         e.states.indexOf('mousedown') == 0) {
-        return;
-      }
-
-      // The collapsed SelectionStateChanged event is unnecessary to dispatch,
-      // bypass this event by default, but here comes some exceptional cases
-      if (isCollapsed) {
-        if (isMouseUp && canPaste) {
-          // Always dispatch to support shortcut mode which can paste previous
-          // copied content easily
-        } else if (e.states.indexOf('blur') == 0) {
-          // Always dispatch to notify the blur for the focus content
-        } else if (e.states.indexOf('taponcaret') == 0) {
-          // Always dispatch to notify the caret be touched
-        } else {
-          return;
-        }
-      }
-    }
-
-    // If we select something and selection range is visible, we cache current
-    // event's target to selectionStateChangedTarget.
-    // And dispatch the next SelectionStateChagne event if target is matched, so
-    // that the parent side can hide the text dialog.
-    // We clear selectionStateChangedTarget if selection carets are invisible.
-    if (e.visible && !isCollapsed) {
-      this._selectionStateChangedTarget = e.target;
-    } else if (canPaste && isCollapsed) {
-      this._selectionStateChangedTarget = e.target;
-    } else {
-      this._selectionStateChangedTarget = null;
-    }
-
-    let zoomFactor = content.screen.width / content.innerWidth;
-
-    let detail = {
-      rect: {
-        width: boundingClientRect ? boundingClientRect.width : 0,
-        height: boundingClientRect ? boundingClientRect.height : 0,
-        top: boundingClientRect ? boundingClientRect.top : 0,
-        bottom: boundingClientRect ? boundingClientRect.bottom : 0,
-        left: boundingClientRect ? boundingClientRect.left : 0,
-        right: boundingClientRect ? boundingClientRect.right : 0,
-      },
-      commands: {
-        canSelectAll: this._isCommandEnabled("selectall"),
-        canCut: this._isCommandEnabled("cut"),
-        canCopy: this._isCommandEnabled("copy"),
-        canPaste: this._isCommandEnabled("paste"),
-      },
-      zoomFactor: zoomFactor,
-      states: e.states,
-      isCollapsed: (e.selectedText.length == 0),
-      visible: e.visible,
-    };
-
-    // Get correct geometry information if we have nested iframe.
-    let currentWindow = e.target.defaultView;
-    while (currentWindow.realFrameElement) {
-      let currentRect = currentWindow.realFrameElement.getBoundingClientRect();
-      detail.rect.top += currentRect.top;
-      detail.rect.bottom += currentRect.top;
-      detail.rect.left += currentRect.left;
-      detail.rect.right += currentRect.left;
-      currentWindow = currentWindow.realFrameElement.ownerDocument.defaultView;
-    }
-
-    sendAsyncMsg('selectionstatechanged', detail);
   },
 
   _genericMetaHandler: function(name, eventType, target) {
@@ -1292,14 +1177,16 @@ BrowserElementChild.prototype = {
   _recvFireCtxCallback: function(data) {
     debug("Received fireCtxCallback message: (" + data.json.menuitem + ")");
 
+    let doCommandIfEnabled = (command) => {
+      if (docShell.isCommandEnabled(command)) {
+        docShell.doCommand(command);
+      }
+    };
+
     if (data.json.menuitem == 'copy-image') {
-      // Set command
-      data.json.command = 'copyImage';
-      this._recvDoCommand(data);
+      doCommandIfEnabled('cmd_copyImage');
     } else if (data.json.menuitem == 'copy-link') {
-      // Set command
-      data.json.command = 'copyLink';
-      this._recvDoCommand(data);
+      doCommandIfEnabled('cmd_copyLink');
     } else if (data.json.menuitem in this._ctxHandlers) {
       this._ctxHandlers[data.json.menuitem].click();
       this._ctxHandlers = {};
@@ -1476,13 +1363,6 @@ BrowserElementChild.prototype = {
 
   _recvZoom: function(data) {
     docShell.contentViewer.fullZoom = data.json.zoom;
-  },
-
-  _recvDoCommand: function(data) {
-    if (this._isCommandEnabled(data.json.command)) {
-      this._selectionStateChangedTarget = null;
-      docShell.doCommand(COMMAND_MAP[data.json.command]);
-    }
   },
 
   _recvGetAudioChannelVolume: function(data) {

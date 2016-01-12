@@ -245,9 +245,9 @@ TraceLoggerThread::enable(JSContext* cx)
 
             script = it.script();
             engine = it.isIonJS() ? TraceLogger_IonMonkey : TraceLogger_Baseline;
-        } else if (act->isAsmJS()) {
+        } else if (act->isWasm()) {
             JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_TRACELOGGER_ENABLE_FAIL,
-                                 "not yet supported in asmjs code");
+                                 "not yet supported in wasm code");
             return false;
         } else {
             MOZ_ASSERT(act->isInterpreter());
@@ -355,6 +355,8 @@ TraceLoggerThread::getOrCreateEventPayload(TraceLoggerTextId textId)
     }
 
     TraceLoggerEventPayload* payload = js_new<TraceLoggerEventPayload>(textId, (char*)nullptr);
+    if (!payload)
+        return nullptr;
 
     if (!textIdPayloads.add(p, textId, payload))
         return nullptr;
@@ -439,7 +441,7 @@ TraceLoggerThread::getOrCreateEventPayload(TraceLoggerTextId type, const char* f
         return nullptr;
 
     DebugOnly<size_t> ret =
-        JS_snprintf(str, len + 1, "script %s:%u:%u", filename, lineno, colno);
+        JS_snprintf(str, len + 1, "script %s:%" PRIuSIZE ":%" PRIuSIZE, filename, lineno, colno);
     MOZ_ASSERT(ret == len);
     MOZ_ASSERT(strlen(str) == len);
 

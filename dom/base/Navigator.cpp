@@ -106,7 +106,7 @@
 #include "mozilla/dom/Promise.h"
 
 #include "nsIUploadChannel2.h"
-#include "nsFormData.h"
+#include "mozilla/dom/FormData.h"
 #include "nsIDocShell.h"
 
 #include "WorkerPrivate.h"
@@ -220,6 +220,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(Navigator)
 #endif
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mDeviceStorageAreaListener)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPresentation)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mVRGetDevicesPromises)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
@@ -360,6 +361,8 @@ Navigator::Invalidate()
   if (mDeviceStorageAreaListener) {
     mDeviceStorageAreaListener = nullptr;
   }
+
+  mVRGetDevicesPromises.Clear();
 }
 
 //*****************************************************************************
@@ -372,11 +375,22 @@ Navigator::GetUserAgent(nsAString& aUserAgent)
   nsCOMPtr<nsIURI> codebaseURI;
   nsCOMPtr<nsPIDOMWindow> window;
 
-  if (mWindow && mWindow->GetDocShell()) {
+  if (mWindow) {
     window = mWindow;
-    nsIDocument* doc = mWindow->GetExtantDoc();
-    if (doc) {
-      doc->NodePrincipal()->GetURI(getter_AddRefs(codebaseURI));
+    nsIDocShell* docshell = window->GetDocShell();
+    nsString customUserAgent;
+    if (docshell) {
+      docshell->GetCustomUserAgent(customUserAgent);
+
+      if (!customUserAgent.IsEmpty()) {
+        aUserAgent = customUserAgent;
+        return NS_OK;
+      }
+
+      nsIDocument* doc = mWindow->GetExtantDoc();
+      if (doc) {
+        doc->NodePrincipal()->GetURI(getter_AddRefs(codebaseURI));
+      }
     }
   }
 
@@ -1200,12 +1214,19 @@ Navigator::SendBeacon(const nsAString& aUrl,
     return false;
   }
 
+  nsLoadFlags loadFlags = nsIRequest::LOAD_NORMAL |
+    nsIChannel::LOAD_CLASSIFY_URI;
+
   nsCOMPtr<nsIChannel> channel;
   rv = NS_NewChannel(getter_AddRefs(channel),
                      uri,
                      doc,
-                     nsILoadInfo::SEC_REQUIRE_CORS_DATA_INHERITS,
-                     nsIContentPolicy::TYPE_BEACON);
+                     nsILoadInfo::SEC_REQUIRE_CORS_DATA_INHERITS |
+                       nsILoadInfo::SEC_COOKIES_INCLUDE,
+                     nsIContentPolicy::TYPE_BEACON,
+                     nullptr, // aLoadGroup
+                     nullptr, // aCallbacks
+                     loadFlags);
 
   if (NS_FAILED(rv)) {
     aRv.Throw(rv);
@@ -1271,7 +1292,7 @@ Navigator::SendBeacon(const nsAString& aUrl,
       mimeType = NS_ConvertUTF16toUTF8(type);
 
     } else if (aData.Value().IsFormData()) {
-      nsFormData& form = aData.Value().GetAsFormData();
+      FormData& form = aData.Value().GetAsFormData();
       uint64_t len;
       nsAutoCString charset;
       form.GetSendInfo(getter_AddRefs(in),
@@ -1315,41 +1336,6 @@ Navigator::SendBeacon(const nsAString& aUrl,
   channel->SetLoadGroup(loadGroup);
 
   RefPtr<BeaconStreamListener> beaconListener = new BeaconStreamListener();
-
-  // Start a preflight if cross-origin and content type is not whitelisted
-  nsCOMPtr<nsIScriptSecurityManager> secMan = nsContentUtils::GetSecurityManager();
-  rv = secMan->CheckSameOriginURI(documentURI, uri, false);
-  bool crossOrigin = NS_FAILED(rv);
-  nsAutoCString contentType, parsedCharset;
-  rv = NS_ParseRequestContentType(mimeType, contentType, parsedCharset);
-  if (crossOrigin &&
-      mimeType.Length() > 0 &&
-      !contentType.Equals(APPLICATION_WWW_FORM_URLENCODED) &&
-      !contentType.Equals(MULTIPART_FORM_DATA) &&
-      !contentType.Equals(TEXT_PLAIN)) {
-
-    // we need to set the sameOriginChecker as a notificationCallback
-    // so we can tell the channel not to follow redirects
-    nsCOMPtr<nsIInterfaceRequestor> soc = nsContentUtils::SameOriginChecker();
-    channel->SetNotificationCallbacks(soc);
-
-    nsCOMPtr<nsIHttpChannelInternal> internalChannel =
-      do_QueryInterface(channel);
-    if (!internalChannel) {
-      aRv.Throw(NS_ERROR_FAILURE);
-      return false;
-    }
-    nsTArray<nsCString> unsafeHeaders;
-    unsafeHeaders.AppendElement(NS_LITERAL_CSTRING("Content-Type"));
-    rv = internalChannel->SetCorsPreflightParameters(unsafeHeaders,
-                                                     true,
-                                                     doc->NodePrincipal());
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      aRv.Throw(rv);
-      return false;
-    }
-  }
-
   rv = channel->AsyncOpen2(beaconListener);
   if (NS_FAILED(rv)) {
     aRv.Throw(rv);
@@ -1956,16 +1942,35 @@ Navigator::GetVRDevices(ErrorResult& aRv)
     return nullptr;
   }
 
+  // We pass ourself to RefreshVRDevices, so NotifyVRDevicesUpdated will
+  // be called asynchronously, resolving the promises in mVRGetDevicesPromises.
+  if (!VRDevice::RefreshVRDevices(this)) {
+    p->MaybeReject(NS_ERROR_FAILURE);
+    return p.forget();
+  }
+
+  mVRGetDevicesPromises.AppendElement(p);
+  return p.forget();
+}
+
+void
+Navigator::NotifyVRDevicesUpdated()
+{
+  // Synchronize the VR devices and resolve the promises in
+  // mVRGetDevicesPromises
   nsGlobalWindow* win = static_cast<nsGlobalWindow*>(mWindow.get());
 
   nsTArray<RefPtr<VRDevice>> vrDevs;
-  if (!win->GetVRDevices(vrDevs)) {
-    p->MaybeReject(NS_ERROR_FAILURE);
+  if (win->UpdateVRDevices(vrDevs)) {
+    for (auto p: mVRGetDevicesPromises) {
+      p->MaybeResolve(vrDevs);
+    }
   } else {
-    p->MaybeResolve(vrDevs);
+    for (auto p: mVRGetDevicesPromises) {
+      p->MaybeReject(NS_ERROR_FAILURE);
+    }
   }
-
-  return p.forget();
+  mVRGetDevicesPromises.Clear();
 }
 
 //*****************************************************************************
@@ -2773,6 +2778,12 @@ Navigator::AppName(nsAString& aAppName, bool aUsePrefOverriddenValue)
   }
 
   aAppName.AssignLiteral("Netscape");
+}
+
+void
+Navigator::ClearUserAgentCache()
+{
+  NavigatorBinding::ClearCachedUserAgentValue(this);
 }
 
 nsresult

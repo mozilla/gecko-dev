@@ -233,7 +233,7 @@ EventListenerManager::AddEventListenerInternal(
   MOZ_ASSERT(// Main thread
              (NS_IsMainThread() && aEventMessage && aTypeAtom) ||
              // non-main-thread
-             (!NS_IsMainThread() && aEventMessage && !aTypeString.IsEmpty()) ||
+             (!NS_IsMainThread() && aEventMessage) ||
              aAllEvents, "Missing type"); // all-events listener
 
   if (!aListenerHolder || mClearingListeners) {
@@ -455,7 +455,11 @@ EventListenerManager::EnableDevice(EventMessage aEventMessage)
 
   switch (aEventMessage) {
     case eDeviceOrientation:
+#ifdef MOZ_WIDGET_ANDROID
+      window->EnableDeviceSensor(SENSOR_ROTATION_VECTOR);
+#else
       window->EnableDeviceSensor(SENSOR_ORIENTATION);
+#endif
       break;
     case eDeviceProximity:
     case eUserProximity:
@@ -490,7 +494,11 @@ EventListenerManager::DisableDevice(EventMessage aEventMessage)
 
   switch (aEventMessage) {
     case eDeviceOrientation:
+#ifdef MOZ_WIDGET_ANDROID
+      window->DisableDeviceSensor(SENSOR_ROTATION_VECTOR);
+#else
       window->DisableDeviceSensor(SENSOR_ORIENTATION);
+#endif
       break;
     case eDeviceMotion:
       window->DisableDeviceSensor(SENSOR_ACCELERATION);

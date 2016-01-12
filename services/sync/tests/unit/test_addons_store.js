@@ -3,6 +3,7 @@
 
 "use strict";
 
+Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://services-sync/addonutils.js");
 Cu.import("resource://services-sync/engines/addons.js");
@@ -61,7 +62,7 @@ function createAndStartHTTPServer(port) {
     return server;
   } catch (ex) {
     _("Got exception starting HTTP server on port " + port);
-    _("Error: " + Utils.exceptionStr(ex));
+    _("Error: " + Log.exceptionStr(ex));
     do_throw(ex);
   }
 }
@@ -414,9 +415,10 @@ add_test(function test_create_bad_install() {
   let record = createRecordForThisApp(guid, id, true, false);
 
   let failed = store.applyIncomingBatch([record]);
-  do_check_eq(1, failed.length);
-  do_check_eq(guid, failed[0]);
-  do_check_eq(sumHistogram("WEAVE_ENGINE_APPLY_FAILURES", { key: "addons" }), 1);
+  // This addon had no source URI so was skipped - but it's not treated as
+  // failure.
+  do_check_eq(0, failed.length);
+  do_check_eq(sumHistogram("WEAVE_ENGINE_APPLY_FAILURES", { key: "addons" }), 0);
 
   let addon = getAddonFromAddonManagerByID(id);
   do_check_eq(null, addon);

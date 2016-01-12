@@ -41,7 +41,6 @@
 #include "nsIObjectFrame.h"
 #include "nsBindingManager.h"
 #include "nsStyleCoord.h"
-#include "SelectionCarets.h"
 #include "TabChild.h"
 #include "nsFrameLoader.h"
 
@@ -1692,11 +1691,6 @@ nsFocusManager::Blur(nsPIDOMWindow* aWindowToClear,
     SetCaretVisible(presShell, false, nullptr);
   }
 
-  RefPtr<SelectionCarets> selectionCarets = presShell->GetSelectionCarets();
-  if (selectionCarets) {
-    selectionCarets->NotifyBlur(aIsLeavingDocument || !mActiveWindow);
-  }
-
   RefPtr<AccessibleCaretEventHub> eventHub = presShell->GetAccessibleCaretEventHub();
   if (eventHub) {
     eventHub->NotifyBlur(aIsLeavingDocument || !mActiveWindow);
@@ -2826,6 +2820,11 @@ nsFocusManager::DetermineElementToMoveFocus(nsPIDOMWindow* aWindow,
         nsIContent* root = GetRootForFocus(piWindow, doc, true, true);
         return FocusFirst(root, aNextContent);
       }
+
+      // Once we have hit the top-level and have iterated to the end again, we
+      // just want to break out next time we hit this spot to prevent infinite
+      // iteration.
+      mayFocusRoot = true;
 
       // reset the tab index and start again from the beginning or end
       startContent = rootContent;

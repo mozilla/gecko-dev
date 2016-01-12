@@ -130,8 +130,7 @@
 
       <property name="currentEngine">
         <setter><![CDATA[
-          let ss = Services.search;
-          ss.defaultEngine = ss.currentEngine = val;
+          Services.search.currentEngine = val;
           return val;
         ]]></setter>
         <getter><![CDATA[
@@ -421,7 +420,7 @@
           if (telemetrySearchDetails && telemetrySearchDetails.index == -1) {
             telemetrySearchDetails = null;
           }
-          BrowserSearch.recordSearchInHealthReport(engine, "searchbar", telemetrySearchDetails);
+          BrowserSearch.recordSearchInTelemetry(engine, "searchbar", telemetrySearchDetails);
           // null parameter below specifies HTML response for search
           let params = {
             postData: submission.postData,
@@ -681,11 +680,9 @@
 
             var outerRect = this.getBoundingClientRect();
             var innerRect = this.inputField.getBoundingClientRect();
-            if (isRTL) {
-              var width = innerRect.right - outerRect.left;
-            } else {
-              var width = outerRect.right - innerRect.left;
-            }
+            let width = isRTL ?
+                        innerRect.right - outerRect.left :
+                        outerRect.right - innerRect.left;
             popup.setAttribute("width", width > 100 ? width : 100);
 
             var yOffset = outerRect.bottom - innerRect.bottom;

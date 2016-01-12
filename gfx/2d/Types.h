@@ -143,7 +143,6 @@ enum class FontType : int8_t {
 
 enum class NativeSurfaceType : int8_t {
   D3D10_TEXTURE,
-  CAIRO_SURFACE,
   CAIRO_CONTEXT,
   CGCONTEXT,
   CGCONTEXT_ACCELERATED,
@@ -342,6 +341,9 @@ enum class JobStatus {
 
 } // namespace gfx
 } // namespace mozilla
+
+// XXX: temporary
+typedef mozilla::gfx::SurfaceFormat gfxImageFormat;
 
 #if defined(XP_WIN) && defined(MOZ_GFX)
 #ifdef GFX2D_INTERNAL

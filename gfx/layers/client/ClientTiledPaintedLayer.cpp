@@ -56,12 +56,14 @@ ClientTiledPaintedLayer::FillSpecificAttributes(SpecificLayerAttributes& aAttrs)
 }
 
 static Maybe<LayerRect>
-ApplyParentLayerToLayerTransform(const gfx::Matrix4x4& aTransform, const ParentLayerRect& aParentLayerRect, const LayerRect& aClip)
+ApplyParentLayerToLayerTransform(const ParentLayerToLayerMatrix4x4& aTransform,
+                                 const ParentLayerRect& aParentLayerRect,
+                                 const LayerRect& aClip)
 {
-  return UntransformTo<LayerPixel>(aTransform, aParentLayerRect, aClip);
+  return UntransformBy(aTransform, aParentLayerRect, aClip);
 }
 
-static gfx::Matrix4x4
+static LayerToParentLayerMatrix4x4
 GetTransformToAncestorsParentLayer(Layer* aStart, const LayerMetricsWrapper& aAncestor)
 {
   gfx::Matrix4x4 transform;
@@ -82,11 +84,11 @@ GetTransformToAncestorsParentLayer(Layer* aStart, const LayerMetricsWrapper& aAn
       // With containerless scrolling, the offending post-scale is on the
       // parent layer of the displayport-ancestor, which we don't reach in this
       // loop, so we don't need to worry about it.
-      const FrameMetrics& metrics = iter.Metrics();
-      transform.PostScale(metrics.GetPresShellResolution(), metrics.GetPresShellResolution(), 1.f);
+      float presShellResolution = iter.GetPresShellResolution();
+      transform.PostScale(presShellResolution, presShellResolution, 1.0f);
     }
   }
-  return transform;
+  return ViewAs<LayerToParentLayerMatrix4x4>(transform);
 }
 
 void
@@ -158,9 +160,8 @@ ClientTiledPaintedLayer::BeginPaint()
 
   // Calculate the transform required to convert ParentLayer space of our
   // display port ancestor to the Layer space of this layer.
-  gfx::Matrix4x4 transformDisplayPortToLayer =
-    GetTransformToAncestorsParentLayer(this, displayPortAncestor);
-  transformDisplayPortToLayer.Invert();
+  ParentLayerToLayerMatrix4x4 transformDisplayPortToLayer =
+    GetTransformToAncestorsParentLayer(this, displayPortAncestor).Inverse();
 
   LayerRect layerBounds = ViewAs<LayerPixel>(Rect(GetLayerBounds()));
 
@@ -192,8 +193,7 @@ ClientTiledPaintedLayer::BeginPaint()
   // Store the applicable composition bounds in this layer's Layer units.
   mPaintData.mTransformToCompBounds =
     GetTransformToAncestorsParentLayer(this, scrollAncestor);
-  gfx::Matrix4x4 transformToBounds = mPaintData.mTransformToCompBounds;
-  transformToBounds.Invert();
+  ParentLayerToLayerMatrix4x4 transformToBounds = mPaintData.mTransformToCompBounds.Inverse();
   Maybe<LayerRect> compositionBoundsTransformed = ApplyParentLayerToLayerTransform(
     transformToBounds, scrollMetrics.GetCompositionBounds(), layerBounds);
   if (!compositionBoundsTransformed) {
@@ -412,8 +412,8 @@ ClientTiledPaintedLayer::RenderLayer()
 
   IntSize layerSize = mVisibleRegion.ToUnknownRegion().GetBounds().Size();
   if (mContentClient && !mContentClient->SupportsLayerSize(layerSize, ClientManager())) {
-    ClearCachedResources();
-    MOZ_ASSERT(!mContentClient);
+    mContentClient = nullptr;
+    mValidRegion.SetEmpty();
   }
 
   if (!mContentClient) {

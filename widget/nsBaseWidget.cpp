@@ -53,6 +53,7 @@
 #include "mozilla/layers/ChromeProcessController.h"
 #include "mozilla/layers/InputAPZContext.h"
 #include "mozilla/layers/APZCCallbackHelper.h"
+#include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/TabParent.h"
 #include "mozilla/Move.h"
 #include "mozilla/Services.h"
@@ -86,6 +87,7 @@ static nsRefPtrHashtable<nsVoidPtrHashKey, nsIWidget>* sPluginWidgetList;
 
 nsIRollupListener* nsBaseWidget::gRollupListener = nullptr;
 
+using namespace mozilla::dom;
 using namespace mozilla::layers;
 using namespace mozilla::ipc;
 using namespace mozilla::widget;
@@ -165,6 +167,9 @@ nsBaseWidget::nsBaseWidget()
 , mUpdateCursor(true)
 , mUseAttachedEvents(false)
 , mIMEHasFocus(false)
+#ifdef XP_WIN
+, mAccessibilityInUseFlag(false)
+#endif
 {
 #ifdef NOISY_WIDGET_LEAKS
   gNumWidgets++;
@@ -230,6 +235,18 @@ WidgetShutdownObserver::Unregister()
   }
 }
 
+#ifdef XP_WIN
+// defined in nsAppRunner.cpp
+extern const char* kAccessibilityLastRunDatePref;
+
+static inline uint32_t
+PRTimeToSeconds(PRTime t_usec)
+{
+  PRTime usec_per_sec = PR_USEC_PER_SEC;
+  return uint32_t(t_usec /= usec_per_sec);
+}
+#endif
+
 void
 nsBaseWidget::Shutdown()
 {
@@ -240,6 +257,12 @@ nsBaseWidget::Shutdown()
     delete sPluginWidgetList;
     sPluginWidgetList = nullptr;
   }
+#if defined(XP_WIN)
+  if (mAccessibilityInUseFlag) {
+    uint32_t now = PRTimeToSeconds(PR_Now());
+    Preferences::SetInt(kAccessibilityLastRunDatePref, now);
+  }
+#endif
 #endif
 }
 
@@ -283,6 +306,7 @@ nsBaseWidget::FreeShutdownObserver()
 // nsBaseWidget destructor
 //
 //-------------------------------------------------------------------------
+
 nsBaseWidget::~nsBaseWidget()
 {
   IMEStateManager::WidgetDestroyed(this);
@@ -308,9 +332,9 @@ nsBaseWidget::~nsBaseWidget()
 // Basic create.
 //
 //-------------------------------------------------------------------------
-void nsBaseWidget::BaseCreate(nsIWidget *aParent,
-                              const nsIntRect &aRect,
-                              nsWidgetInitData *aInitData)
+void nsBaseWidget::BaseCreate(nsIWidget* aParent,
+                              const LayoutDeviceIntRect& aRect,
+                              nsWidgetInitData* aInitData)
 {
   static bool gDisableNativeThemeCached = false;
   if (!gDisableNativeThemeCached) {
@@ -355,9 +379,9 @@ void nsBaseWidget::SetWidgetListener(nsIWidgetListener* aWidgetListener)
 }
 
 already_AddRefed<nsIWidget>
-nsBaseWidget::CreateChild(const nsIntRect  &aRect,
-                          nsWidgetInitData *aInitData,
-                          bool             aForceUseIWidgetParent)
+nsBaseWidget::CreateChild(const LayoutDeviceIntRect& aRect,
+                          nsWidgetInitData* aInitData,
+                          bool aForceUseIWidgetParent)
 {
   nsIWidget* parent = this;
   nsNativeWidget nativeParent = nullptr;
@@ -693,37 +717,37 @@ nsTransparencyMode nsBaseWidget::GetTransparencyMode() {
 }
 
 bool
-nsBaseWidget::IsWindowClipRegionEqual(const nsTArray<nsIntRect>& aRects)
+nsBaseWidget::IsWindowClipRegionEqual(const nsTArray<LayoutDeviceIntRect>& aRects)
 {
   return mClipRects &&
          mClipRectCount == aRects.Length() &&
-         memcmp(mClipRects.get(), aRects.Elements(), sizeof(nsIntRect)*mClipRectCount) == 0;
+         memcmp(mClipRects.get(), aRects.Elements(), sizeof(LayoutDeviceIntRect)*mClipRectCount) == 0;
 }
 
 void
-nsBaseWidget::StoreWindowClipRegion(const nsTArray<nsIntRect>& aRects)
+nsBaseWidget::StoreWindowClipRegion(const nsTArray<LayoutDeviceIntRect>& aRects)
 {
   mClipRectCount = aRects.Length();
-  mClipRects = MakeUnique<nsIntRect[]>(mClipRectCount);
+  mClipRects = MakeUnique<LayoutDeviceIntRect[]>(mClipRectCount);
   if (mClipRects) {
-    memcpy(mClipRects.get(), aRects.Elements(), sizeof(nsIntRect)*mClipRectCount);
+    memcpy(mClipRects.get(), aRects.Elements(), sizeof(LayoutDeviceIntRect)*mClipRectCount);
   }
 }
 
 void
-nsBaseWidget::GetWindowClipRegion(nsTArray<nsIntRect>* aRects)
+nsBaseWidget::GetWindowClipRegion(nsTArray<LayoutDeviceIntRect>* aRects)
 {
   if (mClipRects) {
     aRects->AppendElements(mClipRects.get(), mClipRectCount);
   } else {
-    aRects->AppendElement(nsIntRect(0, 0, mBounds.width, mBounds.height));
+    aRects->AppendElement(LayoutDeviceIntRect(0, 0, mBounds.width, mBounds.height));
   }
 }
 
-const nsIntRegion
-nsBaseWidget::RegionFromArray(const nsTArray<nsIntRect>& aRects)
+const LayoutDeviceIntRegion
+nsBaseWidget::RegionFromArray(const nsTArray<LayoutDeviceIntRect>& aRects)
 {
-  nsIntRegion region;
+  LayoutDeviceIntRegion region;
   for (uint32_t i = 0; i < aRects.Length(); ++i) {
     region.Or(region, aRects[i]);
   }
@@ -731,33 +755,34 @@ nsBaseWidget::RegionFromArray(const nsTArray<nsIntRect>& aRects)
 }
 
 void
-nsBaseWidget::ArrayFromRegion(const nsIntRegion& aRegion, nsTArray<nsIntRect>& aRects)
+nsBaseWidget::ArrayFromRegion(const LayoutDeviceIntRegion& aRegion,
+                              nsTArray<LayoutDeviceIntRect>& aRects)
 {
-  const nsIntRect* r;
-  for (nsIntRegionRectIterator iter(aRegion); (r = iter.Next());) {
+  const LayoutDeviceIntRect* r;
+  for (LayoutDeviceIntRegion::RectIterator iter(aRegion); (r = iter.Next()); ) {
     aRects.AppendElement(*r);
   }
 }
 
 nsresult
-nsBaseWidget::SetWindowClipRegion(const nsTArray<nsIntRect>& aRects,
+nsBaseWidget::SetWindowClipRegion(const nsTArray<LayoutDeviceIntRect>& aRects,
                                   bool aIntersectWithExisting)
 {
   if (!aIntersectWithExisting) {
     StoreWindowClipRegion(aRects);
   } else {
     // get current rects
-    nsTArray<nsIntRect> currentRects;
+    nsTArray<LayoutDeviceIntRect> currentRects;
     GetWindowClipRegion(&currentRects);
     // create region from them
-    nsIntRegion currentRegion = RegionFromArray(currentRects);
+    LayoutDeviceIntRegion currentRegion = RegionFromArray(currentRects);
     // create region from new rects
-    nsIntRegion newRegion = RegionFromArray(aRects);
+    LayoutDeviceIntRegion newRegion = RegionFromArray(aRects);
     // intersect regions
-    nsIntRegion intersection;
+    LayoutDeviceIntRegion intersection;
     intersection.And(currentRegion, newRegion);
     // create int rect array from intersection
-    nsTArray<nsIntRect> rects;
+    nsTArray<LayoutDeviceIntRect> rects;
     ArrayFromRegion(intersection, rects);
     // store
     StoreWindowClipRegion(rects);
@@ -995,7 +1020,11 @@ nsBaseWidget::ProcessUntransformedAPZEvent(WidgetInputEvent* aEvent,
         GetDefaultScale());
   }
 
+  // Make a copy of the original event for the APZCCallbackHelper helpers that
+  // we call later, because the event passed to DispatchEvent can get mutated in
+  // ways that we don't want (i.e. touch points can get stripped out).
   nsEventStatus status;
+  UniquePtr<WidgetEvent> original(aEvent->Duplicate());
   DispatchEvent(aEvent, status);
 
   if (mAPZC && !context.WasRoutedToChildProcess()) {
@@ -1006,18 +1035,19 @@ nsBaseWidget::ProcessUntransformedAPZEvent(WidgetInputEvent* aEvent,
     if (WidgetTouchEvent* touchEvent = aEvent->AsTouchEvent()) {
       if (touchEvent->mMessage == eTouchStart) {
         if (gfxPrefs::TouchActionEnabled()) {
-          APZCCallbackHelper::SendSetAllowedTouchBehaviorNotification(this, *touchEvent,
-              aInputBlockId, mSetAllowedTouchBehaviorCallback);
+          APZCCallbackHelper::SendSetAllowedTouchBehaviorNotification(this,
+              *(original->AsTouchEvent()), aInputBlockId,
+              mSetAllowedTouchBehaviorCallback);
         }
-        APZCCallbackHelper::SendSetTargetAPZCNotification(this, GetDocument(), *aEvent,
-            aGuid, aInputBlockId);
+        APZCCallbackHelper::SendSetTargetAPZCNotification(this, GetDocument(),
+            *(original->AsTouchEvent()), aGuid, aInputBlockId);
       }
       mAPZEventState->ProcessTouchEvent(*touchEvent, aGuid, aInputBlockId,
           aApzResponse, status);
     } else if (WidgetWheelEvent* wheelEvent = aEvent->AsWheelEvent()) {
       if (wheelEvent->mFlags.mHandledByAPZ) {
-        APZCCallbackHelper::SendSetTargetAPZCNotification(this, GetDocument(), *aEvent,
-                  aGuid, aInputBlockId);
+        APZCCallbackHelper::SendSetTargetAPZCNotification(this, GetDocument(),
+            *(original->AsWheelEvent()), aGuid, aInputBlockId);
         if (wheelEvent->mCanTriggerSwipe) {
           ReportSwipeStarted(aInputBlockId, wheelEvent->TriggersSwipe());
         }
@@ -1780,6 +1810,9 @@ nsBaseWidget::GetRootAccessible()
   nsCOMPtr<nsIAccessibilityService> accService =
     services::GetAccessibilityService();
   if (accService) {
+#ifdef XP_WIN
+    mAccessibilityInUseFlag = true;
+#endif
     return accService->GetRootDocumentAccessible(presShell, nsContentUtils::IsSafeToRunScript());
   }
 
@@ -1834,7 +1867,7 @@ nsBaseWidget::GetWidgetScreen()
 }
 
 nsresult
-nsIWidget::SynthesizeNativeTouchTap(nsIntPoint aPointerScreenPoint, bool aLongTap,
+nsIWidget::SynthesizeNativeTouchTap(ScreenIntPoint aPointerScreenPoint, bool aLongTap,
                                     nsIObserver* aObserver)
 {
   AutoObserverNotifier notifier(aObserver, "touchtap");
@@ -1910,7 +1943,7 @@ nsIWidget::OnLongTapTimerCallback(nsITimer* aTimer, void* aClosure)
     return;
   }
 
-  AutoObserverNotifier notiifer(self->mLongTapTouchPoint->mObserver, "touchtap");
+  AutoObserverNotifier notifier(self->mLongTapTouchPoint->mObserver, "touchtap");
 
   // finished, remove the touch point
   self->mLongTapTimer->Cancel();
@@ -2073,8 +2106,48 @@ nsIWidget::SnapshotWidgetOnScreen()
   return dt->Snapshot();
 }
 
+NS_IMETHODIMP_(nsIWidget::NativeIMEContext)
+nsIWidget::GetNativeIMEContext()
+{
+  return NativeIMEContext(this);
+}
+
 namespace mozilla {
 namespace widget {
+
+void
+NativeIMEContext::Init(nsIWidget* aWidget)
+{
+  if (!aWidget) {
+    mRawNativeIMEContext = reinterpret_cast<uintptr_t>(nullptr);
+    mOriginProcessID = static_cast<uint64_t>(-1);
+    return;
+  }
+  if (!XRE_IsContentProcess()) {
+    mRawNativeIMEContext = reinterpret_cast<uintptr_t>(
+      aWidget->GetNativeData(NS_RAW_NATIVE_IME_CONTEXT));
+    mOriginProcessID = 0;
+    return;
+  }
+  // If this is created in a child process, aWidget is an instance of
+  // PuppetWidget which doesn't support NS_RAW_NATIVE_IME_CONTEXT.
+  // Instead of that PuppetWidget::GetNativeIMEContext() returns cached
+  // native IME context of the parent process.
+  *this = aWidget->GetNativeIMEContext();
+}
+
+void
+NativeIMEContext::InitWithRawNativeIMEContext(void* aRawNativeIMEContext)
+{
+  if (NS_WARN_IF(!aRawNativeIMEContext)) {
+    mRawNativeIMEContext = reinterpret_cast<uintptr_t>(nullptr);
+    mOriginProcessID = static_cast<uint64_t>(-1);
+    return;
+  }
+  mRawNativeIMEContext = reinterpret_cast<uintptr_t>(aRawNativeIMEContext);
+  mOriginProcessID =
+    XRE_IsContentProcess() ? ContentChild::GetSingleton()->GetID() : 0;
+}
 
 void
 IMENotification::TextChangeDataBase::MergeWith(
@@ -2972,11 +3045,11 @@ nsBaseWidget::debug_DumpPaintEvent(FILE *                aFileOut,
 }
 //////////////////////////////////////////////////////////////
 /* static */ void
-nsBaseWidget::debug_DumpInvalidate(FILE *                aFileOut,
-                                   nsIWidget *           aWidget,
-                                   const nsIntRect *     aRect,
-                                   const nsAutoCString & aWidgetName,
-                                   int32_t               aWindowID)
+nsBaseWidget::debug_DumpInvalidate(FILE* aFileOut,
+                                   nsIWidget* aWidget,
+                                   const LayoutDeviceIntRect* aRect,
+                                   const nsAutoCString& aWidgetName,
+                                   int32_t aWindowID)
 {
   if (!debug_GetCachedBoolPref("nglayout.debug.invalidate_dumping"))
     return;
@@ -2991,23 +3064,17 @@ nsBaseWidget::debug_DumpInvalidate(FILE *                aFileOut,
           aWidgetName.get(),
           aWindowID);
 
-  if (aRect)
-  {
+  if (aRect) {
     fprintf(aFileOut,
             " rect=%3d,%-3d %3d,%-3d",
-            aRect->x,
-            aRect->y,
-            aRect->width,
-            aRect->height);
-  }
-  else
-  {
+            aRect->x, aRect->y, aRect->width, aRect->height);
+  } else {
     fprintf(aFileOut,
             " rect=%-15s",
             "none");
   }
 
-  fprintf(aFileOut,"\n");
+  fprintf(aFileOut, "\n");
 }
 //////////////////////////////////////////////////////////////
 

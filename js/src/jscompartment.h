@@ -7,8 +7,10 @@
 #ifndef jscompartment_h
 #define jscompartment_h
 
+#include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Variant.h"
+#include "mozilla/XorShift128PlusRNG.h"
 
 #include "builtin/RegExp.h"
 #include "gc/Barrier.h"
@@ -106,6 +108,8 @@ struct CrossCompartmentKey
         MOZ_RELEASE_ASSERT(wrapped);
     }
 
+    bool needsSweep();
+
   private:
     CrossCompartmentKey() = delete;
 };
@@ -123,8 +127,8 @@ struct WrapperHasher : public DefaultHasher<CrossCompartmentKey>
     }
 };
 
-typedef HashMap<CrossCompartmentKey, ReadBarrieredValue,
-                WrapperHasher, SystemAllocPolicy> WrapperMap;
+using WrapperMap = GCRekeyableHashMap<CrossCompartmentKey, ReadBarrieredValue,
+                                      WrapperHasher, SystemAllocPolicy>;
 
 // We must ensure that all newly allocated JSObjects get their metadata
 // set. However, metadata callbacks may require the new object be in a sane
@@ -221,7 +225,8 @@ class WeakMapBase;
 
 struct JSCompartment
 {
-    JS::CompartmentOptions       options_;
+    const JS::CompartmentCreationOptions creationOptions_;
+    JS::CompartmentBehaviors behaviors_;
 
   private:
     JS::Zone*                    zone_;
@@ -276,10 +281,7 @@ struct JSCompartment
     bool                         marked;
     bool                         warnedAboutFlagsArgument;
     bool                         warnedAboutExprClosure;
-
-    // A null add-on ID means that the compartment is not associated with an
-    // add-on.
-    JSAddonId*                   const addonId;
+    bool                         warnedAboutRegExpMultiline;
 
 #ifdef DEBUG
     bool                         firedOnNewGlobalObject;
@@ -309,8 +311,10 @@ struct JSCompartment
 
     JS::Zone* zone() { return zone_; }
     const JS::Zone* zone() const { return zone_; }
-    JS::CompartmentOptions& options() { return options_; }
-    const JS::CompartmentOptions& options() const { return options_; }
+
+    const JS::CompartmentCreationOptions& creationOptions() const { return creationOptions_; }
+    JS::CompartmentBehaviors& behaviors() { return behaviors_; }
+    const JS::CompartmentBehaviors& behaviors() const { return behaviors_; }
 
     JSRuntime* runtimeFromMainThread() {
         MOZ_ASSERT(CurrentThreadCanAccessRuntime(runtime_));
@@ -470,9 +474,6 @@ struct JSCompartment
     JSObject*                    gcIncomingGrayPointers;
 
   private:
-    /* Whether to preserve JIT code on non-shrinking GCs. */
-    bool                         gcPreserveJitCode;
-
     enum {
         IsDebuggee = 1 << 0,
         DebuggerObservesAllExecution = 1 << 1,
@@ -550,7 +551,8 @@ struct JSCompartment
     void traceOutgoingCrossCompartmentWrappers(JSTracer* trc);
     static void traceIncomingCrossCompartmentEdgesForZoneGC(JSTracer* trc);
 
-    bool preserveJitCode() { return gcPreserveJitCode; }
+    /* Whether to preserve JIT code on non-shrinking GCs. */
+    bool preserveJitCode() { return creationOptions_.preserveJitCode(); }
 
     void sweepAfterMinorGC();
 
@@ -592,12 +594,11 @@ struct JSCompartment
 
     js::DtoaCache dtoaCache;
 
-    /* Random number generator state, used by jsmath.cpp. */
-    uint64_t rngState;
+    // Random number generator for Math.random().
+    mozilla::Maybe<mozilla::non_crypto::XorShift128PlusRNG> randomNumberGenerator;
 
-    static size_t offsetOfRngState() {
-        return offsetof(JSCompartment, rngState);
-    }
+    // Initialize randomNumberGenerator if needed.
+    void ensureRandomNumberGenerator();
 
   private:
     JSCompartment* thisForCtor() { return this; }

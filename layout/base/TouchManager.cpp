@@ -6,7 +6,16 @@
  */
 
 #include "TouchManager.h"
+
+#include "mozilla/TouchEvents.h"
+#include "mozilla/dom/EventTarget.h"
+#include "nsIFrame.h"
 #include "nsPresShell.h"
+#include "nsView.h"
+
+namespace mozilla {
+
+using EventTarget = ::mozilla::dom::EventTarget;
 
 nsRefPtrHashtable<nsUint32HashKey, dom::Touch>* TouchManager::gCaptureTouchList;
 
@@ -189,6 +198,7 @@ TouchManager::PreHandleEvent(WidgetEvent* aEvent,
     case eTouchEnd:
       aIsHandlingUserInput = true;
       // Fall through to touchcancel code
+      MOZ_FALLTHROUGH;
     case eTouchCancel: {
       // Remove the changed touches
       // need to make sure we only remove touches that are ending here
@@ -222,3 +232,5 @@ TouchManager::PreHandleEvent(WidgetEvent* aEvent,
   }
   return true;
 }
+
+} // namespace mozilla

@@ -8,7 +8,6 @@
 
 #include <algorithm> // For <std::stable_sort>
 #include "nsIStyleRuleProcessor.h"
-#include "nsIStyleRule.h"
 #include "nsChangeHint.h"
 #include "nsCSSProperty.h"
 #include "nsDisplayList.h" // For nsDisplayItem::Type
@@ -20,16 +19,15 @@
 #include "mozilla/dom/Animation.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/Nullable.h"
-#include "nsStyleStruct.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/FloatingPoint.h"
 #include "nsContentUtils.h"
 #include "nsCSSPseudoElements.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsCSSPropertySet.h"
 
 class nsIFrame;
+class nsIStyleRule;
 class nsPresContext;
 
 namespace mozilla {
@@ -73,11 +71,6 @@ public:
   // elements.
   void AddStyleUpdatesTo(RestyleTracker& aTracker);
 
-  AnimationCollection*
-  GetAnimations(dom::Element *aElement,
-                nsCSSPseudoElements::Type aPseudoType,
-                bool aCreateIfNeeded);
-
   // Returns true if aContent or any of its ancestors has an animation
   // or transition.
   static bool ContentOrAncestorHasAnimation(nsIContent* aContent) {
@@ -103,14 +96,6 @@ public:
                   nsStyleContext* aStyleContext,
                   StyleAnimationValue& aComputedValue);
 
-  // For CSS properties that may be animated on a separate layer, represents
-  // a record of the corresponding layer type and change hint.
-  struct LayerAnimationRecord {
-    nsCSSProperty mProperty;
-    nsDisplayItem::Type mLayerType;
-    nsChangeHint mChangeHint;
-  };
-
   virtual bool IsAnimationManager() {
     return false;
   }
@@ -128,18 +113,14 @@ protected:
   virtual nsIAtom* GetAnimationsAfterAtom() = 0;
 
 public:
-  // Return an AnimationCollection* if we have an animation for
-  // the frame aFrame that can be performed on the compositor thread (as
-  // defined by AnimationCollection::CanPerformOnCompositorThread).
-  //
-  // Note that this does not test whether the frame's layer uses
-  // off-main-thread compositing, although it does check whether
-  // off-main-thread compositing is enabled as a whole.
+  // Get (and optionally create) the collection of animations managed
+  // by this class for the given |aElement| and |aPseudoType|.
   AnimationCollection*
-  GetAnimationsForCompositor(const nsIFrame* aFrame,
-                             nsCSSProperty aProperty);
+  GetAnimationCollection(dom::Element *aElement,
+                         nsCSSPseudoElements::Type aPseudoType,
+                         bool aCreateIfNeeded);
 
-  // Given the frame aFrame with possibly animated content, finds its
+  // Given the frame |aFrame| with possibly animated content, finds its
   // associated collection of animations. If it is a generated content
   // frame, it may examine the parent frame to search for such animations.
   AnimationCollection*
@@ -152,63 +133,6 @@ protected:
   nsPresContext *mPresContext; // weak (non-null from ctor to Disconnect)
 };
 
-/**
- * A style rule that maps property-StyleAnimationValue pairs.
- */
-class AnimValuesStyleRule final : public nsIStyleRule
-{
-public:
-  AnimValuesStyleRule()
-    : mStyleBits(0) {}
-
-  // nsISupports implementation
-  NS_DECL_ISUPPORTS
-
-  // nsIStyleRule implementation
-  virtual void MapRuleInfoInto(nsRuleData* aRuleData) override;
-  virtual bool MightMapInheritedStyleData() override;
-#ifdef DEBUG
-  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const override;
-#endif
-
-  void AddValue(nsCSSProperty aProperty, StyleAnimationValue &aStartValue)
-  {
-    PropertyValuePair v = { aProperty, aStartValue };
-    mPropertyValuePairs.AppendElement(v);
-    mStyleBits |=
-      nsCachedStyleData::GetBitForSID(nsCSSProps::kSIDTable[aProperty]);
-  }
-
-  // Caller must fill in returned value.
-  StyleAnimationValue* AddEmptyValue(nsCSSProperty aProperty)
-  {
-    PropertyValuePair *p = mPropertyValuePairs.AppendElement();
-    p->mProperty = aProperty;
-    mStyleBits |=
-      nsCachedStyleData::GetBitForSID(nsCSSProps::kSIDTable[aProperty]);
-    return &p->mValue;
-  }
-
-  struct PropertyValuePair {
-    nsCSSProperty mProperty;
-    StyleAnimationValue mValue;
-  };
-
-  void AddPropertiesToSet(nsCSSPropertySet& aSet) const
-  {
-    for (size_t i = 0, i_end = mPropertyValuePairs.Length(); i < i_end; ++i) {
-      const PropertyValuePair &cv = mPropertyValuePairs[i];
-      aSet.AddProperty(cv.mProperty);
-    }
-  }
-
-private:
-  ~AnimValuesStyleRule() {}
-
-  InfallibleTArray<PropertyValuePair> mPropertyValuePairs;
-  uint32_t mStyleBits;
-};
-
 typedef InfallibleTArray<RefPtr<dom::Animation>> AnimationPtrArray;
 
 struct AnimationCollection : public LinkedListElement<AnimationCollection>
@@ -218,7 +142,6 @@ struct AnimationCollection : public LinkedListElement<AnimationCollection>
     : mElement(aElement)
     , mElementProperty(aElementProperty)
     , mManager(aManager)
-    , mAnimationGeneration(0)
     , mCheckGeneration(0)
     , mStyleChanging(true)
     , mHasPendingAnimationRestyle(false)
@@ -266,7 +189,6 @@ struct AnimationCollection : public LinkedListElement<AnimationCollection>
     Layer
   };
   void RequestRestyle(RestyleType aRestyleType);
-  void ClearIsRunningOnCompositor(nsCSSProperty aProperty);
 
 public:
   // True if this animation can be performed on the compositor thread.
@@ -336,9 +258,6 @@ public:
     }
   }
 
-  static void LogAsyncAnimationFailure(nsCString& aMessage,
-                                       const nsIContent* aContent = nullptr);
-
   dom::Element *mElement;
 
   // the atom we use in mElement's prop table (must be a static atom,
@@ -349,46 +268,19 @@ public:
 
   AnimationPtrArray mAnimations;
 
-  // This style rule contains the style data for currently animating
-  // values.  It only matches when styling with animation.  When we
-  // style without animation, we need to not use it so that we can
-  // detect any new changes; if necessary we restyle immediately
-  // afterwards with animation.
-  // NOTE: If we don't need to apply any styles, mStyleRule will be
-  // null, but mStyleRuleRefreshTime will still be valid.
-  RefPtr<AnimValuesStyleRule> mStyleRule;
-
-  // RestyleManager keeps track of the number of animation
-  // 'mini-flushes' (see nsTransitionManager::UpdateAllThrottledStyles()).
-  // mAnimationGeneration is the sequence number of the last flush where a
-  // transition/animation changed.  We keep a similar count on the
-  // corresponding layer so we can check that the layer is up to date with
-  // the animation manager.
-  uint64_t mAnimationGeneration;
-  // Update mAnimationGeneration to nsCSSFrameConstructor's count
-  void UpdateAnimationGeneration(nsPresContext* aPresContext);
-
-  // For CSS transitions only, we also record the most recent generation
+  // For CSS transitions only, we record the most recent generation
   // for which we've done the transition update, so that we avoid doing
-  // it more than once per style change.  This should be greater than or
-  // equal to mAnimationGeneration, except when the generation counter
-  // cycles, or when animations are updated through the DOM Animation
-  // interfaces.
+  // it more than once per style change.
+  // (Note that we also store an animation generation on each EffectSet in
+  // order to track when we need to update animations on layers.)
   uint64_t mCheckGeneration;
-  // Update mAnimationGeneration to nsCSSFrameConstructor's count
+  // Update mCheckGeneration to RestyleManager's count
   void UpdateCheckGeneration(nsPresContext* aPresContext);
 
-  // Returns true if there is an animation that has yet to finish.
-  bool HasCurrentAnimations() const;
-  // Returns true if there is an animation of any of the specified properties
-  // that has yet to finish.
-  bool HasCurrentAnimationsForProperties(const nsCSSProperty* aProperties,
-                                         size_t aPropertyCount) const;
-
-  // The refresh time associated with mStyleRule.
+  // The refresh time associated with the animation rule on the EffectSet.
   TimeStamp mStyleRuleRefreshTime;
 
-  // False when we know that our current style rule is valid
+  // False when we know that our current animation rule is valid
   // indefinitely into the future (because all of our animations are
   // either completed or paused).  May be invalidated by a style change.
   bool mStyleChanging;

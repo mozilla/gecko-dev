@@ -208,13 +208,6 @@ public class AppConstants {
     false;
 //#endif
 
-    public static final boolean MOZ_ANDROID_TAB_QUEUE =
-//#ifdef MOZ_ANDROID_TAB_QUEUE
-    true;
-//#else
-    false;
-//#endif
-
     public static final String TELEMETRY_PREF_NAME =
           "toolkit.telemetry.enabled";
 
@@ -346,15 +339,22 @@ public class AppConstants {
     false;
 //#endif
 
-    public static final boolean MOZ_ANDROID_NATIVE_ACCOUNT_UI =
-//#ifdef MOZ_ANDROID_NATIVE_ACCOUNT_UI
+    /**
+     * Target CPU architecture: "armeabi-v7a", "x86, "mips", ..
+     */
+    public static final String ANDROID_CPU_ARCH = "@ANDROID_CPU_ARCH@";
+
+    public static final boolean MOZ_ANDROID_EXCLUDE_FONTS =
+//#ifdef MOZ_ANDROID_EXCLUDE_FONTS
     true;
 //#else
     false;
 //#endif
 
-    /**
-     * Target CPU architecture: "armeabi-v7a", "x86, "mips", ..
-     */
-    public static final String ANDROID_CPU_ARCH = "@ANDROID_CPU_ARCH@";
+    public static final boolean MOZ_ANDROID_DOWNLOAD_CONTENT_SERVICE =
+//#ifdef MOZ_ANDROID_DOWNLOAD_CONTENT_SERVICE
+    true;
+//#else
+    false;
+//#endif
 }

@@ -13,6 +13,7 @@ const Cr = Components.results;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/AppConstants.jsm");
 
 /*
  * This file should be kept short and simple since it's loaded even
@@ -70,15 +71,15 @@ var Frames = {
 
   receiveMessage({name, data}) {
     switch (name) {
-    case "Extension:TopWindowID":
-      // FIXME: Need to handle the case where the content process
-      // crashes. Right now we leak its top window IDs.
-      this.topWindowIds.add(data.windowId);
-      break;
+      case "Extension:TopWindowID":
+        // FIXME: Need to handle the case where the content process
+        // crashes. Right now we leak its top window IDs.
+        this.topWindowIds.add(data.windowId);
+        break;
 
-    case "Extension:RemoveTopWindowID":
-      this.topWindowIds.delete(data.windowId);
-      break;
+      case "Extension:RemoveTopWindowID":
+        this.topWindowIds.delete(data.windowId);
+        break;
     }
   },
 };
@@ -94,6 +95,19 @@ var Scripts = {
 
   getScripts() {
     return this.scripts;
+  },
+};
+
+// Manage the collection of schemas/*.json schemas that define the extension API.
+var Schemas = {
+  schemas: new Set(),
+
+  register(schema) {
+    this.schemas.add(schema);
+  },
+
+  getSchemas() {
+    return this.schemas;
   },
 };
 
@@ -129,12 +143,23 @@ var Service = {
     }
 
     // Create the moz-extension://uuid mapping.
+    // On b2g, in content processes we can't load jar:file:/// content, so we
+    // switch to jar:remoteopenfile:/// instead
+    // This is mostly exercised by generated extensions in tests. Installed
+    // extensions in b2g get an app: uri that also maps to the right jar: uri.
+    if (AppConstants.MOZ_B2G &&
+        Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_CONTENT &&
+        uri.spec.startsWith("jar:file://")) {
+      uri = Services.io.newURI("jar:remoteopen" + uri.spec.substr("jar:".length), null, null);
+    }
+
     let handler = Services.io.getProtocolHandler("moz-extension");
     handler.QueryInterface(Ci.nsISubstitutingProtocolHandler);
     handler.setSubstitution(uuid, uri);
 
     this.uuidMap.set(uuid, extension);
     this.aps.setAddonLoadURICallback(extension.id, this.checkAddonMayLoad.bind(this, extension));
+    this.aps.setAddonLocalizeCallback(extension.id, extension.localize.bind(extension));
   },
 
   // Called when an extension is unloaded.
@@ -142,6 +167,7 @@ var Service = {
     let extension = this.uuidMap.get(uuid);
     this.uuidMap.delete(uuid);
     this.aps.setAddonLoadURICallback(extension.id, null);
+    this.aps.setAddonLocalizeCallback(extension.id, null);
 
     let handler = Services.io.getProtocolHandler("moz-extension");
     handler.QueryInterface(Ci.nsISubstitutingProtocolHandler);
@@ -159,7 +185,7 @@ var Service = {
     }
 
     let path = uri.path;
-    if (path.length > 0 && path[0] == '/') {
+    if (path.length > 0 && path[0] == "/") {
       path = path.substr(1);
     }
     return extension.webAccessibleResources.has(path);
@@ -194,6 +220,9 @@ this.ExtensionManagement = {
 
   registerScript: Scripts.register.bind(Scripts),
   getScripts: Scripts.getScripts.bind(Scripts),
+
+  registerSchema: Schemas.register.bind(Schemas),
+  getSchemas: Schemas.getSchemas.bind(Schemas),
 
   getFrameId: Frames.getId.bind(Frames),
   getParentFrameId: Frames.getParentId.bind(Frames),

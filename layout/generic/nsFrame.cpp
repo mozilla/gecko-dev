@@ -36,7 +36,7 @@
 #include "nsStyleConsts.h"
 #include "nsIPresShell.h"
 #include "mozilla/Logging.h"
-#include "prprf.h"
+#include "mozilla/Snprintf.h"
 #include "nsFrameManager.h"
 #include "nsLayoutUtils.h"
 #include "RestyleManager.h"
@@ -87,6 +87,7 @@
 #include "nsIFrameInlines.h"
 
 #include "mozilla/AsyncEventDispatcher.h"
+#include "mozilla/EffectCompositor.h"
 #include "mozilla/EventListenerManager.h"
 #include "mozilla/EventStateManager.h"
 #include "mozilla/EventStates.h"
@@ -107,10 +108,11 @@ using namespace mozilla::dom;
 using namespace mozilla::gfx;
 using namespace mozilla::layers;
 using namespace mozilla::layout;
+typedef nsAbsoluteContainingBlock::AbsPosReflowFlags AbsPosReflowFlags;
 
 namespace mozilla {
 namespace gfx {
-class VRHMDInfo;
+class VRDeviceProxy;
 } // namespace gfx
 } // namespace mozilla
 
@@ -1083,8 +1085,8 @@ nsIFrame::IsTransformed() const
           (StyleDisplay()->HasTransform(this) ||
            IsSVGTransformed() ||
            (mContent &&
-            nsLayoutUtils::HasAnimationsForCompositor(this,
-                                                      eCSSProperty_transform) &&
+            EffectCompositor::HasAnimationsForCompositor(
+              this, eCSSProperty_transform) &&
             IsFrameOfType(eSupportsCSSTransforms) &&
             mContent->GetPrimaryFrame() == this)));
 }
@@ -1097,8 +1099,8 @@ nsIFrame::HasOpacityInternal(float aThreshold) const
   return StyleDisplay()->mOpacity < aThreshold ||
          (displayStyle->mWillChangeBitField & NS_STYLE_WILL_CHANGE_OPACITY) ||
          (mContent &&
-           nsLayoutUtils::HasAnimationsForCompositor(this,
-                                                     eCSSProperty_opacity) &&
+           EffectCompositor::HasAnimationsForCompositor(
+             this, eCSSProperty_opacity) &&
            mContent->GetPrimaryFrame() == this);
 }
 
@@ -1736,24 +1738,24 @@ ApplyOverflowClipping(nsDisplayListBuilder* aBuilder,
 }
 
 #ifdef DEBUG
-static void PaintDebugBorder(nsIFrame* aFrame, nsRenderingContext* aCtx,
-     const nsRect& aDirtyRect, nsPoint aPt) {
+static void PaintDebugBorder(nsIFrame* aFrame, DrawTarget* aDrawTarget,
+     const nsRect& aDirtyRect, nsPoint aPt)
+{
   nsRect r(aPt, aFrame->GetSize());
-  DrawTarget* drawTarget = aCtx->GetDrawTarget();
   int32_t appUnitsPerDevPixel = aFrame->PresContext()->AppUnitsPerDevPixel();
   Color blueOrRed(aFrame->HasView() ? Color(0.f, 0.f, 1.f, 1.f) :
                                       Color(1.f, 0.f, 0.f, 1.f));
-  drawTarget->StrokeRect(NSRectToRect(r, appUnitsPerDevPixel),
-                         ColorPattern(ToDeviceColor(blueOrRed)));
+  aDrawTarget->StrokeRect(NSRectToRect(r, appUnitsPerDevPixel),
+                          ColorPattern(ToDeviceColor(blueOrRed)));
 }
 
-static void PaintEventTargetBorder(nsIFrame* aFrame, nsRenderingContext* aCtx,
-     const nsRect& aDirtyRect, nsPoint aPt) {
+static void PaintEventTargetBorder(nsIFrame* aFrame, DrawTarget* aDrawTarget,
+     const nsRect& aDirtyRect, nsPoint aPt)
+{
   nsRect r(aPt, aFrame->GetSize());
-  DrawTarget* drawTarget = aCtx->GetDrawTarget();
   int32_t appUnitsPerDevPixel = aFrame->PresContext()->AppUnitsPerDevPixel();
   ColorPattern purple(ToDeviceColor(Color(.5f, 0.f, .5f, 1.f)));
-  drawTarget->StrokeRect(NSRectToRect(r, appUnitsPerDevPixel), purple);
+  aDrawTarget->StrokeRect(NSRectToRect(r, appUnitsPerDevPixel), purple);
 }
 
 static void
@@ -1921,6 +1923,9 @@ ItemParticipatesIn3DContext(nsIFrame* aAncestor, nsDisplayItem* aItem)
   } else {
     return false;
   }
+  if (aAncestor == transformFrame) {
+    return true;
+  }
   return FrameParticipatesIn3DContext(aAncestor, transformFrame);
 }
 
@@ -2042,9 +2047,9 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   nsDisplayListBuilder::AutoBuildingDisplayList
     buildingDisplayList(aBuilder, this, dirtyRect, true);
 
-  mozilla::gfx::VRHMDInfo* vrHMDInfo = nullptr;
+  mozilla::gfx::VRDeviceProxy* vrHMDInfo = nullptr;
   if ((GetStateBits() & NS_FRAME_HAS_VR_CONTENT)) {
-    vrHMDInfo = static_cast<mozilla::gfx::VRHMDInfo*>(mContent->GetProperty(nsGkAtoms::vr_state));
+    vrHMDInfo = static_cast<mozilla::gfx::VRDeviceProxy*>(mContent->GetProperty(nsGkAtoms::vr_state));
   }
 
   DisplayListClipState::AutoSaveRestore clipState(aBuilder);
@@ -2057,7 +2062,11 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
     // item itself will be clipped.
     // For transforms we also need to clear ancestor clipping because it's
     // relative to the wrong display item reference frame anyway.
-    clipState.Clear();
+    // We clear both regular and scroll clips here. Our content needs to be
+    // able to walk up the complete cross stacking context scroll clip chain,
+    // so we call a special method on the clip state that keeps the ancestor
+    // scroll clip around.
+    clipState.ClearForStackingContextContents();
   }
 
   nsDisplayListCollection set;
@@ -2108,7 +2117,7 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   // across lines and has absolutely positioned children; all the abs-pos
   // children should be z-ordered after all the boxes for the position:relative
   // element itself.
-  set.PositionedDescendants()->SortByZOrder(aBuilder);
+  set.PositionedDescendants()->SortByZOrder();
 
   nsDisplayList resultList;
   // Now follow the rules of http://www.w3.org/TR/CSS21/zindex.html
@@ -2140,7 +2149,7 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
     content = PresContext()->Document()->GetRootElement();
   }
   if (content) {
-    set.Outlines()->SortByContentOrder(aBuilder, content);
+    set.Outlines()->SortByContentOrder(content);
   }
 #ifdef DEBUG
   DisplayDebugBorders(aBuilder, this, set);
@@ -2174,16 +2183,19 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
     // Don't clip nsDisplayOpacity items. We clip their descendants instead.
     // The clip we would set on an element with opacity would clip
     // all descendant content, but some should not be clipped.
+    // We clear both regular clips and scroll clips. If this item's animated
+    // geometry root has async scrolling, then the async scroll transform will
+    // be applied on the opacity's descendants (because that's where the
+    // scroll clip will be). However, this won't work if the opacity item is
+    // inactive, which is why we record the pre-clear scroll clip here.
+    const DisplayItemScrollClip* scrollClipForSameAGRChildren =
+      aBuilder->ClipState().GetCurrentInnermostScrollClip();
     DisplayListClipState::AutoSaveRestore opacityClipState(aBuilder);
-    opacityClipState.Clear();
+    opacityClipState.ClearIncludingScrollClip();
     resultList.AppendNewToTop(
-        new (aBuilder) nsDisplayOpacity(aBuilder, this, &resultList, opacityItemForEventsOnly));
-  }
-  /* If we have sticky positioning, wrap it in a sticky position item.
-   */
-  if (useStickyPosition) {
-    resultList.AppendNewToTop(
-        new (aBuilder) nsDisplayStickyPosition(aBuilder, this, &resultList));
+        new (aBuilder) nsDisplayOpacity(aBuilder, this, &resultList,
+                                        scrollClipForSameAGRChildren,
+                                        opacityItemForEventsOnly));
   }
 
   /* If we're going to apply a transformation and don't have preserve-3d set, wrap
@@ -2237,8 +2249,11 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
     // Revert to the outer reference frame and offset because all display
     // items we create from now on are outside the transform.
     nsPoint toOuterReferenceFrame;
-    const nsIFrame* outerReferenceFrame =
-      aBuilder->FindReferenceFrameFor(GetParent(), &toOuterReferenceFrame);
+    const nsIFrame* outerReferenceFrame = this;
+    if (this != aBuilder->RootReferenceFrame()) {
+      outerReferenceFrame =
+        aBuilder->FindReferenceFrameFor(GetParent(), &toOuterReferenceFrame);
+    }
     buildingDisplayList.SetReferenceFrameAndCurrentOffset(outerReferenceFrame,
       GetOffsetToCrossDoc(outerReferenceFrame));
 
@@ -2254,6 +2269,13 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
           GetContainingBlock()->GetContent()->GetPrimaryFrame(), &resultList));
     }
 
+  }
+
+  /* If we have sticky positioning, wrap it in a sticky position item.
+   */
+  if (useStickyPosition) {
+    resultList.AppendNewToTop(
+        new (aBuilder) nsDisplayStickyPosition(aBuilder, this, &resultList));
   }
 
   /* If we're doing VR rendering, then we need to wrap everything in a nsDisplayVR
@@ -2493,6 +2515,8 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   if (savedOutOfFlowData) {
     clipState.SetClipForContainingBlockDescendants(
       &savedOutOfFlowData->mContainingBlockClip);
+    clipState.SetScrollClipForContainingBlockDescendants(
+      savedOutOfFlowData->mContainingBlockScrollClip);
   }
 
   // Setup clipping for the parent's overflow:-moz-hidden-unscrollable,
@@ -3153,8 +3177,7 @@ nsFrame::SelectByTypeAtPoint(nsPresContext* aPresContext,
     return NS_ERROR_FAILURE;
 
   nsFrame* frame = static_cast<nsFrame*>(theFrame);
-  return frame->PeekBackwardAndForward(aBeginAmountType, aEndAmountType, 
-                                       offset, aPresContext,
+  return frame->PeekBackwardAndForward(aBeginAmountType, aEndAmountType, offset,
                                        aBeginAmountType != eSelectWord,
                                        aSelectFlags);
 }
@@ -3213,7 +3236,6 @@ nsresult
 nsFrame::PeekBackwardAndForward(nsSelectionAmount aAmountBack,
                                 nsSelectionAmount aAmountForward,
                                 int32_t aStartPos,
-                                nsPresContext* aPresContext,
                                 bool aJumpLines,
                                 uint32_t aSelectFlags)
 {
@@ -4067,17 +4089,19 @@ nsFrame::AddInlineMinISize(nsRenderingContext *aRenderingContext,
   bool canBreak = !CanContinueTextRun() &&
     !parent->StyleContext()->ShouldSuppressLineBreak() &&
     parent->StyleText()->WhiteSpaceCanWrap(parent);
-  
-  if (canBreak)
-    aData->OptionallyBreak(aRenderingContext);
+
+  if (canBreak) {
+    aData->OptionallyBreak();
+  }
   aData->trailingWhitespace = 0;
   aData->skipWhitespace = false;
   aData->trailingTextFrame = nullptr;
   aData->currentLine += nsLayoutUtils::IntrinsicForContainer(aRenderingContext,
                             this, nsLayoutUtils::MIN_ISIZE);
   aData->atStartOfLine = false;
-  if (canBreak)
-    aData->OptionallyBreak(aRenderingContext);
+  if (canBreak) {
+    aData->OptionallyBreak();
+  }
 }
 
 /* virtual */ void
@@ -4092,7 +4116,7 @@ nsFrame::AddInlinePrefISize(nsRenderingContext *aRenderingContext,
 }
 
 void
-nsIFrame::InlineMinISizeData::ForceBreak(nsRenderingContext *aRenderingContext)
+nsIFrame::InlineMinISizeData::ForceBreak()
 {
   currentLine -= trailingWhitespace;
   prevLines = std::max(prevLines, currentLine);
@@ -4109,8 +4133,7 @@ nsIFrame::InlineMinISizeData::ForceBreak(nsRenderingContext *aRenderingContext)
 }
 
 void
-nsIFrame::InlineMinISizeData::OptionallyBreak(nsRenderingContext *aRenderingContext,
-                                              nscoord aHyphenWidth)
+nsIFrame::InlineMinISizeData::OptionallyBreak(nscoord aHyphenWidth)
 {
   trailingTextFrame = nullptr;
 
@@ -4122,11 +4145,11 @@ nsIFrame::InlineMinISizeData::OptionallyBreak(nsRenderingContext *aRenderingCont
   if (currentLine + aHyphenWidth < 0 || atStartOfLine)
     return;
   currentLine += aHyphenWidth;
-  ForceBreak(aRenderingContext);
+  ForceBreak();
 }
 
 void
-nsIFrame::InlinePrefISizeData::ForceBreak(nsRenderingContext *aRenderingContext)
+nsIFrame::InlinePrefISizeData::ForceBreak()
 {
   if (floats.Length() != 0) {
             // preferred widths accumulated for floats that have already
@@ -4329,10 +4352,10 @@ nsFrame::ComputeSize(nsRenderingContext *aRenderingContext,
   switch (stylePos->mBoxSizing) {
     case StyleBoxSizing::Border:
       boxSizingAdjust += aBorder;
-      // fall through
+      MOZ_FALLTHROUGH;
     case StyleBoxSizing::Padding:
       boxSizingAdjust += aPadding;
-      // fall through
+      MOZ_FALLTHROUGH;
     case StyleBoxSizing::Content:
       // nothing
       break;
@@ -4499,13 +4522,13 @@ nsFrame::ComputeSize(nsRenderingContext *aRenderingContext,
 }
 
 nsRect
-nsIFrame::ComputeTightBounds(gfxContext* aContext) const
+nsIFrame::ComputeTightBounds(DrawTarget* aDrawTarget) const
 {
   return GetVisualOverflowRect();
 }
 
 nsRect
-nsFrame::ComputeSimpleTightBounds(gfxContext* aContext) const
+nsFrame::ComputeSimpleTightBounds(DrawTarget* aDrawTarget) const
 {
   if (StyleOutline()->GetOutlineStyle() != NS_STYLE_BORDER_STYLE_NONE ||
       StyleBorder()->HasBorder() || !StyleBackground()->IsTransparent() ||
@@ -4521,7 +4544,7 @@ nsFrame::ComputeSimpleTightBounds(gfxContext* aContext) const
     nsFrameList::Enumerator childFrames(lists.CurrentList());
     for (; !childFrames.AtEnd(); childFrames.Next()) {
       nsIFrame* child = childFrames.get();
-      r.UnionRect(r, child->ComputeTightBounds(aContext) + child->GetPosition());
+      r.UnionRect(r, child->ComputeTightBounds(aDrawTarget) + child->GetPosition());
     }
   }
   return r;
@@ -4650,9 +4673,13 @@ nsFrame::ReflowAbsoluteFrames(nsPresContext*           aPresContext,
     NS_ASSERTION(container, "Abs-pos children only supported on container frames for now");
 
     nsRect containingBlock(0, 0, containingBlockWidth, containingBlockHeight);
+    AbsPosReflowFlags flags =
+      AbsPosReflowFlags::eCBWidthAndHeightChanged; // XXX could be optimized
+    if (aConstrainBSize) {
+      flags |= AbsPosReflowFlags::eConstrainHeight;
+    }
     absoluteContainer->Reflow(container, aPresContext, aReflowState, aStatus,
-                              containingBlock,
-                              aConstrainBSize, true, true, // XXX could be optimized
+                              containingBlock, flags,
                               &aDesiredSize.mOverflowAreas);
   }
 }
@@ -5054,7 +5081,8 @@ nsIFrame::GetTransformMatrix(const nsIFrame* aStopAtAncestor,
     int32_t scaleFactor = PresContext()->AppUnitsPerDevPixel();
 
     Matrix4x4 result = nsDisplayTransform::GetResultingTransformMatrix(this,
-                         nsPoint(0, 0), scaleFactor, nsDisplayTransform::INCLUDE_PERSPECTIVE,
+                         nsPoint(0, 0), scaleFactor,
+                         nsDisplayTransform::INCLUDE_PERSPECTIVE|nsDisplayTransform::BASIS_AT_ORIGIN,
                          nullptr, aOutAncestor);
     // XXXjwatt: seems like this will double count offsets in the face of preserve-3d:
     nsPoint delta = GetOffsetToCrossDoc(*aOutAncestor);
@@ -5923,7 +5951,7 @@ nsFrame::MakeFrameName(const nsAString& aType, nsAString& aResult) const
     aResult.Append(')');
   }
   char buf[40];
-  PR_snprintf(buf, sizeof(buf), "(%d)", ContentIndexInContainer(this));
+  snprintf_literal(buf, "(%d)", ContentIndexInContainer(this));
   AppendASCIItoUTF16(buf, aResult);
   return NS_OK;
 }
@@ -6772,6 +6800,7 @@ nsIFrame::PeekOffset(nsPeekOffsetStruct* aPos)
         aPos->mWordMovementType = eEndWord;
       }
       // Intentionally fall through the eSelectWord case.
+      MOZ_FALLTHROUGH;
     case eSelectWord:
     {
       // wordSelectEatSpace means "are we looking for a boundary between whitespace
@@ -8205,7 +8234,9 @@ nsIFrame::IsFocusable(int32_t *aTabIndex, bool aWithMouse)
   }
   bool isFocusable = false;
 
-  if (mContent && mContent->IsElement() && IsVisibleConsideringAncestors()) {
+  if (mContent && mContent->IsElement() && IsVisibleConsideringAncestors() &&
+      StyleContext()->GetPseudo() != nsCSSAnonBoxes::anonymousFlexItem &&
+      StyleContext()->GetPseudo() != nsCSSAnonBoxes::anonymousGridItem) {
     const nsStyleUserInterface* ui = StyleUserInterface();
     if (ui->mUserFocus != NS_STYLE_USER_FOCUS_IGNORE &&
         ui->mUserFocus != NS_STYLE_USER_FOCUS_NONE) {
@@ -8535,13 +8566,13 @@ nsFrame::GetMaxSize(nsBoxLayoutState& aState)
 }
 
 nscoord
-nsFrame::GetFlex(nsBoxLayoutState& aState)
+nsFrame::GetFlex()
 {
   nsBoxLayoutMetrics *metrics = BoxMetrics();
   if (!DoesNeedRecalc(metrics->mFlex))
      return metrics->mFlex;
 
-  metrics->mFlex = nsBox::GetFlex(aState);
+  metrics->mFlex = nsBox::GetFlex();
 
   return metrics->mFlex;
 }
@@ -9154,11 +9185,11 @@ GetTagName(nsFrame* aFrame, nsIContent* aContent, int aResultSize,
            char* aResult)
 {
   if (aContent) {
-    PR_snprintf(aResult, aResultSize, "%s@%p",
-                nsAtomCString(aContent->NodeInfo()->NameAtom()).get(), aFrame);
+    snprintf(aResult, aResultSize, "%s@%p",
+             nsAtomCString(aContent->NodeInfo()->NameAtom()).get(), aFrame);
   }
   else {
-    PR_snprintf(aResult, aResultSize, "@%p", aFrame);
+    snprintf(aResult, aResultSize, "@%p", aFrame);
   }
 }
 

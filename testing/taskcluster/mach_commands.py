@@ -365,7 +365,7 @@ class Graph(object):
         # Task graph we are generating for taskcluster...
         graph = {
             'tasks': [],
-            'scopes': []
+            'scopes': set(),
         }
 
         if params['revision_hash']:
@@ -373,10 +373,10 @@ class Graph(object):
                 route = 'queue:route:{}.{}'.format(
                             routes_transform.TREEHERDER_ROUTES[env],
                             treeherder_route)
-                graph['scopes'].append(route)
+                graph['scopes'].add(route)
 
         graph['metadata'] = {
-            'source': 'http://todo.com/what/goes/here',
+            'source': '{repo}file/{rev}/testing/taskcluster/mach_commands.py'.format(repo=params['head_repository'], rev=params['head_rev']),
             'owner': params['owner'],
             # TODO: Add full mach commands to this example?
             'description': 'Task graph generated via ./mach taskcluster-graph',
@@ -389,6 +389,7 @@ class Graph(object):
             interactive = cmdline_interactive or build["interactive"]
             build_parameters = merge_dicts(parameters, build['additional-parameters']);
             build_parameters['build_slugid'] = slugid()
+            build_parameters['source'] = '{repo}file/{rev}/testing/taskcluster/{file}'.format(repo=params['head_repository'], rev=params['head_rev'], file=build['task'])
             build_task = templates.load(build['task'], build_parameters)
 
             # Copy build_* attributes to expose them to post-build tasks
@@ -420,38 +421,15 @@ class Graph(object):
             taskcluster_graph.build_task.validate(build_task)
             graph['tasks'].append(build_task)
 
-            test_packages_url, tests_url, mozharness_url = None, None, None
-
-            if 'test_packages' in build_task['task']['extra']['locations']:
-                test_packages_url = ARTIFACT_URL.format(
+            for location in build_task['task']['extra'].get('locations', {}):
+                build_parameters['{}_url'.format(location)] = ARTIFACT_URL.format(
                     build_parameters['build_slugid'],
-                    build_task['task']['extra']['locations']['test_packages']
+                    build_task['task']['extra']['locations'][location]
                 )
 
-            if 'tests' in build_task['task']['extra']['locations']:
-                tests_url = ARTIFACT_URL.format(
-                    build_parameters['build_slugid'],
-                    build_task['task']['extra']['locations']['tests']
-                )
-
-            if 'mozharness' in build_task['task']['extra']['locations']:
-                mozharness_url = ARTIFACT_URL.format(
-                    build_parameters['build_slugid'],
-                    build_task['task']['extra']['locations']['mozharness']
-                )
-
-            build_url = ARTIFACT_URL.format(
-                build_parameters['build_slugid'],
-                build_task['task']['extra']['locations']['build']
-            )
-            build_parameters['build_url'] = build_url
-
-            # img_url is only necessary for device builds
-            img_url = ARTIFACT_URL.format(
-                build_parameters['build_slugid'],
-                build_task['task']['extra']['locations'].get('img', '')
-            )
-            build_parameters['img_url'] = img_url
+            for url in build_task['task']['extra'].get('url', {}):
+                build_parameters['{}_url'.format(url)] = \
+                    build_task['task']['extra']['url'][url]
 
             define_task = DEFINE_TASK.format(build_task['task']['workerType'])
 
@@ -464,10 +442,10 @@ class Graph(object):
                     ))
                 all_routes[route] = build_task['task']['metadata']['name']
 
-            graph['scopes'].append(define_task)
-            graph['scopes'].extend(build_task['task'].get('scopes', []))
+            graph['scopes'].add(define_task)
+            graph['scopes'] |= set(build_task['task'].get('scopes', []))
             route_scopes = map(lambda route: 'queue:route:' + route, build_task['task'].get('routes', []))
-            graph['scopes'].extend(route_scopes)
+            graph['scopes'] |= set(route_scopes)
 
             # Treeherder symbol configuration for the graph required for each
             # build so tests know which platform they belong to.
@@ -514,12 +492,7 @@ class Graph(object):
                 test_parameters = merge_dicts(build_parameters,
                                               test.get('additional-parameters', {}))
                 test_parameters = copy.copy(build_parameters)
-                if tests_url:
-                    test_parameters['tests_url'] = tests_url
-                if test_packages_url:
-                    test_parameters['test_packages_url'] = test_packages_url
-                if mozharness_url:
-                    test_parameters['mozharness_url'] = mozharness_url
+
                 test_definition = templates.load(test['task'], {})['task']
                 chunk_config = test_definition['extra'].get('chunks', {})
 
@@ -567,10 +540,10 @@ class Graph(object):
                         test_task['task']['workerType']
                     )
 
-                    graph['scopes'].append(define_task)
-                    graph['scopes'].extend(test_task['task'].get('scopes', []))
+                    graph['scopes'].add(define_task)
+                    graph['scopes'] |= set(test_task['task'].get('scopes', []))
 
-        graph['scopes'] = list(set(graph['scopes']))
+        graph['scopes'] = sorted(graph['scopes'])
 
         if params['print_names_only']:
             tIDs = defaultdict(list)
@@ -598,7 +571,7 @@ class Graph(object):
             graph.pop('scopes', None)
             graph.pop('metadata', None)
 
-        print(json.dumps(graph, indent=4))
+        print(json.dumps(graph, indent=4, sort_keys=True))
 
 @CommandProvider
 class CIBuild(object):
@@ -627,6 +600,7 @@ class CIBuild(object):
         help="Run the task with the interactive feature enabled")
     def create_ci_build(self, **params):
         from taskcluster_graph.templates import Templates
+        from taskcluster_graph.image_builder import docker_image
         import taskcluster_graph.build_task
 
         templates = Templates(ROOT)
@@ -641,6 +615,12 @@ class CIBuild(object):
 
         head_ref = params['head_ref'] or head_rev
 
+        # Default to current time if querying the head rev fails
+        pushdate = time.strftime('%Y%m%d%H%M%S', time.gmtime())
+        pushinfo = query_pushinfo(params['head_repository'], params['head_rev'])
+        if pushinfo:
+            pushdate = time.strftime('%Y%m%d%H%M%S', time.gmtime(pushinfo.pushdate))
+
         from taskcluster_graph.from_now import (
             json_time_from_now,
             current_json_time,
@@ -654,6 +634,11 @@ class CIBuild(object):
             'head_repository': head_repository,
             'head_rev': head_rev,
             'head_ref': head_ref,
+            'pushdate': pushdate,
+            'pushtime': pushdate[8:],
+            'year': pushdate[0:4],
+            'month': pushdate[4:6],
+            'day': pushdate[6:8],
         }.items())
 
         try:

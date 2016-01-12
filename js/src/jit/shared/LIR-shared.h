@@ -250,6 +250,16 @@ class LSimdExtractElementBase : public LInstructionHelper<1, 1, 0>
     }
 };
 
+// Extracts an element from a given SIMD bool32x4 lane.
+class LSimdExtractElementB : public LSimdExtractElementBase
+{
+  public:
+    LIR_HEADER(SimdExtractElementB);
+    explicit LSimdExtractElementB(const LAllocation& base)
+      : LSimdExtractElementBase(base)
+    {}
+};
+
 // Extracts an element from a given SIMD int32x4 lane.
 class LSimdExtractElementI : public LSimdExtractElementBase
 {
@@ -259,6 +269,7 @@ class LSimdExtractElementI : public LSimdExtractElementBase
       : LSimdExtractElementBase(base)
     {}
 };
+
 // Extracts an element from a given SIMD float32x4 lane.
 class LSimdExtractElementF : public LSimdExtractElementBase
 {
@@ -293,7 +304,8 @@ class LSimdInsertElementBase : public LInstructionHelper<1, 2, 0>
     }
 };
 
-// Replace an element from a given SIMD int32x4 lane with a given value.
+// Replace an element from a given SIMD integer or boolean lane with a given value.
+// The value inserted into a boolean lane should be 0 or -1.
 class LSimdInsertElementI : public LSimdInsertElementBase
 {
   public:
@@ -311,16 +323,6 @@ class LSimdInsertElementF : public LSimdInsertElementBase
     LSimdInsertElementF(const LAllocation& vec, const LAllocation& val)
       : LSimdInsertElementBase(vec, val)
     {}
-};
-
-class LSimdSignMaskX4 : public LInstructionHelper<1, 1, 0>
-{
-  public:
-    LIR_HEADER(SimdSignMaskX4);
-
-    explicit LSimdSignMaskX4(const LAllocation& input) {
-        setOperand(0, input);
-    }
 };
 
 // Base class for both int32x4 and float32x4 shuffle instructions.
@@ -606,6 +608,37 @@ class LSimdSelect : public LInstructionHelper<1, 3, 1>
     }
 };
 
+class LSimdAnyTrue : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(SimdAnyTrue)
+    explicit LSimdAnyTrue(const LAllocation& input) {
+        setOperand(0, input);
+    }
+    const LAllocation* vector() {
+        return getOperand(0);
+    }
+    MSimdAnyTrue* mir() const {
+        return mir_->toSimdAnyTrue();
+    }
+};
+
+class LSimdAllTrue : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(SimdAllTrue)
+    explicit LSimdAllTrue(const LAllocation& input) {
+        setOperand(0, input);
+    }
+    const LAllocation* vector() {
+        return getOperand(0);
+    }
+    MSimdAllTrue* mir() const {
+        return mir_->toSimdAllTrue();
+    }
+};
+
+
 // Constant 32-bit integer.
 class LInteger : public LInstructionHelper<1, 0, 0>
 {
@@ -693,7 +726,7 @@ class LFloat32 : public LInstructionHelper<1, 0, 0>
     }
 };
 
-// Constant SIMD int32x4
+// Constant SIMD int32x4. Also used for bool32x4.
 class LInt32x4 : public LInstructionHelper<1, 0, 0>
 {
   public:
@@ -703,7 +736,7 @@ class LInt32x4 : public LInstructionHelper<1, 0, 0>
     const SimdConstant& getValue() const { return mir_->toSimdConstant()->value(); }
 };
 
-// Constant SIMD float32x4
+// Constant SIMD float32x4.
 class LFloat32x4 : public LInstructionHelper<1, 0, 0>
 {
   public:
@@ -1156,12 +1189,12 @@ class LCheckOverRecursed : public LInstructionHelper<0, 0, 0>
 class LAsmJSInterruptCheck : public LInstructionHelper<0, 0, 0>
 {
     Label* interruptExit_;
-    const CallSiteDesc& funcDesc_;
+    const wasm::CallSiteDesc& funcDesc_;
 
   public:
     LIR_HEADER(AsmJSInterruptCheck);
 
-    LAsmJSInterruptCheck(Label* interruptExit, const CallSiteDesc& funcDesc)
+    LAsmJSInterruptCheck(Label* interruptExit, const wasm::CallSiteDesc& funcDesc)
       : interruptExit_(interruptExit), funcDesc_(funcDesc)
     {
     }
@@ -1173,40 +1206,46 @@ class LAsmJSInterruptCheck : public LInstructionHelper<0, 0, 0>
     Label* interruptExit() const {
         return interruptExit_;
     }
-    const CallSiteDesc& funcDesc() const {
+    const wasm::CallSiteDesc& funcDesc() const {
         return funcDesc_;
     }
 };
 
 class LInterruptCheck : public LInstructionHelper<0, 0, 0>
 {
-  public:
-    LIR_HEADER(InterruptCheck)
-};
-
-// Alternative to LInterruptCheck which does not emit an explicit check of the
-// interrupt flag but relies on the loop backedge being patched via a signal
-// handler.
-class LInterruptCheckImplicit : public LInstructionHelper<0, 0, 0>
-{
     Label* oolEntry_;
 
-  public:
-    LIR_HEADER(InterruptCheckImplicit)
+    // Whether this is an implicit interrupt check. Implicit interrupt checks
+    // use a patchable backedge and signal handlers instead of an explicit
+    // rt->interrupt check.
+    bool implicit_;
 
-    LInterruptCheckImplicit()
-      : oolEntry_(nullptr)
+  public:
+    LIR_HEADER(InterruptCheck)
+
+    LInterruptCheck()
+      : oolEntry_(nullptr),
+        implicit_(false)
     {}
 
     Label* oolEntry() {
+        MOZ_ASSERT(implicit_);
         return oolEntry_;
     }
 
     void setOolEntry(Label* oolEntry) {
+        MOZ_ASSERT(implicit_);
         oolEntry_ = oolEntry;
     }
     MInterruptCheck* mir() const {
         return mir_->toInterruptCheck();
+    }
+
+    void setImplicit() {
+        implicit_ = true;
+    }
+    bool implicit() const {
+        return implicit_;
     }
 };
 
@@ -1276,7 +1315,7 @@ class LTypeOfV : public LInstructionHelper<1, BOX_PIECES, 1>
     }
 };
 
-class LToIdV : public LInstructionHelper<BOX_PIECES, 2 * BOX_PIECES, 1>
+class LToIdV : public LInstructionHelper<BOX_PIECES, BOX_PIECES, 1>
 {
   public:
     LIR_HEADER(ToIdV)
@@ -1286,8 +1325,7 @@ class LToIdV : public LInstructionHelper<BOX_PIECES, 2 * BOX_PIECES, 1>
         setTemp(0, temp);
     }
 
-    static const size_t Object = 0;
-    static const size_t Index = BOX_PIECES;
+    static const size_t Index = 0;
 
     MToId* mir() const {
         return mir_->toToId();
@@ -3902,15 +3940,18 @@ class LRegExp : public LCallInstructionHelper<1, 0, 0>
     }
 };
 
-class LRegExpExec : public LCallInstructionHelper<BOX_PIECES, 2, 0>
+class LRegExpMatcher : public LCallInstructionHelper<BOX_PIECES, 4, 0>
 {
   public:
-    LIR_HEADER(RegExpExec)
+    LIR_HEADER(RegExpMatcher)
 
-    LRegExpExec(const LAllocation& regexp, const LAllocation& string)
+    LRegExpMatcher(const LAllocation& regexp, const LAllocation& string,
+                   const LAllocation& lastIndex, const LAllocation& sticky)
     {
         setOperand(0, regexp);
         setOperand(1, string);
+        setOperand(2, lastIndex);
+        setOperand(3, sticky);
     }
 
     const LAllocation* regexp() {
@@ -3919,21 +3960,30 @@ class LRegExpExec : public LCallInstructionHelper<BOX_PIECES, 2, 0>
     const LAllocation* string() {
         return getOperand(1);
     }
+    const LAllocation* lastIndex() {
+        return getOperand(2);
+    }
+    const LAllocation* sticky() {
+        return getOperand(3);
+    }
 
-    const MRegExpExec* mir() const {
-        return mir_->toRegExpExec();
+    const MRegExpMatcher* mir() const {
+        return mir_->toRegExpMatcher();
     }
 };
 
-class LRegExpTest : public LCallInstructionHelper<1, 2, 0>
+class LRegExpTester : public LCallInstructionHelper<1, 4, 0>
 {
   public:
-    LIR_HEADER(RegExpTest)
+    LIR_HEADER(RegExpTester)
 
-    LRegExpTest(const LAllocation& regexp, const LAllocation& string)
+    LRegExpTester(const LAllocation& regexp, const LAllocation& string,
+                  const LAllocation& lastIndex, const LAllocation& sticky)
     {
         setOperand(0, regexp);
         setOperand(1, string);
+        setOperand(2, lastIndex);
+        setOperand(3, sticky);
     }
 
     const LAllocation* regexp() {
@@ -3942,9 +3992,15 @@ class LRegExpTest : public LCallInstructionHelper<1, 2, 0>
     const LAllocation* string() {
         return getOperand(1);
     }
+    const LAllocation* lastIndex() {
+        return getOperand(2);
+    }
+    const LAllocation* sticky() {
+        return getOperand(3);
+    }
 
-    const MRegExpTest* mir() const {
-        return mir_->toRegExpTest();
+    const MRegExpTester* mir() const {
+        return mir_->toRegExpTester();
     }
 };
 
@@ -5775,6 +5831,22 @@ class LBindNameCache : public LInstructionHelper<1, 1, 0>
     }
 };
 
+class LCallBindVar : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(CallBindVar)
+
+    explicit LCallBindVar(const LAllocation& scopeChain) {
+        setOperand(0, scopeChain);
+    }
+    const LAllocation* scopeChain() {
+        return getOperand(0);
+    }
+    const MCallBindVar* mir() const {
+        return mir_->toCallBindVar();
+    }
+};
+
 // Load a value from an object's dslots or a slots vector.
 class LLoadSlotV : public LInstructionHelper<BOX_PIECES, 1, 0>
 {
@@ -6517,6 +6589,24 @@ class LGuardClass : public LInstructionHelper<0, 1, 1>
     }
     const MGuardClass* mir() const {
         return mir_->toGuardClass();
+    }
+    const LDefinition* tempInt() {
+        return getTemp(0);
+    }
+};
+
+// Guard against the sharedness of a TypedArray's memory.
+class LGuardSharedTypedArray : public LInstructionHelper<0, 1, 1>
+{
+  public:
+    LIR_HEADER(GuardSharedTypedArray)
+
+    LGuardSharedTypedArray(const LAllocation& in, const LDefinition& temp) {
+        setOperand(0, in);
+        setTemp(0, temp);
+    }
+    const MGuardSharedTypedArray* mir() const {
+        return mir_->toGuardSharedTypedArray();
     }
     const LDefinition* tempInt() {
         return getTemp(0);
@@ -7316,37 +7406,35 @@ class LRandom : public LInstructionHelper<1, 0, LRANDOM_NUM_TEMPS>
 {
   public:
     LIR_HEADER(Random)
-    LRandom(const LDefinition &tempMaybeEAX, const LDefinition &tempMaybeEDX,
-            const LDefinition &temp1
+    LRandom(const LDefinition &temp0, const LDefinition &temp1,
+            const LDefinition &temp2
 #ifndef JS_PUNBOX64
-            , const LDefinition &temp2, const LDefinition &temp3
+            , const LDefinition &temp3, const LDefinition &temp4
 #endif
             )
     {
-        setTemp(0, tempMaybeEAX);
-        setTemp(1, tempMaybeEDX);
-        setTemp(2, temp1);
+        setTemp(0, temp0);
+        setTemp(1, temp1);
+        setTemp(2, temp2);
 #ifndef JS_PUNBOX64
-        setTemp(3, temp2);
-        setTemp(4, temp3);
+        setTemp(3, temp3);
+        setTemp(4, temp4);
 #endif
     }
-    // On x86, following 2 methods return eax and edx necessary for mull.
-    // On others, following 2 methods return ordinary temporary registers.
-    const LDefinition* tempMaybeEAX() {
+    const LDefinition* temp0() {
         return getTemp(0);
     }
-    const LDefinition* tempMaybeEDX() {
+    const LDefinition* temp1() {
         return getTemp(1);
     }
-    const LDefinition *temp1() {
+    const LDefinition *temp2() {
         return getTemp(2);
     }
 #ifndef JS_PUNBOX64
-    const LDefinition *temp2() {
+    const LDefinition *temp3() {
         return getTemp(3);
     }
-    const LDefinition *temp3() {
+    const LDefinition *temp4() {
         return getTemp(4);
     }
 #endif
@@ -7363,6 +7451,22 @@ class LCheckReturn : public LCallInstructionHelper<BOX_PIECES, 2 * BOX_PIECES, 0
     static const size_t ThisValue = BOX_PIECES;
 
     LIR_HEADER(CheckReturn)
+};
+
+class LCheckObjCoercible : public LCallInstructionHelper<BOX_PIECES, BOX_PIECES, 0>
+{
+  public:
+    static const size_t CheckValue = 0;
+
+    LIR_HEADER(CheckObjCoercible)
+};
+
+class LDebugCheckSelfHosted : public LCallInstructionHelper<BOX_PIECES, BOX_PIECES, 0>
+{
+  public:
+    static const size_t CheckValue = 0;
+
+    LIR_HEADER(DebugCheckSelfHosted)
 };
 
 } // namespace jit

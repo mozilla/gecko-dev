@@ -34,11 +34,7 @@
             let findString = this.findbar._findField;
             if (!findString.value)
               return;
-#ifdef XP_MACOSX
-            if (aEvent.metaKey) {
-#else
-            if (aEvent.ctrlKey) {
-#endif
+            if (aEvent.getModifierState("Accel")) {
               this.findbar.getElement("highlight").click();
               return;
             }
@@ -118,12 +114,14 @@
         findbar.browser.finder.enableSelection();
       ]]></handler>
 
-#ifdef XP_MACOSX
       <handler event="focus"><![CDATA[
-        let findbar = this.findbar;
-        findbar._onFindFieldFocus();
+        let { AppConstants } =
+            Components.utils.import("resource://gre/modules/AppConstants.jsm", {});
+        if (AppConstants.platform == "macosx") {
+          let findbar = this.findbar;
+          findbar._onFindFieldFocus();
+        }
       ]]></handler>
-#endif
 
       <handler event="compositionstart"><![CDATA[
         // Don't close the find toolbar while IME is composing.
@@ -249,7 +247,7 @@
                 readonly="true"
                 onget="return this._findMode;"/>
 
-      <property name="canClear" readonly="true">
+      <property name="hasTransactions" readonly="true">
         <getter><![CDATA[
           if (this._findField.value)
             return true;
@@ -831,13 +829,15 @@
 
           let nodes = this.getElement("findbar-container").childNodes;
           let wrapper = this.getElement("findbar-textbox-wrapper");
+          let foundMatches = this._foundMatches;
           for (let node of nodes) {
-            if (node == wrapper)
+            if (node == wrapper || node == foundMatches)
                continue;
             node.hidden = showMinimalUI;
           }
           this.getElement("find-next").hidden =
             this.getElement("find-previous").hidden = showMinimalUI;
+          foundMatches.hidden = showMinimalUI || !foundMatches.value;
           this._updateCaseSensitivity();
 
           if (showMinimalUI)
@@ -1210,13 +1210,13 @@
           if (aIsInitialSelection && !this._startFindDeferred)
             return;
 
-#ifdef XP_MACOSX
-          if (aIsInitialSelection && !aSelectionString) {
+          let { AppConstants } =
+              Components.utils.import("resource://gre/modules/AppConstants.jsm", {});
+          if (AppConstants.platform == "macosx" && aIsInitialSelection && !aSelectionString) {
             let clipboardSearchString = this.browser.finder.clipboardSearchString;
             if (clipboardSearchString)
               aSelectionString = clipboardSearchString;
           }
-#endif
 
           if (aSelectionString)
             this._findField.value = aSelectionString;

@@ -89,6 +89,7 @@ using mozilla::DefaultXDisplay;
 #endif
 
 #include "mozilla/dom/TabChild.h"
+#include "ClientLayerManager.h"
 
 #ifdef CreateEvent // Thank you MS.
 #undef CreateEvent
@@ -118,7 +119,7 @@ public:
     mFrame->mInstanceOwner->SetBackgroundUnknown();
   }
 
-  virtual already_AddRefed<gfxContext>
+  virtual already_AddRefed<DrawTarget>
       BeginUpdate(const nsIntRect& aRect, uint64_t aSequenceNumber)
   {
     if (!AcceptUpdate(aSequenceNumber))
@@ -126,9 +127,9 @@ public:
     return mFrame->mInstanceOwner->BeginUpdateBackground(aRect);
   }
 
-  virtual void EndUpdate(gfxContext* aContext, const nsIntRect& aRect)
+  virtual void EndUpdate(const nsIntRect& aRect)
   {
-    return mFrame->mInstanceOwner->EndUpdateBackground(aContext, aRect);
+    return mFrame->mInstanceOwner->EndUpdateBackground(aRect);
   }
 
   void Destroy() { mFrame = nullptr; }
@@ -201,6 +202,9 @@ nsPluginFrame::DestroyFrom(nsIFrame* aDestructRoot)
   if (mReflowCallbackPosted) {
     PresContext()->PresShell()->CancelReflowCallback(this);
   }
+
+  // Ensure our DidComposite observer is gone.
+  mDidCompositeObserver = nullptr;
 
   // Tell content owner of the instance to disconnect its frame.
   nsCOMPtr<nsIObjectLoadingContent> objContent(do_QueryInterface(mContent));
@@ -408,8 +412,7 @@ nsPluginFrame::GetWidgetConfiguration(nsTArray<nsIWidget::Configuration>* aConfi
 
   nsIWidget::Configuration* configuration = aConfigurations->AppendElement();
   configuration->mChild = mWidget;
-  configuration->mBounds =
-    LayoutDeviceIntRect::FromUnknownRect(mNextConfigurationBounds);
+  configuration->mBounds = mNextConfigurationBounds;
   configuration->mClipRegion = mNextConfigurationClipRegion;
 #if defined(XP_WIN) || defined(MOZ_WIDGET_GTK)
   if (XRE_IsContentProcess()) {
@@ -700,9 +703,14 @@ nsPluginFrame::SetInstanceOwner(nsPluginInstanceOwner* aOwner)
   // nsObjectLoadingContent should be arbitrating frame-ownership via its
   // HasNewFrame callback.
   mInstanceOwner = aOwner;
+
+  // Reset the DidCompositeObserver since the owner changed.
+  mDidCompositeObserver = nullptr;
+
   if (mInstanceOwner) {
     return;
   }
+
   UnregisterPluginForGeometryUpdates();
   if (mWidget && mInnerView) {
     mInnerView->DetachWidgetEventHandler(mWidget);
@@ -1007,10 +1015,14 @@ nsDisplayPlugin::ComputeVisibility(nsDisplayListBuilder* aBuilder,
           f->GetContentRectRelativeToSelf(), ReferenceFrame());
       nscoord appUnitsPerDevPixel =
         ReferenceFrame()->PresContext()->AppUnitsPerDevPixel();
-      f->mNextConfigurationBounds = rAncestor.ToNearestPixels(appUnitsPerDevPixel);
+      f->mNextConfigurationBounds = LayoutDeviceIntRect::FromUnknownRect(
+        rAncestor.ToNearestPixels(appUnitsPerDevPixel));
 
       nsRegion visibleRegion;
-      visibleRegion.And(*aVisibleRegion, GetClippedBounds(aBuilder));
+      // Apply all scroll clips when computing the clipped bounds of this item.
+      // We hide windowed plugins during APZ scrolling, so there never is an
+      // async transform that we need to take into account when clipping.
+      visibleRegion.And(*aVisibleRegion, GetScrollClippedBoundsUpTo(aBuilder, nullptr));
       // Make visibleRegion relative to f
       visibleRegion.MoveBy(-ToReferenceFrame());
 
@@ -1019,8 +1031,9 @@ nsDisplayPlugin::ComputeVisibility(nsDisplayListBuilder* aBuilder,
       for (const nsRect* r = iter.Next(); r; r = iter.Next()) {
         nsRect rAncestor =
           nsLayoutUtils::TransformFrameRectToAncestor(f, *r, ReferenceFrame());
-        nsIntRect rPixels = rAncestor.ToNearestPixels(appUnitsPerDevPixel)
-            - f->mNextConfigurationBounds.TopLeft();
+        LayoutDeviceIntRect rPixels =
+          LayoutDeviceIntRect::FromUnknownRect(rAncestor.ToNearestPixels(appUnitsPerDevPixel)) -
+          f->mNextConfigurationBounds.TopLeft();
         if (!rPixels.IsEmpty()) {
           f->mNextConfigurationClipRegion.AppendElement(rPixels);
         }
@@ -1393,6 +1406,30 @@ nsPluginFrame::GetLayerState(nsDisplayListBuilder* aBuilder,
   return LAYER_ACTIVE;
 }
 
+class PluginFrameDidCompositeObserver final : public ClientLayerManager::
+  DidCompositeObserver
+{
+public:
+  PluginFrameDidCompositeObserver(nsPluginInstanceOwner* aOwner, ClientLayerManager* aLayerManager)
+    : mInstanceOwner(aOwner),
+      mLayerManager(aLayerManager)
+  {
+  }
+  ~PluginFrameDidCompositeObserver() {
+    mLayerManager->RemoveDidCompositeObserver(this);
+  }
+  void DidComposite() override {
+    mInstanceOwner->DidComposite();
+  }
+  bool IsValid(ClientLayerManager* aLayerManager) {
+    return aLayerManager == mLayerManager;
+  }
+
+private:
+  nsPluginInstanceOwner* mInstanceOwner;
+  RefPtr<ClientLayerManager> mLayerManager;
+};
+
 already_AddRefed<Layer>
 nsPluginFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
                           LayerManager* aManager,
@@ -1461,6 +1498,18 @@ nsPluginFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
     imglayer->SetFilter(filter);
 
     layer->SetContentFlags(IsOpaque() ? Layer::CONTENT_OPAQUE : 0);
+
+    if (aBuilder->IsPaintingToWindow() &&
+        aBuilder->GetWidgetLayerManager() &&
+        aBuilder->GetWidgetLayerManager()->AsClientLayerManager() &&
+        mInstanceOwner->UseAsyncRendering())
+    {
+      RefPtr<ClientLayerManager> lm = aBuilder->GetWidgetLayerManager()->AsClientLayerManager();
+      if (!mDidCompositeObserver || !mDidCompositeObserver->IsValid(lm)) {
+        mDidCompositeObserver = new PluginFrameDidCompositeObserver(mInstanceOwner, lm);
+      }
+      lm->AddDidCompositeObserver(mDidCompositeObserver);
+    }
 #ifdef MOZ_WIDGET_ANDROID
   } else if (aItem->GetType() == nsDisplayItem::TYPE_PLUGIN_VIDEO) {
     nsDisplayPluginVideo* videoItem = reinterpret_cast<nsDisplayPluginVideo*>(aItem);

@@ -16,6 +16,7 @@ import os
 import sys
 import time
 
+from mozbuild.util import ensureParentDir
 from mozpack.files import FileFinder
 from mozpack.mozjar import JarWriter
 import mozpack.path as mozpath
@@ -52,6 +53,11 @@ ARCHIVE_FILES = {
         },
         {
             'source': buildconfig.topsrcdir,
+            'base': 'testing',
+            'pattern': 'firefox-ui/**',
+        },
+        {
+            'source': buildconfig.topsrcdir,
             'base': 'js/src',
             'pattern': 'jit-test/**',
             'dest': 'jit-test',
@@ -83,6 +89,11 @@ ARCHIVE_FILES = {
         {
             'source': buildconfig.topsrcdir,
             'base': 'testing',
+            'pattern': 'puppeteer/**',
+        },
+        {
+            'source': buildconfig.topsrcdir,
+            'base': 'testing',
             'pattern': 'tps/**',
         },
         {
@@ -95,6 +106,12 @@ ARCHIVE_FILES = {
             'base': 'services/sync/tests/tps',
             'pattern': '**',
             'dest': 'tps/tests',
+        },
+        {
+            'source': buildconfig.topsrcdir,
+            'base': 'testing/web-platform/tests/tools/wptserve',
+            'pattern': '**',
+            'dest': 'tools/wptserve',
         },
     ],
     'cppunittest': [
@@ -310,6 +327,7 @@ def main(argv):
 
     file_count = 0
     t_start = time.time()
+    ensureParentDir(args.outputfile)
     with open(args.outputfile, 'wb') as fh:
         # Experimentation revealed that level 5 is significantly faster and has
         # marginally larger sizes than higher values and is the sweet spot

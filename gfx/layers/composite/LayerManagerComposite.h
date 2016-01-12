@@ -182,7 +182,8 @@ public:
    */
   void PostProcessLayers(Layer* aLayer,
                          nsIntRegion& aOpaqueRegion,
-                         LayerIntRegion& aVisibleRegion);
+                         LayerIntRegion& aVisibleRegion,
+                         const Maybe<ParentLayerIntRect>& aClipFromAncestors);
 
   /**
    * RAII helper class to add a mask effect with the compositable from aMaskLayer
@@ -327,7 +328,7 @@ private:
   /**
    * We need to know our invalid region before we're ready to render.
    */
-  void InvalidateDebugOverlay(const gfx::IntRect& aBounds);
+  void InvalidateDebugOverlay(nsIntRegion& aInvalidRegion, const gfx::IntRect& aBounds);
 
   /**
    * Render debug overlays such as the FPS/FrameCounter above the frame.
@@ -578,7 +579,7 @@ RenderWithAllMasks(Layer* aLayer, Compositor* aCompositor,
   // Calculate the size of the intermediate surfaces.
   gfx::Rect visibleRect(aLayer->GetEffectiveVisibleRegion().ToUnknownRegion().GetBounds());
   gfx::Matrix4x4 transform = aLayer->GetEffectiveTransform();
-  // TODO: Use RenderTargetIntRect and TransformTo<...> here
+  // TODO: Use RenderTargetIntRect and TransformBy here
   gfx::IntRect surfaceRect =
     RoundedOut(transform.TransformAndClipBounds(visibleRect, gfx::Rect(aClipRect)));
   if (surfaceRect.IsEmpty()) {

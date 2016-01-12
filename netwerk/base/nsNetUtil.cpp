@@ -4,9 +4,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+// HttpLog.h should generally be included first
+#include "HttpLog.h"
+
 #include "mozilla/LoadContext.h"
 #include "mozilla/LoadInfo.h"
 #include "mozilla/BasePrincipal.h"
+#include "mozilla/Telemetry.h"
 #include "nsNetUtil.h"
 #include "nsNetUtil.inl"
 #include "mozIApplicationClearPrivateDataParams.h"
@@ -45,6 +49,7 @@
 #include "nsISocketProviderService.h"
 #include "nsIStandardURL.h"
 #include "nsIStreamLoader.h"
+#include "nsIIncrementalStreamLoader.h"
 #include "nsIStreamTransportService.h"
 #include "nsStringStream.h"
 #include "nsISyncStreamListener.h"
@@ -57,6 +62,10 @@
 #include "nsInterfaceRequestorAgg.h"
 #include "plstr.h"
 #include "nsINestedURI.h"
+#include "mozilla/dom/nsCSPUtils.h"
+#include "nsIScriptError.h"
+#include "nsISiteSecurityService.h"
+#include "nsHttpHandler.h"
 
 #ifdef MOZ_WIDGET_GONK
 #include "nsINetworkManager.h"
@@ -64,6 +73,9 @@
 #endif
 
 #include <limits>
+
+using namespace mozilla;
+using namespace mozilla::net;
 
 nsresult /*NS_NewChannelWithNodeAndTriggeringPrincipal */
 NS_NewChannelWithTriggeringPrincipal(nsIChannel           **outChannel,
@@ -575,6 +587,23 @@ NS_NewDownloader(nsIStreamListener   **result,
         rv = downloader->Init(observer, downloadLocation);
         if (NS_SUCCEEDED(rv)) {
             downloader.forget(result);
+        }
+    }
+    return rv;
+}
+
+nsresult
+NS_NewIncrementalStreamLoader(nsIIncrementalStreamLoader        **result,
+                              nsIIncrementalStreamLoaderObserver *observer)
+{
+    nsresult rv;
+    nsCOMPtr<nsIIncrementalStreamLoader> loader =
+        do_CreateInstance(NS_INCREMENTALSTREAMLOADER_CONTRACTID, &rv);
+    if (NS_SUCCEEDED(rv)) {
+        rv = loader->Init(observer);
+        if (NS_SUCCEEDED(rv)) {
+            *result = nullptr;
+            loader.swap(*result);
         }
     }
     return rv;
@@ -1108,6 +1137,22 @@ NS_BufferOutputStream(nsIOutputStream *aOutputStream,
     return bos.forget();
 }
 
+already_AddRefed<nsIInputStream>
+NS_BufferInputStream(nsIInputStream *aInputStream,
+                      uint32_t aBufferSize)
+{
+    NS_ASSERTION(aInputStream, "No input stream given!");
+
+    nsCOMPtr<nsIInputStream> bis;
+    nsresult rv = NS_NewBufferedInputStream(getter_AddRefs(bis), aInputStream,
+                                            aBufferSize);
+    if (NS_SUCCEEDED(rv))
+        return bis.forget();
+
+    bis = aInputStream;
+    return bis.forget();
+}
+
 nsresult
 NS_ReadInputStreamToBuffer(nsIInputStream *aInputStream,
                            void **aDest,
@@ -1186,13 +1231,12 @@ bool
 NS_UsePrivateBrowsing(nsIChannel *channel)
 {
     bool isPrivate = false;
-    bool isOverriden = false;
     nsCOMPtr<nsIPrivateBrowsingChannel> pbChannel = do_QueryInterface(channel);
-    if (pbChannel &&
-        NS_SUCCEEDED(pbChannel->IsPrivateModeOverriden(&isPrivate, &isOverriden)) &&
-        isOverriden) {
+    if (pbChannel && NS_SUCCEEDED(pbChannel->GetIsChannelPrivate(&isPrivate))) {
         return isPrivate;
     }
+
+    // Some channels may not implement nsIPrivateBrowsingChannel
     nsCOMPtr<nsILoadContext> loadContext;
     NS_QueryNotificationCallbacks(channel, loadContext);
     return loadContext && loadContext->UsePrivateBrowsing();
@@ -1232,6 +1276,55 @@ NS_GetAppInfo(nsIChannel *aChannel,
     NS_ENSURE_SUCCESS(rv, false);
 
     return true;
+}
+
+bool
+NS_HasBeenCrossOrigin(nsIChannel* aChannel, bool aReport)
+{
+  nsCOMPtr<nsILoadInfo> loadInfo = aChannel->GetLoadInfo();
+  MOZ_RELEASE_ASSERT(loadInfo, "Origin tracking only works for channels created with a loadinfo");
+
+  // Always treat tainted channels as cross-origin.
+  if (loadInfo->GetTainting() != LoadTainting::Basic) {
+    return true;
+  }
+
+  nsCOMPtr<nsIPrincipal> loadingPrincipal = loadInfo->LoadingPrincipal();
+  uint32_t mode = loadInfo->GetSecurityMode();
+  bool dataInherits =
+    mode == nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_DATA_INHERITS ||
+    mode == nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_DATA_INHERITS ||
+    mode == nsILoadInfo::SEC_REQUIRE_CORS_DATA_INHERITS;
+
+  bool aboutBlankInherits = dataInherits && loadInfo->GetAboutBlankInherits();
+
+  for (nsIPrincipal* principal : loadInfo->RedirectChain()) {
+    nsCOMPtr<nsIURI> uri;
+    principal->GetURI(getter_AddRefs(uri));
+    if (!uri) {
+      return true;
+    }
+
+    if (aboutBlankInherits && NS_IsAboutBlank(uri)) {
+      continue;
+    }
+
+    if (NS_FAILED(loadingPrincipal->CheckMayLoad(uri, aReport, dataInherits))) {
+      return true;
+    }
+  }
+
+  nsCOMPtr<nsIURI> uri;
+  NS_GetFinalChannelURI(aChannel, getter_AddRefs(uri));
+  if (!uri) {
+    return true;
+  }
+
+  if (aboutBlankInherits && NS_IsAboutBlank(uri)) {
+    return false;
+  }
+
+  return NS_FAILED(loadingPrincipal->CheckMayLoad(uri, aReport, dataInherits));
 }
 
 nsresult
@@ -2141,6 +2234,100 @@ NS_IsSrcdocChannel(nsIChannel *aChannel)
     return isSrcdoc;
   }
   return false;
+}
+
+nsresult
+NS_ShouldSecureUpgrade(nsIURI* aURI,
+                       nsILoadInfo* aLoadInfo,
+                       nsIPrincipal* aChannelResultPrincipal,
+                       bool aPrivateBrowsing,
+                       bool aAllowSTS,
+                       bool& aShouldUpgrade)
+{
+  // Even if we're in private browsing mode, we still enforce existing STS
+  // data (it is read-only).
+  // if the connection is not using SSL and either the exact host matches or
+  // a superdomain wants to force HTTPS, do it.
+  bool isHttps = false;
+  nsresult rv = aURI->SchemeIs("https", &isHttps);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (!isHttps) {
+    // If any of the documents up the chain to the root doucment makes use of
+    // the CSP directive 'upgrade-insecure-requests', then it's time to fulfill
+    // the promise to CSP and mixed content blocking to upgrade the channel
+    // from http to https.
+    if (aLoadInfo) {
+      bool isPreload = nsContentUtils::IsPreloadType(aLoadInfo->InternalContentPolicyType());
+      bool upgradeRequests =
+        ((isPreload && aLoadInfo->GetUpgradeInsecurePreloads()) ||
+         (aLoadInfo->GetUpgradeInsecureRequests()));
+
+      // Please note that cross origin top level navigations are not subject
+      // to upgrade-insecure-requests, see:
+      // http://www.w3.org/TR/upgrade-insecure-requests/#examples
+      bool crossOriginNavigation =
+        (aLoadInfo->GetExternalContentPolicyType() == nsIContentPolicy::TYPE_DOCUMENT) &&
+        (!aChannelResultPrincipal->Equals(aLoadInfo->LoadingPrincipal()));
+
+      if (upgradeRequests && !crossOriginNavigation) {
+        // let's log a message to the console that we are upgrading a request
+        nsAutoCString spec, scheme;
+        aURI->GetSpec(spec);
+        aURI->GetScheme(scheme);
+        // append the additional 's' for security to the scheme :-)
+        scheme.AppendASCII("s");
+        NS_ConvertUTF8toUTF16 reportSpec(spec);
+        NS_ConvertUTF8toUTF16 reportScheme(scheme);
+
+        const char16_t* params[] = { reportSpec.get(), reportScheme.get() };
+        uint32_t innerWindowId = aLoadInfo->GetInnerWindowID();
+        CSP_LogLocalizedStr(MOZ_UTF16("upgradeInsecureRequest"),
+                            params, ArrayLength(params),
+                            EmptyString(), // aSourceFile
+                            EmptyString(), // aScriptSample
+                            0, // aLineNumber
+                            0, // aColumnNumber
+                            nsIScriptError::warningFlag, "CSP",
+                            innerWindowId);
+
+        Telemetry::Accumulate(Telemetry::HTTP_SCHEME_UPGRADE, 4);
+        aShouldUpgrade = true;
+        return NS_OK;
+      }
+    }
+
+    // enforce Strict-Transport-Security
+    nsISiteSecurityService* sss = gHttpHandler->GetSSService();
+    NS_ENSURE_TRUE(sss, NS_ERROR_OUT_OF_MEMORY);
+
+    bool isStsHost = false;
+    uint32_t flags = aPrivateBrowsing ? nsISocketProvider::NO_PERMANENT_STORAGE : 0;
+    rv = sss->IsSecureURI(nsISiteSecurityService::HEADER_HSTS, aURI, flags,
+                          &isStsHost);
+
+    // if the SSS check fails, it's likely because this load is on a
+    // malformed URI or something else in the setup is wrong, so any error
+    // should be reported.
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (isStsHost) {
+      LOG(("nsHttpChannel::Connect() STS permissions found\n"));
+      if (aAllowSTS) {
+        Telemetry::Accumulate(Telemetry::HTTP_SCHEME_UPGRADE, 3);
+        aShouldUpgrade = true;
+        return NS_OK;
+      } else {
+        Telemetry::Accumulate(Telemetry::HTTP_SCHEME_UPGRADE, 2);
+      }
+    } else {
+      Telemetry::Accumulate(Telemetry::HTTP_SCHEME_UPGRADE, 1);
+    }
+  } else {
+    Telemetry::Accumulate(Telemetry::HTTP_SCHEME_UPGRADE, 0);
+  }
+  aShouldUpgrade = false;
+  return NS_OK;
 }
 
 namespace mozilla {

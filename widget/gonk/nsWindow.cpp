@@ -258,7 +258,7 @@ private:
 nsresult
 nsWindow::SynthesizeNativeTouchPoint(uint32_t aPointerId,
                                      TouchPointerState aPointerState,
-                                     nsIntPoint aPointerScreenPoint,
+                                     ScreenIntPoint aPointerScreenPoint,
                                      double aPointerPressure,
                                      uint32_t aPointerOrientation,
                                      nsIObserver* aObserver)
@@ -286,7 +286,7 @@ nsWindow::SynthesizeNativeTouchPoint(uint32_t aPointerId,
         if (index >= 0) {
             // found an existing touch point, update it
             SingleTouchData& point = mSynthesizedTouchInput->mTouches[index];
-            point.mScreenPoint = ScreenIntPoint::FromUnknownPoint(aPointerScreenPoint);
+            point.mScreenPoint = aPointerScreenPoint;
             point.mRotationAngle = (float)aPointerOrientation;
             point.mForce = (float)aPointerPressure;
             inputToDispatch.mType = MultiTouchInput::MULTITOUCH_MOVE;
@@ -294,7 +294,7 @@ nsWindow::SynthesizeNativeTouchPoint(uint32_t aPointerId,
             // new touch point, add it
             mSynthesizedTouchInput->mTouches.AppendElement(SingleTouchData(
                 (int32_t)aPointerId,
-                ScreenIntPoint::FromUnknownPoint(aPointerScreenPoint),
+                aPointerScreenPoint,
                 ScreenSize(0, 0),
                 (float)aPointerOrientation,
                 (float)aPointerPressure));
@@ -312,7 +312,7 @@ nsWindow::SynthesizeNativeTouchPoint(uint32_t aPointerId,
             : MultiTouchInput::MULTITOUCH_CANCEL);
         inputToDispatch.mTouches.AppendElement(SingleTouchData(
             (int32_t)aPointerId,
-            ScreenIntPoint::FromUnknownPoint(aPointerScreenPoint),
+            aPointerScreenPoint,
             ScreenSize(0, 0),
             (float)aPointerOrientation,
             (float)aPointerPressure));
@@ -330,10 +330,10 @@ nsWindow::SynthesizeNativeTouchPoint(uint32_t aPointerId,
 }
 
 NS_IMETHODIMP
-nsWindow::Create(nsIWidget *aParent,
-                 void *aNativeParent,
-                 const nsIntRect &aRect,
-                 nsWidgetInitData *aInitData)
+nsWindow::Create(nsIWidget* aParent,
+                 void* aNativeParent,
+                 const LayoutDeviceIntRect& aRect,
+                 nsWidgetInitData* aInitData)
 {
     BaseCreate(aParent, aRect, aInitData);
 
@@ -347,7 +347,7 @@ nsWindow::Create(nsIWidget *aParent,
 
     mScreen = static_cast<nsScreenGonk*>(screen.get());
 
-    mBounds = aRect;
+    mBounds = aRect.ToUnknownRect();
 
     mParent = (nsWindow *)aParent;
     mVisible = false;
@@ -458,7 +458,7 @@ nsWindow::Resize(double aX,
     }
 
     if (aRepaint) {
-        Invalidate(mBounds);
+        Invalidate(LayoutDeviceIntRect::FromUnknownRect(mBounds));
     }
 
     return NS_OK;
@@ -498,7 +498,7 @@ nsWindow::ConfigureChildren(const nsTArray<nsIWidget::Configuration>&)
 }
 
 NS_IMETHODIMP
-nsWindow::Invalidate(const nsIntRect &aRect)
+nsWindow::Invalidate(const LayoutDeviceIntRect& aRect)
 {
     nsWindow *top = mParent;
     while (top && top->mParent) {
@@ -539,6 +539,9 @@ nsWindow::GetNativeData(uint32_t aDataType)
         return mScreen->GetNativeWindow();
     case NS_NATIVE_OPENGL_CONTEXT:
         return mScreen->GetGLContext().take();
+    case NS_RAW_NATIVE_IME_CONTEXT:
+        // There is only one IME context on Gonk.
+        return NS_ONLY_ONE_NATIVE_IME_CONTEXT;
     }
 
     return nullptr;
@@ -582,8 +585,6 @@ nsWindow::SetInputContext(const InputContext& aContext,
 NS_IMETHODIMP_(InputContext)
 nsWindow::GetInputContext()
 {
-    // There is only one IME context on Gonk.
-    mInputContext.mNativeIMEContext = nullptr;
     return mInputContext;
 }
 
@@ -750,7 +751,7 @@ nsWindow::GetDefaultScaleInternal()
     if (dpi < 200.0) {
         return 1.0; // mdpi devices.
     }
-    if (dpi < 300.0) {
+    if (dpi < 280.0) {
         return 1.5; // hdpi devices.
     }
     // xhdpi devices and beyond.
@@ -827,7 +828,7 @@ nsWindow::BringToTop()
         mWidgetListener->WindowActivated();
     }
 
-    Invalidate(mBounds);
+    Invalidate(LayoutDeviceIntRect::FromUnknownRect(mBounds));
 }
 
 void

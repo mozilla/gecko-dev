@@ -45,6 +45,22 @@ describe("loop.StandaloneMozLoop", function() {
     });
   });
 
+  describe("#hangupNow", function() {
+    it("should call rooms.leave", function() {
+      loop.request("HangupNow", "fakeToken", "fakeSessionToken");
+
+      expect(requests).to.have.length.of(1);
+      expect(requests[0].async).eql(false);
+      expect(requests[0].url).eql(fakeBaseServerUrl + "/rooms/fakeToken");
+      expect(requests[0].method).eql("POST");
+      expect(requests[0].requestHeaders.Authorization)
+        .eql("Basic " + btoa("fakeSessionToken"));
+
+      var requestData = JSON.parse(requests[0].requestBody);
+      expect(requestData.action).eql("leave");
+    });
+  });
+
   describe("#setLoopPref", function() {
     afterEach(function() {
       localStorage.removeItem("fakePref");
@@ -104,6 +120,19 @@ describe("loop.StandaloneMozLoop", function() {
 
       requests[0].respond(401, { "Content-Type": "application/json" },
                           JSON.stringify(fakeServerErrorDescription));
+
+      return promise;
+    });
+
+    it("should call the callback on xhr error", function() {
+      var promise = loop.request("Rooms:Get", "fakeToken").then(function(result) {
+        expect(result.isError).eql(true);
+        expect(/HTTP 0/.test(result.message)).eql(true);
+      });
+
+      // Method to mock network failure
+      // https://github.com/sinonjs/sinon/issues/361
+      requests[0].respond(0, {}, "");
 
       return promise;
     });

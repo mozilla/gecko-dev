@@ -26,6 +26,8 @@
 #include "nsILanguageAtomService.h"
 #include "mozilla/LookAndFeel.h"
 #include "nsIInterfaceRequestorUtils.h"
+#include "nsIDOMHTMLDocument.h"
+#include "nsIDOMHTMLElement.h"
 #include "nsIWeakReferenceUtils.h"
 #include "nsAutoPtr.h"
 #include "nsThreadUtils.h"
@@ -1634,6 +1636,11 @@ GetPropagatedScrollbarStylesForViewport(nsPresContext* aPresContext,
   nsIDocument* document = aPresContext->Document();
   Element* docElement = document->GetRootElement();
 
+  // docElement might be null if we're doing this after removing it.
+  if (!docElement) {
+    return nullptr;
+  }
+
   // Check the style on the document root element
   nsStyleSet *styleSet = aPresContext->StyleSet();
   RefPtr<nsStyleContext> rootStyle;
@@ -3099,11 +3106,11 @@ nsRootPresContext::CancelApplyPluginGeometryTimer()
 
 static bool
 HasOverlap(const LayoutDeviceIntPoint& aOffset1,
-           const nsTArray<nsIntRect>& aClipRects1,
+           const nsTArray<LayoutDeviceIntRect>& aClipRects1,
            const LayoutDeviceIntPoint& aOffset2,
-           const nsTArray<nsIntRect>& aClipRects2)
+           const nsTArray<LayoutDeviceIntRect>& aClipRects2)
 {
-  nsIntPoint offsetDelta = (aOffset1 - aOffset2).ToUnknownPoint();
+  LayoutDeviceIntPoint offsetDelta = aOffset1 - aOffset2;
   for (uint32_t i = 0; i < aClipRects1.Length(); ++i) {
     for (uint32_t j = 0; j < aClipRects2.Length(); ++j) {
       if ((aClipRects1[i] + offsetDelta).Intersects(aClipRects2[j])) {
@@ -3149,7 +3156,7 @@ SortConfigurations(nsTArray<nsIWidget::Configuration>* aConfigurations)
           continue;
         LayoutDeviceIntRect bounds;
         pluginsToMove[j].mChild->GetBounds(bounds);
-        nsAutoTArray<nsIntRect,1> clipRects;
+        nsAutoTArray<LayoutDeviceIntRect,1> clipRects;
         pluginsToMove[j].mChild->GetWindowClipRegion(&clipRects);
         if (HasOverlap(bounds.TopLeft(), clipRects,
                        config->mBounds.TopLeft(),

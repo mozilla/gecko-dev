@@ -195,10 +195,6 @@ var AboutHomeListener = {
         sendAsyncMessage("AboutHome:History");
         break;
 
-      case "apps":
-        sendAsyncMessage("AboutHome:Apps");
-        break;
-
       case "addons":
         sendAsyncMessage("AboutHome:Addons");
         break;
@@ -334,7 +330,7 @@ var AboutReaderListener = {
    */
   updateReaderButton: function(forceNonArticle) {
     if (!ReaderMode.isEnabledForParseOnLoad || this.isAboutReader ||
-        !(content.document instanceof content.HTMLDocument) ||
+        !content || !(content.document instanceof content.HTMLDocument) ||
         content.document.mozSyntheticDocument) {
       return;
     }

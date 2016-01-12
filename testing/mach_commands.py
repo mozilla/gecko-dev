@@ -524,7 +524,8 @@ class PushToTry(MachCommandBase):
             sys.exit(1)
 
         try:
-            talos = self.normalise_list(kwargs["talos"]) if kwargs["talos"] else []
+            talos = (self.normalise_list(kwargs["talos"], allow_subitems=True)
+                     if kwargs["talos"] else [])
         except ValueError as e:
             print("Error parsing -t argument:\n%s" % e.message)
             sys.exit(1)
@@ -532,9 +533,9 @@ class PushToTry(MachCommandBase):
         paths = []
         for p in kwargs["paths"]:
             p = os.path.normpath(os.path.abspath(p))
-            if not p.startswith(self.topsrcdir):
-                print('Specified path "%s" is outside of the srcdir, unable to'
-                      ' specify tests outside of the srcdir' % p)
+            if not (os.path.isdir(p) and p.startswith(self.topsrcdir)):
+                print('Specified path "%s" is not a directory under the srcdir,'
+                      ' unable to specify tests outside of the srcdir' % p)
                 sys.exit(1)
             if len(p) <= len(self.topsrcdir):
                 print('Specified path "%s" is at the top of the srcdir and would'

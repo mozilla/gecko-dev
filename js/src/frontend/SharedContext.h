@@ -202,6 +202,7 @@ class SharedContext
 
     bool allowNewTarget_;
     bool allowSuperProperty_;
+    bool allowSuperCall_;
     bool inWith_;
     bool needsThisTDZChecks_;
     bool superScopeAlreadyNeedsHomeObject_;
@@ -217,6 +218,7 @@ class SharedContext
         thisBinding_(ThisBinding::Global),
         allowNewTarget_(false),
         allowSuperProperty_(false),
+        allowSuperCall_(false),
         inWith_(false),
         needsThisTDZChecks_(false),
         superScopeAlreadyNeedsHomeObject_(false)
@@ -244,6 +246,7 @@ class SharedContext
 
     bool allowNewTarget()              const { return allowNewTarget_; }
     bool allowSuperProperty()          const { return allowSuperProperty_; }
+    bool allowSuperCall()              const { return allowSuperCall_; }
     bool inWith()                      const { return inWith_; }
     bool needsThisTDZChecks()          const { return needsThisTDZChecks_; }
 
@@ -408,21 +411,25 @@ class FunctionBox : public ObjectBox, public SharedContext
                isDerivedClassConstructor() ||
                isGenerator();
     }
+
+    void trace(JSTracer* trc) override;
 };
 
 class ModuleBox : public ObjectBox, public SharedContext
 {
   public:
     Bindings bindings;
-    TraceableVector<JSAtom*> exportNames;
+    ModuleBuilder& builder;
 
     template <typename ParseHandler>
     ModuleBox(ExclusiveContext* cx, ObjectBox* traceListHead, ModuleObject* module,
-              ParseContext<ParseHandler>* pc);
+              ModuleBuilder& builder, ParseContext<ParseHandler>* pc);
 
     ObjectBox* toObjectBox() override { return this; }
     ModuleObject* module() const { return &object->as<ModuleObject>(); }
     JSObject* staticScope() const override { return module(); }
+
+    void trace(JSTracer* trc) override;
 };
 
 inline FunctionBox*
@@ -451,34 +458,33 @@ SharedContext::allLocalsAliased()
     return bindingsAccessedDynamically() || (isFunctionBox() && asFunctionBox()->isGenerator());
 }
 
+// NOTE: If you add a new type of statement that is a scope, add it between
+//       WITH and CATCH, or you'll break StmtInfoBase::linksScope.  If you add
+//       a non-looping statement type, add it before DO_LOOP or you'll break
+//       StmtInfoBase::isLoop().
+#define FOR_EACH_STATEMENT_TYPE(macro) \
+    macro(LABEL, "label statement") \
+    macro(IF, "if statement") \
+    macro(ELSE, "else statement") \
+    macro(SEQ, "destructuring body") \
+    macro(BLOCK, "block") \
+    macro(SWITCH, "switch statement") \
+    macro(WITH, "with statement") \
+    macro(CATCH, "catch block") \
+    macro(TRY, "try block") \
+    macro(FINALLY, "finally block") \
+    macro(SUBROUTINE, "finally block") \
+    macro(DO_LOOP, "do loop") \
+    macro(FOR_LOOP, "for loop") \
+    macro(FOR_IN_LOOP, "for/in loop") \
+    macro(FOR_OF_LOOP, "for/of loop") \
+    macro(WHILE_LOOP, "while loop") \
+    macro(SPREAD, "spread")
 
-/*
- * NB: If you add a new type of statement that is a scope, add it between
- * STMT_WITH and STMT_CATCH, or you will break StmtInfoBase::linksScope. If you
- * add a non-looping statement type, add it before STMT_DO_LOOP or you will
- * break StmtInfoBase::isLoop().
- *
- * Also remember to keep the statementName array in BytecodeEmitter.cpp in
- * sync.
- */
 enum class StmtType : uint16_t {
-    LABEL,                 /* labeled statement:  L: s */
-    IF,                    /* if (then) statement */
-    ELSE,                  /* else clause of if statement */
-    SEQ,                   /* synthetic sequence of statements */
-    BLOCK,                 /* compound statement: { s1[;... sN] } */
-    SWITCH,                /* switch statement */
-    WITH,                  /* with statement */
-    CATCH,                 /* catch block */
-    TRY,                   /* try block */
-    FINALLY,               /* finally block */
-    SUBROUTINE,            /* gosub-target subroutine body */
-    DO_LOOP,               /* do/while loop statement */
-    FOR_LOOP,              /* for loop statement */
-    FOR_IN_LOOP,           /* for/in loop statement */
-    FOR_OF_LOOP,           /* for/of loop statement */
-    WHILE_LOOP,            /* while loop statement */
-    SPREAD,                /* spread operator (pseudo for/of) */
+#define DECLARE_STMTTYPE_ENUM(name, desc) name,
+    FOR_EACH_STATEMENT_TYPE(DECLARE_STMTTYPE_ENUM)
+#undef DECLARE_STMTTYPE_ENUM
     LIMIT
 };
 
@@ -580,6 +586,12 @@ class MOZ_STACK_CLASS StmtInfoStack
 
     StmtInfo* innermost() const { return innermostStmt_; }
     StmtInfo* innermostScopeStmt() const { return innermostScopeStmt_; }
+    StmtInfo* innermostNonLabel() const {
+        StmtInfo* stmt = innermost();
+        while (stmt && stmt->type == StmtType::LABEL)
+            stmt = stmt->enclosing;
+        return stmt;
+    }
 
     void push(StmtInfo* stmt, StmtType type) {
         stmt->type = type;

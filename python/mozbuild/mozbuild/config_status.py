@@ -10,6 +10,7 @@ from __future__ import absolute_import, print_function
 
 import logging
 import os
+import subprocess
 import sys
 import time
 
@@ -32,10 +33,11 @@ ANDROID_IDE_ADVERTISEMENT = '''
 =============
 ADVERTISEMENT
 
-You are building Firefox for Android. After your build completes, you
-should run `mach gradle-install` to prepare Gradle and IntelliJ/Android Studio
-integration. Then import the Gradle project at $OBJDIR/mobile/android/gradle
-into the IDE of your choice.
+You are building Firefox for Android. After your build completes, you can open
+the top source directory in IntelliJ or Android Studio directly and build using
+Gradle.  See the documentation at
+
+https://developer.mozilla.org/en-US/docs/Simple_Firefox_for_Android_build
 
 PLEASE BE AWARE THAT GRADLE AND INTELLIJ/ANDROID STUDIO SUPPORT IS EXPERIMENTAL.
 You should verify any changes using |mach build|.
@@ -208,3 +210,8 @@ def config_status(topobjdir='.', topsrcdir='.',
     if MachCommandConditions.is_android(env):
         if 'AndroidEclipse' not in options.backend:
             print(ANDROID_IDE_ADVERTISEMENT)
+
+    if env.substs.get('MOZ_ARTIFACT_BUILDS', False):
+        # Execute |mach artifact install| from the top source directory.
+        os.chdir(topsrcdir)
+        return subprocess.check_call([sys.executable, os.path.join(topsrcdir, 'mach'), 'artifact', 'install'])

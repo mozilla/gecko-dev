@@ -191,11 +191,11 @@ nsPluginHost *nsPluginHost::sInst;
 /* we should probably put this into a global library now that this is the second
    time we need this. */
 static
-PRInt32
-busy_beaver_PR_Read(PRFileDesc *fd, void * start, PRInt32 len)
+int32_t
+busy_beaver_PR_Read(PRFileDesc *fd, void * start, int32_t len)
 {
     int n;
-    PRInt32 remaining = len;
+    int32_t remaining = len;
 
     while (remaining > 0)
     {
@@ -2426,17 +2426,21 @@ nsPluginHost::FindPluginsInContent(bool aCreatePluginList, bool* aPluginsChanged
   }
 
   if (parentEpoch != ChromeEpochForContent()) {
-    SetChromeEpochForContent(parentEpoch);
     *aPluginsChanged = true;
     if (!aCreatePluginList) {
       return NS_OK;
     }
 
+    // Don't do this if aCreatePluginList is false. Otherwise, when we actually
+    // want to create the list, we'll come back here and do nothing.
+    SetChromeEpochForContent(parentEpoch);
+
     for (size_t i = 0; i < plugins.Length(); i++) {
       PluginTag& tag = plugins[i];
 
       // Don't add the same plugin again.
-      if (PluginWithId(tag.id())) {
+      if (nsPluginTag* existing = PluginWithId(tag.id())) {
+        UpdateInMemoryPluginInfo(existing);
         continue;
       }
 
@@ -2699,14 +2703,9 @@ nsPluginHost::FindPluginsForContent(uint32_t aPluginEpoch,
   return NS_OK;
 }
 
-// This function is not relevant for fake plugins.
 void
-nsPluginHost::UpdatePluginInfo(nsPluginTag* aPluginTag)
+nsPluginHost::UpdateInMemoryPluginInfo(nsPluginTag* aPluginTag)
 {
-  MOZ_ASSERT(XRE_IsParentProcess());
-
-  ReadPluginInfo();
-  WritePluginInfo();
   NS_ITERATIVE_UNREF_LIST(RefPtr<nsPluginTag>, mCachedPlugins, mNext);
   NS_ITERATIVE_UNREF_LIST(RefPtr<nsInvalidPluginTag>, mInvalidPlugins, mNext);
 
@@ -2735,6 +2734,20 @@ nsPluginHost::UpdatePluginInfo(nsPluginTag* aPluginTag)
     mozilla::services::GetObserverService();
   if (obsService)
     obsService->NotifyObservers(nullptr, "plugin-info-updated", nullptr);
+}
+
+// This function is not relevant for fake plugins.
+void
+nsPluginHost::UpdatePluginInfo(nsPluginTag* aPluginTag)
+{
+  MOZ_ASSERT(XRE_IsParentProcess());
+
+  ReadPluginInfo();
+  WritePluginInfo();
+
+  IncrementChromeEpoch();
+
+  UpdateInMemoryPluginInfo(aPluginTag);
 }
 
 /* static */ bool
@@ -3384,7 +3397,8 @@ nsresult nsPluginHost::NewPluginURLStream(const nsString& aURL,
                      nsILoadInfo::SEC_FORCE_INHERIT_PRINCIPAL,
                      nsIContentPolicy::TYPE_OBJECT_SUBREQUEST,
                      nullptr,  // aLoadGroup
-                     listenerPeer);
+                     listenerPeer,
+                     nsIRequest::LOAD_NORMAL | nsIChannel::LOAD_CLASSIFY_URI);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (doc) {

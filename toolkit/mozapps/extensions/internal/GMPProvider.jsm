@@ -444,7 +444,6 @@ GMPWrapper.prototype = {
       gmpService.removeAndDeletePluginDirectory(this.gmpPath);
     }
     GMPPrefs.reset(GMPPrefs.KEY_PLUGIN_VERSION, this.id);
-    GMPPrefs.reset(GMPPrefs.KEY_PLUGIN_TRIAL_CREATE, this.id);
     GMPPrefs.reset(GMPPrefs.KEY_PLUGIN_ABI, this.id);
     GMPPrefs.reset(GMPPrefs.KEY_PLUGIN_LAST_UPDATE, this.id);
     AddonManagerPrivate.callAddonListeners("onUninstalled", this);
@@ -572,7 +571,9 @@ var GMPProvider = {
         this._log.info("startup - adding gmp directory " + gmpPath);
         try {
           gmpService.addPluginDirectory(gmpPath);
-        } catch (e if e.name == 'NS_ERROR_NOT_AVAILABLE') {
+        } catch (e) {
+          if (e.name != 'NS_ERROR_NOT_AVAILABLE')
+            throw e;
           this._log.warn("startup - adding gmp directory failed with " +
                          e.name + " - sandboxing not available?", e);
         }
@@ -601,12 +602,6 @@ var GMPProvider = {
       } catch (e) {
         this._log.warn("startup - adding clearkey CDM failed", e);
       }
-    }
-
-    if (Preferences.get("media.gmp-adobe-eme.enabled", false)) {
-      // Gather telemetry on how many Adobe-compatible installs have
-      // disabled EME.
-      telemetryService.getHistogramById("VIDEO_EME_DISABLED").add(!emeEnabled);
     }
 
     AddonManagerPrivate.setTelemetryDetails("GMP", telemetry);
@@ -659,8 +654,10 @@ var GMPProvider = {
       return;
     }
 
-    let results = [p.wrapper for ([id, p] of this._plugins)
-                    if (!GMPUtils.isPluginHidden(p))];
+    let results = Array.from(this._plugins.values())
+      .filter(p => !GMPUtils.isPluginHidden(p))
+      .map(p => p.wrapper);
+
     aCallback(results);
   },
 

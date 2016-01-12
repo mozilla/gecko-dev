@@ -1845,10 +1845,6 @@ jit::MakeMRegExpHoistable(MIRGraph& graph)
                 MDefinition* use = i->consumer()->toDefinition();
                 if (use->isRegExpReplace())
                     continue;
-                if (use->isRegExpExec())
-                    continue;
-                if (use->isRegExpTest())
-                    continue;
 
                 hoistable = false;
                 break;
@@ -2471,6 +2467,7 @@ IsResumableMIRType(MIRType type)
       case MIRType_Value:
       case MIRType_Float32x4:
       case MIRType_Int32x4:
+      case MIRType_Bool32x4:
         return true;
 
       case MIRType_MagicHole:
@@ -3683,7 +3680,7 @@ jit::AnalyzeNewScriptDefiniteProperties(JSContext* cx, JSFunction* fun,
                      script->needsArgsObj(),
                      inlineScriptTree);
 
-    const OptimizationInfo* optimizationInfo = IonOptimizations.get(Optimization_Normal);
+    const OptimizationInfo* optimizationInfo = IonOptimizations.get(OptimizationLevel::Normal);
 
     CompilerConstraintList* constraints = NewCompilerConstraintList(temp);
     if (!constraints) {
@@ -3904,7 +3901,7 @@ jit::AnalyzeArgumentsUsage(JSContext* cx, JSScript* scriptArg)
                      /* needsArgsObj = */ true,
                      inlineScriptTree);
 
-    const OptimizationInfo* optimizationInfo = IonOptimizations.get(Optimization_Normal);
+    const OptimizationInfo* optimizationInfo = IonOptimizations.get(OptimizationLevel::Normal);
 
     CompilerConstraintList* constraints = NewCompilerConstraintList(temp);
     if (!constraints) {

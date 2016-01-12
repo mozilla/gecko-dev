@@ -419,7 +419,7 @@ nsSliderFrame::DoLayout(nsBoxLayoutState& aState)
   nscoord& availableLength = IsHorizontal() ? clientRect.width : clientRect.height;
   nscoord& thumbLength = IsHorizontal() ? thumbSize.width : thumbSize.height;
 
-  if ((pageIncrement + maxPos - minPos) > 0 && thumbBox->GetFlex(aState) > 0) {
+  if ((pageIncrement + maxPos - minPos) > 0 && thumbBox->GetFlex() > 0) {
     float ratio = float(pageIncrement) / float(maxPos - minPos + pageIncrement);
     thumbLength = std::max(thumbLength, NSToCoordRound(availableLength * ratio));
   }
@@ -556,6 +556,7 @@ nsSliderFrame::HandleEvent(nsPresContext* aPresContext,
         //we MUST call nsFrame HandleEvent for mouse ups to maintain the selection state and capture state.
         return nsFrame::HandleEvent(aPresContext, aEvent, aEventStatus);
       }
+      break;
 
     default:
       break;
@@ -903,7 +904,7 @@ nsSliderMediator::HandleEvent(nsIDOMEvent* aEvent)
 }
 
 bool
-nsSliderFrame::StartAPZDrag(WidgetGUIEvent* aEvent)
+nsSliderFrame::StartAPZDrag()
 {
   if (!gfxPlatform::GetPlatform()->SupportsApzDragInput()) {
     return false;
@@ -943,7 +944,7 @@ nsSliderFrame::StartAPZDrag(WidgetGUIEvent* aEvent)
                                IsHorizontal() ? AsyncDragMetrics::HORIZONTAL :
                                                 AsyncDragMetrics::VERTICAL);
 
-  if (!nsLayoutUtils::GetDisplayPort(scrollableContent)) {
+  if (!nsLayoutUtils::HasDisplayPort(scrollableContent)) {
     return false;
   }
 
@@ -1020,7 +1021,7 @@ nsSliderFrame::StartDrag(nsIDOMEvent* aEvent)
 
   mDragStart = pos - mThumbStart;
 
-  mScrollingWithAPZ = StartAPZDrag(event);
+  mScrollingWithAPZ = StartAPZDrag();
 
 #ifdef DEBUG_SLIDER
   printf("Pressed mDragStart=%d\n",mDragStart);
@@ -1187,13 +1188,21 @@ nsSliderFrame::IsEventOverThumb(WidgetGUIEvent* aEvent)
     return false;
   }
 
-  bool isHorizontal = IsHorizontal();
   nsRect thumbRect = thumbFrame->GetRect();
+#if defined(MOZ_WIDGET_GTK)
+  /* Scrollbar track can have padding, so it's better to check that eventPoint
+   * is inside of actual thumb, not just its one axis. The part of the scrollbar
+   * track adjacent to thumb can actually receive events in GTK3 */
+  return eventPoint.x >= thumbRect.x && eventPoint.x < thumbRect.XMost() &&
+         eventPoint.y >= thumbRect.y && eventPoint.y < thumbRect.YMost();
+#else
+  bool isHorizontal = IsHorizontal();
   nscoord eventPos = isHorizontal ? eventPoint.x : eventPoint.y;
   nscoord thumbStart = isHorizontal ? thumbRect.x : thumbRect.y;
   nscoord thumbEnd = isHorizontal ? thumbRect.XMost() : thumbRect.YMost();
 
   return eventPos >= thumbStart && eventPos < thumbEnd;
+#endif
 }
 
 NS_IMETHODIMP

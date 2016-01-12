@@ -246,7 +246,6 @@ typedef struct _nsCocoaWindowList {
 class nsCocoaWindow : public nsBaseWidget, public nsPIWidgetCocoa
 {
 private:
-  
   typedef nsBaseWidget Inherited;
 
 public:
@@ -255,11 +254,11 @@ public:
 
     NS_DECL_ISUPPORTS_INHERITED
     NS_DECL_NSPIWIDGETCOCOA
-      
+
     NS_IMETHOD              Create(nsIWidget* aParent,
                                    nsNativeWidget aNativeParent,
-                                   const nsIntRect &aRect,
-                                   nsWidgetInitData *aInitData = nullptr) override;
+                                   const LayoutDeviceIntRect& aRect,
+                                   nsWidgetInitData* aInitData = nullptr) override;
 
     NS_IMETHOD              Destroy() override;
 
@@ -322,7 +321,7 @@ public:
 
     NS_IMETHOD              SetTitle(const nsAString& aTitle) override;
 
-    NS_IMETHOD Invalidate(const nsIntRect &aRect) override;
+    NS_IMETHOD Invalidate(const LayoutDeviceIntRect& aRect) override;
     virtual nsresult ConfigureChildren(const nsTArray<Configuration>& aConfigurations) override;
     virtual LayerManager* GetLayerManager(PLayerTransactionChild* aShadowManager = nullptr,
                                           LayersBackend aBackendHint = mozilla::layers::LayersBackend::LAYERS_NONE,
@@ -366,16 +365,6 @@ public:
                         const InputContextAction& aAction) override;
     NS_IMETHOD_(InputContext) GetInputContext() override
     {
-      NSView* view = mWindow ? [mWindow contentView] : nil;
-      if (view) {
-        mInputContext.mNativeIMEContext = [view inputContext];
-      }
-      // If inputContext isn't available on this window, returns this window's
-      // pointer since nullptr means the platform has only one context per
-      // process.
-      if (!mInputContext.mNativeIMEContext) {
-        mInputContext.mNativeIMEContext = this;
-      }
       return mInputContext;
     }
     NS_IMETHOD_(bool) ExecuteNativeKeyBinding(
@@ -393,7 +382,7 @@ protected:
   nsresult             CreateNativeWindow(const NSRect &aRect,
                                           nsBorderStyle aBorderStyle,
                                           bool aRectIsFrameRect);
-  nsresult             CreatePopupContentView(const nsIntRect &aRect);
+  nsresult             CreatePopupContentView(const LayoutDeviceIntRect &aRect);
   void                 DestroyNativeWindow();
   void                 AdjustWindowShadow();
   void                 SetWindowBackgroundBlur();

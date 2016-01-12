@@ -313,7 +313,7 @@ struct BasicTiledLayerPaintData {
    * the closest ancestor layer which scrolls, and is used to obtain
    * the composition bounds that are relevant for this layer.
    */
-  gfx::Matrix4x4 mTransformToCompBounds;
+  LayerToParentLayerMatrix4x4 mTransformToCompBounds;
 
   /*
    * The critical displayport of the content from the nearest ancestor layer
@@ -376,7 +376,7 @@ public:
   bool UpdateFromCompositorFrameMetrics(const LayerMetricsWrapper& aLayer,
                                         bool aHasPendingNewThebesContent,
                                         bool aLowPrecision,
-                                        ViewTransform& aViewTransform);
+                                        AsyncTransform& aViewTransform);
 
   /**
    * Determines if the compositor's upcoming composition bounds has fallen

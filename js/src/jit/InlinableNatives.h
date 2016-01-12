@@ -10,6 +10,7 @@
 #define INLINABLE_NATIVE_LIST(_)    \
     _(Array)                        \
     _(ArrayIsArray)                 \
+    _(ArrayJoin)                    \
     _(ArrayPop)                     \
     _(ArrayShift)                   \
     _(ArrayPush)                    \
@@ -65,8 +66,9 @@
     _(MathTrunc)                    \
     _(MathCbrt)                     \
                                     \
-    _(RegExpExec)                   \
-    _(RegExpTest)                   \
+    _(RegExpMatcher)                \
+    _(RegExpTester)                 \
+    _(IsRegExpObject)               \
                                     \
     _(String)                       \
     _(StringSplit)                  \
@@ -81,6 +83,7 @@
                                     \
     _(SimdInt32x4)                  \
     _(SimdFloat32x4)                \
+    _(SimdBool32x4)                 \
                                     \
     _(TestBailout)                  \
     _(TestAssertFloat32)            \

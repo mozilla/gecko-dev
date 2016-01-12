@@ -507,7 +507,8 @@ var PlacesOrganizer = {
    */
   restoreBookmarksFromFile: function PO_restoreBookmarksFromFile(aFilePath) {
     // check file extension
-    if (!aFilePath.endsWith("json") && !aFilePath.endsWith("jsonlz4"))  {
+    if (!aFilePath.toLowerCase().endsWith("json") &&
+        !aFilePath.toLowerCase().endsWith("jsonlz4"))  {
       this._showErrorAlert(PlacesUIUtils.getString("bookmarksRestoreFormatError"));
       return;
     }
@@ -673,7 +674,7 @@ var PlacesOrganizer = {
     }
     else if (!selectedNode && aNodeList[0]) {
       if (aNodeList.every(PlacesUtils.nodeIsURI)) {
-        let uris = [for (node of aNodeList) PlacesUtils._uri(node.uri)];
+        let uris = aNodeList.map(node => PlacesUtils._uri(node.uri));
         detailsDeck.selectedIndex = 1;
         gEditItemOverlay.initPanel({ uris
                                    , hiddenRows: ["folderPicker",

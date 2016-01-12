@@ -10,10 +10,13 @@
 // https://www.rfc-editor.org/rfc/rfc7540.txt
 
 #include "mozilla/Attributes.h"
+#include "mozilla/UniquePtr.h"
 #include "nsAHttpTransaction.h"
 #include "nsISupportsPriority.h"
 
 class nsStandardURL;
+class nsIInputStream;
+class nsIOutputStream;
 
 namespace mozilla {
 namespace net {
@@ -199,6 +202,8 @@ protected:
 
   void     ChangeState(enum upstreamStateType);
 
+  virtual void AdjustInitialWindow();
+
 private:
   friend class nsAutoPtr<Http2Stream>;
 
@@ -206,7 +211,6 @@ private:
   nsresult GenerateOpen();
 
   void     AdjustPushedPriority();
-  void     AdjustInitialWindow();
   nsresult TransmitFrame(const char *, uint32_t *, bool forceCommitment);
   void     GenerateDataFrameHeader(uint32_t, bool);
 
@@ -266,7 +270,7 @@ private:
 
   // The InlineFrame and associated data is used for composing control
   // frames and data frame headers.
-  nsAutoArrayPtr<uint8_t>      mTxInlineFrame;
+  UniquePtr<uint8_t[]>         mTxInlineFrame;
   uint32_t                     mTxInlineFrameSize;
   uint32_t                     mTxInlineFrameUsed;
 
@@ -310,6 +314,9 @@ private:
   // True when sending is suspended becuase the server receive window is
   //   <= 0
   bool                         mBlockedOnRwin;
+
+  // For properly adjusting push stream windows - see bug 1228822
+  bool                         mSentPushWindowBump;
 
   // For Progress Events
   uint64_t                     mTotalSent;

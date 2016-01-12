@@ -151,8 +151,10 @@
 # define DEFINED_ON_RESULT_define
 # define DEFINED_ON_RESULT_        = delete
 
-# define DEFINED_ON_DISPATCH_RESULT(Result)     \
-    DEFINED_ON_RESULT_ ## Result
+# define DEFINED_ON_DISPATCH_RESULT_2(Macro, Result) \
+    Macro ## Result
+# define DEFINED_ON_DISPATCH_RESULT(...)     \
+    DEFINED_ON_DISPATCH_RESULT_2(DEFINED_ON_RESULT_, __VA_ARGS__)
 
 // We need to let the evaluation of MOZ_FOR_EACH terminates.
 # define DEFINED_ON_EXPAND_ARCH_RESULTS_3(ParenResult)  \
@@ -167,8 +169,15 @@
     DEFINED_ON_EXPAND_ARCH_RESULTS(                     \
       (MOZ_FOR_EACH(DEFINED_ON_FWDARCH, (), ArchList)))
 
+// clang-cl doesn't exactly follow MSVC's custom rules for handling
+// __VA_ARGS__ in macros (see LLVM PR 25875), so avoid using this macro
+// there.
+#if defined(_MSC_VER) && defined(__clang__)
+# define DEFINED_ON(...) /* nothing */
+#else
 # define DEFINED_ON(...)                                \
     DEFINED_ON_MAP_ON_ARCHS((none, __VA_ARGS__))
+#endif
 
 # define PER_ARCH DEFINED_ON(ALL_ARCH)
 # define PER_SHARED_ARCH DEFINED_ON(ALL_SHARED_ARCH)
@@ -379,15 +388,14 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     // asm.js compilation handles its own JitContext-pushing
     struct AsmJSToken {};
-    explicit MacroAssembler(AsmJSToken, TempAllocator *alloc)
+    explicit MacroAssembler(AsmJSToken, TempAllocator& alloc)
       : framePushed_(0),
 #ifdef DEBUG
         inCall_(false),
 #endif
         emitProfilingInstrumentation_(false)
     {
-        if (alloc)
-            moveResolver_.setAllocator(*alloc);
+        moveResolver_.setAllocator(alloc);
 
 #if defined(JS_CODEGEN_ARM)
         initWithAllocator();
@@ -498,13 +506,13 @@ class MacroAssembler : public MacroAssemblerSpecific
     void call(ImmWord imm) PER_SHARED_ARCH;
     // Call a target native function, which is neither traceable nor movable.
     void call(ImmPtr imm) PER_SHARED_ARCH;
-    void call(AsmJSImmPtr imm) PER_SHARED_ARCH;
+    void call(wasm::SymbolicAddress imm) PER_SHARED_ARCH;
     // Call a target JitCode, which must be traceable, and may be movable.
     void call(JitCode* c) PER_SHARED_ARCH;
 
-    inline void call(const CallSiteDesc& desc, const Register reg);
-    inline void call(const CallSiteDesc& desc, Label* label);
-    inline void call(const CallSiteDesc& desc, AsmJSInternalCallee callee);
+    inline void call(const wasm::CallSiteDesc& desc, const Register reg);
+    inline void call(const wasm::CallSiteDesc& desc, Label* label);
+    inline void call(const wasm::CallSiteDesc& desc, AsmJSInternalCallee callee);
 
     CodeOffset callWithPatch() PER_SHARED_ARCH;
     void patchCall(uint32_t callerOffset, uint32_t calleeOffset) PER_SHARED_ARCH;
@@ -553,7 +561,7 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     // Emits a call to a C/C++ function, resolving all argument moves.
     void callWithABINoProfiler(void* fun, MoveOp::Type result);
-    void callWithABINoProfiler(AsmJSImmPtr imm, MoveOp::Type result);
+    void callWithABINoProfiler(wasm::SymbolicAddress imm, MoveOp::Type result);
     void callWithABINoProfiler(Register fun, MoveOp::Type result) PER_ARCH;
     void callWithABINoProfiler(const Address& fun, MoveOp::Type result) PER_ARCH;
 
@@ -718,6 +726,7 @@ class MacroAssembler : public MacroAssemblerSpecific
     inline void orPtr(Imm32 imm, Register dest) PER_ARCH;
 
     inline void or64(Register64 src, Register64 dest) PER_ARCH;
+    inline void xor64(Register64 src, Register64 dest) PER_ARCH;
 
     inline void xor32(Register src, Register dest) DEFINED_ON(x86_shared);
     inline void xor32(Imm32 imm, Register dest) PER_SHARED_ARCH;
@@ -728,9 +737,59 @@ class MacroAssembler : public MacroAssemblerSpecific
     // ===============================================================
     // Arithmetic functions
 
+    inline void add32(Register src, Register dest) PER_SHARED_ARCH;
+    inline void add32(Imm32 imm, Register dest) PER_SHARED_ARCH;
+    inline void add32(Imm32 imm, const Address& dest) PER_SHARED_ARCH;
+    inline void add32(Imm32 imm, const AbsoluteAddress& dest) DEFINED_ON(x86_shared);
+
+    inline void addPtr(Register src, Register dest) PER_ARCH;
+    inline void addPtr(Register src1, Register src2, Register dest) DEFINED_ON(arm64);
+    inline void addPtr(Imm32 imm, Register dest) PER_ARCH;
+    inline void addPtr(Imm32 imm, Register src, Register dest) DEFINED_ON(arm64);
+    inline void addPtr(ImmWord imm, Register dest) PER_ARCH;
+    inline void addPtr(ImmPtr imm, Register dest);
+    inline void addPtr(Imm32 imm, const Address& dest) DEFINED_ON(mips_shared, arm, arm64, x86, x64);
+    inline void addPtr(Imm32 imm, const AbsoluteAddress& dest) DEFINED_ON(x86, x64);
+    inline void addPtr(const Address& src, Register dest) DEFINED_ON(mips_shared, arm, arm64, x86, x64);
+
+    inline void add64(Register64 src, Register64 dest) PER_ARCH;
+    inline void add64(Imm32 imm, Register64 dest) PER_ARCH;
+
+    inline void addFloat32(FloatRegister src, FloatRegister dest) DEFINED_ON(x86_shared);
+
+    inline void addDouble(FloatRegister src, FloatRegister dest) PER_SHARED_ARCH;
+    inline void addConstantDouble(double d, FloatRegister dest) DEFINED_ON(x86);
+
     inline void sub32(const Address& src, Register dest) PER_SHARED_ARCH;
     inline void sub32(Register src, Register dest) PER_SHARED_ARCH;
     inline void sub32(Imm32 imm, Register dest) PER_SHARED_ARCH;
+
+    inline void subPtr(Register src, Register dest) PER_ARCH;
+    inline void subPtr(Register src, const Address& dest) DEFINED_ON(mips_shared, arm, arm64, x86, x64);
+    inline void subPtr(Imm32 imm, Register dest) PER_ARCH;
+    inline void subPtr(const Address& addr, Register dest) DEFINED_ON(mips_shared, arm, arm64, x86, x64);
+
+    inline void subDouble(FloatRegister src, FloatRegister dest) PER_SHARED_ARCH;
+
+    inline void mul32(Register src1, Register src2, Register dest, Label* onOver, Label* onZero) DEFINED_ON(arm64);
+
+    inline void mul64(Imm64 imm, const Register64& dest) PER_ARCH;
+
+    inline void mulBy3(Register src, Register dest) PER_ARCH;
+
+    inline void mulDouble(FloatRegister src, FloatRegister dest) PER_SHARED_ARCH;
+
+    inline void mulDoublePtr(ImmPtr imm, Register temp, FloatRegister dest) DEFINED_ON(mips_shared, arm, arm64, x86, x64);
+
+    inline void divDouble(FloatRegister src, FloatRegister dest) PER_SHARED_ARCH;
+
+    inline void inc64(AbsoluteAddress dest) PER_ARCH;
+
+    inline void neg32(Register reg) PER_SHARED_ARCH;
+
+    inline void negateFloat(FloatRegister reg) DEFINED_ON(arm64, x86_shared);
+
+    inline void negateDouble(FloatRegister reg) PER_SHARED_ARCH;
 
     // ===============================================================
     // Shift functions
@@ -849,6 +908,15 @@ class MacroAssembler : public MacroAssemblerSpecific
         Address flags(str, JSString::offsetOfFlags());
         static_assert(JSString::ROPE_FLAGS == 0, "Rope type flags must be 0");
         branchTest32(Assembler::Zero, flags, Imm32(JSString::TYPE_FLAGS_MASK), label);
+    }
+
+    void branchLatin1String(Register string, Label* label) {
+        branchTest32(Assembler::NonZero, Address(string, JSString::offsetOfFlags()),
+                     Imm32(JSString::LATIN1_CHARS_BIT), label);
+    }
+    void branchTwoByteString(Register string, Label* label) {
+        branchTest32(Assembler::Zero, Address(string, JSString::offsetOfFlags()),
+                     Imm32(JSString::LATIN1_CHARS_BIT), label);
     }
 
     void loadJSContext(Register dest) {
@@ -997,12 +1065,7 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     void branchIfNotInterpretedConstructor(Register fun, Register scratch, Label* label);
 
-    void bumpKey(Int32Key* key, int diff) {
-        if (key->isRegister())
-            add32(Imm32(diff), key->reg());
-        else
-            key->bumpConstant(diff);
-    }
+    inline void bumpKey(Int32Key* key, int diff);
 
     void storeKey(const Int32Key& key, const Address& dest) {
         if (key.isRegister())
@@ -1249,10 +1312,8 @@ class MacroAssembler : public MacroAssemblerSpecific
     // StackPointer manipulation functions.
     // On ARM64, the StackPointer is implemented as two synchronized registers.
     // Code shared across platforms must use these functions to be valid.
-    template <typename T>
-    void addToStackPtr(T t) { addPtr(t, getStackPointer()); }
-    template <typename T>
-    void addStackPtrTo(T t) { addPtr(getStackPointer(), t); }
+    template <typename T> inline void addToStackPtr(T t);
+    template <typename T> inline void addStackPtrTo(T t);
 
     template <typename T>
     void subFromStackPtr(T t) { subPtr(t, getStackPointer()); }
@@ -1375,7 +1436,7 @@ class MacroAssembler : public MacroAssemblerSpecific
         return &asmOnConversionErrorLabel_;
     }
 
-    bool asmMergeWith(const MacroAssembler& masm);
+    bool asmMergeWith(MacroAssembler& masm);
     void finish();
     void link(JitCode* code);
 

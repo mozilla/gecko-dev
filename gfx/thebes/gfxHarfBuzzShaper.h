@@ -10,6 +10,7 @@
 
 #include "harfbuzz/hb.h"
 #include "nsUnicodeProperties.h"
+#include "mozilla/gfx/2D.h"
 
 class gfxHarfBuzzShaper : public gfxFontShaper {
 public:
@@ -21,12 +22,12 @@ public:
      * FontCallbackData struct
      */
     struct FontCallbackData {
-        gfxHarfBuzzShaper *mShaper;
-        gfxContext        *mContext;
+        gfxHarfBuzzShaper* mShaper;
+        mozilla::gfx::DrawTarget* mDrawTarget;
     };
 
     bool Initialize();
-    virtual bool ShapeText(gfxContext      *aContext,
+    virtual bool ShapeText(DrawTarget      *aDrawTarget,
                            const char16_t *aText,
                            uint32_t         aOffset,
                            uint32_t         aLength,
@@ -97,7 +98,7 @@ public:
     }
 
 protected:
-    nsresult SetGlyphsFromRun(gfxContext     *aContext,
+    nsresult SetGlyphsFromRun(DrawTarget     *aDrawTarget,
                               gfxShapedText  *aShapedText,
                               uint32_t        aOffset,
                               uint32_t        aLength,

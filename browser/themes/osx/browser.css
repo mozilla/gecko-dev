@@ -8,7 +8,6 @@
 %filter substitution
 %define forwardTransitionLength 150ms
 %define conditionalForwardWithUrlbar window:not([chromehidden~="toolbar"]) #urlbar-wrapper
-%define conditionalForwardWithUrlbarWidth 32
 %define toolbarButtonPressed :hover:active:not([disabled="true"]):not([cui-areatype="menu-panel"])
 %define windowButtonMarginTop 11px
 
@@ -21,6 +20,8 @@
   --tabs-toolbar-color: #333;
 
   --backbutton-urlbar-overlap: 6px;
+  /* icon width + border + horizontal padding (includes the overlap from backbutton-urlbar-overlap) */
+  --forwardbutton-width: 32px;
 
   --toolbarbutton-hover-background: hsla(0,0%,100%,.1) linear-gradient(hsla(0,0%,100%,.3), hsla(0,0%,100%,.1)) padding-box;
   --toolbarbutton-hover-bordercolor: hsla(0,0%,0%,.2);
@@ -593,24 +594,6 @@ toolbarpaletteitem[place="palette"] > #personal-bookmarks > #bookmarks-toolbar-p
   }
 }
 
-#panelMenu_pocket,
-#menu_pocket,
-#BMB_pocket {
-  list-style-image: url("chrome://browser/content/pocket/panels/img/pocketmenuitem16.png");
-}
-
-@media (min-resolution: 2dppx) {
-  #panelMenu_pocket,
-  #menu_pocket,
-  #BMB_pocket {
-    list-style-image: url("chrome://browser/content/pocket/panels/img/pocketmenuitem16@2x.png");
-  }
-
-  #panelMenu_pocket > .toolbarbutton-icon {
-    width: 16px;
-  }
-}
-
 /* ----- PRIMARY TOOLBAR BUTTONS ----- */
 
 :-moz-any(toolbar, .widget-overflow-list) .toolbarbutton-1 > .toolbarbutton-icon,
@@ -811,8 +794,8 @@ toolbar .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker > .dropmarker-ic
     -moz-image-region: rect(18px, 252px, 36px, 234px);
   }
 
-  #sync-button@toolbarButtonPressed@:not([status="active"]) {
-    -moz-image-region: rect(18px, 270px, 36px, 252px);
+  #sync-button@toolbarButtonPressed@ {
+    -moz-image-region: rect(18px, 792px, 36px, 774px);
   }
 
   #feed-button@toolbarButtonPressed@ {
@@ -837,10 +820,6 @@ toolbar .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker > .dropmarker-ic
 
   #webide-button@toolbarButtonPressed@ {
     -moz-image-region: rect(18px, 738px, 36px, 720px);
-  }
-
-  #pocket-button@toolbarButtonPressed@ {
-    -moz-image-region: rect(18px, 774px, 36px, 756px);
   }
 
   #new-tab-button@toolbarButtonPressed@ {
@@ -912,10 +891,6 @@ toolbar .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker > .dropmarker-ic
     -moz-image-region: rect(18px, 702px, 36px, 684px);
   }
 
-  #web-apps-button@toolbarButtonPressed@ {
-    -moz-image-region: rect(18px, 720px, 36px, 702px);
-  }
-
   /**
    * OSX has a unique set of icons when fullscreen is in the checked state.
    */
@@ -974,8 +949,8 @@ toolbar .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker > .dropmarker-ic
     -moz-image-region: rect(36px, 504px, 72px, 468px);
   }
 
-  #sync-button@toolbarButtonPressed@:not([status="active"]) {
-    -moz-image-region: rect(36px, 540px, 72px, 504px);
+  #sync-button@toolbarButtonPressed@ {
+    -moz-image-region: rect(36px, 1584px, 72px, 1548px);
   }
 
   #feed-button@toolbarButtonPressed@ {
@@ -1004,10 +979,6 @@ toolbar .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker > .dropmarker-ic
 
   #webide-button@toolbarButtonPressed@ {
     -moz-image-region: rect(36px, 1476px, 72px, 1440px);
-  }
-
-  #pocket-button@toolbarButtonPressed@ {
-    -moz-image-region: rect(36px, 1548px, 72px, 1512px);
   }
 
   #new-tab-button@toolbarButtonPressed@ {
@@ -1085,10 +1056,6 @@ toolbar .toolbarbutton-1 > .toolbarbutton-menubutton-dropmarker > .dropmarker-ic
 
   #panic-button@toolbarButtonPressed@ {
     -moz-image-region: rect(36px, 1404px, 72px, 1368px);
-  }
-
-  #web-apps-button@toolbarButtonPressed@ {
-    -moz-image-region: rect(36px, 1440px, 72px, 1404px);
   }
 
   #add-share-provider {
@@ -1405,7 +1372,7 @@ toolbar .toolbarbutton-1 > .toolbarbutton-menubutton-button {
 }
 
 @conditionalForwardWithUrlbar@ > #forward-button[disabled] {
-  margin-left: -@conditionalForwardWithUrlbarWidth@px;
+  margin-left: calc(0px - var(--forwardbutton-width));
 }
 
 @conditionalForwardWithUrlbar@:hover:not([switchingtabs]) > #forward-button[disabled] {
@@ -1415,7 +1382,7 @@ toolbar .toolbarbutton-1 > .toolbarbutton-menubutton-button {
 
 @conditionalForwardWithUrlbar@:not(:hover) > #forward-button[disabled] {
   /* when not hovered anymore, trigger a new transition to hide the forward button immediately */
-  margin-left: -@conditionalForwardWithUrlbarWidth@.01px;
+  margin-left: calc(-0.01px - var(--forwardbutton-width));
 }
 
 .unified-nav-back[_moz-menuactive]:-moz-locale-dir(ltr),

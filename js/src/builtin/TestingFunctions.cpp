@@ -9,6 +9,8 @@
 #include "mozilla/Move.h"
 #include "mozilla/UniquePtr.h"
 
+#include <cmath>
+
 #include "jsapi.h"
 #include "jscntxt.h"
 #include "jsfriendapi.h"
@@ -17,8 +19,7 @@
 #include "jsprf.h"
 #include "jswrapper.h"
 
-#include "asmjs/AsmJSLink.h"
-#include "asmjs/AsmJSValidate.h"
+#include "asmjs/AsmJS.h"
 #include "jit/InlinableNatives.h"
 #include "jit/JitFrameIterator.h"
 #include "js/Debug.h"
@@ -38,6 +39,7 @@
 #include "jsobjinlines.h"
 
 #include "vm/NativeObject-inl.h"
+#include "vm/ScopeObject-inl.h"
 
 using namespace js;
 
@@ -306,8 +308,8 @@ GC(JSContext* cx, unsigned argc, Value* vp)
 
     char buf[256] = { '\0' };
 #ifndef JS_MORE_DETERMINISTIC
-    JS_snprintf(buf, sizeof(buf), "before %lu, after %lu\n",
-                (unsigned long)preBytes, (unsigned long)cx->runtime()->gc.usage.gcBytes());
+    JS_snprintf(buf, sizeof(buf), "before %" PRIuSIZE ", after %" PRIuSIZE "\n",
+                preBytes, cx->runtime()->gc.usage.gcBytes());
 #endif
     JSString* str = JS_NewStringCopyZ(cx, buf);
     if (!str)
@@ -328,22 +330,45 @@ MinorGC(JSContext* cx, unsigned argc, Value* vp)
     return true;
 }
 
-static const struct ParamPair {
+#define FOR_EACH_GC_PARAM(_)                                                            \
+    _("maxBytes",                   JSGC_MAX_BYTES,                      true,  false)  \
+    _("maxMallocBytes",             JSGC_MAX_MALLOC_BYTES,               true,  false)  \
+    _("gcBytes",                    JSGC_BYTES,                          false, false)  \
+    _("gcNumber",                   JSGC_NUMBER,                         false, false)  \
+    _("mode",                       JSGC_MODE,                           true,  true)   \
+    _("unusedChunks",               JSGC_UNUSED_CHUNKS,                  false, false)  \
+    _("totalChunks",                JSGC_TOTAL_CHUNKS,                   false, false)  \
+    _("sliceTimeBudget",            JSGC_SLICE_TIME_BUDGET,              true,  false)  \
+    _("markStackLimit",             JSGC_MARK_STACK_LIMIT,               true,  false)  \
+    _("highFrequencyTimeLimit",     JSGC_HIGH_FREQUENCY_TIME_LIMIT,      true,  false)  \
+    _("highFrequencyLowLimit",      JSGC_HIGH_FREQUENCY_LOW_LIMIT,       true,  false)  \
+    _("highFrequencyHighLimit",     JSGC_HIGH_FREQUENCY_HIGH_LIMIT,      true,  false)  \
+    _("highFrequencyHeapGrowthMax", JSGC_HIGH_FREQUENCY_HEAP_GROWTH_MAX, true,  false)  \
+    _("highFrequencyHeapGrowthMin", JSGC_HIGH_FREQUENCY_HEAP_GROWTH_MIN, true,  false)  \
+    _("lowFrequencyHeapGrowth",     JSGC_LOW_FREQUENCY_HEAP_GROWTH,      true,  false)  \
+    _("dynamicHeapGrowth",          JSGC_DYNAMIC_HEAP_GROWTH,            true,  true)   \
+    _("dynamicMarkSlice",           JSGC_DYNAMIC_MARK_SLICE,             true,  true)   \
+    _("allocationThreshold",        JSGC_ALLOCATION_THRESHOLD,           true,  false)  \
+    _("decommitThreshold",          JSGC_DECOMMIT_THRESHOLD,             true,  false)  \
+    _("minEmptyChunkCount",         JSGC_MIN_EMPTY_CHUNK_COUNT,          true,  true)   \
+    _("maxEmptyChunkCount",         JSGC_MAX_EMPTY_CHUNK_COUNT,          true,  true)   \
+    _("compactingEnabled",          JSGC_COMPACTING_ENABLED,             true,  true)
+
+static const struct ParamInfo {
     const char*     name;
     JSGCParamKey    param;
+    bool            writable;
+    bool            allowZero;
 } paramMap[] = {
-    {"maxBytes",            JSGC_MAX_BYTES },
-    {"maxMallocBytes",      JSGC_MAX_MALLOC_BYTES},
-    {"gcBytes",             JSGC_BYTES},
-    {"gcNumber",            JSGC_NUMBER},
-    {"sliceTimeBudget",     JSGC_SLICE_TIME_BUDGET},
-    {"markStackLimit",      JSGC_MARK_STACK_LIMIT},
-    {"minEmptyChunkCount",  JSGC_MIN_EMPTY_CHUNK_COUNT},
-    {"maxEmptyChunkCount",  JSGC_MAX_EMPTY_CHUNK_COUNT}
+#define DEFINE_PARAM_INFO(name, key, writable, allowZero)                     \
+    {name, key, writable, allowZero},
+FOR_EACH_GC_PARAM(DEFINE_PARAM_INFO)
+#undef DEFINE_PARAM_INFO
 };
 
-// Keep this in sync with above params.
-#define GC_PARAMETER_ARGS_LIST "maxBytes, maxMallocBytes, gcBytes, gcNumber, sliceTimeBudget, markStackLimit, minEmptyChunkCount or maxEmptyChunkCount"
+#define PARAM_NAME_LIST_ENTRY(name, key, writable, allowZero)                 \
+    " " name
+#define GC_PARAMETER_ARGS_LIST FOR_EACH_GC_PARAM(PARAM_NAME_LIST_ENTRY)
 
 static bool
 GCParameter(JSContext* cx, unsigned argc, Value* vp)
@@ -362,13 +387,14 @@ GCParameter(JSContext* cx, unsigned argc, Value* vp)
     for (;; paramIndex++) {
         if (paramIndex == ArrayLength(paramMap)) {
             JS_ReportError(cx,
-                           "the first argument must be one of " GC_PARAMETER_ARGS_LIST);
+                           "the first argument must be one of:" GC_PARAMETER_ARGS_LIST);
             return false;
         }
         if (JS_FlatStringEqualsAscii(flatStr, paramMap[paramIndex].name))
             break;
     }
-    JSGCParamKey param = paramMap[paramIndex].param;
+    const ParamInfo& info = paramMap[paramIndex];
+    JSGCParamKey param = info.param;
 
     // Request mode.
     if (args.length() == 1) {
@@ -377,9 +403,8 @@ GCParameter(JSContext* cx, unsigned argc, Value* vp)
         return true;
     }
 
-    if (param == JSGC_NUMBER || param == JSGC_BYTES) {
-        JS_ReportError(cx, "Attempt to change read-only parameter %s",
-                       paramMap[paramIndex].name);
+    if (!info.writable) {
+        JS_ReportError(cx, "Attempt to change read-only parameter %s", info.name);
         return false;
     }
 
@@ -388,11 +413,17 @@ GCParameter(JSContext* cx, unsigned argc, Value* vp)
         return true;
     }
 
-    uint32_t value;
-    if (!ToUint32(cx, args[1], &value))
+    double d;
+    if (!ToNumber(cx, args[1], &d))
         return false;
 
-    if (!value) {
+    if (d < 0 || d > UINT32_MAX) {
+        JS_ReportError(cx, "Parameter value out of range");
+        return false;
+    }
+
+    uint32_t value = floor(d);
+    if (!info.allowZero && value == 0) {
         JS_ReportError(cx, "the second argument must be convertable to uint32_t "
                            "with non-zero value");
         return false;
@@ -487,7 +518,7 @@ IsRelazifiableFunction(JSContext* cx, unsigned argc, Value* vp)
         !args[0].toObject().is<JSFunction>())
     {
         JS_ReportError(cx, "The first argument should be a function.");
-        return true;
+        return false;
     }
 
     JSFunction* fun = &args[0].toObject().as<JSFunction>();
@@ -895,7 +926,9 @@ SetSavedStacksRNGState(JSContext* cx, unsigned argc, Value* vp)
     if (!ToInt32(cx, args[0], &seed))
         return false;
 
-    cx->compartment()->savedStacks().setRNGState(seed, seed * 33);
+    // Either one or the other of the seed arguments must be non-zero;
+    // make this true no matter what value 'seed' has.
+    cx->compartment()->savedStacks().setRNGState(seed, (seed + 1) * 33);
     return true;
 }
 
@@ -2106,6 +2139,18 @@ DumpObject(JSContext* cx, unsigned argc, Value* vp)
 }
 #endif
 
+static bool
+SharedMemoryEnabled(JSContext* cx, unsigned argc, Value* vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+#ifdef ENABLE_SHARED_ARRAY_BUFFER
+    args.rval().setBoolean(true);
+#else
+    args.rval().setBoolean(false);
+#endif
+    return true;
+}
+
 #ifdef NIGHTLY_BUILD
 static bool
 ObjectAddress(JSContext* cx, unsigned argc, Value* vp)
@@ -2130,6 +2175,48 @@ ObjectAddress(JSContext* cx, unsigned argc, Value* vp)
     JS_snprintf(buffer, sizeof(buffer), "%p", ptr);
 
     JSString* str = JS_NewStringCopyZ(cx, buffer);
+    if (!str)
+        return false;
+
+    args.rval().setString(str);
+#endif
+
+    return true;
+}
+
+static bool
+SharedAddress(JSContext* cx, unsigned argc, Value* vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    if (args.length() != 1) {
+        RootedObject callee(cx, &args.callee());
+        ReportUsageError(cx, callee, "Wrong number of arguments");
+        return false;
+    }
+    if (!args[0].isObject()) {
+        RootedObject callee(cx, &args.callee());
+        ReportUsageError(cx, callee, "Expected object");
+        return false;
+    }
+
+#ifdef JS_MORE_DETERMINISTIC
+    args.rval().setString(cx->staticStrings().getUint(0));
+#else
+    RootedObject obj(cx, CheckedUnwrap(&args[0].toObject()));
+    if (!obj) {
+        JS_ReportError(cx, "Permission denied to access object");
+        return false;
+    }
+    if (!obj->is<SharedArrayBufferObject>()) {
+        JS_ReportError(cx, "Argument must be a SharedArrayBuffer");
+        return false;
+    }
+    char buffer[64];
+    uint32_t nchar =
+        JS_snprintf(buffer, sizeof(buffer), "%p",
+                    obj->as<SharedArrayBufferObject>().dataPointerShared().unwrap(/*safeish*/));
+
+    JSString* str = JS_NewStringCopyN(cx, buffer, nchar);
     if (!str)
         return false;
 
@@ -2580,7 +2667,7 @@ static bool
 IsSimdAvailable(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
-#ifdef JS_CODEGEN_NONE
+#if defined(JS_CODEGEN_NONE) || !defined(ENABLE_SIMD)
     bool available = false;
 #else
     bool available = cx->jitSupportsSimd();
@@ -2697,7 +2784,7 @@ SetLazyParsingDisabled(JSContext* cx, unsigned argc, Value* vp)
     CallArgs args = CallArgsFromVp(argc, vp);
 
     bool disable = !args.hasDefined(0) || ToBoolean(args[0]);
-    JS::CompartmentOptionsRef(cx->compartment()).setDisableLazyParsing(disable);
+    cx->compartment()->behaviors().setDisableLazyParsing(disable);
 
     args.rval().setUndefined();
     return true;
@@ -2709,7 +2796,7 @@ SetDiscardSource(JSContext* cx, unsigned argc, Value* vp)
     CallArgs args = CallArgsFromVp(argc, vp);
 
     bool discard = !args.hasDefined(0) || ToBoolean(args[0]);
-    JS::CompartmentOptionsRef(cx->compartment()).setDiscardSource(discard);
+    cx->compartment()->behaviors().setDiscardSource(discard);
 
     args.rval().setUndefined();
     return true;
@@ -2911,32 +2998,6 @@ SetGCCallback(JSContext* cx, unsigned argc, Value* vp)
 }
 
 static bool
-SetARMHwCapFlags(JSContext* cx, unsigned argc, Value* vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-
-    if (args.length() != 1) {
-        JS_ReportError(cx, "Wrong number of arguments");
-        return false;
-    }
-
-    RootedString flagsListString(cx, JS::ToString(cx, args.get(0)));
-    if (!flagsListString)
-        return false;
-
-#if defined(JS_CODEGEN_ARM)
-    JSAutoByteString flagsList(cx, flagsListString);
-    if (!flagsList)
-        return false;
-
-    jit::ParseARMHwCapFlags(flagsList.ptr());
-#endif
-
-    args.rval().setUndefined();
-    return true;
-}
-
-static bool
 GetLcovInfo(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
@@ -2991,14 +3052,29 @@ static bool
 SetRNGState(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
-    if (!args.requireAtLeast(cx, "SetRNGState", 1))
+    if (!args.requireAtLeast(cx, "SetRNGState", 2))
         return false;
 
-    double seed;
-    if (!ToNumber(cx, args[0], &seed))
+    double d0;
+    if (!ToNumber(cx, args[0], &d0))
         return false;
 
-    cx->compartment()->rngState = static_cast<uint64_t>(seed) & RNG_MASK;
+    double d1;
+    if (!ToNumber(cx, args[1], &d1))
+        return false;
+
+    uint64_t seed0 = static_cast<uint64_t>(d0);
+    uint64_t seed1 = static_cast<uint64_t>(d1);
+
+    if (seed0 == 0 && seed1 == 0) {
+        JS_ReportError(cx, "RNG requires non-zero seed");
+        return false;
+    }
+
+    cx->compartment()->ensureRandomNumberGenerator();
+    cx->compartment()->randomNumberGenerator.ref().setState(seed0, seed1);
+
+    args.rval().setUndefined();
     return true;
 }
 #endif
@@ -3093,7 +3169,7 @@ static const JSFunctionSpecWithHelp TestingFunctions[] = {
 
     JS_FN_HELP("gcparam", GCParameter, 2, 0,
 "gcparam(name [, value])",
-"  Wrapper for JS_[GS]etGCParameter. The name is one of " GC_PARAMETER_ARGS_LIST),
+"  Wrapper for JS_[GS]etGCParameter. The name is one of:" GC_PARAMETER_ARGS_LIST),
 
     JS_FN_HELP("relazifyFunctions", RelazifyFunctions, 0, 0,
 "relazifyFunctions(...)",
@@ -3449,11 +3525,19 @@ gc::ZealModeHelpText),
 "  Dump an internal representation of an object."),
 #endif
 
+    JS_FN_HELP("sharedMemoryEnabled", SharedMemoryEnabled, 0, 0,
+"sharedMemoryEnabled()",
+"  Return true if SharedArrayBuffer and Atomics are enabled"),
+
 #ifdef NIGHTLY_BUILD
     JS_FN_HELP("objectAddress", ObjectAddress, 1, 0,
 "objectAddress(obj)",
 "  Return the current address of the object. For debugging only--this\n"
 "  address may change during a moving GC."),
+
+    JS_FN_HELP("sharedAddress", SharedAddress, 1, 0,
+"sharedAddress(obj)",
+"  Return the address of the shared storage of a SharedArrayBuffer."),
 #endif
 
     JS_FN_HELP("evalReturningScope", EvalReturningScope, 1, 0,
@@ -3536,19 +3620,14 @@ gc::ZealModeHelpText),
 "    'minorGC' - run a nursery collection\n"
 "    'majorGC' - run a major collection, nesting up to a given 'depth'\n"),
 
-    JS_FN_HELP("setARMHwCapFlags", SetARMHwCapFlags, 1, 0,
-"setARMHwCapFlags(\"flag1,flag2 flag3\")",
-"  On non-ARM, no-op. On ARM, set the hardware capabilities. The list of \n"
-"  flags is available by calling this function with \"help\" as the flag's name"),
-
     JS_FN_HELP("getLcovInfo", GetLcovInfo, 1, 0,
 "getLcovInfo(global)",
 "  Generate LCOV tracefile for the given compartment.  If no global are provided then\n"
 "  the current global is used as the default one.\n"),
 
 #ifdef DEBUG
-    JS_FN_HELP("setRNGState", SetRNGState, 1, 0,
-"setRNGState(seed)",
+    JS_FN_HELP("setRNGState", SetRNGState, 2, 0,
+"setRNGState(seed0, seed1)",
 "  Set this compartment's RNG state.\n"),
 #endif
 

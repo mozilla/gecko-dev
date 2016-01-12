@@ -435,6 +435,23 @@ template bool ConvertToStringPolicy<2>::staticAdjustInputs(TempAllocator& alloc,
 
 template <unsigned Op>
 bool
+BooleanPolicy<Op>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def)
+{
+    MDefinition* in = def->getOperand(Op);
+    if (in->type() == MIRType_Boolean)
+        return true;
+
+    MUnbox* replace = MUnbox::New(alloc, in, MIRType_Boolean, MUnbox::Fallible);
+    def->block()->insertBefore(def, replace);
+    def->replaceOperand(Op, replace);
+
+    return replace->typePolicy()->adjustInputs(alloc, replace);
+}
+
+template bool BooleanPolicy<3>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def);
+
+template <unsigned Op>
+bool
 IntPolicy<Op>::staticAdjustInputs(TempAllocator& alloc, MInstruction* def)
 {
     MDefinition* in = def->getOperand(Op);
@@ -570,6 +587,15 @@ SimdScalarPolicy<Op>::staticAdjustInputs(TempAllocator& alloc, MInstruction* ins
     MIRType laneType = SimdTypeToLaneType(ins->type());
 
     MDefinition* in = ins->getOperand(Op);
+
+    // A vector with boolean lanes requires Int32 inputs that have already been
+    // converted to 0/-1.
+    // We can't insert a MIRType_Boolean lane directly - it requires conversion.
+    if (laneType == MIRType_Boolean) {
+        MOZ_ASSERT(in->type() == MIRType_Int32, "Boolean SIMD vector requires Int32 lanes.");
+        return true;
+    }
+
     if (in->type() == laneType)
         return true;
 
@@ -857,8 +883,8 @@ SimdSelectPolicy::adjustInputs(TempAllocator& alloc, MInstruction* ins)
 {
     MIRType specialization = ins->typePolicySpecialization();
 
-    // First input is the mask, which has to be an int32x4 (for now).
-    if (!MaybeSimdUnbox(alloc, ins, MIRType_Int32x4, 0))
+    // First input is the mask, which has to be a bool32x4.
+    if (!MaybeSimdUnbox(alloc, ins, MIRType_Bool32x4, 0))
         return false;
 
     // Next inputs are the two vectors of a particular type.
@@ -1218,6 +1244,7 @@ FilterTypeSetPolicy::adjustInputs(TempAllocator& alloc, MInstruction* ins)
     _(Mix3Policy<StringPolicy<0>, IntPolicy<1>, IntPolicy<2>>)          \
     _(Mix3Policy<StringPolicy<0>, ObjectPolicy<1>, StringPolicy<2> >)   \
     _(Mix3Policy<StringPolicy<0>, StringPolicy<1>, StringPolicy<2> >)   \
+    _(Mix4Policy<ObjectPolicy<0>, StringPolicy<1>, IntPolicy<2>, BooleanPolicy<3>>) \
     _(Mix4Policy<ObjectPolicy<0>, IntPolicy<1>, IntPolicy<2>, IntPolicy<3>>) \
     _(Mix4Policy<ObjectPolicy<0>, IntPolicy<1>, TruncateToInt32Policy<2>, TruncateToInt32Policy<3> >) \
     _(Mix3Policy<ObjectPolicy<0>, CacheIdPolicy<1>, NoFloatPolicy<2>>)  \

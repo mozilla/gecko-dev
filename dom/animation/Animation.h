@@ -10,6 +10,7 @@
 #include "nsWrapperCache.h"
 #include "nsCycleCollectionParticipant.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/EffectCompositor.h" // For EffectCompositor::CascadeLevel
 #include "mozilla/LinkedList.h"
 #include "mozilla/TimeStamp.h" // for TimeStamp, TimeDuration
 #include "mozilla/dom/AnimationBinding.h" // for AnimationPlayState
@@ -91,7 +92,8 @@ public:
   };
 
   // Animation interface methods
-
+  void GetId(nsAString& aResult) const { aResult = mId; }
+  void SetId(const nsAString& aId);
   KeyframeEffectReadOnly* GetEffect() const { return mEffect; }
   void SetEffect(KeyframeEffectReadOnly* aEffect);
   AnimationTimeline* GetTimeline() const { return mTimeline; }
@@ -285,6 +287,15 @@ public:
    */
   virtual bool HasLowerCompositeOrderThan(const Animation& aOther) const;
 
+   /**
+   * Returns the level at which the effect(s) associated with this Animation
+   * are applied to the CSS cascade.
+   */
+  virtual EffectCompositor::CascadeLevel CascadeLevel() const
+  {
+    return EffectCompositor::CascadeLevel::Animations;
+  }
+
   /**
    * Returns true if this animation does not currently need to update
    * style on the main thread (e.g. because it is empty, or is
@@ -421,6 +432,8 @@ protected:
   // in that case mFinished is immediately reset to represent a new current
   // finished promise.
   bool mFinishedIsResolved;
+
+  nsString mId;
 };
 
 } // namespace dom

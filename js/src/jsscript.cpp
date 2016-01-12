@@ -173,7 +173,6 @@ Bindings::initWithTemporaryStorage(ExclusiveContext* cx, MutableHandle<Bindings>
 
     uint32_t slot = CallObject::RESERVED_SLOTS;
     for (BindingIter bi(self); bi; bi++) {
-        MOZ_ASSERT_IF(isModule, bi->aliased());
         if (!bi->aliased())
             continue;
 
@@ -622,6 +621,9 @@ js::XDRScript(XDRState<mode>* xdr, HandleObject enclosingScopeArg, HandleScript 
         HasLazyScript,
         HasNonSyntacticScope,
         HasInnerFunctions,
+        NeedsHomeObject,
+        IsDerivedClassConstructor,
+        IsDefaultClassConstructor,
     };
 
     uint32_t length, lineno, column, nslots;
@@ -656,8 +658,10 @@ js::XDRScript(XDRState<mode>* xdr, HandleObject enclosingScopeArg, HandleScript 
             // JSOP_OBJECT that then got modified.  So throw if we're not
             // cloning in JSOP_OBJECT or if we ever didn't clone in it in the
             // past.
-            const JS::CompartmentOptions& opts = JS::CompartmentOptionsRef(cx);
-            if (!opts.cloneSingletons() || !opts.getSingletonsAsTemplates()) {
+            JSCompartment* comp = cx->compartment();
+            if (!comp->creationOptions().cloneSingletons() ||
+                !comp->behaviors().getSingletonsAsTemplates())
+            {
                 JS_ReportError(cx,
                                "Can't serialize a run-once non-function script "
                                "when we're not doing singleton cloning");
@@ -761,6 +765,12 @@ js::XDRScript(XDRState<mode>* xdr, HandleObject enclosingScopeArg, HandleScript 
             scriptBits |= (1 << HasNonSyntacticScope);
         if (script->hasInnerFunctions())
             scriptBits |= (1 << HasInnerFunctions);
+        if (script->needsHomeObject())
+            scriptBits |= (1 << NeedsHomeObject);
+        if (script->isDerivedClassConstructor())
+            scriptBits |= (1 << IsDerivedClassConstructor);
+        if (script->isDefaultClassConstructor())
+            scriptBits |= (1 << IsDefaultClassConstructor);
     }
 
     if (!xdr->codeUint32(&prologueLength))
@@ -901,6 +911,12 @@ js::XDRScript(XDRState<mode>* xdr, HandleObject enclosingScopeArg, HandleScript 
             script->hasNonSyntacticScope_ = true;
         if (scriptBits & (1 << HasInnerFunctions))
             script->hasInnerFunctions_ = true;
+        if (scriptBits & (1 << NeedsHomeObject))
+            script->needsHomeObject_ = true;
+        if (scriptBits & (1 << IsDerivedClassConstructor))
+            script->isDerivedClassConstructor_ = true;
+        if (scriptBits & (1 << IsDefaultClassConstructor))
+            script->isDefaultClassConstructor_ = true;
 
         if (scriptBits & (1 << IsLegacyGenerator)) {
             MOZ_ASSERT(!(scriptBits & (1 << IsStarGenerator)));
@@ -1324,20 +1340,26 @@ JSScript::initScriptCounts(JSContext* cx)
     jsbytecode* mainEntry = main();
     for (jsbytecode* pc = code(); pc != end; pc = GetNextPc(pc)) {
         if (pc == mainEntry) {
-            if (!jumpTargets.append(pc))
+            if (!jumpTargets.append(pc)) {
+                ReportOutOfMemory(cx);
                 return false;
+            }
         }
 
         bool jump = IsJumpOpcode(JSOp(*pc));
         if (jump) {
             jsbytecode* target = pc + GET_JUMP_OFFSET(pc);
-            if (!jumpTargets.append(target))
+            if (!jumpTargets.append(target)) {
+                ReportOutOfMemory(cx);
                 return false;
+            }
 
             if (BytecodeFallsThrough(JSOp(*pc))) {
                 jsbytecode* fallthrough = GetNextPc(pc);
-                if (!jumpTargets.append(fallthrough))
+                if (!jumpTargets.append(fallthrough)) {
+                    ReportOutOfMemory(cx);
                     return false;
+                }
             }
         }
 
@@ -1346,8 +1368,10 @@ JSScript::initScriptCounts(JSContext* cx)
             int32_t len = GET_JUMP_OFFSET(pc2);
 
             // Default target.
-            if (!jumpTargets.append(pc + len))
+            if (!jumpTargets.append(pc + len)) {
+                ReportOutOfMemory(cx);
                 return false;
+            }
 
             pc2 += JUMP_OFFSET_LEN;
             int32_t low = GET_JUMP_OFFSET(pc2);
@@ -1359,8 +1383,10 @@ JSScript::initScriptCounts(JSContext* cx)
                 int32_t off = (int32_t) GET_JUMP_OFFSET(pc2);
                 if (off) {
                     // Case (i + low)
-                    if (!jumpTargets.append(pc + off))
+                    if (!jumpTargets.append(pc + off)) {
+                        ReportOutOfMemory(cx);
                         return false;
+                    }
                 }
             }
         }
@@ -1377,8 +1403,10 @@ JSScript::initScriptCounts(JSContext* cx)
                 continue;
 
             jsbytecode* tryTarget = tryStart + tn->length;
-            if (!jumpTargets.append(tryTarget))
+            if (!jumpTargets.append(tryTarget)) {
+                ReportOutOfMemory(cx);
                 return false;
+            }
         }
     }
 
@@ -1389,8 +1417,10 @@ JSScript::initScriptCounts(JSContext* cx)
 
     // Initialize all PCCounts counters to 0.
     ScriptCounts::PCCountsVector base;
-    if (!base.reserve(jumpTargets.length()))
+    if (!base.reserve(jumpTargets.length())) {
+        ReportOutOfMemory(cx);
         return false;
+    }
 
     for (size_t i = 0; i < jumpTargets.length(); i++)
         base.infallibleEmplaceBack(pcToOffset(jumpTargets[i]));
@@ -1399,8 +1429,10 @@ JSScript::initScriptCounts(JSContext* cx)
     ScriptCountsMap* map = compartment()->scriptCountsMap;
     if (!map) {
         map = cx->new_<ScriptCountsMap>();
-        if (!map)
+        if (!map) {
+            ReportOutOfMemory(cx);
             return false;
+        }
 
         if (!map->init()) {
             js_delete(map);
@@ -1412,8 +1444,10 @@ JSScript::initScriptCounts(JSContext* cx)
     }
 
     // Register the current ScriptCount in the compartment's map.
-    if (!map->putNew(this, Move(base)))
+    if (!map->putNew(this, Move(base))) {
+        ReportOutOfMemory(cx);
         return false;
+    }
 
     // safe to set this;  we can't fail after this point.
     hasScriptCounts_ = true;
@@ -3213,21 +3247,17 @@ js::PCToLineNumber(unsigned startLine, jssrcnote* notes, jsbytecode* code, jsbyt
     ptrdiff_t target = pc - code;
     for (jssrcnote* sn = notes; !SN_IS_TERMINATOR(sn); sn = SN_NEXT(sn)) {
         offset += SN_DELTA(sn);
-        SrcNoteType type = (SrcNoteType) SN_TYPE(sn);
-        if (type == SRC_SETLINE) {
-            if (offset <= target)
-                lineno = unsigned(GetSrcNoteOffset(sn, 0));
-            column = 0;
-        } else if (type == SRC_NEWLINE) {
-            if (offset <= target)
-                lineno++;
-            column = 0;
-        }
-
         if (offset > target)
             break;
 
-        if (type == SRC_COLSPAN) {
+        SrcNoteType type = (SrcNoteType) SN_TYPE(sn);
+        if (type == SRC_SETLINE) {
+            lineno = unsigned(GetSrcNoteOffset(sn, 0));
+            column = 0;
+        } else if (type == SRC_NEWLINE) {
+            lineno++;
+            column = 0;
+        } else if (type == SRC_COLSPAN) {
             ptrdiff_t colspan = SN_OFFSET_TO_COLSPAN(GetSrcNoteOffset(sn, 0));
             MOZ_ASSERT(ptrdiff_t(column) + colspan >= 0);
             column += colspan;
@@ -3342,7 +3372,7 @@ js::DescribeScriptedCallerForCompilation(JSContext* cx, MutableHandleScript mayb
         return;
     }
 
-    *file = iter.scriptFilename();
+    *file = iter.filename();
     *linenop = iter.computeLine();
     *mutedErrors = iter.mutedErrors();
 
@@ -3557,6 +3587,9 @@ js::detail::CopyScript(JSContext* cx, HandleObject scriptStaticScope, HandleScri
     dst->hasInnerFunctions_ = src->hasInnerFunctions();
     dst->isGeneratorExp_ = src->isGeneratorExp();
     dst->setGeneratorKind(src->generatorKind());
+    dst->isDerivedClassConstructor_ = src->isDerivedClassConstructor();
+    dst->needsHomeObject_ = src->needsHomeObject();
+    dst->isDefaultClassConstructor_ = src->isDefaultClassConstructor();
 
     if (nconsts != 0) {
         HeapValue* vector = Rebase<HeapValue>(dst, src, src->consts()->vector);
@@ -3949,8 +3982,7 @@ JSScript::traceChildren(JSTracer* trc)
 void
 LazyScript::finalize(FreeOp* fop)
 {
-    if (table_)
-        fop->free_(table_);
+    fop->free_(table_);
 }
 
 size_t
@@ -4407,6 +4439,12 @@ JSScript::hasLoops()
             return true;
     }
     return false;
+}
+
+bool
+JSScript::mayReadFrameArgsDirectly()
+{
+    return argumentsHasVarBinding() || (function_ && function_->hasRest());
 }
 
 static inline void

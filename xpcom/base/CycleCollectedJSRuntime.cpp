@@ -67,11 +67,13 @@
 #include "mozilla/dom/ScriptSettings.h"
 #include "jsprf.h"
 #include "js/Debug.h"
+#include "nsContentUtils.h"
 #include "nsCycleCollectionNoteRootCallback.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsCycleCollector.h"
 #include "nsDOMJSUtils.h"
 #include "nsJSUtils.h"
+#include "nsWrapperCache.h"
 
 #ifdef MOZ_CRASHREPORTER
 #include "nsExceptionHandler.h"
@@ -396,6 +398,12 @@ NoteJSChildGrayWrapperShim(void* aData, JS::GCCellPtr aThing)
 // CycleCollectedJSRuntime. It should never be used directly.
 static const JSZoneParticipant sJSZoneCycleCollectorGlobal;
 
+static
+void JSObjectsTenuredCb(JSRuntime* aRuntime, void* aData)
+{
+  static_cast<CycleCollectedJSRuntime*>(aData)->JSObjectsTenured();
+}
+
 CycleCollectedJSRuntime::CycleCollectedJSRuntime(JSRuntime* aParentRuntime,
                                                  uint32_t aMaxBytes,
                                                  uint32_t aMaxNurseryBytes)
@@ -429,6 +437,7 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(JSRuntime* aParentRuntime,
   JS_SetGrayGCRootsTracer(mJSRuntime, TraceGrayJS, this);
   JS_SetGCCallback(mJSRuntime, GCCallback, this);
   mPrevGCSliceCallback = JS::SetGCSliceCallback(mJSRuntime, GCSliceCallback);
+  JS_SetObjectsTenuredCallback(mJSRuntime, JSObjectsTenuredCb, this);
   JS::SetOutOfMemoryCallback(mJSRuntime, OutOfMemoryCallback, this);
   JS::SetLargeAllocationFailureCallback(mJSRuntime,
                                         LargeAllocationFailureCallback, this);
@@ -772,37 +781,42 @@ struct JsGcTracer : public TraceCallbacks
   virtual void Trace(JS::Heap<JS::Value>* aPtr, const char* aName,
                      void* aClosure) const override
   {
-    JS_CallValueTracer(static_cast<JSTracer*>(aClosure), aPtr, aName);
+    JS::TraceEdge(static_cast<JSTracer*>(aClosure), aPtr, aName);
   }
   virtual void Trace(JS::Heap<jsid>* aPtr, const char* aName,
                      void* aClosure) const override
   {
-    JS_CallIdTracer(static_cast<JSTracer*>(aClosure), aPtr, aName);
+    JS::TraceEdge(static_cast<JSTracer*>(aClosure), aPtr, aName);
   }
   virtual void Trace(JS::Heap<JSObject*>* aPtr, const char* aName,
                      void* aClosure) const override
   {
-    JS_CallObjectTracer(static_cast<JSTracer*>(aClosure), aPtr, aName);
+    JS::TraceEdge(static_cast<JSTracer*>(aClosure), aPtr, aName);
+  }
+  virtual void Trace(JSObject** aPtr, const char* aName,
+                     void* aClosure) const override
+  {
+    js::UnsafeTraceManuallyBarrieredEdge(static_cast<JSTracer*>(aClosure), aPtr, aName);
   }
   virtual void Trace(JS::TenuredHeap<JSObject*>* aPtr, const char* aName,
                      void* aClosure) const override
   {
-    JS_CallTenuredObjectTracer(static_cast<JSTracer*>(aClosure), aPtr, aName);
+    JS::TraceNullableEdge(static_cast<JSTracer*>(aClosure), aPtr, aName);
   }
   virtual void Trace(JS::Heap<JSString*>* aPtr, const char* aName,
                      void* aClosure) const override
   {
-    JS_CallStringTracer(static_cast<JSTracer*>(aClosure), aPtr, aName);
+    JS::TraceEdge(static_cast<JSTracer*>(aClosure), aPtr, aName);
   }
   virtual void Trace(JS::Heap<JSScript*>* aPtr, const char* aName,
                      void* aClosure) const override
   {
-    JS_CallScriptTracer(static_cast<JSTracer*>(aClosure), aPtr, aName);
+    JS::TraceEdge(static_cast<JSTracer*>(aClosure), aPtr, aName);
   }
   virtual void Trace(JS::Heap<JSFunction*>* aPtr, const char* aName,
                      void* aClosure) const override
   {
-    JS_CallFunctionTracer(static_cast<JSTracer*>(aClosure), aPtr, aName);
+    JS::TraceEdge(static_cast<JSTracer*>(aClosure), aPtr, aName);
   }
 };
 
@@ -847,6 +861,12 @@ struct ClearJSHolder : TraceCallbacks
   }
 
   virtual void Trace(JS::Heap<JSObject*>* aPtr, const char*, void*) const override
+  {
+    *aPtr = nullptr;
+  }
+
+  virtual void Trace(JSObject** aPtr, const char* aName,
+                     void* aClosure) const override
   {
     *aPtr = nullptr;
   }
@@ -1005,6 +1025,46 @@ CycleCollectedJSRuntime::GarbageCollect(uint32_t aReason) const
 
   JS::PrepareForFullGC(mJSRuntime);
   JS::GCForReason(mJSRuntime, GC_NORMAL, gcreason);
+}
+
+void
+CycleCollectedJSRuntime::JSObjectsTenured()
+{
+  for (auto iter = mNurseryObjects.Iter(); !iter.Done(); iter.Next()) {
+    nsWrapperCache* cache = iter.Get();
+    JSObject* wrapper = cache->GetWrapperPreserveColor();
+    MOZ_ASSERT(wrapper);
+    if (!JS::ObjectIsTenured(wrapper)) {
+      MOZ_ASSERT(!cache->PreservingWrapper());
+      const JSClass* jsClass = js::GetObjectJSClass(wrapper);
+      jsClass->finalize(nullptr, wrapper);
+    }
+  }
+
+#ifdef DEBUG
+for (auto iter = mPreservedNurseryObjects.Iter(); !iter.Done(); iter.Next()) {
+  MOZ_ASSERT(JS::ObjectIsTenured(iter.Get().get()));
+}
+#endif
+
+  mNurseryObjects.Clear();
+  mPreservedNurseryObjects.Clear();
+}
+
+void
+CycleCollectedJSRuntime::NurseryWrapperAdded(nsWrapperCache* aCache)
+{
+  MOZ_ASSERT(aCache);
+  MOZ_ASSERT(aCache->GetWrapperPreserveColor());
+  MOZ_ASSERT(!JS::ObjectIsTenured(aCache->GetWrapperPreserveColor()));
+  mNurseryObjects.InfallibleAppend(aCache);
+}
+
+void
+CycleCollectedJSRuntime::NurseryWrapperPreserved(JSObject* aWrapper)
+{
+  mPreservedNurseryObjects.InfallibleAppend(
+    JS::PersistentRooted<JSObject*>(mJSRuntime, aWrapper));
 }
 
 void

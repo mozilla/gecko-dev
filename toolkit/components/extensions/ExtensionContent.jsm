@@ -6,6 +6,8 @@
 
 this.EXPORTED_SYMBOLS = ["ExtensionContent"];
 
+/* globals ExtensionContent */
+
 /*
  * This file handles the content process side of extensions. It mainly
  * takes care of content script injection, content script APIs, and
@@ -38,8 +40,7 @@ var {
   flushJarCache,
 } = ExtensionUtils;
 
-function isWhenBeforeOrSame(when1, when2)
-{
+function isWhenBeforeOrSame(when1, when2) {
   let table = {"document_start": 0,
                "document_end": 1,
                "document_idle": 2};
@@ -48,63 +49,65 @@ function isWhenBeforeOrSame(when1, when2)
 
 // This is the fairly simple API that we inject into content
 // scripts.
-var api = context => { return {
-  runtime: {
-    connect: function(extensionId, connectInfo) {
-      if (!connectInfo) {
-        connectInfo = extensionId;
-        extensionId = null;
-      }
-      let name = connectInfo && connectInfo.name || "";
-      let recipient = extensionId ? {extensionId} : {extensionId: context.extensionId};
-      return context.messenger.connect(context.messageManager, name, recipient);
+var api = context => {
+  return {
+    runtime: {
+      connect: function(extensionId, connectInfo) {
+        if (!connectInfo) {
+          connectInfo = extensionId;
+          extensionId = null;
+        }
+        let name = connectInfo && connectInfo.name || "";
+        let recipient = extensionId ? {extensionId} : {extensionId: context.extensionId};
+        return context.messenger.connect(context.messageManager, name, recipient);
+      },
+
+      getManifest: function() {
+        return Cu.cloneInto(context.extension.manifest, context.cloneScope);
+      },
+
+      getURL: function(url) {
+        return context.extension.baseURI.resolve(url);
+      },
+
+      onConnect: context.messenger.onConnect("runtime.onConnect"),
+
+      onMessage: context.messenger.onMessage("runtime.onMessage"),
+
+      sendMessage: function(...args) {
+        let options; // eslint-disable-line no-unused-vars
+        let extensionId, message, responseCallback;
+        if (args.length == 1) {
+          message = args[0];
+        } else if (args.length == 2) {
+          [message, responseCallback] = args;
+        } else {
+          [extensionId, message, options, responseCallback] = args;
+        }
+
+        let recipient = extensionId ? {extensionId} : {extensionId: context.extensionId};
+        context.messenger.sendMessage(context.messageManager, message, recipient, responseCallback);
+      },
     },
 
-    getManifest: function() {
-      return Cu.cloneInto(context.extension.manifest, context.cloneScope);
+    extension: {
+      getURL: function(url) {
+        return context.extension.baseURI.resolve(url);
+      },
+
+      inIncognitoContext: PrivateBrowsingUtils.isContentWindowPrivate(context.contentWindow),
     },
 
-    getURL: function(url) {
-      return context.extension.baseURI.resolve(url);
+    i18n: {
+      getMessage: function(messageName, substitutions) {
+        return context.extension.localizeMessage(messageName, substitutions);
+      },
     },
-
-    onConnect: context.messenger.onConnect("runtime.onConnect"),
-
-    onMessage: context.messenger.onMessage("runtime.onMessage"),
-
-    sendMessage: function(...args) {
-      let extensionId, message, options, responseCallback;
-      if (args.length == 1) {
-        message = args[0];
-      } else if (args.length == 2) {
-        [message, responseCallback] = args;
-      } else {
-        [extensionId, message, options, responseCallback] = args;
-      }
-
-      let recipient = extensionId ? {extensionId} : {extensionId: context.extensionId};
-      context.messenger.sendMessage(context.messageManager, message, recipient, responseCallback);
-    },
-  },
-
-  extension: {
-    getURL: function(url) {
-      return context.extension.baseURI.resolve(url);
-    },
-
-    inIncognitoContext: PrivateBrowsingUtils.isContentWindowPrivate(context.contentWindow),
-  },
-
-  i18n: {
-    getMessage: function(messageName, substitutions) {
-      return context.extension.localizeMessage(messageName, substitutions);
-    },
-  },
-}};
+  };
+};
 
 // Represents a content script.
-function Script(options)
-{
+function Script(options) {
   this.options = options;
   this.run_at = this.options.run_at;
   this.js = this.options.js || [];
@@ -112,6 +115,9 @@ function Script(options)
 
   this.matches_ = new MatchPattern(this.options.matches);
   this.exclude_matches_ = new MatchPattern(this.options.exclude_matches || null);
+  // TODO: MatchPattern should pre-mangle host-only patterns so that we
+  // don't need to call a separate match function.
+  this.matches_host_ = new MatchPattern(this.options.matchesHost || null);
 
   // TODO: Support glob patterns.
 }
@@ -119,7 +125,7 @@ function Script(options)
 Script.prototype = {
   matches(window) {
     let uri = window.document.documentURIObject;
-    if (!this.matches_.matches(uri)) {
+    if (!(this.matches_.matches(uri) || this.matches_host_.matchesIgnoringPath(uri))) {
       return false;
     }
 
@@ -129,6 +135,16 @@ Script.prototype = {
 
     if (!this.options.all_frames && window.top != window) {
       return false;
+    }
+
+    if ("innerWindowID" in this.options) {
+      let innerWindowID = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                                .getInterface(Ci.nsIDOMWindowUtils)
+                                .currentInnerWindowID;
+
+      if (innerWindowID !== this.options.innerWindowID) {
+        return false;
+      }
     }
 
     // TODO: match_about_blank.
@@ -142,8 +158,8 @@ Script.prototype = {
     }
 
     if (shouldRun("document_start")) {
-      let winUtils = window.QueryInterface(Ci.nsIInterfaceRequestor).
-        getInterface(Ci.nsIDOMWindowUtils);
+      let winUtils = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                           .getInterface(Ci.nsIDOMWindowUtils);
 
       for (let url of this.css) {
         url = extension.baseURI.resolve(url);
@@ -164,14 +180,15 @@ Script.prototype = {
         // `document_idle` state.
         if (AppConstants.platform == "gonk" && scheduled != "document_idle") {
           Cu.reportError(`Script injection: ignoring ${url} at ${scheduled}`);
+          continue;
         }
         url = extension.baseURI.resolve(url);
 
         let options = {
           target: sandbox,
           charset: "UTF-8",
-          async: AppConstants.platform == "gonk"
-        }
+          async: AppConstants.platform == "gonk",
+        };
         runSafeSyncWithoutClone(Services.scriptloader.loadSubScriptWithOptions, url, options);
       }
 
@@ -182,8 +199,7 @@ Script.prototype = {
   },
 };
 
-function getWindowMessageManager(contentWindow)
-{
+function getWindowMessageManager(contentWindow) {
   let ir = contentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                         .getInterface(Ci.nsIDocShell)
                         .QueryInterface(Ci.nsIInterfaceRequestor);
@@ -195,11 +211,12 @@ function getWindowMessageManager(contentWindow)
   }
 }
 
+var ExtensionManager;
+
 // Scope in which extension content script code can run. It uses
 // Cu.Sandbox to run the code. There is a separate scope for each
 // frame.
-function ExtensionContext(extensionId, contentWindow)
-{
+function ExtensionContext(extensionId, contentWindow) {
   this.extension = ExtensionManager.get(extensionId);
   this.extensionId = extensionId;
   this.contentWindow = contentWindow;
@@ -215,24 +232,38 @@ function ExtensionContext(extensionId, contentWindow)
   let mm = getWindowMessageManager(contentWindow);
   this.messageManager = mm;
 
-  let prin = [contentWindow];
-  if (Services.scriptSecurityManager.isSystemPrincipal(contentWindow.document.nodePrincipal)) {
+  let prin;
+  let contentPrincipal = contentWindow.document.nodePrincipal;
+  let ssm = Services.scriptSecurityManager;
+  if (ssm.isSystemPrincipal(contentPrincipal)) {
     // Make sure we don't hand out the system principal by accident.
     prin = Cc["@mozilla.org/nullprincipal;1"].createInstance(Ci.nsIPrincipal);
+  } else {
+    let extensionPrincipal = ssm.createCodebasePrincipal(this.extension.baseURI, {addonId: extensionId});
+    prin = [contentPrincipal, extensionPrincipal];
   }
 
-  this.sandbox = Cu.Sandbox(prin, {sandboxPrototype: contentWindow, wantXrays: true, isWebExtensionContentScript: true});
+  this.sandbox = Cu.Sandbox(prin, {
+    sandboxPrototype: contentWindow,
+    wantXrays: true,
+    isWebExtensionContentScript: true,
+    wantGlobalProperties: ["XMLHttpRequest"],
+  });
 
   let delegate = {
     getSender(context, target, sender) {
       // Nothing to do here.
-    }
+    },
   };
 
   let url = contentWindow.location.href;
   let broker = ExtensionContent.getBroker(mm);
-  this.messenger = new Messenger(this, broker, {id: extensionId, frameId, url},
-                                 {id: extensionId, frameId}, delegate);
+  // The |sender| parameter is passed directly to the extension.
+  let sender = {id: this.extension.uuid, frameId, url};
+  // Properties in |filter| must match those in the |recipient|
+  // parameter of sendMessage.
+  let filter = {extensionId, frameId};
+  this.messenger = new Messenger(this, broker, sender, filter, delegate);
 
   let chromeObj = Cu.createObjectIn(this.sandbox, {defineAs: "browser"});
 
@@ -267,8 +298,7 @@ ExtensionContext.prototype = {
   },
 };
 
-function windowId(window)
-{
+function windowId(window) {
   return window.QueryInterface(Ci.nsIInterfaceRequestor)
                .getInterface(Ci.nsIDOMWindowUtils)
                .currentInnerWindowID;
@@ -319,8 +349,10 @@ var DocumentManager = {
       }
 
       this.trigger("document_start", window);
+      /* eslint-disable mozilla/balanced-listeners */
       window.addEventListener("DOMContentLoaded", this, true);
       window.addEventListener("load", this, true);
+      /* eslint-enable mozilla/balanced-listeners */
     } else if (topic == "inner-window-destroyed") {
       let id = subject.QueryInterface(Ci.nsISupportsPRUint64).data;
       if (!this.windows.has(id)) {
@@ -328,7 +360,7 @@ var DocumentManager = {
       }
 
       let extensions = this.windows.get(id);
-      for (let [extensionId, context] of extensions) {
+      for (let [, context] of extensions) {
         context.close();
       }
 
@@ -372,7 +404,7 @@ var DocumentManager = {
 
   enumerateWindows: function*(docShell) {
     let window = docShell.QueryInterface(Ci.nsIInterfaceRequestor)
-                         .getInterface(Ci.nsIDOMWindow)
+                         .getInterface(Ci.nsIDOMWindow);
     yield [window, this.getWindowState(window)];
 
     for (let i = 0; i < docShell.childCount; i++) {
@@ -417,7 +449,7 @@ var DocumentManager = {
   },
 
   shutdownExtension(extensionId) {
-    for (let [windowId, extensions] of this.windows) {
+    for (let [, extensions] of this.windows) {
       let context = extensions.get(extensionId);
       if (context) {
         context.close();
@@ -445,14 +477,13 @@ var DocumentManager = {
 };
 
 // Represents a browser extension in the content process.
-function BrowserExtensionContent(data)
-{
+function BrowserExtensionContent(data) {
   this.id = data.id;
   this.uuid = data.uuid;
   this.data = data;
   this.scripts = data.content_scripts.map(scriptData => new Script(scriptData));
   this.webAccessibleResources = data.webAccessibleResources;
-  this.whiteListedHosts = data.whiteListedHosts;
+  this.whiteListedHosts = new MatchPattern(data.whiteListedHosts);
 
   this.localeData = new LocaleData(data.localeData);
 
@@ -465,7 +496,7 @@ function BrowserExtensionContent(data)
     // Extension.jsm takes care of this in the parent.
     ExtensionManagement.startupExtension(this.uuid, uri, this);
   }
-};
+}
 
 BrowserExtensionContent.prototype = {
   shutdown() {
@@ -483,7 +514,7 @@ BrowserExtensionContent.prototype = {
   },
 };
 
-var ExtensionManager = {
+ExtensionManager = {
   // Map[extensionId, BrowserExtensionContent]
   extensions: new Map(),
 
@@ -533,7 +564,7 @@ var ExtensionManager = {
         break;
       }
     }
-  }
+  },
 };
 
 this.ExtensionContent = {
@@ -568,12 +599,11 @@ this.ExtensionContent = {
 
   receiveMessage({target, name, data}) {
     switch (name) {
-    case "Extension:Execute":
-      data.options.matches = "<all_urls>";
-      let script = new Script(data.options);
-      let {extensionId} = data;
-      DocumentManager.executeScript(target, extensionId, script);
-      break;
+      case "Extension:Execute":
+        let script = new Script(data.options);
+        let {extensionId} = data;
+        DocumentManager.executeScript(target, extensionId, script);
+        break;
     }
   },
 };

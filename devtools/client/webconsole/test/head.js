@@ -42,12 +42,6 @@ var WCUL10n = new WebConsoleUtils.l10n(WEBCONSOLE_STRINGS_URI);
 
 DevToolsUtils.testing = true;
 
-function asyncTest(generator) {
-  return () => {
-    Task.spawn(generator).then(finishTest);
-  };
-}
-
 function loadTab(url) {
   let deferred = promise.defer();
 
@@ -339,8 +333,12 @@ registerCleanupFunction(function*() {
 
   dumpConsoles();
 
-  if (HUDService.getBrowserConsole()) {
-    HUDService.toggleBrowserConsole();
+  let browserConsole = HUDService.getBrowserConsole();
+  if (browserConsole) {
+    if (browserConsole.jsterm) {
+      browserConsole.jsterm.clearOutput(true);
+    }
+    yield HUDService.toggleBrowserConsole();
   }
 
   let target = TargetFactory.forTab(gBrowser.selectedTab);
@@ -811,7 +809,7 @@ function openDebugger(options = {}) {
     if (dbgPanelAlreadyOpen) {
       deferred.resolve(resolveObject);
     } else {
-      panelWin.once(panelWin.EVENTS.SOURCES_ADDED, () => {
+      panelWin.DebuggerController.waitForSourcesLoaded().then(() => {
         deferred.resolve(resolveObject);
       });
     }
@@ -1520,7 +1518,10 @@ function checkOutputForInputs(hud, inputTests) {
     container.addEventListener("TabOpen", entry._onTabOpen, true);
 
     body.scrollIntoView();
-    EventUtils.synthesizeMouse(body, 2, 2, {}, hud.iframeWindow);
+
+    if (!entry.suppressClick) {
+      EventUtils.synthesizeMouse(body, 2, 2, {}, hud.iframeWindow);
+    }
 
     if (entry.inspectable) {
       info("message body tagName '" + body.tagName + "' className '" +

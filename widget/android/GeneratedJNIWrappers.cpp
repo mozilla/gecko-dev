@@ -121,9 +121,9 @@ auto GeckoAppShell::CreateMessageCursorWrapper(int64_t a0, int64_t a1, mozilla::
 constexpr char GeckoAppShell::CreateShortcut_t::name[];
 constexpr char GeckoAppShell::CreateShortcut_t::signature[];
 
-auto GeckoAppShell::CreateShortcut(mozilla::jni::String::Param a0, mozilla::jni::String::Param a1, mozilla::jni::String::Param a2) -> void
+auto GeckoAppShell::CreateShortcut(mozilla::jni::String::Param a0, mozilla::jni::String::Param a1) -> void
 {
-    return mozilla::jni::Method<CreateShortcut_t>::Call(nullptr, nullptr, a0, a1, a2);
+    return mozilla::jni::Method<CreateShortcut_t>::Call(nullptr, nullptr, a0, a1);
 }
 
 constexpr char GeckoAppShell::CreateThreadCursorWrapper_t::name[];
@@ -449,9 +449,9 @@ auto GeckoAppShell::HandleGeckoMessageWrapper(mozilla::jni::Object::Param a0) ->
 constexpr char GeckoAppShell::HandleUncaughtException_t::name[];
 constexpr char GeckoAppShell::HandleUncaughtException_t::signature[];
 
-auto GeckoAppShell::HandleUncaughtException(mozilla::jni::Object::Param a0, mozilla::jni::Throwable::Param a1) -> void
+auto GeckoAppShell::HandleUncaughtException(mozilla::jni::Throwable::Param a0) -> mozilla::jni::String::LocalRef
 {
-    return mozilla::jni::Method<HandleUncaughtException_t>::Call(nullptr, nullptr, a0, a1);
+    return mozilla::jni::Method<HandleUncaughtException_t>::Call(nullptr, nullptr, a0);
 }
 
 constexpr char GeckoAppShell::HideProgressDialog_t::name[];
@@ -646,6 +646,14 @@ auto GeckoAppShell::SetKeepScreenOn(bool a0) -> void
     return mozilla::jni::Method<SetKeepScreenOn_t>::Call(nullptr, nullptr, a0);
 }
 
+constexpr char GeckoAppShell::SetScreenDepthOverride_t::name[];
+constexpr char GeckoAppShell::SetScreenDepthOverride_t::signature[];
+
+auto GeckoAppShell::SetScreenDepthOverride(int32_t a0) -> void
+{
+    return mozilla::jni::Method<SetScreenDepthOverride_t>::Call(nullptr, nullptr, a0);
+}
+
 constexpr char GeckoAppShell::SetURITitle_t::name[];
 constexpr char GeckoAppShell::SetURITitle_t::signature[];
 
@@ -657,9 +665,9 @@ auto GeckoAppShell::SetURITitle(mozilla::jni::String::Param a0, mozilla::jni::St
 constexpr char GeckoAppShell::ShowAlertNotificationWrapper_t::name[];
 constexpr char GeckoAppShell::ShowAlertNotificationWrapper_t::signature[];
 
-auto GeckoAppShell::ShowAlertNotificationWrapper(mozilla::jni::String::Param a0, mozilla::jni::String::Param a1, mozilla::jni::String::Param a2, mozilla::jni::String::Param a3, mozilla::jni::String::Param a4) -> void
+auto GeckoAppShell::ShowAlertNotificationWrapper(mozilla::jni::String::Param a0, mozilla::jni::String::Param a1, mozilla::jni::String::Param a2, mozilla::jni::String::Param a3, mozilla::jni::String::Param a4, mozilla::jni::String::Param a5) -> void
 {
-    return mozilla::jni::Method<ShowAlertNotificationWrapper_t>::Call(nullptr, nullptr, a0, a1, a2, a3, a4);
+    return mozilla::jni::Method<ShowAlertNotificationWrapper_t>::Call(nullptr, nullptr, a0, a1, a2, a3, a4, a5);
 }
 
 constexpr char GeckoAppShell::ShowInputMethodPicker_t::name[];
@@ -731,9 +739,9 @@ constexpr char GeckoEditable::name[];
 constexpr char GeckoEditable::New_t::name[];
 constexpr char GeckoEditable::New_t::signature[];
 
-auto GeckoEditable::New() -> GeckoEditable::LocalRef
+auto GeckoEditable::New(mozilla::jni::Object::Param a0) -> GeckoEditable::LocalRef
 {
-    return mozilla::jni::Constructor<New_t>::Call(nullptr, nullptr);
+    return mozilla::jni::Constructor<New_t>::Call(nullptr, nullptr, a0);
 }
 
 constexpr char GeckoEditable::DisposeNative_t::name[];
@@ -753,14 +761,6 @@ constexpr char GeckoEditable::NotifyIMEContext_t::signature[];
 auto GeckoEditable::NotifyIMEContext(int32_t a0, mozilla::jni::String::Param a1, mozilla::jni::String::Param a2, mozilla::jni::String::Param a3) const -> void
 {
     return mozilla::jni::Method<NotifyIMEContext_t>::Call(this, nullptr, a0, a1, a2, a3);
-}
-
-constexpr char GeckoEditable::OnDestroy_t::name[];
-constexpr char GeckoEditable::OnDestroy_t::signature[];
-
-auto GeckoEditable::OnDestroy() const -> void
-{
-    return mozilla::jni::Method<OnDestroy_t>::Call(this, nullptr);
 }
 
 constexpr char GeckoEditable::OnImeAcknowledgeFocus_t::name[];
@@ -1105,8 +1105,16 @@ constexpr char GeckoView::Window::DisposeNative_t::signature[];
 constexpr char GeckoView::Window::Open_t::name[];
 constexpr char GeckoView::Window::Open_t::signature[];
 
-constexpr char GeckoView::Window::SetLayerClient_t::name[];
-constexpr char GeckoView::Window::SetLayerClient_t::signature[];
+constexpr char GeckoView::Window::Reattach_t::name[];
+constexpr char GeckoView::Window::Reattach_t::signature[];
+
+constexpr char GeckoView::Window::GlController_t::name[];
+constexpr char GeckoView::Window::GlController_t::signature[];
+
+auto GeckoView::Window::GlController() const -> mozilla::jni::Object::LocalRef
+{
+    return mozilla::jni::Field<GlController_t>::Get(this, nullptr);
+}
 
 constexpr char PrefsHelper::name[];
 
@@ -1234,13 +1242,39 @@ auto DisplayPortMetrics::Resolution() const -> float
 
 constexpr char GLController::name[];
 
-constexpr char GLController::CreateEGLSurfaceForCompositorWrapper_t::name[];
-constexpr char GLController::CreateEGLSurfaceForCompositorWrapper_t::signature[];
+constexpr char GLController::CreateCompositor_t::name[];
+constexpr char GLController::CreateCompositor_t::signature[];
 
-auto GLController::CreateEGLSurfaceForCompositorWrapper() const -> mozilla::jni::Object::LocalRef
+constexpr char GLController::CreateEGLSurface_t::name[];
+constexpr char GLController::CreateEGLSurface_t::signature[];
+
+auto GLController::CreateEGLSurface() const -> mozilla::jni::Object::LocalRef
 {
-    return mozilla::jni::Method<CreateEGLSurfaceForCompositorWrapper_t>::Call(this, nullptr);
+    return mozilla::jni::Method<CreateEGLSurface_t>::Call(this, nullptr);
 }
+
+constexpr char GLController::Destroy_t::name[];
+constexpr char GLController::Destroy_t::signature[];
+
+auto GLController::Destroy() const -> void
+{
+    return mozilla::jni::Method<Destroy_t>::Call(this, nullptr);
+}
+
+constexpr char GLController::DisposeNative_t::name[];
+constexpr char GLController::DisposeNative_t::signature[];
+
+constexpr char GLController::PauseCompositor_t::name[];
+constexpr char GLController::PauseCompositor_t::signature[];
+
+constexpr char GLController::SetLayerClient_t::name[];
+constexpr char GLController::SetLayerClient_t::signature[];
+
+constexpr char GLController::SyncInvalidateAndScheduleComposite_t::name[];
+constexpr char GLController::SyncInvalidateAndScheduleComposite_t::signature[];
+
+constexpr char GLController::SyncResumeResizeCompositor_t::name[];
+constexpr char GLController::SyncResumeResizeCompositor_t::signature[];
 
 constexpr char GeckoLayerClient::name[];
 
@@ -1290,6 +1324,14 @@ constexpr char GeckoLayerClient::IsContentDocumentDisplayed_t::signature[];
 auto GeckoLayerClient::IsContentDocumentDisplayed() const -> bool
 {
     return mozilla::jni::Method<IsContentDocumentDisplayed_t>::Call(this, nullptr);
+}
+
+constexpr char GeckoLayerClient::OnGeckoReady_t::name[];
+constexpr char GeckoLayerClient::OnGeckoReady_t::signature[];
+
+auto GeckoLayerClient::OnGeckoReady() const -> void
+{
+    return mozilla::jni::Method<OnGeckoReady_t>::Call(this, nullptr);
 }
 
 constexpr char GeckoLayerClient::ProgressiveUpdateCallback_t::name[];
@@ -1342,15 +1384,43 @@ auto ImmutableViewportMetrics::New(float a0, float a1, float a2, float a3, float
     return mozilla::jni::Constructor<New_t>::Call(nullptr, nullptr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12);
 }
 
-constexpr char LayerView::name[];
+constexpr char LayerRenderer::name[];
 
-constexpr char LayerView::RegisterCompositorWrapper_t::name[];
-constexpr char LayerView::RegisterCompositorWrapper_t::signature[];
+constexpr char LayerRenderer::Frame::name[];
 
-auto LayerView::RegisterCompositorWrapper() -> mozilla::jni::Object::LocalRef
+constexpr char LayerRenderer::Frame::BeginDrawing_t::name[];
+constexpr char LayerRenderer::Frame::BeginDrawing_t::signature[];
+
+auto LayerRenderer::Frame::BeginDrawing() const -> void
 {
-    return mozilla::jni::Method<RegisterCompositorWrapper_t>::Call(nullptr, nullptr);
+    return mozilla::jni::Method<BeginDrawing_t>::Call(this, nullptr);
 }
+
+constexpr char LayerRenderer::Frame::DrawBackground_t::name[];
+constexpr char LayerRenderer::Frame::DrawBackground_t::signature[];
+
+auto LayerRenderer::Frame::DrawBackground() const -> void
+{
+    return mozilla::jni::Method<DrawBackground_t>::Call(this, nullptr);
+}
+
+constexpr char LayerRenderer::Frame::DrawForeground_t::name[];
+constexpr char LayerRenderer::Frame::DrawForeground_t::signature[];
+
+auto LayerRenderer::Frame::DrawForeground() const -> void
+{
+    return mozilla::jni::Method<DrawForeground_t>::Call(this, nullptr);
+}
+
+constexpr char LayerRenderer::Frame::EndDrawing_t::name[];
+constexpr char LayerRenderer::Frame::EndDrawing_t::signature[];
+
+auto LayerRenderer::Frame::EndDrawing() const -> void
+{
+    return mozilla::jni::Method<EndDrawing_t>::Call(this, nullptr);
+}
+
+constexpr char LayerView::name[];
 
 constexpr char LayerView::updateZoomedView_t::name[];
 constexpr char LayerView::updateZoomedView_t::signature[];

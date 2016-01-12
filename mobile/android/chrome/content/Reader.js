@@ -5,6 +5,8 @@
 
 "use strict";
 
+XPCOMUtils.defineLazyModuleGetter(this, "Snackbars", "resource://gre/modules/Snackbars.jsm");
+
 /*globals MAX_URI_LENGTH, MAX_TITLE_LENGTH */
 
 var Reader = {
@@ -179,7 +181,7 @@ var Reader = {
 
       case "Reader:ToolbarHidden":
         if (!this._hasUsedToolbar) {
-          NativeWindow.toast.show(Strings.browser.GetStringFromName("readerMode.toolbarTip"), "short");
+          Snackbars.show(Strings.browser.GetStringFromName("readerMode.toolbarTip"), Snackbars.LENGTH_SHORT);
           Services.prefs.setBoolPref("reader.has_used_toolbar", true);
           this._hasUsedToolbar = true;
         }
@@ -225,7 +227,7 @@ var Reader = {
 
     readerModeActiveCallback: function(tabID) {
       Reader._addTabToReadingList(tabID).catch(e => Cu.reportError("Error adding tab to reading list: " + e));
-      UITelemetry.addEvent("save.1", "pageaction", null, "reader");
+      UITelemetry.addEvent("save.1", "pageaction", null, "reading_list");
       Reader._buttonHistogram.add(Reader._buttonHistogramValues.LONG_TAP);
     },
   },

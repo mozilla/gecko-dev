@@ -29,6 +29,7 @@
 #include "mozilla/BasePrincipal.h"
 #include "nsProxyRelease.h"
 #include "nsContentSecurityManager.h"
+#include "nsContentUtils.h"
 
 typedef mozilla::net::LoadContextInfo LoadContextInfo;
 
@@ -231,7 +232,7 @@ nsWyciwygChannel::SetLoadGroup(nsILoadGroup* aLoadGroup)
                                 mLoadGroup,
                                 NS_GET_IID(nsIProgressEventSink),
                                 getter_AddRefs(mProgressSink));
-  mPrivateBrowsing = NS_UsePrivateBrowsing(this);
+  UpdatePrivateBrowsing();
   NS_GetOriginAttributes(this, mOriginAttributes);
 
   return NS_OK;
@@ -328,7 +329,7 @@ nsWyciwygChannel::SetNotificationCallbacks(nsIInterfaceRequestor* aNotificationC
                                 NS_GET_IID(nsIProgressEventSink),
                                 getter_AddRefs(mProgressSink));
 
-  mPrivateBrowsing = NS_UsePrivateBrowsing(this);
+  UpdatePrivateBrowsing();
   NS_GetOriginAttributes(this, mOriginAttributes);
 
   return NS_OK;

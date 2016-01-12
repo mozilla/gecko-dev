@@ -546,9 +546,7 @@ CompositorD3D11::CreateRenderTargetFromSource(const gfx::IntRect &aRect,
     const IntSize& srcSize = sourceD3D11->GetSize();
     MOZ_ASSERT(srcSize.width >= 0 && srcSize.height >= 0,
                "render targets should have nonnegative sizes");
-    if (srcBox.left >= 0 &&
-        srcBox.top >= 0 &&
-        srcBox.left < srcBox.right &&
+    if (srcBox.left < srcBox.right &&
         srcBox.top < srcBox.bottom &&
         srcBox.right <= static_cast<uint32_t>(srcSize.width) &&
         srcBox.bottom <= static_cast<uint32_t>(srcSize.height)) {
@@ -678,7 +676,7 @@ CompositorD3D11::DrawVRDistortion(const gfx::Rect& aRect,
   TextureSourceD3D11* source = vrEffect->mTexture->AsSourceD3D11();
 
   VRHMDInfo* hmdInfo = vrEffect->mHMD;
-  VRHMDType hmdType = hmdInfo->GetType();
+  VRHMDType hmdType = hmdInfo->GetDeviceInfo().GetType();
 
   if (!mAttachments->mVRDistortionVS[hmdType] ||
       !mAttachments->mVRDistortionPS[hmdType])
@@ -1096,7 +1094,7 @@ CompositorD3D11::BeginFrame(const nsIntRegion& aInvalidRegion,
     MOZ_ASSERT(mutex);
     HRESULT hr = mutex->AcquireSync(0, 10000);
     if (hr == WAIT_TIMEOUT) {
-      MOZ_CRASH();
+      MOZ_CRASH("GFX: D3D11 timeout");
     }
 
     mutex->ReleaseSync(0);
@@ -1231,7 +1229,13 @@ CompositorD3D11::VerifyBufferSize()
     return true;
   }
 
+  ID3D11RenderTargetView* view = nullptr;
+  mContext->OMSetRenderTargets(1, &view, nullptr);
+
   if (mDefaultRT) {
+    RefPtr<ID3D11RenderTargetView> rtView = mDefaultRT->mRTView;
+    RefPtr<ID3D11ShaderResourceView> srView = mDefaultRT->mSRV;
+
     // Make sure the texture, which belongs to the swapchain, is destroyed
     // before resizing the swapchain.
     if (mCurrentRT == mDefaultRT) {
@@ -1239,11 +1243,35 @@ CompositorD3D11::VerifyBufferSize()
     }
     MOZ_ASSERT(mDefaultRT->hasOneRef());
     mDefaultRT = nullptr;
+
+    RefPtr<ID3D11Resource> resource;
+    rtView->GetResource(getter_AddRefs(resource));
+
+    ULONG newRefCnt = rtView.forget().take()->Release();
+
+    if (newRefCnt > 0) {
+      gfxCriticalError() << "mRTView not destroyed on final release! RefCnt: " << newRefCnt;
+    }
+
+    if (srView) {
+      newRefCnt = srView.forget().take()->Release();
+
+      if (newRefCnt > 0) {
+        gfxCriticalError() << "mSRV not destroyed on final release! RefCnt: " << newRefCnt;
+      }
+    }
+
+    newRefCnt = resource.forget().take()->Release();
+
+    if (newRefCnt > 0) {
+      gfxCriticalError() << "Unexpecting lingering references to backbuffer! RefCnt: " << newRefCnt;
+    }
+
+    hr = mSwapChain->ResizeBuffers(1, mSize.width, mSize.height,
+                                   DXGI_FORMAT_B8G8R8A8_UNORM,
+                                   0);
   }
 
-  hr = mSwapChain->ResizeBuffers(1, mSize.width, mSize.height,
-                                 DXGI_FORMAT_B8G8R8A8_UNORM,
-                                 0);
   mVerifyBuffersFailed = FAILED(hr);
   if (mVerifyBuffersFailed) {
     gfxCriticalNote << "D3D11 swap resize buffers failed " << hexa(hr) << " on " << mSize;
@@ -1499,7 +1527,7 @@ CompositorD3D11::HandleError(HRESULT hr, Severity aSeverity)
   }
 
   if (aSeverity == Critical) {
-    MOZ_CRASH("Unrecoverable D3D11 error");
+    MOZ_CRASH("GFX: Unrecoverable D3D11 error");
   }
 
   if (mDevice != gfxWindowsPlatform::GetPlatform()->GetD3D11Device()) {

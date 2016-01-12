@@ -1080,72 +1080,13 @@ ArrayJoinKernel(JSContext* cx, SeparatorOp sepOp, HandleObject obj, uint32_t len
 }
 
 template <bool Locale>
-JSString*
-js::ArrayJoin(JSContext* cx, HandleObject obj, HandleLinearString sepstr, uint32_t length)
+bool
+ArrayJoin(JSContext* cx, CallArgs& args)
 {
     // This method is shared by Array.prototype.join and
     // Array.prototype.toLocaleString. The steps in ES5 are nearly the same, so
     // the annotations in this function apply to both toLocaleString and join.
 
-    // Steps 1 to 6, should be done by the caller.
-
-    // Step 6 is implicit in the loops below.
-
-    // An optimized version of a special case of steps 7-11: when length==1 and
-    // the 0th element is a string, ToString() of that element is a no-op and
-    // so it can be immediately returned as the result.
-    if (length == 1 && !Locale && GetAnyBoxedOrUnboxedInitializedLength(obj) == 1) {
-        Value elem0 = GetAnyBoxedOrUnboxedDenseElement(obj, 0);
-        if (elem0.isString())
-            return elem0.toString();
-    }
-
-    StringBuffer sb(cx);
-    if (sepstr->hasTwoByteChars() && !sb.ensureTwoByteChars())
-        return nullptr;
-
-    // The separator will be added |length - 1| times, reserve space for that
-    // so that we don't have to unnecessarily grow the buffer.
-    size_t seplen = sepstr->length();
-    CheckedInt<uint32_t> res = CheckedInt<uint32_t>(seplen) * (length - 1);
-    if (length > 0 && !res.isValid()) {
-        ReportAllocationOverflow(cx);
-        return nullptr;
-    }
-
-    if (length > 0 && !sb.reserve(res.value()))
-        return nullptr;
-
-    // Various optimized versions of steps 7-10.
-    if (seplen == 0) {
-        EmptySeparatorOp op;
-        if (!ArrayJoinKernel<Locale>(cx, op, obj, length, sb))
-            return nullptr;
-    } else if (seplen == 1) {
-        char16_t c = sepstr->latin1OrTwoByteChar(0);
-        if (c <= JSString::MAX_LATIN1_CHAR) {
-            CharSeparatorOp<Latin1Char> op(c);
-            if (!ArrayJoinKernel<Locale>(cx, op, obj, length, sb))
-                return nullptr;
-        } else {
-            CharSeparatorOp<char16_t> op(c);
-            if (!ArrayJoinKernel<Locale>(cx, op, obj, length, sb))
-                return nullptr;
-        }
-    } else {
-        StringSeparatorOp op(sepstr);
-        if (!ArrayJoinKernel<Locale>(cx, op, obj, length, sb))
-            return nullptr;
-    }
-
-    // Step 11
-    return sb.finishString();
-}
-
-template <bool Locale>
-bool
-ArrayJoin(JSContext* cx, CallArgs& args)
-{
     // Step 1
     RootedObject obj(cx, ToObject(cx, args.thisv()));
     if (!obj)
@@ -1168,7 +1109,7 @@ ArrayJoin(JSContext* cx, CallArgs& args)
     // Steps 4 and 5
     RootedLinearString sepstr(cx);
     if (!Locale && args.hasDefined(0)) {
-        JSString* s = ToString<CanGC>(cx, args[0]);
+        JSString *s = ToString<CanGC>(cx, args[0]);
         if (!s)
             return false;
         sepstr = s->ensureLinear(cx);
@@ -1178,12 +1119,63 @@ ArrayJoin(JSContext* cx, CallArgs& args)
         sepstr = cx->names().comma;
     }
 
-    // Step 6 to 11
-    JSString* res = js::ArrayJoin<Locale>(cx, obj, sepstr, length);
-    if (!res)
+    // Step 6 is implicit in the loops below.
+
+    // An optimized version of a special case of steps 7-11: when length==1 and
+    // the 0th element is a string, ToString() of that element is a no-op and
+    // so it can be immediately returned as the result.
+    if (length == 1 && !Locale && GetAnyBoxedOrUnboxedInitializedLength(obj) == 1) {
+        Value elem0 = GetAnyBoxedOrUnboxedDenseElement(obj, 0);
+        if (elem0.isString()) {
+            args.rval().set(elem0);
+            return true;
+        }
+    }
+
+    StringBuffer sb(cx);
+    if (sepstr->hasTwoByteChars() && !sb.ensureTwoByteChars())
         return false;
 
-    args.rval().setString(res);
+    // The separator will be added |length - 1| times, reserve space for that
+    // so that we don't have to unnecessarily grow the buffer.
+    size_t seplen = sepstr->length();
+    CheckedInt<uint32_t> res = CheckedInt<uint32_t>(seplen) * (length - 1);
+    if (length > 0 && !res.isValid()) {
+        ReportAllocationOverflow(cx);
+        return false;
+    }
+
+    if (length > 0 && !sb.reserve(res.value()))
+        return false;
+
+    // Various optimized versions of steps 7-10.
+    if (seplen == 0) {
+        EmptySeparatorOp op;
+        if (!ArrayJoinKernel<Locale>(cx, op, obj, length, sb))
+            return false;
+    } else if (seplen == 1) {
+        char16_t c = sepstr->latin1OrTwoByteChar(0);
+        if (c <= JSString::MAX_LATIN1_CHAR) {
+            CharSeparatorOp<Latin1Char> op(c);
+            if (!ArrayJoinKernel<Locale>(cx, op, obj, length, sb))
+                return false;
+        } else {
+            CharSeparatorOp<char16_t> op(c);
+            if (!ArrayJoinKernel<Locale>(cx, op, obj, length, sb))
+                return false;
+        }
+    } else {
+        StringSeparatorOp op(sepstr);
+        if (!ArrayJoinKernel<Locale>(cx, op, obj, length, sb))
+            return false;
+    }
+
+    // Step 11
+    JSString *str = sb.finishString();
+    if (!str)
+        return false;
+
+    args.rval().setString(str);
     return true;
 }
 
@@ -1653,7 +1645,7 @@ MatchNumericComparator(JSContext* cx, const Value& v)
         return Match_None;
 
     JSFunction* fun = &obj.as<JSFunction>();
-    if (!fun->isInterpreted())
+    if (!fun->isInterpreted() || fun->isClassConstructor())
         return Match_None;
 
     JSScript* script = fun->getOrCreateScript(cx);
@@ -3060,9 +3052,9 @@ IsArrayConstructor(const Value& v)
 }
 
 static bool
-ArrayFromCallArgs(JSContext* cx, CallArgs& args)
+ArrayFromCallArgs(JSContext* cx, CallArgs& args, HandleObject proto = nullptr)
 {
-    JSObject* obj = NewCopiedArrayForCallingAllocationSite(cx, args.array(), args.length());
+    JSObject* obj = NewCopiedArrayForCallingAllocationSite(cx, args.array(), args.length(), proto);
     if (!obj)
         return false;
 
@@ -3121,7 +3113,7 @@ static const JSFunctionSpec array_methods[] = {
     JS_FN(js_toLocaleString_str,       array_toLocaleString, 0,0),
 
     /* Perl-ish methods. */
-    JS_FN("join",               array_join,         1,JSFUN_GENERIC_NATIVE),
+    JS_INLINABLE_FN("join",     array_join,         1,JSFUN_GENERIC_NATIVE, ArrayJoin),
     JS_FN("reverse",            array_reverse,      0,JSFUN_GENERIC_NATIVE),
     JS_FN("sort",               array_sort,         1,JSFUN_GENERIC_NATIVE),
     JS_INLINABLE_FN("push",     array_push,         1,JSFUN_GENERIC_NATIVE, ArrayPush),
@@ -3183,8 +3175,12 @@ js::ArrayConstructor(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
 
+    RootedObject proto(cx);
+    if (!GetPrototypeFromCallableConstructor(cx, args, &proto))
+        return false;
+
     if (args.length() != 1 || !args[0].isNumber())
-        return ArrayFromCallArgs(cx, args);
+        return ArrayFromCallArgs(cx, args, proto);
 
     uint32_t length;
     if (args[0].isInt32()) {
@@ -3203,7 +3199,7 @@ js::ArrayConstructor(JSContext* cx, unsigned argc, Value* vp)
         }
     }
 
-    JSObject* obj = NewPartlyAllocatedArrayForCallingAllocationSite(cx, length);
+    JSObject* obj = NewPartlyAllocatedArrayForCallingAllocationSite(cx, length, proto);
     if (!obj)
         return false;
 
@@ -3310,12 +3306,6 @@ EnsureNewArrayElements(ExclusiveContext* cx, ArrayObject* obj, uint32_t length)
     return true;
 }
 
-static bool
-NewArrayIsCachable(ExclusiveContext* cxArg, NewObjectKind newKind)
-{
-    return cxArg->isJSContext() && newKind == GenericObject;
-}
-
 template <uint32_t maxLength>
 static MOZ_ALWAYS_INLINE ArrayObject*
 NewArray(ExclusiveContext* cxArg, uint32_t length,
@@ -3325,13 +3315,18 @@ NewArray(ExclusiveContext* cxArg, uint32_t length,
     MOZ_ASSERT(CanBeFinalizedInBackground(allocKind, &ArrayObject::class_));
     allocKind = GetBackgroundAllocKind(allocKind);
 
-    bool isCachable = NewArrayIsCachable(cxArg, newKind);
+    RootedObject proto(cxArg, protoArg);
+    if (!proto && !GetBuiltinPrototype(cxArg, JSProto_Array, &proto))
+        return nullptr;
+
+    Rooted<TaggedProto> taggedProto(cxArg, TaggedProto(proto));
+    bool isCachable = NewObjectWithTaggedProtoIsCachable(cxArg, taggedProto, newKind, &ArrayObject::class_);
     if (isCachable) {
         JSContext* cx = cxArg->asJSContext();
         JSRuntime* rt = cx->runtime();
         NewObjectCache& cache = rt->newObjectCache;
         NewObjectCache::EntryIndex entry = -1;
-        if (cache.lookupGlobal(&ArrayObject::class_, cx->global(), allocKind, &entry)) {
+        if (cache.lookupProto(&ArrayObject::class_, proto, allocKind, &entry)) {
             gc::InitialHeap heap = GetInitialHeap(newKind, &ArrayObject::class_);
             AutoSetNewObjectMetadata metadata(cx);
             JSObject* obj = cache.newObjectFromHit(cx, entry, heap);
@@ -3349,10 +3344,6 @@ NewArray(ExclusiveContext* cxArg, uint32_t length,
             }
         }
     }
-
-    RootedObject proto(cxArg, protoArg);
-    if (!proto && !GetBuiltinPrototype(cxArg, JSProto_Array, &proto))
-        return nullptr;
 
     RootedObjectGroup group(cxArg, ObjectGroup::defaultNewGroup(cxArg, &ArrayObject::class_,
                                                                 TaggedProto(proto)));
@@ -3389,8 +3380,8 @@ NewArray(ExclusiveContext* cxArg, uint32_t length,
     if (isCachable) {
         NewObjectCache& cache = cxArg->asJSContext()->runtime()->newObjectCache;
         NewObjectCache::EntryIndex entry = -1;
-        cache.lookupGlobal(&ArrayObject::class_, cxArg->global(), allocKind, &entry);
-        cache.fillGlobal(entry, &ArrayObject::class_, cxArg->global(), allocKind, arr);
+        cache.lookupProto(&ArrayObject::class_, proto, allocKind, &entry);
+        cache.fillProto(entry, &ArrayObject::class_, taggedProto, allocKind, arr);
     }
 
     if (maxLength > 0 && !EnsureNewArrayElements(cxArg, arr, std::min(maxLength, length)))
@@ -3490,7 +3481,9 @@ js::NewDenseCopyOnWriteArray(JSContext* cx, HandleArrayObject templateObject, gc
 }
 
 // Return a new boxed or unboxed array with the specified length and allocated
-// capacity (up to maxLength), using the specified group if possible.
+// capacity (up to maxLength), using the specified group if possible. If the
+// specified group cannot be used, ensure that the created array at least has
+// the given [[Prototype]].
 template <uint32_t maxLength>
 static inline JSObject*
 NewArrayTryUseGroup(ExclusiveContext* cx, HandleObjectGroup group, size_t length,
@@ -3504,14 +3497,14 @@ NewArrayTryUseGroup(ExclusiveContext* cx, HandleObjectGroup group, size_t length
     if (group->shouldPreTenure() || group->maybePreliminaryObjects())
         newKind = TenuredObject;
 
+    RootedObject proto(cx, group->proto().toObject());
     if (group->maybeUnboxedLayout()) {
         if (length > UnboxedArrayObject::MaximumCapacity)
-            return NewArray<maxLength>(cx, length, nullptr, newKind);
-
+            return NewArray<maxLength>(cx, length, proto, newKind);
         return UnboxedArrayObject::create(cx, group, length, newKind, maxLength);
     }
 
-    ArrayObject* res = NewArray<maxLength>(cx, length, nullptr, newKind);
+    ArrayObject* res = NewArray<maxLength>(cx, length, proto, newKind);
     if (!res)
         return nullptr;
 
@@ -3590,9 +3583,9 @@ js::NewFullyAllocatedArrayForCallingAllocationSite(JSContext* cx, size_t length,
 }
 
 JSObject*
-js::NewPartlyAllocatedArrayForCallingAllocationSite(JSContext* cx, size_t length)
+js::NewPartlyAllocatedArrayForCallingAllocationSite(JSContext* cx, size_t length, HandleObject proto)
 {
-    RootedObjectGroup group(cx, ObjectGroup::callingAllocationSiteGroup(cx, JSProto_Array));
+    RootedObjectGroup group(cx, ObjectGroup::callingAllocationSiteGroup(cx, JSProto_Array, proto));
     if (!group)
         return nullptr;
     return NewArrayTryUseGroup<ArrayObject::EagerAllocationMaxLength>(cx, group, length);
@@ -3652,9 +3645,10 @@ js::NewCopiedArrayTryUseGroup(ExclusiveContext* cx, HandleObjectGroup group,
 }
 
 JSObject*
-js::NewCopiedArrayForCallingAllocationSite(JSContext* cx, const Value* vp, size_t length)
+js::NewCopiedArrayForCallingAllocationSite(JSContext* cx, const Value* vp, size_t length,
+                                           HandleObject proto /* = nullptr */)
 {
-    RootedObjectGroup group(cx, ObjectGroup::callingAllocationSiteGroup(cx, JSProto_Array));
+    RootedObjectGroup group(cx, ObjectGroup::callingAllocationSiteGroup(cx, JSProto_Array, proto));
     if (!group)
         return nullptr;
     return NewCopiedArrayTryUseGroup(cx, group, vp, length);

@@ -95,10 +95,10 @@ public:
     bool AreBoundsSane(void);
 
     // nsIWidget
-    NS_IMETHOD         Create(nsIWidget        *aParent,
-                              nsNativeWidget   aNativeParent,
-                              const nsIntRect  &aRect,
-                              nsWidgetInitData *aInitData) override;
+    NS_IMETHOD         Create(nsIWidget* aParent,
+                              nsNativeWidget aNativeParent,
+                              const LayoutDeviceIntRect& aRect,
+                              nsWidgetInitData* aInitData) override;
     NS_IMETHOD         Destroy(void) override;
     virtual nsIWidget *GetParent() override;
     virtual float      GetDPI() override;
@@ -138,7 +138,7 @@ public:
     NS_IMETHOD         SetCursor(nsCursor aCursor) override;
     NS_IMETHOD         SetCursor(imgIContainer* aCursor,
                                  uint32_t aHotspotX, uint32_t aHotspotY) override;
-    NS_IMETHOD         Invalidate(const nsIntRect &aRect) override;
+    NS_IMETHOD         Invalidate(const LayoutDeviceIntRect& aRect) override;
     virtual void*      GetNativeData(uint32_t aDataType) override;
     void               SetNativeData(uint32_t aDataType, uintptr_t aVal) override;
     NS_IMETHOD         SetTitle(const nsAString& aTitle) override;
@@ -150,7 +150,7 @@ public:
     NS_IMETHOD         CaptureRollupEvents(nsIRollupListener *aListener,
                                            bool aDoCapture) override;
     NS_IMETHOD         GetAttention(int32_t aCycleCount) override;
-    virtual nsresult   SetWindowClipRegion(const nsTArray<nsIntRect>& aRects,
+    virtual nsresult   SetWindowClipRegion(const nsTArray<LayoutDeviceIntRect>& aRects,
                                            bool aIntersectWithExisting) override;
     virtual bool       HasPendingInputEvent() override;
 
@@ -173,7 +173,7 @@ public:
     // value that can be passed to gdk_window_set_decorations
     gint               ConvertBorderStyles(nsBorderStyle aStyle);
 
-    GdkRectangle DevicePixelsToGdkRectRoundOut(nsIntRect rect);
+    GdkRectangle DevicePixelsToGdkRectRoundOut(LayoutDeviceIntRect aRect);
 
     // event callbacks
 #if (MOZ_WIDGET_GTK == 2)

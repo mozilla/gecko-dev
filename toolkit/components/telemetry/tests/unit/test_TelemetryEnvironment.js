@@ -14,7 +14,6 @@ Cu.import("resource://testing-common/MockRegistrar.jsm", this);
 XPCOMUtils.defineLazyModuleGetter(this, "LightweightThemeManager",
                                   "resource://gre/modules/LightweightThemeManager.jsm");
 
-// Lazy load |ProfileAge| as it is not available on Android.
 XPCOMUtils.defineLazyModuleGetter(this, "ProfileAge",
                                   "resource://gre/modules/ProfileAge.jsm");
 
@@ -148,11 +147,6 @@ function spoofGfxAdapter() {
 }
 
 function spoofProfileReset() {
-  if (gIsAndroid) {
-    // ProfileAge is not available on Android.
-    return true;
-  }
-
   let profileAccessor = new ProfileAge();
 
   return profileAccessor.writeTimes({
@@ -293,12 +287,6 @@ function checkSettingsSection(data) {
 }
 
 function checkProfileSection(data) {
-  if (gIsAndroid) {
-    Assert.ok(!("profile" in data),
-              "There must be no profile section in Environment on Android.");
-    return;
-  }
-
   Assert.ok("profile" in data, "There must be a profile section in Environment.");
   Assert.equal(data.profile.creationDate, truncateToDays(PROFILE_CREATION_DATE_MS));
   Assert.equal(data.profile.resetDate, truncateToDays(PROFILE_RESET_DATE_MS));
@@ -665,6 +653,7 @@ function isRejected(promise) {
 
 add_task(function* asyncSetup() {
   yield spoofProfileReset();
+  TelemetryEnvironment.delayedInit();
 });
 
 add_task(function* test_checkEnvironment() {
@@ -1127,10 +1116,10 @@ add_task(function* test_defaultSearchEngine() {
   for (let engine of Services.search.getEngines()) {
     Services.search.removeEngine(engine);
   }
-  // The search service does not notify "engine-default" when removing a default engine.
+  // The search service does not notify "engine-current" when removing a default engine.
   // Manually force the notification.
   // TODO: remove this when bug 1165341 is resolved.
-  Services.obs.notifyObservers(null, "browser-search-engine-modified", "engine-default");
+  Services.obs.notifyObservers(null, "browser-search-engine-modified", "engine-current");
 
   // Then check that no default engine is reported if none is available.
   data = TelemetryEnvironment.currentEnvironment;

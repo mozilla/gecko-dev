@@ -9,6 +9,7 @@
 #include <stddef.h>                     // for size_t
 #include <stdint.h>                     // for uint32_t, uint64_t
 #include "mozilla/Attributes.h"         // for override
+#include "mozilla/Atomics.h"
 #include "mozilla/RefPtr.h"             // for already_AddRefed
 #include "mozilla/ipc/SharedMemory.h"   // for SharedMemory, etc
 #include "mozilla/layers/AsyncTransactionTracker.h" // for AsyncTransactionTrackerHolder
@@ -140,6 +141,15 @@ public:
    * Can be called from any thread.
    */
   static bool IsCreated();
+  /**
+   * Returns true if the singleton's ShutDown() was called.
+   *
+   * Can be called from any thread.
+   */
+  static bool IsShutDown()
+  {
+    return sIsShutDown;
+  }
 
   /**
    * returns the singleton instance.
@@ -252,6 +262,9 @@ public:
                                 const nsIntRect& aPictureRect) override;
 #endif
 
+  virtual bool DestroyInTransaction(PTextureChild* aTexture, bool synchronously) override;
+  virtual bool DestroyInTransaction(PCompositableChild* aCompositable, bool synchronously) override;
+
   virtual void RemoveTextureFromCompositable(CompositableClient* aCompositable,
                                              TextureClient* aTexture) override;
 
@@ -308,6 +321,8 @@ public:
   virtual void SendPendingAsyncMessges() override;
 
   void MarkShutDown();
+
+  void FallbackDestroyActors();
 protected:
   ImageBridgeChild();
   bool DispatchAllocShmemInternal(size_t aSize,
@@ -316,7 +331,8 @@ protected:
                                   bool aUnsafe);
 
   CompositableTransaction* mTxn;
-  bool mShuttingDown;
+  Atomic<bool> mShuttingDown;
+  static Atomic<bool> sIsShutDown;
 };
 
 } // namespace layers

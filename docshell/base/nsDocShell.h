@@ -272,6 +272,11 @@ public:
 
   mozilla::DocShellOriginAttributes GetOriginAttributes();
 
+  void GetInterceptedDocumentId(nsAString& aId)
+  {
+    aId = mInterceptedDocumentId;
+  }
+
 private:
   // An observed docshell wrapper is created when recording markers is enabled.
   mozilla::UniquePtr<mozilla::ObservedDocShell> mObserved;
@@ -787,6 +792,7 @@ protected:
   nsIntRect mBounds;
   nsString mName;
   nsString mTitle;
+  nsString mCustomUserAgent;
 
   /**
    * Content-Type Hint of the most-recently initiated load. Used for
@@ -1002,6 +1008,9 @@ protected:
   // find it by walking up the docshell hierarchy.)
   uint32_t mOwnOrContainingAppId;
 
+  // userContextId signifying which container we are in
+  uint32_t mUserContextId;
+
   nsString mPaymentRequestId;
 
   nsString GetInheritedPaymentRequestId();
@@ -1009,6 +1018,8 @@ protected:
   // The packageId for a signed packaged iff this docShell is created
   // for a signed package.
   nsString mSignedPkg;
+
+  nsString mInterceptedDocumentId;
 
 private:
   nsCString mForcedCharset;

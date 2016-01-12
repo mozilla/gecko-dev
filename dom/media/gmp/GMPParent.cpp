@@ -73,8 +73,6 @@ GMPParent::GMPParent()
 
 GMPParent::~GMPParent()
 {
-  // Can't Close or Destroy the process here, since destruction is MainThread only
-  MOZ_ASSERT(NS_IsMainThread());
   LOGD("GMPParent dtor");
 
   MOZ_ASSERT(!mProcess);
@@ -584,7 +582,7 @@ void
 GMPParent::GetCrashID(nsString& aResult)
 {
   CrashReporterParent* cr =
-    static_cast<CrashReporterParent*>(LoneManagedOrNull(ManagedPCrashReporterParent()));
+    static_cast<CrashReporterParent*>(LoneManagedOrNullAsserts(ManagedPCrashReporterParent()));
   if (NS_WARN_IF(!cr)) {
     return;
   }
@@ -868,6 +866,12 @@ GMPParent::ReadGMPMetaData()
       }
     }
 
+    // We support the current GMPDecryptor version, and the previous.
+    // We Adapt the previous to the current in the GMPContentChild.
+    if (cap->mAPIName.EqualsLiteral(GMP_API_DECRYPTOR_BACKWARDS_COMPAT)) {
+      cap->mAPIName.AssignLiteral(GMP_API_DECRYPTOR);
+    }
+
     if (cap->mAPIName.EqualsLiteral(GMP_API_DECRYPTOR)) {
       mCanDecrypt = true;
 
@@ -932,7 +936,7 @@ GMPParent::GetVersion() const
   return mVersion;
 }
 
-const uint32_t
+uint32_t
 GMPParent::GetPluginId() const
 {
   return mPluginId;

@@ -277,7 +277,8 @@ speechd_cb(size_t msg_id, size_t client_id, SPDNotificationType state)
 
 NS_INTERFACE_MAP_BEGIN(SpeechDispatcherService)
   NS_INTERFACE_MAP_ENTRY(nsISpeechService)
-  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsISpeechService)
+  NS_INTERFACE_MAP_ENTRY(nsIObserver)
+  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIObserver)
 NS_INTERFACE_MAP_END
 
 NS_IMPL_ADDREF(SpeechDispatcherService)
@@ -286,6 +287,11 @@ NS_IMPL_RELEASE(SpeechDispatcherService)
 SpeechDispatcherService::SpeechDispatcherService()
   : mInitialized(false)
   , mSpeechdClient(nullptr)
+{
+}
+
+void
+SpeechDispatcherService::Init()
 {
   if (!Preferences::GetBool("media.webspeech.synth.enabled") ||
       Preferences::GetBool("media.webspeech.synth.test")) {
@@ -299,7 +305,7 @@ SpeechDispatcherService::SpeechDispatcherService()
                                              getter_AddRefs(mInitThread));
   MOZ_ASSERT(NS_SUCCEEDED(rv));
   rv = mInitThread->Dispatch(
-    NS_NewRunnableMethod(this, &SpeechDispatcherService::Init), NS_DISPATCH_NORMAL);
+    NS_NewRunnableMethod(this, &SpeechDispatcherService::Setup), NS_DISPATCH_NORMAL);
   MOZ_ASSERT(NS_SUCCEEDED(rv));
 }
 
@@ -315,7 +321,7 @@ SpeechDispatcherService::~SpeechDispatcherService()
 }
 
 void
-SpeechDispatcherService::Init()
+SpeechDispatcherService::Setup()
 {
 #define FUNC(name, type, params) { #name, (nsSpeechDispatcherFunc *)&_##name },
   static const nsSpeechDispatcherDynamicFunction kSpeechDispatcherSymbols[] = {
@@ -444,6 +450,17 @@ SpeechDispatcherService::RegisterVoices()
   mInitialized = true;
 }
 
+// nsIObserver
+
+NS_IMETHODIMP
+SpeechDispatcherService::Observe(nsISupports* aSubject, const char* aTopic,
+                                 const char16_t* aData)
+{
+  return NS_OK;
+}
+
+// nsISpeechService
+
 // TODO: Support SSML
 NS_IMETHODIMP
 SpeechDispatcherService::Speak(const nsAString& aText, const nsAString& aUri,
@@ -534,6 +551,7 @@ SpeechDispatcherService::GetInstance(bool create)
 
   if (!sSingleton && create) {
     sSingleton = new SpeechDispatcherService();
+    sSingleton->Init();
   }
 
   return sSingleton;

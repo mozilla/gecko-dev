@@ -28,6 +28,7 @@
 #include "mozilla/gfx/2D.h"          // for DrawTarget
 #include "mozilla/gfx/Point.h"          // for IntSize
 #include "mozilla/gfx/Rect.h"          // for IntSize
+#include "VRManager.h"                  // for VRManager
 #include "mozilla/ipc/Transport.h"      // for Transport
 #include "mozilla/layers/APZCTreeManager.h"  // for APZCTreeManager
 #include "mozilla/layers/APZThreadUtils.h"  // for APZCTreeManager
@@ -79,6 +80,12 @@
 #include "LayerScope.h"
 
 namespace mozilla {
+
+namespace gfx {
+// See VRManagerChild.cpp
+void ReleaseVRManagerParentSingleton();
+} // namespace gfx
+
 namespace layers {
 
 using namespace mozilla::ipc;
@@ -426,6 +433,7 @@ CompositorVsyncScheduler::Composite(TimeStamp aVsyncTimestamp)
   }
 
   DispatchTouchEvents(aVsyncTimestamp);
+  DispatchVREvents(aVsyncTimestamp);
 
   if (mNeedsComposite || mAsapScheduling) {
     mNeedsComposite = 0;
@@ -497,6 +505,15 @@ CompositorVsyncScheduler::DispatchTouchEvents(TimeStamp aVsyncTimestamp)
 #endif
 }
 
+void
+CompositorVsyncScheduler::DispatchVREvents(TimeStamp aVsyncTimestamp)
+{
+  MOZ_ASSERT(CompositorParent::IsInCompositorThread());
+
+  VRManager* vm = VRManager::Get();
+  vm->NotifyVsync(aVsyncTimestamp);
+}
+
 void CompositorParent::StartUp()
 {
   MOZ_ASSERT(NS_IsMainThread(), "Should be on the main Thread!");
@@ -511,6 +528,7 @@ void CompositorParent::ShutDown()
   MOZ_ASSERT(sCompositorThreadHolder, "The compositor thread has already been shut down!");
 
   ReleaseImageBridgeParentSingleton();
+  ReleaseVRManagerParentSingleton();
   MediaSystemResourceService::Shutdown();
 
   sCompositorThreadHolder = nullptr;
@@ -724,6 +742,13 @@ CompositorParent::RecvMakeSnapshot(const SurfaceDescriptor& aInSnapshot,
                                    const gfx::IntRect& aRect)
 {
   RefPtr<DrawTarget> target = GetDrawTargetForDescriptor(aInSnapshot, gfx::BackendType::CAIRO);
+  MOZ_ASSERT(target);
+  if (!target) {
+    // We kill the content process rather than have it continue with an invalid
+    // snapshot, that may be too harsh and we could decide to return some sort
+    // of error to the child process and let it deal with it...
+    return false;
+  }
   ForceComposeToTarget(target, &aRect);
   return true;
 }
@@ -736,6 +761,10 @@ CompositorParent::RecvMakeWidgetSnapshot(const SurfaceDescriptor& aInSnapshot)
   }
 
   RefPtr<DrawTarget> target = GetDrawTargetForDescriptor(aInSnapshot, gfx::BackendType::CAIRO);
+  MOZ_ASSERT(target);
+  if (!target) {
+    return false;
+  }
   mCompositor->GetWidget()->CaptureWidgetOnScreen(target);
   return true;
 }
@@ -1546,10 +1575,6 @@ CompositorParent::RecvNotifyChildCreated(const uint64_t& child)
 void
 CompositorParent::NotifyChildCreated(const uint64_t& aChild)
 {
-  if (mApzcTreeManager) {
-    NS_DispatchToMainThread(NS_NewRunnableMethodWithArg<uint64_t>(
-        mApzcTreeManager, &APZCTreeManager::InitializeForLayersId, aChild));
-  }
   sIndirectLayerTreesLock->AssertCurrentThreadOwns();
   sIndirectLayerTrees[aChild].mParent = this;
   sIndirectLayerTrees[aChild].mLayerManager = mLayerManager;
@@ -1559,9 +1584,6 @@ bool
 CompositorParent::RecvAdoptChild(const uint64_t& child)
 {
   MonitorAutoLock lock(*sIndirectLayerTreesLock);
-  if (mApzcTreeManager) {
-    mApzcTreeManager->AdoptLayersId(child, sIndirectLayerTrees[child].mParent->mApzcTreeManager.get());
-  }
   NotifyChildCreated(child);
   if (sIndirectLayerTrees[child].mLayerTree) {
     sIndirectLayerTrees[child].mLayerTree->mLayerManager = mLayerManager;
@@ -1633,7 +1655,6 @@ ScopedLayerTreeRegistration::ScopedLayerTreeRegistration(APZCTreeManager* aApzct
     : mLayersId(aLayersId)
 {
   EnsureLayerTreeMapReady();
-  aApzctm->InitializeForLayersId(aLayersId);
   MonitorAutoLock lock(*sIndirectLayerTreesLock);
   sIndirectLayerTrees[aLayersId].mRoot = aRoot;
   sIndirectLayerTrees[aLayersId].mController = aController;
@@ -1649,9 +1670,6 @@ ScopedLayerTreeRegistration::~ScopedLayerTreeRegistration()
 CompositorParent::SetControllerForLayerTree(uint64_t aLayersId,
                                             GeckoContentController* aController)
 {
-  if (APZCTreeManager* apzctm = GetAPZCTreeManager(aLayersId)) {
-    apzctm->InitializeForLayersId(aLayersId);
-  }
   // This ref is adopted by UpdateControllerForLayersId().
   aController->AddRef();
   CompositorLoop()->PostTask(FROM_HERE,
@@ -1850,10 +1868,9 @@ void
 CompositorParent::DidComposite(TimeStamp& aCompositeStart,
                                TimeStamp& aCompositeEnd)
 {
-  if (mPendingTransaction) {
-    Unused << SendDidComposite(0, mPendingTransaction, aCompositeStart, aCompositeEnd);
-    mPendingTransaction = 0;
-  }
+  Unused << SendDidComposite(0, mPendingTransaction, aCompositeStart, aCompositeEnd);
+  mPendingTransaction = 0;
+
   if (mLayerManager) {
     nsTArray<ImageCompositeNotification> notifications;
     mLayerManager->ExtractImageCompositeNotifications(&notifications);
@@ -2148,9 +2165,10 @@ CompositorParent::UpdatePluginWindowState(uint64_t aId)
         }
         mPluginsLayerOffset = offset;
         mPluginsLayerVisibleRegion = visibleRegion;
-        Unused <<
-          lts.mParent->SendUpdatePluginConfigurations(offset, visibleRegion,
-                                                      lts.mPluginData);
+        Unused << lts.mParent->SendUpdatePluginConfigurations(
+          LayoutDeviceIntPoint::FromUnknownPoint(offset),
+          LayoutDeviceIntRegion::FromUnknownRegion(visibleRegion),
+          lts.mPluginData);
         lts.mUpdatedPluginDataAvailable = false;
         PLUGINS_LOG("[%" PRIu64 "] updated", aId);
       } else {
@@ -2175,8 +2193,7 @@ CrossProcessCompositorParent::DidComposite(uint64_t aId,
                                            TimeStamp& aCompositeEnd)
 {
   sIndirectLayerTreesLock->AssertCurrentThreadOwns();
-  LayerTransactionParent *layerTree = sIndirectLayerTrees[aId].mLayerTree;
-  if (layerTree && layerTree->GetPendingTransactionId()) {
+  if (LayerTransactionParent *layerTree = sIndirectLayerTrees[aId].mLayerTree) {
     Unused << SendDidComposite(aId, layerTree->GetPendingTransactionId(), aCompositeStart, aCompositeEnd);
     layerTree->SetPendingTransactionId(0);
   }

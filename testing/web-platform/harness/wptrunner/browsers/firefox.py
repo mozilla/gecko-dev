@@ -28,7 +28,8 @@ __wptrunner__ = {"product": "firefox",
                  "browser_kwargs": "browser_kwargs",
                  "executor_kwargs": "executor_kwargs",
                  "env_options": "env_options",
-                 "run_info_extras": "run_info_extras"}
+                 "run_info_extras": "run_info_extras",
+                 "update_properties": "update_properties"}
 
 
 def check_args(**kwargs):
@@ -54,15 +55,13 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
                                            cache_manager, **kwargs)
     executor_kwargs["close_after_done"] = True
     if kwargs["timeout_multiplier"] is None:
-        if kwargs["gecko_e10s"] and test_type == "reftest":
+        if test_type == "reftest":
             if run_info_data["debug"]:
                 executor_kwargs["timeout_multiplier"] = 4
             else:
                 executor_kwargs["timeout_multiplier"] = 2
         elif run_info_data["debug"]:
             executor_kwargs["timeout_multiplier"] = 3
-        elif test_type == "reftest":
-            executor_kwargs["timeout_multiplier"] = 2
     return executor_kwargs
 
 
@@ -73,8 +72,13 @@ def env_options():
             "certificate_domain": "web-platform.test",
             "supports_debugger": True}
 
+
 def run_info_extras(**kwargs):
     return {"e10s": kwargs["gecko_e10s"]}
+
+
+def update_properties():
+    return ["debug", "e10s", "os", "version", "processor", "bits"], {"debug", "e10s"}
 
 class FirefoxBrowser(Browser):
     used_ports = set()

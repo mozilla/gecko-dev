@@ -5,8 +5,11 @@
 #include "ActiveLayerTracker.h"
 
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/dom/KeyframeEffect.h"
 #include "mozilla/gfx/Matrix.h"
+#include "mozilla/EffectSet.h"
 #include "mozilla/PodOperations.h"
+#include "gfx2DGlue.h"
 #include "nsExpirationTracker.h"
 #include "nsContainerFrame.h"
 #include "nsIContent.h"
@@ -449,19 +452,15 @@ ActiveLayerTracker::IsOffsetOrMarginStyleAnimated(nsIFrame* aFrame)
 }
 
 // A helper function for IsScaleSubjectToAnimation which returns true if the
-// given AnimationCollection contains a current effect that animates scale.
+// given EffectSet contains a current effect that animates scale.
 static bool
-ContainsAnimatedScale(AnimationCollection* aCollection, nsIFrame* aFrame)
+ContainsAnimatedScale(EffectSet& aEffects, nsIFrame* aFrame)
 {
-  if (!aCollection) {
-    return false;
-  }
-
-  for (dom::Animation* anim : aCollection->mAnimations) {
-    if (!anim->HasCurrentEffect()) {
+  for (dom::KeyframeEffectReadOnly* effect : aEffects) {
+    if (!effect->IsCurrent()) {
       continue;
     }
-    KeyframeEffectReadOnly* effect = anim->GetEffect();
+
     for (const AnimationProperty& prop : effect->Properties()) {
       if (prop.mProperty != eCSSProperty_transform) {
         continue;
@@ -491,27 +490,10 @@ ActiveLayerTracker::IsScaleSubjectToAnimation(nsIFrame* aFrame)
     return true;
   }
 
-  nsIContent* content = aFrame->GetContent();
-  if (!content || !content->IsElement()) {
-    return false;
-  }
-
-  nsCSSPseudoElements::Type pseudoType =
-    aFrame->StyleContext()->GetPseudoType();
-
-  // Check if any transitions associated with this frame may animate its scale.
-  AnimationCollection* transitions =
-    aFrame->PresContext()->TransitionManager()->GetAnimations(
-      content->AsElement(), pseudoType, false /* don't create */);
-  if (ContainsAnimatedScale(transitions, aFrame)) {
-    return true;
-  }
-
-  // Check if any animations associated with this frame may animate its scale.
-  AnimationCollection* animations =
-    aFrame->PresContext()->AnimationManager()->GetAnimations(
-      content->AsElement(), pseudoType, false /* don't create */);
-  if (ContainsAnimatedScale(animations, aFrame)) {
+  // Check if any animations, transitions, etc. associated with this frame may
+  // animate its scale.
+  EffectSet* effects = EffectSet::GetEffectSet(aFrame);
+  if (effects && ContainsAnimatedScale(*effects, aFrame)) {
     return true;
   }
 

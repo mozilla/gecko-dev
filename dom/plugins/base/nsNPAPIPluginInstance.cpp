@@ -1067,12 +1067,8 @@ nsNPAPIPluginInstance* nsNPAPIPluginInstance::GetFromNPP(NPP npp)
 
 nsresult nsNPAPIPluginInstance::GetDrawingModel(int32_t* aModel)
 {
-#if defined(XP_MACOSX)
   *aModel = (int32_t)mDrawingModel;
   return NS_OK;
-#else
-  return NS_ERROR_FAILURE;
-#endif
 }
 
 nsresult nsNPAPIPluginInstance::IsRemoteDrawingCoreAnimation(bool* aDrawing)
@@ -1211,6 +1207,16 @@ nsNPAPIPluginInstance::GetImageSize(nsIntSize* aSize)
   return !library ? NS_ERROR_FAILURE : library->GetImageSize(&mNPP, aSize);
 }
 
+void
+nsNPAPIPluginInstance::DidComposite()
+{
+  if (RUNNING != mRunning)
+    return;
+
+  AutoPluginLibraryCall library(this);
+  library->DidComposite(&mNPP);
+}
+
 nsresult
 nsNPAPIPluginInstance::NotifyPainted(void)
 {
@@ -1244,7 +1250,7 @@ nsNPAPIPluginInstance::SetBackgroundUnknown()
 
 nsresult
 nsNPAPIPluginInstance::BeginUpdateBackground(nsIntRect* aRect,
-                                             gfxContext** aContext)
+                                             DrawTarget** aDrawTarget)
 {
   if (RUNNING != mRunning)
     return NS_OK;
@@ -1253,12 +1259,11 @@ nsNPAPIPluginInstance::BeginUpdateBackground(nsIntRect* aRect,
   if (!library)
     return NS_ERROR_FAILURE;
 
-  return library->BeginUpdateBackground(&mNPP, *aRect, aContext);
+  return library->BeginUpdateBackground(&mNPP, *aRect, aDrawTarget);
 }
 
 nsresult
-nsNPAPIPluginInstance::EndUpdateBackground(gfxContext* aContext,
-                                           nsIntRect* aRect)
+nsNPAPIPluginInstance::EndUpdateBackground(nsIntRect* aRect)
 {
   if (RUNNING != mRunning)
     return NS_OK;
@@ -1267,7 +1272,7 @@ nsNPAPIPluginInstance::EndUpdateBackground(gfxContext* aContext,
   if (!library)
     return NS_ERROR_FAILURE;
 
-  return library->EndUpdateBackground(&mNPP, aContext, *aRect);
+  return library->EndUpdateBackground(&mNPP, *aRect);
 }
 
 nsresult
@@ -1625,6 +1630,35 @@ nsNPAPIPluginInstance::URLRedirectResponse(void* notifyData, NPBool allow)
   }
 }
 
+NPError
+nsNPAPIPluginInstance::InitAsyncSurface(NPSize *size, NPImageFormat format,
+                                        void *initData, NPAsyncSurface *surface)
+{
+  if (mOwner) {
+    return mOwner->InitAsyncSurface(size, format, initData, surface);
+  }
+
+  return NPERR_GENERIC_ERROR;
+}
+
+NPError
+nsNPAPIPluginInstance::FinalizeAsyncSurface(NPAsyncSurface *surface)
+{
+  if (mOwner) {
+    return mOwner->FinalizeAsyncSurface(surface);
+  }
+
+  return NPERR_GENERIC_ERROR;
+}
+
+void
+nsNPAPIPluginInstance::SetCurrentAsyncSurface(NPAsyncSurface *surface, NPRect *changed)
+{
+  if (mOwner) {
+    mOwner->SetCurrentAsyncSurface(surface, changed);
+  }
+}
+
 class CarbonEventModelFailureEvent : public nsRunnable {
 public:
   nsCOMPtr<nsIContent> mContent;
@@ -1825,7 +1859,7 @@ nsNPAPIPluginInstance::WindowVolumeChanged(float aVolume, bool aMuted)
 }
 
 NS_IMETHODIMP
-nsNPAPIPluginInstance::WindowAudioCaptureChanged()
+nsNPAPIPluginInstance::WindowAudioCaptureChanged(bool aCapture)
 {
   return NS_OK;
 }

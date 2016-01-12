@@ -40,6 +40,7 @@
 #include "GeckoProfiler.h"
 #include "nsPluginTags.h"
 #include "nsUnicharUtils.h"
+#include "mozilla/layers/TextureClientRecycleAllocator.h"
 
 #ifdef XP_WIN
 #include "mozilla/plugins/PluginSurfaceParent.h"
@@ -626,6 +627,25 @@ PluginModuleChromeParent::OnProcessLaunched(const bool aSucceeded)
         }
 #endif
     }
+
+#ifdef MOZ_ENABLE_PROFILER_SPS
+    nsCOMPtr<nsIProfiler> profiler(do_GetService("@mozilla.org/tools/profiler;1"));
+    bool profilerActive = false;
+    DebugOnly<nsresult> rv = profiler->IsActive(&profilerActive);
+    MOZ_ASSERT(NS_SUCCEEDED(rv));
+    if (profilerActive) {
+        nsCOMPtr<nsIProfilerStartParams> currentProfilerParams;
+        rv = profiler->GetStartParams(getter_AddRefs(currentProfilerParams));
+        MOZ_ASSERT(NS_SUCCEEDED(rv));
+
+        nsCOMPtr<nsISupports> gatherer;
+        rv = profiler->GetProfileGatherer(getter_AddRefs(gatherer));
+        MOZ_ASSERT(NS_SUCCEEDED(rv));
+        mGatherer = static_cast<ProfileGatherer*>(gatherer.get());
+
+        StartProfiler(currentProfilerParams);
+    }
+#endif
 }
 
 bool
@@ -1271,6 +1291,8 @@ PluginModuleChromeParent::TerminateChildProcess(MessageLoop* aMsgLoop,
     }
 
     if (reportsReady) {
+        // Important to set this here, it tells the ActorDestroy handler
+        // that we have an existing crash report that needs to be finalized.
         mPluginDumpID = crashReporter->ChildDumpID();
         PLUGIN_LOG_DEBUG(
                 ("generated paired browser/plugin minidumps: %s)",
@@ -1484,7 +1506,7 @@ PluginModuleChromeParent::OnHangUIContinue()
 CrashReporterParent*
 PluginModuleChromeParent::CrashReporter()
 {
-    return static_cast<CrashReporterParent*>(LoneManagedOrNull(ManagedPCrashReporterParent()));
+    return static_cast<CrashReporterParent*>(LoneManagedOrNullAsserts(ManagedPCrashReporterParent()));
 }
 
 #ifdef MOZ_CRASHREPORTER_INJECTOR
@@ -1517,7 +1539,13 @@ PluginModuleChromeParent::ProcessFirstMinidump()
     WriteExtraDataForMinidump(notes);
 
     if (!mPluginDumpID.IsEmpty()) {
+        // mPluginDumpID may be set in TerminateChildProcess, which means the
+        // process hang monitor has already collected a 3-way browser, plugin,
+        // content crash report. If so, update the existing report with our
+        // annotations and finalize it. If not, fall through for standard
+        // plugin crash report handling.
         crashReporter->GenerateChildData(&notes);
+        crashReporter->FinalizeChildData();
         return;
     }
 
@@ -1945,6 +1973,14 @@ PluginModuleParent::GetImageSize(NPP instance,
     return !i ? NS_ERROR_FAILURE : i->GetImageSize(aSize);
 }
 
+void
+PluginModuleParent::DidComposite(NPP aInstance)
+{
+    if (PluginInstanceParent* i = PluginInstanceParent::Cast(aInstance)) {
+        i->DidComposite();
+    }
+}
+
 nsresult
 PluginModuleParent::SetBackgroundUnknown(NPP instance)
 {
@@ -1958,25 +1994,23 @@ PluginModuleParent::SetBackgroundUnknown(NPP instance)
 nsresult
 PluginModuleParent::BeginUpdateBackground(NPP instance,
                                           const nsIntRect& aRect,
-                                          gfxContext** aCtx)
+                                          DrawTarget** aDrawTarget)
 {
     PluginInstanceParent* i = PluginInstanceParent::Cast(instance);
     if (!i)
         return NS_ERROR_FAILURE;
 
-    return i->BeginUpdateBackground(aRect, aCtx);
+    return i->BeginUpdateBackground(aRect, aDrawTarget);
 }
 
 nsresult
-PluginModuleParent::EndUpdateBackground(NPP instance,
-                                        gfxContext* aCtx,
-                                        const nsIntRect& aRect)
+PluginModuleParent::EndUpdateBackground(NPP instance, const nsIntRect& aRect)
 {
     PluginInstanceParent* i = PluginInstanceParent::Cast(instance);
     if (!i)
         return NS_ERROR_FAILURE;
 
-    return i->EndUpdateBackground(aCtx, aRect);
+    return i->EndUpdateBackground(aRect);
 }
 
 void
@@ -3016,6 +3050,15 @@ PluginModuleParent::RecvReturnSitesWithData(nsTArray<nsCString>&& aSites,
     return true;
 }
 
+layers::TextureClientRecycleAllocator*
+PluginModuleParent::EnsureTextureAllocator()
+{
+    if (!mTextureAllocator) {
+        mTextureAllocator = new TextureClientRecycleAllocator(ImageBridgeChild::GetSingleton());
+    }
+    return mTextureAllocator;
+}
+
 #ifdef MOZ_CRASHREPORTER_INJECTOR
 
 // We only add the crash reporter to subprocess which have the filename
@@ -3144,26 +3187,11 @@ PluginProfilerObserver::Observe(nsISupports *aSubject,
 {
     if (!strcmp(aTopic, "profiler-started")) {
         nsCOMPtr<nsIProfilerStartParams> params(do_QueryInterface(aSubject));
-        uint32_t entries;
-        double interval;
-        params->GetEntries(&entries);
-        params->GetInterval(&interval);
-        const nsTArray<nsCString>& features = params->GetFeatures();
-        const nsTArray<nsCString>& threadFilterNames = params->GetThreadFilterNames();
-
-        ProfilerInitParams ipcParams;
-        ipcParams.enabled() = true;
-        ipcParams.entries() = entries;
-        ipcParams.interval() = interval;
-        ipcParams.features() = features;
-        ipcParams.threadFilters() = threadFilterNames;
-
-        Unused << mPmp->SendStartProfiler(ipcParams);
+        mPmp->StartProfiler(params);
     } else if (!strcmp(aTopic, "profiler-stopped")) {
-        Unused << mPmp->SendStopProfiler();
+        mPmp->StopProfiler();
     } else if (!strcmp(aTopic, "profiler-subprocess-gather")) {
-        RefPtr<ProfileGatherer> gatherer = static_cast<ProfileGatherer*>(aSubject);
-        mPmp->GatherAsyncProfile(gatherer);
+        mPmp->GatherAsyncProfile();
     } else if (!strcmp(aTopic, "profiler-subprocess")) {
         nsCOMPtr<nsIProfileSaveEvent> pse = do_QueryInterface(aSubject);
         mPmp->GatheredAsyncProfile(pse);
@@ -3197,9 +3225,44 @@ PluginModuleChromeParent::ShutdownPluginProfiling()
 }
 
 void
-PluginModuleChromeParent::GatherAsyncProfile(ProfileGatherer* aGatherer)
+PluginModuleChromeParent::StartProfiler(nsIProfilerStartParams* aParams)
 {
-    mGatherer = aGatherer;
+    if (NS_WARN_IF(!aParams)) {
+        return;
+    }
+
+    ProfilerInitParams ipcParams;
+
+    ipcParams.enabled() = true;
+    aParams->GetEntries(&ipcParams.entries());
+    aParams->GetInterval(&ipcParams.interval());
+    ipcParams.features() = aParams->GetFeatures();
+    ipcParams.threadFilters() = aParams->GetThreadFilterNames();
+
+    Unused << SendStartProfiler(ipcParams);
+
+    nsCOMPtr<nsIProfiler> profiler(do_GetService("@mozilla.org/tools/profiler;1"));
+    if (NS_WARN_IF(!profiler)) {
+        return;
+    }
+    nsCOMPtr<nsISupports> gatherer;
+    profiler->GetProfileGatherer(getter_AddRefs(gatherer));
+    mGatherer = static_cast<ProfileGatherer*>(gatherer.get());
+}
+
+void
+PluginModuleChromeParent::StopProfiler()
+{
+    mGatherer = nullptr;
+    Unused << SendStopProfiler();
+}
+
+void
+PluginModuleChromeParent::GatherAsyncProfile()
+{
+    if (NS_WARN_IF(!mGatherer)) {
+        return;
+    }
     mGatherer->WillGatherOOPProfile();
     Unused << SendGatherProfile();
 }
@@ -3224,7 +3287,6 @@ PluginModuleChromeParent::RecvProfile(const nsCString& aProfile)
 
     mProfile = aProfile;
     mGatherer->GatheredOOPProfile();
-    mGatherer = nullptr;
 #endif
     return true;
 }

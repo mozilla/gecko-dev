@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/* globals PDFJS, PDFBug, FirefoxCom, Stats, Cache, ProgressBar,
+/* globals PDFJS, PDFBug, FirefoxCom, Stats, ProgressBar,
            DownloadManager, getFileName, getPDFFileNameFromURL,
            PDFHistory, Preferences, SidebarView, ViewHistory, Stats,
            PDFThumbnailViewer, URL, noContextMenuHandler, SecondaryToolbar,
@@ -34,10 +34,12 @@ var SCALE_SELECT_PADDING = 22;
 var PAGE_NUMBER_LOADING_INDICATOR = 'visiblePageIsLoading';
 var DISABLE_AUTO_FETCH_LOADING_BAR_TIMEOUT = 5000;
 
-PDFJS.imageResourcesPath = './images/';
+function configure(PDFJS) {
+  PDFJS.imageResourcesPath = './images/';
   PDFJS.workerSrc = '../build/pdf.worker.js';
   PDFJS.cMapUrl = '../web/cmaps/';
   PDFJS.cMapPacked = true;
+}
 
 var mozL10n = document.mozL10n || document.webL10n;
 
@@ -49,12 +51,6 @@ var UNKNOWN_SCALE = 0;
 var MAX_AUTO_SCALE = 1.25;
 var SCROLLBAR_PADDING = 40;
 var VERTICAL_PADDING = 5;
-
-var NullCharactersRegExp = /\x00/g;
-
-function removeNullCharacters(str) {
-  return str.replace(NullCharactersRegExp, '');
-}
 
 function getFileName(url) {
   var anchor = url.indexOf('#');
@@ -1530,7 +1526,7 @@ var PDFLinkService = (function () {
           return pdfOpenParams;
         }
       }
-      return '';
+      return this.getAnchorUrl('');
     },
 
     /**
@@ -3439,7 +3435,7 @@ var TEXT_LAYER_RENDER_DELAY = 200; // ms
  * @property {PageViewport} defaultViewport - The page viewport.
  * @property {PDFRenderingQueue} renderingQueue - The rendering queue object.
  * @property {IPDFTextLayerFactory} textLayerFactory
- * @property {IPDFAnnotationsLayerFactory} annotationsLayerFactory
+ * @property {IPDFAnnotationLayerFactory} annotationLayerFactory
  */
 
 /**
@@ -3447,8 +3443,6 @@ var TEXT_LAYER_RENDER_DELAY = 200; // ms
  * @implements {IRenderableView}
  */
 var PDFPageView = (function PDFPageViewClosure() {
-  var CustomStyle = PDFJS.CustomStyle;
-
   /**
    * @constructs PDFPageView
    * @param {PDFPageViewOptions} options
@@ -3460,7 +3454,7 @@ var PDFPageView = (function PDFPageViewClosure() {
     var defaultViewport = options.defaultViewport;
     var renderingQueue = options.renderingQueue;
     var textLayerFactory = options.textLayerFactory;
-    var annotationsLayerFactory = options.annotationsLayerFactory;
+    var annotationLayerFactory = options.annotationLayerFactory;
 
     this.id = id;
     this.renderingId = 'page' + id;
@@ -3473,7 +3467,7 @@ var PDFPageView = (function PDFPageViewClosure() {
 
     this.renderingQueue = renderingQueue;
     this.textLayerFactory = textLayerFactory;
-    this.annotationsLayerFactory = annotationsLayerFactory;
+    this.annotationLayerFactory = annotationLayerFactory;
 
     this.renderingState = RenderingStates.INITIAL;
     this.resume = null;
@@ -3622,6 +3616,8 @@ var PDFPageView = (function PDFPageViewClosure() {
     },
 
     cssTransform: function PDFPageView_transform(canvas, redrawAnnotations) {
+      var CustomStyle = PDFJS.CustomStyle;
+
       // Scale canvas, canvas wrapper, and page container.
       var width = this.viewport.width;
       var height = this.viewport.height;
@@ -3686,7 +3682,7 @@ var PDFPageView = (function PDFPageViewClosure() {
       }
 
       if (redrawAnnotations && this.annotationLayer) {
-        this.annotationLayer.setupAnnotations(this.viewport, 'display');
+        this.annotationLayer.render(this.viewport, 'display');
       }
     },
 
@@ -3902,12 +3898,12 @@ var PDFPageView = (function PDFPageViewClosure() {
         }
       );
 
-      if (this.annotationsLayerFactory) {
+      if (this.annotationLayerFactory) {
         if (!this.annotationLayer) {
-          this.annotationLayer = this.annotationsLayerFactory.
-            createAnnotationsLayerBuilder(div, this.pdfPage);
+          this.annotationLayer = this.annotationLayerFactory.
+            createAnnotationLayerBuilder(div, this.pdfPage);
         }
-        this.annotationLayer.setupAnnotations(this.viewport, 'display');
+        this.annotationLayer.render(this.viewport, 'display');
       }
       div.setAttribute('data-loaded', true);
 
@@ -3918,6 +3914,7 @@ var PDFPageView = (function PDFPageViewClosure() {
     },
 
     beforePrint: function PDFPageView_beforePrint() {
+      var CustomStyle = PDFJS.CustomStyle;
       var pdfPage = this.pdfPage;
 
       var viewport = pdfPage.getViewport(1);
@@ -4296,7 +4293,7 @@ DefaultTextLayerFactory.prototype = {
 
 
 /**
- * @typedef {Object} AnnotationsLayerBuilderOptions
+ * @typedef {Object} AnnotationLayerBuilderOptions
  * @property {HTMLDivElement} pageDiv
  * @property {PDFPage} pdfPage
  * @property {IPDFLinkService} linkService
@@ -4305,155 +4302,90 @@ DefaultTextLayerFactory.prototype = {
 /**
  * @class
  */
-var AnnotationsLayerBuilder = (function AnnotationsLayerBuilderClosure() {
-  var CustomStyle = PDFJS.CustomStyle;
-
+var AnnotationLayerBuilder = (function AnnotationLayerBuilderClosure() {
   /**
-   * @param {AnnotationsLayerBuilderOptions} options
-   * @constructs AnnotationsLayerBuilder
+   * @param {AnnotationLayerBuilderOptions} options
+   * @constructs AnnotationLayerBuilder
    */
-  function AnnotationsLayerBuilder(options) {
+  function AnnotationLayerBuilder(options) {
     this.pageDiv = options.pageDiv;
     this.pdfPage = options.pdfPage;
     this.linkService = options.linkService;
 
     this.div = null;
   }
-  AnnotationsLayerBuilder.prototype =
-      /** @lends AnnotationsLayerBuilder.prototype */ {
+
+  AnnotationLayerBuilder.prototype =
+      /** @lends AnnotationLayerBuilder.prototype */ {
 
     /**
      * @param {PageViewport} viewport
      * @param {string} intent (default value is 'display')
      */
-    setupAnnotations:
-        function AnnotationsLayerBuilder_setupAnnotations(viewport, intent) {
-      function bindLink(link, dest) {
-        link.href = linkService.getDestinationHash(dest);
-        link.onclick = function annotationsLayerBuilderLinksOnclick() {
-          if (dest) {
-            linkService.navigateTo(dest);
-          }
-          return false;
-        };
-        if (dest) {
-          link.className = 'internalLink';
-        }
-      }
-
-      function bindNamedAction(link, action) {
-        link.href = linkService.getAnchorUrl('');
-        link.onclick = function annotationsLayerBuilderNamedActionOnClick() {
-          linkService.executeNamedAction(action);
-          return false;
-        };
-        link.className = 'internalLink';
-      }
-
-      var linkService = this.linkService;
-      var pdfPage = this.pdfPage;
+    render: function AnnotationLayerBuilder_render(viewport, intent) {
       var self = this;
-      var getAnnotationsParams = {
+      var parameters = {
         intent: (intent === undefined ? 'display' : intent),
       };
 
-      pdfPage.getAnnotations(getAnnotationsParams).then(
-          function (annotationsData) {
+      this.pdfPage.getAnnotations(parameters).then(function (annotations) {
         viewport = viewport.clone({ dontFlip: true });
-        var transform = viewport.transform;
-        var transformStr = 'matrix(' + transform.join(',') + ')';
-        var data, element, i, ii;
+        parameters = {
+          viewport: viewport,
+          div: self.div,
+          annotations: annotations,
+          page: self.pdfPage,
+          linkService: self.linkService
+        };
 
         if (self.div) {
           // If an annotationLayer already exists, refresh its children's
-          // transformation matrices
-          for (i = 0, ii = annotationsData.length; i < ii; i++) {
-            data = annotationsData[i];
-            element = self.div.querySelector(
-                '[data-annotation-id="' + data.id + '"]');
-            if (element) {
-              CustomStyle.setProp('transform', element, transformStr);
-            }
-          }
-          // See PDFPageView.reset()
-          self.div.removeAttribute('hidden');
+          // transformation matrices.
+          PDFJS.AnnotationLayer.update(parameters);
         } else {
-          for (i = 0, ii = annotationsData.length; i < ii; i++) {
-            data = annotationsData[i];
-            if (!data || !data.hasHtml) {
-              continue;
-            }
+          // Create an annotation layer div and render the annotations
+          // if there is at least one annotation.
+          if (annotations.length === 0) {
+            return;
+          }
 
-            element = PDFJS.AnnotationUtils.getHtmlElement(data,
-              pdfPage.commonObjs);
-            element.setAttribute('data-annotation-id', data.id);
-            if (typeof mozL10n !== 'undefined') {
-              mozL10n.translate(element);
-            }
+          self.div = document.createElement('div');
+          self.div.className = 'annotationLayer';
+          self.pageDiv.appendChild(self.div);
+          parameters.div = self.div;
 
-            var rect = data.rect;
-            var view = pdfPage.view;
-            rect = PDFJS.Util.normalizeRect([
-              rect[0],
-                view[3] - rect[1] + view[1],
-              rect[2],
-                view[3] - rect[3] + view[1]
-            ]);
-            element.style.left = rect[0] + 'px';
-            element.style.top = rect[1] + 'px';
-            element.style.position = 'absolute';
-
-            CustomStyle.setProp('transform', element, transformStr);
-            var transformOriginStr = -rect[0] + 'px ' + -rect[1] + 'px';
-            CustomStyle.setProp('transformOrigin', element, transformOriginStr);
-
-            if (data.subtype === 'Link' && !data.url) {
-              var link = element.getElementsByTagName('a')[0];
-              if (link) {
-                if (data.action) {
-                  bindNamedAction(link, data.action);
-                } else {
-                  bindLink(link, ('dest' in data) ? data.dest : null);
-                }
-              }
-            }
-
-            if (!self.div) {
-              var annotationLayerDiv = document.createElement('div');
-              annotationLayerDiv.className = 'annotationLayer';
-              self.pageDiv.appendChild(annotationLayerDiv);
-              self.div = annotationLayerDiv;
-            }
-
-            self.div.appendChild(element);
+          PDFJS.AnnotationLayer.render(parameters);
+          if (typeof mozL10n !== 'undefined') {
+            mozL10n.translate(self.div);
           }
         }
       });
     },
 
-    hide: function () {
+    hide: function AnnotationLayerBuilder_hide() {
       if (!this.div) {
         return;
       }
       this.div.setAttribute('hidden', 'true');
     }
   };
-  return AnnotationsLayerBuilder;
+
+  return AnnotationLayerBuilder;
 })();
 
 /**
  * @constructor
- * @implements IPDFAnnotationsLayerFactory
+ * @implements IPDFAnnotationLayerFactory
  */
-function DefaultAnnotationsLayerFactory() {}
-DefaultAnnotationsLayerFactory.prototype = {
+function DefaultAnnotationLayerFactory() {}
+DefaultAnnotationLayerFactory.prototype = {
   /**
    * @param {HTMLDivElement} pageDiv
    * @param {PDFPage} pdfPage
-   * @returns {AnnotationsLayerBuilder}
+   * @returns {AnnotationLayerBuilder}
    */
-  createAnnotationsLayerBuilder: function (pageDiv, pdfPage) {
-    return new AnnotationsLayerBuilder({
+  createAnnotationLayerBuilder: function (pageDiv, pdfPage) {
+    return new AnnotationLayerBuilder({
       pageDiv: pageDiv,
       pdfPage: pdfPage,
       linkService: new SimpleLinkService(),
@@ -4721,7 +4653,7 @@ var PDFViewer = (function pdfViewer() {
             defaultViewport: viewport.clone(),
             renderingQueue: this.renderingQueue,
             textLayerFactory: textLayerFactory,
-            annotationsLayerFactory: this
+            annotationLayerFactory: this
           });
           bindOnAfterAndBeforeDraw(pageView);
           this._pages.push(pageView);
@@ -5178,10 +5110,10 @@ var PDFViewer = (function pdfViewer() {
     /**
      * @param {HTMLDivElement} pageDiv
      * @param {PDFPage} pdfPage
-     * @returns {AnnotationsLayerBuilder}
+     * @returns {AnnotationLayerBuilder}
      */
-    createAnnotationsLayerBuilder: function (pageDiv, pdfPage) {
-      return new AnnotationsLayerBuilder({
+    createAnnotationLayerBuilder: function (pageDiv, pdfPage) {
+      return new AnnotationLayerBuilder({
         pageDiv: pageDiv,
         pdfPage: pdfPage,
         linkService: this.linkService
@@ -5890,7 +5822,7 @@ var PDFOutlineView = (function PDFOutlineViewClosure() {
           div.className = 'outlineItem';
           var element = document.createElement('a');
           this._bindLink(element, item);
-          element.textContent = removeNullCharacters(item.title);
+          element.textContent = PDFJS.removeNullCharacters(item.title);
           div.appendChild(element);
 
           if (item.items.length > 0) {
@@ -5994,7 +5926,7 @@ var PDFAttachmentView = (function PDFAttachmentViewClosure() {
         div.className = 'attachmentsItem';
         var button = document.createElement('button');
         this._bindLink(button, item.content, filename);
-        button.textContent = removeNullCharacters(filename);
+        button.textContent = PDFJS.removeNullCharacters(filename);
         div.appendChild(button);
         this.container.appendChild(div);
       }
@@ -6512,6 +6444,9 @@ var PDFViewerApplication = {
     loadingTask.onProgress = function getDocumentProgress(progressData) {
       self.progress(progressData.loaded / progressData.total);
     };
+
+    // Listen for unsupported features to trigger the fallback UI.
+    loadingTask.onUnsupportedFeature = this.fallback.bind(this);
 
     var result = loadingTask.promise.then(
       function getDocumentCallback(pdfDocument) {
@@ -7159,7 +7094,8 @@ var PDFViewerApplication = {
 
 
 function webViewerLoad(evt) {
-  PDFViewerApplication.initialize().then(webViewerInitialized);
+    configure(PDFJS);
+    PDFViewerApplication.initialize().then(webViewerInitialized);
 }
 
 function webViewerInitialized() {
@@ -7247,10 +7183,6 @@ function webViewerInitialized() {
   if (PDFViewerApplication.supportsIntegratedFind) {
     document.getElementById('viewFind').classList.add('hidden');
   }
-
-  // Listen for unsupported features to trigger the fallback UI.
-  PDFJS.UnsupportedManager.listen(
-    PDFViewerApplication.fallback.bind(PDFViewerApplication));
 
   // Suppress context menus for some controls
   document.getElementById('scaleSelect').oncontextmenu = noContextMenuHandler;

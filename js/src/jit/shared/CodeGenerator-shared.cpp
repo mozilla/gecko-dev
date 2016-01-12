@@ -458,6 +458,7 @@ CodeGeneratorShared::encodeAllocation(LSnapshot* snapshot, MDefinition* mir,
         break;
       }
       case MIRType_Float32:
+      case MIRType_Bool32x4:
       case MIRType_Int32x4:
       case MIRType_Float32x4:
       {
@@ -1466,7 +1467,7 @@ CodeGeneratorShared::visitOutOfLineTruncateSlow(OutOfLineTruncateSlow* ool)
     masm.setupUnalignedABICall(dest);
     masm.passABIArg(src, MoveOp::DOUBLE);
     if (gen->compilingAsmJS())
-        masm.callWithABI(AsmJSImm_ToInt32);
+        masm.callWithABI(wasm::SymbolicAddress::ToInt32);
     else
         masm.callWithABI(BitwiseCast<void*, int32_t(*)(double)>(JS::ToInt32));
     masm.storeCallResult(dest);
@@ -1520,7 +1521,7 @@ CodeGeneratorShared::emitAsmJSCall(LAsmJSCall* ins)
         masm.call(mir->desc(), ToRegister(ins->getOperand(mir->dynamicCalleeOperandIndex())));
         break;
       case MAsmJSCall::Callee::Builtin:
-        masm.call(AsmJSImmPtr(callee.builtin()));
+        masm.call(callee.builtin());
         break;
     }
 
@@ -1558,12 +1559,12 @@ CodeGeneratorShared::labelForBackedgeWithImplicitCheck(MBasicBlock* mir)
         for (LInstructionIterator iter = mir->lir()->begin(); iter != mir->lir()->end(); iter++) {
             if (iter->isMoveGroup()) {
                 // Continue searching for an interrupt check.
-            } else if (iter->isInterruptCheckImplicit()) {
-                return iter->toInterruptCheckImplicit()->oolEntry();
             } else {
                 // The interrupt check should be the first instruction in the
-                // loop header other than the initial label and move groups.
+                // loop header other than move groups.
                 MOZ_ASSERT(iter->isInterruptCheck());
+                if (iter->toInterruptCheck()->implicit())
+                    return iter->toInterruptCheck()->oolEntry();
                 return nullptr;
             }
         }
@@ -1617,21 +1618,24 @@ CodeGeneratorShared::jumpToBlock(MBasicBlock* mir, Assembler::Condition cond)
 }
 #endif
 
-size_t
-CodeGeneratorShared::addCacheLocations(const CacheLocationList& locs, size_t* numLocs)
+MOZ_WARN_UNUSED_RESULT bool
+CodeGeneratorShared::addCacheLocations(const CacheLocationList& locs, size_t* numLocs,
+                                       size_t* curIndex)
 {
     size_t firstIndex = runtimeData_.length();
     size_t numLocations = 0;
     for (CacheLocationList::iterator iter = locs.begin(); iter != locs.end(); iter++) {
         // allocateData() ensures that sizeof(CacheLocation) is word-aligned.
         // If this changes, we will need to pad to ensure alignment.
-        size_t curIndex = allocateData(sizeof(CacheLocation));
-        new (&runtimeData_[curIndex]) CacheLocation(iter->pc, iter->script);
+        if (!allocateData(sizeof(CacheLocation), curIndex))
+            return false;
+        new (&runtimeData_[*curIndex]) CacheLocation(iter->pc, iter->script);
         numLocations++;
     }
     MOZ_ASSERT(numLocations != 0);
     *numLocs = numLocations;
-    return firstIndex;
+    *curIndex = firstIndex;
+    return true;
 }
 
 ReciprocalMulConstants

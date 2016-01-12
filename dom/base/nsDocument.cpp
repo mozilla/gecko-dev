@@ -10,10 +10,12 @@
 
 #include "nsDocument.h"
 
+#include "mozilla/AnimationComparator.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/BinarySearch.h"
 #include "mozilla/DebugOnly.h"
+#include "mozilla/EffectSet.h"
 #include "mozilla/IntegerRange.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Likely.h"
@@ -240,6 +242,7 @@
 #include "mozilla/dom/BoxObject.h"
 #include "gfxVR.h"
 #include "gfxPrefs.h"
+#include "nsISupportsPrimitives.h"
 
 #include "mozilla/DocLoadingTimelineMarker.h"
 
@@ -374,19 +377,11 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(Registry)
       cb.NoteXPCOMChild(callbacks->mDetachedCallback.Value());
     }
   }
-  for (auto iter = tmp->mCandidatesMap.Iter(); !iter.Done(); iter.Next()) {
-    nsTArray<RefPtr<Element>>* elems = iter.UserData();
-    for (size_t i = 0; i < elems->Length(); ++i) {
-      NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mCandidatesMap->Element");
-      cb.NoteXPCOMChild(elems->ElementAt(i));
-    }
-  }
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(Registry)
   tmp->mCustomDefinitions.Clear();
-  tmp->mCandidatesMap.Clear();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(Registry)
@@ -749,8 +744,7 @@ nsDOMStyleSheetList::NodeWillBeDestroyed(const nsINode *aNode)
 }
 
 void
-nsDOMStyleSheetList::StyleSheetAdded(nsIDocument *aDocument,
-                                     CSSStyleSheet* aStyleSheet,
+nsDOMStyleSheetList::StyleSheetAdded(CSSStyleSheet* aStyleSheet,
                                      bool aDocumentSheet)
 {
   if (aDocumentSheet && -1 != mLength) {
@@ -759,8 +753,7 @@ nsDOMStyleSheetList::StyleSheetAdded(nsIDocument *aDocument,
 }
 
 void
-nsDOMStyleSheetList::StyleSheetRemoved(nsIDocument *aDocument,
-                                       CSSStyleSheet* aStyleSheet,
+nsDOMStyleSheetList::StyleSheetRemoved(CSSStyleSheet* aStyleSheet,
                                        bool aDocumentSheet)
 {
   if (aDocumentSheet && -1 != mLength) {
@@ -1442,6 +1435,7 @@ nsIDocument::nsIDocument()
     mPostedFlushUserFontSet(false),
     mPartID(0),
     mDidFireDOMContentLoaded(true),
+    mHasScrollLinkedEffect(false),
     mUserHasInteracted(false)
 {
   SetInDocument();
@@ -1562,6 +1556,8 @@ nsDocument::~nsDocument()
         mixedContentLevel = MIXED_DISPLAY_CONTENT;
       }
       Accumulate(Telemetry::MIXED_CONTENT_PAGE_LOAD, mixedContentLevel);
+
+      Accumulate(Telemetry::SCROLL_LINKED_EFFECT_FOUND, mHasScrollLinkedEffect);
     }
   }
 
@@ -1644,6 +1640,11 @@ nsDocument::~nsDocument()
   mImageTracker.Clear();
 
   mPlugins.Clear();
+
+  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+  if (os) {
+    os->RemoveObserver(this, "service-worker-get-client");
+  }
 }
 
 NS_INTERFACE_TABLE_HEAD(nsDocument)
@@ -2045,6 +2046,11 @@ nsDocument::Init()
 
   mozilla::HoldJSObjects(this);
 
+  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+  if (os) {
+    os->AddObserver(this, "service-worker-get-client", /* ownsWeak */ true);
+  }
+
   return NS_OK;
 }
 
@@ -2111,7 +2117,15 @@ nsDocument::Reset(nsIChannel* aChannel, nsILoadGroup* aLoadGroup)
   // Note that, since mTiming does not change during a reset, the
   // navigationStart time remains unchanged and therefore any future new
   // timeline will have the same global clock time as the old one.
-  mDocumentTimeline = nullptr;
+  if (mDocumentTimeline) {
+    nsRefreshDriver* rd = mPresShell && mPresShell->GetPresContext() ?
+                          mPresShell->GetPresContext()->RefreshDriver() :
+                          nullptr;
+    if (rd) {
+      mDocumentTimeline->NotifyRefreshDriverDestroying(rd);
+    }
+    mDocumentTimeline = nullptr;
+  }
 
   nsCOMPtr<nsIPropertyBag2> bag = do_QueryInterface(aChannel);
   if (bag) {
@@ -2675,6 +2689,16 @@ nsDocument::InitCSP(nsIChannel* aChannel)
   nsAutoCString tCspHeaderValue, tCspROHeaderValue;
 
   nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aChannel);
+  if (!httpChannel) {
+    // check baseChannel for CSP when loading a multipart channel
+    nsCOMPtr<nsIMultiPartChannel> multipart = do_QueryInterface(aChannel);
+    if (multipart) {
+      nsCOMPtr<nsIChannel> baseChannel;
+      multipart->GetBaseChannel(getter_AddRefs(baseChannel));
+      httpChannel = do_QueryInterface(baseChannel);
+    }
+  }
+
   if (httpChannel) {
     httpChannel->GetResponseHeader(
         NS_LITERAL_CSTRING("content-security-policy"),
@@ -3110,6 +3134,32 @@ nsDocument::Timeline()
   }
 
   return mDocumentTimeline;
+}
+
+void
+nsDocument::GetAnimations(nsTArray<RefPtr<Animation>>& aAnimations)
+{
+  FlushPendingNotifications(Flush_Style);
+
+  // Bug 1174575: Until we implement a suitable PseudoElement interface we
+  // don't have anything to return for the |target| attribute of
+  // KeyframeEffect(ReadOnly) objects that refer to pseudo-elements.
+  // Rather than return some half-baked version of these objects (e.g.
+  // we a null effect attribute) we simply don't provide access to animations
+  // whose effect refers to a pseudo-element until we can support them
+  // properly.
+  for (nsIContent* node = nsINode::GetFirstChild();
+       node;
+       node = node->GetNextNode(this)) {
+    if (!node->IsElement()) {
+      continue;
+    }
+
+    node->AsElement()->GetAnimationsUnsorted(aAnimations);
+  }
+
+  // Sort animations by priority
+  aAnimations.Sort(AnimationPtrComparator<RefPtr<Animation>>());
 }
 
 /* Return true if the document is in the focused top-level window, and is an
@@ -3642,14 +3692,12 @@ nsDocument::CreateShell(nsPresContext* aContext, nsViewManager* aViewManager,
   // Don't add anything here.  Add it to |doCreateShell| instead.
   // This exists so that subclasses can pass other values for the 4th
   // parameter some of the time.
-  return doCreateShell(aContext, aViewManager, aStyleSet,
-                       eCompatibility_FullStandards);
+  return doCreateShell(aContext, aViewManager, aStyleSet);
 }
 
 already_AddRefed<nsIPresShell>
 nsDocument::doCreateShell(nsPresContext* aContext,
-                          nsViewManager* aViewManager, nsStyleSet* aStyleSet,
-                          nsCompatibility aCompatMode)
+                          nsViewManager* aViewManager, nsStyleSet* aStyleSet)
 {
   NS_ASSERTION(!mPresShell, "We have a presshell already!");
 
@@ -3658,7 +3706,7 @@ nsDocument::doCreateShell(nsPresContext* aContext,
   FillStyleSet(aStyleSet);
 
   RefPtr<PresShell> shell = new PresShell;
-  shell->Init(this, aContext, aViewManager, aStyleSet, aCompatMode);
+  shell->Init(this, aContext, aViewManager, aStyleSet);
 
   // Note: we don't hold a ref to the shell (it holds a ref to us)
   mPresShell = shell;
@@ -3707,8 +3755,8 @@ nsIDocument::ShouldThrottleFrameRequests()
     return false;
   }
 
-  if (!mIsShowing) {
-    // We're not showing (probably in a background tab or the bf cache).
+  if (Hidden()) {
+    // We're not visible (probably in a background tab or the bf cache).
     return true;
   }
 
@@ -4051,7 +4099,7 @@ nsDocument::AddStyleSheetToStyleSets(CSSStyleSheet* aSheet)
 void
 nsDocument::NotifyStyleSheetAdded(CSSStyleSheet* aSheet, bool aDocumentSheet)
 {
-  NS_DOCUMENT_NOTIFY_OBSERVERS(StyleSheetAdded, (this, aSheet, aDocumentSheet));
+  NS_DOCUMENT_NOTIFY_OBSERVERS(StyleSheetAdded, (aSheet, aDocumentSheet));
 
   if (StyleSheetChangeEventsEnabled()) {
     DO_STYLESHEET_NOTIFICATION(StyleSheetChangeEvent,
@@ -4064,7 +4112,7 @@ nsDocument::NotifyStyleSheetAdded(CSSStyleSheet* aSheet, bool aDocumentSheet)
 void
 nsDocument::NotifyStyleSheetRemoved(CSSStyleSheet* aSheet, bool aDocumentSheet)
 {
-  NS_DOCUMENT_NOTIFY_OBSERVERS(StyleSheetRemoved, (this, aSheet, aDocumentSheet));
+  NS_DOCUMENT_NOTIFY_OBSERVERS(StyleSheetRemoved, (aSheet, aDocumentSheet));
 
   if (StyleSheetChangeEventsEnabled()) {
     DO_STYLESHEET_NOTIFICATION(StyleSheetChangeEvent,
@@ -4192,8 +4240,7 @@ nsDocument::SetStyleSheetApplicableState(CSSStyleSheet* aSheet,
   // that are children of sheets in our style set, as well as some
   // sheets for nsHTMLEditor.
 
-  NS_DOCUMENT_NOTIFY_OBSERVERS(StyleSheetApplicableStateChanged,
-                               (this, aSheet, aApplicable));
+  NS_DOCUMENT_NOTIFY_OBSERVERS(StyleSheetApplicableStateChanged, (aSheet));
 
   if (StyleSheetChangeEventsEnabled()) {
     DO_STYLESHEET_NOTIFICATION(StyleSheetApplicableStateChangeEvent,
@@ -4619,7 +4666,10 @@ nsDocument::SetScriptGlobalObject(nsIScriptGlobalObject *aScriptGlobalObject)
 
     nsCOMPtr<nsIServiceWorkerManager> swm = mozilla::services::GetServiceWorkerManager();
     if (swm) {
-      swm->MaybeStartControlling(this);
+      nsAutoString documentId;
+      static_cast<nsDocShell*>(docShell.get())->GetInterceptedDocumentId(documentId);
+
+      swm->MaybeStartControlling(this, documentId);
       mMaybeServiceWorkerControlled = true;
     }
   }
@@ -5044,6 +5094,14 @@ nsDocument::DispatchContentLoadedEvents()
                                         true, true);
   }
 
+  if (mMaybeServiceWorkerControlled) {
+    using mozilla::dom::workers::ServiceWorkerManager;
+    RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
+    if (swm) {
+      swm->MaybeCheckNavigationUpdate(this);
+    }
+  }
+
   UnblockOnload(true);
 }
 
@@ -5105,9 +5163,7 @@ void
 nsDocument::StyleRuleChanged(CSSStyleSheet* aSheet,
                              css::Rule* aStyleRule)
 {
-  NS_DOCUMENT_NOTIFY_OBSERVERS(StyleRuleChanged,
-                               (this, aSheet,
-                                aStyleRule));
+  NS_DOCUMENT_NOTIFY_OBSERVERS(StyleRuleChanged, (aSheet));
 
   if (StyleSheetChangeEventsEnabled()) {
     DO_STYLESHEET_NOTIFICATION(StyleRuleChangeEvent,
@@ -5121,8 +5177,7 @@ void
 nsDocument::StyleRuleAdded(CSSStyleSheet* aSheet,
                            css::Rule* aStyleRule)
 {
-  NS_DOCUMENT_NOTIFY_OBSERVERS(StyleRuleAdded,
-                               (this, aSheet, aStyleRule));
+  NS_DOCUMENT_NOTIFY_OBSERVERS(StyleRuleAdded, (aSheet));
 
   if (StyleSheetChangeEventsEnabled()) {
     DO_STYLESHEET_NOTIFICATION(StyleRuleChangeEvent,
@@ -5137,8 +5192,7 @@ void
 nsDocument::StyleRuleRemoved(CSSStyleSheet* aSheet,
                              css::Rule* aStyleRule)
 {
-  NS_DOCUMENT_NOTIFY_OBSERVERS(StyleRuleRemoved,
-                               (this, aSheet, aStyleRule));
+  NS_DOCUMENT_NOTIFY_OBSERVERS(StyleRuleRemoved, (aSheet));
 
   if (StyleSheetChangeEventsEnabled()) {
     DO_STYLESHEET_NOTIFICATION(StyleRuleChangeEvent,
@@ -5630,7 +5684,7 @@ nsIDocument::CreateAttribute(const nsAString& aName, ErrorResult& rv)
   }
 
   RefPtr<Attr> attribute = new Attr(nullptr, nodeInfo.forget(),
-                                      EmptyString(), false);
+                                    EmptyString());
   return attribute.forget();
 }
 
@@ -5663,7 +5717,7 @@ nsIDocument::CreateAttributeNS(const nsAString& aNamespaceURI,
   }
 
   RefPtr<Attr> attribute = new Attr(nullptr, nodeInfo.forget(),
-                                      EmptyString(), true);
+                                    EmptyString());
   return attribute.forget();
 }
 
@@ -5768,16 +5822,16 @@ nsDocument::RegisterUnresolvedElement(Element* aElement, nsIAtom* aTypeName)
     return NS_OK;
   }
 
-  nsTArray<RefPtr<Element>>* unresolved;
+  nsTArray<nsWeakPtr>* unresolved;
   mRegistry->mCandidatesMap.Get(&key, &unresolved);
   if (!unresolved) {
-    unresolved = new nsTArray<RefPtr<Element>>();
+    unresolved = new nsTArray<nsWeakPtr>();
     // Ownership of unresolved is taken by mCandidatesMap.
     mRegistry->mCandidatesMap.Put(&key, unresolved);
   }
 
-  RefPtr<Element>* elem = unresolved->AppendElement();
-  *elem = aElement;
+  nsWeakPtr* elem = unresolved->AppendElement();
+  *elem = do_GetWeakReference(aElement);
   aElement->AddStates(NS_EVENT_STATE_UNRESOLVED);
 
   return NS_OK;
@@ -6161,11 +6215,14 @@ nsDocument::RegisterElement(JSContext* aCx, const nsAString& aType,
   definitions.Put(&key, definition);
 
   // Do element upgrade.
-  nsAutoPtr<nsTArray<RefPtr<Element>>> candidates;
+  nsAutoPtr<nsTArray<nsWeakPtr>> candidates;
   mRegistry->mCandidatesMap.RemoveAndForget(&key, candidates);
   if (candidates) {
     for (size_t i = 0; i < candidates->Length(); ++i) {
-      Element *elem = candidates->ElementAt(i);
+      nsCOMPtr<Element> elem = do_QueryReferent(candidates->ElementAt(i));
+      if (!elem) {
+        continue;
+      }
 
       elem->RemoveStates(NS_EVENT_STATE_UNRESOLVED);
 
@@ -7733,7 +7790,7 @@ nsDocument::GetViewportInfo(const ScreenIntSize& aDisplaySize)
   // pixel an integer, and we want the adjusted value.
   float fullZoom = context ? context->DeviceContext()->GetFullZoom() : 1.0;
   fullZoom = (fullZoom == 0.0) ? 1.0 : fullZoom;
-  CSSToLayoutDeviceScale layoutDeviceScale = context->CSSToDevPixelScale();
+  CSSToLayoutDeviceScale layoutDeviceScale = context ? context->CSSToDevPixelScale() : CSSToLayoutDeviceScale(1);
 
   CSSToScreenScale defaultScale = layoutDeviceScale
                                 * LayoutDeviceToScreenScale(1.0);
@@ -8719,6 +8776,13 @@ nsDocument::CanSavePresentation(nsIRequest *aNewRequest)
       }
     }
   }
+
+  #ifdef MOZ_WEBSPEECH
+  nsGlobalWindow* globalWindow = static_cast<nsGlobalWindow*>(win);
+  if (globalWindow->HasActiveSpeechSynthesis()) {
+    return false;
+  }
+  #endif
 
   return true;
 }
@@ -11404,10 +11468,10 @@ nsresult nsDocument::RemoteFrameFullscreenReverted()
 }
 
 static void
-ReleaseHMDInfoRef(void *, nsIAtom*, void *aPropertyValue, void *)
+ReleaseVRDeviceProxyRef(void *, nsIAtom*, void *aPropertyValue, void *)
 {
   if (aPropertyValue) {
-    static_cast<gfx::VRHMDInfo*>(aPropertyValue)->Release();
+    static_cast<gfx::VRDeviceProxy*>(aPropertyValue)->Release();
   }
 }
 
@@ -11726,9 +11790,9 @@ nsDocument::ApplyFullscreen(const FullscreenRequest& aRequest)
 
   // Process options -- in this case, just HMD
   if (aRequest.mVRHMDDevice) {
-    RefPtr<gfx::VRHMDInfo> hmdRef = aRequest.mVRHMDDevice;
+    RefPtr<gfx::VRDeviceProxy> hmdRef = aRequest.mVRHMDDevice;
     elem->SetProperty(nsGkAtoms::vr_state, hmdRef.forget().take(),
-                      ReleaseHMDInfoRef, true);
+                      ReleaseVRDeviceProxyRef, true);
   }
 
   // Set the full-screen element. This sets the full-screen style on the
@@ -11983,7 +12047,7 @@ public:
     mUserInputOrChromeCaller(aUserInputOrChromeCaller)
   {
     nsCOMPtr<nsIDocument> doc = do_QueryReferent(mDocument);
-    if (doc) {
+    if (doc && doc->GetInnerWindow()) {
       mRequester = new nsContentPermissionRequester(doc->GetInnerWindow());
     }
   }
@@ -12201,6 +12265,16 @@ nsDocument::Observe(nsISupports *aSubject,
         !IsUnstyledDocument()) {
       // We don't want to style the chrome window, only app ones.
       OnAppThemeChanged();
+    }
+  } else if (strcmp("service-worker-get-client", aTopic) == 0) {
+    nsAutoString clientId;
+    GetOrCreateId(clientId);
+    if (!clientId.IsEmpty() && clientId.Equals(aData)) {
+      nsCOMPtr<nsISupportsInterfacePointer> ifptr = do_QueryInterface(aSubject);
+      if (ifptr) {
+        ifptr->SetData(static_cast<nsIDocument*>(this));
+        ifptr->SetDataIID(&NS_GET_IID(nsIDocument));
+      }
     }
   }
   return NS_OK;
@@ -13053,33 +13127,45 @@ nsIDocument::CreateHTMLElement(nsIAtom* aTag)
   return element.forget();
 }
 
+/* static */
 nsresult
-nsIDocument::GetId(nsAString& aId)
+nsIDocument::GenerateDocumentId(nsAString& aId)
+{
+  nsID id;
+  nsresult rv = nsContentUtils::GenerateUUIDInPlace(id);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  // Build a string in {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} format
+  char buffer[NSID_LENGTH];
+  id.ToProvidedString(buffer);
+  NS_ConvertASCIItoUTF16 uuid(buffer);
+
+  // Remove {} and the null terminator
+  aId.Assign(Substring(uuid, 1, NSID_LENGTH - 3));
+  return NS_OK;
+}
+
+nsresult
+nsIDocument::GetOrCreateId(nsAString& aId)
 {
   if (mId.IsEmpty()) {
-    nsresult rv;
-    nsCOMPtr<nsIUUIDGenerator> uuidgen = do_GetService("@mozilla.org/uuid-generator;1", &rv);
+    nsresult rv = GenerateDocumentId(mId);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
-
-    nsID id;
-    rv = uuidgen->GenerateUUIDInPlace(&id);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
-
-    // Build a string in {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} format
-    char buffer[NSID_LENGTH];
-    id.ToProvidedString(buffer);
-    NS_ConvertASCIItoUTF16 uuid(buffer);
-
-    // Remove {} and the null terminator
-    mId.Assign(Substring(uuid, 1, NSID_LENGTH - 3));
   }
 
   aId = mId;
   return NS_OK;
+}
+
+void
+nsIDocument::SetId(const nsAString& aId)
+{
+  MOZ_ASSERT(mId.IsEmpty(), "Cannot set the document ID after we have one");
+  mId = aId;
 }
 
 bool
@@ -13236,4 +13322,18 @@ nsIDocument::Fonts()
     GetUserFontSet();  // this will cause the user font set to be created/updated
   }
   return mFontFaceSet;
+}
+
+void
+nsIDocument::ReportHasScrollLinkedEffect()
+{
+  if (mHasScrollLinkedEffect) {
+    // We already did this once for this document, don't do it again.
+    return;
+  }
+  mHasScrollLinkedEffect = true;
+  nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
+                                  NS_LITERAL_CSTRING("Async Pan/Zoom"),
+                                  this, nsContentUtils::eLAYOUT_PROPERTIES,
+                                  "ScrollLinkedEffectFound");
 }

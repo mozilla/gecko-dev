@@ -246,6 +246,27 @@ describe("loop.roomViews", function() {
           }));
       });
 
+    it("should dispatch a FacebookShareRoomUrl action when the facebook button is clicked",
+      function() {
+        var url = "http://invalid";
+        view = mountTestComponent({
+          roomData: {
+            roomUrl: url
+          }
+        });
+
+        var facebookBtn = view.getDOMNode().querySelector(".btn-facebook");
+
+        React.addons.TestUtils.Simulate.click(facebookBtn);
+
+        sinon.assert.calledOnce(dispatcher.dispatch);
+        sinon.assert.calledWith(dispatcher.dispatch,
+          new sharedActions.FacebookShareRoomUrl({
+            from: "conversation",
+            roomUrl: url
+          }));
+    });
+
     describe("Copy Button", function() {
       beforeEach(function() {
         view = mountTestComponent();
@@ -400,10 +421,8 @@ describe("loop.roomViews", function() {
       expect(muteBtn.classList.contains("muted")).eql(true);
     });
 
-    it("should dispatch a `StartScreenShare` action when sharing is not active and the screen share button is pressed", function() {
+    it("should dispatch a `SetMute` action when the mute button is pressed", function() {
       view = mountTestComponent();
-
-      view.setState({ screenSharingState: SCREEN_SHARE_STATES.INACTIVE });
 
       var muteBtn = view.getDOMNode().querySelector(".btn-mute-video");
 
@@ -437,6 +456,15 @@ describe("loop.roomViews", function() {
 
           expectActionDispatched(component);
         });
+
+      it("should dispatch a `StartBrowserShare` action when the SESSION_CONNECTED state is entered", function() {
+        activeRoomStore.setStoreState({ roomState: ROOM_STATES.READY });
+        var component = mountTestComponent();
+
+        activeRoomStore.setStoreState({ roomState: ROOM_STATES.SESSION_CONNECTED });
+
+        expectActionDispatched("startBrowserShare");
+      });
     });
 
     describe("#render", function() {

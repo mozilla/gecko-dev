@@ -11,6 +11,7 @@ DIST = dist
 else
 DIST = $(DEPTH)/dist
 endif
+ABS_DIST = $(topobjdir)/dist
 
 # We do magic with OBJ_SUFFIX in config.mk, the following ensures we don't
 # manually use it before config.mk inclusion
@@ -40,8 +41,6 @@ $(error MSYS-style srcdir are not supported for Windows builds.)
 endif
 endif
 endif # WINNT
-
-include_deps = $(eval $(if $(2),,-)include $(1))
 
 ifndef INCLUDED_AUTOCONF_MK
 default::

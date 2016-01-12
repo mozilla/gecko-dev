@@ -45,6 +45,7 @@
 #include "mozilla/MacroForEach.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/dom/ScriptSettings.h"
+#include "mozilla/UniquePtrExtensions.h"
 
 using namespace mozilla;
 using namespace mozilla::scache;
@@ -542,9 +543,12 @@ mozJSComponentLoader::PrepareObjectForLocation(JSContext* aCx,
         NS_ENSURE_SUCCESS(rv, nullptr);
 
         CompartmentOptions options;
-        options.setZone(SystemZone)
-               .setVersion(JSVERSION_LATEST)
+
+        options.creationOptions()
+               .setZone(SystemZone)
                .setAddonId(aReuseLoaderGlobal ? nullptr : MapURIToAddonID(aURI));
+
+        options.behaviors().setVersion(JSVERSION_LATEST);
 
         // Defer firing OnNewGlobalObject until after the __URI__ property has
         // been defined so the JS debugger can tell what module the global is
@@ -851,19 +855,19 @@ mozJSComponentLoader::ObjectForLocation(ComponentLoaderInfo& aInfo,
             uint32_t len = (uint32_t)len64;
 
             /* malloc an internal buf the size of the file */
-            nsAutoArrayPtr<char> buf(new char[len + 1]);
+            auto buf = MakeUniqueFallible<char[]>(len + 1);
             if (!buf)
                 return NS_ERROR_OUT_OF_MEMORY;
 
             /* read the file in one swoop */
-            rv = scriptStream->Read(buf, len, &bytesRead);
+            rv = scriptStream->Read(buf.get(), len, &bytesRead);
             if (bytesRead != len)
                 return NS_BASE_STREAM_OSERROR;
 
             buf[len] = '\0';
 
             if (!mReuseLoaderGlobal) {
-                Compile(cx, options, buf, bytesRead, &script);
+                Compile(cx, options, buf.get(), bytesRead, &script);
             } else {
                 // Note: exceptions will get handled further down;
                 // don't early return for them here.
@@ -871,7 +875,7 @@ mozJSComponentLoader::ObjectForLocation(ComponentLoaderInfo& aInfo,
                 if (scopeChain.append(obj)) {
                     CompileFunction(cx, scopeChain,
                                     options, nullptr, 0, nullptr,
-                                    buf, bytesRead, &function);
+                                    buf.get(), bytesRead, &function);
                 }
             }
         }

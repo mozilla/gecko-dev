@@ -1672,7 +1672,7 @@ skip-if(B2G||Mulet) == 641770-1.html 641770-1-ref.html # Initial mulet triage: p
 == 641856-1.html 641856-1-ref.html
 == 645491-1.html 645491-1-ref.html
 == 645768-1.html 645768-1-ref.html
-fails-if(layersGPUAccelerated&&cocoaWidget) fails-if(Android&&AndroidVersion<15&&AndroidVersion!=10) fuzzy-if(asyncPan&&!layersGPUAccelerated,41,260) == 650228-1.html 650228-1-ref.html # Quartz alpha blending doesn't match GL alpha blending
+fails-if(layersGPUAccelerated&&cocoaWidget) fails-if(Android&&AndroidVersion<15&&AndroidVersion!=10) fuzzy-if(!layersGPUAccelerated,41,260) == 650228-1.html 650228-1-ref.html # Quartz alpha blending doesn't match GL alpha blending
 needs-focus == 652301-1a.html 652301-1-ref.html
 needs-focus == 652301-1b.html 652301-1-ref.html
 == 652775-1.html 652775-1-ref.html
@@ -1684,7 +1684,7 @@ fails-if(layersGPUAccelerated&&cocoaWidget) fails-if(Android&&AndroidVersion==15
 != 656875.html about:blank
 == 658952.html 658952-ref.html
 == 660682-1.html 660682-1-ref.html
-skip-if((B2G&&browserIsRemote)||Mulet) skip-if(Android) == 664127-1.xul 664127-1-ref.xul # B2G: bug 974780. Android: Intermittent failures - bug 1019131 # Initial mulet triage: parity with B2G/B2G Desktop
+fuzzy-if(d2d,1,256) skip-if((B2G&&browserIsRemote)||Mulet) skip-if(Android) == 664127-1.xul 664127-1-ref.xul # B2G: bug 974780. Android: Intermittent failures - bug 1019131 # Initial mulet triage: parity with B2G/B2G Desktop
 skip-if(B2G||Mulet) == 665597-1.html 665597-1-ref.html # Initial mulet triage: parity with B2G/B2G Desktop
 skip-if(B2G||Mulet) == 665597-2.html 665597-2-ref.html # Initial mulet triage: parity with B2G/B2G Desktop
 skip-if((B2G&&browserIsRemote)||Mulet) == 668319-1.xul about:blank # bug 974780 # Initial mulet triage: parity with B2G/B2G Desktop
@@ -1833,7 +1833,7 @@ fuzzy-if(/^Windows\x20NT\x205\.1/.test(http.oscpu),255,1) == 1013054-1.html 1013
 == 1021564-3.html 1021564-ref.html
 == 1021564-4.html 1021564-ref.html
 pref(browser.display.use_document_fonts,0) == 1022481-1.html 1022481-1-ref.html
-== 1022612-1.html 1022612-1-ref.html
+fuzzy-if(d2d,1,125200) == 1022612-1.html 1022612-1-ref.html
 == 1024473-1.html 1024473-1-ref.html
 == 1025914-1.html 1025914-1-ref.html
 == 1042104-1.html 1042104-1-ref.html
@@ -1943,3 +1943,4 @@ fuzzy(1,74) fuzzy-if(gtkWidget,6,79) == 1174332-1.html 1174332-1-ref.html
 == 1209994-4.html 1209994-4-ref.html
 == 1222226-1.html 1222226-1-ref.html
 pref(layout.css.overflow-clip-box.enabled,true) == 1226278.html 1226278-ref.html
+== 1230466.html about:blank

@@ -264,6 +264,37 @@ JsepSessionImpl::ReplaceTrack(const std::string& oldStreamId,
   return NS_OK;
 }
 
+nsresult
+JsepSessionImpl::SetParameters(const std::string& streamId,
+                               const std::string& trackId,
+                               const std::vector<JsepTrack::JsConstraints>& constraints)
+{
+  auto it = FindTrackByIds(mLocalTracks, streamId, trackId);
+
+  if (it == mLocalTracks.end()) {
+    JSEP_SET_ERROR("Track " << streamId << "/" << trackId << " was never added.");
+    return NS_ERROR_INVALID_ARG;
+  }
+  it->mTrack->SetJsConstraints(constraints);
+  return NS_OK;
+}
+
+nsresult
+JsepSessionImpl::GetParameters(const std::string& streamId,
+                               const std::string& trackId,
+                               std::vector<JsepTrack::JsConstraints>* outConstraints)
+{
+  auto it = FindTrackByIds(mLocalTracks, streamId, trackId);
+
+  if (it == mLocalTracks.end()) {
+    JSEP_SET_ERROR("Track " << streamId << "/" << trackId << " was never added.");
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  it->mTrack->GetJsConstraints(outConstraints);
+  return NS_OK;
+}
+
 std::vector<RefPtr<JsepTrack>>
 JsepSessionImpl::GetLocalTracks() const
 {
@@ -2063,8 +2094,8 @@ JsepSessionImpl::SetupDefaultCodecs()
       90000
       );
   // Defaults for mandatory params
-  vp8->mMaxFs = 12288;
-  vp8->mMaxFr = 60;
+  vp8->mConstraints.maxFs = 12288; // Enough for 2048x1536
+  vp8->mConstraints.maxFps = 60;
   mSupportedCodecs.values.push_back(vp8);
 
   JsepVideoCodecDescription* vp9 = new JsepVideoCodecDescription(
@@ -2073,8 +2104,8 @@ JsepSessionImpl::SetupDefaultCodecs()
       90000
       );
   // Defaults for mandatory params
-  vp9->mMaxFs = 12288;
-  vp9->mMaxFr = 60;
+  vp9->mConstraints.maxFs = 12288; // Enough for 2048x1536
+  vp9->mConstraints.maxFps = 60;
   mSupportedCodecs.values.push_back(vp9);
 
   JsepVideoCodecDescription* h264_1 = new JsepVideoCodecDescription(

@@ -496,6 +496,10 @@ js::Nursery::collect(JSRuntime* rt, JS::gcreason::Reason reason, ObjectGroupList
     forwardedBuffers.finish();
     TIME_END(updateJitActivations);
 
+    TIME_START(objectsTenuredCallback);
+    rt->gc.callObjectsTenuredCallback();
+    TIME_END(objectsTenuredCallback);
+
     // Sweep.
     TIME_START(freeMallocedBuffers);
     freeMallocedBuffers();
@@ -535,7 +539,7 @@ js::Nursery::collect(JSRuntime* rt, JS::gcreason::Reason reason, ObjectGroupList
         for (size_t i = 0; i < ArrayLength(tenureCounts.entries); i++) {
             const TenureCount& entry = tenureCounts.entries[i];
             if (entry.count >= 3000)
-                pretenureGroups->append(entry.group); // ignore alloc failure
+                (void)pretenureGroups->append(entry.group); // ignore alloc failure
         }
     }
     TIME_END(pretenure);
@@ -576,6 +580,7 @@ js::Nursery::collect(JSRuntime* rt, JS::gcreason::Reason reason, ObjectGroupList
             {"mkDbgr", TIME_TOTAL(markDebugger)},
             {"clrNOC", TIME_TOTAL(clearNewObjectCache)},
             {"collct", TIME_TOTAL(collectToFP)},
+            {" tenCB", TIME_TOTAL(objectsTenuredCallback)},
             {"swpABO", TIME_TOTAL(sweepArrayBufferViewList)},
             {"updtIn", TIME_TOTAL(updateJitActivations)},
             {"frSlts", TIME_TOTAL(freeMallocedBuffers)},

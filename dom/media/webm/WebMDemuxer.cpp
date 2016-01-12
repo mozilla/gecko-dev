@@ -18,6 +18,7 @@
 #include "nsAutoRef.h"
 #include "NesteggPacketHolder.h"
 #include "XiphExtradata.h"
+#include "prprf.h"
 
 #include <algorithm>
 #include <stdint.h>
@@ -33,7 +34,7 @@ namespace mozilla {
 using namespace gfx;
 
 LazyLogModule gWebMDemuxerLog("WebMDemuxer");
-extern LazyLogModule gNesteggLog;
+LazyLogModule gNesteggLog("Nestegg");
 
 // How far ahead will we look when searching future keyframe. In microseconds.
 // This value is based on what appears to be a reasonable value as most webm

@@ -119,7 +119,7 @@ ValidateUnpackArrayType(WebGLContext* webgl, const char* funcName, GLenum unpack
 static UniquePtr<webgl::TexUnpackBlob>
 UnpackBlobFromMaybeView(WebGLContext* webgl, const char* funcName, GLsizei width,
                         GLsizei height, GLsizei depth, GLenum unpackType,
-                        const dom::Nullable<dom::ArrayBufferViewOrSharedArrayBufferView>& maybeView)
+                        const dom::Nullable<dom::ArrayBufferView>& maybeView)
 {
     size_t dataSize;
     const void* data;
@@ -128,16 +128,16 @@ UnpackBlobFromMaybeView(WebGLContext* webgl, const char* funcName, GLsizei width
         data = nullptr;
     } else {
         const auto& view = maybeView.Value();
-        void* mutData;
-        js::Scalar::Type jsType;
-        ComputeLengthAndData(view, &mutData, &dataSize, &jsType);
-        data = mutData;
-
+        view.ComputeLengthAndData();
+        data = view.DataAllowShared();
+        dataSize = view.LengthAllowShared();
+        js::Scalar::Type jsType = JS_GetArrayBufferViewType(view.Obj());
         if (!ValidateUnpackArrayType(webgl, funcName, unpackType, jsType))
             return nullptr;
     }
 
     UniquePtr<webgl::TexUnpackBlob> ret;
+    // Warning: Possibly shared memory.  See bug 1225033.
     ret.reset(new webgl::TexUnpackBytes(width, height, depth, dataSize, data));
     return Move(ret);
 }
@@ -148,7 +148,7 @@ WebGLTexture::TexOrSubImage(bool isSubImage, const char* funcName, TexImageTarge
                             GLint yOffset, GLint zOffset, GLsizei width, GLsizei height,
                             GLsizei depth, GLint border, GLenum unpackFormat,
                             GLenum unpackType,
-                            const dom::Nullable<dom::ArrayBufferViewOrSharedArrayBufferView>& maybeView)
+                            const dom::Nullable<dom::ArrayBufferView>& maybeView)
 {
     UniquePtr<webgl::TexUnpackBlob> blob;
     blob = UnpackBlobFromMaybeView(mContext, funcName, width, height, depth, unpackType,
@@ -362,6 +362,13 @@ WebGLTexture::ValidateTexImageSpecification(const char* funcName, TexImageTarget
          */
         mContext->ErrorInvalidValue("%s: `width`/`height`/`depth` must be >= 0.",
                                     funcName);
+        return false;
+    }
+
+    if (mTarget == LOCAL_GL_TEXTURE_CUBE_MAP &&
+        width != height)
+    {
+        mContext->ErrorInvalidValue("%s: Cube map images must be square.", funcName);
         return false;
     }
 
@@ -1246,7 +1253,7 @@ void
 WebGLTexture::CompressedTexImage(const char* funcName, TexImageTarget target, GLint level,
                                  GLenum internalFormat, GLsizei width, GLsizei height,
                                  GLsizei depth, GLint border,
-                                 const dom::ArrayBufferViewOrSharedArrayBufferView& view)
+                                 const dom::ArrayBufferView& view)
 {
     ////////////////////////////////////
     // Get dest info
@@ -1279,11 +1286,9 @@ WebGLTexture::CompressedTexImage(const char* funcName, TexImageTarget target, GL
     ////////////////////////////////////
     // Get source info
 
-    void* mutData;
-    size_t dataSize;
-    js::Scalar::Type jsType;
-    ComputeLengthAndData(view, &mutData, &dataSize, &jsType);
-    const void* data = mutData;
+    view.ComputeLengthAndData();
+    const void* data = view.DataAllowShared();
+    size_t dataSize = view.LengthAllowShared();
 
     if (!ValidateCompressedTexUnpack(mContext, funcName, width, height, depth, format,
                                      dataSize))
@@ -1305,6 +1310,7 @@ WebGLTexture::CompressedTexImage(const char* funcName, TexImageTarget target, GL
 
     mContext->gl->MakeCurrent();
 
+    // Warning: Possibly shared memory.  See bug 1225033.
     GLenum error = DoCompressedTexImage(mContext->gl, target, level, internalFormat,
                                         width, height, depth, border, dataSize, data);
     if (error == LOCAL_GL_OUT_OF_MEMORY) {
@@ -1353,7 +1359,7 @@ WebGLTexture::CompressedTexSubImage(const char* funcName, TexImageTarget target,
                                     GLint level, GLint xOffset, GLint yOffset,
                                     GLint zOffset, GLsizei width, GLsizei height,
                                     GLsizei depth, GLenum sizedUnpackFormat,
-                                    const dom::ArrayBufferViewOrSharedArrayBufferView& view)
+                                    const dom::ArrayBufferView& view)
 {
     ////////////////////////////////////
     // Get dest info
@@ -1372,11 +1378,9 @@ WebGLTexture::CompressedTexSubImage(const char* funcName, TexImageTarget target,
     ////////////////////////////////////
     // Get source info
 
-    void* mutData;
-    size_t dataSize;
-    js::Scalar::Type jsType;
-    ComputeLengthAndData(view, &mutData, &dataSize, &jsType);
-    const void* data = mutData;
+    view.ComputeLengthAndData();
+    size_t dataSize = view.LengthAllowShared();
+    const void* data = view.DataAllowShared();
 
     auto srcUsage = mContext->mFormatUsage->GetSizedTexUsage(sizedUnpackFormat);
     if (!srcUsage->format->compression) {
@@ -1450,6 +1454,7 @@ WebGLTexture::CompressedTexSubImage(const char* funcName, TexImageTarget target,
         return;
     }
 
+    // Warning: Possibly shared memory.  See bug 1225033.
     GLenum error = DoCompressedTexSubImage(mContext->gl, target, level, xOffset, yOffset,
                                            zOffset, width, height, depth,
                                            sizedUnpackFormat, dataSize, data);
@@ -1765,7 +1770,8 @@ WebGLTexture::CopyTexImage2D(TexImageTarget target, GLint level, GLenum internal
 
     GLenum error;
     if (rwWidth == uint32_t(width) && rwHeight == uint32_t(height)) {
-        error = DoCopyTexImage2D(gl, target, level, internalFormat, x, y, width, height,
+        MOZ_ASSERT(dstUsage->idealUnpack);
+        error = DoCopyTexImage2D(gl, target, level, dstUsage->idealUnpack->internalFormat, x, y, width, height,
                                  border);
     } else {
         // 1. Zero the texture data.
@@ -1773,7 +1779,7 @@ WebGLTexture::CopyTexImage2D(TexImageTarget target, GLint level, GLenum internal
 
         const bool respecifyTexture = true;
         const uint8_t zOffset = 0;
-        if (!ZeroTextureData(mContext, funcName, respecifyTexture, target, level,
+        if (!ZeroTextureData(mContext, funcName, respecifyTexture, mGLName, target, level,
                              dstUsage, 0, 0, zOffset, width, height, depth))
         {
             mContext->ErrorOutOfMemory("%s: Failed to zero texture data.", funcName);
@@ -1783,7 +1789,7 @@ WebGLTexture::CopyTexImage2D(TexImageTarget target, GLint level, GLenum internal
 
         if (!rwWidth || !rwHeight) {
             // There aren't any, so we're 'done'.
-            mContext->DummyFramebufferOperation(funcName);
+            mContext->DummyReadFramebufferOperation(funcName);
             return;
         }
 
@@ -1874,7 +1880,7 @@ WebGLTexture::CopyTexSubImage(const char* funcName, TexImageTarget target, GLint
 
     if (!rwWidth || !rwHeight) {
         // There aren't any, so we're 'done'.
-        mContext->DummyFramebufferOperation(funcName);
+        mContext->DummyReadFramebufferOperation(funcName);
         return;
     }
 

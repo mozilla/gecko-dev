@@ -11,8 +11,11 @@
 #include "mozilla/net/NeckoChild.h"
 #include "mozilla/StaticPtr.h"
 #include "nsISupportsPrimitives.h"
+#include "nsIObserverService.h"
 #include "nsXULAppAPI.h"
 #include "nsSocketTransportService2.h"
+#include "nsThreadUtils.h"
+#include "mozilla/Services.h"
 
 namespace mozilla {
 namespace net {
@@ -555,25 +558,20 @@ WebSocketEventService::CreateFrameIfNeeded(bool aFinBit, bool aRsvBit1,
 
   uint32_t payloadLength = aPayloadLength + aPayloadInHdrLength;
 
-  nsAutoArrayPtr<uint8_t> payload(new uint8_t[payloadLength]);
-  if (NS_WARN_IF(!payload)) {
+  nsAutoCString payload;
+  if (NS_WARN_IF(!payload.SetLength(payloadLength, fallible))) {
     return nullptr;
   }
 
+  char* payloadPtr = payload.BeginWriting();
   if (aPayloadInHdrLength) {
-    memcpy(payload, aPayloadInHdr, aPayloadInHdrLength);
+    memcpy(payloadPtr, aPayloadInHdr, aPayloadInHdrLength);
   }
 
-  memcpy(payload + aPayloadInHdrLength, aPayload, aPayloadLength);
-
-  nsAutoCString payloadStr;
-  if (NS_WARN_IF(!(payloadStr.Assign((const char*) payload.get(), payloadLength,
-                                     mozilla::fallible)))) {
-    return nullptr;
-  }
+  memcpy(payloadPtr + aPayloadInHdrLength, aPayload, aPayloadLength);
 
   return MakeAndAddRef<WebSocketFrame>(aFinBit, aRsvBit1, aRsvBit2, aRsvBit3,
-                                       aOpCode, aMaskBit, aMask, payloadStr);
+                                       aOpCode, aMaskBit, aMask, payload);
 }
 
 } // net namespace

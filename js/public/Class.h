@@ -337,8 +337,8 @@ typedef JSString*
  * (e.g., the DOM attributes for a given node reflected as obj) on demand.
  *
  * JS looks for a property in an object, and if not found, tries to resolve
- * the given id. *resolvedp should be set to true iff the property was
- * was defined on |obj|.
+ * the given id. *resolvedp should be set to true iff the property was defined
+ * on |obj|.
  */
 typedef bool
 (* JSResolveOp)(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
@@ -719,7 +719,7 @@ struct JSClass {
 // application.
 #define JSCLASS_GLOBAL_APPLICATION_SLOTS 5
 #define JSCLASS_GLOBAL_SLOT_COUNT                                             \
-    (JSCLASS_GLOBAL_APPLICATION_SLOTS + JSProto_LIMIT * 3 + 32)
+    (JSCLASS_GLOBAL_APPLICATION_SLOTS + JSProto_LIMIT * 3 + 36)
 #define JSCLASS_GLOBAL_FLAGS_WITH_SLOTS(n)                                    \
     (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSCLASS_GLOBAL_SLOT_COUNT + (n)))
 #define JSCLASS_GLOBAL_FLAGS                                                  \

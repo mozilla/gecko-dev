@@ -502,6 +502,7 @@ MediaDecoder::MediaDecoder(MediaDecoderOwner* aOwner)
   , mIgnoreProgressData(false)
   , mInfiniteStream(false)
   , mOwner(aOwner)
+  , mFrameStats(new FrameStatistics())
   , mVideoFrameContainer(aOwner->GetVideoFrameContainer())
   , mPlaybackStatistics(new MediaChannelStatistics())
   , mPinnedForSeek(false)
@@ -579,6 +580,9 @@ MediaDecoder::MediaDecoder(MediaDecoderOwner* aOwner)
   // readyState
   mWatchManager.Watch(mPlayState, &MediaDecoder::UpdateReadyState);
   mWatchManager.Watch(mNextFrameStatus, &MediaDecoder::UpdateReadyState);
+  // ReadyState computation depends on MediaDecoder::CanPlayThrough, which
+  // depends on the download rate.
+  mWatchManager.Watch(mBuffered, &MediaDecoder::UpdateReadyState);
 
   // mLogicalPosition
   mWatchManager.Watch(mCurrentPosition, &MediaDecoder::UpdateLogicalPosition);
@@ -591,14 +595,14 @@ MediaDecoder::MediaDecoder(MediaDecoderOwner* aOwner)
   MediaShutdownManager::Instance().Register(this);
 }
 
-void
+RefPtr<ShutdownPromise>
 MediaDecoder::Shutdown()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (mShuttingDown)
-    return;
-
+  if (mShuttingDown) {
+    return ShutdownPromise::CreateAndResolve(true, __func__);
+  }
   mShuttingDown = true;
 
   mResourceCallback->Disconnect();
@@ -610,13 +614,20 @@ MediaDecoder::Shutdown()
   // This changes the decoder state to SHUTDOWN and does other things
   // necessary to unblock the state machine thread if it's blocked, so
   // the asynchronous shutdown in nsDestroyStateMachine won't deadlock.
+  RefPtr<ShutdownPromise> shutdown;
   if (mDecoderStateMachine) {
-    mDecoderStateMachine->DispatchShutdown();
     mTimedMetadataListener.Disconnect();
     mMetadataLoadedListener.Disconnect();
     mFirstFrameLoadedListener.Disconnect();
     mOnPlaybackEvent.Disconnect();
     mOnSeekingStart.Disconnect();
+    mOnMediaNotSeekable.Disconnect();
+
+    shutdown = mDecoderStateMachine->BeginShutdown()
+        ->Then(AbstractThread::MainThread(), __func__, this,
+               &MediaDecoder::FinishShutdown,
+               &MediaDecoder::FinishShutdown)
+        ->CompletionPromise();
   }
 
   // Force any outstanding seek and byterange requests to complete
@@ -630,6 +641,8 @@ MediaDecoder::Shutdown()
   ChangeState(PLAY_STATE_SHUTDOWN);
 
   MediaShutdownManager::Instance().Unregister(this);
+
+  return shutdown ? shutdown : ShutdownPromise::CreateAndResolve(true, __func__);
 }
 
 MediaDecoder::~MediaDecoder()
@@ -661,6 +674,15 @@ MediaDecoder::OnPlaybackEvent(MediaEventType aEvent)
       Invalidate();
       break;
   }
+}
+
+RefPtr<ShutdownPromise>
+MediaDecoder::FinishShutdown()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  mDecoderStateMachine->BreakCycles();
+  SetStateMachine(nullptr);
+  return ShutdownPromise::CreateAndResolve(true, __func__);
 }
 
 MediaResourceCallback*
@@ -728,6 +750,8 @@ MediaDecoder::SetStateMachineParameters()
     AbstractThread::MainThread(), this, &MediaDecoder::OnPlaybackEvent);
   mOnSeekingStart = mDecoderStateMachine->OnSeekingStart().Connect(
     AbstractThread::MainThread(), this, &MediaDecoder::SeekingStarted);
+  mOnMediaNotSeekable = mDecoderStateMachine->OnMediaNotSeekable().Connect(
+    AbstractThread::MainThread(), this, &MediaDecoder::OnMediaNotSeekable);
 }
 
 void
@@ -772,6 +796,7 @@ MediaDecoder::Seek(double aTime, SeekTarget::Type aSeekType)
 
   UpdateDormantState(false /* aDormantTimeout */, true /* aActivity */);
 
+  MOZ_ASSERT(!mIsDormant, "should be out of dormant by now");
   MOZ_ASSERT(aTime >= 0.0, "Cannot seek to a negative value.");
 
   int64_t timeUsecs = 0;
@@ -841,6 +866,7 @@ MediaDecoder::MetadataLoaded(nsAutoPtr<MediaInfo> aInfo,
               aInfo->mAudio.mChannels, aInfo->mAudio.mRate,
               aInfo->HasAudio(), aInfo->HasVideo());
 
+  SetMediaSeekable(aInfo->mMediaSeekable);
   mInfo = aInfo.forget();
   ConstructMediaTracks();
 
@@ -1385,16 +1411,11 @@ MediaDecoder::Suspend()
 }
 
 void
-MediaDecoder::Resume(bool aForceBuffering)
+MediaDecoder::Resume()
 {
   MOZ_ASSERT(NS_IsMainThread());
   if (mResource) {
     mResource->Resume();
-  }
-  if (aForceBuffering) {
-    if (mDecoderStateMachine) {
-      mDecoderStateMachine->DispatchStartBuffering();
-    }
   }
 }
 
@@ -1522,10 +1543,6 @@ MediaDecoder::NotifyDataArrived() {
   }
 
   mDataArrivedEvent.Notify();
-
-  // ReadyState computation depends on MediaDecoder::CanPlayThrough, which
-  // depends on the download rate.
-  UpdateReadyState();
 }
 
 // Provide access to the state machine object
@@ -1533,13 +1550,6 @@ MediaDecoderStateMachine*
 MediaDecoder::GetStateMachine() const {
   MOZ_ASSERT(NS_IsMainThread());
   return mDecoderStateMachine;
-}
-
-// Drop reference to state machine.  Only called during shutdown dance.
-void
-MediaDecoder::BreakCycles() {
-  MOZ_ASSERT(NS_IsMainThread());
-  SetStateMachine(nullptr);
 }
 
 void
@@ -1632,21 +1642,17 @@ MediaDecoder::IsOggEnabled()
   return Preferences::GetBool("media.ogg.enabled");
 }
 
-#ifdef MOZ_WAVE
 bool
 MediaDecoder::IsWaveEnabled()
 {
   return Preferences::GetBool("media.wave.enabled");
 }
-#endif
 
-#ifdef MOZ_WEBM
 bool
 MediaDecoder::IsWebMEnabled()
 {
   return Preferences::GetBool("media.webm.enabled");
 }
-#endif
 
 #ifdef NECKO_PROTOCOL_rtsp
 bool
@@ -1654,14 +1660,6 @@ MediaDecoder::IsRtspEnabled()
 {
   //Currently the Rtsp decoded by omx.
   return (Preferences::GetBool("media.rtsp.enabled", false) && IsOmxEnabled());
-}
-#endif
-
-#ifdef MOZ_GSTREAMER
-bool
-MediaDecoder::IsGStreamerEnabled()
-{
-  return Preferences::GetBool("media.gstreamer.enabled");
 }
 #endif
 
@@ -1811,6 +1809,21 @@ MediaDecoder::RemoveMediaTracks()
   }
 
   mMediaTracksConstructed = false;
+}
+
+MediaDecoderOwner::NextFrameStatus
+MediaDecoder::NextFrameBufferedStatus()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  // Next frame hasn't been decoded yet.
+  // Use the buffered range to consider if we have the next frame available.
+  media::TimeUnit currentPosition =
+    media::TimeUnit::FromMicroseconds(CurrentPosition());
+  media::TimeInterval interval(currentPosition,
+                               currentPosition + media::TimeUnit::FromMicroseconds(DEFAULT_NEXT_FRAME_AVAILABLE_BUFFERED));
+  return GetBuffered().Contains(interval)
+    ? MediaDecoderOwner::NEXT_FRAME_AVAILABLE
+    : MediaDecoderOwner::NEXT_FRAME_UNAVAILABLE;
 }
 
 MediaMemoryTracker::MediaMemoryTracker()

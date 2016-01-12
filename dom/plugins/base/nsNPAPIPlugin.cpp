@@ -169,7 +169,10 @@ static NPNetscapeFuncs sBrowserFuncs = {
   _convertpoint,
   nullptr, // handleevent, unimplemented
   nullptr, // unfocusinstance, unimplemented
-  _urlredirectresponse
+  _urlredirectresponse,
+  _initasyncsurface,
+  _finalizeasyncsurface,
+  _setcurrentasyncsurface
 };
 
 static Mutex *sPluginThreadAsyncCallLock = nullptr;
@@ -1251,12 +1254,22 @@ _retainobject(NPObject* npobj)
 void
 _releaseobject(NPObject* npobj)
 {
+  // If nothing is passed, just return, even if we're on the wrong thread.
+  if (!npobj) {
+    return;
+  }
+
+  // THIS IS A KNOWN LEAK. SEE BUG 1221448.
+  // If releaseobject is called off the main thread and we have a valid pointer,
+  // we at least know it was created on the main thread (see _createobject
+  // implementation). However, forwarding the deletion back to the main thread
+  // without careful checking could cause bad memory management races. So, for
+  // now, we leak by warning and then just returning early. But it should fix
+  // java 7 crashes.
   if (!NS_IsMainThread()) {
     NPN_PLUGIN_LOG(PLUGIN_LOG_ALWAYS,("NPN_releaseobject called from the wrong thread\n"));
-    MOZ_CRASH("NPN_releaseobject called from the wrong thread");
-  }
-  if (!npobj)
     return;
+  }
 
   int32_t refCnt = PR_ATOMIC_DECREMENT((int32_t*)&npobj->referenceCount);
   NS_LOG_RELEASE(npobj, refCnt, "BrowserNPObject");
@@ -2283,8 +2296,7 @@ _setvalue(NPP npp, NPPVariable variable, void *result)
       } else {
         float volume = 0.0;
         bool muted = true;
-        rv = agent->NotifyStartedPlaying(nsIAudioChannelAgent::AUDIO_AGENT_NOTIFY,
-                                         &volume, &muted);
+        rv = agent->NotifyStartedPlaying(&volume, &muted);
         if (NS_WARN_IF(NS_FAILED(rv))) {
           return NPERR_NO_ERROR;
         }
@@ -2778,6 +2790,39 @@ _urlredirectresponse(NPP instance, void* notifyData, NPBool allow)
   }
 
   inst->URLRedirectResponse(notifyData, allow);
+}
+
+NPError
+_initasyncsurface(NPP instance, NPSize *size, NPImageFormat format, void *initData, NPAsyncSurface *surface)
+{
+  nsNPAPIPluginInstance *inst = (nsNPAPIPluginInstance *)instance->ndata;
+  if (!inst) {
+    return NPERR_GENERIC_ERROR;
+  }
+
+  return inst->InitAsyncSurface(size, format, initData, surface);
+}
+
+NPError
+_finalizeasyncsurface(NPP instance, NPAsyncSurface *surface)
+{
+  nsNPAPIPluginInstance *inst = (nsNPAPIPluginInstance *)instance->ndata;
+  if (!inst) {
+    return NPERR_GENERIC_ERROR;
+  }
+
+  return inst->FinalizeAsyncSurface(surface);
+}
+
+void
+_setcurrentasyncsurface(NPP instance, NPAsyncSurface *surface, NPRect *changed)
+{
+  nsNPAPIPluginInstance *inst = (nsNPAPIPluginInstance *)instance->ndata;
+  if (!inst) {
+    return;
+  }
+
+  inst->SetCurrentAsyncSurface(surface, changed);
 }
 
 } /* namespace parent */

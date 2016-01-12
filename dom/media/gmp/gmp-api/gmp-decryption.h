@@ -21,7 +21,7 @@
 
 class GMPStringList {
 public:
-  virtual const uint32_t Size() const = 0;
+  virtual uint32_t Size() const = 0;
 
   virtual void StringAt(uint32_t aIndex,
                         const char** aOutString, uint32_t* aOutLength) const = 0;
@@ -244,7 +244,9 @@ enum GMPSessionType {
   kGMPSessionInvalid = 2 // Must always be last.
 };
 
-#define GMP_API_DECRYPTOR "eme-decrypt-v7"
+// Gecko supports the current GMPDecryptor version, and the previous.
+#define GMP_API_DECRYPTOR "eme-decrypt-v8"
+#define GMP_API_DECRYPTOR_BACKWARDS_COMPAT "eme-decrypt-v7"
 
 // API exposed by plugin library to manage decryption sessions.
 // When the Host requests this by calling GMPGetAPIFunc().

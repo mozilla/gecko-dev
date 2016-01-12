@@ -11,7 +11,6 @@ const {Arg, Option, method, RetVal, types} = protocol;
 const events = require("sdk/event/core");
 const {Class} = require("sdk/core/heritage");
 const {LongStringActor} = require("devtools/server/actors/string");
-const {PSEUDO_ELEMENT_SET} = require("devtools/shared/styleinspector/css-logic");
 
 // This will also add the "stylesheet" actor type for protocol.js to recognize
 const {UPDATE_PRESERVING_RULES, UPDATE_GENERAL} =
@@ -36,24 +35,12 @@ loader.lazyGetter(this, "RuleRewriter", () => {
 const ELEMENT_STYLE = 100;
 exports.ELEMENT_STYLE = ELEMENT_STYLE;
 
-// Not included since these are uneditable by the user.
-// See https://hg.mozilla.org/mozilla-central/file/696a4ad5d011/layout/style/nsCSSPseudoElementList.h#l74
-PSEUDO_ELEMENT_SET.delete(":-moz-meter-bar");
-PSEUDO_ELEMENT_SET.delete(":-moz-list-bullet");
-PSEUDO_ELEMENT_SET.delete(":-moz-list-number");
-PSEUDO_ELEMENT_SET.delete(":-moz-focus-inner");
-PSEUDO_ELEMENT_SET.delete(":-moz-focus-outer");
-PSEUDO_ELEMENT_SET.delete(":-moz-math-anonymous");
-PSEUDO_ELEMENT_SET.delete(":-moz-math-stretchy");
-
-const PSEUDO_ELEMENTS = Array.from(PSEUDO_ELEMENT_SET);
-
-exports.PSEUDO_ELEMENTS = PSEUDO_ELEMENTS;
-
 // When gathering rules to read for pseudo elements, we will skip
 // :before and :after, which are handled as a special case.
-const PSEUDO_ELEMENTS_TO_READ = PSEUDO_ELEMENTS.filter(pseudo => {
-  return pseudo !== ":before" && pseudo !== ":after";
+loader.lazyGetter(this, "PSEUDO_ELEMENTS_TO_READ", () => {
+  return DOMUtils.getCSSPseudoElementNames().filter(pseudo => {
+    return pseudo !== ":before" && pseudo !== ":after";
+  });
 });
 
 const XHTML_NS = "http://www.w3.org/1999/xhtml";
@@ -1167,6 +1154,11 @@ var StyleRuleActor = protocol.ActorClass({
     // about: handler.
     // https://bugzilla.mozilla.org/show_bug.cgi?id=935803#c37
     return !!(this._parentSheet &&
+              // If a rule does not have source, then it has been
+              // modified via CSSOM; and we should fall back to
+              // non-authored editing.
+              // https://bugzilla.mozilla.org/show_bug.cgi?id=1224121
+              this.sheetActor.allRulesHaveSource() &&
               this._parentSheet.href !== "about:PreferenceStyleSheet");
   },
 

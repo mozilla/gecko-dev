@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -136,6 +137,7 @@ AppendFunction(nsCSSKeyword aTransformFunction)
       break;
     default:
       NS_ERROR("must be a transform function");
+      MOZ_FALLTHROUGH;
     case eCSSKeyword_translatex:
     case eCSSKeyword_translatey:
     case eCSSKeyword_translatez:
@@ -282,7 +284,8 @@ AppendCSSShadowValue(const nsCSSShadowItem *aShadow,
 
 // Like nsStyleCoord::CalcValue, but with length in float pixels instead
 // of nscoord.
-struct PixelCalcValue {
+struct PixelCalcValue
+{
   float mLength, mPercent;
   bool mHasPercent;
 };
@@ -1684,6 +1687,7 @@ AddFilterFunctionImpl(double aCoeff1, const nsCSSValueList* aList1,
     case eCSSKeyword_invert:
     case eCSSKeyword_sepia:
       initialVal = 0.0f;
+      MOZ_FALLTHROUGH;
     case eCSSKeyword_brightness:
     case eCSSKeyword_contrast:
     case eCSSKeyword_opacity:
@@ -1864,7 +1868,7 @@ AddTransformLists(double aCoeff1, const nsCSSValueList* aList1,
                            arr->Item(4));
           break;
         }
-        // FALL THROUGH
+        MOZ_FALLTHROUGH;
       }
       case eCSSKeyword_matrix:
       case eCSSKeyword_matrix3d:
@@ -3856,11 +3860,11 @@ void
 StyleAnimationValue::SetAndAdoptCSSValueTripletValue(
                        nsCSSValueTriplet *aValueTriplet, Unit aUnit)
 {
-    FreeValue();
-    MOZ_ASSERT(IsCSSValueTripletUnit(aUnit), "bad unit");
-    MOZ_ASSERT(aValueTriplet != nullptr, "value pairs may not be null");
-    mUnit = aUnit;
-    mValue.mCSSValueTriplet = aValueTriplet; // take ownership
+  FreeValue();
+  MOZ_ASSERT(IsCSSValueTripletUnit(aUnit), "bad unit");
+  MOZ_ASSERT(aValueTriplet != nullptr, "value pairs may not be null");
+  mUnit = aUnit;
+  mValue.mCSSValueTriplet = aValueTriplet; // take ownership
 }
 
 void
@@ -3982,4 +3986,3 @@ StyleAnimationValue::operator==(const StyleAnimationValue& aOther) const
   NS_NOTREACHED("incomplete case");
   return false;
 }
-

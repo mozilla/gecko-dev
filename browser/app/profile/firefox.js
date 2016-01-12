@@ -634,6 +634,9 @@ pref("accessibility.typeaheadfind.timeout", 5000);
 pref("accessibility.typeaheadfind.linksonly", false);
 pref("accessibility.typeaheadfind.flashBar", 1);
 
+// Tracks when accessibility is loaded into the previous session.
+pref("accessibility.loadedInLastSession", false);
+
 pref("plugins.update.url", "https://www.mozilla.org/%LOCALE%/plugincheck/?utm_source=firefox-browser&utm_medium=firefox-browser&utm_campaign=plugincheck-update");
 pref("plugins.update.notifyUser", false);
 
@@ -955,11 +958,12 @@ pref("browser.safebrowsing.provider.google.lists", "goog-badbinurl-shavar,goog-d
 pref("browser.safebrowsing.provider.google.updateURL", "https://safebrowsing.google.com/safebrowsing/downloads?client=SAFEBROWSING_ID&appver=%VERSION%&pver=2.2&key=%GOOGLE_API_KEY%");
 pref("browser.safebrowsing.provider.google.gethashURL", "https://safebrowsing.google.com/safebrowsing/gethash?client=SAFEBROWSING_ID&appver=%VERSION%&pver=2.2");
 pref("browser.safebrowsing.provider.google.reportURL", "https://safebrowsing.google.com/safebrowsing/diagnostic?client=%NAME%&hl=%LOCALE%&site=");
-pref("browser.safebrowsing.provider.google.appRepURL", "https://sb-ssl.google.com/safebrowsing/clientreport/download?key=%GOOGLE_API_KEY%");
 
 pref("browser.safebrowsing.reportPhishMistakeURL", "https://%LOCALE%.phish-error.mozilla.com/?hl=%LOCALE%&url=");
 pref("browser.safebrowsing.reportPhishURL", "https://%LOCALE%.phish-report.mozilla.com/?hl=%LOCALE%&url=");
 pref("browser.safebrowsing.reportMalwareMistakeURL", "https://%LOCALE%.malware-error.mozilla.com/?hl=%LOCALE%&url=");
+pref("browser.safebrowsing.appRepURL", "https://sb-ssl.google.com/safebrowsing/clientreport/download?key=%GOOGLE_API_KEY%");
+
 #ifdef MOZILLA_OFFICIAL
 // Normally the "client ID" sent in updates is appinfo.name, but for
 // official Firefox releases from Mozilla we use a special identifier.
@@ -1011,8 +1015,6 @@ pref("browser.sessionstore.interval", 15000);
 // on which sites to save text data, POSTDATA and cookies
 // 0 = everywhere, 1 = unencrypted sites, 2 = nowhere
 pref("browser.sessionstore.privacy_level", 0);
-// the same as browser.sessionstore.privacy_level, but for saving deferred session data
-pref("browser.sessionstore.privacy_level_deferred", 1);
 // how many tabs can be reopened (per window)
 pref("browser.sessionstore.max_tabs_undo", 10);
 // how many windows can be reopened (per session) - on non-OS X platforms this
@@ -1043,6 +1045,10 @@ pref("browser.sessionstore.upgradeBackup.latestBuildID", "");
 pref("browser.sessionstore.upgradeBackup.maxUpgradeBackups", 3);
 // End-users should not run sessionstore in debug mode
 pref("browser.sessionstore.debug", false);
+// Causes SessionStore to ignore non-final update messages from
+// browser tabs that were not caused by a flush from the parent.
+// This is a testing flag and should not be used by end-users.
+pref("browser.sessionstore.debug.no_auto_updates", false);
 // Forget closed windows/tabs after two weeks
 pref("browser.sessionstore.cleanup.forget_closed_after", 1209600000);
 
@@ -1275,6 +1281,8 @@ pref("services.sync.prefs.sync.lightweightThemes.selectedThemeID", true);
 pref("services.sync.prefs.sync.lightweightThemes.usedThemes", true);
 pref("services.sync.prefs.sync.network.cookie.cookieBehavior", true);
 pref("services.sync.prefs.sync.network.cookie.lifetimePolicy", true);
+pref("services.sync.prefs.sync.network.cookie.lifetime.days", true);
+pref("services.sync.prefs.sync.network.cookie.thirdparty.sessionOnly", true);
 pref("services.sync.prefs.sync.permissions.default.image", true);
 pref("services.sync.prefs.sync.pref.advanced.images.disable_button.view_image", true);
 pref("services.sync.prefs.sync.pref.advanced.javascript.disable_button.advanced", true);
@@ -1314,8 +1322,6 @@ pref("browser.menu.showCharacterEncoding", "chrome://browser/locale/browser.prop
 
 // Allow using tab-modal prompts when possible.
 pref("prompts.tab_modal.enabled", true);
-// Whether the Panorama should animate going in/out of tabs
-pref("browser.panorama.animate_zoom", true);
 
 // Activates preloading of the new tab url.
 pref("browser.newtab.preload", true);
@@ -1398,8 +1404,8 @@ pref("security.insecure_password.ui.enabled", false);
 // 1 = allow MITM for certificate pinning checks.
 pref("security.cert_pinning.enforcement_level", 1);
 
-// 2 = allow SHA-1 only before 2016-01-01
-pref("security.pki.sha1_enforcement_level", 2);
+// 0 = allow SHA-1
+pref("security.pki.sha1_enforcement_level", 0);
 
 // Required blocklist freshness for OneCRL OCSP bypass
 // (default is 1.25x extensions.blocklist.interval, or 30 hours)
@@ -1471,6 +1477,11 @@ pref("identity.fxaccounts.profile_image.enabled", true);
 // Token server used by the FxA Sync identity.
 pref("identity.sync.tokenserver.uri", "https://token.services.mozilla.com/1.0/sync/1.5");
 
+// URLs for promo links to mobile browsers. Note that consumers are expected to
+// append a value for utm_campaign.
+pref("identity.mobilepromo.android", "https://www.mozilla.org/firefox/android/?utm_source=firefox-browser&utm_medium=firefox-browser&utm_campaign=");
+pref("identity.mobilepromo.ios", "https://www.mozilla.org/firefox/ios/?utm_source=firefox-browser&utm_medium=firefox-browser&utm_campaign=");
+
 // Migrate any existing Firefox Account data from the default profile to the
 // Developer Edition profile.
 #ifdef MOZ_DEV_EDITION
@@ -1490,7 +1501,8 @@ pref("media.eme.apiVisible", true);
 
 // Decode using Gecko Media Plugins in <video>, if a system decoder is not
 // availble and the preferred GMP is available.
-pref("media.gmp.decoder.enabled", true);
+// NOTE: Disabled until Bug 1236756 is fixed by Adobe.
+pref("media.gmp.decoder.enabled", false);
 
 // If decoding-via-GMP is turned on for <video>, use Adobe's GMP for decoding,
 // if it's available. Note: We won't fallback to another GMP if Adobe's is not
@@ -1535,10 +1547,9 @@ pref("experiments.supported", true);
 // Enable GMP support in the addon manager.
 pref("media.gmp-provider.enabled", true);
 
-pref("browser.apps.URL", "https://marketplace.firefox.com/discovery/");
-
 #ifdef NIGHTLY_BUILD
-pref("browser.polaris.enabled", false);
+pref("privacy.trackingprotection.ui.enabled", true);
+#else
 pref("privacy.trackingprotection.ui.enabled", false);
 #endif
 pref("privacy.trackingprotection.introCount", 0);
@@ -1561,17 +1572,13 @@ pref("browser.tabs.crashReporting.includeURL", false);
 pref("browser.tabs.crashReporting.emailMe", false);
 pref("browser.tabs.crashReporting.email", "");
 
-#ifdef NIGHTLY_BUILD
 #ifndef MOZ_MULET
 pref("layers.async-pan-zoom.enabled", true);
 #endif
-#endif
 
-#ifdef E10S_TESTING_ONLY
 // Enable e10s add-on interposition by default.
 pref("extensions.interposition.enabled", true);
 pref("extensions.interposition.prefetching", true);
-#endif
 
 pref("browser.defaultbrowser.notificationbar", false);
 
@@ -1599,23 +1606,14 @@ pref("reader.parse-node-limit", 0);
 // and because (normally) these errors are not persisted anywhere.
 pref("reader.errors.includeURLs", true);
 
-pref("browser.pocket.enabled", true);
-pref("browser.pocket.api", "api.getpocket.com");
-pref("browser.pocket.site", "getpocket.com");
-pref("browser.pocket.oAuthConsumerKey", "40249-e88c401e1b1f2242d9e441c4");
-pref("browser.pocket.useLocaleList", true);
-pref("browser.pocket.enabledLocales", "cs de en-GB en-US en-ZA es-ES es-MX fr hu it ja ja-JP-mac ko nl pl pt-BR pt-PT ru zh-CN zh-TW");
-
 pref("view_source.tab", true);
 
 pref("dom.serviceWorkers.enabled", true);
 pref("dom.serviceWorkers.interception.enabled", true);
 pref("dom.serviceWorkers.openWindow.enabled", true);
 
-#ifndef RELEASE_BUILD
 // Enable Push API.
 pref("dom.push.enabled", true);
-#endif
 
 // These are the thumbnail width/height set in about:newtab.
 // If you change this, ENSURE IT IS THE SAME SIZE SET
@@ -1627,3 +1625,5 @@ pref("toolkit.pageThumbs.minHeight", 190);
 // Enable speech synthesis, only Nightly for now
 pref("media.webspeech.synth.enabled", true);
 #endif
+
+pref("browser.esedbreader.loglevel", "Error");

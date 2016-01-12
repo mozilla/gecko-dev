@@ -142,9 +142,8 @@ EngineSynchronizer.prototype = {
     try {
       this._updateEnabledEngines();
     } catch (ex) {
-      this._log.debug("Updating enabled engines failed: " +
-                      Utils.exceptionStr(ex));
-      this.service.errorHandler.checkServerError(ex, "meta/global");
+      this._log.debug("Updating enabled engines failed", ex);
+      this.service.errorHandler.checkServerError(ex);
       this.onComplete(ex);
       return;
     }
@@ -239,8 +238,15 @@ EngineSynchronizer.prototype = {
     // If we're the only client, and no engines are marked as enabled,
     // thumb our noses at the server data: it can't be right.
     // Belt-and-suspenders approach to Bug 615926.
-    if ((numClients <= 1) &&
-        ([e for (e in meta.payload.engines) if (e != "clients")].length == 0)) {
+    let hasEnabledEngines = false;
+    for (let e in meta.payload.engines) {
+      if (e != "clients") {
+        hasEnabledEngines = true;
+        break;
+      }
+    }
+
+    if ((numClients <= 1) && !hasEnabledEngines) {
       this._log.info("One client and no enabled engines: not touching local engine status.");
       return;
     }

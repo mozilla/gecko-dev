@@ -18,6 +18,7 @@
 #include "mozilla/dom/VideoTrack.h"
 #include "mozilla/dom/VideoTrackList.h"
 #include "mozilla/dom/HTMLCanvasElement.h"
+#include "mozilla/dom/MediaStreamError.h"
 #include "MediaStreamGraph.h"
 #include "AudioStreamTrack.h"
 #include "VideoStreamTrack.h"
@@ -713,7 +714,16 @@ DOMMediaStream::ApplyConstraintsToTrack(TrackID aTrackID,
                                         const MediaTrackConstraints& aConstraints,
                                         ErrorResult &aRv)
 {
-  return nullptr;
+  nsCOMPtr<nsIGlobalObject> go = do_QueryInterface(mWindow);
+  RefPtr<Promise> promise = Promise::Create(go, aRv);
+  MOZ_RELEASE_ASSERT(!aRv.Failed());
+
+  promise->MaybeReject(new MediaStreamError(
+      static_cast<nsPIDOMWindow*>(mWindow.get()),
+      NS_LITERAL_STRING("OverconstrainedError"),
+      NS_LITERAL_STRING(""),
+      NS_LITERAL_STRING("")));
+  return promise.forget();
 }
 
 bool
@@ -1043,7 +1053,7 @@ DOMAudioNodeMediaStream::CreateTrackUnionStream(nsIDOMWindow* aWindow,
 DOMHwMediaStream::DOMHwMediaStream()
 {
 #ifdef MOZ_WIDGET_GONK
-  mImageContainer = LayerManager::CreateImageContainer(ImageContainer::ASYNCHRONOUS_OVERLAY);
+  mImageContainer = LayerManager::CreateImageContainer(ImageContainer::ASYNCHRONOUS);
   mOverlayImage = mImageContainer->CreateOverlayImage();
   nsAutoTArray<ImageContainer::NonOwningImage,1> images;
   images.AppendElement(ImageContainer::NonOwningImage(mOverlayImage));

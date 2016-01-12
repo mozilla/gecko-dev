@@ -3,6 +3,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+/* import-globals-from netmonitor-controller.js */
+/* globals window, document */
 "use strict";
 
 XPCOMUtils.defineLazyGetter(this, "HarExporter", function() {
@@ -1006,6 +1008,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
       if (header != target) {
         header.removeAttribute("sorted");
         header.removeAttribute("tooltiptext");
+        header.parentNode.removeAttribute("active");
       }
     }
 
@@ -1018,6 +1021,8 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
         target.setAttribute("sorted", direction = "ascending");
         target.setAttribute("tooltiptext", L10N.getStr("networkMenu.sortedAsc"));
       }
+      // Used to style the next column.
+      target.parentNode.setAttribute("active", "true");
     }
 
     // Sort by whatever was requested.
@@ -1676,14 +1681,14 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
         break;
       }
       case "status": {
-        let node = $(".requests-menu-status", target);
+        let node = $(".requests-menu-status-icon", target);
         node.setAttribute("code", aValue.cached ? "cached" : aValue.status);
         let codeNode = $(".requests-menu-status-code", target);
         codeNode.setAttribute("value", aValue.status);
         break;
       }
       case "statusText": {
-        let node = $(".requests-menu-status-and-method", target);
+        let node = $(".requests-menu-status", target);
         node.setAttribute("tooltiptext", aValue);
         break;
       }
@@ -1850,7 +1855,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
    *        The current waterfall scale.
    */
   _showWaterfallDivisionLabels: function(aScale) {
-    let container = $("#requests-menu-waterfall-button");
+    let container = $("#requests-menu-waterfall-label-wrapper");
     let availableWidth = this._waterfallWidth - REQUESTS_WATERFALL_SAFE_BOUNDS;
 
     // Nuke all existing labels.
@@ -1910,6 +1915,8 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
         fragment.appendChild(node);
       }
       container.appendChild(fragment);
+
+      container.className = 'requests-menu-waterfall-visible';
     }
   },
 
@@ -2476,7 +2483,6 @@ NetworkDetailsView.prototype = {
       }));
     this._params = new VariablesView($("#request-params"),
       Heritage.extend(GENERIC_VARIABLES_VIEW_SETTINGS, {
-        onlyEnumVisible: true,
         emptyText: L10N.getStr("paramsEmptyText"),
         searchPlaceholder: L10N.getStr("paramsFilterText")
       }));
@@ -2859,6 +2865,8 @@ NetworkDetailsView.prototype = {
     let formDataSections = yield RequestsMenuView.prototype._getFormDataSections(
       aHeaders, aUploadHeaders, aPostData);
 
+    this._params.onlyEnumVisible = false;
+
     // Handle urlencoded form data sections (e.g. "?foo=bar&baz=42").
     if (formDataSections.length > 0) {
       formDataSections.forEach(section => {
@@ -2874,6 +2882,7 @@ NetworkDetailsView.prototype = {
         jsonVal = JSON.parse(postData);
       } catch (ex) { }
       if (jsonVal) {
+        this._params.onlyEnumVisible = true;
         let jsonScopeName = L10N.getStr("jsonScopeName");
         let jsonVar = { label: jsonScopeName, rawObject: jsonVal };
         let jsonScope = this._params.addScope(jsonScopeName);

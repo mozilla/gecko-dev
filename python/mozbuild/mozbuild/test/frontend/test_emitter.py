@@ -9,6 +9,10 @@ import unittest
 
 from mozunit import main
 
+from mozbuild.frontend.context import (
+    ObjDirPath,
+    Path,
+)
 from mozbuild.frontend.data import (
     AndroidResDirs,
     BrandingFiles,
@@ -61,9 +65,9 @@ class TestEmitterBasic(unittest.TestCase):
         os.environ.clear()
         os.environ.update(self._old_env)
 
-    def reader(self, name):
+    def reader(self, name, enable_tests=False):
         config = MockConfig(mozpath.join(data_path, name), extra_substs=dict(
-            ENABLE_TESTS='1',
+            ENABLE_TESTS='1' if enable_tests else '',
             BIN_SUFFIX='.prog',
             OS_TARGET='WINNT',
         ))
@@ -91,7 +95,6 @@ class TestEmitterBasic(unittest.TestCase):
 
         for o in objs:
             self.assertIsInstance(o, DirectoryTraversal)
-            self.assertEqual(o.test_dirs, [])
             self.assertTrue(os.path.isabs(o.context_main_path))
             self.assertEqual(len(o.context_all_paths), 1)
 
@@ -112,6 +115,24 @@ class TestEmitterBasic(unittest.TestCase):
     def test_traversal_all_vars(self):
         reader = self.reader('traversal-all-vars')
         objs = self.read_topsrcdir(reader, filter_common=False)
+        self.assertEqual(len(objs), 2)
+
+        for o in objs:
+            self.assertIsInstance(o, DirectoryTraversal)
+
+        reldirs = set([o.relativedir for o in objs])
+        self.assertEqual(reldirs, set(['', 'regular']))
+
+        for o in objs:
+            reldir = o.relativedir
+
+            if reldir == '':
+                self.assertEqual([d.full_path for d in o.dirs], [
+                    mozpath.join(reader.config.topsrcdir, 'regular')])
+
+    def test_traversal_all_vars_enable_tests(self):
+        reader = self.reader('traversal-all-vars', enable_tests=True)
+        objs = self.read_topsrcdir(reader, filter_common=False)
         self.assertEqual(len(objs), 3)
 
         for o in objs:
@@ -125,8 +146,7 @@ class TestEmitterBasic(unittest.TestCase):
 
             if reldir == '':
                 self.assertEqual([d.full_path for d in o.dirs], [
-                    mozpath.join(reader.config.topsrcdir, 'regular')])
-                self.assertEqual([d.full_path for d in o.test_dirs], [
+                    mozpath.join(reader.config.topsrcdir, 'regular'),
                     mozpath.join(reader.config.topsrcdir, 'test')])
 
     def test_config_file_substitution(self):
@@ -251,13 +271,44 @@ class TestEmitterBasic(unittest.TestCase):
             ('mozilla/dom', ['dom1.h', 'dom2.h', 'dom3.h']),
             ('mozilla/gfx', ['gfx.h']),
             ('nspr/private', ['pprio.h', 'pprthred.h']),
-            ('overwrite', ['new.h']),
             ('vpx', ['mem.h', 'mem2.h']),
         ]
         for (expect_path, expect_headers), (actual_path, actual_headers) in \
-                zip(expected, [(path, list(seq)) for path, seq in objs[0].exports.walk()]):
+                zip(expected, [(path, list(seq)) for path, seq in objs[0].files.walk()]):
             self.assertEqual(expect_path, actual_path)
             self.assertEqual(expect_headers, actual_headers)
+
+    def test_exports_missing(self):
+        '''
+        Missing files in EXPORTS is an error.
+        '''
+        reader = self.reader('exports-missing')
+        with self.assertRaisesRegexp(SandboxValidationError,
+             'File listed in EXPORTS does not exist:'):
+            objs = self.read_topsrcdir(reader)
+
+    def test_exports_missing_generated(self):
+        '''
+        An objdir file in EXPORTS that is not in GENERATED_FILES is an error.
+        '''
+        reader = self.reader('exports-missing-generated')
+        with self.assertRaisesRegexp(SandboxValidationError,
+             'Objdir file listed in EXPORTS not in GENERATED_FILES:'):
+            objs = self.read_topsrcdir(reader)
+
+    def test_exports_generated(self):
+        reader = self.reader('exports-generated')
+        objs = self.read_topsrcdir(reader)
+
+        self.assertEqual(len(objs), 2)
+        self.assertIsInstance(objs[0], GeneratedFile)
+        self.assertIsInstance(objs[1], Exports)
+        exports = [(path, list(seq)) for path, seq in objs[1].files.walk()]
+        self.assertEqual(exports,
+                         [('', ['foo.h']),
+                          ('mozilla', ['mozilla1.h', '!mozilla2.h'])])
+        path, files = exports[1]
+        self.assertIsInstance(files[1], ObjDirPath)
 
     def test_test_harness_files(self):
         reader = self.reader('test-harness-files')
@@ -291,8 +342,7 @@ class TestEmitterBasic(unittest.TestCase):
 
         files = objs[0].files
 
-        self.assertEqual(files._strings, ['app.ico', 'bar.ico', 'baz.png', 'foo.xpm'])
-        self.assertEqual(files['app.ico'].source, 'test/bar.ico')
+        self.assertEqual(files._strings, ['bar.ico', 'baz.png', 'foo.xpm'])
 
         self.assertIn('icons', files._children)
         icons = files._children['icons']
@@ -649,7 +699,7 @@ class TestEmitterBasic(unittest.TestCase):
         self.assertEqual(len(objs), 1)
         for obj in objs:
             self.assertIsInstance(obj, JARManifest)
-            self.assertTrue(os.path.isabs(obj.path))
+            self.assertIsInstance(obj.path, Path)
 
     def test_jar_manifests_multiple_files(self):
         with self.assertRaisesRegexp(SandboxValidationError, 'limited to one value'):
@@ -684,7 +734,7 @@ class TestEmitterBasic(unittest.TestCase):
         }
         defines = {}
         for lib in libraries:
-            defines[lib.basename] = ' '.join(lib.defines.get_defines())
+            defines[lib.basename] = ' '.join(lib.lib_defines.get_defines())
         self.assertEqual(expected, defines)
 
     def test_sources(self):
@@ -827,7 +877,7 @@ class TestEmitterBasic(unittest.TestCase):
 
             expected = {'install.rdf', 'main.js'}
             for f in files:
-                self.assertTrue(f in expected)
+                self.assertTrue(unicode(f) in expected)
 
     def test_missing_final_target_pp_files(self):
         """Test that FINAL_TARGET_PP_FILES with missing files throws errors."""
@@ -835,6 +885,13 @@ class TestEmitterBasic(unittest.TestCase):
             'FINAL_TARGET_PP_FILES does not exist'):
             reader = self.reader('dist-files-missing')
             self.read_topsrcdir(reader)
+
+    def test_final_target_pp_files_non_srcdir(self):
+        '''Test that non-srcdir paths in FINAL_TARGET_PP_FILES throws errors.'''
+        reader = self.reader('final-target-pp-files-non-srcdir')
+        with self.assertRaisesRegexp(SandboxValidationError,
+             'Only source directory paths allowed in FINAL_TARGET_PP_FILES:'):
+            objs = self.read_topsrcdir(reader)
 
     def test_android_res_dirs(self):
         """Test that ANDROID_RES_DIRS works properly."""

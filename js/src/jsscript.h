@@ -9,6 +9,7 @@
 #ifndef jsscript_h
 #define jsscript_h
 
+#include "mozilla/Atomics.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/PodOperations.h"
 #include "mozilla/UniquePtr.h"
@@ -815,6 +816,9 @@ class ScriptSourceHolder
 {
     ScriptSource* ss;
   public:
+    ScriptSourceHolder()
+      : ss(nullptr)
+    {}
     explicit ScriptSourceHolder(ScriptSource* ss)
       : ss(ss)
     {
@@ -822,7 +826,17 @@ class ScriptSourceHolder
     }
     ~ScriptSourceHolder()
     {
-        ss->decref();
+        if (ss)
+            ss->decref();
+    }
+    void reset(ScriptSource* newss) {
+        if (ss)
+            ss->decref();
+        ss = newss;
+        ss->incref();
+    }
+    ScriptSource* get() const {
+        return ss;
     }
 };
 
@@ -1130,6 +1144,7 @@ class JSScript : public js::gc::TenuredCell
     bool failedBoundsCheck_:1; /* script has had hoisted bounds checks fail */
     bool failedShapeGuard_:1; /* script has had hoisted shape guard fail */
     bool hadFrequentBailouts_:1;
+    bool hadOverflowBailout_:1;
     bool uninlineable_:1;    /* explicitly marked as uninlineable */
 
     // Idempotent cache has triggered invalidation.
@@ -1183,6 +1198,7 @@ class JSScript : public js::gc::TenuredCell
     bool needsHomeObject_:1;
 
     bool isDerivedClassConstructor_:1;
+    bool isDefaultClassConstructor_:1;
 
     // Add padding so JSScript is gc::Cell aligned. Make padding protected
     // instead of private to suppress -Wunused-private-field compiler warnings.
@@ -1275,23 +1291,23 @@ class JSScript : public js::gc::TenuredCell
 
     void setColumn(size_t column) { column_ = column; }
 
-    // The fixed part of a stack frame is comprised of vars (in function code)
-    // and block-scoped locals (in all kinds of code).
+    // The fixed part of a stack frame is comprised of vars (in function and
+    // module code) and block-scoped locals (in all kinds of code).
     size_t nfixed() const {
-        return function_ ? bindings.numFixedLocals() : bindings.numBlockScoped();
+        return isGlobalCode() ? bindings.numBlockScoped() : bindings.numFixedLocals();
     }
 
     // Number of fixed slots reserved for vars.  Only nonzero for function
-    // code.
+    // or module code.
     size_t nfixedvars() const {
-        return function_ ? bindings.numUnaliasedVars() : 0;
+        return isGlobalCode() ? 0 : bindings.numUnaliasedVars();
     }
 
     // Number of fixed slots reserved for body-level lexicals and vars. This
     // value minus nfixedvars() is the number of body-level lexicals. Only
-    // nonzero for function code.
+    // nonzero for function or module code.
     size_t nbodyfixed() const {
-        return function_ ? bindings.numUnaliasedBodyLevelLocals() : 0;
+        return isGlobalCode() ? 0 : bindings.numUnaliasedBodyLevelLocals();
     }
 
     // Calculate the number of fixed slots that are live at a particular bytecode.
@@ -1402,6 +1418,9 @@ class JSScript : public js::gc::TenuredCell
     bool hadFrequentBailouts() const {
         return hadFrequentBailouts_;
     }
+    bool hadOverflowBailout() const {
+        return hadOverflowBailout_;
+    }
     bool uninlineable() const {
         return uninlineable_;
     }
@@ -1411,13 +1430,18 @@ class JSScript : public js::gc::TenuredCell
     bool failedLexicalCheck() const {
         return failedLexicalCheck_;
     }
+    bool isDefaultClassConstructor() const {
+        return isDefaultClassConstructor_;
+    }
 
     void setFailedBoundsCheck() { failedBoundsCheck_ = true; }
     void setFailedShapeGuard() { failedShapeGuard_ = true; }
     void setHadFrequentBailouts() { hadFrequentBailouts_ = true; }
+    void setHadOverflowBailout() { hadOverflowBailout_ = true; }
     void setUninlineable() { uninlineable_ = true; }
     void setInvalidatedIdempotentCache() { invalidatedIdempotentCache_ = true; }
     void setFailedLexicalCheck() { failedLexicalCheck_ = true; }
+    void setIsDefaultClassConstructor() { isDefaultClassConstructor_ = true; }
 
     bool hasScriptCounts() const { return hasScriptCounts_; }
 
@@ -1618,6 +1642,14 @@ class JSScript : public js::gc::TenuredCell
     }
     inline void setModule(js::ModuleObject* module);
 
+    bool isGlobalCode() const {
+        return !function_ && !module_;
+    }
+
+    // Returns true if the script may read formal arguments on the stack
+    // directly, via lazy arguments or a rest parameter.
+    bool mayReadFrameArgsDirectly();
+
     JSFlatString* sourceData(JSContext* cx);
 
     static bool loadSource(JSContext* cx, js::ScriptSource* ss, bool* worked);
@@ -1636,7 +1668,7 @@ class JSScript : public js::gc::TenuredCell
   public:
 
     /* Return whether this script was compiled for 'eval' */
-    bool isForEval() { return isCachedEval() || isActiveEval(); }
+    bool isForEval() const { return isCachedEval() || isActiveEval(); }
 
     /*
      * Return whether this script is a top-level script.
@@ -2369,7 +2401,7 @@ struct SharedScriptData
 {
     uint32_t length;
     uint32_t natoms;
-    bool marked;
+    mozilla::Atomic<bool, mozilla::ReleaseAcquire> marked;
     jsbytecode data[1];
 
     static SharedScriptData* new_(ExclusiveContext* cx, uint32_t codeLength,

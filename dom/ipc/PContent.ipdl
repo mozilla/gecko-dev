@@ -54,6 +54,7 @@ include protocol PRemoteSpellcheckEngine;
 include protocol PWebBrowserPersistDocument;
 include protocol PWebrtcGlobal;
 include protocol PPresentation;
+include protocol PVRManager;
 include DOMTypes;
 include JavaScriptTypes;
 include InputStreamParams;
@@ -73,6 +74,7 @@ include ProfilerTypes;
 include "mozilla/dom/PContentBridgeParent.h";
 
 using GeoPosition from "nsGeoPositionIPCSerialiser.h";
+using AlertNotificationType from "mozilla/AlertNotificationIPCSerializer.h";
 
 using struct ChromePackage from "mozilla/chrome/RegistryMessageUtils.h";
 using struct SubstitutionMapping from "mozilla/chrome/RegistryMessageUtils.h";
@@ -216,6 +218,15 @@ union DeviceStorageParams
   DeviceStorageFormatParams;
   DeviceStorageMountParams;
   DeviceStorageUnmountParams;
+};
+
+struct DeviceStorageLocationInfo {
+  nsString music;
+  nsString pictures;
+  nsString videos;
+  nsString sdcard;
+  nsString apps;
+  nsString crashes;
 };
 
 struct FMRadioRequestEnableParams
@@ -451,6 +462,7 @@ prio(normal upto urgent) sync protocol PContent
     parent opens PSharedBufferManager;
     parent opens PImageBridge;
     parent opens PGMPService;
+    parent opens PVRManager;
     child opens PBackground;
 
     manages PBlob;
@@ -852,7 +864,7 @@ parent:
     async VisitURI(URIParams uri, OptionalURIParams referrer, uint32_t flags);
     async SetURITitle(URIParams uri, nsString title);
 
-    async LoadURIExternal(URIParams uri);
+    async LoadURIExternal(URIParams uri, PBrowser windowContext);
 
     // PrefService message
     sync ReadPrefsArray() returns (PrefSetting[] prefs);
@@ -870,17 +882,7 @@ parent:
                                CpowEntry[] aCpows, Principal aPrincipal)
       returns (StructuredCloneData[] retval);
 
-    ShowAlertNotification(nsString imageUrl,
-                          nsString title,
-                          nsString text,
-                          bool textClickable,
-                          nsString cookie,
-                          nsString name,
-                          nsString bidi,
-                          nsString lang,
-                          nsString data,
-                          Principal principal,
-                          bool inPrivateBrowsing);
+    ShowAlert(AlertNotificationType alert);
 
     CloseAlert(nsString name, Principal principal);
 
@@ -1160,6 +1162,9 @@ parent:
 
     sync GetDeviceStorageLocation(nsString type)
         returns (nsString path);
+
+    sync GetDeviceStorageLocations()
+	returns (DeviceStorageLocationInfo info);
 
     sync GetAndroidSystemInfo()
         returns (AndroidSystemInfo info);

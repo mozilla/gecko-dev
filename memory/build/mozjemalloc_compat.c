@@ -15,16 +15,7 @@
 #include <stdbool.h>
 
 #if defined(MOZ_NATIVE_JEMALLOC)
-
-MOZ_IMPORT_API int
-je_(mallctl)(const char*, void*, size_t*, void*, size_t);
-MOZ_IMPORT_API int
-je_(mallctlnametomib)(const char *name, size_t *mibp, size_t *miblenp);
-MOZ_IMPORT_API int
-je_(mallctlbymib)(const size_t *mib, size_t miblen, void *oldp, size_t *oldlenp, void *newp, size_t newlen);
-MOZ_IMPORT_API int
-je_(nallocx)(size_t size, int flags);
-
+#  include MALLOC_H
 #else
 #  include "jemalloc/jemalloc.h"
 #endif
@@ -151,7 +142,7 @@ jemalloc_stats_impl(jemalloc_stats_t *stats)
   // src/ctl.c
   uint64_t epoch = 0;
   size_t esz = sizeof(epoch);
-  int ret = je_(mallctl)("epoch", &epoch, &esz, &epoch, esz);
+  je_(mallctl)("epoch", &epoch, &esz, &epoch, esz);
 
   CTL_GET("arenas.narenas", narenas);
   CTL_GET("arenas.page", page);

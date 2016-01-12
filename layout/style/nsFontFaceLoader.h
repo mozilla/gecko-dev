@@ -50,13 +50,16 @@ public:
 protected:
   virtual ~nsFontFaceLoader();
 
+  // helper method for determining the font-display value
+  uint8_t GetFontDisplay();
+
 private:
   RefPtr<gfxUserFontEntry>  mUserFontEntry;
   nsCOMPtr<nsIURI>        mFontURI;
   RefPtr<mozilla::dom::FontFaceSet> mFontFaceSet;
   nsCOMPtr<nsIChannel>    mChannel;
   nsCOMPtr<nsITimer>      mLoadTimer;
-  TimeStamp               mStartTime;
+  mozilla::TimeStamp      mStartTime;
   nsIStreamLoader*        mStreamLoader;
 };
 

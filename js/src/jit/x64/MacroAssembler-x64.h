@@ -543,57 +543,6 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     // Common interface.
     /////////////////////////////////////////////////////////////////
 
-    void addPtr(Register src, Register dest) {
-        addq(src, dest);
-    }
-    void addPtr(Imm32 imm, Register dest) {
-        addq(imm, dest);
-    }
-    void addPtr(Imm32 imm, const Address& dest) {
-        addq(imm, Operand(dest));
-    }
-    void addPtr(Imm32 imm, const Operand& dest) {
-        addq(imm, dest);
-    }
-    void addPtr(ImmWord imm, Register dest) {
-        ScratchRegisterScope scratch(asMasm());
-        MOZ_ASSERT(dest != scratch);
-        if ((intptr_t)imm.value <= INT32_MAX && (intptr_t)imm.value >= INT32_MIN) {
-            addq(Imm32((int32_t)imm.value), dest);
-        } else {
-            mov(imm, scratch);
-            addq(scratch, dest);
-        }
-    }
-    void addPtr(ImmPtr imm, Register dest) {
-        addPtr(ImmWord(uintptr_t(imm.value)), dest);
-    }
-    void addPtr(const Address& src, Register dest) {
-        addq(Operand(src), dest);
-    }
-    void add64(Imm32 imm, Register64 dest) {
-        addq(imm, dest.reg);
-    }
-    void subPtr(Imm32 imm, Register dest) {
-        subq(imm, dest);
-    }
-    void subPtr(Register src, Register dest) {
-        subq(src, dest);
-    }
-    void subPtr(const Address& addr, Register dest) {
-        subq(Operand(addr), dest);
-    }
-    void subPtr(Register src, const Address& dest) {
-        subq(src, Operand(dest));
-    }
-    void mulBy3(const Register& src, const Register& dest) {
-        lea(Operand(src, src, TimesTwo), dest);
-    }
-    void mul64(Imm64 imm, const Register64& dest) {
-        movq(ImmWord(uintptr_t(imm.value)), ScratchReg);
-        imulq(ScratchReg, dest.reg);
-    }
-
     void branch32(Condition cond, AbsoluteAddress lhs, Imm32 rhs, Label* label) {
         if (X86Encoding::IsAddressImmediate(lhs.addr)) {
             branch32(cond, Operand(lhs), rhs, label);
@@ -603,9 +552,9 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
             branch32(cond, Address(scratch, 0), rhs, label);
         }
     }
-    void branch32(Condition cond, AsmJSAbsoluteAddress lhs, Imm32 rhs, Label* label) {
+    void branch32(Condition cond, wasm::SymbolicAddress lhs, Imm32 rhs, Label* label) {
         ScratchRegisterScope scratch(asMasm());
-        mov(AsmJSImmPtr(lhs.kind()), scratch);
+        mov(lhs, scratch);
         branch32(cond, Address(scratch, 0), rhs, label);
     }
     void branch32(Condition cond, AbsoluteAddress lhs, Register rhs, Label* label) {
@@ -648,10 +597,10 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
             branchPtr(cond, Operand(scratch, 0x0), ptr, label);
         }
     }
-    void branchPtr(Condition cond, AsmJSAbsoluteAddress addr, Register ptr, Label* label) {
+    void branchPtr(Condition cond, wasm::SymbolicAddress addr, Register ptr, Label* label) {
         ScratchRegisterScope scratch(asMasm());
         MOZ_ASSERT(ptr != scratch);
-        mov(AsmJSImmPtr(addr.kind()), scratch);
+        mov(addr, scratch);
         branchPtr(cond, Operand(scratch, 0x0), ptr, label);
     }
 
@@ -704,7 +653,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         j(cond, label);
     }
     void decBranchPtr(Condition cond, Register lhs, Imm32 imm, Label* label) {
-        subPtr(imm, lhs);
+        subq(imm, lhs);
         j(cond, label);
     }
 
@@ -724,7 +673,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     void movePtr(ImmPtr imm, Register dest) {
         mov(imm, dest);
     }
-    void movePtr(AsmJSImmPtr imm, Register dest) {
+    void movePtr(wasm::SymbolicAddress imm, Register dest) {
         mov(imm, dest);
     }
     void movePtr(ImmGCPtr imm, Register dest) {
@@ -1346,24 +1295,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         vcvtsi2sdq(src.reg, dest);
     }
 
-    void mulDoublePtr(ImmPtr imm, Register temp, FloatRegister dest) {
-        movq(imm, ScratchReg);
-        vmulsd(Operand(ScratchReg, 0), dest, dest);
-    }
-
-    void inc64(AbsoluteAddress dest) {
-        if (X86Encoding::IsAddressImmediate(dest.addr)) {
-            addPtr(Imm32(1), Operand(dest));
-        } else {
-            ScratchRegisterScope scratch(asMasm());
-            mov(ImmPtr(dest.addr), scratch);
-            addPtr(Imm32(1), Address(scratch, 0));
-        }
-    }
-
-    void incrementInt32Value(const Address& addr) {
-        addPtr(Imm32(1), addr);
-    }
+    inline void incrementInt32Value(const Address& addr);
 
     // If source is a double, load it into dest. If source is int32,
     // convert it to double. Else, branch to failure.

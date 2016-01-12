@@ -154,6 +154,10 @@ var gPlayTests = [
   { name:"r11025_s16_c1_trailing.wav", type:"audio/x-wav", duration:1.0 },
   // file with list chunk
   { name:"r16000_u8_c1_list.wav", type:"audio/x-wav", duration:4.2 },
+  // file with 2 extra bytes of metadata
+  { name:"16bit_wave_extrametadata.wav", type:"audio/x-wav", duration:1.108 },
+  // 24-bit samples
+  { name:"wavedata_s24.wav", type:"audio/x-wav", duration:1.0 },
 
   // Ogg stream without eof marker
   { name:"bug461281.ogg", type:"application/ogg", duration:2.208 },
@@ -1556,4 +1560,8 @@ function isSlowPlatform() {
   return SpecialPowers.Services.appinfo.name == "B2G" || getAndroidVersion() == 10;
 }
 
-SimpleTest.requestFlakyTimeout("untriaged");
+// Could be undefined in a page opened by the parent test page
+// like file_access_controls.html.
+if ("SimpleTest" in window) {
+  SimpleTest.requestFlakyTimeout("untriaged");
+}

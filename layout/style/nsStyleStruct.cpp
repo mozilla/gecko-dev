@@ -1,4 +1,5 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -820,44 +821,43 @@ nsChangeHint nsStyleColumn::CalcDifference(const nsStyleColumn& aOther) const
 // --------------------
 // nsStyleSVG
 //
-nsStyleSVG::nsStyleSVG() 
+nsStyleSVG::nsStyleSVG()
 {
-    MOZ_COUNT_CTOR(nsStyleSVG);
-    mFill.mType              = eStyleSVGPaintType_Color;
-    mFill.mPaint.mColor      = NS_RGB(0,0,0);
-    mFill.mFallbackColor     = NS_RGB(0,0,0);
-    mStroke.mType            = eStyleSVGPaintType_None;
-    mStroke.mPaint.mColor    = NS_RGB(0,0,0);
-    mStroke.mFallbackColor   = NS_RGB(0,0,0);
-    mStrokeDasharray         = nullptr;
+  MOZ_COUNT_CTOR(nsStyleSVG);
+  mFill.mType              = eStyleSVGPaintType_Color;
+  mFill.mPaint.mColor      = NS_RGB(0,0,0);
+  mFill.mFallbackColor     = NS_RGB(0,0,0);
+  mStroke.mType            = eStyleSVGPaintType_None;
+  mStroke.mPaint.mColor    = NS_RGB(0,0,0);
+  mStroke.mFallbackColor   = NS_RGB(0,0,0);
+  mStrokeDasharray         = nullptr;
 
-    mStrokeDashoffset.SetCoordValue(0);
-    mStrokeWidth.SetCoordValue(nsPresContext::CSSPixelsToAppUnits(1));
+  mStrokeDashoffset.SetCoordValue(0);
+  mStrokeWidth.SetCoordValue(nsPresContext::CSSPixelsToAppUnits(1));
 
-    mFillOpacity             = 1.0f;
-    mStrokeMiterlimit        = 4.0f;
-    mStrokeOpacity           = 1.0f;
+  mFillOpacity             = 1.0f;
+  mStrokeMiterlimit        = 4.0f;
+  mStrokeOpacity           = 1.0f;
 
-    mStrokeDasharrayLength   = 0;
-    mClipRule                = NS_STYLE_FILL_RULE_NONZERO;
-    mColorInterpolation      = NS_STYLE_COLOR_INTERPOLATION_SRGB;
-    mColorInterpolationFilters = NS_STYLE_COLOR_INTERPOLATION_LINEARRGB;
-    mFillRule                = NS_STYLE_FILL_RULE_NONZERO;
-    mImageRendering          = NS_STYLE_IMAGE_RENDERING_AUTO;
-    mPaintOrder              = NS_STYLE_PAINT_ORDER_NORMAL;
-    mShapeRendering          = NS_STYLE_SHAPE_RENDERING_AUTO;
-    mStrokeLinecap           = NS_STYLE_STROKE_LINECAP_BUTT;
-    mStrokeLinejoin          = NS_STYLE_STROKE_LINEJOIN_MITER;
-    mTextAnchor              = NS_STYLE_TEXT_ANCHOR_START;
-    mTextRendering           = NS_STYLE_TEXT_RENDERING_AUTO;
-    mFillOpacitySource       = eStyleSVGOpacitySource_Normal;
-    mStrokeOpacitySource     = eStyleSVGOpacitySource_Normal;
-    mStrokeDasharrayFromObject = false;
-    mStrokeDashoffsetFromObject = false;
-    mStrokeWidthFromObject   = false;
-}
-
-nsStyleSVG::~nsStyleSVG() 
+  mStrokeDasharrayLength   = 0;
+  mClipRule                = NS_STYLE_FILL_RULE_NONZERO;
+  mColorInterpolation      = NS_STYLE_COLOR_INTERPOLATION_SRGB;
+  mColorInterpolationFilters = NS_STYLE_COLOR_INTERPOLATION_LINEARRGB;
+  mFillRule                = NS_STYLE_FILL_RULE_NONZERO;
+  mImageRendering          = NS_STYLE_IMAGE_RENDERING_AUTO;
+  mPaintOrder              = NS_STYLE_PAINT_ORDER_NORMAL;
+  mShapeRendering          = NS_STYLE_SHAPE_RENDERING_AUTO;
+  mStrokeLinecap           = NS_STYLE_STROKE_LINECAP_BUTT;
+  mStrokeLinejoin          = NS_STYLE_STROKE_LINEJOIN_MITER;
+  mTextAnchor              = NS_STYLE_TEXT_ANCHOR_START;
+  mTextRendering           = NS_STYLE_TEXT_RENDERING_AUTO;
+  mFillOpacitySource       = eStyleSVGOpacitySource_Normal;
+  mStrokeOpacitySource     = eStyleSVGOpacitySource_Normal;
+  mStrokeDasharrayFromObject = false;
+  mStrokeDashoffsetFromObject = false;
+  mStrokeWidthFromObject   = false;
+} 
+nsStyleSVG::~nsStyleSVG()
 {
   MOZ_COUNT_DTOR(nsStyleSVG);
   delete [] mStrokeDasharray;
@@ -1240,21 +1240,21 @@ nsStyleFilter::SetDropShadow(nsCSSShadowArray* aDropShadow)
 // --------------------
 // nsStyleSVGReset
 //
-nsStyleSVGReset::nsStyleSVGReset() 
+nsStyleSVGReset::nsStyleSVGReset()
 {
-    MOZ_COUNT_CTOR(nsStyleSVGReset);
-    mStopColor               = NS_RGB(0,0,0);
-    mFloodColor              = NS_RGB(0,0,0);
-    mLightingColor           = NS_RGB(255,255,255);
-    mMask                    = nullptr;
-    mStopOpacity             = 1.0f;
-    mFloodOpacity            = 1.0f;
-    mDominantBaseline        = NS_STYLE_DOMINANT_BASELINE_AUTO;
-    mVectorEffect            = NS_STYLE_VECTOR_EFFECT_NONE;
-    mMaskType                = NS_STYLE_MASK_TYPE_LUMINANCE;
+  MOZ_COUNT_CTOR(nsStyleSVGReset);
+  mStopColor               = NS_RGB(0,0,0);
+  mFloodColor              = NS_RGB(0,0,0);
+  mLightingColor           = NS_RGB(255,255,255);
+  mMask                    = nullptr;
+  mStopOpacity             = 1.0f;
+  mFloodOpacity            = 1.0f;
+  mDominantBaseline        = NS_STYLE_DOMINANT_BASELINE_AUTO;
+  mVectorEffect            = NS_STYLE_VECTOR_EFFECT_NONE;
+  mMaskType                = NS_STYLE_MASK_TYPE_LUMINANCE;
 }
 
-nsStyleSVGReset::~nsStyleSVGReset() 
+nsStyleSVGReset::~nsStyleSVGReset()
 {
   MOZ_COUNT_DTOR(nsStyleSVGReset);
 }
@@ -1396,10 +1396,10 @@ nsStylePosition::nsStylePosition(void)
 
   mGridAutoFlow = NS_STYLE_GRID_AUTO_FLOW_ROW;
   mBoxSizing = StyleBoxSizing::Content;
-  mAlignContent = NS_STYLE_ALIGN_AUTO;
-  mAlignItems = NS_STYLE_ALIGN_AUTO;
+  mAlignContent = NS_STYLE_ALIGN_NORMAL;
+  mAlignItems = NS_STYLE_ALIGN_NORMAL;
   mAlignSelf = NS_STYLE_ALIGN_AUTO;
-  mJustifyContent = NS_STYLE_JUSTIFY_AUTO;
+  mJustifyContent = NS_STYLE_JUSTIFY_NORMAL;
   mJustifyItems = NS_STYLE_JUSTIFY_AUTO;
   mJustifySelf = NS_STYLE_JUSTIFY_AUTO;
   mFlexDirection = NS_STYLE_FLEX_DIRECTION_ROW;
@@ -1645,90 +1645,50 @@ nsStylePosition::WidthCoordDependsOnContainer(const nsStyleCoord &aCoord)
 }
 
 uint8_t
-nsStylePosition::ComputedAlignItems(const nsStyleDisplay* aDisplay) const
-{
-  if (mAlignItems != NS_STYLE_ALIGN_AUTO) {
-    return mAlignItems;
-  }
-  return aDisplay->IsFlexOrGridDisplayType() ? NS_STYLE_ALIGN_STRETCH
-                                             : NS_STYLE_ALIGN_START;
-}
-
-uint8_t
-nsStylePosition::ComputedAlignSelf(const nsStyleDisplay* aDisplay,
-                                   nsStyleContext*       aParent) const
+nsStylePosition::ComputedAlignSelf(nsStyleContext* aParent) const
 {
   if (mAlignSelf != NS_STYLE_ALIGN_AUTO) {
     return mAlignSelf;
   }
-  if (MOZ_UNLIKELY(aDisplay->IsAbsolutelyPositionedStyle())) {
-    return NS_STYLE_ALIGN_AUTO;
-  }
   if (MOZ_LIKELY(aParent)) {
-    auto parentAlignItems = aParent->StylePosition()->
-      ComputedAlignItems(aParent->StyleDisplay());
+    auto parentAlignItems = aParent->StylePosition()->ComputedAlignItems();
     MOZ_ASSERT(!(parentAlignItems & NS_STYLE_ALIGN_LEGACY),
                "align-items can't have 'legacy'");
     return parentAlignItems;
   }
-  return NS_STYLE_ALIGN_START;
-}
-
-uint16_t
-nsStylePosition::ComputedJustifyContent(const nsStyleDisplay* aDisplay) const
-{
-  switch (aDisplay->mDisplay) {
-    case NS_STYLE_DISPLAY_FLEX:
-    case NS_STYLE_DISPLAY_INLINE_FLEX:
-      // For flex containers, css-align-3 says the justify-content value
-      // "'stretch' computes to 'flex-start'."
-      // https://drafts.csswg.org/css-align-3/#propdef-justify-content
-      // XXX maybe map 'auto' too? (ISSUE 8 in the spec)
-      // https://drafts.csswg.org/css-align-3/#content-distribution
-      if ((mJustifyContent & NS_STYLE_ALIGN_ALL_BITS) ==
-          NS_STYLE_JUSTIFY_STRETCH) {
-        return NS_STYLE_JUSTIFY_FLEX_START;
-      }
-      break;
-  }
-  return mJustifyContent;
+  return NS_STYLE_ALIGN_NORMAL;
 }
 
 uint8_t
-nsStylePosition::ComputedJustifyItems(const nsStyleDisplay* aDisplay,
-                                      nsStyleContext*       aParent) const
+nsStylePosition::ComputedJustifyItems(nsStyleContext* aParent) const
 {
   if (mJustifyItems != NS_STYLE_JUSTIFY_AUTO) {
     return mJustifyItems;
   }
   if (MOZ_LIKELY(aParent)) {
     auto inheritedJustifyItems =
-      aParent->StylePosition()->ComputedJustifyItems(aParent->StyleDisplay(),
-                                                     aParent->GetParent());
+      aParent->StylePosition()->ComputedJustifyItems(aParent->GetParent());
+    // "If the inherited value of justify-items includes the 'legacy' keyword,
+    // 'auto' computes to the inherited value."  Otherwise, 'normal'.
     if (inheritedJustifyItems & NS_STYLE_JUSTIFY_LEGACY) {
       return inheritedJustifyItems;
     }
   }
-  return aDisplay->IsFlexOrGridDisplayType() ? NS_STYLE_JUSTIFY_STRETCH
-                                             : NS_STYLE_JUSTIFY_START;
+  return NS_STYLE_JUSTIFY_NORMAL;
 }
 
 uint8_t
-nsStylePosition::ComputedJustifySelf(const nsStyleDisplay* aDisplay,
-                                     nsStyleContext*       aParent) const
+nsStylePosition::ComputedJustifySelf(nsStyleContext* aParent) const
 {
   if (mJustifySelf != NS_STYLE_JUSTIFY_AUTO) {
     return mJustifySelf;
   }
-  if (MOZ_UNLIKELY(aDisplay->IsAbsolutelyPositionedStyle())) {
-    return NS_STYLE_JUSTIFY_AUTO;
-  }
   if (MOZ_LIKELY(aParent)) {
     auto inheritedJustifyItems = aParent->StylePosition()->
-      ComputedJustifyItems(aParent->StyleDisplay(), aParent->GetParent());
+      ComputedJustifyItems(aParent->GetParent());
     return inheritedJustifyItems & ~NS_STYLE_JUSTIFY_LEGACY;
   }
-  return NS_STYLE_JUSTIFY_START;
+  return NS_STYLE_JUSTIFY_NORMAL;
 }
 
 // --------------------
@@ -2580,8 +2540,7 @@ void nsTimingFunction::AssignFromKeyword(int32_t aTimingFunctionType)
       mSteps = 1;
       return;
     default:
-      MOZ_ASSERT_UNREACHABLE("aTimingFunctionType must be a keyword value");
-      // fall through
+      MOZ_FALLTHROUGH_ASSERT("aTimingFunctionType must be a keyword value");
     case NS_STYLE_TRANSITION_TIMING_FUNCTION_STEP_END:
       mType = Type::StepEnd;
       mStepSyntax = StepSyntax::Keyword;
@@ -3632,16 +3591,18 @@ nsChangeHint nsStyleText::CalcDifference(const nsStyleText& aOther) const
       (mTabSize != aOther.mTabSize))
     return NS_STYLE_HINT_REFLOW;
 
-  if (!AreShadowArraysEqual(mTextShadow, aOther.mTextShadow)) {
-    return nsChangeHint_UpdateSubtreeOverflow |
-           nsChangeHint_SchedulePaint |
+  if (HasTextEmphasis() != aOther.HasTextEmphasis() ||
+      (HasTextEmphasis() &&
+       mTextEmphasisPosition != aOther.mTextEmphasisPosition)) {
+    // Text emphasis position change could affect line height calculation.
+    return nsChangeHint_AllReflowHints |
            nsChangeHint_RepaintFrame;
   }
 
-  if (mTextEmphasisPosition != aOther.mTextEmphasisPosition ||
+  if (!AreShadowArraysEqual(mTextShadow, aOther.mTextShadow) ||
       mTextEmphasisStyle != aOther.mTextEmphasisStyle ||
       mTextEmphasisStyleString != aOther.mTextEmphasisStyleString) {
-    return nsChangeHint_UpdateOverflow |
+    return nsChangeHint_UpdateSubtreeOverflow |
            nsChangeHint_SchedulePaint |
            nsChangeHint_RepaintFrame;
   }
@@ -3655,6 +3616,10 @@ nsChangeHint nsStyleText::CalcDifference(const nsStyleText& aOther) const
       mTextEmphasisColor != aOther.mTextEmphasisColor) {
     return nsChangeHint_SchedulePaint |
            nsChangeHint_RepaintFrame;
+  }
+
+  if (mTextEmphasisPosition != aOther.mTextEmphasisPosition) {
+    return nsChangeHint_NeutralChange;
   }
 
   return NS_STYLE_HINT_NONE;

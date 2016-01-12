@@ -617,7 +617,10 @@ TokenStream::reportCompileErrorNumberVA(uint32_t offset, unsigned flags, unsigne
     // On the main thread, report the error immediately. When compiling off
     // thread, save the error so that the main thread can report it later.
     CompileError tempErr;
-    CompileError& err = cx->isJSContext() ? tempErr : cx->addPendingCompileError();
+    CompileError* tempErrPtr = &tempErr;
+    if (!cx->isJSContext() && !cx->addPendingCompileError(&tempErrPtr))
+        return false;
+    CompileError& err = *tempErrPtr;
 
     err.report.flags = flags;
     err.report.errorNumber = errorNumber;
@@ -638,9 +641,9 @@ TokenStream::reportCompileErrorNumberVA(uint32_t offset, unsigned flags, unsigne
                                  FrameIter::ALL_CONTEXTS, FrameIter::GO_THROUGH_SAVED,
                                  FrameIter::FOLLOW_DEBUGGER_EVAL_PREV_LINK,
                                  cx->compartment()->principals());
-        if (!iter.done() && iter.scriptFilename()) {
+        if (!iter.done() && iter.filename()) {
             callerFilename = true;
-            err.report.filename = iter.scriptFilename();
+            err.report.filename = iter.filename();
             err.report.lineno = iter.computeLine(&err.report.column);
         }
     }
@@ -877,13 +880,15 @@ TokenStream::getDirective(bool isMultiline, bool shouldWarnDeprecated,
                 ungetChar('*');
                 break;
             }
-            tokenbuf.append(c);
+            if (!tokenbuf.append(c))
+                return false;
         }
 
-        if (tokenbuf.empty())
+        if (tokenbuf.empty()) {
             // The directive's URL was missing, but this is not quite an
             // exception that we should stop and drop everything for.
             return true;
+        }
 
         size_t length = tokenbuf.length();
 
@@ -985,16 +990,8 @@ TokenStream::putIdentInTokenbuf(const char16_t* identStart)
 bool
 TokenStream::checkForKeyword(const KeywordInfo* kw, TokenKind* ttp)
 {
-    if (kw->tokentype == TOK_RESERVED
-#ifndef JS_HAS_CLASSES
-        || kw->tokentype == TOK_CLASS
-        || kw->tokentype == TOK_EXTENDS
-        || kw->tokentype == TOK_SUPER
-#endif
-        )
-    {
+    if (kw->tokentype == TOK_RESERVED)
         return reportError(JSMSG_RESERVED_ID, kw->chars);
-    }
 
     if (kw->tokentype == TOK_STRICT_RESERVED)
         return reportStrictModeError(JSMSG_RESERVED_ID, kw->chars);
@@ -1594,6 +1591,8 @@ TokenStream::getTokenInternal(TokenKind* ttp, Modifier modifier)
                     reflags = RegExpFlag(reflags | MultilineFlag);
                 else if (c == 'y' && !(reflags & StickyFlag))
                     reflags = RegExpFlag(reflags | StickyFlag);
+                else if (c == 'u' && !(reflags & UnicodeFlag))
+                    reflags = RegExpFlag(reflags | UnicodeFlag);
                 else
                     break;
                 getChar();

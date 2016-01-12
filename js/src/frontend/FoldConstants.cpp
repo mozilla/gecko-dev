@@ -100,6 +100,11 @@ ContainsHoistedDeclaration(ExclusiveContext* cx, ParseNode* node, bool* result)
         *result = false;
         return true;
 
+      case PNK_ANNEXB_FUNCTION:
+        MOZ_ASSERT(node->isArity(PN_BINARY));
+        *result = false;
+        return true;
+
       case PNK_MODULE:
         *result = false;
         return true;
@@ -241,7 +246,8 @@ ContainsHoistedDeclaration(ExclusiveContext* cx, ParseNode* node, bool* result)
       case PNK_CASE:
         return ContainsHoistedDeclaration(cx, node->as<CaseClause>().statementList(), result);
 
-      case PNK_FOR: {
+      case PNK_FOR:
+      case PNK_COMPREHENSIONFOR: {
         MOZ_ASSERT(node->isArity(PN_BINARY));
 
         ParseNode* loopHead = node->pn_left;
@@ -1782,6 +1788,9 @@ Fold(ExclusiveContext* cx, ParseNode** pnp, Parser<FullParseHandler>& parser, bo
       case PNK_FUNCTION:
         return FoldFunction(cx, pn, parser, inGenexpLambda);
 
+      case PNK_ANNEXB_FUNCTION:
+        return FoldFunction(cx, pn->pn_left, parser, inGenexpLambda);
+
       case PNK_MODULE:
         return FoldModule(cx, pn, parser);
 
@@ -1890,6 +1899,7 @@ Fold(ExclusiveContext* cx, ParseNode** pnp, Parser<FullParseHandler>& parser, bo
       case PNK_SHORTHAND:
       case PNK_LETBLOCK:
       case PNK_FOR:
+      case PNK_COMPREHENSIONFOR:
       case PNK_CLASSMETHOD:
       case PNK_IMPORT_SPEC:
       case PNK_EXPORT_SPEC:

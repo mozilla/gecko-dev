@@ -37,7 +37,6 @@
 #include "mozilla/dom/WindowBinding.h"
 #include "mozilla/dom/ElementBinding.h"
 #include "Units.h"
-#include "nsContentListDeclarations.h"
 
 class nsIFrame;
 class nsIDOMMozNamedAttrMap;
@@ -61,6 +60,11 @@ namespace dom {
 } // namespace dom
 } // namespace mozilla
 
+
+already_AddRefed<nsContentList>
+NS_GetContentList(nsINode* aRootNode,
+                  int32_t  aMatchNameSpaceId,
+                  const nsAString& aTagname);
 
 #define ELEMENT_FLAG_BIT(n_) NODE_FLAG_BIT(NODE_TYPE_SPECIFIC_BITS_OFFSET + (n_))
 
@@ -624,6 +628,9 @@ public:
 
     return slots->mAttributeMap;
   }
+
+  void GetAttributeNames(nsTArray<nsString>& aResult);
+
   void GetAttribute(const nsAString& aName, nsString& aReturn)
   {
     DOMString str;
@@ -697,9 +704,9 @@ public:
       // (on element that have status pointer capture override
       // or on element that have status pending pointer capture)
       if (pointerCaptureInfo->mOverrideContent == this) {
-        nsIPresShell::ReleasePointerCapturingContent(aPointerId, this);
+        nsIPresShell::ReleasePointerCapturingContent(aPointerId);
       } else if (pointerCaptureInfo->mPendingContent == this) {
-        nsIPresShell::ReleasePointerCapturingContent(aPointerId, this);
+        nsIPresShell::ReleasePointerCapturingContent(aPointerId);
       }
     }
   }
@@ -818,7 +825,9 @@ public:
   {
   }
 
+  // Note: GetAnimations will flush style while GetAnimationsUnsorted won't.
   void GetAnimations(nsTArray<RefPtr<Animation>>& aAnimations);
+  void GetAnimationsUnsorted(nsTArray<RefPtr<Animation>>& aAnimations);
 
   NS_IMETHOD GetInnerHTML(nsAString& aInnerHTML);
   virtual void SetInnerHTML(const nsAString& aInnerHTML, ErrorResult& aError);

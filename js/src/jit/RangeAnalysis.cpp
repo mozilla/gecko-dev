@@ -260,6 +260,7 @@ RangeAnalysis::addBetaNodes()
             if (!compare->isNumericComparison())
                 continue;
             // Otherwise fall through to handle JSOP_STRICTEQ the same as JSOP_EQ.
+            MOZ_FALLTHROUGH;
           case JSOP_EQ:
             comp.setDouble(bound, bound);
             break;
@@ -268,6 +269,7 @@ RangeAnalysis::addBetaNodes()
             if (!compare->isNumericComparison())
                 continue;
             // Otherwise fall through to handle JSOP_STRICTNE the same as JSOP_NE.
+            MOZ_FALLTHROUGH;
           case JSOP_NE:
             // Negative zero is not not-equal to zero.
             if (bound == 0) {
@@ -2804,6 +2806,7 @@ ComputeRequestedTruncateKind(MDefinition* candidate, bool* shouldClone)
 {
     bool isCapturedResult = false;
     bool isObservableResult = false;
+    bool isRecoverableResult = true;
     bool hasUseRemoved = candidate->isUseRemoved();
 
     MDefinition::TruncateKind kind = MDefinition::Truncate;
@@ -2816,6 +2819,8 @@ ComputeRequestedTruncateKind(MDefinition* candidate, bool* shouldClone)
             isCapturedResult = true;
             isObservableResult = isObservableResult ||
                 use->consumer()->toResumePoint()->isObservableOperand(*use);
+            isRecoverableResult = isRecoverableResult &&
+                use->consumer()->toResumePoint()->isRecoverableOperand(*use);
             continue;
         }
 
@@ -2847,25 +2852,24 @@ ComputeRequestedTruncateKind(MDefinition* candidate, bool* shouldClone)
     // truncation.
     if (isCapturedResult && needsConversion) {
 
-        // 1. Recover instructions are useless if there is no removed uses.  Not
-        // having removed uses means that we know everything about where this
-        // results flows into.
-        //
-        // 2. If the result is observable, then we cannot recover it.
-        //
-        // 3. The cloned instruction is expected to be used as a recover
-        // instruction.
-        if (hasUseRemoved && !isObservableResult && candidate->canRecoverOnBailout())
+        // These optimizations are pointless if there are no removed uses or any
+        // resume point observing the result.  Not having any means that we know
+        // everything about where this results flows into.
+        if ((hasUseRemoved || (isObservableResult && isRecoverableResult)) &&
+            candidate->canRecoverOnBailout())
+        {
+            // The cloned instruction is expected to be used as a recover
+            // instruction.
             *shouldClone = true;
 
-        // 1. If uses are removed, then we need to keep the expected result for
-        // dead branches.
-        //
-        // 2. If the result is observable, then the result might be read while
-        // the frame is on the stack.
-        else if (hasUseRemoved || isObservableResult)
+        } else if (hasUseRemoved || isObservableResult) {
+            // 1. If uses are removed and we cannot recover the result, then we
+            // need to keep the expected result for dead branches.
+            //
+            // 2. If the result is observable and not recoverable, then the
+            // result might be read while the frame is on the stack.
             kind = Min(kind, MDefinition::TruncateAfterBailouts);
-
+        }
     }
 
     return kind;
@@ -3004,12 +3008,25 @@ RangeAnalysis::truncate()
               case MDefinition::Op_Ursh:
                 if (!bitops.append(static_cast<MBinaryBitwiseInstruction*>(*iter)))
                     return false;
+                break;
               default:;
             }
 
             bool shouldClone = false;
             MDefinition::TruncateKind kind = ComputeTruncateKind(*iter, &shouldClone);
             if (kind == MDefinition::NoTruncate)
+                continue;
+
+            // Range Analysis is sometimes eager to do optimizations, even if we
+            // are not be able to truncate an instruction. In such case, we
+            // speculatively compile the instruction to an int32 instruction
+            // while adding a guard. This is what is implied by
+            // TruncateAfterBailout.
+            //
+            // If we already experienced an overflow bailout while executing
+            // code within the current JSScript, we no longer attempt to make
+            // this kind of eager optimizations.
+            if (kind <= MDefinition::TruncateAfterBailouts && block->info().hadOverflowBailout())
                 continue;
 
             // Truncate this instruction if possible.
@@ -3277,6 +3294,44 @@ MUrsh::collectRangeInfoPreTrunc()
     // we can optimize by disabling bailout checks for enforcing an int32 range.
     if (lhsRange.lower() >= 0 || rhsRange.lower() >= 1)
         bailoutsDisabled_ = true;
+}
+
+static bool
+DoesMaskMatchRange(int32_t mask, Range& range)
+{
+    // Check if range is positive, because the bitand operator in `(-3) & 0xff` can't be
+    // eliminated.
+    if (range.lower() >= 0) {
+        MOZ_ASSERT(range.isInt32());
+        // Check that the mask value has all bits set given the range upper bound. Note that the
+        // upper bound does not have to be exactly the mask value. For example, consider `x &
+        // 0xfff` where `x` is a uint8. That expression can still be optimized to `x`.
+        int bits = 1 + FloorLog2(range.upper());
+        uint32_t maskNeeded = (bits == 32) ? 0xffffffff : (uint32_t(1) << bits) - 1;
+        if ((mask & maskNeeded) == maskNeeded)
+            return true;
+    }
+
+    return false;
+}
+
+void
+MBinaryBitwiseInstruction::collectRangeInfoPreTrunc()
+{
+    Range lhsRange(lhs());
+    Range rhsRange(rhs());
+
+    if (lhs()->isConstantValue() && lhs()->type() == MIRType_Int32 &&
+         DoesMaskMatchRange(lhs()->constantValue().toInt32(), rhsRange))
+    {
+        maskMatchesRightRange = true;
+    }
+
+    if (rhs()->isConstantValue() && rhs()->type() == MIRType_Int32 &&
+         DoesMaskMatchRange(rhs()->constantValue().toInt32(), lhsRange))
+    {
+        maskMatchesLeftRange = true;
+    }
 }
 
 bool

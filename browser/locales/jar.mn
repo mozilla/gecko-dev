@@ -6,6 +6,7 @@
 
 @AB_CD@.jar:
 % locale browser @AB_CD@ %locale/browser/
+*   locale/browser/bookmarks.html                  (generic/profile/bookmarks.html.in)
     locale/browser/aboutAccounts.dtd               (%chrome/browser/aboutAccounts.dtd)
     locale/browser/aboutCertError.dtd              (%chrome/browser/aboutCertError.dtd)
     locale/browser/aboutDialog.dtd                 (%chrome/browser/aboutDialog.dtd)
@@ -24,7 +25,6 @@
     locale/browser/browser.dtd                     (%chrome/browser/browser.dtd)
     locale/browser/baseMenuOverlay.dtd             (%chrome/browser/baseMenuOverlay.dtd)
     locale/browser/browser.properties              (%chrome/browser/browser.properties)
-    locale/browser/browser-pocket.properties       (%chrome/browser/browser-pocket.properties)
     locale/browser/customizableui/customizableWidgets.properties (%chrome/browser/customizableui/customizableWidgets.properties)
     locale/browser/lightweightThemes.properties    (%chrome/browser/lightweightThemes.properties)
     locale/browser/loop/loop.properties            (%chrome/browser/loop/loop.properties)
@@ -70,6 +70,7 @@
     locale/browser/preferences/cookies.dtd            (%chrome/browser/preferences/cookies.dtd)
     locale/browser/preferences/content.dtd            (%chrome/browser/preferences/content.dtd)
     locale/browser/preferences/connection.dtd         (%chrome/browser/preferences/connection.dtd)
+    locale/browser/preferences/donottrack.dtd         (%chrome/browser/preferences/donottrack.dtd)
     locale/browser/preferences/applications.dtd       (%chrome/browser/preferences/applications.dtd)
     locale/browser/preferences/fonts.dtd              (%chrome/browser/preferences/fonts.dtd)
     locale/browser/preferences/main.dtd               (%chrome/browser/preferences/main.dtd)

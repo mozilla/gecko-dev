@@ -282,7 +282,7 @@ private:
   mGeckoChild->GetBounds(geckoBounds);
   LayoutDeviceIntRegion region(geckoBounds);
 
-  mGeckoChild->PaintWindow(region.ToUnknownRegion());
+  mGeckoChild->PaintWindow(region);
 }
 
 // Called asynchronously after setNeedsDisplay in order to avoid entering the
@@ -344,10 +344,11 @@ private:
 
   CGContextSaveGState(aContext);
 
-  nsIntRegion region = nsIntRect(NSToIntRound(aRect.origin.x * scale),
-                                 NSToIntRound(aRect.origin.y * scale),
-                                 NSToIntRound(aRect.size.width * scale),
-                                 NSToIntRound(aRect.size.height * scale));
+  LayoutDeviceIntRegion region =
+    LayoutDeviceIntRect(NSToIntRound(aRect.origin.x * scale),
+                        NSToIntRound(aRect.origin.y * scale),
+                        NSToIntRound(aRect.size.width * scale),
+                        NSToIntRound(aRect.size.height * scale));
 
   // Create Cairo objects.
   RefPtr<gfxQuartzSurface> targetSurface;
@@ -376,10 +377,10 @@ private:
   }
 
   // Set up the clip region.
-  nsIntRegionRectIterator iter(region);
+  LayoutDeviceIntRegion::RectIterator iter(region);
   targetContext->NewPath();
   for (;;) {
-    const nsIntRect* r = iter.Next();
+    const LayoutDeviceIntRect* r = iter.Next();
     if (!r)
       break;
     targetContext->Rectangle(gfxRect(r->x, r->y, r->width, r->height));
@@ -466,10 +467,10 @@ nsWindow::IsTopLevel()
 //
 
 NS_IMETHODIMP
-nsWindow::Create(nsIWidget *aParent,
+nsWindow::Create(nsIWidget* aParent,
                  nsNativeWidget aNativeParent,
-                 const nsIntRect &aRect,
-                 nsWidgetInitData *aInitData)
+                 const LayoutDeviceIntRect& aRect,
+                 nsWidgetInitData* aInitData)
 {
     ALOG("nsWindow[%p]::Create %p/%p [%d %d %d %d]", (void*)this, (void*)aParent, (void*)aNativeParent, aRect.x, aRect.y, aRect.width, aRect.height);
     nsWindow* parent = (nsWindow*) aParent;
@@ -484,17 +485,15 @@ nsWindow::Create(nsIWidget *aParent,
     if (parent == nullptr) {
         if (nsAppShell::gWindow == nil) {
             mBounds = UIKitScreenManager::GetBounds();
-        }
-        else {
+        } else {
             CGRect cgRect = [nsAppShell::gWindow bounds];
             mBounds.x = cgRect.origin.x;
             mBounds.y = cgRect.origin.y;
             mBounds.width = cgRect.size.width;
             mBounds.height = cgRect.size.height;
         }
-    }
-    else {
-        mBounds = aRect;
+    } else {
+        mBounds = aRect.ToUnknownRect();
     }
 
     ALOG("nsWindow[%p]::Create bounds: %d %d %d %d", (void*)this,
@@ -504,7 +503,9 @@ nsWindow::Create(nsIWidget *aParent,
     mWindowType = eWindowType_toplevel;
     mBorderStyle = eBorderStyle_default;
 
-    Inherited::BaseCreate(aParent, mBounds, aInitData);
+    Inherited::BaseCreate(aParent,
+                          LayoutDeviceIntRect::FromUnknownRect(mBounds),
+                          aInitData);
 
     NS_ASSERTION(IsTopLevel() || parent, "non top level window doesn't have a parent!");
 
@@ -700,7 +701,7 @@ nsWindow::SetSizeMode(nsSizeMode aMode)
 }
 
 NS_IMETHODIMP
-nsWindow::Invalidate(const nsIntRect &aRect)
+nsWindow::Invalidate(const LayoutDeviceIntRect& aRect)
 {
   if (!mNativeView || !mVisible)
     return NS_OK;
@@ -730,7 +731,7 @@ void nsWindow::WillPaintWindow()
   }
 }
 
-bool nsWindow::PaintWindow(nsIntRegion aRegion)
+bool nsWindow::PaintWindow(LayoutDeviceIntRegion aRegion)
 {
   if (!mWidgetListener)
     return false;
@@ -835,7 +836,6 @@ nsWindow::SetInputContext(const InputContext& aContext,
 NS_IMETHODIMP_(mozilla::widget::InputContext)
 nsWindow::GetInputContext()
 {
-    mInputContext.mNativeIMEContext = nullptr;
     return mInputContext;
 }
 
@@ -878,6 +878,10 @@ void* nsWindow::GetNativeData(uint32_t aDataType)
     case NS_NATIVE_PLUGIN_PORT:
         // not implemented
         break;
+
+    case NS_RAW_NATIVE_IME_CONTEXT:
+      retVal = NS_ONLY_ONE_NATIVE_IME_CONTEXT;
+      break;
   }
 
   return retVal;

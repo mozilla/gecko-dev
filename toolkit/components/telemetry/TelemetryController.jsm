@@ -36,7 +36,6 @@ const PREF_SERVER = PREF_BRANCH + "server";
 const PREF_LOG_LEVEL = PREF_BRANCH_LOG + "level";
 const PREF_LOG_DUMP = PREF_BRANCH_LOG + "dump";
 const PREF_CACHED_CLIENTID = PREF_BRANCH + "cachedClientID";
-const PREF_FHR_ENABLED = "datareporting.healthreport.service.enabled";
 const PREF_FHR_UPLOAD_ENABLED = "datareporting.healthreport.uploadEnabled";
 const PREF_SESSIONS_BRANCH = "datareporting.sessions.";
 const PREF_UNIFIED = PREF_BRANCH + "unified";
@@ -671,19 +670,7 @@ var Impl = {
     const enabled = Utils.isTelemetryEnabled;
     const isOptout = IS_UNIFIED_TELEMETRY && (!Policy.isUnifiedOptin() || this._isInOptoutSample());
     Telemetry.canRecordBase = enabled || isOptout;
-
-    if (AppConstants.MOZILLA_OFFICIAL) {
-      // Enable extended telemetry if:
-      //  * the telemetry preference is set and
-      //  * this is an official build or we are in test-mode
-      // We only do the latter check for official builds so that e.g. developer builds
-      // still enable Telemetry based on prefs.
-      Telemetry.canRecordExtended = enabled && (Telemetry.isOfficialTelemetry || this._testMode);
-    } else {
-      // Turn off extended telemetry recording if disabled by preferences or if base/telemetry
-      // telemetry recording is off.
-      Telemetry.canRecordExtended = enabled;
-    }
+    Telemetry.canRecordExtended = enabled;
 
     this._log.config("enableTelemetryRecording - canRecordBase:" + Telemetry.canRecordBase +
                      ", canRecordExtended: " + Telemetry.canRecordExtended);
@@ -718,21 +705,18 @@ var Impl = {
       return Promise.resolve();
     }
 
-    // Only initialize the session recorder if FHR is enabled.
-    // TODO: move this after the |enableTelemetryRecording| block and drop the
-    // PREF_FHR_ENABLED check once we permanently switch over to unified Telemetry.
-    if (!this._sessionRecorder &&
-        (Preferences.get(PREF_FHR_ENABLED, true) || IS_UNIFIED_TELEMETRY)) {
-      this._sessionRecorder = new SessionRecorder(PREF_SESSIONS_BRANCH);
-      this._sessionRecorder.onStartup();
-    }
-
     // This will trigger displaying the datachoices infobar.
     TelemetryReportingPolicy.setup();
 
     if (!this.enableTelemetryRecording()) {
       this._log.config("setupChromeProcess - Telemetry recording is disabled, skipping Chrome process setup.");
       return Promise.resolve();
+    }
+
+    // Initialize the session recorder.
+    if (!this._sessionRecorder) {
+      this._sessionRecorder = new SessionRecorder(PREF_SESSIONS_BRANCH);
+      this._sessionRecorder.onStartup();
     }
 
     this._attachObservers();
@@ -751,6 +735,7 @@ var Impl = {
       try {
         // TODO: This should probably happen after all the delayed init here.
         this._initialized = true;
+        TelemetryEnvironment.delayedInit();
 
         yield TelemetrySend.setup(this._testMode);
 

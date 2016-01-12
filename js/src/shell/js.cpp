@@ -12,6 +12,7 @@
 #include "mozilla/GuardObjects.h"
 #include "mozilla/mozalloc.h"
 #include "mozilla/PodOperations.h"
+#include "mozilla/SizePrintfMacros.h"
 
 #ifdef XP_WIN
 # include <direct.h>
@@ -1348,14 +1349,14 @@ Evaluate(JSContext* cx, unsigned argc, Value* vp)
 
         {
             if (saveBytecode) {
-                if (!JS::CompartmentOptionsRef(cx).cloneSingletons()) {
+                if (!JS::CompartmentCreationOptionsRef(cx).cloneSingletons()) {
                     JS_ReportErrorNumber(cx, my_GetErrorMessage, nullptr,
                                          JSSMSG_CACHE_SINGLETON_FAILED);
                     return false;
                 }
 
                 // cloneSingletons implies that singletons are used as template objects.
-                MOZ_ASSERT(JS::CompartmentOptionsRef(cx).getSingletonsAsTemplates());
+                MOZ_ASSERT(JS::CompartmentBehaviorsRef(cx).getSingletonsAsTemplates());
             }
 
             if (loadBytecode) {
@@ -1420,9 +1421,9 @@ Evaluate(JSContext* cx, unsigned argc, Value* vp)
         if (loadBytecode && assertEqBytecode) {
             if (saveLength != loadLength) {
                 char loadLengthStr[16];
-                JS_snprintf(loadLengthStr, sizeof(loadLengthStr), "%u", loadLength);
+                JS_snprintf(loadLengthStr, sizeof(loadLengthStr), "%" PRIu32, loadLength);
                 char saveLengthStr[16];
-                JS_snprintf(saveLengthStr, sizeof(saveLengthStr), "%u", saveLength);
+                JS_snprintf(saveLengthStr, sizeof(saveLengthStr), "%" PRIu32, saveLength);
 
                 JS_ReportErrorNumber(cx, my_GetErrorMessage, nullptr, JSSMSG_CACHE_EQ_SIZE_FAILED,
                                      loadLengthStr, saveLengthStr);
@@ -2125,9 +2126,10 @@ TryNotes(JSContext* cx, HandleScript script, Sprinter* sp)
     Sprint(sp, "\nException table:\nkind      stack    start      end\n");
     do {
         MOZ_ASSERT(tn->kind < ArrayLength(TryNoteNames));
+        uint8_t startOff = script->pcToOffset(script->main()) + tn->start;
         Sprint(sp, " %-7s %6u %8u %8u\n",
                TryNoteNames[tn->kind], tn->stackDepth,
-               tn->start, tn->start + tn->length);
+               startOff, startOff + tn->length);
     } while (++tn != tnlimit);
     return true;
 }
@@ -2736,6 +2738,7 @@ WorkerMain(void* arg)
 
     sr->isWorker = true;
     JS_SetRuntimePrivate(rt, sr.get());
+    JS_SetFutexCanWait(rt);
     JS_SetErrorReporter(rt, my_ErrorReporter);
     SetWorkerRuntimeOptions(rt);
 
@@ -2758,7 +2761,7 @@ WorkerMain(void* arg)
         JSAutoRequest ar(cx);
 
         JS::CompartmentOptions compartmentOptions;
-        compartmentOptions.setVersion(JSVERSION_DEFAULT);
+        compartmentOptions.behaviors().setVersion(JSVERSION_DEFAULT);
         RootedObject global(cx, NewGlobalObject(cx, compartmentOptions, nullptr));
         if (!global)
             break;
@@ -3779,11 +3782,13 @@ EscapeForShell(AutoCStringVector& argv)
 
 static Vector<const char*, 4, js::SystemAllocPolicy> sPropagatedFlags;
 
+#if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
 static bool
 PropagateFlagToNestedShells(const char* flag)
 {
     return sPropagatedFlags.append(flag);
 }
+#endif
 
 static bool
 NestedShell(JSContext* cx, unsigned argc, Value* vp)
@@ -3950,33 +3955,43 @@ static bool
 NewGlobal(JSContext* cx, unsigned argc, Value* vp)
 {
     JSPrincipals* principals = nullptr;
+
     JS::CompartmentOptions options;
-    options.setVersion(JSVERSION_DEFAULT);
+
+    JS::CompartmentCreationOptions& creationOptions = options.creationOptions();
+    JS::CompartmentBehaviors& behaviors = options.behaviors();
+
+    behaviors.setVersion(JSVERSION_DEFAULT);
 
     CallArgs args = CallArgsFromVp(argc, vp);
     if (args.length() == 1 && args[0].isObject()) {
         RootedObject opts(cx, &args[0].toObject());
         RootedValue v(cx);
 
-        if (!JS_GetProperty(cx, opts, "sameZoneAs", &v))
-            return false;
-        if (v.isObject())
-            options.setSameZoneAs(UncheckedUnwrap(&v.toObject()));
-
         if (!JS_GetProperty(cx, opts, "invisibleToDebugger", &v))
             return false;
         if (v.isBoolean())
-            options.setInvisibleToDebugger(v.toBoolean());
+            creationOptions.setInvisibleToDebugger(v.toBoolean());
 
         if (!JS_GetProperty(cx, opts, "cloneSingletons", &v))
             return false;
         if (v.isBoolean())
-            options.setCloneSingletons(v.toBoolean());
+            creationOptions.setCloneSingletons(v.toBoolean());
+
+        if (!JS_GetProperty(cx, opts, "experimentalDateTimeFormatFormatToPartsEnabled", &v))
+            return false;
+        if (v.isBoolean())
+            creationOptions.setExperimentalDateTimeFormatFormatToPartsEnabled(v.toBoolean());
+
+        if (!JS_GetProperty(cx, opts, "sameZoneAs", &v))
+            return false;
+        if (v.isObject())
+            creationOptions.setSameZoneAs(UncheckedUnwrap(&v.toObject()));
 
         if (!JS_GetProperty(cx, opts, "disableLazyParsing", &v))
             return false;
         if (v.isBoolean())
-            options.setDisableLazyParsing(v.toBoolean());
+            behaviors.setDisableLazyParsing(v.toBoolean());
 
         if (!JS_GetProperty(cx, opts, "principal", &v))
             return false;
@@ -4756,6 +4771,32 @@ EntryPoints(JSContext* cx, unsigned argc, Value* vp)
     return false;
 }
 
+static bool
+SetARMHwCapFlags(JSContext* cx, unsigned argc, Value* vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    if (args.length() != 1) {
+        JS_ReportError(cx, "Wrong number of arguments");
+        return false;
+    }
+
+    RootedString flagsListString(cx, JS::ToString(cx, args.get(0)));
+    if (!flagsListString)
+        return false;
+
+#if defined(JS_CODEGEN_ARM)
+    JSAutoByteString flagsList(cx, flagsListString);
+    if (!flagsList)
+        return false;
+
+    jit::ParseARMHwCapFlags(flagsList.ptr());
+#endif
+
+    args.rval().setUndefined();
+    return true;
+}
+
 static const JSFunctionSpecWithHelp shell_functions[] = {
     JS_FN_HELP("version", Version, 0, 0,
 "version([number])",
@@ -5215,6 +5256,11 @@ TestAssertRecoveredOnBailout,
 "dumpStaticScopeChain(obj)",
 "  Prints the static scope chain of an interpreted function or a module."),
 #endif
+
+    JS_FN_HELP("setARMHwCapFlags", SetARMHwCapFlags, 1, 0,
+"setARMHwCapFlags(\"flag1,flag2 flag3\")",
+"  On non-ARM, no-op. On ARM, set the hardware capabilities. The list of \n"
+"  flags is available by calling this function with \"help\" as the flag's name"),
 
     JS_FS_HELP_END
 };
@@ -6078,6 +6124,9 @@ NewGlobalObject(JSContext* cx, JS::CompartmentOptions& options,
 
         /* Initialize FakeDOMObject.prototype */
         InitDOMObject(domProto);
+
+        if (!js::InitModuleClasses(cx, glob))
+            return nullptr;
     }
 
     JS_FireOnNewGlobalObject(cx, glob);
@@ -6501,10 +6550,9 @@ Shell(JSContext* cx, OptionParser* op, char** envp)
     if (op->getBoolOption("disable-oom-functions"))
         disableOOMFunctions = true;
 
-    RootedObject glob(cx);
     JS::CompartmentOptions options;
-    options.setVersion(JSVERSION_DEFAULT);
-    glob = NewGlobalObject(cx, options, nullptr);
+    options.behaviors().setVersion(JSVERSION_DEFAULT);
+    RootedObject glob(cx, NewGlobalObject(cx, options, nullptr));
     if (!glob)
         return 1;
 
@@ -6685,7 +6733,7 @@ main(int argc, char** argv, char** envp)
         || !op.addIntOption('\0', "baseline-warmup-threshold", "COUNT",
                             "Wait for COUNT calls or iterations before baseline-compiling "
                             "(default: 10)", -1)
-        || !op.addBoolOption('\0', "non-writable-jitcode", "Allocate JIT code as non-writable memory.")
+        || !op.addBoolOption('\0', "non-writable-jitcode", "(NOP for fuzzers) Allocate JIT code as non-writable memory.")
         || !op.addBoolOption('\0', "no-fpu", "Pretend CPU does not support floating-point operations "
                              "to test JIT codegen (no-op on platforms other than x86).")
         || !op.addBoolOption('\0', "no-sse3", "Pretend CPU does not support SSE3 instructions and above "
@@ -6764,11 +6812,6 @@ main(int argc, char** argv, char** envp)
     OOM_printAllocationCount = op.getBoolOption('O');
 #endif
 
-    if (op.getBoolOption("non-writable-jitcode")) {
-        js::jit::ExecutableAllocator::nonWritableJitCode = true;
-        PropagateFlagToNestedShells("--non-writable-jitcode");
-    }
-
 #ifdef JS_CODEGEN_X86
     if (op.getBoolOption("no-fpu"))
         js::jit::CPUInfo::SetFloatingPointDisabled();
@@ -6818,6 +6861,8 @@ main(int argc, char** argv, char** envp)
         return 1;
 
     JS_SetRuntimePrivate(rt, sr.get());
+    // Waiting is allowed on the shell's main thread, for now.
+    JS_SetFutexCanWait(rt);
     JS_SetErrorReporter(rt, my_ErrorReporter);
     JS::SetOutOfMemoryCallback(rt, my_OOMCallback, nullptr);
     if (!SetRuntimeOptions(rt, op))
@@ -6854,7 +6899,6 @@ main(int argc, char** argv, char** envp)
         return 1;
 
     JS_SetGCParameter(rt, JSGC_MODE, JSGC_MODE_INCREMENTAL);
-    JS_SetGCParameterForThread(cx, JSGC_MAX_CODE_CACHE_BYTES, 16 * 1024 * 1024);
 
     JS::SetLargeAllocationFailureCallback(rt, my_LargeAllocFailCallback, (void*)cx);
 

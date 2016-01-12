@@ -41,7 +41,7 @@ interface NavigatorID {
   readonly attribute DOMString appVersion;
   [Constant, Cached]
   readonly attribute DOMString platform;
-  [Constant, Cached, Throws=Workers]
+  [Pure, Cached, Throws=Workers]
   readonly attribute DOMString userAgent;
   [Constant, Cached]
   readonly attribute DOMString product; // constant "Gecko"
@@ -414,7 +414,7 @@ partial interface Navigator {
 
 // Service Workers/Navigation Controllers
 partial interface Navigator {
-  [Func="ServiceWorkerContainer::IsEnabled"]
+  [Func="ServiceWorkerContainer::IsEnabled", SameObject]
   readonly attribute ServiceWorkerContainer serviceWorker;
 };
 

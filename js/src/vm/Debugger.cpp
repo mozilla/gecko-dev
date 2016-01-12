@@ -356,11 +356,12 @@ Breakpoint::nextInSite()
 
 Debugger::Debugger(JSContext* cx, NativeObject* dbg)
   : object(dbg),
+    debuggees(cx->runtime()),
     uncaughtExceptionHook(nullptr),
     enabled(true),
     allowUnobservedAsmJS(false),
     collectCoverageInfo(false),
-    observedGCs(cx),
+    observedGCs(cx->runtime()),
     tenurePromotionsLog(cx),
     trackingTenurePromotions(false),
     maxTenurePromotionsLogLength(DEFAULT_MAX_LOG_LENGTH),
@@ -376,10 +377,10 @@ Debugger::Debugger(JSContext* cx, NativeObject* dbg)
     objects(cx),
     environments(cx),
 #ifdef NIGHTLY_BUILD
-    traceLoggerLastDrainedId(0),
+    traceLoggerLastDrainedSize(0),
     traceLoggerLastDrainedIteration(0),
 #endif
-    traceLoggerScriptedCallsLastDrainedId(0),
+    traceLoggerScriptedCallsLastDrainedSize(0),
     traceLoggerScriptedCallsLastDrainedIteration(0)
 {
     assertSameCompartment(cx, dbg);
@@ -975,6 +976,26 @@ Debugger::unwrapPropertyDescriptor(JSContext* cx, HandleObject obj,
     return true;
 }
 
+namespace {
+class MOZ_STACK_CLASS ReportExceptionClosure : public ScriptEnvironmentPreparer::Closure
+{
+public:
+    explicit ReportExceptionClosure(RootedValue& exn)
+        : exn_(exn)
+    {
+    }
+
+    bool operator()(JSContext* cx) override
+    {
+        cx->setPendingException(exn_);
+        return false;
+    }
+
+private:
+    RootedValue& exn_;
+};
+} // anonymous namespace
+
 JSTrapStatus
 Debugger::handleUncaughtExceptionHelper(Maybe<AutoCompartment>& ac,
                                         MutableHandleValue* vp, bool callHook)
@@ -993,7 +1014,31 @@ Debugger::handleUncaughtExceptionHelper(Maybe<AutoCompartment>& ac,
         }
 
         if (cx->isExceptionPending()) {
-            JS_ReportPendingException(cx);
+            /*
+             * We want to report the pending exception, but we want to let the
+             * embedding handle it however it wants to.  So pretend like we're
+             * starting a new script execution on our current compartment (which
+             * is the debugger compartment, so reported errors won't get
+             * reported to various onerror handlers in debuggees) and as part of
+             * that "execution" simply throw our exception so the embedding can
+             * deal.
+             */
+            RootedValue exn(cx);
+            if (cx->getPendingException(&exn)) {
+                /*
+                 * Clear the exception, because
+                 * PrepareScriptEnvironmentAndInvoke will assert that we don't
+                 * have one.
+                 */
+                cx->clearPendingException();
+                ReportExceptionClosure reportExn(exn);
+                PrepareScriptEnvironmentAndInvoke(cx, cx->global(), reportExn);
+            }
+            /*
+             * And if not, or if PrepareScriptEnvironmentAndInvoke somehow left
+             * an exception on cx (which it totally shouldn't do), just give
+             * up.
+             */
             cx->clearPendingException();
         }
     }
@@ -1616,7 +1661,7 @@ void
 Debugger::slowPathOnNewGlobalObject(JSContext* cx, Handle<GlobalObject*> global)
 {
     MOZ_ASSERT(!JS_CLIST_IS_EMPTY(&cx->runtime()->onNewGlobalObjectWatchers));
-    if (global->compartment()->options().invisibleToDebugger())
+    if (global->compartment()->creationOptions().invisibleToDebugger())
         return;
 
     /*
@@ -3099,7 +3144,7 @@ Debugger::addAllGlobalsAsDebuggees(JSContext* cx, unsigned argc, Value* vp)
     THIS_DEBUGGER(cx, argc, vp, "addAllGlobalsAsDebuggees", args, dbg);
     for (ZonesIter zone(cx->runtime(), SkipAtoms); !zone.done(); zone.next()) {
         for (CompartmentsInZoneIter c(zone); !c.done(); c.next()) {
-            if (c == dbg->object->compartment() || c->options().invisibleToDebugger())
+            if (c == dbg->object->compartment() || c->creationOptions().invisibleToDebugger())
                 continue;
             c->scheduledForDestruction = false;
             GlobalObject* global = c->maybeGlobal();
@@ -3320,7 +3365,7 @@ Debugger::addDebuggeeGlobal(JSContext* cx, Handle<GlobalObject*> global)
     // with certain testing aides we expose in the shell, so just make addDebuggee
     // throw in that case.
     JSCompartment* debuggeeCompartment = global->compartment();
-    if (debuggeeCompartment->options().invisibleToDebugger()) {
+    if (debuggeeCompartment->creationOptions().invisibleToDebugger()) {
         JS_ReportErrorNumber(cx, GetErrorMessage, nullptr,
                              JSMSG_DEBUG_CANT_DEBUG_GLOBAL);
         return false;
@@ -4202,7 +4247,7 @@ Debugger::findAllGlobals(JSContext* cx, unsigned argc, Value* vp)
         JS::AutoCheckCannotGC nogc;
 
         for (CompartmentsIter c(cx->runtime(), SkipAtoms); !c.done(); c.next()) {
-            if (c->options().invisibleToDebugger())
+            if (c->creationOptions().invisibleToDebugger())
                 continue;
 
             c->scheduledForDestruction = false;
@@ -4256,7 +4301,7 @@ Debugger::makeGlobalObjectReference(JSContext* cx, unsigned argc, Value* vp)
     // then from it we can reach function objects, scripts, environments, etc.,
     // none of which we're ever supposed to see.
     JSCompartment* globalCompartment = global->compartment();
-    if (globalCompartment->options().invisibleToDebugger()) {
+    if (globalCompartment->creationOptions().invisibleToDebugger()) {
         JS_ReportErrorNumber(cx, GetErrorMessage, nullptr,
                              JSMSG_DEBUG_INVISIBLE_COMPARTMENT);
         return false;
@@ -4329,8 +4374,8 @@ Debugger::setupTraceLogger(JSContext* cx, unsigned argc, Value* vp)
         if (!GetProperty(cx, obj, obj, ids[i], &v))
             return false;
 
-        textIds.append(textId);
-        values.append(ToBoolean(v));
+        textIds.infallibleAppend(textId);
+        values.infallibleAppend(ToBoolean(v));
     }
 
     MOZ_ASSERT(ids.length() == textIds.length());
@@ -4357,9 +4402,9 @@ Debugger::drainTraceLogger(JSContext* cx, unsigned argc, Value* vp)
     size_t num;
     TraceLoggerThread* logger = TraceLoggerForMainThread(cx->runtime());
     bool lostEvents = logger->lostEvents(dbg->traceLoggerLastDrainedIteration,
-                                         dbg->traceLoggerLastDrainedId);
+                                         dbg->traceLoggerLastDrainedSize);
     EventEntry* events = logger->getEventsStartingAt(&dbg->traceLoggerLastDrainedIteration,
-                                                     &dbg->traceLoggerLastDrainedId,
+                                                     &dbg->traceLoggerLastDrainedSize,
                                                      &num);
 
     RootedObject array(cx, NewDenseEmptyArray(cx));
@@ -4452,10 +4497,10 @@ Debugger::drainTraceLoggerScriptCalls(JSContext* cx, unsigned argc, Value* vp)
     size_t num;
     TraceLoggerThread* logger = TraceLoggerForMainThread(cx->runtime());
     bool lostEvents = logger->lostEvents(dbg->traceLoggerScriptedCallsLastDrainedIteration,
-                                         dbg->traceLoggerScriptedCallsLastDrainedId);
+                                         dbg->traceLoggerScriptedCallsLastDrainedSize);
     EventEntry* events = logger->getEventsStartingAt(
                                          &dbg->traceLoggerScriptedCallsLastDrainedIteration,
-                                         &dbg->traceLoggerScriptedCallsLastDrainedId,
+                                         &dbg->traceLoggerScriptedCallsLastDrainedSize,
                                          &num);
 
     RootedObject array(cx, NewDenseEmptyArray(cx));
@@ -6664,7 +6709,7 @@ EvaluateInEnv(JSContext* cx, Handle<Env*> env, AbstractFramePtr frame,
         script->setActiveEval();
     }
 
-    ExecuteType type = !frame ? EXECUTE_GLOBAL : EXECUTE_DEBUG;
+    ExecuteType type = !frame ? EXECUTE_GLOBAL_OR_MODULE : EXECUTE_DEBUG;
     return ExecuteKernel(cx, script, *env, NullValue(), type, frame, rval.address());
 }
 
@@ -6679,13 +6724,6 @@ DebuggerGenericEval(JSContext* cx, const char* fullMethodName, const Value& code
     /* Either we're specifying the frame, or a global. */
     MOZ_ASSERT_IF(iter, !scope);
     MOZ_ASSERT_IF(!iter, scope && IsGlobalLexicalScope(scope));
-
-    if (iter && iter->script()->isDerivedClassConstructor()) {
-        MOZ_ASSERT(iter->isFunctionFrame() && iter->calleeTemplate()->isClassConstructor());
-        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_DISABLED_DERIVED_CLASS,
-                             "debugger eval");
-        return false;
-    }
 
     /* Check the first argument, the eval code string. */
     if (!code.isString()) {
@@ -7764,7 +7802,7 @@ DebuggerObject_unwrap(JSContext* cx, unsigned argc, Value* vp)
     // invisible-to-Debugger global. (If our referent is a *wrapper* to such,
     // and the wrapper is in a visible compartment, that's fine.)
     JSCompartment* unwrappedCompartment = unwrapped->compartment();
-    if (unwrappedCompartment->options().invisibleToDebugger()) {
+    if (unwrappedCompartment->creationOptions().invisibleToDebugger()) {
         JS_ReportErrorNumber(cx, GetErrorMessage, nullptr,
                              JSMSG_DEBUG_INVISIBLE_COMPARTMENT);
         return false;

@@ -24,7 +24,6 @@ from collections import (
 )
 from mozbuild.util import (
     HierarchicalStringList,
-    HierarchicalStringListWithFlagsFactory,
     KeyedDefaultDict,
     List,
     memoize,
@@ -282,6 +281,15 @@ class SubContext(Context, ContextDerivedValue):
         self._sandbox().pop_subcontext(self)
 
 
+class InitializedDefines(ContextDerivedValue, OrderedDict):
+    def __init__(self, context, value=None):
+        OrderedDict.__init__(self)
+        for define in context.config.substs.get('MOZ_DEBUG_DEFINES', ()):
+            self[define] = 1
+        if value:
+            self.update(value)
+
+
 class FinalTargetValue(ContextDerivedValue, unicode):
     def __new__(cls, context, value=""):
         if not value:
@@ -399,6 +407,10 @@ class Path(ContextDerivedValue, unicode):
     def __hash__(self):
         return hash(self.full_path)
 
+    @memoized_property
+    def target_basename(self):
+        return mozpath.basename(self.full_path)
+
 
 class SourcePath(Path):
     """Like Path, but limited to paths in the source directory."""
@@ -432,6 +444,24 @@ class SourcePath(Path):
         objdir (aka pseudo-rework), this is needed.
         """
         return ObjDirPath(self.context, '!%s' % self).full_path
+
+
+class RenamedSourcePath(SourcePath):
+    """Like SourcePath, but with a different base name when installed.
+
+    The constructor takes a tuple of (source, target_basename).
+
+    This class is not meant to be exposed to moz.build sandboxes as of now,
+    and is not supported by the RecursiveMake backend.
+    """
+    def __init__(self, context, value):
+        assert isinstance(value, tuple)
+        source, self._target_basename = value
+        super(RenamedSourcePath, self).__init__(context, source)
+
+    @property
+    def target_basename(self):
+        return self._target_basename
 
 
 class ObjDirPath(Path):
@@ -520,6 +550,30 @@ def ContextDerivedTypedRecord(*fields):
 
     _TypedRecord._fields = dict(fields)
     return _TypedRecord
+
+
+@memoize
+def ContextDerivedTypedHierarchicalStringList(type):
+    """Specialized HierarchicalStringList for use with ContextDerivedValue
+    types."""
+    class _TypedListWithItems(ContextDerivedValue, HierarchicalStringList):
+        __slots__ = ('_strings', '_children', '_context')
+
+        def __init__(self, context):
+            self._strings = ContextDerivedTypedList(
+                type, StrictOrderingOnAppendList)(context)
+            self._children = {}
+            self._context = context
+
+        def _get_exportvariable(self, name):
+            child = self._children.get(name)
+            if not child:
+                child = self._children[name] = _TypedListWithItems(
+                    self._context)
+            return child
+
+    return _TypedListWithItems
+
 
 BugzillaComponent = TypedNamedTuple('BugzillaComponent',
                         [('product', unicode), ('component', unicode)])
@@ -912,7 +966,7 @@ VARIABLES = {
         indicating extra files the output depends on.
         """, 'export'),
 
-    'DEFINES': (OrderedDict, dict,
+    'DEFINES': (InitializedDefines, dict,
         """Dictionary of compiler defines to declare.
 
         These are passed in to the compiler as ``-Dkey='value'`` for string
@@ -977,7 +1031,7 @@ VARIABLES = {
         break the build in subtle ways.
         """, 'misc'),
 
-    'FINAL_TARGET_FILES': (HierarchicalStringList, list,
+    'FINAL_TARGET_FILES': (ContextDerivedTypedHierarchicalStringList(Path), list,
         """List of files to be installed into the application directory.
 
         ``FINAL_TARGET_FILES`` will copy (or symlink, if the platform supports it)
@@ -997,11 +1051,11 @@ VARIABLES = {
         disabled.
         """, None),
 
-    'FINAL_TARGET_PP_FILES': (HierarchicalStringList, list,
+    'FINAL_TARGET_PP_FILES': (ContextDerivedTypedHierarchicalStringList(Path), list,
         """Like ``FINAL_TARGET_FILES``, with preprocessing.
         """, 'libs'),
 
-    'TESTING_FILES': (HierarchicalStringList, list,
+    'TESTING_FILES': (ContextDerivedTypedHierarchicalStringList(Path), list,
         """List of files to be installed in the _tests directory.
 
         This works similarly to FINAL_TARGET_FILES.
@@ -1168,7 +1222,17 @@ VARIABLES = {
         This variable can only be used on Linux.
         """, None),
 
-    'BRANDING_FILES': (HierarchicalStringListWithFlagsFactory({'source': unicode}), list,
+    'SYMBOLS_FILE': (SourcePath, unicode,
+        """A file containing a list of symbols to export from a shared library.
+
+        The given file contains a list of symbols to be exported, and is
+        preprocessed.
+        A special marker "@DATA@" must be added after a symbol name if it
+        points to data instead of code, so that the Windows linker can treat
+        them correctly.
+        """, None),
+
+    'BRANDING_FILES': (ContextDerivedTypedHierarchicalStringList(Path), list,
         """List of files to be installed into the branding directory.
 
         ``BRANDING_FILES`` will copy (or symlink, if the platform supports it)
@@ -1180,13 +1244,6 @@ VARIABLES = {
 
            BRANDING_FILES += ['foo.png']
            BRANDING_FILES.images.subdir += ['bar.png']
-
-        If the source and destination have different file names, add the
-        destination name to the list and set the ``source`` property on the
-        entry, like so::
-
-           BRANDING_FILES.dir += ['baz.png']
-           BRANDING_FILES.dir['baz.png'].source = 'quux.png'
         """, None),
 
     'SDK_LIBRARY': (bool, bool,
@@ -1225,15 +1282,6 @@ VARIABLES = {
         ``HOST_BIN_SUFFIX``, the name will remain unchanged.
         """, None),
 
-    'TEST_DIRS': (ContextDerivedTypedList(SourcePath), list,
-        """Like DIRS but only for directories that contain test-only code.
-
-        If tests are not enabled, this variable will be ignored.
-
-        This variable may go away once the transition away from Makefiles is
-        complete.
-        """, None),
-
     'CONFIGURE_SUBST_FILES': (ContextDerivedTypedList(SourcePath, StrictOrderingOnAppendList), list,
         """Output files that will be generated using configure-like substitution.
 
@@ -1252,7 +1300,7 @@ VARIABLES = {
         into account the values of ``AC_DEFINE`` instead of ``AC_SUBST``.
         """, None),
 
-    'EXPORTS': (HierarchicalStringList, list,
+    'EXPORTS': (ContextDerivedTypedHierarchicalStringList(Path), list,
         """List of files to be exported, and in which subdirectories.
 
         ``EXPORTS`` is generally used to list the include files to be exported to
@@ -1265,6 +1313,10 @@ VARIABLES = {
 
            EXPORTS += ['foo.h']
            EXPORTS.mozilla.dom += ['bar.h']
+
+        Entries in ``EXPORTS`` are paths, so objdir paths may be used, but
+        any files listed from the objdir must also be listed in
+        ``GENERATED_FILES``.
         """, None),
 
     'PROGRAM' : (unicode, unicode,
@@ -1296,7 +1348,7 @@ VARIABLES = {
         will be made explicit.
         """, None),
 
-    'JAR_MANIFESTS': (StrictOrderingOnAppendList, list,
+    'JAR_MANIFESTS': (ContextDerivedTypedList(SourcePath, StrictOrderingOnAppendList), list,
         """JAR manifest files that should be processed as part of the build.
 
         JAR manifests are files in the tree that define how to package files
@@ -1555,7 +1607,7 @@ VARIABLES = {
            appear in the moz.build file.
         """, None),
 
-    'HOST_DEFINES': (OrderedDict, dict,
+    'HOST_DEFINES': (InitializedDefines, dict,
         """Dictionary of compiler defines to declare for host compilation.
         See ``DEFINES`` for specifics.
         """, None),
@@ -1857,6 +1909,10 @@ FUNCTIONS = {
         """),
 }
 
+
+TestDirsPlaceHolder = List()
+
+
 # Special variables. These complement VARIABLES.
 #
 # Each entry is a tuple of:
@@ -1980,6 +2036,15 @@ SPECIAL_VARIABLES = {
         ``TESTING_JS_MODULES.foo += ['module.jsm']``.
         """),
 
+    'TEST_DIRS': (lambda context: context['DIRS'] if context.config.substs.get('ENABLE_TESTS')
+                                  else TestDirsPlaceHolder, list,
+        """Like DIRS but only for directories that contain test-only code.
+
+        If tests are not enabled, this variable will be ignored.
+
+        This variable may go away once the transition away from Makefiles is
+        complete.
+        """),
 }
 
 # Deprecation hints.

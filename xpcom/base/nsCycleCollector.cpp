@@ -2637,7 +2637,7 @@ class SnowWhiteKiller : public TraceCallbacks
     ObjectsVector;
 
 public:
-  SnowWhiteKiller(nsCycleCollector* aCollector, uint32_t aMaxCount)
+  explicit SnowWhiteKiller(nsCycleCollector* aCollector)
     : mCollector(aCollector)
     , mObjects(kSegmentSize)
   {
@@ -2677,7 +2677,7 @@ public:
   }
 
   virtual void Trace(JS::Heap<JS::Value>* aValue, const char* aName,
-                     void* aClosure) const
+                     void* aClosure) const override
   {
     if (aValue->isMarkable() && ValueIsGrayCCThing(*aValue)) {
       MOZ_ASSERT(!js::gc::IsInsideNursery(aValue->toGCThing()));
@@ -2686,7 +2686,7 @@ public:
   }
 
   virtual void Trace(JS::Heap<jsid>* aId, const char* aName,
-                     void* aClosure) const
+                     void* aClosure) const override
   {
   }
 
@@ -2699,29 +2699,35 @@ public:
   }
 
   virtual void Trace(JS::Heap<JSObject*>* aObject, const char* aName,
-                     void* aClosure) const
+                     void* aClosure) const override
+  {
+    AppendJSObjectToPurpleBuffer(*aObject);
+  }
+
+  virtual void Trace(JSObject** aObject, const char* aName,
+                     void* aClosure) const override
   {
     AppendJSObjectToPurpleBuffer(*aObject);
   }
 
   virtual void Trace(JS::TenuredHeap<JSObject*>* aObject, const char* aName,
-                     void* aClosure) const
+                     void* aClosure) const override
   {
     AppendJSObjectToPurpleBuffer(*aObject);
   }
 
   virtual void Trace(JS::Heap<JSString*>* aString, const char* aName,
-                     void* aClosure) const
+                     void* aClosure) const override
   {
   }
 
   virtual void Trace(JS::Heap<JSScript*>* aScript, const char* aName,
-                     void* aClosure) const
+                     void* aClosure) const override
   {
   }
 
   virtual void Trace(JS::Heap<JSFunction*>* aFunction, const char* aName,
-                     void* aClosure) const
+                     void* aClosure) const override
   {
   }
 
@@ -2734,10 +2740,10 @@ class RemoveSkippableVisitor : public SnowWhiteKiller
 {
 public:
   RemoveSkippableVisitor(nsCycleCollector* aCollector,
-                         uint32_t aMaxCount, bool aRemoveChildlessNodes,
+                         bool aRemoveChildlessNodes,
                          bool aAsyncSnowWhiteFreeing,
                          CC_ForgetSkippableCallback aCb)
-    : SnowWhiteKiller(aCollector, aAsyncSnowWhiteFreeing ? 0 : aMaxCount)
+    : SnowWhiteKiller(aCollector)
     , mRemoveChildlessNodes(aRemoveChildlessNodes)
     , mAsyncSnowWhiteFreeing(aAsyncSnowWhiteFreeing)
     , mDispatchedDeferredDeletion(false)
@@ -2794,7 +2800,7 @@ nsPurpleBuffer::RemoveSkippable(nsCycleCollector* aCollector,
                                 bool aAsyncSnowWhiteFreeing,
                                 CC_ForgetSkippableCallback aCb)
 {
-  RemoveSkippableVisitor visitor(aCollector, Count(), aRemoveChildlessNodes,
+  RemoveSkippableVisitor visitor(aCollector, aRemoveChildlessNodes,
                                  aAsyncSnowWhiteFreeing, aCb);
   VisitEntries(visitor);
 }
@@ -2813,7 +2819,7 @@ nsCycleCollector::FreeSnowWhite(bool aUntilNoSWInPurpleBuffer)
 
   bool hadSnowWhiteObjects = false;
   do {
-    SnowWhiteKiller visitor(this, mPurpleBuf.Count());
+    SnowWhiteKiller visitor(this);
     mPurpleBuf.VisitEntries(visitor);
     hadSnowWhiteObjects = hadSnowWhiteObjects ||
                           visitor.HasSnowWhiteObjects();

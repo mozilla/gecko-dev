@@ -78,24 +78,11 @@ var gTests = [
   }
 },
 
-// Disabled on Linux for intermittent issues with FHR, see Bug 945667.
 {
   desc: "Check that performing a search fires a search event and records to " +
-        "Firefox Health Report.",
+        "Telemetry.",
   setup: function () { },
   run: function* () {
-    // Skip this test on Linux.
-    if (navigator.platform.indexOf("Linux") == 0) {
-      return Promise.resolve();
-    }
-
-    try {
-      let cm = Cc["@mozilla.org/categorymanager;1"].getService(Ci.nsICategoryManager);
-      cm.getCategoryEntry("healthreport-js-provider-default", "SearchesProvider");
-    } catch (ex) {
-      // Health Report disabled, or no SearchesProvider.
-      return Promise.resolve();
-    }
 
     let engine = yield promiseNewEngine("searchSuggestionEngine.xml");
     // Make this actually work in healthreport by giving it an ID:
@@ -113,23 +100,32 @@ var gTests = [
     is(engine.name, engineName, "Engine name in DOM should match engine we just added");
 
     // Get the current number of recorded searches.
-    let searchStr = "a search";
-    getNumberOfSearches(engineName).then(num => {
-      numSearchesBefore = num;
+    let histogramKey = engine.identifier + ".abouthome";
+    try {
+      let hs = Services.telemetry.getKeyedHistogramById("SEARCH_COUNTS").snapshot();
+      if (histogramKey in hs) {
+        numSearchesBefore = hs[histogramKey].sum;
+      }
+    } catch (ex) {
+      // No searches performed yet, not a problem, |numSearchesBefore| is 0.
+    }
 
-      info("Perform a search.");
-      doc.getElementById("searchText").value = searchStr;
-      doc.getElementById("searchSubmit").click();
-    });
+    // Perform a search to increase the SEARCH_COUNT histogram.
+    let searchStr = "a search";
+    info("Perform a search.");
+    doc.getElementById("searchText").value = searchStr;
+    doc.getElementById("searchSubmit").click();
 
     let expectedURL = Services.search.currentEngine.
                       getSubmission(searchStr, null, "homepage").
                       uri.spec;
     let loadPromise = waitForDocLoadAndStopIt(expectedURL).then(() => {
-      getNumberOfSearches(engineName).then(num => {
-        is(num, numSearchesBefore + 1, "One more search recorded.");
-        searchEventDeferred.resolve();
-      });
+      // Make sure the SEARCH_COUNTS histogram has the right key and count.
+      let hs = Services.telemetry.getKeyedHistogramById("SEARCH_COUNTS").snapshot();
+      Assert.ok(histogramKey in hs, "histogram with key should be recorded");
+      Assert.equal(hs[histogramKey].sum, numSearchesBefore + 1,
+                   "histogram sum should be incremented");
+      searchEventDeferred.resolve();
     });
 
     try {
@@ -599,58 +595,6 @@ function promiseSetupSnippetsMap(aTab, aSetupFn)
     });
   }, true, true);
   return deferred.promise;
-}
-
-/**
- * Retrieves the number of about:home searches recorded for the current day.
- *
- * @param aEngineName
- *        name of the setup search engine.
- *
- * @return {Promise} Returns a promise resolving to the number of searches.
- */
-function getNumberOfSearches(aEngineName) {
-  let reporter = Components.classes["@mozilla.org/datareporting/service;1"]
-                                   .getService()
-                                   .wrappedJSObject
-                                   .healthReporter;
-  ok(reporter, "Health Reporter instance available.");
-
-  return reporter.onInit().then(function onInit() {
-    let provider = reporter.getProvider("org.mozilla.searches");
-    ok(provider, "Searches provider is available.");
-
-    let m = provider.getMeasurement("counts", 3);
-    return m.getValues().then(data => {
-      let now = new Date();
-      let yday = new Date(now);
-      yday.setDate(yday.getDate() - 1);
-
-      // Add the number of searches recorded yesterday to the number of searches
-      // recorded today. This makes the test not fail intermittently when it is
-      // run at midnight and we accidentally compare the number of searches from
-      // different days. Tests are always run with an empty profile so there
-      // are no searches from yesterday, normally. Should the test happen to run
-      // past midnight we make sure to count them in as well.
-      return getNumberOfSearchesByDate(aEngineName, data, now) +
-             getNumberOfSearchesByDate(aEngineName, data, yday);
-    });
-  });
-}
-
-function getNumberOfSearchesByDate(aEngineName, aData, aDate) {
-  if (aData.days.hasDay(aDate)) {
-    let id = Services.search.getEngineByName(aEngineName).identifier;
-
-    let day = aData.days.getDay(aDate);
-    let field = id + ".abouthome";
-
-    if (day.has(field)) {
-      return day.get(field) || 0;
-    }
-  }
-
-  return 0; // No records found.
 }
 
 function waitForLoad(cb) {

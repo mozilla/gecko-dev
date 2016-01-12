@@ -22,12 +22,14 @@
     _(SimdSplatX4)                  \
     _(Int32x4)                      \
     _(Float32x4)                    \
+    _(SimdAllTrue)                  \
+    _(SimdAnyTrue)                  \
     _(SimdReinterpretCast)          \
     _(SimdExtractElementI)          \
+    _(SimdExtractElementB)          \
     _(SimdExtractElementF)          \
     _(SimdInsertElementI)           \
     _(SimdInsertElementF)           \
-    _(SimdSignMaskX4)               \
     _(SimdGeneralShuffleI)          \
     _(SimdGeneralShuffleF)          \
     _(SimdSwizzleI)                 \
@@ -190,8 +192,8 @@
     _(OsrReturnValue)               \
     _(OsrArgumentsObject)           \
     _(RegExp)                       \
-    _(RegExpExec)                   \
-    _(RegExpTest)                   \
+    _(RegExpMatcher)                \
+    _(RegExpTester)                 \
     _(RegExpReplace)                \
     _(StringReplace)                \
     _(Substr)                       \
@@ -257,6 +259,7 @@
     _(StoreTypedArrayElementHole)   \
     _(StoreTypedArrayElementStatic) \
     _(AtomicIsLockFree)             \
+    _(GuardSharedTypedArray)        \
     _(CompareExchangeTypedArrayElement) \
     _(AtomicExchangeTypedArrayElement) \
     _(AtomicTypedArrayElementBinop) \
@@ -276,6 +279,7 @@
     _(GetPropertyPolymorphicV)      \
     _(GetPropertyPolymorphicT)      \
     _(BindNameCache)                \
+    _(CallBindVar)                  \
     _(CallGetProperty)              \
     _(GetNameCache)                 \
     _(CallGetIntrinsicValue)        \
@@ -324,7 +328,6 @@
     _(CallInstanceOf)               \
     _(InterruptCheck)               \
     _(AsmJSInterruptCheck)          \
-    _(InterruptCheckImplicit)       \
     _(GetDOMProperty)               \
     _(GetDOMMemberV)                \
     _(GetDOMMemberT)                \
@@ -365,6 +368,8 @@
     _(Debugger)                     \
     _(NewTarget)                    \
     _(ArrowNewTarget)               \
-    _(CheckReturn)
+    _(CheckReturn)                  \
+    _(CheckObjCoercible)            \
+    _(DebugCheckSelfHosted)
 
 #endif /* jit_shared_LOpcodes_shared_h */

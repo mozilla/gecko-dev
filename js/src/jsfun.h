@@ -187,11 +187,12 @@ class JSFunction : public js::NativeObject
     bool isExprBody()               const { return flags() & EXPR_BODY; }
     bool hasGuessedAtom()           const { return flags() & HAS_GUESSED_ATOM; }
     bool isLambda()                 const { return flags() & LAMBDA; }
-    bool isSelfHostedBuiltin()      const { return flags() & SELF_HOSTED; }
     bool hasRest()                  const { return flags() & HAS_REST; }
     bool isInterpretedLazy()        const { return flags() & INTERPRETED_LAZY; }
     bool hasScript()                const { return flags() & INTERPRETED; }
     bool isBeingParsed()            const { return flags() & BEING_PARSED; }
+
+    bool infallibleIsDefaultClassConstructor(JSContext* cx) const;
 
     // Arrow functions store their lexical new.target in the first extended slot.
     bool isArrow()                  const { return kind() == Arrow; }
@@ -208,6 +209,10 @@ class JSFunction : public js::NativeObject
 
     bool hasResolvedLength()        const { return flags() & RESOLVED_LENGTH; }
     bool hasResolvedName()          const { return flags() & RESOLVED_NAME; }
+
+    bool isSelfHostedOrIntrinsic()  const { return flags() & SELF_HOSTED; }
+    bool isSelfHostedBuiltin()      const { return isSelfHostedOrIntrinsic() && !isNative(); }
+    bool isIntrinsic()              const { return isSelfHostedOrIntrinsic() && isNative(); }
 
     bool hasJITCode() const {
         if (!hasScript())
@@ -252,6 +257,13 @@ class JSFunction : public js::NativeObject
         flags_ |= CONSTRUCTOR;
     }
 
+    void setIsClassConstructor() {
+        MOZ_ASSERT(!isClassConstructor());
+        MOZ_ASSERT(isConstructor());
+
+        setKind(ClassConstructor);
+    }
+
     // Can be called multiple times by the parser.
     void setArgCount(uint16_t nargs) {
         this->nargs_ = nargs;
@@ -263,10 +275,16 @@ class JSFunction : public js::NativeObject
     }
 
     void setIsSelfHostedBuiltin() {
+        MOZ_ASSERT(isInterpreted());
         MOZ_ASSERT(!isSelfHostedBuiltin());
         flags_ |= SELF_HOSTED;
         // Self-hosted functions should not be constructable.
         flags_ &= ~CONSTRUCTOR;
+    }
+    void setIsIntrinsic() {
+        MOZ_ASSERT(isNative());
+        MOZ_ASSERT(!isIntrinsic());
+        flags_ |= SELF_HOSTED;
     }
 
     void setIsFunctionPrototype() {
@@ -298,6 +316,8 @@ class JSFunction : public js::NativeObject
     }
 
     void initAtom(JSAtom* atom) { atom_.init(atom); }
+
+    void setAtom(JSAtom* atom) { atom_ = atom; }
 
     JSAtom* displayAtom() const {
         return atom_;
@@ -632,22 +652,31 @@ NewNativeConstructor(ExclusiveContext* cx, JSNative native, unsigned nargs, Hand
 // the global.
 extern JSFunction*
 NewScriptedFunction(ExclusiveContext* cx, unsigned nargs, JSFunction::Flags flags,
-                    HandleAtom atom, gc::AllocKind allocKind = gc::AllocKind::FUNCTION,
+                    HandleAtom atom, HandleObject proto = nullptr,
+                    gc::AllocKind allocKind = gc::AllocKind::FUNCTION,
                     NewObjectKind newKind = GenericObject,
                     HandleObject enclosingDynamicScope = nullptr);
 
-// If proto is nullptr, Function.prototype is used instead.  If
+// By default, if proto is nullptr, Function.prototype is used instead.i
+// If protoHandling is NewFunctionExactProto, and proto is nullptr, the created
+// function will use nullptr as its [[Prototype]] instead. If
 // enclosingDynamicScope is null, the function will have a null environment()
 // (yes, null, not the global).  In all cases, the global will be used as the
 // parent.
+
+enum NewFunctionProtoHandling {
+    NewFunctionClassProto,
+    NewFunctionGivenProto
+};
 extern JSFunction*
 NewFunctionWithProto(ExclusiveContext* cx, JSNative native, unsigned nargs,
                      JSFunction::Flags flags, HandleObject enclosingDynamicScope, HandleAtom atom,
                      HandleObject proto, gc::AllocKind allocKind = gc::AllocKind::FUNCTION,
-                     NewObjectKind newKind = GenericObject);
+                     NewObjectKind newKind = GenericObject,
+                     NewFunctionProtoHandling protoHandling = NewFunctionClassProto);
 
 extern JSAtom*
-IdToFunctionName(JSContext* cx, HandleId id);
+IdToFunctionName(JSContext* cx, HandleId id, const char* prefix = nullptr);
 
 extern JSFunction*
 DefineFunction(JSContext* cx, HandleObject obj, HandleId id, JSNative native,
@@ -677,6 +706,18 @@ class FunctionExtended : public JSFunction
     static const unsigned ARROW_NEWTARGET_SLOT = 0;
 
     static const unsigned METHOD_HOMEOBJECT_SLOT = 0;
+
+    /*
+     * All asm.js/wasm functions store their compiled module (either
+     * WasmModuleObject or AsmJSModuleObject) in the first extended slot.
+     */
+    static const unsigned WASM_MODULE_SLOT = 0;
+
+    /*
+     * wasm/asm.js exported functions store the index of the export in the
+     * module's export vector in the second slot.
+     */
+    static const unsigned WASM_EXPORT_INDEX_SLOT = 1;
 
     static inline size_t offsetOfExtendedSlot(unsigned which) {
         MOZ_ASSERT(which < NUM_EXTENDED_SLOTS);

@@ -17,6 +17,7 @@
 #include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/Logging.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/SizePrintfMacros.h"
 #include "mozilla/Snprintf.h"
 #include "mozilla/Telemetry.h"
 #include "nsCORSListenerProxy.h"
@@ -792,7 +793,7 @@ FontFaceSet::UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules)
   mUserFontSet->mLocalRulesUsed = false;
 
   if (LOG_ENABLED() && !mRuleFaces.IsEmpty()) {
-    LOG(("userfonts (%p) userfont rules update (%s) rule count: %d",
+    LOG(("userfonts (%p) userfont rules update (%s) rule count: %" PRIuSIZE,
          mUserFontSet.get(),
          (modified ? "modified" : "not modified"),
          mRuleFaces.Length()));
@@ -975,6 +976,7 @@ FontFaceSet::FindOrCreateUserFontEntryFromFontFace(const nsAString& aFamilyName,
   int32_t stretch = NS_STYLE_FONT_STRETCH_NORMAL;
   uint8_t italicStyle = NS_STYLE_FONT_STYLE_NORMAL;
   uint32_t languageOverride = NO_FONT_LANGUAGE_OVERRIDE;
+  uint8_t fontDisplay = NS_FONT_DISPLAY_AUTO;
 
   // set up weight
   aFontFace->GetDesc(eCSSFontDesc_Weight, val);
@@ -1010,6 +1012,16 @@ FontFaceSet::FindOrCreateUserFontEntryFromFontFace(const nsAString& aFamilyName,
     italicStyle = val.GetIntValue();
   } else if (unit == eCSSUnit_Normal) {
     italicStyle = NS_STYLE_FONT_STYLE_NORMAL;
+  } else {
+    NS_ASSERTION(unit == eCSSUnit_Null,
+                 "@font-face style has unexpected unit");
+  }
+
+  // set up font display
+  aFontFace->GetDesc(eCSSFontDesc_Display, val);
+  unit = val.GetUnit();
+  if (unit == eCSSUnit_Enumerated) {
+    fontDisplay = val.GetIntValue();
   } else {
     NS_ASSERTION(unit == eCSSUnit_Null,
                  "@font-face style has unexpected unit");
@@ -1160,7 +1172,7 @@ FontFaceSet::FindOrCreateUserFontEntryFromFontFace(const nsAString& aFamilyName,
                                             stretch, italicStyle,
                                             featureSettings,
                                             languageOverride,
-                                            unicodeRanges);
+                                            unicodeRanges, fontDisplay);
   return entry.forget();
 }
 
@@ -1804,11 +1816,13 @@ FontFaceSet::UserFontSet::CreateUserFontEntry(
                                uint8_t aStyle,
                                const nsTArray<gfxFontFeature>& aFeatureSettings,
                                uint32_t aLanguageOverride,
-                               gfxSparseBitSet* aUnicodeRanges)
+                               gfxSparseBitSet* aUnicodeRanges,
+                               uint8_t aFontDisplay)
 {
   RefPtr<gfxUserFontEntry> entry =
     new FontFace::Entry(this, aFontFaceSrcList, aWeight, aStretch, aStyle,
-                        aFeatureSettings, aLanguageOverride, aUnicodeRanges);
+                        aFeatureSettings, aLanguageOverride, aUnicodeRanges,
+                        aFontDisplay);
   return entry.forget();
 }
 

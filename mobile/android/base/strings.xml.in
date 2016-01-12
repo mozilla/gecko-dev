@@ -184,6 +184,9 @@
   <string name="pref_home_suggested_sites_summary">&pref_home_suggested_sites_summary;</string>
   <string name="pref_category_home_homepage">&pref_category_home_homepage;</string>
   <string name="home_homepage_title">&home_homepage_title;</string>
+  <string name="home_homepage_radio_default">&home_homepage_radio_default;</string>
+  <string name="home_homepage_radio_user_address">&home_homepage_radio_user_address;</string>
+  <string name="home_homepage_hint_user_address">&home_homepage_hint_user_address;</string>
 
   <string name="pref_header_general">&pref_header_general;</string>
   <string name="pref_header_search">&pref_header_search;</string>
@@ -196,9 +199,6 @@
 
   <string name="pref_remember_signons">&pref_remember_signons2;</string>
 
-  <string name="pref_open_external_urls_privately_title">&pref_open_external_urls_privately_title;</string>
-  <string name="pref_open_external_urls_privately_summary">&pref_open_external_urls_privately_summary;</string>
-
   <string name="pref_manage_logins">&pref_manage_logins;</string>
 
   <string name="pref_cookies_menu">&pref_cookies_menu;</string>
@@ -209,7 +209,7 @@
   <string name="pref_tap_to_load_images_title2">&pref_tap_to_load_images_title2;</string>
   <string name="pref_tap_to_load_images_enabled">&pref_tap_to_load_images_enabled;</string>
   <string name="pref_tap_to_load_images_data">&pref_tap_to_load_images_data;</string>
-  <string name="pref_tap_to_load_images_disabled">&pref_tap_to_load_images_disabled;</string>
+  <string name="pref_tap_to_load_images_disabled2">&pref_tap_to_load_images_disabled2;</string>
 
   <string name="pref_tracking_protection_title">&pref_tracking_protection_title;</string>
   <string name="pref_tracking_protection_summary">&pref_tracking_protection_summary3;</string>
@@ -224,6 +224,7 @@
   <string name="pref_char_encoding_on">&pref_char_encoding_on;</string>
   <string name="pref_char_encoding_off">&pref_char_encoding_off;</string>
   <string name="pref_clear_private_data_now">&pref_clear_private_data;</string>
+  <string name="pref_clear_private_data_now_tablet">&pref_clear_private_data_now_tablet;</string>
   <string name="pref_clear_on_exit_title">&pref_clear_on_exit_title3;</string>
   <string name="pref_clear_on_exit_summary2">&pref_clear_on_exit_summary2;</string>
   <string name="pref_clear_on_exit_dialog_title">&pref_clear_on_exit_dialog_title;</string>
@@ -575,8 +576,8 @@
   <string name="restrictable_feature_advanced_settings_description">&restrictable_feature_advanced_settings_description;</string>
   <string name="restrictable_feature_camera_microphone">&restrictable_feature_camera_microphone;</string>
   <string name="restrictable_feature_camera_microphone_description">&restrictable_feature_camera_microphone_description;</string>
-  <string name="restrictable_feature_data_choices">&restrictable_feature_data_choices;</string>
-  <string name="restrictable_feature_data_choices_description">&restrictable_feature_data_choices_description;</string>
+  <string name="restrictable_feature_block_list">&restrictable_feature_block_list;</string>
+  <string name="restrictable_feature_block_list_description">&restrictable_feature_block_list_description;</string>
 
   <!-- Miscellaneous -->
   <string name="ellipsis">&ellipsis;</string>
@@ -596,5 +597,6 @@
   <string name="unsupported_sdk_version">&unsupported_sdk_version;</string>
   <string name="eol_notification_title">&eol_notification_title;</string>
   <string name="eol_notification_summary">&eol_notification_summary;</string>
-  <string name="eol_notification_url">&eol_notification_url;</string>
+  <!-- https://support.mozilla.org/1/mobile/%VERSION%/%OS%/%LOCALE%/honeycomb -->
+  <string name="eol_notification_url">https://support.mozilla.org/1/mobile/&formatS1;/&formatS2;/&formatS3;/honeycomb</string>
 </resources>

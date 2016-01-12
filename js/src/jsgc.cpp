@@ -348,8 +348,7 @@ static const AllocKind IncrementalPhaseStrings[] = {
 };
 
 static const AllocKind IncrementalPhaseScripts[] = {
-    AllocKind::SCRIPT,
-    AllocKind::LAZY_SCRIPT
+    AllocKind::SCRIPT
 };
 
 static const AllocKind IncrementalPhaseJitCode[] = {
@@ -377,6 +376,10 @@ static const AllocKind BackgroundPhaseObjects[] = {
     AllocKind::OBJECT16_BACKGROUND
 };
 
+static const AllocKind BackgroundPhaseScripts[] = {
+    AllocKind::LAZY_SCRIPT
+};
+
 static const AllocKind BackgroundPhaseStringsAndSymbols[] = {
     AllocKind::FAT_INLINE_STRING,
     AllocKind::STRING,
@@ -391,6 +394,7 @@ static const AllocKind BackgroundPhaseShapes[] = {
 };
 
 static const FinalizePhase BackgroundFinalizePhases[] = {
+    PHASE(BackgroundPhaseScripts, gcstats::PHASE_SWEEP_SCRIPT),
     PHASE(BackgroundPhaseObjects, gcstats::PHASE_SWEEP_OBJECT),
     PHASE(BackgroundPhaseStringsAndSymbols, gcstats::PHASE_SWEEP_STRING),
     PHASE(BackgroundPhaseShapes, gcstats::PHASE_SWEEP_SHAPE)
@@ -1413,7 +1417,7 @@ GCRuntime::setParameter(JSGCParamKey key, uint32_t value, AutoLockGC& lock)
         setMarkStackLimit(value, lock);
         break;
       case JSGC_DECOMMIT_THRESHOLD:
-        decommitThreshold = value * 1024 * 1024;
+        decommitThreshold = (uint64_t)value * 1024 * 1024;
         break;
       case JSGC_MODE:
         mode = JSGCMode(value);
@@ -1444,14 +1448,14 @@ GCSchedulingTunables::setParameter(JSGCParamKey key, uint32_t value, const AutoL
         highFrequencyThresholdUsec_ = value * PRMJ_USEC_PER_MSEC;
         break;
       case JSGC_HIGH_FREQUENCY_LOW_LIMIT:
-        highFrequencyLowLimitBytes_ = value * 1024 * 1024;
+        highFrequencyLowLimitBytes_ = (uint64_t)value * 1024 * 1024;
         if (highFrequencyLowLimitBytes_ >= highFrequencyHighLimitBytes_)
             highFrequencyHighLimitBytes_ = highFrequencyLowLimitBytes_ + 1;
         MOZ_ASSERT(highFrequencyHighLimitBytes_ > highFrequencyLowLimitBytes_);
         break;
       case JSGC_HIGH_FREQUENCY_HIGH_LIMIT:
         MOZ_ASSERT(value > 0);
-        highFrequencyHighLimitBytes_ = value * 1024 * 1024;
+        highFrequencyHighLimitBytes_ = (uint64_t)value * 1024 * 1024;
         if (highFrequencyHighLimitBytes_ <= highFrequencyLowLimitBytes_)
             highFrequencyLowLimitBytes_ = highFrequencyHighLimitBytes_ - 1;
         MOZ_ASSERT(highFrequencyHighLimitBytes_ > highFrequencyLowLimitBytes_);
@@ -1517,13 +1521,13 @@ GCRuntime::getParameter(JSGCParamKey key, const AutoLockGC& lock)
             return 0;
         } else {
             MOZ_RELEASE_ASSERT(defaultTimeBudget_ >= 0);
-            MOZ_RELEASE_ASSERT(defaultTimeBudget_ < UINT32_MAX);
+            MOZ_RELEASE_ASSERT(defaultTimeBudget_ <= UINT32_MAX);
             return uint32_t(defaultTimeBudget_);
         }
       case JSGC_MARK_STACK_LIMIT:
         return marker.maxCapacity();
       case JSGC_HIGH_FREQUENCY_TIME_LIMIT:
-        return tunables.highFrequencyThresholdUsec();
+        return tunables.highFrequencyThresholdUsec() / PRMJ_USEC_PER_MSEC;
       case JSGC_HIGH_FREQUENCY_LOW_LIMIT:
         return tunables.highFrequencyLowLimitBytes() / 1024 / 1024;
       case JSGC_HIGH_FREQUENCY_HIGH_LIMIT:
@@ -1540,6 +1544,8 @@ GCRuntime::getParameter(JSGCParamKey key, const AutoLockGC& lock)
         return tunables.isDynamicMarkSliceEnabled();
       case JSGC_ALLOCATION_THRESHOLD:
         return tunables.gcZoneAllocThresholdBase() / 1024 / 1024;
+      case JSGC_DECOMMIT_THRESHOLD:
+        return decommitThreshold / 1024 / 1024;
       case JSGC_MIN_EMPTY_CHUNK_COUNT:
         return tunables.minEmptyChunkCount(lock);
       case JSGC_MAX_EMPTY_CHUNK_COUNT:
@@ -1600,6 +1606,21 @@ GCRuntime::callGCCallback(JSGCStatus status) const
 {
     if (gcCallback.op)
         gcCallback.op(rt, status, gcCallback.data);
+}
+
+void
+GCRuntime::setObjectsTenuredCallback(JSObjectsTenuredCallback callback,
+                                     void* data)
+{
+    tenuredCallback.op = callback;
+    tenuredCallback.data = data;
+}
+
+void
+GCRuntime::callObjectsTenuredCallback()
+{
+    if (tenuredCallback.op)
+        tenuredCallback.op(rt, tenuredCallback.data);
 }
 
 namespace {
@@ -3103,9 +3124,9 @@ SliceBudget::describe(char* buffer, size_t maxlen) const
     if (isUnlimited())
         return JS_snprintf(buffer, maxlen, "unlimited");
     else if (isWorkBudget())
-        return JS_snprintf(buffer, maxlen, "work(%lld)", workBudget.budget);
+        return JS_snprintf(buffer, maxlen, "work(%" PRId64 ")", workBudget.budget);
     else
-        return JS_snprintf(buffer, maxlen, "%lldms", timeBudget.budget);
+        return JS_snprintf(buffer, maxlen, "%" PRId64 "ms", timeBudget.budget);
 }
 
 bool
@@ -3130,7 +3151,11 @@ GCRuntime::requestMajorGC(JS::gcreason::Reason reason)
         return;
 
     majorGCTriggerReason = reason;
-    rt->requestInterrupt(JSRuntime::RequestInterruptUrgent);
+
+    // There's no need to use RequestInterruptUrgent here. It's slower because
+    // it has to interrupt (looping) Ion code, but loops in Ion code that
+    // affect GC will have an explicit interrupt check.
+    rt->requestInterrupt(JSRuntime::RequestInterruptCanWait);
 }
 
 void
@@ -3141,7 +3166,9 @@ GCRuntime::requestMinorGC(JS::gcreason::Reason reason)
         return;
 
     minorGCTriggerReason = reason;
-    rt->requestInterrupt(JSRuntime::RequestInterruptUrgent);
+
+    // See comment in requestMajorGC.
+    rt->requestInterrupt(JSRuntime::RequestInterruptCanWait);
 }
 
 bool
@@ -3662,16 +3689,16 @@ struct IsAboutToBeFinalizedFunctor {
     }
 };
 
+/* static */ bool
+UniqueIdGCPolicy::needsSweep(Cell** cell, uint64_t*)
+{
+    return DispatchTraceKindTyped(IsAboutToBeFinalizedFunctor(), (*cell)->getTraceKind(), cell);
+}
+
 void
 JS::Zone::sweepUniqueIds(js::FreeOp* fop)
 {
-    for (UniqueIdMap::Enum e(uniqueIds_); !e.empty(); e.popFront()) {
-        if (DispatchTraceKindTyped(IsAboutToBeFinalizedFunctor(), e.front().key()->getTraceKind(),
-                                   &e.front().mutableKey()))
-        {
-            e.removeFront();
-        }
-    }
+    uniqueIds_.sweep();
 }
 
 /*
@@ -3713,7 +3740,7 @@ Zone::sweepCompartments(FreeOp* fop, bool keepAtleastOne, bool destroyingRuntime
             foundOne = true;
         }
     }
-    compartments.resize(write - compartments.begin());
+    compartments.shrinkTo(write - compartments.begin());
     MOZ_ASSERT_IF(keepAtleastOne, !compartments.empty());
 }
 
@@ -3757,7 +3784,7 @@ GCRuntime::sweepZones(FreeOp* fop, bool destroyingRuntime)
         }
         *write++ = zone;
     }
-    zones.resize(write - zones.begin());
+    zones.shrinkTo(write - zones.begin());
 }
 
 void
@@ -4306,13 +4333,14 @@ js::gc::MarkingValidator::nonIncrementalMark()
         if (!WeakMapBase::saveZoneMarkedWeakMaps(zone, markedWeakMaps))
             return;
 
+        AutoEnterOOMUnsafeRegion oomUnsafe;
         for (gc::WeakKeyTable::Range r = zone->gcWeakKeys.all(); !r.empty(); r.popFront()) {
-            AutoEnterOOMUnsafeRegion oomUnsafe;
             if (!savedWeakKeys.put(Move(r.front().key), Move(r.front().value)))
                 oomUnsafe.crash("saving weak keys table for validator");
         }
 
-        zone->gcWeakKeys.clear();
+        if (!zone->gcWeakKeys.clear())
+            oomUnsafe.crash("clearing weak keys table for validator");
     }
 
     /*
@@ -4383,7 +4411,9 @@ js::gc::MarkingValidator::nonIncrementalMark()
 
     for (GCZonesIter zone(runtime); !zone.done(); zone.next()) {
         WeakMapBase::unmarkZone(zone);
-        zone->gcWeakKeys.clear();
+        AutoEnterOOMUnsafeRegion oomUnsafe;
+        if (!zone->gcWeakKeys.clear())
+            oomUnsafe.crash("clearing weak keys table for validator");
     }
 
     WeakMapBase::restoreMarkedWeakMaps(markedWeakMaps);
@@ -5070,7 +5100,9 @@ GCRuntime::beginSweepingZoneGroup()
         zone->gcWeakRefs.clear();
 
         /* No need to look up any more weakmap keys from this zone group. */
-        zone->gcWeakKeys.clear();
+        AutoEnterOOMUnsafeRegion oomUnsafe;
+        if (!zone->gcWeakKeys.clear())
+            oomUnsafe.crash("clearing weak keys in beginSweepingZoneGroup()");
     }
 
     FreeOp fop(rt);
@@ -5541,8 +5573,10 @@ GCRuntime::endSweepPhase(bool destroyingRuntime)
             SweepScriptData(rt);
 
         /* Clear out any small pools that we're hanging on to. */
-        if (jit::JitRuntime* jitRuntime = rt->jitRuntime())
+        if (jit::JitRuntime* jitRuntime = rt->jitRuntime()) {
             jitRuntime->execAlloc().purge();
+            jitRuntime->backedgeExecAlloc().purge();
+        }
 
         /*
          * This removes compartments from rt->compartment, so we do it last to make
@@ -6018,7 +6052,8 @@ GCRuntime::incrementalCollectSlice(SliceBudget& budget, JS::gcreason::Reason rea
         lastMarkSlice = false;
 
         incrementalState = MARK_ROOTS;
-        /* fall through */
+
+        MOZ_FALLTHROUGH;
 
       case MARK_ROOTS:
         if (!beginMarkPhase(reason)) {
@@ -6034,7 +6069,7 @@ GCRuntime::incrementalCollectSlice(SliceBudget& budget, JS::gcreason::Reason rea
         if (isIncremental && zeal == ZealIncrementalRootsThenFinish)
             break;
 
-        /* fall through */
+        MOZ_FALLTHROUGH;
 
       case MARK:
         AutoGCRooter::traceAllWrappers(&marker);
@@ -6080,7 +6115,7 @@ GCRuntime::incrementalCollectSlice(SliceBudget& budget, JS::gcreason::Reason rea
         if (isIncremental && zeal == ZealIncrementalMultipleSlices)
             break;
 
-        /* fall through */
+        MOZ_FALLTHROUGH;
 
       case SWEEP:
         if (sweepPhase(budget) == NotFinished)
@@ -6094,6 +6129,8 @@ GCRuntime::incrementalCollectSlice(SliceBudget& budget, JS::gcreason::Reason rea
         /* Yield before compacting since it is not incremental. */
         if (isCompacting && isIncremental)
             break;
+
+        MOZ_FALLTHROUGH;
 
       case COMPACT:
         if (isCompacting) {
@@ -6752,9 +6789,11 @@ gc::MergeCompartments(JSCompartment* source, JSCompartment* target)
 {
     // The source compartment must be specifically flagged as mergable.  This
     // also implies that the compartment is not visible to the debugger.
-    MOZ_ASSERT(source->options_.mergeable());
+    MOZ_ASSERT(source->creationOptions_.mergeable());
+    MOZ_ASSERT(source->creationOptions_.invisibleToDebugger());
 
-    MOZ_ASSERT(source->addonId == target->addonId);
+    MOZ_ASSERT(source->creationOptions().addonIdOrNull() ==
+               target->creationOptions().addonIdOrNull());
 
     JSRuntime* rt = source->runtimeFromMainThread();
 

@@ -21,7 +21,6 @@
 #include "nsString.h"
 #include "nsTArray.h"
 #include "nsIFile.h"
-#include "ThreadSafeRefcountingWithMainThreadDestruction.h"
 
 class nsIThread;
 
@@ -72,7 +71,7 @@ public:
 class GMPParent final : public PGMPParent
 {
 public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING_WITH_MAIN_THREAD_DESTRUCTION(GMPParent)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(GMPParent)
 
   GMPParent();
 
@@ -123,7 +122,7 @@ public:
 
   const nsCString& GetDisplayName() const;
   const nsCString& GetVersion() const;
-  const uint32_t GetPluginId() const;
+  uint32_t GetPluginId() const;
   nsString GetPluginBaseName() const;
 
   // Returns true if a plugin can be or is being used across multiple NodeIds.
@@ -209,7 +208,7 @@ private:
   nsCOMPtr<nsITimer> mAsyncShutdownTimeout; // GMP Thread only.
   // NodeId the plugin is assigned to, or empty if the the plugin is not
   // assigned to a NodeId.
-  nsAutoCString mNodeId;
+  nsCString mNodeId;
   // This is used for GMP content in the parent, there may be more of these in
   // the content processes.
   RefPtr<GMPContentParent> mGMPContentParent;

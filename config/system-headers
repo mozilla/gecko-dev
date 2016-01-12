@@ -183,6 +183,7 @@ app/Message.h
 app/MessageRunner.h
 arpa/inet.h
 arpa/nameser.h
+array
 asm/page.h
 asm/sigcontext.h
 asm/signal.h
@@ -417,7 +418,6 @@ ExDisp.h
 exe386.h
 execinfo.h
 extras.h
-fabdef.h
 fcntl.h
 features.h
 fibdef.h
@@ -548,6 +548,7 @@ image.h
 imagehlp.h
 imm.h
 initguid.h
+initializer_list
 InterfaceDefs.h
 InternetConfig.h
 IntlResources.h
@@ -627,7 +628,6 @@ libgnome/libgnome.h
 libgnomeui/gnome-icon-lookup.h
 libgnomeui/gnome-icon-theme.h
 libgnomeui/gnome-ui-init.h
-lib$routines.h
 limits
 limits.h
 link.h
@@ -888,7 +888,6 @@ resolv.h
 Resources.h
 Retrace.h
 rld_interface.h
-rmsdef.h
 Roster.h
 rpc.h
 rpcproxy.h
@@ -926,7 +925,6 @@ someincludefile.h
 Sound.h
 soundcard.h
 sqlite3.h
-ssdef.h
 sstream
 stack
 #ifdef ANDROID
@@ -1153,7 +1151,6 @@ unikbd.h
 unistd.h
 unix.h
 unixio.h
-unixlib.h
 unknwn.h
 UPrinting.h
 UQuickTime.h

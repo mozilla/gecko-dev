@@ -110,10 +110,9 @@ public:
     }
   }
 
-  // We cannot rely on nsTHashtable::GetEntry() in case we are enumerating the
-  // entries and returning PL_DHASH_REMOVE. Destructor is called before the
-  // entry is removed. Caller must call one of following methods to skip
-  // lookup in the hashtable.
+  // We cannot rely on nsTHashtable::GetEntry() in case we are removing entries
+  // while iterating. Destructor is called before the entry is removed. Caller
+  // must call one of following methods to skip lookup in the hashtable.
   void DoNotSearchInIndex()   { mDoNotSearchInIndex = true; }
   void DoNotSearchInUpdates() { mDoNotSearchInUpdates = true; }
 
@@ -128,7 +127,7 @@ private:
         if (!mDoNotSearchInUpdates) {
           entry = mIndex->mPendingUpdates.GetEntry(*mHash);
         }
-        // no break
+        MOZ_FALLTHROUGH;
       case CacheIndex::BUILDING:
       case CacheIndex::UPDATING:
       case CacheIndex::READY:
@@ -431,7 +430,7 @@ CacheIndex::Shutdown()
   switch (oldState) {
     case WRITING:
       index->FinishWrite(false);
-      // no break
+      MOZ_FALLTHROUGH;
     case READY:
       if (index->mIndexOnDiskIsValid && !index->mDontMarkIndexClean) {
         if (!sanitize && NS_FAILED(index->WriteLogToDisk())) {
@@ -1126,7 +1125,7 @@ CacheIndex::HasEntry(const SHA1Sum::Hash &hash, EntryStatus *_retval, bool *_pin
     case READING:
     case WRITING:
       entry = index->mPendingUpdates.GetEntry(hash);
-      // no break
+      MOZ_FALLTHROUGH;
     case BUILDING:
     case UPDATING:
     case READY:

@@ -85,6 +85,7 @@ loop.store = loop.store || {};
       "deleteRoom",
       "deleteRoomError",
       "emailRoomUrl",
+      "facebookShareRoomUrl",
       "getAllRooms",
       "getAllRoomsError",
       "openRoom",
@@ -209,7 +210,6 @@ loop.store = loop.store || {};
 
     /**
      * Executed when the user switches accounts.
-     *
      */
     _onRoomsRefresh: function() {
       this.dispatchAction(new sharedActions.UpdateRoomList({
@@ -340,7 +340,7 @@ loop.store = loop.store || {};
     emailRoomUrl: function(actionData) {
       var from = actionData.from;
       loop.shared.utils.composeCallUrlEmail(actionData.roomUrl, null,
-        actionData.roomDescription, from);
+        actionData.roomDescription);
 
       var bucket = this._constants.SHARING_ROOM_URL["EMAIL_FROM_" + (from || "").toUpperCase()];
       if (typeof bucket === "undefined") {
@@ -350,6 +350,29 @@ loop.store = loop.store || {};
       loop.requestMulti(
         ["NotifyUITour", "Loop:RoomURLEmailed"],
         ["TelemetryAddValue", "LOOP_SHARING_ROOM_URL", bucket]);
+    },
+
+    /**
+     * Share a room url with Facebook
+     *
+     * @param  {sharedActions.FacebookShareRoomUrl} actionData The action data.
+     */
+    facebookShareRoomUrl: function(actionData) {
+      var encodedRoom = encodeURIComponent(actionData.roomUrl);
+      loop.request("GetLoopPref", "facebook.shareUrl")
+        .then(shareUrl => {
+          loop.request("OpenURL", shareUrl.replace("%ROOM_URL%", encodedRoom));
+        }).then(() => {
+          loop.request("NotifyUITour", "Loop:RoomURLShared");
+        });
+
+      var from = actionData.from;
+      var bucket = this._constants.SHARING_ROOM_URL["FACEBOOK_FROM_" + from.toUpperCase()];
+      if (typeof bucket === "undefined") {
+        console.error("No URL sharing type bucket found for '" + from + "'");
+        return;
+      }
+      loop.request("TelemetryAddValue", "LOOP_SHARING_ROOM_URL", bucket);
     },
 
     /**
@@ -386,10 +409,8 @@ loop.store = loop.store || {};
 
     /**
      * Open the share panel to add a Social share provider.
-     *
-     * @param {sharedActions.AddSocialShareProvider} actionData The action data.
      */
-    addSocialShareProvider: function(actionData) {
+    addSocialShareProvider: function() {
       loop.request("AddSocialShareProvider");
     },
 
@@ -490,7 +511,7 @@ loop.store = loop.store || {};
         var roomData = {};
         var context = result.decryptedContext;
         var oldRoomName = context.roomName;
-        var newRoomName = actionData.newRoomName.trim();
+        var newRoomName = (actionData.newRoomName || "").trim();
         if (newRoomName && oldRoomName !== newRoomName) {
           roomData.roomName = newRoomName;
         }
@@ -499,10 +520,9 @@ loop.store = loop.store || {};
         // Since we want to prevent storing falsy (i.e. empty) values for context
         // data, there's no need to send that to the server as an update.
         var newRoomURL = loop.shared.utils.stripFalsyValues({
-          location: actionData.newRoomURL ? actionData.newRoomURL.trim() : "",
-          thumbnail: actionData.newRoomURL ? actionData.newRoomThumbnail.trim() : "",
-          description: actionData.newRoomDescription ?
-            actionData.newRoomDescription.trim() : ""
+          location: (actionData.newRoomURL || "").trim(),
+          thumbnail: (actionData.newRoomThumbnail || "").trim(),
+          description: (actionData.newRoomDescription || "").trim()
         });
         // Only attach a context to the room when
         // 1) there was already a URL set,

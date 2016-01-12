@@ -106,9 +106,11 @@ static MOZ_CONSTEXPR_VAR Register IntArgReg1 = rdx;
 static MOZ_CONSTEXPR_VAR Register IntArgReg2 = r8;
 static MOZ_CONSTEXPR_VAR Register IntArgReg3 = r9;
 static MOZ_CONSTEXPR_VAR uint32_t NumIntArgRegs = 4;
-static MOZ_CONSTEXPR_VAR Register IntArgRegs[NumIntArgRegs] = { rcx, rdx, r8, r9 };
+// Use "const" instead of MOZ_CONSTEXPR_VAR here to work around a bug
+// of VS2015 Update 1. See bug 1229604.
+static const Register IntArgRegs[NumIntArgRegs] = { rcx, rdx, r8, r9 };
 
-static MOZ_CONSTEXPR_VAR Register CallTempNonArgRegs[] = { rax, rdi, rbx, rsi };
+static const Register CallTempNonArgRegs[] = { rax, rdi, rbx, rsi };
 static const uint32_t NumCallTempNonArgRegs =
     mozilla::ArrayLength(CallTempNonArgRegs);
 
@@ -126,9 +128,11 @@ static MOZ_CONSTEXPR_VAR Register IntArgReg3 = rcx;
 static MOZ_CONSTEXPR_VAR Register IntArgReg4 = r8;
 static MOZ_CONSTEXPR_VAR Register IntArgReg5 = r9;
 static MOZ_CONSTEXPR_VAR uint32_t NumIntArgRegs = 6;
-static MOZ_CONSTEXPR_VAR Register IntArgRegs[NumIntArgRegs] = { rdi, rsi, rdx, rcx, r8, r9 };
+static const Register IntArgRegs[NumIntArgRegs] = { rdi, rsi, rdx, rcx, r8, r9 };
 
-static MOZ_CONSTEXPR_VAR Register CallTempNonArgRegs[] = { rax, rbx };
+// Use "const" instead of MOZ_CONSTEXPR_VAR here to work around a bug
+// of VS2015 Update 1. See bug 1229604.
+static const Register CallTempNonArgRegs[] = { rax, rbx };
 static const uint32_t NumCallTempNonArgRegs =
     mozilla::ArrayLength(CallTempNonArgRegs);
 
@@ -157,6 +161,18 @@ static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegReturnType = ecx;
 static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegD0 = rax;
 static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegD1 = rdi;
 static MOZ_CONSTEXPR_VAR Register AsmJSIonExitRegD2 = rbx;
+
+// Registerd used in RegExpMatcher instruction (do not use JSReturnOperand).
+static MOZ_CONSTEXPR_VAR Register RegExpMatcherRegExpReg = CallTempReg0;
+static MOZ_CONSTEXPR_VAR Register RegExpMatcherStringReg = CallTempReg1;
+static MOZ_CONSTEXPR_VAR Register RegExpMatcherLastIndexReg = CallTempReg2;
+static MOZ_CONSTEXPR_VAR Register RegExpMatcherStickyReg = CallTempReg4;
+
+// Registerd used in RegExpTester instruction (do not use ReturnReg).
+static MOZ_CONSTEXPR_VAR Register RegExpTesterRegExpReg = CallTempReg1;
+static MOZ_CONSTEXPR_VAR Register RegExpTesterStringReg = CallTempReg2;
+static MOZ_CONSTEXPR_VAR Register RegExpTesterLastIndexReg = CallTempReg3;
+static MOZ_CONSTEXPR_VAR Register RegExpTesterStickyReg = CallTempReg4;
 
 class ABIArgGenerator
 {
@@ -595,9 +611,9 @@ class Assembler : public AssemblerX86Shared
     void mov(ImmPtr imm, Register dest) {
         movq(imm, dest);
     }
-    void mov(AsmJSImmPtr imm, Register dest) {
+    void mov(wasm::SymbolicAddress imm, Register dest) {
         masm.movq_i64r(-1, dest.encoding());
-        append(AsmJSAbsoluteLink(CodeOffset(masm.currentOffset()), imm.kind()));
+        append(AsmJSAbsoluteAddress(CodeOffset(masm.currentOffset()), imm));
     }
     void mov(const Operand& src, Register dest) {
         movq(src, dest);
@@ -668,13 +684,13 @@ class Assembler : public AssemblerX86Shared
         return CodeOffset(masm.leaq_rip(dest.encoding()).offset());
     }
 
-    void loadAsmJSActivation(Register dest) {
+    void loadWasmActivation(Register dest) {
         CodeOffset label = loadRipRelativeInt64(dest);
-        append(AsmJSGlobalAccess(label, AsmJSActivationGlobalDataOffset));
+        append(AsmJSGlobalAccess(label, wasm::ActivationGlobalDataOffset));
     }
     void loadAsmJSHeapRegisterFromGlobalData() {
         CodeOffset label = loadRipRelativeInt64(HeapReg);
-        append(AsmJSGlobalAccess(label, AsmJSHeapGlobalDataOffset));
+        append(AsmJSGlobalAccess(label, wasm::HeapGlobalDataOffset));
     }
 
     void cmpq(Register rhs, Register lhs) {

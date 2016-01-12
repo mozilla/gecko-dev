@@ -15,6 +15,7 @@
 #include "jscompartment.h"
 #include "jsdate.h"
 #include "jsfriendapi.h"
+#include "jsfun.h"
 #include "jshashutil.h"
 #include "jsweakmap.h"
 #include "jswrapper.h"
@@ -30,6 +31,7 @@
 #include "builtin/TypedObject.h"
 #include "builtin/WeakSetObject.h"
 #include "gc/Marking.h"
+#include "jit/AtomicOperations.h"
 #include "jit/InlinableNatives.h"
 #include "js/Date.h"
 #include "vm/Compression.h"
@@ -290,6 +292,21 @@ intrinsic_MakeConstructible(JSContext* cx, unsigned argc, Value* vp)
     return true;
 }
 
+static bool
+intrinsic_MakeDefaultConstructor(JSContext* cx, unsigned argc, Value* vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    MOZ_ASSERT(args.length() == 1);
+    MOZ_ASSERT(args[0].toObject().as<JSFunction>().isSelfHostedBuiltin());
+
+    RootedFunction ctor(cx, &args[0].toObject().as<JSFunction>());
+
+    ctor->nonLazyScript()->setIsDefaultClassConstructor();
+
+    args.rval().setUndefined();
+    return true;
+}
+
 /*
  * Used to decompile values in the nearest non-builtin stack frame, falling
  * back to decompiling in the current frame. Helpful for printing higher-order
@@ -538,6 +555,26 @@ intrinsic_ActiveFunction(JSContext* cx, unsigned argc, Value* vp)
 }
 
 static bool
+intrinsic_SetCanonicalName(JSContext* cx, unsigned argc, Value* vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    MOZ_ASSERT(args.length() == 2);
+
+    RootedFunction fun(cx, &args[0].toObject().as<JSFunction>());
+    MOZ_ASSERT(fun->isSelfHostedBuiltin());
+    RootedAtom atom(cx, AtomizeString(cx, args[1].toString()));
+    if (!atom)
+        return false;
+
+    fun->setAtom(atom);
+#ifdef DEBUG
+    fun->setExtendedSlot(HAS_SELFHOSTED_CANONICAL_NAME_SLOT, BooleanValue(true));
+#endif
+    args.rval().setUndefined();
+    return true;
+}
+
+static bool
 intrinsic_StarGeneratorObjectIsClosed(JSContext* cx, unsigned argc, Value* vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
@@ -711,7 +748,7 @@ intrinsic_MoveTypedArrayElements(JSContext* cx, unsigned argc, Value* vp)
                "don't call this method if copying no elements, because then "
                "the not-neutered requirement is wrong");
 
-    if (tarray->hasBuffer() && tarray->buffer()->isNeutered()) {
+    if (tarray->isNeutered() && tarray->hasBuffer()) {
         JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_TYPED_ARRAY_BAD_ARGS);
         return false;
     }
@@ -740,8 +777,8 @@ intrinsic_MoveTypedArrayElements(JSContext* cx, unsigned argc, Value* vp)
     }
 #endif
 
-    uint8_t* data = static_cast<uint8_t*>(tarray->viewData());
-    PodMove(&data[byteDest], &data[byteSrc], byteSize);
+    SharedMem<uint8_t*> data = tarray->viewDataEither().cast<uint8_t*>();
+    jit::AtomicOperations::memmoveSafeWhenRacy(data + byteDest, data + byteSrc, byteSize);
 
     args.rval().setUndefined();
     return true;
@@ -793,7 +830,7 @@ intrinsic_SetFromTypedArrayApproach(JSContext* cx, unsigned argc, Value* vp)
     MOZ_ASSERT(args.length() == 4);
 
     Rooted<TypedArrayObject*> target(cx, &args[0].toObject().as<TypedArrayObject>());
-    MOZ_ASSERT(!target->hasBuffer() || !target->buffer()->isNeutered(),
+    MOZ_ASSERT(!target->hasBuffer() || !target->isNeutered(),
                "something should have defended against a neutered target");
 
     // As directed by |DangerouslyUnwrapTypedArray|, sigil this pointer and all
@@ -814,7 +851,7 @@ intrinsic_SetFromTypedArrayApproach(JSContext* cx, unsigned argc, Value* vp)
 
     // Steps 12-13.
     if (unsafeTypedArrayCrossCompartment->hasBuffer() &&
-        unsafeTypedArrayCrossCompartment->buffer()->isNeutered())
+        unsafeTypedArrayCrossCompartment->isNeutered())
     {
         JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_TYPED_ARRAY_DETACHED);
         return false;
@@ -837,11 +874,11 @@ intrinsic_SetFromTypedArrayApproach(JSContext* cx, unsigned argc, Value* vp)
     Scalar::Type unsafeSrcTypeCrossCompartment = unsafeTypedArrayCrossCompartment->type();
 
     size_t targetElementSize = TypedArrayElemSize(targetType);
-    uint8_t* targetData =
-        static_cast<uint8_t*>(target->viewData()) + targetOffset * targetElementSize;
+    SharedMem<uint8_t*> targetData =
+        target->viewDataEither().cast<uint8_t*>() + targetOffset * targetElementSize;
 
-    uint8_t* unsafeSrcDataCrossCompartment =
-        static_cast<uint8_t*>(unsafeTypedArrayCrossCompartment->viewData());
+    SharedMem<uint8_t*> unsafeSrcDataCrossCompartment =
+        unsafeTypedArrayCrossCompartment->viewDataEither().cast<uint8_t*>();
 
     uint32_t unsafeSrcElementSizeCrossCompartment =
         TypedArrayElemSize(unsafeSrcTypeCrossCompartment);
@@ -858,7 +895,9 @@ intrinsic_SetFromTypedArrayApproach(JSContext* cx, unsigned argc, Value* vp)
     // pointers directly could give an incorrect answer.)  If this occurs,
     // the %TypedArray%.prototype.set operation is completely finished.
     if (targetType == unsafeSrcTypeCrossCompartment) {
-        PodMove(targetData, unsafeSrcDataCrossCompartment, unsafeSrcByteLengthCrossCompartment);
+        jit::AtomicOperations::memmoveSafeWhenRacy(targetData,
+                                                   unsafeSrcDataCrossCompartment,
+                                                   unsafeSrcByteLengthCrossCompartment);
         args.rval().setInt32(JS_SETTYPEDARRAY_SAME_TYPE);
         return true;
     }
@@ -867,15 +906,19 @@ intrinsic_SetFromTypedArrayApproach(JSContext* cx, unsigned argc, Value* vp)
     // whether such copying must take care not to overlap, so that self-hosted
     // code may correctly perform the copying.
 
-    uint8_t* unsafeSrcDataLimitCrossCompartment =
+    SharedMem<uint8_t*> unsafeSrcDataLimitCrossCompartment =
         unsafeSrcDataCrossCompartment + unsafeSrcByteLengthCrossCompartment;
-    uint8_t* targetDataLimit =
-        static_cast<uint8_t*>(target->viewData()) + targetLength * targetElementSize;
+    SharedMem<uint8_t*> targetDataLimit =
+        target->viewDataEither().cast<uint8_t*>() + targetLength * targetElementSize;
 
     // Step 24 test (but not steps 24a-d -- the caller handles those).
     bool overlap =
-        IsInRange(targetData, unsafeSrcDataCrossCompartment, unsafeSrcDataLimitCrossCompartment) ||
-        IsInRange(unsafeSrcDataCrossCompartment, targetData, targetDataLimit);
+        IsInRange(targetData.unwrap(/*safe - used for ptr value*/),
+                  unsafeSrcDataCrossCompartment.unwrap(/*safe - ditto*/),
+                  unsafeSrcDataLimitCrossCompartment.unwrap(/*safe - ditto*/)) ||
+        IsInRange(unsafeSrcDataCrossCompartment.unwrap(/*safe - ditto*/),
+                  targetData.unwrap(/*safe - ditto*/),
+                  targetDataLimit.unwrap(/*safe - ditto*/));
 
     args.rval().setInt32(overlap ? JS_SETTYPEDARRAY_OVERLAPPING : JS_SETTYPEDARRAY_DISJOINT);
     return true;
@@ -883,61 +926,65 @@ intrinsic_SetFromTypedArrayApproach(JSContext* cx, unsigned argc, Value* vp)
 
 template <typename From, typename To>
 static void
-CopyValues(To* dest, const From* src, uint32_t count)
+CopyValues(SharedMem<To*> dest, SharedMem<From*> src, uint32_t count)
 {
 #ifdef DEBUG
-    void* destVoid = static_cast<void*>(dest);
-    void* destVoidEnd = static_cast<void*>(dest + count);
-    const void* srcVoid = static_cast<const void*>(src);
-    const void* srcVoidEnd = static_cast<const void*>(src + count);
+    void* destVoid = dest.template cast<void*>().unwrap(/*safe - used for ptr value*/);
+    void* destVoidEnd = (dest + count).template cast<void*>().unwrap(/*safe - ditto*/);
+    const void* srcVoid = src.template cast<void*>().unwrap(/*safe - ditto*/);
+    const void* srcVoidEnd = (src + count).template cast<void*>().unwrap(/*safe - ditto*/);
     MOZ_ASSERT(!IsInRange(destVoid, srcVoid, srcVoidEnd));
     MOZ_ASSERT(!IsInRange(srcVoid, destVoid, destVoidEnd));
 #endif
 
-    for (; count > 0; count--)
-        *dest++ = To(*src++);
+    using namespace jit;
+
+    for (; count > 0; count--) {
+        AtomicOperations::storeSafeWhenRacy(dest++,
+                                            To(AtomicOperations::loadSafeWhenRacy(src++)));
+    }
 }
 
 struct DisjointElements
 {
     template <typename To>
     static void
-    copy(To* dest, const void* src, Scalar::Type fromType, uint32_t count) {
+    copy(SharedMem<To*> dest, SharedMem<void*> src, Scalar::Type fromType, uint32_t count) {
         switch (fromType) {
           case Scalar::Int8:
-            CopyValues(dest, static_cast<const int8_t*>(src), count);
+            CopyValues(dest, src.cast<int8_t*>(), count);
             return;
 
           case Scalar::Uint8:
-            CopyValues(dest, static_cast<const uint8_t*>(src), count);
+            CopyValues(dest, src.cast<uint8_t*>(), count);
             return;
 
           case Scalar::Int16:
-            CopyValues(dest, static_cast<const int16_t*>(src), count);
+            CopyValues(dest, src.cast<int16_t*>(), count);
             return;
 
           case Scalar::Uint16:
-            CopyValues(dest, static_cast<const uint16_t*>(src), count);
+            CopyValues(dest, src.cast<uint16_t*>(), count);
             return;
 
           case Scalar::Int32:
-            CopyValues(dest, static_cast<const int32_t*>(src), count);
+            CopyValues(dest, src.cast<int32_t*>(), count);
             return;
 
           case Scalar::Uint32:
-            CopyValues(dest, static_cast<const uint32_t*>(src), count);
+            CopyValues(dest, src.cast<uint32_t*>(), count);
             return;
 
           case Scalar::Float32:
-            CopyValues(dest, static_cast<const float*>(src), count);
+            CopyValues(dest, src.cast<float*>(), count);
             return;
 
           case Scalar::Float64:
-            CopyValues(dest, static_cast<const double*>(src), count);
+            CopyValues(dest, src.cast<double*>(), count);
             return;
 
           case Scalar::Uint8Clamped:
-            CopyValues(dest, static_cast<const uint8_clamped*>(src), count);
+            CopyValues(dest, src.cast<uint8_clamped*>(), count);
             return;
 
           default:
@@ -947,65 +994,55 @@ struct DisjointElements
 };
 
 static void
-CopyToDisjointArray(TypedArrayObject* target, uint32_t targetOffset, const void* src,
+CopyToDisjointArray(TypedArrayObject* target, uint32_t targetOffset, SharedMem<void*> src,
                     Scalar::Type srcType, uint32_t count)
 {
     Scalar::Type destType = target->type();
-    void* dest =
-        static_cast<uint8_t*>(target->viewData()) + targetOffset * TypedArrayElemSize(destType);
+    SharedMem<uint8_t*> dest = target->viewDataEither().cast<uint8_t*>() + targetOffset * TypedArrayElemSize(destType);
 
     switch (destType) {
       case Scalar::Int8: {
-        int8_t* dst = reinterpret_cast<int8_t*>(dest);
-        DisjointElements::copy(dst, src, srcType, count);
+        DisjointElements::copy(dest.cast<int8_t*>(), src, srcType, count);
         break;
       }
 
       case Scalar::Uint8: {
-        uint8_t* dst = reinterpret_cast<uint8_t*>(dest);
-        DisjointElements::copy(dst, src, srcType, count);
+        DisjointElements::copy(dest.cast<uint8_t*>(), src, srcType, count);
         break;
       }
 
       case Scalar::Int16: {
-        int16_t* dst = reinterpret_cast<int16_t*>(dest);
-        DisjointElements::copy(dst, src, srcType, count);
+        DisjointElements::copy(dest.cast<int16_t*>(), src, srcType, count);
         break;
       }
 
       case Scalar::Uint16: {
-        uint16_t* dst = reinterpret_cast<uint16_t*>(dest);
-        DisjointElements::copy(dst, src, srcType, count);
+        DisjointElements::copy(dest.cast<uint16_t*>(), src, srcType, count);
         break;
       }
 
       case Scalar::Int32: {
-        int32_t* dst = reinterpret_cast<int32_t*>(dest);
-        DisjointElements::copy(dst, src, srcType, count);
+        DisjointElements::copy(dest.cast<int32_t*>(), src, srcType, count);
         break;
       }
 
       case Scalar::Uint32: {
-        uint32_t* dst = reinterpret_cast<uint32_t*>(dest);
-        DisjointElements::copy(dst, src, srcType, count);
+        DisjointElements::copy(dest.cast<uint32_t*>(), src, srcType, count);
         break;
       }
 
       case Scalar::Float32: {
-        float* dst = reinterpret_cast<float*>(dest);
-        DisjointElements::copy(dst, src, srcType, count);
+        DisjointElements::copy(dest.cast<float*>(), src, srcType, count);
         break;
       }
 
       case Scalar::Float64: {
-        double* dst = reinterpret_cast<double*>(dest);
-        DisjointElements::copy(dst, src, srcType, count);
+        DisjointElements::copy(dest.cast<double*>(), src, srcType, count);
         break;
       }
 
       case Scalar::Uint8Clamped: {
-        uint8_clamped* dst = reinterpret_cast<uint8_clamped*>(dest);
-        DisjointElements::copy(dst, src, srcType, count);
+        DisjointElements::copy(dest.cast<uint8_clamped*>(), src, srcType, count);
         break;
       }
 
@@ -1024,11 +1061,12 @@ js::SetDisjointTypedElements(TypedArrayObject* target, uint32_t targetOffset,
 {
     Scalar::Type unsafeSrcTypeCrossCompartment = unsafeSrcCrossCompartment->type();
 
-    const void* unsafeSrcDataCrossCompartment = unsafeSrcCrossCompartment->viewData();
+    SharedMem<void*> unsafeSrcDataCrossCompartment = unsafeSrcCrossCompartment->viewDataEither();
     uint32_t count = unsafeSrcCrossCompartment->length();
 
     CopyToDisjointArray(target, targetOffset,
-                        unsafeSrcDataCrossCompartment, unsafeSrcTypeCrossCompartment, count);
+                        unsafeSrcDataCrossCompartment,
+                        unsafeSrcTypeCrossCompartment, count);
 }
 
 static bool
@@ -1038,7 +1076,7 @@ intrinsic_SetDisjointTypedElements(JSContext* cx, unsigned argc, Value* vp)
     MOZ_ASSERT(args.length() == 3);
 
     Rooted<TypedArrayObject*> target(cx, &args[0].toObject().as<TypedArrayObject>());
-    MOZ_ASSERT(!target->hasBuffer() || !target->buffer()->isNeutered(),
+    MOZ_ASSERT(!target->hasBuffer() || !target->isNeutered(),
                "a neutered typed array has no elements to set, so "
                "it's nonsensical to be setting them");
 
@@ -1064,7 +1102,7 @@ intrinsic_SetOverlappingTypedElements(JSContext* cx, unsigned argc, Value* vp)
     MOZ_ASSERT(args.length() == 3);
 
     Rooted<TypedArrayObject*> target(cx, &args[0].toObject().as<TypedArrayObject>());
-    MOZ_ASSERT(!target->hasBuffer() || !target->buffer()->isNeutered(),
+    MOZ_ASSERT(!target->hasBuffer() || !target->isNeutered(),
                "shouldn't be setting elements if neutered");
 
     uint32_t targetOffset = uint32_t(args[1].toInt32());
@@ -1085,17 +1123,15 @@ intrinsic_SetOverlappingTypedElements(JSContext* cx, unsigned argc, Value* vp)
     Scalar::Type unsafeSrcTypeCrossCompartment = unsafeSrcCrossCompartment->type();
     size_t sourceByteLen = count * TypedArrayElemSize(unsafeSrcTypeCrossCompartment);
 
-    const void* unsafeSrcDataCrossCompartment = unsafeSrcCrossCompartment->viewData();
-
     auto copyOfSrcData = target->zone()->make_pod_array<uint8_t>(sourceByteLen);
     if (!copyOfSrcData)
         return false;
 
-    mozilla::PodCopy(copyOfSrcData.get(),
-                     static_cast<const uint8_t*>(unsafeSrcDataCrossCompartment),
-                     sourceByteLen);
+    jit::AtomicOperations::memcpySafeWhenRacy(SharedMem<uint8_t*>::unshared(copyOfSrcData.get()),
+                                              unsafeSrcCrossCompartment->viewDataEither().cast<uint8_t*>(),
+                                              sourceByteLen);
 
-    CopyToDisjointArray(target, targetOffset, copyOfSrcData.get(),
+    CopyToDisjointArray(target, targetOffset, SharedMem<void*>::unshared(copyOfSrcData.get()),
                         unsafeSrcTypeCrossCompartment, count);
 
     args.rval().setUndefined();
@@ -1207,10 +1243,21 @@ intrinsic_ConstructorForTypedArray(JSContext* cx, unsigned argc, Value* vp)
     RootedObject object(cx, &args[0].toObject());
     JSProtoKey protoKey = StandardProtoKeyOrNull(object);
     MOZ_ASSERT(protoKey);
-    RootedValue ctor(cx, cx->global()->getConstructor(protoKey));
-    MOZ_ASSERT(ctor.isObject());
 
-    args.rval().set(ctor);
+    // While it may seem like an invariant that in any compartment,
+    // seeing a typed array object implies that the TypedArray constructor
+    // for that type is initialized on the compartment's global, this is not
+    // the case. When we construct a typed array given a cross-compartment
+    // ArrayBuffer, we put the constructed TypedArray in the same compartment
+    // as the ArrayBuffer. Since we use the prototype from the initial
+    // compartment, and never call the constructor in the ArrayBuffer's
+    // compartment from script, we are not guaranteed to have initialized
+    // the constructor.
+    RootedObject ctor(cx);
+    if (!GetBuiltinConstructor(cx, protoKey, &ctor))
+        return false;
+
+    args.rval().setObject(*ctor);
     return true;
 }
 
@@ -1444,9 +1491,18 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("std_WeakMap_delete",                  WeakMap_delete,               1,0),
     JS_FN("std_WeakMap_clear",                   WeakMap_clear,                0,0),
 
+    JS_FN("std_SIMD_Int8x16_extractLane",        simd_int8x16_extractLane,     2,0),
+    JS_FN("std_SIMD_Int16x8_extractLane",        simd_int16x8_extractLane,     2,0),
     JS_INLINABLE_FN("std_SIMD_Int32x4_extractLane",   simd_int32x4_extractLane,  2,0, SimdInt32x4),
+    JS_FN("std_SIMD_Uint8x16_extractLane",       simd_uint8x16_extractLane,    2,0),
+    JS_FN("std_SIMD_Uint16x8_extractLane",       simd_uint16x8_extractLane,    2,0),
+    JS_FN("std_SIMD_Uint32x4_extractLane",       simd_uint32x4_extractLane,    2,0),
     JS_INLINABLE_FN("std_SIMD_Float32x4_extractLane", simd_float32x4_extractLane,2,0, SimdFloat32x4),
     JS_FN("std_SIMD_Float64x2_extractLane",      simd_float64x2_extractLane,   2,0),
+    JS_FN("std_SIMD_Bool8x16_extractLane",       simd_bool8x16_extractLane,    2,0),
+    JS_FN("std_SIMD_Bool16x8_extractLane",       simd_bool16x8_extractLane,    2,0),
+    JS_FN("std_SIMD_Bool32x4_extractLane",       simd_bool32x4_extractLane,    2,0),
+    JS_FN("std_SIMD_Bool64x2_extractLane",       simd_bool64x2_extractLane,    2,0),
 
     // Helper funtions after this point.
     JS_INLINABLE_FN("ToObject",      intrinsic_ToObject,                1,0, IntrinsicToObject),
@@ -1462,6 +1518,7 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("ThrowSyntaxError",        intrinsic_ThrowSyntaxError,        4,0),
     JS_FN("AssertionFailed",         intrinsic_AssertionFailed,         1,0),
     JS_FN("MakeConstructible",       intrinsic_MakeConstructible,       2,0),
+    JS_FN("MakeDefaultConstructor",  intrinsic_MakeDefaultConstructor,  2,0),
     JS_FN("_ConstructorForTypedArray", intrinsic_ConstructorForTypedArray, 1,0),
     JS_FN("DecompileArg",            intrinsic_DecompileArg,            2,0),
     JS_FN("RuntimeDefaultLocale",    intrinsic_RuntimeDefaultLocale,    0,0),
@@ -1498,6 +1555,8 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("CallListIteratorMethodIfWrapped",
           CallNonGenericSelfhostedMethod<Is<ListIteratorObject>>,       2,0),
     JS_FN("ActiveFunction",          intrinsic_ActiveFunction,          0,0),
+
+    JS_FN("_SetCanonicalName",       intrinsic_SetCanonicalName,        2,0),
 
     JS_INLINABLE_FN("IsArrayIterator",
                     intrinsic_IsInstanceOfBuiltin<ArrayIteratorObject>, 1,0,
@@ -1537,6 +1596,8 @@ static const JSFunctionSpec intrinsic_functions[] = {
 
     JS_FN("IsArrayBuffer",
           intrinsic_IsInstanceOfBuiltin<ArrayBufferObject>,             1,0),
+    JS_FN("IsSharedArrayBuffer",
+          intrinsic_IsInstanceOfBuiltin<SharedArrayBufferObject>,       1,0),
 
     JS_INLINABLE_FN("IsTypedArray",
                     intrinsic_IsInstanceOfBuiltin<TypedArrayObject>,    1,0,
@@ -1585,6 +1646,13 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("GetInt8x16TypeDescr",            js::GetInt8x16TypeDescr, 0, 0),
     JS_FN("GetInt16x8TypeDescr",            js::GetInt16x8TypeDescr, 0, 0),
     JS_FN("GetInt32x4TypeDescr",            js::GetInt32x4TypeDescr, 0, 0),
+    JS_FN("GetUint8x16TypeDescr",           js::GetUint8x16TypeDescr, 0, 0),
+    JS_FN("GetUint16x8TypeDescr",           js::GetUint16x8TypeDescr, 0, 0),
+    JS_FN("GetUint32x4TypeDescr",           js::GetUint32x4TypeDescr, 0, 0),
+    JS_FN("GetBool8x16TypeDescr",           js::GetBool8x16TypeDescr, 0, 0),
+    JS_FN("GetBool16x8TypeDescr",           js::GetBool16x8TypeDescr, 0, 0),
+    JS_FN("GetBool32x4TypeDescr",           js::GetBool32x4TypeDescr, 0, 0),
+    JS_FN("GetBool64x2TypeDescr",           js::GetBool64x2TypeDescr, 0, 0),
 
     JS_INLINABLE_FN("ObjectIsTypeDescr"    ,          js::ObjectIsTypeDescr, 1, 0,
                     IntrinsicObjectIsTypeDescr),
@@ -1627,6 +1695,16 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("intl_NumberFormat_availableLocales", intl_NumberFormat_availableLocales, 0,0),
     JS_FN("intl_numberingSystem", intl_numberingSystem, 1,0),
     JS_FN("intl_patternForSkeleton", intl_patternForSkeleton, 2,0),
+
+    JS_INLINABLE_FN("IsRegExpObject",
+                    intrinsic_IsInstanceOfBuiltin<RegExpObject>, 1,0,
+                    IsRegExpObject),
+    JS_FN("CallRegExpMethodIfWrapped",
+          CallNonGenericSelfhostedMethod<Is<RegExpObject>>, 2,0),
+    JS_INLINABLE_FN("RegExpMatcher", RegExpMatcher, 5,0,
+                    RegExpMatcher),
+    JS_INLINABLE_FN("RegExpTester", RegExpTester, 5,0,
+                    RegExpTester),
 
     // See builtin/RegExp.h for descriptions of the regexp_* functions.
     JS_FN("regexp_exec_no_statics", regexp_exec_no_statics, 2,0),
@@ -1690,8 +1768,8 @@ JSRuntime::createSelfHostingGlobal(JSContext* cx)
     MOZ_ASSERT(!cx->runtime()->isAtomsCompartment(cx->compartment()));
 
     JS::CompartmentOptions options;
-    options.setDiscardSource(true);
-    options.setZone(JS::FreshZone);
+    options.creationOptions().setZone(JS::FreshZone);
+    options.behaviors().setDiscardSource(true);
 
     JSCompartment* compartment = NewCompartment(cx, nullptr, nullptr, options);
     if (!compartment)
@@ -1944,6 +2022,7 @@ CloneObject(JSContext* cx, HandleNativeObject selfHostedObject)
     if (selfHostedObject->is<JSFunction>()) {
         RootedFunction selfHostedFunction(cx, &selfHostedObject->as<JSFunction>());
         bool hasName = selfHostedFunction->atom() != nullptr;
+
         // Arrow functions use the first extended slot for their lexical |this| value.
         MOZ_ASSERT(!selfHostedFunction->isArrow());
         js::gc::AllocKind kind = hasName
@@ -1956,8 +2035,10 @@ CloneObject(JSContext* cx, HandleNativeObject selfHostedObject)
                                        staticGlobalLexical, kind);
         // To be able to re-lazify the cloned function, its name in the
         // self-hosting compartment has to be stored on the clone.
-        if (clone && hasName)
-            clone->as<JSFunction>().setExtendedSlot(0, StringValue(selfHostedFunction->atom()));
+        if (clone && hasName) {
+            clone->as<JSFunction>().setExtendedSlot(LAZY_FUNCTION_NAME_SLOT,
+                                                    StringValue(selfHostedFunction->atom()));
+        }
     } else if (selfHostedObject->is<RegExpObject>()) {
         RegExpObject& reobj = selfHostedObject->as<RegExpObject>();
         RootedAtom source(cx, reobj.getSource());
@@ -1987,6 +2068,7 @@ CloneObject(JSContext* cx, HandleNativeObject selfHostedObject)
     }
     if (!clone)
         return nullptr;
+
     if (!CloneProperties(cx, selfHostedObject, clone))
         return nullptr;
     return clone;
@@ -2025,15 +2107,39 @@ CloneValue(JSContext* cx, HandleValue selfHostedValue, MutableHandleValue vp)
 }
 
 bool
+JSRuntime::createLazySelfHostedFunctionClone(JSContext* cx, HandlePropertyName selfHostedName,
+                                             HandleAtom name, unsigned nargs,
+                                             HandleObject proto, NewObjectKind newKind,
+                                             MutableHandleFunction fun)
+{
+    MOZ_ASSERT(newKind != GenericObject);
+
+    RootedAtom funName(cx, name);
+    JSFunction* selfHostedFun = getUnclonedSelfHostedFunction(cx, selfHostedName);
+    if (!selfHostedFun)
+        return false;
+
+    if (!selfHostedFun->hasGuessedAtom() && selfHostedFun->atom() != selfHostedName) {
+        MOZ_ASSERT(selfHostedFun->getExtendedSlot(HAS_SELFHOSTED_CANONICAL_NAME_SLOT).toBoolean());
+        funName = selfHostedFun->atom();
+    }
+
+    fun.set(NewScriptedFunction(cx, nargs, JSFunction::INTERPRETED_LAZY,
+                                funName, proto, gc::AllocKind::FUNCTION_EXTENDED, newKind));
+    if (!fun)
+        return false;
+    fun->setIsSelfHostedBuiltin();
+    fun->setExtendedSlot(LAZY_FUNCTION_NAME_SLOT, StringValue(selfHostedName));
+    return true;
+}
+
+bool
 JSRuntime::cloneSelfHostedFunctionScript(JSContext* cx, HandlePropertyName name,
                                          HandleFunction targetFun)
 {
-    RootedId id(cx, NameToId(name));
-    RootedValue funVal(cx);
-    if (!GetUnclonedValue(cx, HandleNativeObject::fromMarkedLocation(&selfHostingGlobal_), id, &funVal))
+    RootedFunction sourceFun(cx, getUnclonedSelfHostedFunction(cx, name));
+    if (!sourceFun)
         return false;
-
-    RootedFunction sourceFun(cx, &funVal.toObject().as<JSFunction>());
     // JSFunction::generatorKind can't handle lazy self-hosted functions, so we make sure there
     // aren't any.
     MOZ_ASSERT(!sourceFun->isGenerator());
@@ -2063,11 +2169,28 @@ JSRuntime::cloneSelfHostedFunctionScript(JSContext* cx, HandlePropertyName name,
 }
 
 bool
-JSRuntime::cloneSelfHostedValue(JSContext* cx, HandlePropertyName name, MutableHandleValue vp)
+JSRuntime::getUnclonedSelfHostedValue(JSContext* cx, HandlePropertyName name,
+                                      MutableHandleValue vp)
 {
     RootedId id(cx, NameToId(name));
+    return GetUnclonedValue(cx, HandleNativeObject::fromMarkedLocation(&selfHostingGlobal_), id, vp);
+}
+
+JSFunction*
+JSRuntime::getUnclonedSelfHostedFunction(JSContext* cx, HandlePropertyName name)
+{
     RootedValue selfHostedValue(cx);
-    if (!GetUnclonedValue(cx, HandleNativeObject::fromMarkedLocation(&selfHostingGlobal_), id, &selfHostedValue))
+    if (!getUnclonedSelfHostedValue(cx, name, &selfHostedValue))
+        return nullptr;
+
+    return &selfHostedValue.toObject().as<JSFunction>();
+}
+
+bool
+JSRuntime::cloneSelfHostedValue(JSContext* cx, HandlePropertyName name, MutableHandleValue vp)
+{
+    RootedValue selfHostedValue(cx);
+    if (!getUnclonedSelfHostedValue(cx, name, &selfHostedValue))
         return false;
 
     /*
@@ -2081,6 +2204,16 @@ JSRuntime::cloneSelfHostedValue(JSContext* cx, HandlePropertyName name, MutableH
     }
 
     return CloneValue(cx, selfHostedValue, vp);
+}
+
+void
+JSRuntime::assertSelfHostedFunctionHasCanonicalName(JSContext* cx, HandlePropertyName name)
+{
+#ifdef DEBUG
+    JSFunction* selfHostedFun = getUnclonedSelfHostedFunction(cx, name);
+    MOZ_ASSERT(selfHostedFun);
+    MOZ_ASSERT(selfHostedFun->getExtendedSlot(HAS_SELFHOSTED_CANONICAL_NAME_SLOT).toBoolean());
+#endif
 }
 
 JSFunction*

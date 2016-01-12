@@ -69,7 +69,7 @@ public:
     return true;
   }
 
-  virtual const dom::MediaSourceEnum GetMediaSource() override {
+  virtual dom::MediaSourceEnum GetMediaSource() const override {
     return dom::MediaSourceEnum::Camera;
   }
 
@@ -136,16 +136,19 @@ public:
                           TrackID aId,
                           StreamTime aDesiredTime) override
   {
-    NS_WARN_IF_FALSE(!aSource->FindTrack(aId) ||
+#ifdef DEBUG
+    StreamBuffer::Track* data = aSource->FindTrack(aId);
+    NS_WARN_IF_FALSE(!data || data->IsEnded() ||
                      aDesiredTime <= aSource->GetEndOfAppendedData(aId),
                      "MediaEngineDefaultAudioSource data underrun");
+#endif
   }
 
   virtual bool IsFake() override {
     return true;
   }
 
-  virtual const dom::MediaSourceEnum GetMediaSource() override {
+  virtual dom::MediaSourceEnum GetMediaSource() const override {
     return dom::MediaSourceEnum::Microphone;
   }
 

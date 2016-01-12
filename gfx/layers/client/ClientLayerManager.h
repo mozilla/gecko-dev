@@ -123,11 +123,6 @@ public:
 
   TextureClientPool* GetTexturePool(gfx::SurfaceFormat aFormat, TextureFlags aFlags);
 
-  /// Utility methods for managing texture clients.
-  void ReturnTextureClientDeferred(TextureClient& aClient);
-  void ReturnTextureClient(TextureClient& aClient);
-  void ReportClientLost(TextureClient& aClient);
-
   /**
    * Pass through call to the forwarder for nsPresContext's
    * CollectPluginGeometryUpdates. Passes widget configuration information
@@ -257,6 +252,14 @@ public:
 
   void SetNextPaintSyncId(int32_t aSyncId);
 
+  class DidCompositeObserver {
+  public:
+    virtual void DidComposite() = 0;
+  };
+
+  void AddDidCompositeObserver(DidCompositeObserver* aObserver);
+  void RemoveDidCompositeObserver(DidCompositeObserver* aObserver);
+
 protected:
   enum TransactionPhase {
     PHASE_NONE, PHASE_CONSTRUCTION, PHASE_DRAWING, PHASE_FORWARD
@@ -350,6 +353,8 @@ private:
   nsAutoTArray<RefPtr<TextureClientPool>,2> mTexturePools;
   nsAutoTArray<dom::OverfillCallback*,0> mOverfillCallbacks;
   mozilla::TimeStamp mTransactionStart;
+
+  nsTArray<DidCompositeObserver*> mDidCompositeObservers;
 
   RefPtr<MemoryPressureObserver> mMemoryPressureObserver;
 };

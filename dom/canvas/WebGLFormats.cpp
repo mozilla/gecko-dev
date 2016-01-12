@@ -539,11 +539,14 @@ FormatUsageAuthority::CreateForWebGL1(gl::GLContext* gl)
     // RGBA8 is made renderable in WebGL 1.0, "Framebuffer Object Attachments"
     //                              render filter
     //                              able   able
-    fnSet(EffectiveFormat::RGBA8  , true , true);
-    fnSet(EffectiveFormat::RGBA4  , true , true);
-    fnSet(EffectiveFormat::RGB5_A1, true , true);
-    fnSet(EffectiveFormat::RGB8   , false, true);
-    fnSet(EffectiveFormat::RGB565 , true , true);
+    fnSet(EffectiveFormat::RGBA8  , true, true);
+    fnSet(EffectiveFormat::RGBA4  , true, true);
+    fnSet(EffectiveFormat::RGB5_A1, true, true);
+    fnSet(EffectiveFormat::RGB565 , true, true);
+
+    // RGB8 is not guaranteed to be renderable, but we should allow it for web-compat.
+    // Min-capability mode should mark this as non-renderable.
+    fnSet(EffectiveFormat::RGB8, true, true);
 
     fnSet(EffectiveFormat::Luminance8Alpha8, false, true);
     fnSet(EffectiveFormat::Luminance8      , false, true);
@@ -782,7 +785,7 @@ FormatUsageAuthority::CreateForWebGL2(gl::GLContext* gl)
 
     // GLES 3.0.4, p147, table 3.19
     // GLES 3.0.4, p286+, $C.1 "ETC Compressed Texture Image Formats"
-
+#if ALLOW_ES3_FORMATS
     // Note that all compressed texture formats are filterable:
     // GLES 3.0.4 p161:
     // "[A] texture is complete unless any of the following conditions hold true:
@@ -802,7 +805,7 @@ FormatUsageAuthority::CreateForWebGL2(gl::GLContext* gl)
     fnAllowES3TexFormat(FOO(COMPRESSED_SIGNED_RG11_EAC               ), false, true);
     fnAllowES3TexFormat(FOO(COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2 ), false, true);
     fnAllowES3TexFormat(FOO(COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2), false, true);
-
+#endif
 #undef FOO
 
     // GLES 3.0.4, p206, "Required Renderbuffer Formats":

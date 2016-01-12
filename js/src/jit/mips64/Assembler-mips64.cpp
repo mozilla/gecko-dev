@@ -234,18 +234,13 @@ Assembler::trace(JSTracer* trc)
 }
 
 void
-Assembler::Bind(uint8_t* rawCode, AbsoluteLabel* label, const void* address)
+Assembler::Bind(uint8_t* rawCode, CodeOffset* label, const void* address)
 {
-    if (label->used()) {
-        int64_t src = label->offset();
-        do {
-            Instruction* inst = (Instruction*) (rawCode + src);
-            uint64_t next = Assembler::ExtractLoad64Value(inst);
-            Assembler::UpdateLoad64Value(inst, (uint64_t)address);
-            src = next;
-        } while (src != AbsoluteLabel::INVALID_OFFSET);
+    if (label->bound()) {
+        intptr_t offset = label->offset();
+        Instruction* inst = (Instruction*) (rawCode + offset);
+        Assembler::UpdateLoad64Value(inst, (uint64_t)address);
     }
-    label->bind();
 }
 
 void
@@ -274,21 +269,22 @@ Assembler::bind(InstImm* inst, uintptr_t branch, uintptr_t target)
     }
 
     if (BOffImm16::IsInRange(offset)) {
+#ifdef _MIPS_ARCH_LOONGSON3A
+        // Don't skip trailing nops can imporve performance
+        // on Loongson3 platform.
+        bool skipNops = false;
+#else
+        bool skipNops = (inst[0].encode() != inst_bgezal.encode() &&
+                         inst[0].encode() != inst_beq.encode());
+#endif
+
         inst[0].setBOffImm16(BOffImm16(offset));
         inst[1].makeNop();
 
-        // Don't skip trailing nops can imporve performance
-        // on Loongson3 platform.
-#ifndef _MIPS_ARCH_LOONGSON3A
-        bool conditional = (inst[0].encode() != inst_bgezal.encode() &&
-                            inst[0].encode() != inst_beq.encode());
-
-        // Skip the trailing nops in conditional branches.
-        if (conditional) {
+        if (skipNops) {
             inst[2] = InstImm(op_regimm, zero, rt_bgez, BOffImm16(5 * sizeof(uint32_t))).encode();
             // There are 4 nops after this
         }
-#endif
         return;
     }
 

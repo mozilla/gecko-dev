@@ -1893,8 +1893,10 @@ jit::FinishBailoutToBaseline(BaselineBailoutInfo* bailoutInfo)
       case Bailout_NonObjectInput:
       case Bailout_NonStringInput:
       case Bailout_NonSymbolInput:
+      case Bailout_NonSimdBool32x4Input:
       case Bailout_NonSimdInt32x4Input:
       case Bailout_NonSimdFloat32x4Input:
+      case Bailout_NonSharedTypedArrayInput:
       case Bailout_InitialState:
       case Bailout_Debugger:
       case Bailout_UninitializedThis:
@@ -1910,6 +1912,8 @@ jit::FinishBailoutToBaseline(BaselineBailoutInfo* bailoutInfo)
 
       // Invalid assumption based on baseline code.
       case Bailout_OverflowInvalidate:
+        outerScript->setHadOverflowBailout();
+        MOZ_FALLTHROUGH;
       case Bailout_NonStringInputInvalidate:
       case Bailout_DoubleOutput:
       case Bailout_ObjectIdentityOrTypeGuard:

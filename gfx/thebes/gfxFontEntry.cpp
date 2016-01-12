@@ -333,7 +333,7 @@ gfxFontEntry::HasSVGGlyph(uint32_t aGlyphId)
 }
 
 bool
-gfxFontEntry::GetSVGGlyphExtents(gfxContext *aContext, uint32_t aGlyphId,
+gfxFontEntry::GetSVGGlyphExtents(DrawTarget* aDrawTarget, uint32_t aGlyphId,
                                  gfxRect *aResult)
 {
     MOZ_ASSERT(mSVGInitialized,
@@ -341,11 +341,12 @@ gfxFontEntry::GetSVGGlyphExtents(gfxContext *aContext, uint32_t aGlyphId,
     MOZ_ASSERT(mUnitsPerEm >= kMinUPEM && mUnitsPerEm <= kMaxUPEM,
                "font has invalid unitsPerEm");
 
-    gfxContextAutoSaveRestore matrixRestore(aContext);
     cairo_matrix_t fontMatrix;
-    cairo_get_font_matrix(aContext->GetCairo(), &fontMatrix);
+    cairo_get_font_matrix(gfxFont::RefCairo(aDrawTarget), &fontMatrix);
 
-    gfxMatrix svgToAppSpace = *reinterpret_cast<gfxMatrix*>(&fontMatrix);
+    gfxMatrix svgToAppSpace(fontMatrix.xx, fontMatrix.yx,
+                            fontMatrix.xy, fontMatrix.yy,
+                            fontMatrix.x0, fontMatrix.y0);
     svgToAppSpace.Scale(1.0f / mUnitsPerEm, 1.0f / mUnitsPerEm);
 
     return mSVGGlyphs->GetGlyphExtents(aGlyphId, svgToAppSpace, aResult);

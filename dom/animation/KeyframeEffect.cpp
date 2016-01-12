@@ -9,6 +9,7 @@
 #include "mozilla/dom/AnimationEffectReadOnlyBinding.h"
 #include "mozilla/dom/KeyframeEffectBinding.h"
 #include "mozilla/dom/PropertyIndexedKeyframesBinding.h"
+#include "mozilla/AnimationUtils.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/LookAndFeel.h" // For LookAndFeel::GetInt
 #include "mozilla/StyleAnimationValue.h"
@@ -19,7 +20,7 @@
 #include "nsCSSProps.h" // For nsCSSProps::PropHasFlags
 #include "nsCSSValue.h"
 #include "nsStyleUtil.h"
-#include <algorithm>    // std::max
+#include <algorithm> // For std::max
 
 namespace mozilla {
 
@@ -55,7 +56,7 @@ GetComputedTimingDictionary(const ComputedTiming& aComputedTiming,
   aRetVal.mActiveDuration = aComputedTiming.mActiveDuration.ToMilliseconds();
   aRetVal.mEndTime
     = std::max(aRetVal.mDelay + aRetVal.mActiveDuration + aRetVal.mEndDelay, 0.0);
-  aRetVal.mLocalTime = dom::AnimationUtils::TimeDurationToDouble(aLocalTime);
+  aRetVal.mLocalTime = AnimationUtils::TimeDurationToDouble(aLocalTime);
   aRetVal.mProgress = aComputedTiming.mProgress;
   if (!aRetVal.mProgress.IsNull()) {
     // Convert the returned currentIteration into Infinity if we set
@@ -93,9 +94,9 @@ KeyframeEffectReadOnly::KeyframeEffectReadOnly(
   , mTarget(aTarget)
   , mTiming(aTiming)
   , mPseudoType(aPseudoType)
+  , mInEffectOnLastAnimationTimingUpdate(false)
 {
   MOZ_ASSERT(aTarget, "null animation target is not yet supported");
-  ResetIsRunningOnCompositor();
 }
 
 JSObject*
@@ -130,6 +131,56 @@ KeyframeEffectReadOnly::SetTiming(const AnimationTiming& aTiming)
   // NotifyEffectTimingUpdated will eventually cause
   // NotifyAnimationTimingUpdated to be called on this object which will
   // update our registration with the target element.
+}
+
+void
+KeyframeEffectReadOnly::NotifyAnimationTimingUpdated()
+{
+  UpdateTargetRegistration();
+
+  // If the effect is not relevant it will be removed from the target
+  // element's effect set. However, effects not in the effect set
+  // will not be included in the set of candidate effects for running on
+  // the compositor and hence they won't have their compositor status
+  // updated. As a result, we need to make sure we clear their compositor
+  // status here.
+  bool isRelevant = mAnimation && mAnimation->IsRelevant();
+  if (!isRelevant) {
+    ResetIsRunningOnCompositor();
+  }
+
+  // Detect changes to "in effect" status since we need to recalculate the
+  // animation cascade for this element whenever that changes.
+  bool inEffect = IsInEffect();
+  if (inEffect != mInEffectOnLastAnimationTimingUpdate) {
+    if (mTarget) {
+      EffectSet* effectSet = EffectSet::GetEffectSet(mTarget, mPseudoType);
+      if (effectSet) {
+        effectSet->MarkCascadeNeedsUpdate();
+      }
+    }
+    mInEffectOnLastAnimationTimingUpdate = inEffect;
+  }
+
+  // Request restyle if necessary.
+  ComputedTiming computedTiming = GetComputedTiming();
+  AnimationCollection* collection = GetCollection();
+  // Bug 1235002: We should skip requesting a restyle when mProperties is empty.
+  // However, currently we don't properly encapsulate mProperties so we can't
+  // detect when it changes. As a result, if we skip requesting restyles when
+  // mProperties is empty and we play an animation and *then* add properties to
+  // it (as we currently do when building CSS animations), we will fail to
+  // request a restyle at all. Since animations without properties are rare, we
+  // currently just request the restyle regardless of whether mProperties is
+  // empty or not.
+  if (collection &&
+      // Bug 1216843: When we implement iteration composite modes, we need to
+      // also detect if the current iteration has changed.
+      computedTiming.mProgress != mProgressOnLastCompose) {
+    collection->RequestRestyle(CanThrottle() ?
+                               AnimationCollection::RestyleType::Throttled :
+                               AnimationCollection::RestyleType::Standard);
+  }
 }
 
 Nullable<TimeDuration>
@@ -376,6 +427,7 @@ KeyframeEffectReadOnly::ComposeStyle(RefPtr<AnimValuesStyleRule>& aStyleRule,
                                      nsCSSPropertySet& aSetProperties)
 {
   ComputedTiming computedTiming = GetComputedTiming();
+  mProgressOnLastCompose = computedTiming.mProgress;
 
   // If the progress is null, we don't have fill data for the current
   // time so we shouldn't animate.
@@ -466,27 +518,14 @@ KeyframeEffectReadOnly::ComposeStyle(RefPtr<AnimValuesStyleRule>& aStyleRule,
 }
 
 bool
-KeyframeEffectReadOnly::IsPropertyRunningOnCompositor(
-  nsCSSProperty aProperty) const
-{
-  const auto& info = LayerAnimationInfo::sRecords;
-  for (size_t i = 0; i < ArrayLength(mIsPropertyRunningOnCompositor); i++) {
-    if (info[i].mProperty == aProperty) {
-      return mIsPropertyRunningOnCompositor[i];
-    }
-  }
-  return false;
-}
-
-bool
 KeyframeEffectReadOnly::IsRunningOnCompositor() const
 {
   // We consider animation is running on compositor if there is at least
   // one property running on compositor.
   // Animation.IsRunningOnCompotitor will return more fine grained
   // information in bug 1196114.
-  for (bool isPropertyRunningOnCompositor : mIsPropertyRunningOnCompositor) {
-    if (isPropertyRunningOnCompositor) {
+  for (const AnimationProperty& property : mProperties) {
+    if (property.mIsRunningOnCompositor) {
       return true;
     }
   }
@@ -497,19 +536,13 @@ void
 KeyframeEffectReadOnly::SetIsRunningOnCompositor(nsCSSProperty aProperty,
                                                  bool aIsRunning)
 {
-  static_assert(
-    MOZ_ARRAY_LENGTH(LayerAnimationInfo::sRecords) ==
-      MOZ_ARRAY_LENGTH(mIsPropertyRunningOnCompositor),
-    "The length of mIsPropertyRunningOnCompositor should equal to"
-    "the length of LayserAnimationInfo::sRecords");
   MOZ_ASSERT(nsCSSProps::PropHasFlags(aProperty,
                                       CSS_PROPERTY_CAN_ANIMATE_ON_COMPOSITOR),
              "Property being animated on compositor is a recognized "
              "compositor-animatable property");
-  const auto& info = LayerAnimationInfo::sRecords;
-  for (size_t i = 0; i < ArrayLength(mIsPropertyRunningOnCompositor); i++) {
-    if (info[i].mProperty == aProperty) {
-      mIsPropertyRunningOnCompositor[i] = aIsRunning;
+  for (AnimationProperty& property : mProperties) {
+    if (property.mProperty == aProperty) {
+      property.mIsRunningOnCompositor = aIsRunning;
       return;
     }
   }
@@ -522,8 +555,8 @@ KeyframeEffectReadOnly::~KeyframeEffectReadOnly()
 void
 KeyframeEffectReadOnly::ResetIsRunningOnCompositor()
 {
-  for (bool& isPropertyRunningOnCompositor : mIsPropertyRunningOnCompositor) {
-    isPropertyRunningOnCompositor = false;
+  for (AnimationProperty& property : mProperties) {
+    property.mIsRunningOnCompositor = false;
   }
 }
 
@@ -1346,6 +1379,8 @@ BuildSegmentsFromValueEntries(nsTArray<KeyframeValueEntry>& aEntries,
       lastProperty = aEntries[i].mProperty;
     }
 
+    MOZ_ASSERT(animationProperty, "animationProperty should be valid pointer.");
+
     // Now generate the segment.
     AnimationPropertySegment* segment =
       animationProperty->mSegments.AppendElement();
@@ -1789,15 +1824,14 @@ KeyframeEffectReadOnly::OverflowRegionRefreshInterval()
 bool
 KeyframeEffectReadOnly::CanThrottle() const
 {
-  // Animation::CanThrottle checks for not in effect animations
-  // before calling this.
-  MOZ_ASSERT(IsInEffect(), "Effect should be in effect");
-
-  // Unthrottle if this animation is not current (i.e. it has passed the end).
-  // In future we may be able to throttle this case too, but we should only get
-  // occasional ticks while the animation is in this state so it doesn't matter
-  // too much.
-  if (!IsCurrent()) {
+  // Unthrottle if we are not in effect or current. This will be the case when
+  // our owning animation has finished, is idle, or when we are in the delay
+  // phase (but without a backwards fill). In each case the computed progress
+  // value produced on each tick will be the same so we will skip requesting
+  // unnecessary restyles in NotifyAnimationTimingUpdated. Any calls we *do* get
+  // here will be because of a change in state (e.g. we are newly finished or
+  // newly no longer in effect) in which case we shouldn't throttle the sample.
+  if (!IsInEffect() || !IsCurrent()) {
     return false;
   }
 
@@ -1813,7 +1847,7 @@ KeyframeEffectReadOnly::CanThrottle() const
   }
 
   // First we need to check layer generation and transform overflow
-  // prior to the IsPropertyRunningOnCompositor check because we should
+  // prior to the property.mIsRunningOnCompositor check because we should
   // occasionally unthrottle these animations even if the animations are
   // already running on compositor.
   for (const LayerAnimationInfo::Record& record :
@@ -1825,14 +1859,15 @@ KeyframeEffectReadOnly::CanThrottle() const
       continue;
     }
 
-    AnimationCollection* collection = GetCollection();
-    MOZ_ASSERT(collection,
-      "CanThrottle should be called on an effect associated with an animation");
+    EffectSet* effectSet = EffectSet::GetEffectSet(mTarget, mPseudoType);
+    MOZ_ASSERT(effectSet, "CanThrottle should be called on an effect "
+                          "associated with a target element");
     layers::Layer* layer =
       FrameLayerBuilder::GetDedicatedLayer(frame, record.mLayerType);
-    // Unthrottle if the layer needs to be brought up to date with the animation.
+    // Unthrottle if the layer needs to be brought up to date
     if (!layer ||
-        collection->mAnimationGeneration > layer->GetAnimationGeneration()) {
+        effectSet->GetAnimationGeneration() !=
+          layer->GetAnimationGeneration()) {
       return false;
     }
 
@@ -1845,7 +1880,7 @@ KeyframeEffectReadOnly::CanThrottle() const
   }
 
   for (const AnimationProperty& property : mProperties) {
-    if (!IsPropertyRunningOnCompositor(property.mProperty)) {
+    if (!property.mIsRunningOnCompositor) {
       return false;
     }
   }
@@ -1984,7 +2019,7 @@ KeyframeEffectReadOnly::CanAnimateTransformOnCompositor(
       nsCString message;
       message.AppendLiteral("Gecko bug: Async animation of 'preserve-3d' "
         "transforms is not supported.  See bug 779598");
-      AnimationCollection::LogAsyncAnimationFailure(message, aContent);
+      AnimationUtils::LogAsyncAnimationFailure(message, aContent);
     }
     return false;
   }
@@ -1998,7 +2033,7 @@ KeyframeEffectReadOnly::CanAnimateTransformOnCompositor(
       message.AppendLiteral("Gecko bug: Async animation of "
         "'backface-visibility: hidden' transforms is not supported."
         "  See bug 1186204.");
-      AnimationCollection::LogAsyncAnimationFailure(message, aContent);
+      AnimationUtils::LogAsyncAnimationFailure(message, aContent);
     }
     return false;
   }
@@ -2007,7 +2042,7 @@ KeyframeEffectReadOnly::CanAnimateTransformOnCompositor(
       nsCString message;
       message.AppendLiteral("Gecko bug: Async 'transform' animations of "
         "aFrames with SVG transforms is not supported.  See bug 779599");
-      AnimationCollection::LogAsyncAnimationFailure(message, aContent);
+      AnimationUtils::LogAsyncAnimationFailure(message, aContent);
     }
     return false;
   }
@@ -2015,31 +2050,47 @@ KeyframeEffectReadOnly::CanAnimateTransformOnCompositor(
   return true;
 }
 
-/* static */ bool
-KeyframeEffectReadOnly::CanAnimatePropertyOnCompositor(
-  const nsIFrame* aFrame,
-  nsCSSProperty aProperty)
+bool
+KeyframeEffectReadOnly::ShouldBlockCompositorAnimations(const nsIFrame*
+                                                          aFrame) const
 {
+  // We currently only expect this method to be called when this effect
+  // is attached to a playing Animation. If that ever changes we'll need
+  // to update this to only return true when that is the case since paused,
+  // filling, cancelled Animations etc. shouldn't stop other Animations from
+  // running on the compositor.
+  MOZ_ASSERT(mAnimation && mAnimation->IsPlaying());
+
   bool shouldLog = nsLayoutUtils::IsAnimationLoggingEnabled();
 
-  if (IsGeometricProperty(aProperty)) {
-    if (shouldLog) {
-      nsCString message;
-      message.AppendLiteral("Performance warning: Async animation of "
-        "'transform' or 'opacity' not possible due to animation of geometric"
-        "properties on the same element");
-      AnimationCollection::LogAsyncAnimationFailure(message,
-                                                    aFrame->GetContent());
+  for (const AnimationProperty& property : mProperties) {
+    // If a property is overridden in the CSS cascade, it should not block other
+    // animations from running on the compositor.
+    if (!property.mWinsInCascade) {
+      continue;
     }
-    return false;
-  }
-  if (aProperty == eCSSProperty_transform) {
-    if (!CanAnimateTransformOnCompositor(aFrame,
-          shouldLog ? aFrame->GetContent() : nullptr)) {
-      return false;
+    // Check for geometric properties
+    if (IsGeometricProperty(property.mProperty)) {
+      if (shouldLog) {
+        nsCString message;
+        message.AppendLiteral("Performance warning: Async animation of "
+          "'transform' or 'opacity' not possible due to animation of geometric"
+          "properties on the same element");
+        AnimationUtils::LogAsyncAnimationFailure(message, aFrame->GetContent());
+      }
+      return true;
+    }
+
+    // Check for unsupported transform animations
+    if (property.mProperty == eCSSProperty_transform) {
+      if (!CanAnimateTransformOnCompositor(aFrame,
+            shouldLog ? aFrame->GetContent() : nullptr)) {
+        return true;
+      }
     }
   }
-  return true;
+
+  return false;
 }
 
 } // namespace dom

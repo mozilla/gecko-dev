@@ -1,6 +1,13 @@
 {
-  // When adding items to this file please check for effects on sub-directories.
+  "extends": [
+    "../toolkit/.eslintrc"
+  ],
+
   "rules": {
-    "eol-last": 2,
+    // No redeclaring variables
+    "no-redeclare": 2,
+
+    // Functions must always return something or nothing
+    "consistent-return": 2,
   }
 }

@@ -149,15 +149,23 @@ TexUnpackBytes::TexOrSubImage(bool isSubImage, bool needsRespec, const char* fun
     UniqueBuffer tempBuffer;
 
     do {
-        if (!webgl->mPixelStore_FlipY && !webgl->mPixelStore_PremultiplyAlpha)
-            break;
-
         if (!mBytes || !mWidth || !mHeight || !mDepth)
             break;
 
         if (webgl->IsWebGL2())
             break;
         MOZ_ASSERT(mDepth == 1);
+
+        const webgl::PackingInfo pi = { dui->unpackFormat, dui->unpackType };
+
+        const bool needsYFlip = webgl->mPixelStore_FlipY;
+
+        bool needsAlphaPremult = webgl->mPixelStore_PremultiplyAlpha;
+        if (!UnpackFormatHasAlpha(pi.format))
+            needsAlphaPremult = false;
+
+        if (!needsYFlip && !needsAlphaPremult)
+            break;
 
         // This is literally the worst.
         webgl->GenerateWarning("%s: Uploading ArrayBuffers with FLIP_Y or"
@@ -170,23 +178,14 @@ TexUnpackBytes::TexOrSubImage(bool isSubImage, bool needsRespec, const char* fun
             return;
         }
 
-        const webgl::PackingInfo pi = { dui->unpackFormat, dui->unpackType };
-
         const auto bytesPerPixel           = webgl::BytesPerPixel(pi);
         const auto rowByteAlignment        = webgl->mPixelStore_UnpackAlignment;
 
         const size_t bytesPerRow = bytesPerPixel * mWidth;
         const size_t rowStride = RoundUpToMultipleOf(bytesPerRow, rowByteAlignment);
 
-        const bool needsYFlip = webgl->mPixelStore_FlipY;
-
-        bool needsAlphaPremult = webgl->mPixelStore_PremultiplyAlpha;
-        if (!UnpackFormatHasAlpha(pi.format))
-            needsAlphaPremult = false;
-
         if (!needsAlphaPremult) {
-            if (!webgl->mPixelStore_FlipY)
-                break;
+            MOZ_ASSERT(needsYFlip);
 
             const uint8_t* src = (const uint8_t*)mBytes;
             const uint8_t* const srcEnd = src + rowStride * mHeight;
@@ -216,7 +215,9 @@ TexUnpackBytes::TexOrSubImage(bool isSubImage, bool needsRespec, const char* fun
 
         const bool srcPremultiplied = false;
         const bool dstPremultiplied = needsAlphaPremult; // Always true here.
+
         // And go!:
+        MOZ_ASSERT(srcOrigin != dstOrigin || srcPremultiplied != dstPremultiplied);
         if (!ConvertImage(mWidth, mHeight,
                           mBytes, rowStride, srcOrigin, texelFormat, srcPremultiplied,
                           tempBuffer.get(), rowStride, dstOrigin, texelFormat,
@@ -502,6 +503,7 @@ GetFormatForPackingTuple(GLenum packingFormat, GLenum packingType,
         switch (packingFormat) {
         case LOCAL_GL_RED:
         case LOCAL_GL_LUMINANCE:
+        case LOCAL_GL_RED_INTEGER:
             *out_texelFormat = WebGLTexelFormat::R8;
             return true;
 
@@ -514,11 +516,18 @@ GetFormatForPackingTuple(GLenum packingFormat, GLenum packingType,
             return true;
 
         case LOCAL_GL_RGB:
+        case LOCAL_GL_RGB_INTEGER:
             *out_texelFormat = WebGLTexelFormat::RGB8;
             return true;
 
         case LOCAL_GL_RGBA:
+        case LOCAL_GL_RGBA_INTEGER:
             *out_texelFormat = WebGLTexelFormat::RGBA8;
+            return true;
+
+        case LOCAL_GL_RG:
+        case LOCAL_GL_RG_INTEGER:
+            *out_texelFormat = WebGLTexelFormat::RG8;
             return true;
 
         default:
@@ -583,6 +592,10 @@ GetFormatForPackingTuple(GLenum packingFormat, GLenum packingType,
             *out_texelFormat = WebGLTexelFormat::RGBA16F;
             return true;
 
+        case LOCAL_GL_RG:
+            *out_texelFormat = WebGLTexelFormat::RG16F;
+            return true;
+
         default:
             break;
         }
@@ -611,11 +624,25 @@ GetFormatForPackingTuple(GLenum packingFormat, GLenum packingType,
             *out_texelFormat = WebGLTexelFormat::RGBA32F;
             return true;
 
+        case LOCAL_GL_RG:
+            *out_texelFormat = WebGLTexelFormat::RG32F;
+            return true;
+
         default:
             break;
         }
         break;
 
+    case LOCAL_GL_UNSIGNED_INT_10F_11F_11F_REV:
+        switch (packingFormat) {
+        case LOCAL_GL_RGB:
+            *out_texelFormat = WebGLTexelFormat::RGB11F11F10F;
+            return true;
+
+        default:
+            break;
+        }
+        break;
     default:
         break;
     }

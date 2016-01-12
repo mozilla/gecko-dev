@@ -48,7 +48,6 @@
 #include "mozilla/dom/HTMLCanvasElement.h"
 #include "nsWrapperCache.h"
 #include "nsLayoutUtils.h"
-#include "mozilla/dom/UnionTypes.h"
 
 class nsIDocShell;
 
@@ -111,7 +110,6 @@ class Element;
 class ImageData;
 class OwningHTMLCanvasElementOrOffscreenCanvas;
 struct WebGLContextAttributes;
-class ArrayBufferViewOrSharedArrayBufferView;
 template<typename> struct Nullable;
 } // namespace dom
 
@@ -192,6 +190,7 @@ class WebGLContext
     friend class WebGL2Context;
     friend class WebGLContextUserData;
     friend class WebGLExtensionCompressedTextureATC;
+    friend class WebGLExtensionCompressedTextureES3;
     friend class WebGLExtensionCompressedTextureETC1;
     friend class WebGLExtensionCompressedTexturePVRTC;
     friend class WebGLExtensionCompressedTextureS3TC;
@@ -305,7 +304,7 @@ public:
     // Returns hex formatted version of glenum if glenum is unknown.
     static void EnumName(GLenum glenum, nsACString* out_name);
 
-    void DummyFramebufferOperation(const char* funcName);
+    void DummyReadFramebufferOperation(const char* funcName);
 
     WebGLTexture* ActiveBoundTextureForTarget(const TexTarget texTarget) const {
         switch (texTarget.get()) {
@@ -333,8 +332,8 @@ public:
         return ActiveBoundTextureForTarget(texTarget);
     }
 
-    already_AddRefed<CanvasLayer>
-    GetCanvasLayer(nsDisplayListBuilder* builder, CanvasLayer* oldLayer,
+    already_AddRefed<Layer>
+    GetCanvasLayer(nsDisplayListBuilder* builder, Layer* oldLayer,
                    LayerManager* manager) override;
 
     // Note that 'clean' here refers to its invalidation state, not the
@@ -545,7 +544,7 @@ protected:
 public:
     void ReadPixels(GLint x, GLint y, GLsizei width, GLsizei height,
                     GLenum format, GLenum type,
-                    const dom::Nullable<dom::ArrayBufferViewOrSharedArrayBufferView>& pixels,
+                    const dom::Nullable<dom::ArrayBufferView>& pixels,
                     ErrorResult& rv);
     void RenderbufferStorage(GLenum target, GLenum internalFormat,
                              GLsizei width, GLsizei height);
@@ -777,8 +776,6 @@ public:
                     GLenum usage);
     void BufferData(GLenum target, const dom::SharedArrayBuffer& data,
                     GLenum usage);
-    void BufferData(GLenum target, const dom::SharedArrayBufferView& data,
-                    GLenum usage);
 
 private:
     template<typename BufferT>
@@ -792,8 +789,6 @@ public:
                        const dom::Nullable<dom::ArrayBuffer>& maybeData);
     void BufferSubData(GLenum target, WebGLsizeiptr byteOffset,
                        const dom::SharedArrayBuffer& data);
-    void BufferSubData(GLenum target, WebGLsizeiptr byteOffset,
-                       const dom::SharedArrayBufferView& data);
     already_AddRefed<WebGLBuffer> CreateBuffer();
     void DeleteBuffer(WebGLBuffer* buf);
     bool IsBuffer(WebGLBuffer* buf);
@@ -890,10 +885,10 @@ protected:
 public:
     void CompressedTexImage2D(GLenum texImageTarget, GLint level, GLenum internalFormat,
                               GLsizei width, GLsizei height, GLint border,
-                              const dom::ArrayBufferViewOrSharedArrayBufferView& view);
+                              const dom::ArrayBufferView& view);
     void CompressedTexSubImage2D(GLenum texImageTarget, GLint level, GLint xOffset,
                                  GLint yOffset, GLsizei width, GLsizei height,
-                                 GLenum unpackFormat, const dom::ArrayBufferViewOrSharedArrayBufferView& view);
+                                 GLenum unpackFormat, const dom::ArrayBufferView& view);
 
     void CopyTexImage2D(GLenum texImageTarget, GLint level, GLenum internalFormat,
                         GLint x, GLint y, GLsizei width, GLsizei height, GLint border);
@@ -904,7 +899,7 @@ public:
     void TexImage2D(GLenum texImageTarget, GLint level, GLenum internalFormat,
                     GLsizei width, GLsizei height, GLint border, GLenum unpackFormat,
                     GLenum unpackType,
-                    const dom::Nullable<dom::ArrayBufferViewOrSharedArrayBufferView>& maybeView,
+                    const dom::Nullable<dom::ArrayBufferView>& maybeView,
                     ErrorResult&);
     void TexImage2D(GLenum texImageTarget, GLint level, GLenum internalFormat,
                     GLenum unpackFormat, GLenum unpackType, dom::ImageData* imageData,
@@ -916,7 +911,7 @@ public:
     void TexSubImage2D(GLenum texImageTarget, GLint level, GLint xOffset, GLint yOffset,
                        GLsizei width, GLsizei height, GLenum unpackFormat,
                        GLenum unpackType,
-                       const dom::Nullable<dom::ArrayBufferViewOrSharedArrayBufferView>& maybeView,
+                       const dom::Nullable<dom::ArrayBufferView>& maybeView,
                        ErrorResult&);
     void TexSubImage2D(GLenum texImageTarget, GLint level, GLint xOffset, GLint yOffset,
                        GLenum unpackFormat, GLenum unpackType, dom::ImageData* imageData,
@@ -1309,7 +1304,8 @@ public:
     nsLayoutUtils::SurfaceFromElementResult
     SurfaceFromElement(dom::Element* elem)
     {
-        uint32_t flags = nsLayoutUtils::SFE_WANT_IMAGE_SURFACE;
+        uint32_t flags = nsLayoutUtils::SFE_WANT_IMAGE_SURFACE |
+                         nsLayoutUtils::SFE_USE_ELEMENT_SIZE_IF_VECTOR;
 
         if (mPixelStore_ColorspaceConversion == LOCAL_GL_NONE)
             flags |= nsLayoutUtils::SFE_NO_COLORSPACE_CONVERSION;
@@ -1317,7 +1313,7 @@ public:
         if (!mPixelStore_PremultiplyAlpha)
             flags |= nsLayoutUtils::SFE_PREFER_NO_PREMULTIPLY_ALPHA;
 
-        gfx::DrawTarget* idealDrawTarget = nullptr; // Don't care for now.
+        RefPtr<gfx::DrawTarget> idealDrawTarget = nullptr; // Don't care for now.
         return nsLayoutUtils::SurfaceFromElement(elem, flags, idealDrawTarget);
     }
 
@@ -1762,7 +1758,7 @@ Intersect(uint32_t srcSize, int32_t dstStartInSrc, uint32_t dstSize,
 
 bool
 ZeroTextureData(WebGLContext* webgl, const char* funcName, bool respecifyTexture,
-                TexImageTarget target, uint32_t level,
+                GLuint tex, TexImageTarget target, uint32_t level,
                 const webgl::FormatUsageInfo* usage, uint32_t xOffset, uint32_t yOffset,
                 uint32_t zOffset, uint32_t width, uint32_t height, uint32_t depth);
 

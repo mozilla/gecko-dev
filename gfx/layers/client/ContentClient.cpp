@@ -185,19 +185,17 @@ public:
         continue;
       }
 
-      RefPtr<gfxContext> ctx =
+      RefPtr<DrawTarget> dt =
         sink->BeginUpdate(update.mUpdateRect + offset, update.mSequenceCounter);
-
-      if (!ctx) {
+      if (!dt) {
         continue;
       }
 
-      DrawTarget* dt = ctx->GetDrawTarget();
       dt->SetTransform(Matrix::Translation(offset.x, offset.y));
 
       rotBuffer.DrawBufferWithRotation(dt, RotatedBuffer::BUFFER_BLACK);
 
-      update.mLayer->GetSink()->EndUpdate(ctx, update.mUpdateRect + offset);
+      update.mLayer->GetSink()->EndUpdate(update.mUpdateRect + offset);
     }
   }
 
@@ -586,15 +584,21 @@ ContentClientDoubleBuffered::FinalizeFrame(const nsIntRegion& aRegionToDraw)
   // Restrict the DrawTargets and frontBuffer to a scope to make
   // sure there is no more external references to the DrawTargets
   // when we Unlock the TextureClients.
-  RefPtr<SourceSurface> surf = mFrontClient->BorrowDrawTarget()->Snapshot();
-  RefPtr<SourceSurface> surfOnWhite = mFrontClientOnWhite
-    ? mFrontClientOnWhite->BorrowDrawTarget()->Snapshot()
-    : nullptr;
-  SourceRotatedBuffer frontBuffer(surf,
-                                  surfOnWhite,
-                                  mFrontBufferRect,
-                                  mFrontBufferRotation);
-  UpdateDestinationFrom(frontBuffer, updateRegion);
+  gfx::DrawTarget* dt = mFrontClient->BorrowDrawTarget();
+  gfx::DrawTarget* dtw = mFrontClientOnWhite ? mFrontClientOnWhite->BorrowDrawTarget() : nullptr;
+  if (dt && dt->IsValid()) {
+    RefPtr<SourceSurface> surf = dt->Snapshot();
+    RefPtr<SourceSurface> surfOnWhite = dtw ? dtw->Snapshot() : nullptr;
+    SourceRotatedBuffer frontBuffer(surf,
+                                    surfOnWhite,
+                                    mFrontBufferRect,
+                                    mFrontBufferRotation);
+    UpdateDestinationFrom(frontBuffer, updateRegion);
+  } else {
+    // We know this can happen, but we want to track it somewhat, in case it leads
+    // to other problems.
+    gfxCriticalNote << "Invalid draw target(s) " << hexa(dt) << " and " << hexa(dtw);
+  }
 }
 
 void

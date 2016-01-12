@@ -26,11 +26,11 @@
 
 #include "js/CallArgs.h"
 #include "js/Class.h"
+#include "js/GCVector.h"
 #include "js/HashTable.h"
 #include "js/Id.h"
 #include "js/Principals.h"
 #include "js/RootingAPI.h"
-#include "js/TraceableVector.h"
 #include "js/TracingAPI.h"
 #include "js/Utility.h"
 #include "js/Value.h"
@@ -218,9 +218,9 @@ typedef AutoVectorRooter<Value> AutoValueVector;
 typedef AutoVectorRooter<jsid> AutoIdVector;
 typedef AutoVectorRooter<JSObject*> AutoObjectVector;
 
-using ValueVector = js::TraceableVector<JS::Value>;
-using IdVector = js::TraceableVector<jsid>;
-using ScriptVector = js::TraceableVector<JSScript*>;
+using ValueVector = js::GCVector<JS::Value>;
+using IdVector = js::GCVector<jsid>;
+using ScriptVector = js::GCVector<JSScript*>;
 
 template<class Key, class Value>
 class MOZ_RAII AutoHashMapRooter : protected AutoGCRooter
@@ -571,6 +571,9 @@ typedef enum JSGCStatus {
 
 typedef void
 (* JSGCCallback)(JSRuntime* rt, JSGCStatus status, void* data);
+
+typedef void
+(* JSObjectsTenuredCallback)(JSRuntime* rt, void* data);
 
 typedef enum JSFinalizeStatus {
     /**
@@ -1002,6 +1005,9 @@ JS_BeginRequest(JSContext* cx);
 
 extern JS_PUBLIC_API(void)
 JS_EndRequest(JSContext* cx);
+
+extern JS_PUBLIC_API(void)
+JS_SetFutexCanWait(JSRuntime* rt);
 
 namespace js {
 
@@ -1654,6 +1660,10 @@ JS_MaybeGC(JSContext* cx);
 extern JS_PUBLIC_API(void)
 JS_SetGCCallback(JSRuntime* rt, JSGCCallback cb, void* data);
 
+extern JS_PUBLIC_API(void)
+JS_SetObjectsTenuredCallback(JSRuntime* rt, JSObjectsTenuredCallback cb,
+                             void* data);
+
 extern JS_PUBLIC_API(bool)
 JS_AddFinalizeCallback(JSRuntime* rt, JSFinalizeCallback cb, void* data);
 
@@ -1726,9 +1736,6 @@ typedef enum JSGCParamKey {
     /** Number of times GC has been invoked. Includes both major and minor GC. */
     JSGC_NUMBER = 4,
 
-    /** Max size of the code cache in bytes. */
-    JSGC_MAX_CODE_CACHE_BYTES = 5,
-
     /** Select GC mode. */
     JSGC_MODE = 6,
 
@@ -1794,7 +1801,7 @@ typedef enum JSGCParamKey {
     JSGC_MAX_EMPTY_CHUNK_COUNT = 22,
 
     /** Whether compacting GC is enabled. */
-    JSGC_COMPACTING_ENABLED = 23
+    JSGC_COMPACTING_ENABLED = 23,
 } JSGCParamKey;
 
 extern JS_PUBLIC_API(void)
@@ -1802,12 +1809,6 @@ JS_SetGCParameter(JSRuntime* rt, JSGCParamKey key, uint32_t value);
 
 extern JS_PUBLIC_API(uint32_t)
 JS_GetGCParameter(JSRuntime* rt, JSGCParamKey key);
-
-extern JS_PUBLIC_API(void)
-JS_SetGCParameterForThread(JSContext* cx, JSGCParamKey key, uint32_t value);
-
-extern JS_PUBLIC_API(uint32_t)
-JS_GetGCParameterForThread(JSContext* cx, JSGCParamKey key);
 
 extern JS_PUBLIC_API(void)
 JS_SetGCParametersBasedOnAvailableMemory(JSRuntime* rt, uint32_t availMem);
@@ -2156,7 +2157,124 @@ enum ZoneSpecifier {
     SystemZone = 1
 };
 
-class JS_PUBLIC_API(CompartmentOptions)
+/**
+ * CompartmentCreationOptions specifies options relevant to creating a new
+ * compartment, that are either immutable characteristics of that compartment
+ * or that are discarded after the compartment has been created.
+ *
+ * Access to these options on an existing compartment is read-only: if you
+ * need particular selections, make them before you create the compartment.
+ */
+class JS_PUBLIC_API(CompartmentCreationOptions)
+{
+  public:
+    CompartmentCreationOptions()
+      : addonId_(nullptr),
+        traceGlobal_(nullptr),
+        invisibleToDebugger_(false),
+        mergeable_(false),
+        preserveJitCode_(false),
+        cloneSingletons_(false),
+        experimentalDateTimeFormatFormatToPartsEnabled_(false)
+    {
+        zone_.spec = JS::FreshZone;
+    }
+
+    // A null add-on ID means that the compartment is not associated with an
+    // add-on.
+    JSAddonId* addonIdOrNull() const { return addonId_; }
+    CompartmentCreationOptions& setAddonId(JSAddonId* id) {
+        addonId_ = id;
+        return *this;
+    }
+
+    JSTraceOp getTrace() const {
+        return traceGlobal_;
+    }
+    CompartmentCreationOptions& setTrace(JSTraceOp op) {
+        traceGlobal_ = op;
+        return *this;
+    }
+
+    void* zonePointer() const {
+        MOZ_ASSERT(uintptr_t(zone_.pointer) > uintptr_t(JS::SystemZone));
+        return zone_.pointer;
+    }
+    ZoneSpecifier zoneSpecifier() const { return zone_.spec; }
+    CompartmentCreationOptions& setZone(ZoneSpecifier spec);
+    CompartmentCreationOptions& setSameZoneAs(JSObject* obj);
+
+    // Certain scopes (i.e. XBL compilation scopes) are implementation details
+    // of the embedding, and references to them should never leak out to script.
+    // This flag causes the this compartment to skip firing onNewGlobalObject
+    // and makes addDebuggee a no-op for this global.
+    bool invisibleToDebugger() const { return invisibleToDebugger_; }
+    CompartmentCreationOptions& setInvisibleToDebugger(bool flag) {
+        invisibleToDebugger_ = flag;
+        return *this;
+    }
+
+    // Compartments used for off-thread compilation have their contents merged
+    // into a target compartment when the compilation is finished. This is only
+    // allowed if this flag is set. The invisibleToDebugger flag must also be
+    // set for such compartments.
+    bool mergeable() const { return mergeable_; }
+    CompartmentCreationOptions& setMergeable(bool flag) {
+        mergeable_ = flag;
+        return *this;
+    }
+
+    // Determines whether this compartment should preserve JIT code on
+    // non-shrinking GCs.
+    bool preserveJitCode() const { return preserveJitCode_; }
+    CompartmentCreationOptions& setPreserveJitCode(bool flag) {
+        preserveJitCode_ = flag;
+        return *this;
+    }
+
+    bool cloneSingletons() const { return cloneSingletons_; }
+    CompartmentCreationOptions& setCloneSingletons(bool flag) {
+        cloneSingletons_ = flag;
+        return *this;
+    }
+
+    // ECMA-402 is considering adding a "formatToParts" DateTimeFormat method,
+    // that exposes not just a formatted string but its ordered subcomponents.
+    // The method, its semantics, and its name are all well short of being
+    // finalized, so for now it's exposed *only* if requested.
+    //
+    // Until "formatToParts" is included in a final specification edition, it's
+    // subject to change or removal at any time.  Do *not* rely on it in
+    // mission-critical code that can't be changed if ECMA-402 decides not to
+    // accept the method in its current form.
+    bool experimentalDateTimeFormatFormatToPartsEnabled() const {
+        return experimentalDateTimeFormatFormatToPartsEnabled_;
+    }
+    CompartmentCreationOptions& setExperimentalDateTimeFormatFormatToPartsEnabled(bool flag) {
+        experimentalDateTimeFormatFormatToPartsEnabled_ = flag;
+        return *this;
+    }
+
+
+  private:
+    JSAddonId* addonId_;
+    JSTraceOp traceGlobal_;
+    union {
+        ZoneSpecifier spec;
+        void* pointer; // js::Zone* is not exposed in the API.
+    } zone_;
+    bool invisibleToDebugger_;
+    bool mergeable_;
+    bool preserveJitCode_;
+    bool cloneSingletons_;
+    bool experimentalDateTimeFormatFormatToPartsEnabled_;
+};
+
+/**
+ * CompartmentBehaviors specifies behaviors of a compartment that can be
+ * changed after the compartment's been created.
+ */
+class JS_PUBLIC_API(CompartmentBehaviors)
 {
   public:
     class Override {
@@ -2187,65 +2305,32 @@ class JS_PUBLIC_API(CompartmentOptions)
         Mode mode_;
     };
 
-    explicit CompartmentOptions()
+    CompartmentBehaviors()
       : version_(JSVERSION_UNKNOWN)
-      , invisibleToDebugger_(false)
-      , mergeable_(false)
       , discardSource_(false)
       , disableLazyParsing_(false)
-      , cloneSingletons_(false)
-      , traceGlobal_(nullptr)
       , singletonsAsTemplates_(true)
-      , addonId_(nullptr)
-      , preserveJitCode_(false)
     {
-        zone_.spec = JS::FreshZone;
     }
 
     JSVersion version() const { return version_; }
-    CompartmentOptions& setVersion(JSVersion aVersion) {
+    CompartmentBehaviors& setVersion(JSVersion aVersion) {
         MOZ_ASSERT(aVersion != JSVERSION_UNKNOWN);
         version_ = aVersion;
-        return *this;
-    }
-
-    // Certain scopes (i.e. XBL compilation scopes) are implementation details
-    // of the embedding, and references to them should never leak out to script.
-    // This flag causes the this compartment to skip firing onNewGlobalObject
-    // and makes addDebuggee a no-op for this global.
-    bool invisibleToDebugger() const { return invisibleToDebugger_; }
-    CompartmentOptions& setInvisibleToDebugger(bool flag) {
-        invisibleToDebugger_ = flag;
-        return *this;
-    }
-
-    // Compartments used for off-thread compilation have their contents merged
-    // into a target compartment when the compilation is finished. This is only
-    // allowed if this flag is set.  The invisibleToDebugger flag must also be
-    // set for such compartments.
-    bool mergeable() const { return mergeable_; }
-    CompartmentOptions& setMergeable(bool flag) {
-        mergeable_ = flag;
         return *this;
     }
 
     // For certain globals, we know enough about the code that will run in them
     // that we can discard script source entirely.
     bool discardSource() const { return discardSource_; }
-    CompartmentOptions& setDiscardSource(bool flag) {
+    CompartmentBehaviors& setDiscardSource(bool flag) {
         discardSource_ = flag;
         return *this;
     }
 
     bool disableLazyParsing() const { return disableLazyParsing_; }
-    CompartmentOptions& setDisableLazyParsing(bool flag) {
+    CompartmentBehaviors& setDisableLazyParsing(bool flag) {
         disableLazyParsing_ = flag;
-        return *this;
-    }
-
-    bool cloneSingletons() const { return cloneSingletons_; }
-    CompartmentOptions& setCloneSingletons(bool flag) {
-        cloneSingletons_ = flag;
         return *this;
     }
 
@@ -2253,74 +2338,87 @@ class JS_PUBLIC_API(CompartmentOptions)
     bool extraWarnings(JSContext* cx) const;
     Override& extraWarningsOverride() { return extraWarningsOverride_; }
 
-    void* zonePointer() const {
-        MOZ_ASSERT(uintptr_t(zone_.pointer) > uintptr_t(JS::SystemZone));
-        return zone_.pointer;
-    }
-    ZoneSpecifier zoneSpecifier() const { return zone_.spec; }
-    CompartmentOptions& setZone(ZoneSpecifier spec);
-    CompartmentOptions& setSameZoneAs(JSObject* obj);
-
-    void setSingletonsAsValues() {
-        singletonsAsTemplates_ = false;
-    }
     bool getSingletonsAsTemplates() const {
         return singletonsAsTemplates_;
     }
-
-    // A null add-on ID means that the compartment is not associated with an
-    // add-on.
-    JSAddonId* addonIdOrNull() const { return addonId_; }
-    CompartmentOptions& setAddonId(JSAddonId* id) {
-        addonId_ = id;
-        return *this;
-    }
-
-    CompartmentOptions& setTrace(JSTraceOp op) {
-        traceGlobal_ = op;
-        return *this;
-    }
-    JSTraceOp getTrace() const {
-        return traceGlobal_;
-    }
-
-    bool preserveJitCode() const { return preserveJitCode_; }
-    CompartmentOptions& setPreserveJitCode(bool flag) {
-        preserveJitCode_ = flag;
+    CompartmentBehaviors& setSingletonsAsValues() {
+        singletonsAsTemplates_ = false;
         return *this;
     }
 
   private:
     JSVersion version_;
-    bool invisibleToDebugger_;
-    bool mergeable_;
     bool discardSource_;
     bool disableLazyParsing_;
-    bool cloneSingletons_;
     Override extraWarningsOverride_;
-    union {
-        ZoneSpecifier spec;
-        void* pointer; // js::Zone* is not exposed in the API.
-    } zone_;
-    JSTraceOp traceGlobal_;
 
     // To XDR singletons, we need to ensure that all singletons are all used as
     // templates, by making JSOP_OBJECT return a clone of the JSScript
     // singleton, instead of returning the value which is baked in the JSScript.
     bool singletonsAsTemplates_;
-
-    JSAddonId* addonId_;
-    bool preserveJitCode_;
 };
 
-JS_PUBLIC_API(CompartmentOptions&)
-CompartmentOptionsRef(JSCompartment* compartment);
+/**
+ * CompartmentOptions specifies compartment characteristics: both those that
+ * can't be changed on a compartment once it's been created
+ * (CompartmentCreationOptions), and those that can be changed on an existing
+ * compartment (CompartmentBehaviors).
+ */
+class JS_PUBLIC_API(CompartmentOptions)
+{
+  public:
+    explicit CompartmentOptions()
+      : creationOptions_(),
+        behaviors_()
+    {}
 
-JS_PUBLIC_API(CompartmentOptions&)
-CompartmentOptionsRef(JSObject* obj);
+    CompartmentOptions(const CompartmentCreationOptions& compartmentCreation,
+                       const CompartmentBehaviors& compartmentBehaviors)
+      : creationOptions_(compartmentCreation),
+        behaviors_(compartmentBehaviors)
+    {}
 
-JS_PUBLIC_API(CompartmentOptions&)
-CompartmentOptionsRef(JSContext* cx);
+    // CompartmentCreationOptions specify fundamental compartment
+    // characteristics that must be specified when the compartment is created,
+    // that can't be changed after the compartment is created.
+    CompartmentCreationOptions& creationOptions() {
+        return creationOptions_;
+    }
+    const CompartmentCreationOptions& creationOptions() const {
+        return creationOptions_;
+    }
+
+    // CompartmentBehaviors specify compartment characteristics that can be
+    // changed after the compartment is created.
+    CompartmentBehaviors& behaviors() {
+        return behaviors_;
+    }
+    const CompartmentBehaviors& behaviors() const {
+        return behaviors_;
+    }
+
+  private:
+    CompartmentCreationOptions creationOptions_;
+    CompartmentBehaviors behaviors_;
+};
+
+JS_PUBLIC_API(const CompartmentCreationOptions&)
+CompartmentCreationOptionsRef(JSCompartment* compartment);
+
+JS_PUBLIC_API(const CompartmentCreationOptions&)
+CompartmentCreationOptionsRef(JSObject* obj);
+
+JS_PUBLIC_API(const CompartmentCreationOptions&)
+CompartmentCreationOptionsRef(JSContext* cx);
+
+JS_PUBLIC_API(CompartmentBehaviors&)
+CompartmentBehaviorsRef(JSCompartment* compartment);
+
+JS_PUBLIC_API(CompartmentBehaviors&)
+CompartmentBehaviorsRef(JSObject* obj);
+
+JS_PUBLIC_API(CompartmentBehaviors&)
+CompartmentBehaviorsRef(JSContext* cx);
 
 /**
  * During global creation, we fire notifications to callbacks registered
@@ -4950,6 +5048,7 @@ JS_ObjectIsDate(JSContext* cx, JS::HandleObject obj, bool* isDate);
 #define JSREG_GLOB      0x02u   /* global exec, creates array of matches */
 #define JSREG_MULTILINE 0x04u   /* treat ^ and $ as begin and end of line */
 #define JSREG_STICKY    0x08u   /* only match starting at lastIndex */
+#define JSREG_UNICODE   0x10u   /* unicode */
 
 extern JS_PUBLIC_API(JSObject*)
 JS_NewRegExpObject(JSContext* cx, JS::HandleObject obj, const char* bytes, size_t length,
@@ -5207,25 +5306,7 @@ JS_IsIdentifier(const char16_t* chars, size_t length);
 
 namespace JS {
 
-/**
- * AutoFilename encapsulates a pointer to a C-string and keeps the C-string
- * alive for as long as the associated AutoFilename object is alive.
- */
-class MOZ_STACK_CLASS JS_PUBLIC_API(AutoFilename)
-{
-    void* scriptSource_;
-
-    AutoFilename(const AutoFilename&) = delete;
-    void operator=(const AutoFilename&) = delete;
-
-  public:
-    AutoFilename() : scriptSource_(nullptr) {}
-    ~AutoFilename() { reset(nullptr); }
-
-    const char* get() const;
-
-    void reset(void* newScriptSource);
-};
+typedef js::UniqueChars AutoFilename;
 
 /**
  * Return the current filename, line number and column number of the most

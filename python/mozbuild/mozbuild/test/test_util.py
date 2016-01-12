@@ -30,7 +30,6 @@ from mozbuild.util import (
     resolve_target_to_make,
     MozbuildDeletionError,
     HierarchicalStringList,
-    HierarchicalStringListWithFlagsFactory,
     StrictOrderingOnAppendList,
     StrictOrderingOnAppendListWithFlagsFactory,
     TypedList,
@@ -269,9 +268,21 @@ class TestHierarchicalStringList(unittest.TestCase):
             self.EXPORTS.foo += ['bar.h']
             del self.EXPORTS.foo
 
-    def test_unsorted_appends(self):
+    def test_unsorted(self):
         with self.assertRaises(UnsortedError) as ee:
             self.EXPORTS += ['foo.h', 'bar.h']
+
+        with self.assertRaises(UnsortedError) as ee:
+            self.EXPORTS.foo = ['foo.h', 'bar.h']
+
+        with self.assertRaises(UnsortedError) as ee:
+            self.EXPORTS.foo += ['foo.h', 'bar.h']
+
+    def test_reassign(self):
+        self.EXPORTS.foo = ['foo.h']
+
+        with self.assertRaises(KeyError) as ee:
+            self.EXPORTS.foo = ['bar.h']
 
     def test_walk(self):
         l = HierarchicalStringList()
@@ -441,64 +452,63 @@ class TestStrictOrderingOnAppendListWithFlagsFactory(unittest.TestCase):
         with self.assertRaises(AttributeError):
             l['b'].update(xyz=1)
 
-
-class TestHierarchicalStringListWithFlagsFactory(unittest.TestCase):
-    def test_hierarchical_string_list_with_flags_factory(self):
-        cls = HierarchicalStringListWithFlagsFactory({
-            'foo': bool,
-            'bar': int,
+    def test_strict_ordering_on_append_list_with_flags_factory_extend(self):
+        FooList = StrictOrderingOnAppendListWithFlagsFactory({
+            'foo': bool, 'bar': unicode
         })
+        foo = FooList(['a', 'b', 'c'])
+        foo['a'].foo = True
+        foo['b'].bar = 'bar'
 
-        l = cls()
-        l += ['a', 'b']
+        # Don't allow extending lists with different flag definitions.
+        BarList = StrictOrderingOnAppendListWithFlagsFactory({
+            'foo': unicode, 'baz': bool
+        })
+        bar = BarList(['d', 'e', 'f'])
+        bar['d'].foo = 'foo'
+        bar['e'].baz = True
+        with self.assertRaises(ValueError):
+            foo + bar
+        with self.assertRaises(ValueError):
+            bar + foo
 
-        with self.assertRaises(Exception):
-            l['a'] = 'foo'
+        # It's not obvious what to do with duplicate list items with possibly
+        # different flag values, so don't allow that case.
+        with self.assertRaises(ValueError):
+            foo + foo
 
-        with self.assertRaises(Exception):
-            c = l['c']
+        def assertExtended(l):
+            self.assertEqual(len(l), 6)
+            self.assertEqual(l['a'].foo, True)
+            self.assertEqual(l['b'].bar, 'bar')
+            self.assertTrue('c' in l)
+            self.assertEqual(l['d'].foo, True)
+            self.assertEqual(l['e'].bar, 'bar')
+            self.assertTrue('f' in l)
 
-        self.assertEqual(l['a'].foo, False)
-        l['a'].foo = True
-        self.assertEqual(l['a'].foo, True)
+        # Test extend.
+        zot = FooList(['d', 'e', 'f'])
+        zot['d'].foo = True
+        zot['e'].bar = 'bar'
+        zot.extend(foo)
+        assertExtended(zot)
 
-        with self.assertRaises(TypeError):
-            l['a'].bar = 'bar'
+        # Test __add__.
+        zot = FooList(['d', 'e', 'f'])
+        zot['d'].foo = True
+        zot['e'].bar = 'bar'
+        assertExtended(foo + zot)
+        assertExtended(zot + foo)
 
-        self.assertEqual(l['a'].bar, 0)
-        l['a'].bar = 42
-        self.assertEqual(l['a'].bar, 42)
+        # Test __iadd__.
+        foo += zot
+        assertExtended(foo)
 
-        l['b'].foo = True
-        self.assertEqual(l['b'].foo, True)
-
-        with self.assertRaises(AttributeError):
-            l['b'].baz = False
-
-        l.x += ['x', 'y']
-
-        with self.assertRaises(Exception):
-            l.x['x'] = 'foo'
-
-        with self.assertRaises(Exception):
-            c = l.x['c']
-
-        self.assertEqual(l.x['x'].foo, False)
-        l.x['x'].foo = True
-        self.assertEqual(l.x['x'].foo, True)
-
-        with self.assertRaises(TypeError):
-            l.x['x'].bar = 'bar'
-
-        self.assertEqual(l.x['x'].bar, 0)
-        l.x['x'].bar = 42
-        self.assertEqual(l.x['x'].bar, 42)
-
-        l.x['y'].foo = True
-        self.assertEqual(l.x['y'].foo, True)
-
-        with self.assertRaises(AttributeError):
-            l.x['y'].baz = False
+        # Test __setslice__.
+        foo[3:] = []
+        self.assertEqual(len(foo), 3)
+        foo[3:] = zot
+        assertExtended(foo)
 
 
 class TestMemoize(unittest.TestCase):

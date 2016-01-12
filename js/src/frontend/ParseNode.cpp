@@ -282,7 +282,9 @@ PushNodeChildren(ParseNode* pn, NodeStack* stack)
       case PNK_CLASSMETHOD:
       case PNK_NEWTARGET:
       case PNK_SETTHIS:
-      case PNK_FOR: {
+      case PNK_FOR:
+      case PNK_COMPREHENSIONFOR:
+      case PNK_ANNEXB_FUNCTION: {
         MOZ_ASSERT(pn->isArity(PN_BINARY));
         stack->push(pn->pn_left);
         stack->push(pn->pn_right);
@@ -493,15 +495,16 @@ PushNodeChildren(ParseNode* pn, NodeStack* stack)
       case PNK_CLASSMETHODLIST:
         return PushListNodeChildren(pn, stack);
 
-      // Array comprehension nodes are lists with a single child -- PNK_FOR for
-      // comprehensions, PNK_LEXICALSCOPE for legacy comprehensions.  Probably
-      // this should be a non-list eventually.
+      // Array comprehension nodes are lists with a single child:
+      // PNK_COMPREHENSIONFOR for comprehensions, PNK_LEXICALSCOPE for legacy
+      // comprehensions.  Probably this should be a non-list eventually.
       case PNK_ARRAYCOMP: {
 #ifdef DEBUG
         MOZ_ASSERT(pn->isKind(PNK_ARRAYCOMP));
         MOZ_ASSERT(pn->isArity(PN_LIST));
         MOZ_ASSERT(pn->pn_count == 1);
-        MOZ_ASSERT(pn->pn_head->isKind(PNK_LEXICALSCOPE) || pn->pn_head->isKind(PNK_FOR));
+        MOZ_ASSERT(pn->pn_head->isKind(PNK_LEXICALSCOPE) ||
+                   pn->pn_head->isKind(PNK_COMPREHENSIONFOR));
 #endif
         return PushListNodeChildren(pn, stack);
       }
@@ -772,10 +775,6 @@ Parser<FullParseHandler>::cloneParseTree(ParseNode* opn)
     return pn;
 }
 
-template <>
-ParseNode*
-Parser<FullParseHandler>::cloneLeftHandSide(ParseNode* opn);
-
 /*
  * Used by Parser::cloneLeftHandSide to clone a default expression
  * in the form of
@@ -886,6 +885,16 @@ Parser<FullParseHandler>::cloneLeftHandSide(ParseNode* opn)
         }
     }
     return pn;
+}
+
+template <>
+SyntaxParseHandler::Node
+Parser<SyntaxParseHandler>::cloneLeftHandSide(Node node)
+{
+    // See the comment in SyntaxParseHandler::singleBindingFromDeclaration for
+    // why this is okay.
+    MOZ_ASSERT(node == SyntaxParseHandler::NodeUnparenthesizedName);
+    return SyntaxParseHandler::NodeGeneric;
 }
 
 } /* namespace frontend */
@@ -1153,6 +1162,12 @@ ObjectBox::asFunctionBox()
     return static_cast<FunctionBox*>(this);
 }
 
+bool
+ObjectBox::isModuleBox()
+{
+    return object->is<ModuleObject>();
+}
+
 ModuleBox*
 ObjectBox::asModuleBox()
 {
@@ -1160,22 +1175,31 @@ ObjectBox::asModuleBox()
     return static_cast<ModuleBox*>(this);
 }
 
+/* static */ void
+ObjectBox::TraceList(JSTracer* trc, ObjectBox* listHead)
+{
+    for (ObjectBox* box = listHead; box; box = box->traceLink)
+        box->trace(trc);
+}
+
 void
 ObjectBox::trace(JSTracer* trc)
 {
-    ObjectBox* box = this;
-    while (box) {
-        TraceRoot(trc, &box->object, "parser.object");
-        if (box->isFunctionBox()) {
-            FunctionBox* funbox = box->asFunctionBox();
-            funbox->bindings.trace(trc);
-            if (funbox->enclosingStaticScope_)
-                TraceRoot(trc, &funbox->enclosingStaticScope_, "funbox-enclosingStaticScope");
-        } else if (box->isModuleBox()) {
-            ModuleBox* modulebox = box->asModuleBox();
-            modulebox->bindings.trace(trc);
-            modulebox->exportNames.trace(trc);
-        }
-        box = box->traceLink;
-    }
+    TraceRoot(trc, &object, "parser.object");
+}
+
+void
+FunctionBox::trace(JSTracer* trc)
+{
+    ObjectBox::trace(trc);
+    bindings.trace(trc);
+    if (enclosingStaticScope_)
+        TraceRoot(trc, &enclosingStaticScope_, "funbox-enclosingStaticScope");
+}
+
+void
+ModuleBox::trace(JSTracer* trc)
+{
+    ObjectBox::trace(trc);
+    bindings.trace(trc);
 }

@@ -34,6 +34,7 @@ function TabSources(threadActor, allowSourceFn=() => true) {
 
   this.blackBoxedSources = new Set();
   this.prettyPrintedSources = new Map();
+  this.neverAutoBlackBoxSources = new Set();
 
   // generated Debugger.Source -> promise of SourceMapConsumer
   this._sourceMaps = new Map();
@@ -56,16 +57,22 @@ TabSources.prototype = {
   /**
    * Update preferences and clear out existing sources
    */
-  reconfigure: function(options) {
+  setOptions: function(options) {
+    let shouldReset = false;
+
     if ('useSourceMaps' in options) {
+      shouldReset = true;
       this._useSourceMaps = options.useSourceMaps;
     }
 
     if ('autoBlackBox' in options) {
+      shouldReset = true;
       this._autoBlackBox = options.autoBlackBox;
     }
 
-    this.reset();
+    if (shouldReset) {
+      this.reset();
+    }
   },
 
   /**
@@ -169,8 +176,12 @@ TabSources.prototype = {
     this._thread.threadLifetimePool.addActor(actor);
     sourceActorStore.setReusableActorId(source, originalUrl, actor.actorID);
 
-    if (this._autoBlackBox && this._isMinifiedURL(actor.url)) {
+    if (this._autoBlackBox &&
+        !this.neverAutoBlackBoxSources.has(actor.url) &&
+        this._isMinifiedURL(actor.url)) {
+
       this.blackBox(actor.url);
+      this.neverAutoBlackBoxSources.add(actor.url);
     }
 
     if (source) {
@@ -387,7 +398,8 @@ TabSources.prototype = {
     let result = this._fetchSourceMap(sourceMapURL, aSource.url);
 
     // The promises in `_sourceMaps` must be the exact same instances
-    // as returned by `_fetchSourceMap` for `clearSourceMapCache` to work.
+    // as returned by `_fetchSourceMap` for `clearSourceMapCache` to
+    // work.
     this._sourceMaps.set(aSource, result);
     return result;
   },
@@ -620,8 +632,8 @@ TabSources.prototype = {
       originalColumn
     } = originalLocation;
 
-    let source = originalSourceActor.source ||
-                 originalSourceActor.generatedSource;
+    let source = (originalSourceActor.source ||
+                  originalSourceActor.generatedSource);
 
     return this.fetchSourceMap(source).then((map) => {
       if (map) {

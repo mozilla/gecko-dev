@@ -273,7 +273,7 @@ public:
 
   // Compute tight bounds assuming this frame honours its border, background
   // and outline, its children's tight bounds, and nothing else.
-  nsRect ComputeSimpleTightBounds(gfxContext* aContext) const;
+  nsRect ComputeSimpleTightBounds(mozilla::gfx::DrawTarget* aDrawTarget) const;
   
   /**
    * A helper, used by |nsFrame::ComputeSize| (for frames that need to
@@ -394,7 +394,6 @@ public:
   nsresult PeekBackwardAndForward(nsSelectionAmount aAmountBack,
                                   nsSelectionAmount aAmountForward,
                                   int32_t aStartPos,
-                                  nsPresContext* aPresContext,
                                   bool aJumpLines,
                                   uint32_t aSelectFlags);
 
@@ -412,7 +411,7 @@ public:
   virtual nsSize GetPrefSize(nsBoxLayoutState& aBoxLayoutState) override;
   virtual nsSize GetMinSize(nsBoxLayoutState& aBoxLayoutState) override;
   virtual nsSize GetMaxSize(nsBoxLayoutState& aBoxLayoutState) override;
-  virtual nscoord GetFlex(nsBoxLayoutState& aBoxLayoutState) override;
+  virtual nscoord GetFlex() override;
   virtual nscoord GetBoxAscent(nsBoxLayoutState& aBoxLayoutState) override;
 
   // We compute and store the HTML content's overflow area. So don't

@@ -226,7 +226,7 @@ MacroAssemblerCompat::branchPtrInNurseryRange(Condition cond, Register ptr, Regi
 
     const Nursery& nursery = GetJitContext()->runtime->gcNursery();
     movePtr(ImmWord(-ptrdiff_t(nursery.start())), temp);
-    addPtr(ptr, temp);
+    asMasm().addPtr(ptr, temp);
     branchPtr(cond == Assembler::Equal ? Assembler::Below : Assembler::AboveOrEqual,
               temp, ImmWord(nursery.nurserySize()), label);
 }
@@ -248,7 +248,7 @@ MacroAssemblerCompat::branchValueIsNurseryObject(Condition cond, ValueOperand va
     Value start = ObjectValue(*reinterpret_cast<JSObject*>(nursery.start()));
 
     movePtr(ImmWord(-ptrdiff_t(start.asRawBits())), temp);
-    addPtr(value.valueReg(), temp);
+    asMasm().addPtr(value.valueReg(), temp);
     branchPtr(cond == Assembler::Equal ? Assembler::Below : Assembler::AboveOrEqual,
               temp, ImmWord(nursery.nurserySize()), label);
 }
@@ -271,9 +271,6 @@ MacroAssemblerCompat::compareExchangeToTypedIntArray(Scalar::Type arrayType, con
         compareExchange8SignExtend(mem, oldval, newval, output.gpr());
         break;
       case Scalar::Uint8:
-        compareExchange8ZeroExtend(mem, oldval, newval, output.gpr());
-        break;
-      case Scalar::Uint8Clamped:
         compareExchange8ZeroExtend(mem, oldval, newval, output.gpr());
         break;
       case Scalar::Int16:
@@ -316,9 +313,6 @@ MacroAssemblerCompat::atomicExchangeToTypedIntArray(Scalar::Type arrayType, cons
         atomicExchange8SignExtend(mem, value, output.gpr());
         break;
       case Scalar::Uint8:
-        atomicExchange8ZeroExtend(mem, value, output.gpr());
-        break;
-      case Scalar::Uint8Clamped:
         atomicExchange8ZeroExtend(mem, value, output.gpr());
         break;
       case Scalar::Int16:
@@ -540,7 +534,7 @@ MacroAssembler::call(ImmPtr imm)
 }
 
 void
-MacroAssembler::call(AsmJSImmPtr imm)
+MacroAssembler::call(wasm::SymbolicAddress imm)
 {
     vixl::UseScratchRegisterScope temps(this);
     const Register scratch = temps.AcquireX().asUnsized();

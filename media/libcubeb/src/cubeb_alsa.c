@@ -85,7 +85,6 @@ struct cubeb_stream {
   snd_pcm_uframes_t write_position;
   snd_pcm_uframes_t last_position;
   snd_pcm_uframes_t buffer_size;
-  snd_pcm_uframes_t period_size;
   cubeb_stream_params params;
 
   /* Every member after this comment is protected by the owning context's
@@ -789,6 +788,7 @@ alsa_stream_init(cubeb * ctx, cubeb_stream ** stream, char const * stream_name,
   cubeb_stream * stm;
   int r;
   snd_pcm_format_t format;
+  snd_pcm_uframes_t period_size;
 
   assert(ctx && stream);
 
@@ -857,7 +857,7 @@ alsa_stream_init(cubeb * ctx, cubeb_stream ** stream, char const * stream_name,
     return CUBEB_ERROR_INVALID_FORMAT;
   }
 
-  r = snd_pcm_get_params(stm->pcm, &stm->buffer_size, &stm->period_size);
+  r = snd_pcm_get_params(stm->pcm, &stm->buffer_size, &period_size);
   assert(r == 0);
 
   stm->nfds = snd_pcm_poll_descriptors_count(stm->pcm);
@@ -963,7 +963,7 @@ alsa_get_preferred_sample_rate(cubeb * ctx, uint32_t * rate) {
 
   /* get a pcm, disabling resampling, so we get a rate the
    * hardware/dmix/pulse/etc. supports. */
-  r = snd_pcm_open(&pcm, "default", SND_PCM_STREAM_PLAYBACK | SND_PCM_NO_AUTO_RESAMPLE, 0);
+  r = snd_pcm_open(&pcm, CUBEB_ALSA_PCM_NAME, SND_PCM_STREAM_PLAYBACK | SND_PCM_NO_AUTO_RESAMPLE, 0);
   if (r < 0) {
     return CUBEB_ERROR;
   }
@@ -1116,6 +1116,7 @@ static struct cubeb_ops const alsa_ops = {
   .get_max_channel_count = alsa_get_max_channel_count,
   .get_min_latency = alsa_get_min_latency,
   .get_preferred_sample_rate = alsa_get_preferred_sample_rate,
+  .enumerate_devices = NULL,
   .destroy = alsa_destroy,
   .stream_init = alsa_stream_init,
   .stream_destroy = alsa_stream_destroy,

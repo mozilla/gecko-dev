@@ -8,7 +8,6 @@
 "use strict";
 
 const BASE_URL = Services.prefs.getCharPref("loop.server");
-const { LoopAPI } = Cu.import("chrome://loop/content/modules/MozLoopAPI.jsm", {});
 
 function* checkFxA401() {
   let err = MozLoopService.errors.get("login");
@@ -42,7 +41,7 @@ function* checkFxA401() {
 }
 
 add_task(function* setup() {
-  Services.prefs.setBoolPref("loop.gettingStarted.seen", true);
+  Services.prefs.setIntPref("loop.gettingStarted.latestFTUVersion", 1);
   MozLoopServiceInternal.mocks.pushHandler = mockPushHandler;
   // Normally the same pushUrl would be registered but we change it in the test
   // to be able to check for success on the second registration.
@@ -55,7 +54,7 @@ add_task(function* setup() {
   registerCleanupFunction(function* () {
     info("cleanup time");
     yield promiseDeletedOAuthParams(BASE_URL);
-    Services.prefs.clearUserPref("loop.gettingStarted.seen");
+    Services.prefs.clearUserPref("loop.gettingStarted.latestFTUVersion");
     MozLoopServiceInternal.mocks.pushHandler = undefined;
 
     yield resetFxA();

@@ -9,6 +9,7 @@
 
 #include "PlatformDecoderModule.h"
 #include "FFmpegLibs.h"
+#include "FFmpegRuntimeLinker.h"
 #include "mozilla/StaticMutex.h"
 
 namespace mozilla
@@ -43,6 +44,7 @@ protected:
   virtual void ProcessFlush();
   virtual void ProcessDrain() = 0;
   virtual void ProcessShutdown();
+  virtual void InitCodecContext() {}
   AVFrame*        PrepareFrame();
   nsresult        InitDecoder();
 
@@ -61,7 +63,6 @@ protected:
   // not required and so input samples on mTaskQueue need not be processed.
   // Cleared on mTaskQueue in ProcessDrain().
   Atomic<bool> mIsFlushing;
-  AVCodecParserContext* mCodecParser;
 
 private:
   static bool sFFmpegInitDone;

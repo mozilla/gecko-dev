@@ -26,6 +26,7 @@ import mozpack.path as mozpath
 
 from mozbuild.frontend.context import (
     Path,
+    RenamedSourcePath,
     SourcePath,
     ObjDirPath,
 )
@@ -401,7 +402,7 @@ class RecursiveMakeBackend(CommonBackend):
                 'dist_private',
                 'dist_sdk',
                 'dist_xpi-stage',
-                'tests',
+                '_tests',
                 'xpidl',
             ]}
 
@@ -454,6 +455,9 @@ class RecursiveMakeBackend(CommonBackend):
         # If CommonBackend acknowledged the object, we're done with it.
         if consumed:
             return True
+
+        if not isinstance(obj, Defines):
+            self.consume_object(obj.defines)
 
         if isinstance(obj, DirectoryTraversal):
             self._process_directory_traversal(obj, backend_file)
@@ -509,9 +513,6 @@ class RecursiveMakeBackend(CommonBackend):
         elif isinstance(obj, Defines):
             self._process_defines(obj, backend_file)
 
-        elif isinstance(obj, Exports):
-            self._process_exports(obj, obj.exports, backend_file)
-
         elif isinstance(obj, GeneratedFile):
             dep_file = "%s.pp" % obj.output
             backend_file.write('GENERATED_FILES += %s\n' % obj.output)
@@ -530,11 +531,8 @@ class RecursiveMakeBackend(CommonBackend):
         elif isinstance(obj, TestHarnessFiles):
             self._process_test_harness_files(obj, backend_file)
 
-        elif isinstance(obj, BrandingFiles):
-            self._process_branding_files(obj, obj.files, backend_file)
-
         elif isinstance(obj, JARManifest):
-            backend_file.write('JAR_MANIFEST := %s\n' % obj.path)
+            backend_file.write('JAR_MANIFEST := %s\n' % obj.path.full_path)
 
         elif isinstance(obj, Program):
             self._process_program(obj.program, backend_file)
@@ -587,7 +585,7 @@ class RecursiveMakeBackend(CommonBackend):
             self._process_linked_libraries(obj, backend_file)
 
         elif isinstance(obj, FinalTargetFiles):
-            self._process_final_target_files(obj, obj.files)
+            self._process_final_target_files(obj, obj.files, backend_file)
 
         elif isinstance(obj, FinalTargetPreprocessedFiles):
             self._process_final_target_pp_files(obj, obj.files, backend_file)
@@ -713,7 +711,7 @@ class RecursiveMakeBackend(CommonBackend):
         root_mk.add_statement('compile_targets := %s' % ' '.join(sorted(
             set(self._compile_graph.keys()) | all_compile_deps)))
 
-        root_mk.add_statement('$(call include_deps,root-deps.mk)')
+        root_mk.add_statement('include root-deps.mk')
 
         with self._write_file(
                 mozpath.join(self.environment.topobjdir, 'root.mk')) as root:
@@ -852,7 +850,7 @@ class RecursiveMakeBackend(CommonBackend):
 
             # Catch duplicate inserts.
             try:
-                self._install_manifests['tests'].add_optional_exists(manifest_stem)
+                self._install_manifests['_tests'].add_optional_exists(manifest_stem)
             except ValueError:
                 pass
 
@@ -860,20 +858,23 @@ class RecursiveMakeBackend(CommonBackend):
 
         ensureParentDir(mozpath.join(self.environment.topobjdir, 'dist', 'foo'))
 
-    def _pretty_path(self, path, backend_file):
+    def _pretty_path_parts(self, path, backend_file):
         assert isinstance(path, Path)
         if isinstance(path, SourcePath):
             if path.full_path.startswith(backend_file.srcdir):
-                return '$(srcdir)' + path.full_path[len(backend_file.srcdir):]
+                return '$(srcdir)', path.full_path[len(backend_file.srcdir):]
             if path.full_path.startswith(backend_file.topsrcdir):
-                return '$(topsrcdir)' + path.full_path[len(backend_file.topsrcdir):]
+                return '$(topsrcdir)', path.full_path[len(backend_file.topsrcdir):]
         elif isinstance(path, ObjDirPath):
             if path.full_path.startswith(backend_file.objdir):
-                return path.full_path[len(backend_file.objdir) + 1:]
+                return '', path.full_path[len(backend_file.objdir) + 1:]
             if path.full_path.startswith(self.environment.topobjdir):
-                return '$(DEPTH)' + path.full_path[len(self.environment.topobjdir):]
+                return '$(DEPTH)', path.full_path[len(self.environment.topobjdir):]
 
-        return path.full_path
+        return '', path.full_path
+
+    def _pretty_path(self, path, backend_file):
+        return ''.join(self._pretty_path_parts(path, backend_file))
 
     def _process_unified_sources(self, obj):
         backend_file = self._get_backend_file_for(obj)
@@ -913,13 +914,6 @@ class RecursiveMakeBackend(CommonBackend):
             self._traversal.add(backend_file.relobjdir,
                 dirs=relativize(self.environment.topobjdir, obj.dirs))
 
-        if obj.test_dirs:
-            fh.write('TEST_DIRS := %s\n' % ' '.join(
-                relativize(backend_file.objdir, obj.test_dirs)))
-            if self.environment.substs.get('ENABLE_TESTS', False):
-                self._traversal.add(backend_file.relobjdir,
-                    dirs=relativize(self.environment.topobjdir, obj.test_dirs))
-
         # The directory needs to be registered whether subdirectories have been
         # registered or not.
         self._traversal.add(backend_file.relobjdir)
@@ -932,53 +926,22 @@ class RecursiveMakeBackend(CommonBackend):
         for tier in set(self._no_skip.keys()) & affected_tiers:
             self._no_skip[tier].add(backend_file.relobjdir)
 
-    def _walk_hierarchy(self, obj, element, namespace=''):
-        """Walks the ``HierarchicalStringList`` ``element`` in the context of
-        the mozbuild object ``obj`` as though by ``element.walk()``, but yield
-        three-tuple containing the following:
-
-        - ``source`` - The path to the source file named by the current string
-        - ``dest``   - The relative path, including the namespace, of the
-                       destination file.
-        - ``flags``  - A dictionary of flags associated with the current string,
-                       or None if there is no such dictionary.
-        """
-        for path, strings in element.walk():
-            for s in strings:
-                source = mozpath.normpath(mozpath.join(obj.srcdir, s))
-                dest = mozpath.join(namespace, path, mozpath.basename(s))
-                yield source, dest, strings.flags_for(s)
-
     def _process_defines(self, obj, backend_file, which='DEFINES'):
         """Output the DEFINES rules to the given backend file."""
         defines = list(obj.get_defines())
         if defines:
-            backend_file.write(which + ' +=')
-            for define in defines:
-                backend_file.write(' %s' % define)
-            backend_file.write('\n')
-
-    def _process_exports(self, obj, exports, backend_file):
-        # This may not be needed, but is present for backwards compatibility
-        # with the old make rules, just in case.
-        if not obj.dist_install:
-            return
-
-        for source, dest, _ in self._walk_hierarchy(obj, exports):
-            self._install_manifests['dist_include'].add_symlink(source, dest)
-
-            if not os.path.exists(source):
-                raise Exception('File listed in EXPORTS does not exist: %s' % source)
+            defines = ' '.join(shell_quote(d) for d in defines)
+            backend_file.write_once('%s += %s\n' % (which, defines))
 
     def _process_test_harness_files(self, obj, backend_file):
         for path, files in obj.srcdir_files.iteritems():
             for source in files:
                 dest = '%s/%s' % (path, mozpath.basename(source))
-                self._install_manifests['tests'].add_symlink(source, dest)
+                self._install_manifests['_tests'].add_symlink(source, dest)
 
         for path, patterns in obj.srcdir_pattern_files.iteritems():
             for p in patterns:
-                self._install_manifests['tests'].add_pattern_symlink(p[0], p[1], path)
+                self._install_manifests['_tests'].add_pattern_symlink(p[0], p[1], path)
 
         for path, files in obj.objdir_files.iteritems():
             prefix = 'TEST_HARNESS_%s' % path.replace('/', '_')
@@ -990,22 +953,6 @@ INSTALL_TARGETS += %(prefix)s
         'dest': '$(DEPTH)/_tests/%s' % path,
         'files': ' '.join(mozpath.relpath(f, backend_file.objdir)
                           for f in files) })
-
-    def _process_branding_files(self, obj, files, backend_file):
-        for source, dest, flags in self._walk_hierarchy(obj, files):
-            if flags and flags.source:
-                source = mozpath.normpath(mozpath.join(obj.srcdir, flags.source))
-            if not os.path.exists(source):
-                raise Exception('File listed in BRANDING_FILES does not exist: %s' % source)
-
-            self._install_manifests['dist_branding'].add_symlink(source, dest)
-
-        # Also emit the necessary rules to create $(DIST)/branding during partial
-        # tree builds. The locale makefiles rely on this working.
-        backend_file.write('NONRECURSIVE_TARGETS += export\n')
-        backend_file.write('NONRECURSIVE_TARGETS_export += branding\n')
-        backend_file.write('NONRECURSIVE_TARGETS_export_branding_DIRECTORY = $(DEPTH)\n')
-        backend_file.write('NONRECURSIVE_TARGETS_export_branding_TARGETS += install-dist/branding\n')
 
     def _process_installation_target(self, obj, backend_file):
         # A few makefiles need to be able to override the following rules via
@@ -1138,14 +1085,14 @@ INSTALL_TARGETS += %(prefix)s
         # the manifest is listed as a duplicate.
         for source, (dest, is_test) in obj.installs.items():
             try:
-                self._install_manifests['tests'].add_symlink(source, dest)
+                self._install_manifests['_tests'].add_symlink(source, dest)
             except ValueError:
                 if not obj.dupe_manifest and is_test:
                     raise
 
         for base, pattern, dest in obj.pattern_installs:
             try:
-                self._install_manifests['tests'].add_pattern_symlink(base,
+                self._install_manifests['_tests'].add_pattern_symlink(base,
                     pattern, dest)
             except ValueError:
                 if not obj.dupe_manifest:
@@ -1153,7 +1100,7 @@ INSTALL_TARGETS += %(prefix)s
 
         for dest in obj.external_installs:
             try:
-                self._install_manifests['tests'].add_optional_exists(dest)
+                self._install_manifests['_tests'].add_optional_exists(dest)
             except ValueError:
                 if not obj.dupe_manifest:
                     raise
@@ -1168,11 +1115,18 @@ INSTALL_TARGETS += %(prefix)s
             self.backend_input_files |= obj.manifest.manifests
 
     def _process_local_include(self, local_include, backend_file):
-        path = self._pretty_path(local_include, backend_file)
-        if ' ' in path:
-            backend_file.write('LOCAL_INCLUDES += -I\'%s\'\n' % path)
+        d, path = self._pretty_path_parts(local_include, backend_file)
+        if isinstance(local_include, ObjDirPath) and not d:
+            # path doesn't start with a slash in this case
+            d = '$(CURDIR)/'
+        elif d == '$(DEPTH)':
+            d = '$(topobjdir)'
+        quoted_path = shell_quote(path) if path else path
+        if quoted_path != path:
+            path = quoted_path[0] + d + quoted_path[1:]
         else:
-            backend_file.write('LOCAL_INCLUDES += -I%s\n' % path)
+            path = d + path
+        backend_file.write('LOCAL_INCLUDES += -I%s\n' % path)
 
     def _process_per_source_flag(self, per_source_flag, backend_file):
         for flag in per_source_flag.flags:
@@ -1228,6 +1182,8 @@ INSTALL_TARGETS += %(prefix)s
             backend_file.write('DSO_SONAME := %s\n' % libdef.soname)
         if libdef.is_sdk:
             backend_file.write('SDK_LIBRARY := %s\n' % libdef.import_name)
+        if libdef.symbols_file:
+            backend_file.write('SYMBOLS_FILE := %s\n' % libdef.symbols_file)
 
     def _process_static_library(self, libdef, backend_file):
         backend_file.write_once('LIBRARY_NAME := %s\n' % libdef.basename)
@@ -1300,36 +1256,62 @@ INSTALL_TARGETS += %(prefix)s
                 backend_file.write_once('HOST_EXTRA_LIBS += %s\n' % lib)
 
         # Process library-based defines
-        self._process_defines(obj.defines, backend_file)
+        self._process_defines(obj.lib_defines, backend_file)
 
-    def _process_final_target_files(self, obj, files):
+    def _process_final_target_files(self, obj, files, backend_file):
         target = obj.install_target
-        if target.startswith('dist/bin'):
-            install_manifest = self._install_manifests['dist_bin']
-            reltarget = mozpath.relpath(target, 'dist/bin')
-        elif target.startswith('dist/xpi-stage'):
-            install_manifest = self._install_manifests['dist_xpi-stage']
-            reltarget = mozpath.relpath(target, 'dist/xpi-stage')
-        elif target.startswith('_tests'):
-            install_manifest = self._install_manifests['tests']
-            reltarget = mozpath.relpath(target, '_tests')
-        else:
+        path = mozpath.basedir(target, (
+            'dist/bin',
+            'dist/xpi-stage',
+            '_tests',
+            'dist/include',
+            'dist/branding',
+        ))
+        if not path:
             raise Exception("Cannot install to " + target)
 
-        for path, strings in files.walk():
-            for f in strings:
-                source = mozpath.normpath(os.path.join(obj.srcdir, f))
-                dest = mozpath.join(reltarget, path, mozpath.basename(f))
-                install_manifest.add_symlink(source, dest)
+        manifest = path.replace('/', '_')
+        install_manifest = self._install_manifests[manifest]
+        reltarget = mozpath.relpath(target, path)
+
+        # Also emit the necessary rules to create $(DIST)/branding during
+        # partial tree builds. The locale makefiles rely on this working.
+        if path == 'dist/branding':
+            backend_file.write('NONRECURSIVE_TARGETS += export\n')
+            backend_file.write('NONRECURSIVE_TARGETS_export += branding\n')
+            backend_file.write('NONRECURSIVE_TARGETS_export_branding_DIRECTORY = $(DEPTH)\n')
+            backend_file.write('NONRECURSIVE_TARGETS_export_branding_TARGETS += install-dist/branding\n')
+
+        for path, files in files.walk():
+            target_var = (mozpath.join(target, path)
+                          if path else target).replace('/', '_')
+            have_objdir_files = False
+            for f in files:
+                assert not isinstance(f, RenamedSourcePath)
+                dest = mozpath.join(reltarget, path, f.target_basename)
+                if not isinstance(f, ObjDirPath):
+                    install_manifest.add_symlink(f.full_path, dest)
+                else:
+                    install_manifest.add_optional_exists(dest)
+                    backend_file.write('%s_FILES += %s\n' % (
+                        target_var, self._pretty_path(f, backend_file)))
+                    have_objdir_files = True
+            if have_objdir_files:
+                backend_file.write('%s_DEST := $(DEPTH)/%s\n'
+                                   % (target_var,
+                                      mozpath.join(target, path)))
+                backend_file.write('%s_TARGET := export\n' % target_var)
+                backend_file.write('INSTALL_TARGETS += %s\n' % target_var)
 
     def _process_final_target_pp_files(self, obj, files, backend_file):
-        # We'd like to install these via manifests as preprocessed files.
-        # But they currently depend on non-standard flags being added via
-        # some Makefiles, so for now we just pass them through to the
-        # underlying Makefile.in.
-        for i, (path, strings) in enumerate(files.walk()):
-            for f in strings:
-                backend_file.write('DIST_FILES_%d += %s\n' % (i, f))
+        # Bug 1177710 - We'd like to install these via manifests as
+        # preprocessed files. But they currently depend on non-standard flags
+        # being added via some Makefiles, so for now we just pass them through
+        # to the underlying Makefile.in.
+        for i, (path, files) in enumerate(files.walk()):
+            for f in files:
+                backend_file.write('DIST_FILES_%d += %s\n' % (
+                    i, self._pretty_path(f, backend_file)))
             backend_file.write('DIST_FILES_%d_PATH := $(DEPTH)/%s\n'
                                % (i, mozpath.join(obj.install_target, path)))
             backend_file.write('PP_TARGETS += DIST_FILES_%d\n' % i)
@@ -1406,6 +1388,7 @@ INSTALL_TARGETS += %(prefix)s
                 pp.context['autoconfmk'] = 'autoconf.mk'
             pp.handleLine(b'# THIS FILE WAS AUTOMATICALLY GENERATED. DO NOT MODIFY BY HAND.\n');
             pp.handleLine(b'DEPTH := @DEPTH@\n')
+            pp.handleLine(b'topobjdir := @topobjdir@\n')
             pp.handleLine(b'topsrcdir := @top_srcdir@\n')
             pp.handleLine(b'srcdir := @srcdir@\n')
             pp.handleLine(b'VPATH := @srcdir@\n')
@@ -1478,7 +1461,7 @@ INSTALL_TARGETS += %(prefix)s
                 # which would modify content in the source directory.
                 '$(RM) $@',
                 '$(call py_action,preprocessor,$(DEFINES) $(ACDEFINES) '
-                    '$(MOZ_DEBUG_DEFINES) $< -o $@)'
+                    '$< -o $@)'
             ])
 
         self._add_unified_build_rules(mk,

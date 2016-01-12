@@ -12,8 +12,14 @@
 #ifndef TouchManager_h_
 #define TouchManager_h_
 
+#include "mozilla/BasicEvents.h"
+#include "mozilla/dom/Touch.h"
+#include "nsRefPtrHashtable.h"
+
 class PresShell;
 class nsIDocument;
+
+namespace mozilla {
 
 class TouchManager {
 public:
@@ -38,5 +44,7 @@ private:
   RefPtr<PresShell>   mPresShell;
   nsCOMPtr<nsIDocument> mDocument;
 };
+
+} // namespace mozilla
 
 #endif /* !defined(TouchManager_h_) */

@@ -93,8 +93,10 @@ class EvalScriptGuard
             script_->cacheForEval();
             EvalCacheEntry cacheEntry = {lookupStr_, script_, lookup_.callerScript, lookup_.pc};
             lookup_.str = lookupStr_;
-            if (lookup_.str && IsEvalCacheCandidate(script_))
-                cx_->runtime()->evalCache.relookupOrAdd(p_, lookup_, cacheEntry);
+            if (lookup_.str && IsEvalCacheCandidate(script_)) {
+                bool ok = cx_->runtime()->evalCache.relookupOrAdd(p_, lookup_, cacheEntry);
+                (void)ok; // Ignore failure to add cache entry.
+            }
         }
     }
 
@@ -235,12 +237,6 @@ EvalKernel(JSContext* cx, const CallArgs& args, EvalType evalType, AbstractFrame
     Rooted<GlobalObject*> scopeObjGlobal(cx, &scopeobj->global());
     if (!GlobalObject::isRuntimeCodeGenEnabled(cx, scopeObjGlobal)) {
         JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_CSP_BLOCKED_EVAL);
-        return false;
-    }
-
-    if (evalType == DIRECT_EVAL && caller.script()->isDerivedClassConstructor()) {
-        JS_ReportErrorNumber(cx, GetErrorMessage, nullptr, JSMSG_DISABLED_DERIVED_CLASS,
-                             "direct eval");
         return false;
     }
 
@@ -488,7 +484,7 @@ js::ExecuteInGlobalAndReturnScope(JSContext* cx, HandleObject global, HandleScri
         return false;
 
     RootedValue rval(cx);
-    if (!ExecuteKernel(cx, script, *scope, UndefinedValue(), EXECUTE_GLOBAL,
+    if (!ExecuteKernel(cx, script, *scope, UndefinedValue(), EXECUTE_GLOBAL_OR_MODULE,
                        NullFramePtr() /* evalInFrame */, rval.address()))
     {
         return false;

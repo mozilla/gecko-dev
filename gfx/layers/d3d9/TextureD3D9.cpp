@@ -8,7 +8,6 @@
 #include "gfxContext.h"
 #include "gfxImageSurface.h"
 #include "Effects.h"
-#include "mozilla/layers/YCbCrImageDataSerializer.h"
 #include "gfxWindowsPlatform.h"
 #include "gfx2DGlue.h"
 #include "gfxUtils.h"
@@ -53,8 +52,7 @@ CreateTextureHostD3D9(const SurfaceDescriptor& aDesc,
 {
   RefPtr<TextureHost> result;
   switch (aDesc.type()) {
-    case SurfaceDescriptor::TSurfaceDescriptorShmem:
-    case SurfaceDescriptor::TSurfaceDescriptorMemory: {
+    case SurfaceDescriptor::TSurfaceDescriptorBuffer: {
       result = CreateBackendIndependentTextureHost(aDesc, aDeallocator, aFlags);
       break;
     }
@@ -192,7 +190,7 @@ TextureSourceD3D9::InitTextures(DeviceManagerD3D9* aDeviceManager,
   }
 
   tmpTexture->GetSurfaceLevel(0, getter_AddRefs(aSurface));
-  
+
   HRESULT hr = aSurface->LockRect(&aLockedRect, nullptr, 0);
   if (FAILED(hr) || !aLockedRect.pBits) {
     gfxCriticalError() << "Failed to lock rect initialize texture in D3D9 " << hexa(hr);
@@ -550,7 +548,7 @@ D3D9TextureData::BorrowDrawTarget()
     D3DLOCKED_RECT rect;
     HRESULT hr = mD3D9Surface->LockRect(&rect, nullptr, 0);
     if (FAILED(hr) || !rect.pBits) {
-      gfxCriticalError() << "Failed to lock rect borrowing the target in D3D9 " << hexa(hr);
+      gfxCriticalError() << "Failed to lock rect borrowing the target in D3D9 (BDT) " << hexa(hr);
       return nullptr;
     }
     dt = gfxPlatform::GetPlatform()->CreateDrawTargetForData((uint8_t*)rect.pBits, mSize,
@@ -585,21 +583,21 @@ D3D9TextureData::UpdateFromSurface(gfx::SourceSurface* aSurface)
   D3DLOCKED_RECT rect;
   HRESULT hr = mD3D9Surface->LockRect(&rect, nullptr, 0);
   if (FAILED(hr) || !rect.pBits) {
-    gfxCriticalError() << "Failed to lock rect borrowing the target in D3D9 " << hexa(hr);
+    gfxCriticalError() << "Failed to lock rect borrowing the target in D3D9 (UFS) " << hexa(hr);
     return false;
   }
 
   RefPtr<DataSourceSurface> srcSurf = aSurface->GetDataSurface();
 
   if (!srcSurf) {
-    gfxCriticalError() << "Failed to GetDataSurface in UpdateFromSurface.";
+    gfxCriticalError() << "Failed to GetDataSurface in UpdateFromSurface (D3D9).";
     mD3D9Surface->UnlockRect();
     return false;
   }
 
   DataSourceSurface::MappedSurface sourceMap;
   if (!srcSurf->Map(DataSourceSurface::READ, &sourceMap)) {
-    gfxCriticalError() << "Failed to map source surface for UpdateFromSurface.";
+    gfxCriticalError() << "Failed to map source surface for UpdateFromSurface (D3D9).";
     return false;
   }
 

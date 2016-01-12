@@ -97,7 +97,7 @@ class JarManifestParser(object):
     ignore = re.compile('\s*(\#.*)?$')
     jarline = re.compile('''
         (?:
-            (?:\[(?P<base>[\w\d.\-\_\\\/{}]+)\]\s*)? # optional [base/path]
+            (?:\[(?P<base>[\w\d.\-\_\\\/{}@]+)\]\s*)? # optional [base/path]
             (?P<jarfile>[\w\d.\-\_\\\/{}]+).jar\:    # filename.jar:
         |
             (?:\s*(\#.*)?)                           # comment
@@ -154,7 +154,7 @@ class JarManifestParser(object):
         # - chrome manifest entries, prefixed with "%".
         m = self.regline.match(line)
         if m:
-            rline = m.group(1)
+            rline = ' '.join(m.group(1).split())
             if rline not in self._current_jar.chrome_manifests:
                 self._current_jar.chrome_manifests.append(rline)
             return
@@ -252,21 +252,6 @@ class JarMaker(object):
                      help='add an app id specific root chrome manifest entry.'
                      )
         return p
-
-    def processIncludes(self, includes):
-        '''Process given includes with the inner PreProcessor.
-
-        Only use this for #defines, the includes shouldn't generate
-        content.
-        '''
-
-        self.pp.out = StringIO()
-        for inc in includes:
-            self.pp.do_include(inc)
-        includesvalue = self.pp.out.getvalue()
-        if includesvalue:
-            logging.info('WARNING: Includes produce non-empty output')
-        self.pp.out = None
 
     def finalizeJar(self, jardir, jarbase, jarname, chromebasepath, register, doZip=True):
         '''Helper method to write out the chrome registration entries to
@@ -560,7 +545,6 @@ def main(args=None):
     jm = JarMaker()
     p = jm.getCommandLineParser()
     (options, args) = p.parse_args(args)
-    jm.processIncludes(options.I)
     jm.outputFormat = options.f
     jm.sourcedirs = options.s
     jm.topsourcedir = options.t

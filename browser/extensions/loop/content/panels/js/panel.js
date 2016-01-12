@@ -13,31 +13,47 @@ loop.panel = (function(_, mozL10n) {
   var Button = sharedViews.Button;
   var Checkbox = sharedViews.Checkbox;
 
+  var FTU_VERSION = 1;
+
   var GettingStartedView = React.createClass({displayName: "GettingStartedView",
     mixins: [sharedMixins.WindowCloseMixin],
 
     handleButtonClick: function() {
       loop.requestMulti(
         ["OpenGettingStartedTour", "getting-started"],
-        ["SetLoopPref", "gettingStarted.seen", true]);
-      var event = new CustomEvent("GettingStartedSeen", { detail: true });
-      window.dispatchEvent(event);
+        ["SetLoopPref", "gettingStarted.latestFTUVersion", FTU_VERSION],
+        ["SetPanelHeight"]).then(function() {
+          var event = new CustomEvent("GettingStartedSeen");
+          window.dispatchEvent(event);
+        }.bind(this));
       this.closeWindow();
+    },
+
+    componentWillMount: function() {
+      // Set 553 pixel height to show the full FTU panel content.
+      loop.request("SetPanelHeight", 553);
     },
 
     render: function() {
       return (
         React.createElement("div", {className: "fte-get-started-content"}, 
-          React.createElement("header", {className: "fte-title"}, 
-            React.createElement("img", {src: "shared/img/hello_logo.svg"}), 
+          React.createElement("div", {className: "fte-title"}, 
+            React.createElement("img", {className: "fte-logo", src: "shared/img/hello_logo.svg"}), 
             React.createElement("div", {className: "fte-subheader"}, 
-              mozL10n.get("first_time_experience_subheading")
-            )
+              mozL10n.get("first_time_experience_subheading2")
+            ), 
+            React.createElement("hr", {className: "fte-separator"}), 
+            React.createElement("div", {className: "fte-content"}, 
+              mozL10n.get("first_time_experience_content")
+            ), 
+            React.createElement("img", {className: "fte-hello-web-share", src: "shared/img/hello-web-share.svg"})
           ), 
-          React.createElement(Button, {additionalClass: "fte-get-started-button", 
-                  caption: mozL10n.get("first_time_experience_button_label"), 
-                  htmlId: "fte-button", 
-                  onClick: this.handleButtonClick})
+          React.createElement("div", {className: "fte-button-container"}, 
+            React.createElement(Button, {additionalClass: "fte-get-started-button", 
+                    caption: mozL10n.get("first_time_experience_button_label2"), 
+                    htmlId: "fte-button", 
+                    onClick: this.handleButtonClick})
+          )
         )
       );
     }
@@ -380,9 +396,9 @@ loop.panel = (function(_, mozL10n) {
       var roomUrl = this.props.roomUrls && this.props.roomUrls[0];
       if (roomUrl && roomUrl.location) {
         return this._renderIcon(roomUrl);
-      } else {
-        return this._renderDefaultIcon();
       }
+
+      return this._renderDefaultIcon();
     }
   });
 
@@ -803,7 +819,7 @@ loop.panel = (function(_, mozL10n) {
       loop.request("GetSelectedTabMetadata").then(function(metadata) {
         // Bail out when the component is not mounted (anymore).
         // This occurs during test runs. See bug 1174611 for more info.
-        if (!this.isMounted()) {
+        if (!this.isMounted() || !metadata) {
           return;
         }
 
@@ -905,7 +921,7 @@ loop.panel = (function(_, mozL10n) {
         fxAEnabled: loop.getStoredRequest(["GetFxAEnabled"]),
         hasEncryptionKey: loop.getStoredRequest(["GetHasEncryptionKey"]),
         userProfile: loop.getStoredRequest(["GetUserProfile"]),
-        gettingStartedSeen: loop.getStoredRequest(["GetLoopPref", "gettingStarted.seen"]),
+        gettingStartedSeen: loop.getStoredRequest(["GetLoopPref", "gettingStarted.latestFTUVersion"]) >= FTU_VERSION,
         multiProcessEnabled: loop.getStoredRequest(["IsMultiProcessEnabled"])
       };
     },
@@ -963,8 +979,12 @@ loop.panel = (function(_, mozL10n) {
       }.bind(this));
     },
 
-    _gettingStartedSeen: function(e) {
-      this.setState({ gettingStartedSeen: !!e.detail });
+    _gettingStartedSeen: function() {
+      loop.request("GetLoopPref", "gettingStarted.latestFTUVersion").then(function(result) {
+        this.setState({
+          gettingStartedSeen: result >= FTU_VERSION
+        });
+      }.bind(this));
     },
 
     componentWillMount: function() {
@@ -1012,7 +1032,6 @@ loop.panel = (function(_, mozL10n) {
           )
         );
       }
-
       if (!this.state.hasEncryptionKey) {
         return React.createElement(SignInRequestView, null);
       }
@@ -1051,7 +1070,7 @@ loop.panel = (function(_, mozL10n) {
       ["GetPluralRule"]
     ];
     var prefetch = [
-      ["GetLoopPref", "gettingStarted.seen"],
+      ["GetLoopPref", "gettingStarted.latestFTUVersion"],
       ["GetLoopPref", "legal.ToS_url"],
       ["GetLoopPref", "legal.privacy_url"],
       ["GetUserProfile"],

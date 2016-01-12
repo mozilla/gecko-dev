@@ -12,6 +12,7 @@
 #include "mozilla/dom/ContentChild.h"
 
 #include "nsCharsetSource.h"
+#include "nsContentUtils.h"
 #include "nsStringStream.h"
 #include "nsNetUtil.h"
 #include "nsISerializable.h"
@@ -432,6 +433,8 @@ WyciwygChannelChild::SetLoadGroup(nsILoadGroup * aLoadGroup)
                                 mLoadGroup,
                                 NS_GET_IID(nsIProgressEventSink),
                                 getter_AddRefs(mProgressSink));
+
+  UpdatePrivateBrowsing();
   return NS_OK;
 }
 
@@ -524,6 +527,7 @@ WyciwygChannelChild::SetNotificationCallbacks(nsIInterfaceRequestor * aCallbacks
                                 mLoadGroup,
                                 NS_GET_IID(nsIProgressEventSink),
                                 getter_AddRefs(mProgressSink));
+  UpdatePrivateBrowsing();
   return NS_OK;
 }
 

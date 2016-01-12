@@ -318,7 +318,7 @@ inDOMUtils::GetRelativeRuleLine(nsIDOMCSSRule* aRule, uint32_t* _retval)
 
   uint32_t lineNumber = rule->GetLineNumber();
   CSSStyleSheet* sheet = rule->GetStyleSheet();
-  if (sheet) {
+  if (sheet && lineNumber != 0) {
     nsINode* owningNode = sheet->GetOwnerNode();
     if (owningNode) {
       nsCOMPtr<nsIStyleSheetLinkingElement> link =
@@ -1185,6 +1185,29 @@ GetStatesForPseudoClass(const nsAString& aStatePseudo)
   // Our array above is long enough that indexing into it with
   // NotPseudoClass is ok.
   return sPseudoClassStates[nsCSSPseudoClasses::GetPseudoType(atom)];
+}
+
+NS_IMETHODIMP
+inDOMUtils::GetCSSPseudoElementNames(uint32_t* aLength, char16_t*** aNames)
+{
+  nsTArray<nsIAtom*> array;
+
+  for (int i = 0; i < nsCSSPseudoElements::ePseudo_PseudoElementCount; ++i) {
+    nsCSSPseudoElements::Type type = static_cast<nsCSSPseudoElements::Type>(i);
+    if (!nsCSSPseudoElements::PseudoElementIsUASheetOnly(type)) {
+      nsIAtom* atom = nsCSSPseudoElements::GetPseudoAtom(type);
+      array.AppendElement(atom);
+    }
+  }
+
+  *aLength = array.Length();
+  char16_t** ret =
+    static_cast<char16_t**>(moz_xmalloc(*aLength * sizeof(char16_t*)));
+  for (uint32_t i = 0; i < *aLength; ++i) {
+    ret[i] = ToNewUnicode(nsDependentAtomString(array[i]));
+  }
+  *aNames = ret;
+  return NS_OK;
 }
 
 NS_IMETHODIMP

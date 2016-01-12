@@ -212,24 +212,24 @@ js::jit::maybeRD(Register r)
 }
 
 Register
-js::jit::toRD(Instruction& i)
+js::jit::toRD(Instruction i)
 {
     return Register::FromCode((i.encode() >> 12) & 0xf);
 }
 Register
-js::jit::toR(Instruction& i)
+js::jit::toR(Instruction i)
 {
     return Register::FromCode(i.encode() & 0xf);
 }
 
 Register
-js::jit::toRM(Instruction& i)
+js::jit::toRM(Instruction i)
 {
     return Register::FromCode((i.encode() >> 8) & 0xf);
 }
 
 Register
-js::jit::toRN(Instruction& i)
+js::jit::toRN(Instruction i)
 {
     return Register::FromCode((i.encode() >> 16) & 0xf);
 }
@@ -634,9 +634,10 @@ Assembler::finish()
 }
 
 bool
-Assembler::asmMergeWith(const Assembler& other)
+Assembler::asmMergeWith(Assembler& other)
 {
     flush();
+    other.flush();
     if (!AssemblerShared::asmMergeWith(size(), other))
         return false;
     return m_buffer.appendBuffer(other.m_buffer);
@@ -751,20 +752,8 @@ Assembler::GetCF32Target(Iter* iter)
         return dest;
     }
 
-    if (inst1->is<InstLDR>()) {
-        InstLDR* load = inst1->as<InstLDR>();
-        uint32_t inst = load->encode();
-        // Get the address of the instruction as a raw pointer.
-        char* dataInst = reinterpret_cast<char*>(load);
-        IsUp_ iu = IsUp_(inst & IsUp);
-        int32_t offset = inst & 0xfff;
-        if (iu != IsUp) {
-            offset = - offset;
-        }
-        uint32_t** ptr = (uint32_t**)&dataInst[offset + 8];
-        return *ptr;
-
-    }
+    if (inst1->is<InstLDR>())
+        return *(uint32_t**) inst1->as<InstLDR>()->dest();
 
     MOZ_CRASH("unsupported branch relocation");
 }
@@ -785,6 +774,9 @@ Assembler::GetPtr32Target(Iter* start, Register* dest, RelocStyle* style)
     Instruction* load2 = start->next();
 
     if (load1->is<InstMovW>() && load2->is<InstMovT>()) {
+        if (style)
+            *style = L_MOVWT;
+
         // See if we have the complex case:
         //  movw r_temp, #imm1
         //  movt r_temp, #imm2
@@ -807,27 +799,17 @@ Assembler::GetPtr32Target(Iter* start, Register* dest, RelocStyle* style)
 
         if (dest)
             *dest = temp;
-        if (style)
-            *style = L_MOVWT;
 
         uint32_t* value = (uint32_t*) (targ_bot.decode() | (targ_top.decode() << 16));
         return value;
     }
+
     if (load1->is<InstLDR>()) {
-        InstLDR* load = load1->as<InstLDR>();
-        uint32_t inst = load->encode();
-        // Get the address of the instruction as a raw pointer.
-        char* dataInst = reinterpret_cast<char*>(load);
-        IsUp_ iu = IsUp_(inst & IsUp);
-        int32_t offset = inst & 0xfff;
-        if (iu == IsDown)
-            offset = - offset;
-        if (dest)
-            *dest = toRD(*load);
         if (style)
             *style = L_LDR;
-        uint32_t** ptr = (uint32_t**)&dataInst[offset + 8];
-        return *ptr;
+        if (dest)
+            *dest = toRD(*load1);
+        return *(uint32_t**) load1->as<InstLDR>()->dest();
     }
 
     MOZ_CRASH("unsupported relocation");
@@ -2127,12 +2109,7 @@ Assembler::as_Imm32Pool(Register dest, uint32_t value, Condition c)
 Assembler::WritePoolEntry(Instruction* addr, Condition c, uint32_t data)
 {
     MOZ_ASSERT(addr->is<InstLDR>());
-    int32_t offset = addr->encode() & 0xfff;
-    if ((addr->encode() & IsUp) != IsUp)
-        offset = -offset;
-    char * rawAddr = reinterpret_cast<char*>(addr);
-    uint32_t * dest = reinterpret_cast<uint32_t*>(&rawAddr[offset + 8]);
-    *dest = data;
+    *addr->as<InstLDR>()->dest() = data;
     MOZ_ASSERT(addr->extractCond() == c);
 }
 
@@ -2996,7 +2973,6 @@ Assembler::RetargetFarBranch(Instruction* i, uint8_t** slot, uint8_t* dest, Cond
         AutoFlushICache::flush(uintptr_t(i), 4);
     }
     *slot = dest;
-
 }
 
 struct PoolHeader : Instruction
@@ -3092,12 +3068,13 @@ void
 Assembler::PatchDataWithValueCheck(CodeLocationLabel label, PatchedImmPtr newValue,
                                    PatchedImmPtr expectedValue)
 {
-    Instruction* ptr = (Instruction*) label.raw();
+    Instruction* ptr = reinterpret_cast<Instruction*>(label.raw());
     InstructionIterator iter(ptr);
     Register dest;
     Assembler::RelocStyle rs;
+
     DebugOnly<const uint32_t*> val = GetPtr32Target(&iter, &dest, &rs);
-    MOZ_ASSERT((uint32_t)(const uint32_t*)val == uint32_t(expectedValue.value));
+    MOZ_ASSERT(uint32_t((const uint32_t*)val) == uint32_t(expectedValue.value));
 
     MacroAssembler::ma_mov_patch(Imm32(int32_t(newValue.value)), dest, Always, rs, ptr);
 
@@ -3111,7 +3088,9 @@ Assembler::PatchDataWithValueCheck(CodeLocationLabel label, PatchedImmPtr newVal
 void
 Assembler::PatchDataWithValueCheck(CodeLocationLabel label, ImmPtr newValue, ImmPtr expectedValue)
 {
-    PatchDataWithValueCheck(label, PatchedImmPtr(newValue.value), PatchedImmPtr(expectedValue.value));
+    PatchDataWithValueCheck(label,
+                            PatchedImmPtr(newValue.value),
+                            PatchedImmPtr(expectedValue.value));
 }
 
 // This just stomps over memory with 32 bits of raw data. Its purpose is to
@@ -3356,7 +3335,7 @@ void Assembler::UpdateBoundsCheck(uint32_t heapSize, Instruction* inst)
 
     *inst = InstALU(InvalidReg, index, imm8, OpCmp, SetCC, Always);
     // NOTE: we don't update the Auto Flush Cache!  this function is currently
-    // only called from within AsmJSModule::patchHeapAccesses, which does that
+    // only called from within ModuleGenerator::finish, which does that
     // for us. Don't call this!
 }
 

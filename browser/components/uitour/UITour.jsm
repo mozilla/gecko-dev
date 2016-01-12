@@ -4,7 +4,7 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = ["UITour", "UITourMetricsProvider"];
+this.EXPORTED_SYMBOLS = ["UITour"];
 
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
@@ -530,13 +530,18 @@ this.UITour = {
           }
 
           let infoOptions = {};
+          if (typeof data.closeButtonCallbackID == "string") {
+            infoOptions.closeButtonCallback = () => {
+              this.sendPageCallback(messageManager, data.closeButtonCallbackID);
+            };
+          }
+          if (typeof data.targetCallbackID == "string") {
+            infoOptions.targetCallback = details => {
+              this.sendPageCallback(messageManager, data.targetCallbackID, details);
+            };
+          }
 
-          if (typeof data.closeButtonCallbackID == "string")
-            infoOptions.closeButtonCallbackID = data.closeButtonCallbackID;
-          if (typeof data.targetCallbackID == "string")
-            infoOptions.targetCallbackID = data.targetCallbackID;
-
-          this.showInfo(window, messageManager, target, data.title, data.text, iconURL, buttons, infoOptions);
+          this.showInfo(window, target, data.title, data.text, iconURL, buttons, infoOptions);
         }).catch(log.error);
         break;
       }
@@ -735,13 +740,12 @@ this.UITour = {
       }
     }
 
-    this.initForBrowser(browser);
+    this.initForBrowser(browser, window);
 
     return true;
   },
 
-  initForBrowser(aBrowser) {
-    let window = aBrowser.ownerDocument.defaultView;
+  initForBrowser(aBrowser, window) {
     let gBrowser = window.gBrowser;
 
     if (gBrowser) {
@@ -1396,17 +1400,17 @@ this.UITour = {
    * Show an info panel.
    *
    * @param {ChromeWindow} aChromeWindow
-   * @param {nsIMessageSender} aMessageManager
    * @param {Node}     aAnchor
    * @param {String}   [aTitle=""]
    * @param {String}   [aDescription=""]
    * @param {String}   [aIconURL=""]
    * @param {Object[]} [aButtons=[]]
    * @param {Object}   [aOptions={}]
-   * @param {String}   [aOptions.closeButtonCallbackID]
+   * @param {String}   [aOptions.closeButtonCallback]
+   * @param {String}   [aOptions.targetCallback]
    */
-  showInfo: function(aChromeWindow, aMessageManager, aAnchor, aTitle = "", aDescription = "", aIconURL = "",
-                     aButtons = [], aOptions = {}) {
+  showInfo(aChromeWindow, aAnchor, aTitle = "", aDescription = "",
+           aIconURL = "", aButtons = [], aOptions = {}) {
     function showInfoPanel(aAnchorEl) {
       aAnchorEl.focus();
 
@@ -1462,8 +1466,9 @@ this.UITour = {
       let tooltipClose = document.getElementById("UITourTooltipClose");
       let closeButtonCallback = (event) => {
         this.hideInfo(document.defaultView);
-        if (aOptions && aOptions.closeButtonCallbackID)
-          this.sendPageCallback(aMessageManager, aOptions.closeButtonCallbackID);
+        if (aOptions && aOptions.closeButtonCallback) {
+          aOptions.closeButtonCallback();
+        }
       };
       tooltipClose.addEventListener("command", closeButtonCallback);
 
@@ -1472,16 +1477,16 @@ this.UITour = {
           target: aAnchor.targetName,
           type: event.type,
         };
-        this.sendPageCallback(aMessageManager, aOptions.targetCallbackID, details);
+        aOptions.targetCallback(details);
       };
-      if (aOptions.targetCallbackID && aAnchor.addTargetListener) {
+      if (aOptions.targetCallback && aAnchor.addTargetListener) {
         aAnchor.addTargetListener(document, targetCallback);
       }
 
       tooltip.addEventListener("popuphiding", function tooltipHiding(event) {
         tooltip.removeEventListener("popuphiding", tooltipHiding);
         tooltipClose.removeEventListener("command", closeButtonCallback);
-        if (aOptions.targetCallbackID && aAnchor.removeTargetListener) {
+        if (aOptions.targetCallback && aAnchor.removeTargetListener) {
           aAnchor.removeTargetListener(document, targetCallback);
         }
       });
@@ -1819,8 +1824,9 @@ this.UITour = {
         this.getAvailableTargets(aMessageManager, aWindow, aCallbackID);
         break;
       case "loop":
+        const FTU_VERSION = 1;
         this.sendPageCallback(aMessageManager, aCallbackID, {
-          gettingStartedSeen: Services.prefs.getBoolPref("loop.gettingStarted.seen"),
+          gettingStartedSeen: (Services.prefs.getIntPref("loop.gettingStarted.latestFTUVersion") >= FTU_VERSION),
         });
         break;
       case "search":
@@ -1831,9 +1837,8 @@ this.UITour = {
             let engines = Services.search.getVisibleEngines();
             data = {
               searchEngineIdentifier: Services.search.defaultEngine.identifier,
-              engines: [TARGET_SEARCHENGINE_PREFIX + engine.identifier
-                        for (engine of engines)
-                          if (engine.identifier)]
+              engines: engines.filter((engine) => engine.identifier)
+                              .map((engine) => TARGET_SEARCHENGINE_PREFIX + engine.identifier)
             };
           } else {
             data = {engines: [], searchEngineIdentifier: ""};
@@ -2073,100 +2078,5 @@ const UITourHealthReport = {
       addClientId: true,
       addEnvironment: true,
     });
-
-    if (AppConstants.MOZ_SERVICES_HEALTHREPORT) {
-      Task.spawn(function*() {
-        let reporter = Cc["@mozilla.org/datareporting/service;1"]
-                         .getService()
-                         .wrappedJSObject
-                         .healthReporter;
-
-        // This can happen if the FHR component of the data reporting service is
-        // disabled. This is controlled by a pref that most will never use.
-        if (!reporter) {
-          return;
-        }
-
-        yield reporter.onInit();
-
-        // Get the UITourMetricsProvider instance from the Health Reporter
-        reporter.getProvider("org.mozilla.uitour").recordTreatmentTag(tag, value);
-      });
-    }
   }
 };
-
-function UITourTreatmentMeasurement1() {
-  Metrics.Measurement.call(this);
-
-  this._serializers = {};
-  this._serializers[this.SERIALIZE_JSON] = {
-    //singular: We don't need a singular serializer because we have none of this data
-    daily: this._serializeJSONDaily.bind(this)
-  };
-
-}
-
-if (AppConstants.MOZ_SERVICES_HEALTHREPORT) {
-
-  const DAILY_DISCRETE_TEXT_FIELD = Metrics.Storage.FIELD_DAILY_DISCRETE_TEXT;
-
-  this.UITourMetricsProvider = function() {
-    Metrics.Provider.call(this);
-  }
-
-  UITourMetricsProvider.prototype = Object.freeze({
-    __proto__: Metrics.Provider.prototype,
-
-    name: "org.mozilla.uitour",
-
-    measurementTypes: [
-      UITourTreatmentMeasurement1,
-    ],
-
-    recordTreatmentTag: function(tag, value) {
-      let m = this.getMeasurement(UITourTreatmentMeasurement1.prototype.name,
-                                  UITourTreatmentMeasurement1.prototype.version);
-      let field = tag;
-
-      if (this.storage.hasFieldFromMeasurement(m.id, field,
-                                               DAILY_DISCRETE_TEXT_FIELD)) {
-        let fieldID = this.storage.fieldIDFromMeasurement(m.id, field);
-        return this.enqueueStorageOperation(function recordKnownField() {
-          return this.storage.addDailyDiscreteTextFromFieldID(fieldID, value);
-        }.bind(this));
-      }
-
-      // Otherwise, we first need to create the field.
-      return this.enqueueStorageOperation(function recordField() {
-        // This function has to return a promise.
-        return Task.spawn(function () {
-          let fieldID = yield this.storage.registerField(m.id, field,
-                                                         DAILY_DISCRETE_TEXT_FIELD);
-          yield this.storage.addDailyDiscreteTextFromFieldID(fieldID, value);
-        }.bind(this));
-      }.bind(this));
-    },
-  });
-
-  UITourTreatmentMeasurement1.prototype = Object.freeze({
-    __proto__: Metrics.Measurement.prototype,
-
-    name: "treatment",
-    version: 1,
-
-    // our fields are dynamic
-    fields: { },
-
-    // We need a custom serializer because the default one doesn't accept unknown fields
-    _serializeJSONDaily: function(data) {
-      let result = {_v: this.version };
-
-      for (let [field, value] of data) {
-        result[field] = value;
-      }
-
-      return result;
-    }
-  });
-}

@@ -588,6 +588,7 @@ bool CheckOverRecursed(JSContext* cx);
 bool CheckOverRecursedWithExtra(JSContext* cx, BaselineFrame* frame,
                                 uint32_t extra, uint32_t earlyCheck);
 
+JSObject* BindVar(JSContext* cx, HandleObject scopeChain);
 bool DefVar(JSContext* cx, HandlePropertyName dn, unsigned attrs, HandleObject scopeChain);
 bool DefLexical(JSContext* cx, HandlePropertyName dn, unsigned attrs, HandleObject scopeChain);
 bool DefGlobalLexical(JSContext* cx, HandlePropertyName dn, unsigned attrs);
@@ -736,6 +737,8 @@ bool ObjectIsCallable(JSObject* obj);
 bool ThrowRuntimeLexicalError(JSContext* cx, unsigned errorNumber);
 bool BaselineThrowUninitializedThis(JSContext* cx, BaselineFrame* frame);
 bool ThrowBadDerivedReturn(JSContext* cx, HandleValue v);
+
+bool ThrowObjectCoercible(JSContext* cx, HandleValue v);
 
 bool BaselineGetFunctionThis(JSContext* cx, BaselineFrame* frame, MutableHandleValue res);
 

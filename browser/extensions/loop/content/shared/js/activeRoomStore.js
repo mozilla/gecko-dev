@@ -59,6 +59,8 @@ loop.store.ActiveRoomStore = (function() {
     socialShareProviders: "socialShareProviders"
   };
 
+  var updateContextTimer = null;
+
   /**
    * Active room store.
    *
@@ -169,6 +171,9 @@ loop.store.ActiveRoomStore = (function() {
           case REST_ERRNOS.INVALID_TOKEN:
           case REST_ERRNOS.EXPIRED:
             return FAILURE_DETAILS.EXPIRED_OR_INVALID;
+          case undefined:
+            // XHR errors reach here with errno as undefined
+            return FAILURE_DETAILS.COULD_NOT_CONNECT;
           default:
             return FAILURE_DETAILS.UNKNOWN;
         }
@@ -257,7 +262,7 @@ loop.store.ActiveRoomStore = (function() {
         "mediaStreamDestroyed",
         "remoteVideoStatus",
         "videoDimensionsChanged",
-        "startScreenShare",
+        "startBrowserShare",
         "endScreenShare",
         "updateSocialShareInfo",
         "connectionStatus",
@@ -355,6 +360,7 @@ loop.store.ActiveRoomStore = (function() {
       this.setStoreState({
         roomState: ROOM_STATES.GATHER,
         roomToken: actionData.token,
+        roomCryptoKey: actionData.cryptoKey,
         standalone: true
       });
 
@@ -917,14 +923,35 @@ loop.store.ActiveRoomStore = (function() {
       } else {
         console.error("Unexpectedly received windowId for browser sharing when pending");
       }
+
+      // The browser being shared changed, so update to the new context
+      loop.request("GetSelectedTabMetadata").then(function(meta) {
+        if (!meta) {
+          return;
+        }
+
+        if (updateContextTimer) {
+          clearTimeout(updateContextTimer);
+        }
+
+        updateContextTimer = setTimeout(function() {
+          this.dispatchAction(new sharedActions.UpdateRoomContext({
+            newRoomDescription: meta.title || meta.description || meta.url,
+            newRoomThumbnail: meta.favicon,
+            newRoomURL: meta.url,
+            roomToken: this.getStoreState().roomToken
+          }));
+          updateContextTimer = null;
+        }.bind(this), 500);
+      }.bind(this));
     },
 
     /**
-     * Initiates a screen sharing publisher.
+     * Initiates a browser tab sharing publisher.
      *
-     * @param {sharedActions.StartScreenShare} actionData
+     * @param {sharedActions.StartBrowserShare} actionData
      */
-    startScreenShare: function(actionData) {
+    startBrowserShare: function(actionData) {
       // For the unit test we already set the state here, instead of indirectly
       // via an action, because actions are queued thus depending on the
       // asynchronous nature of `loop.request`.
@@ -934,19 +961,16 @@ loop.store.ActiveRoomStore = (function() {
       }));
 
       var options = {
-        videoSource: actionData.type
+        videoSource: "browser"
       };
-      if (options.videoSource === "browser") {
-        this._browserSharingListener = this._handleSwitchBrowserShare.bind(this);
+      this._browserSharingListener = this._handleSwitchBrowserShare.bind(this);
 
-        // Set up a listener for watching screen shares. This will get notified
-        // with the first windowId when it is added, so we start off the sharing
-        // from within the listener.
-        loop.request("AddBrowserSharingListener").then(this._browserSharingListener);
-        loop.subscribe("BrowserSwitch", this._browserSharingListener);
-      } else {
-        this._sdkDriver.startScreenShare(options);
-      }
+      // Set up a listener for watching screen shares. This will get notified
+      // with the first windowId when it is added, so we start off the sharing
+      // from within the listener.
+      loop.request("AddBrowserSharingListener", this.getStoreState().windowId)
+        .then(this._browserSharingListener);
+      loop.subscribe("BrowserSwitch", this._browserSharingListener);
     },
 
     /**
@@ -955,7 +979,7 @@ loop.store.ActiveRoomStore = (function() {
     endScreenShare: function() {
       if (this._browserSharingListener) {
         // Remove the browser sharing listener as we don't need it now.
-        loop.request("RemoveBrowserSharingListener");
+        loop.request("RemoveBrowserSharingListener", this.getStoreState().windowId);
         loop.unsubscribe("BrowserSwitch", this._browserSharingListener);
         this._browserSharingListener = null;
       }
@@ -1093,13 +1117,8 @@ loop.store.ActiveRoomStore = (function() {
         loop.standaloneMedia.multiplexGum.reset();
       }
 
-      var requests = [
-        ["SetScreenShareState", this.getStoreState().windowId, false]
-      ];
-
       if (this._browserSharingListener) {
         // Remove the browser sharing listener as we don't need it now.
-        requests.push(["RemoveBrowserSharingListener"]);
         loop.unsubscribe("BrowserSwitch", this._browserSharingListener);
         this._browserSharingListener = null;
       }
@@ -1121,16 +1140,14 @@ loop.store.ActiveRoomStore = (function() {
         delete this._timeout;
       }
 
-      if (!failedJoinRequest &&
-          (this._storeState.roomState === ROOM_STATES.JOINING ||
-           this._storeState.roomState === ROOM_STATES.JOINED ||
-           this._storeState.roomState === ROOM_STATES.SESSION_CONNECTED ||
-           this._storeState.roomState === ROOM_STATES.HAS_PARTICIPANTS)) {
-        requests.push(["Rooms:Leave", this._storeState.roomToken,
-          this._storeState.sessionToken]);
+      // If we're not going to close the window, we can hangup the call ourselves.
+      // NOTE: when the window _is_ closed, hanging up the call is performed by
+      //       MozLoopService, because we can't get a message across to LoopAPI
+      //       in time whilst a window is closing.
+      if ((nextState === ROOM_STATES.FAILED || !this._isDesktop) && !failedJoinRequest) {
+        loop.request("HangupNow", this._storeState.roomToken,
+          this._storeState.sessionToken, this._storeState.windowId);
       }
-
-      loop.requestMulti.apply(null, requests);
 
       this.setStoreState({ roomState: nextState });
     },

@@ -1048,8 +1048,9 @@ MarkThisAndArguments(JSTracer* trc, const JitFrameIterator& frame)
 {
     // Mark |this| and any extra actual arguments for an Ion frame. Marking of
     // formal arguments is taken care of by the frame's safepoint/snapshot,
-    // except when the script might have lazy arguments, in which case we mark
-    // them as well. We also have to mark formals if we have a LazyLink frame.
+    // except when the script might have lazy arguments or rest, in which case
+    // we mark them as well. We also have to mark formals if we have a LazyLink
+    // frame.
 
     JitFrameLayout* layout = frame.isExitFrameLayout<LazyLinkExitFrameLayout>()
                              ? frame.exitFrame()->as<LazyLinkExitFrameLayout>()->jsFrame()
@@ -1063,7 +1064,7 @@ MarkThisAndArguments(JSTracer* trc, const JitFrameIterator& frame)
 
     JSFunction* fun = CalleeTokenToFunction(layout->calleeToken());
     if (!frame.isExitFrameLayout<LazyLinkExitFrameLayout>() &&
-        !fun->nonLazyScript()->argumentsHasVarBinding())
+        !fun->nonLazyScript()->mayReadFrameArgsDirectly())
     {
         nformals = fun->nargs();
     }
@@ -2195,11 +2196,8 @@ SnapshotIterator::initInstructionResults(MaybeReadFallback& fallback)
         // same reason, we need to recompile without optimizing away the
         // observable stack slots.  The script would later be recompiled to have
         // support for Argument objects.
-        if (fallback.consequence == MaybeReadFallback::Fallback_Invalidate &&
-            !ionScript_->invalidate(cx, /* resetUses = */ false, "Observe recovered instruction."))
-        {
-            return false;
-        }
+        if (fallback.consequence == MaybeReadFallback::Fallback_Invalidate)
+            ionScript_->invalidate(cx, /* resetUses = */ false, "Observe recovered instruction.");
 
         // Register the list of result on the activation.  We need to do that
         // before we initialize the list such as if any recover instruction

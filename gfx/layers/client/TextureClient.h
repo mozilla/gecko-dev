@@ -57,7 +57,7 @@ class TextureData;
 struct RawTextureBuffer;
 class RawYCbCrTextureBuffer;
 class TextureClient;
-class TextureClientRecycleAllocator;
+class ITextureClientRecycleAllocator;
 #ifdef GFX_DEBUG_TRACK_CLIENTS_IN_POOL
 class TextureClientPool;
 #endif
@@ -69,10 +69,15 @@ class KeepAlive;
  */
 
 enum TextureAllocationFlags {
-  ALLOC_DEFAULT = 0,
-  ALLOC_CLEAR_BUFFER = 1,
-  ALLOC_CLEAR_BUFFER_WHITE = 2,
-  ALLOC_DISALLOW_BUFFERTEXTURECLIENT = 4
+  ALLOC_DEFAULT = 0x0,
+  ALLOC_CLEAR_BUFFER = 0x1,
+  ALLOC_CLEAR_BUFFER_WHITE = 0x2,
+  ALLOC_DISALLOW_BUFFERTEXTURECLIENT = 0x4,
+
+  // Allocate the texture for out-of-band content updates. This is mostly for
+  // TextureClientD3D11, which may otherwise choose D3D10 or non-KeyedMutex
+  // surfaces when used on the main thread.
+  ALLOC_FOR_OUT_OF_BAND_CONTENT = 0x8
 };
 
 #ifdef XP_WIN
@@ -164,6 +169,10 @@ struct MappedYCbCrTextureData {
   }
 };
 
+#ifdef XP_WIN
+class D3D11TextureData;
+#endif
+
 class TextureData {
 public:
   TextureData() { MOZ_COUNT_CTOR(TextureData); }
@@ -215,6 +224,12 @@ public:
   virtual void SyncWithObject(SyncObject* aFence) {};
 
   virtual TextureFlags GetTextureFlags() const { return TextureFlags::NO_FLAGS; }
+
+#ifdef XP_WIN
+  virtual D3D11TextureData* AsD3D11TextureData() {
+    return nullptr;
+  }
+#endif
 };
 
 /**
@@ -282,10 +297,10 @@ public:
   // pointers) with a certain buffer size. It's unfortunate that we need this.
   // providing format and sizes could let us do more optimization.
   static already_AddRefed<TextureClient>
-  CreateWithBufferSize(ISurfaceAllocator* aAllocator,
-                       gfx::SurfaceFormat aFormat,
-                       size_t aSize,
-                       TextureFlags aTextureFlags);
+  CreateForYCbCrWithBufferSize(ISurfaceAllocator* aAllocator,
+                               gfx::SurfaceFormat aFormat,
+                               size_t aSize,
+                               TextureFlags aTextureFlags);
 
   // Creates and allocates a TextureClient of the same type.
   already_AddRefed<TextureClient>
@@ -357,8 +372,14 @@ public:
    */
   already_AddRefed<gfx::DataSourceSurface> GetAsSurface() {
     Lock(OpenMode::OPEN_READ);
-    RefPtr<gfx::SourceSurface> surf = BorrowDrawTarget()->Snapshot();
-    RefPtr<gfx::DataSourceSurface> data = surf->GetDataSurface();
+    RefPtr<gfx::DataSourceSurface> data;
+    RefPtr<gfx::DrawTarget> dt = BorrowDrawTarget();
+    if (dt) {
+      RefPtr<gfx::SourceSurface> surf = dt->Snapshot();
+      if (surf) {
+        data = surf->GetDataSurface();
+      }
+    }
     Unlock();
     return data.forget();
   }
@@ -400,6 +421,8 @@ public:
    */
   static PTextureChild* CreateIPDLActor();
   static bool DestroyIPDLActor(PTextureChild* actor);
+  // call this if the transaction that was supposed to destroy the actor failed.
+  static bool DestroyFallback(PTextureChild* actor);
 
   /**
    * Get the TextureClient corresponding to the actor passed in parameter.
@@ -529,9 +552,9 @@ public:
    * Track how much of this texture is wasted.
    * For example we might allocate a 256x256 tile but only use 10x10.
    */
-   void SetWaste(int aWasteArea) {
-     mWasteTracker.Update(aWasteArea, BytesPerPixel(GetFormat()));
-   }
+  void SetWaste(int aWasteArea) {
+    mWasteTracker.Update(aWasteArea, BytesPerPixel(GetFormat()));
+  }
 
   /**
    * This sets the readback sink that this texture is to use. This will
@@ -546,8 +569,8 @@ public:
 
   ISurfaceAllocator* GetAllocator() { return mAllocator; }
 
-   TextureClientRecycleAllocator* GetRecycleAllocator() { return mRecycleAllocator; }
-   void SetRecycleAllocator(TextureClientRecycleAllocator* aAllocator);
+  ITextureClientRecycleAllocator* GetRecycleAllocator() { return mRecycleAllocator; }
+  void SetRecycleAllocator(ITextureClientRecycleAllocator* aAllocator);
 
   /// If you add new code that uses this method, you are probably doing something wrong.
   TextureData* GetInternalData() { return mData; }
@@ -581,7 +604,7 @@ protected:
 
   RefPtr<ISurfaceAllocator> mAllocator;
   RefPtr<TextureChild> mActor;
-  RefPtr<TextureClientRecycleAllocator> mRecycleAllocator;
+  RefPtr<ITextureClientRecycleAllocator> mRecycleAllocator;
   RefPtr<AsyncTransactionWaiter> mRemoveFromCompositableWaiter;
 
   TextureData* mData;

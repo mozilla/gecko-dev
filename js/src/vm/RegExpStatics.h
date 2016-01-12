@@ -31,6 +31,7 @@ class RegExpStatics
     RelocatablePtrAtom      lazySource;
     RegExpFlag              lazyFlags;
     size_t                  lazyIndex;
+    bool                    lazySticky;
 
     /* The latest RegExp input, set before execution. */
     RelocatablePtrString    pendingInput;
@@ -63,12 +64,10 @@ class RegExpStatics
     struct InitBuffer {};
     explicit RegExpStatics(InitBuffer) {}
 
-    friend class AutoRegExpStaticsBuffer;
-
   public:
     /* Mutators. */
     inline void updateLazily(JSContext* cx, JSLinearString* input,
-                             RegExpShared* shared, size_t lastIndex);
+                             RegExpShared* shared, size_t lastIndex, bool sticky);
     inline bool updateFromMatchPairs(JSContext* cx, JSLinearString* input, MatchPairs& newPairs);
 
     void setMultiline(JSContext* cx, bool enabled) {
@@ -155,41 +154,13 @@ class RegExpStatics
         return offsetof(RegExpStatics, lazyIndex);
     }
 
+    static size_t offsetOfLazySticky() {
+        return offsetof(RegExpStatics, lazySticky);
+    }
+
     static size_t offsetOfPendingLazyEvaluation() {
         return offsetof(RegExpStatics, pendingLazyEvaluation);
     }
-};
-
-class MOZ_RAII AutoRegExpStaticsBuffer : private JS::CustomAutoRooter
-{
-  public:
-    explicit AutoRegExpStaticsBuffer(JSContext* cx
-                                     MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
-      : CustomAutoRooter(cx), statics(RegExpStatics::InitBuffer())
-    {
-        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    RegExpStatics& getStatics() { return statics; }
-
-  private:
-    virtual void trace(JSTracer* trc) {
-        if (statics.matchesInput) {
-            TraceRoot(trc, reinterpret_cast<JSString**>(&statics.matchesInput),
-                      "AutoRegExpStaticsBuffer matchesInput");
-        }
-        if (statics.lazySource) {
-            TraceRoot(trc, reinterpret_cast<JSString**>(&statics.lazySource),
-                      "AutoRegExpStaticsBuffer lazySource");
-        }
-        if (statics.pendingInput) {
-            TraceRoot(trc, reinterpret_cast<JSString**>(&statics.pendingInput),
-                      "AutoRegExpStaticsBuffer pendingInput");
-        }
-    }
-
-    RegExpStatics statics;
-    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
 inline bool
@@ -375,7 +346,7 @@ RegExpStatics::getRightContext(JSSubString* out) const
 
 inline void
 RegExpStatics::updateLazily(JSContext* cx, JSLinearString* input,
-                            RegExpShared* shared, size_t lastIndex)
+                            RegExpShared* shared, size_t lastIndex, bool sticky)
 {
     MOZ_ASSERT(input && shared);
 
@@ -386,6 +357,7 @@ RegExpStatics::updateLazily(JSContext* cx, JSLinearString* input,
     lazySource = shared->source;
     lazyFlags = shared->flags;
     lazyIndex = lastIndex;
+    lazySticky = sticky;
     pendingLazyEvaluation = 1;
 }
 

@@ -456,7 +456,8 @@ Convert(uint8_t aIn, BluetoothStatus& aOut)
     [0x07] = STATUS_PARM_INVALID,
     [0x08] = STATUS_UNHANDLED,
     [0x09] = STATUS_AUTH_FAILURE,
-    [0x0a] = STATUS_RMT_DEV_DOWN
+    [0x0a] = STATUS_RMT_DEV_DOWN,
+    [0x0b] = STATUS_AUTH_REJECTED
   };
   if (MOZ_HAL_IPC_CONVERT_WARN_IF(
         aIn >= MOZ_ARRAY_LENGTH(sStatus), uint8_t, BluetoothStatus)) {
@@ -1267,7 +1268,11 @@ PackPDU(const BluetoothProperty& aIn, DaemonSocketPDU& aPDU)
 
   switch (aIn.mType) {
     case PROPERTY_BDNAME:
-      /* fall through */
+      rv = PackPDU(PackConversion<uint8_t, uint16_t>(aIn.mRemoteName.mLength),
+                   PackArray<uint8_t>(aIn.mRemoteName.mName,
+                                      aIn.mRemoteName.mLength),
+                   aPDU);
+      break;
     case PROPERTY_REMOTE_FRIENDLY_NAME: {
         NS_ConvertUTF16toUTF8 stringUTF8(aIn.mString);
 
@@ -1560,8 +1565,16 @@ UnpackPDU(DaemonSocketPDU& aPDU, BluetoothProperty& aOut)
   }
 
   switch (aOut.mType) {
-    case PROPERTY_BDNAME:
-      /* fall through */
+    case PROPERTY_BDNAME: {
+        const uint8_t* data = aPDU.Consume(len);
+        if (MOZ_HAL_IPC_UNPACK_WARN_IF(!data, BluetoothProperty)) {
+          return NS_ERROR_ILLEGAL_VALUE;
+        }
+        // We construct an nsCString here because the string
+        // returned from the PDU is not 0-terminated.
+        aOut.mRemoteName.Assign(data, len);
+      }
+      break;
     case PROPERTY_REMOTE_FRIENDLY_NAME: {
         const uint8_t* data = aPDU.Consume(len);
         if (MOZ_HAL_IPC_UNPACK_WARN_IF(!data, BluetoothProperty)) {

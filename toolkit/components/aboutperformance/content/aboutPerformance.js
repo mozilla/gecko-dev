@@ -561,15 +561,15 @@ var View = {
       cachedElements.eltName.textContent = `Full name: ${delta.fullName}.`;
       cachedElements.eltLoaded.textContent = `Measure start: ${Math.round(delta.age/1000)} seconds ago.`
 
-      let processes = [for (proc of delta.diff.processes) `${proc.processId} (${proc.isChildProcess?"child":"parent"})`];
+      let processes = delta.diff.processes.map(proc => `${proc.processId} (${proc.isChildProcess?"child":"parent"})`);
       cachedElements.eltProcess.textContent = `Processes: ${processes.join(", ")}`;
       let jankSuffix = "";
       let cpowSuffix = "";
       if (watcherAlerts) {
         let deltaAlerts = watcherAlerts.get(delta.diff.addonId);
         if (deltaAlerts) {
-          jankSuffix = ` (${deltaAlerts.alerts.longestDuration || 0} alerts)`;
-          cpowSuffix = ` (${deltaAlerts.alerts.totalCPOWTime || 0} alerts)`;
+          jankSuffix = ` (${deltaAlerts.get("longestDuration") || 0} alerts)`;
+          cpowSuffix = ` (${deltaAlerts.get("totalCPOWTime") || 0} alerts)`;
         }
       }
 

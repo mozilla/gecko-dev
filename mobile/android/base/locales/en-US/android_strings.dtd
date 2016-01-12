@@ -170,8 +170,6 @@
 <!ENTITY pref_developer_remotedebugging_wifi "Remote debugging via Wi-Fi">
 <!ENTITY pref_developer_remotedebugging_wifi_disabled_summary "Wi-Fi debugging requires your device to have a QR code reader app installed.">
 <!ENTITY pref_remember_signons2 "Remember logins">
-<!ENTITY pref_open_external_urls_privately_title "Open links in Private browsing">
-<!ENTITY pref_open_external_urls_privately_summary "For all external links opened in &brandShortName;">
 <!ENTITY pref_manage_logins "Manage logins">
 
 <!ENTITY pref_category_home "Home">
@@ -191,6 +189,21 @@
 <!ENTITY pref_home_suggested_sites_summary "Display shortcuts to sites on your homepage that we think you might find interesting">
 <!ENTITY pref_category_home_homepage "Homepage">
 <!ENTITY home_homepage_title "Set a Homepage">
+<!-- Localization note (home_homepage_radio_user_address): The user will see a series of radio
+     buttons to choose the homepage they'd like to start on. When they click the radio
+     button for this string, they will use the built-in default Firefox homepage (about:home). -->
+<!ENTITY home_homepage_radio_default "&brandShortName; Home">
+<!-- Localization note (home_homepage_radio_user_address): The user will see a series of radio
+     buttons to choose the homepage they'd like to start on. When they click the radio
+     button for this string, a text field will appear below the radio button and allow the
+     user to insert an address of their choice. -->
+<!ENTITY home_homepage_radio_user_address "Custom">
+<!-- Localization note (home_homepage_hint_user_address): The user will see a series of
+     radio buttons to choose the homepage they'd like to start on. When they click a
+     particular radio button, a text field will appear below the radio button and allow the
+     user to insert an address of their choice. This string is the hint text to that
+     text field. -->
+<!ENTITY home_homepage_hint_user_address "Enter address or search term">
 
 <!-- Localization note: These are shown in the left sidebar on tablets -->
 <!ENTITY pref_header_general "General">
@@ -209,7 +222,7 @@
 <!ENTITY pref_tap_to_load_images_title2 "Show images">
 <!ENTITY pref_tap_to_load_images_enabled "Always">
 <!ENTITY pref_tap_to_load_images_data "Only over Wi-Fi">
-<!ENTITY pref_tap_to_load_images_disabled "Never">
+<!ENTITY pref_tap_to_load_images_disabled2 "Blocked">
 
 <!ENTITY pref_tracking_protection_title "Tracking protection">
 <!ENTITY pref_tracking_protection_summary3 "Enabled in Private Browsing">
@@ -246,6 +259,9 @@
 <!ENTITY pref_char_encoding_on "Show menu">
 <!ENTITY pref_char_encoding_off "Don\'t show menu">
 <!ENTITY pref_clear_private_data "Clear Private Data">
+<!-- Localization note (pref_clear_private_data_now_tablet): This action to clear private data is only shown on tablets.
+     The action is shown below a header saying "Clear private data"; See pref_clear_private_data -->
+<!ENTITY pref_clear_private_data_now_tablet "Clear now">
 <!ENTITY pref_clear_on_exit_title3 "Clear private data on exit">
 <!ENTITY pref_clear_on_exit_summary2 "&brandShortName; will automatically clear your data whenever you select \u0022Quit\u0022 from the main menu">
 <!ENTITY pref_clear_on_exit_dialog_title "Select which data to clear">
@@ -726,8 +742,8 @@ just addresses the organization to follow, e.g. "This site is run by " -->
 <!ENTITY restrictable_feature_advanced_settings_description "This includes importing bookmarks, restoring tabs and automated updates. Turn off for simplified settings suitable for any family member.">
 <!ENTITY restrictable_feature_camera_microphone "Camera &amp; Microphone">
 <!ENTITY restrictable_feature_camera_microphone_description "Allows family members to engage in real time communication on websites.">
-<!ENTITY restrictable_feature_data_choices "Data Choices">
-<!ENTITY restrictable_feature_data_choices_description "Choose whether or not to send usage information to Mozilla to help make Firefox better.">
+<!ENTITY restrictable_feature_block_list "Block List">
+<!ENTITY restrictable_feature_block_list_description "Block websites that include sensitive content.">
 
 <!-- Default Bookmarks titles-->
 <!-- LOCALIZATION NOTE (bookmarks_about_browser): link title for about:fennec -->
@@ -746,7 +762,5 @@ just addresses the organization to follow, e.g. "This site is run by " -->
      replaced by the Android OS version (e.g., 14)-->
 <!ENTITY unsupported_sdk_version "Sorry! This &brandShortName; won\'t work on this device (&formatS1;, &formatS2;). Please download the correct version.">
 
-<!-- https://support.mozilla.org/1/mobile/%VERSION%/%OS%/%LOCALE%/honeycombs -->
-<!ENTITY eol_notification_url "https://support.mozilla.org/1/firefox/&formatS1;/&formatS2;/&formatS3;/honeycombs">
 <!ENTITY eol_notification_title "&brandShortName; no longer supports Android 3">
 <!ENTITY eol_notification_summary "Tap to learn more">

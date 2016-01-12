@@ -77,6 +77,8 @@ GetActionCauseName(InputContextAction::Cause aCause)
       return "CAUSE_KEY";
     case InputContextAction::CAUSE_MOUSE:
       return "CAUSE_MOUSE";
+    case InputContextAction::CAUSE_TOUCH:
+      return "CAUSE_TOUCH";
     default:
       return "illegal value";
   }
@@ -657,8 +659,13 @@ IMEStateManager::OnClickInEditor(nsPresContext* aPresContext,
     return; // should notify only first click event.
   }
 
-  InputContextAction action(InputContextAction::CAUSE_MOUSE,
-                            InputContextAction::FOCUS_NOT_CHANGED);
+  uint16_t inputSource = nsIDOMMouseEvent::MOZ_SOURCE_UNKNOWN;
+  aMouseEvent->GetMozInputSource(&inputSource);
+  InputContextAction::Cause cause =
+    inputSource == nsIDOMMouseEvent::MOZ_SOURCE_TOUCH ?
+      InputContextAction::CAUSE_TOUCH : InputContextAction::CAUSE_MOUSE;
+
+  InputContextAction action(cause, InputContextAction::FOCUS_NOT_CHANGED);
   IMEState newState = GetNewIMEState(aPresContext, aContent);
   SetIMEState(newState, aContent, widget, action);
 }
@@ -1137,11 +1144,21 @@ IMEStateManager::DispatchCompositionEvent(
 
   MOZ_LOG(sISMLog, LogLevel::Info,
     ("ISM: IMEStateManager::DispatchCompositionEvent(aNode=0x%p, "
-     "aPresContext=0x%p, aCompositionEvent={ message=%s, "
+     "aPresContext=0x%p, aCompositionEvent={ mMessage=%s, "
+     "mNativeIMEContext={ mRawNativeIMEContext=0x%X, "
+     "mOriginProcessID=0x%X }, widget(0x%p)={ "
+     "GetNativeIMEContext()={ mRawNativeIMEContext=0x%X, "
+     "mOriginProcessID=0x%X }, Destroyed()=%s }, "
      "mFlags={ mIsTrusted=%s, mPropagationStopped=%s } }, "
      "aIsSynthesized=%s), tabParent=%p",
      aEventTargetNode, aPresContext,
      ToChar(aCompositionEvent->mMessage),
+     aCompositionEvent->mNativeIMEContext.mRawNativeIMEContext,
+     aCompositionEvent->mNativeIMEContext.mOriginProcessID,
+     aCompositionEvent->widget.get(),
+     aCompositionEvent->widget->GetNativeIMEContext().mRawNativeIMEContext,
+     aCompositionEvent->widget->GetNativeIMEContext().mOriginProcessID,
+     GetBoolName(aCompositionEvent->widget->Destroyed()),
      GetBoolName(aCompositionEvent->mFlags.mIsTrusted),
      GetBoolName(aCompositionEvent->mFlags.mPropagationStopped),
      GetBoolName(aIsSynthesized), tabParent.get()));
@@ -1157,7 +1174,7 @@ IMEStateManager::DispatchCompositionEvent(
   EnsureTextCompositionArray();
 
   RefPtr<TextComposition> composition =
-    sTextCompositions->GetCompositionFor(aCompositionEvent->widget);
+    sTextCompositions->GetCompositionFor(aCompositionEvent);
   if (!composition) {
     // If synthesized event comes after delayed native composition events
     // for request of commit or cancel, we should ignore it.
@@ -1271,8 +1288,18 @@ IMEStateManager::OnCompositionEventDiscarded(
 
   MOZ_LOG(sISMLog, LogLevel::Info,
     ("ISM: IMEStateManager::OnCompositionEventDiscarded(aCompositionEvent={ "
-     "mMessage=%s, mFlags={ mIsTrusted=%s } })",
+     "mMessage=%s, mNativeIMEContext={ mRawNativeIMEContext=0x%X, "
+     "mOriginProcessID=0x%X }, widget(0x%p)={ "
+     "GetNativeIMEContext()={ mRawNativeIMEContext=0x%X, "
+     "mOriginProcessID=0x%X }, Destroyed()=%s }, "
+     "mFlags={ mIsTrusted=%s } })",
      ToChar(aCompositionEvent->mMessage),
+     aCompositionEvent->mNativeIMEContext.mRawNativeIMEContext,
+     aCompositionEvent->mNativeIMEContext.mOriginProcessID,
+     aCompositionEvent->widget.get(),
+     aCompositionEvent->widget->GetNativeIMEContext().mRawNativeIMEContext,
+     aCompositionEvent->widget->GetNativeIMEContext().mOriginProcessID,
+     GetBoolName(aCompositionEvent->widget->Destroyed()),
      GetBoolName(aCompositionEvent->mFlags.mIsTrusted)));
 
   if (!aCompositionEvent->mFlags.mIsTrusted) {
@@ -1642,11 +1669,27 @@ IMEStateManager::GetTextCompositionFor(nsIWidget* aWidget)
 
 // static
 already_AddRefed<TextComposition>
-IMEStateManager::GetTextCompositionFor(WidgetGUIEvent* aGUIEvent)
+IMEStateManager::GetTextCompositionFor(
+                   const WidgetCompositionEvent* aCompositionEvent)
 {
-  MOZ_ASSERT(aGUIEvent->AsCompositionEvent() || aGUIEvent->AsKeyboardEvent(),
-    "aGUIEvent has to be WidgetCompositionEvent or WidgetKeyboardEvent");
-  return GetTextCompositionFor(aGUIEvent->widget);
+  if (!sTextCompositions) {
+    return nullptr;
+  }
+  RefPtr<TextComposition> textComposition =
+    sTextCompositions->GetCompositionFor(aCompositionEvent);
+  return textComposition.forget();
+}
+
+// static
+already_AddRefed<TextComposition>
+IMEStateManager::GetTextCompositionFor(nsPresContext* aPresContext)
+{
+  if (!sTextCompositions) {
+    return nullptr;
+  }
+  RefPtr<TextComposition> textComposition =
+    sTextCompositions->GetCompositionFor(aPresContext);
+  return textComposition.forget();
 }
 
 } // namespace mozilla

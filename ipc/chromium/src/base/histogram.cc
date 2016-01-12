@@ -436,7 +436,8 @@ Histogram::Histogram(const std::string& name, Sample minimum,
     bucket_count_(bucket_count),
     flags_(kNoFlags),
     ranges_(bucket_count + 1, 0),
-    range_checksum_(0) {
+    range_checksum_(0),
+    recording_enabled_(true) {
   Initialize();
 }
 
@@ -449,7 +450,8 @@ Histogram::Histogram(const std::string& name, TimeDelta minimum,
     bucket_count_(bucket_count),
     flags_(kNoFlags),
     ranges_(bucket_count + 1, 0),
-    range_checksum_(0) {
+    range_checksum_(0),
+    recording_enabled_(true) {
   Initialize();
 }
 
@@ -558,8 +560,7 @@ const std::string Histogram::GetAsciiBucketRange(size_t i) const {
 // Update histogram data with new sample.
 void Histogram::Accumulate(Sample value, Count count, size_t index) {
   // Note locking not done in this version!!!
-  sample_.AccumulateWithExponentialStats(value, count, index,
-					 flags_ & kExtendedStatisticsFlag);
+  sample_.AccumulateWithLinearStats(value, count, index);
 }
 
 void Histogram::SetBucketRange(size_t i, Sample value) {
@@ -739,19 +740,6 @@ void Histogram::SampleSet::AccumulateWithLinearStats(Sample value,
                                                      size_t index) {
   Accumulate(value, count, index);
   sum_squares_ += static_cast<int64_t>(count) * value * value;
-}
-
-void Histogram::SampleSet::AccumulateWithExponentialStats(Sample value,
-                                                          Count count,
-                                                          size_t index,
-							  bool computeExtendedStatistics) {
-  Accumulate(value, count, index);
-  if (computeExtendedStatistics) {
-    DCHECK_GE(value, 0);
-    float value_log = logf(static_cast<float>(value) + 1.0f);
-    log_sum_ += count * value_log;
-    log_sum_squares_ += count * value_log * value_log;
-  }
 }
 
 Count Histogram::SampleSet::TotalCount() const {

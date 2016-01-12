@@ -18,7 +18,9 @@ EXPORTS.mozilla.dom += [
 EXPORTS.mozilla += [
     'AnimationComparator.h',
     'AnimationUtils.h',
+    'AnimValuesStyleRule.h',
     'ComputedTimingFunction.h',
+    'EffectCompositor.h',
     'EffectSet.h',
     'PendingAnimationTracker.h',
 ]
@@ -27,8 +29,11 @@ UNIFIED_SOURCES += [
     'Animation.cpp',
     'AnimationEffectReadOnly.cpp',
     'AnimationTimeline.cpp',
+    'AnimationUtils.cpp',
+    'AnimValuesStyleRule.cpp',
     'ComputedTimingFunction.cpp',
     'DocumentTimeline.cpp',
+    'EffectCompositor.cpp',
     'EffectSet.cpp',
     'KeyframeEffect.cpp',
     'PendingAnimationTracker.cpp',
@@ -36,6 +41,8 @@ UNIFIED_SOURCES += [
 
 LOCAL_INCLUDES += [
     '/dom/base',
+    '/layout/base',
+    '/layout/style',
 ]
 
 FINAL_LIBRARY = 'xul'

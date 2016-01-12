@@ -22,6 +22,7 @@
 #include "nsXULAppAPI.h"
 #include "nsContentSecurityManager.h"
 #include "LoadInfo.h"
+#include "nsServiceManagerUtils.h"
 
 // This class is used to suspend a request across a function scope.
 class ScopedRequestSuspender {
@@ -101,7 +102,7 @@ nsBaseChannel::Redirect(nsIChannel *newChannel, uint32_t redirectFlags,
     newChannel->SetLoadInfo(nullptr);
   }
 
-  // Try to preserve the privacy bit if it has been overridden
+  // Preserve the privacy bit if it has been overridden
   if (mPrivateBrowsingOverriden) {
     nsCOMPtr<nsIPrivateBrowsingChannel> newPBChannel =
       do_QueryInterface(newChannel);
@@ -424,6 +425,7 @@ nsBaseChannel::SetLoadGroup(nsILoadGroup *aLoadGroup)
 
   mLoadGroup = aLoadGroup;
   CallbacksChanged();
+  UpdatePrivateBrowsing();
   return NS_OK;
 }
 
@@ -497,6 +499,7 @@ nsBaseChannel::SetNotificationCallbacks(nsIInterfaceRequestor *aCallbacks)
 
   mCallbacks = aCallbacks;
   CallbacksChanged();
+  UpdatePrivateBrowsing();
   return NS_OK;
 }
 

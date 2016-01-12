@@ -592,7 +592,7 @@ public:
     void RemoveGCCallback(xpcGCCallback cb);
 
     struct EnvironmentPreparer : public js::ScriptEnvironmentPreparer {
-        bool invoke(JS::HandleObject scope, Closure& closure) override;
+        void invoke(JS::HandleObject scope, Closure& closure) override;
     };
     EnvironmentPreparer mEnvironmentPreparer;
 
@@ -1128,7 +1128,8 @@ public:
         JS::AssertGCThingMustBeTenured(expando);
         if (!mDOMExpandoSet) {
             mDOMExpandoSet = new DOMExpandoSet();
-            mDOMExpandoSet->init(8);
+            if (!mDOMExpandoSet->init(8))
+                return false;
         }
         return mDOMExpandoSet->put(JS::Heap<JSObject*>(expando));
     }
@@ -2195,10 +2196,7 @@ public:
         // This is the only time we should be tracing our mFlatJSObject,
         // normally somebody else is doing that. Be careful not to trace the
         // bogus INVALID_OBJECT value we can have during init, though.
-        if (mFlatJSObject) {
-            JS_CallTenuredObjectTracer(trc, &mFlatJSObject,
-                                       "XPCWrappedNative::mFlatJSObject");
-        }
+        JS::TraceNullableEdge(trc, &mFlatJSObject, "XPCWrappedNative::mFlatJSObject");
     }
 
     static void Trace(JSTracer* trc, JSObject* obj);
@@ -3424,6 +3422,7 @@ struct GlobalProperties {
     bool rtcIdentityProvider : 1;
     bool fetch : 1;
     bool caches : 1;
+    bool fileReader: 1;
 };
 
 // Infallible.

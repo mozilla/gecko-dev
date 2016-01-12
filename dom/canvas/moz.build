@@ -6,6 +6,9 @@
 
 TEST_DIRS += ['compiledtest']
 
+# Number changes to this file to avoid bug 1081323 (clobber after changing a manifest):
+# 2
+
 MOCHITEST_MANIFESTS += [
     'test/crossorigin/mochitest.ini',
     'test/mochitest-subsuite-webgl.ini',
@@ -31,6 +34,7 @@ EXPORTS.mozilla.dom += [
     'CanvasRenderingContextHelper.h',
     'CanvasUtils.h',
     'ImageBitmap.h',
+    'ImageBitmapRenderingContext.h',
     'ImageBitmapSource.h',
     'ImageData.h',
     'OffscreenCanvas.h',
@@ -47,6 +51,7 @@ UNIFIED_SOURCES += [
     'DocumentRendererChild.cpp',
     'DocumentRendererParent.cpp',
     'ImageBitmap.cpp',
+    'ImageBitmapRenderingContext.cpp',
     'ImageData.cpp',
     'OffscreenCanvas.cpp',
 ]
@@ -96,6 +101,7 @@ UNIFIED_SOURCES += [
     'WebGLExtensionColorBufferFloat.cpp',
     'WebGLExtensionColorBufferHalfFloat.cpp',
     'WebGLExtensionCompressedTextureATC.cpp',
+    'WebGLExtensionCompressedTextureES3.cpp',
     'WebGLExtensionCompressedTextureETC1.cpp',
     'WebGLExtensionCompressedTexturePVRTC.cpp',
     'WebGLExtensionCompressedTextureS3TC.cpp',
@@ -170,4 +176,3 @@ CXXFLAGS += CONFIG['MOZ_CAIRO_CFLAGS']
 CXXFLAGS += CONFIG['TK_CFLAGS']
 
 LOCAL_INCLUDES += CONFIG['SKIA_INCLUDES']
-

@@ -58,6 +58,7 @@ public:
 
   const nsIntSize& OriginalSize() const { return mOriginalSize; }
   const nsIntSize& TargetSize() const { return mTargetSize; }
+  const nsIntSize FrameSize() const { return nsIntSize(mFrameRect.width, mFrameRect.height); }
   const gfxSize& Scale() const { return mScale; }
 
   /**
@@ -170,6 +171,7 @@ public:
   bool HasInvalidation() const { return false; }
   DownscalerInvalidRect TakeInvalidRect() { return DownscalerInvalidRect(); }
   void ResetForNextProgressivePass() { }
+  const nsIntSize FrameSize() const { return nsIntSize(0, 0); }
 };
 
 #endif // MOZ_ENABLE_SKIA

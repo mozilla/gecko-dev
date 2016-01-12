@@ -8,7 +8,7 @@ android {
 
     defaultConfig {
         targetSdkVersion 22
-        minSdkVersion 9
+        minSdkVersion 15
         // Used by Robolectric based tests; see TestRunner.
         buildConfigField 'String', 'BUILD_DIR', "\"${project.buildDir}\""
     }
@@ -27,10 +27,10 @@ android {
             manifest.srcFile "${topsrcdir}/mobile/android/base/AndroidManifest.xml"
 
             java {
-                srcDir "${topobjdir}/gradle/base/src"
-
+                srcDir "${topsrcdir}/mobile/android/base/java"
                 srcDir "${topsrcdir}/mobile/android/search/java"
                 srcDir "${topsrcdir}/mobile/android/javaaddons/java"
+                srcDir "${topsrcdir}/mobile/android/services/src/main/java"
 
                 if (mozconfig.substs.MOZ_ANDROID_MLS_STUMBLER) {
                     srcDir "${topsrcdir}/mobile/android/stumbler/java"
@@ -65,6 +65,7 @@ android {
                 srcDir "${topsrcdir}/${mozconfig.substs.MOZ_BRANDING_DIRECTORY}/res"
                 srcDir "${project.buildDir}/generated/source/preprocessed_resources" // See syncPreprocessedResources.
                 srcDir "${topsrcdir}/mobile/android/base/resources"
+                srcDir "${topsrcdir}/mobile/android/services/src/main/res"
                 if (mozconfig.substs.MOZ_CRASHREPORTER) {
                     srcDir "${topsrcdir}/mobile/android/base/crashreporter/res"
                 }
@@ -122,12 +123,12 @@ dependencies {
     testCompile 'junit:junit:4.12'
     testCompile 'org.robolectric:robolectric:3.0'
     testCompile 'org.simpleframework:simple-http:4.1.13'
+    testCompile 'org.mockito:mockito-core:1.10.19'
 }
 
 apply plugin: 'idea'
 
 idea {
     module {
-        excludeDirs += file("${topobjdir}/gradle/base/src/org/mozilla/gecko/resources")
     }
 }

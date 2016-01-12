@@ -37,6 +37,13 @@ static const ObjectElements emptyElementsHeader(0, 0);
 HeapSlot* const js::emptyObjectElements =
     reinterpret_cast<HeapSlot*>(uintptr_t(&emptyElementsHeader) + sizeof(ObjectElements));
 
+static const ObjectElements emptyElementsHeaderShared(0, 0, ObjectElements::SharedMemory::IsShared);
+
+/* Objects with no elements share one empty set of elements. */
+HeapSlot* const js::emptyObjectElementsShared =
+    reinterpret_cast<HeapSlot*>(uintptr_t(&emptyElementsHeaderShared) + sizeof(ObjectElements));
+
+
 #ifdef DEBUG
 
 bool
@@ -56,7 +63,8 @@ ObjectElements::ConvertElementsToDoubles(JSContext* cx, uintptr_t elementsPtr)
      * elements converted to doubles, and arrays never have empty elements.
      */
     HeapSlot* elementsHeapPtr = (HeapSlot*) elementsPtr;
-    MOZ_ASSERT(elementsHeapPtr != emptyObjectElements);
+    MOZ_ASSERT(elementsHeapPtr != emptyObjectElements &&
+               elementsHeapPtr != emptyObjectElementsShared);
 
     ObjectElements* header = ObjectElements::fromElements(elementsHeapPtr);
     MOZ_ASSERT(!header->shouldConvertDoubleElements());
@@ -126,7 +134,7 @@ js::NativeObject::checkShapeConsistency()
         for (int n = throttle; --n >= 0 && shape->parent; shape = shape->parent) {
             MOZ_ASSERT_IF(lastProperty() != shape, !shape->hasTable());
 
-            ShapeTable::Entry& entry = table.search(shape->propid(), false);
+            ShapeTable::Entry& entry = table.search<MaybeAdding::NotAdding>(shape->propid());
             MOZ_ASSERT(entry.shape() == shape);
         }
 
@@ -147,7 +155,7 @@ js::NativeObject::checkShapeConsistency()
                 ShapeTable& table = shape->table();
                 MOZ_ASSERT(shape->parent);
                 for (Shape::Range<NoGC> r(shape); !r.empty(); r.popFront()) {
-                    ShapeTable::Entry& entry = table.search(r.front().propid(), false);
+                    ShapeTable::Entry& entry = table.search<MaybeAdding::NotAdding>(r.front().propid());
                     MOZ_ASSERT(entry.shape() == &r.front());
                 }
             }
@@ -348,7 +356,7 @@ void
 NativeObject::setLastPropertyMakeNative(ExclusiveContext* cx, Shape* shape)
 {
     MOZ_ASSERT(getClass()->isNative());
-    MOZ_ASSERT(shape->isNative());
+    MOZ_ASSERT(shape->getObjectClass()->isNative());
     MOZ_ASSERT(!shape->inDictionary());
 
     // This method is used to convert unboxed objects into native objects. In
@@ -422,9 +430,13 @@ NativeObject::growSlots(ExclusiveContext* cx, uint32_t oldCount, uint32_t newCou
 }
 
 /* static */ bool
-NativeObject::growSlotsStatic(ExclusiveContext* cx, NativeObject* obj, uint32_t newCount)
+NativeObject::growSlotsDontReportOOM(ExclusiveContext* cx, NativeObject* obj, uint32_t newCount)
 {
-    return obj->growSlots(cx, obj->numDynamicSlots(), newCount);
+    if (!obj->growSlots(cx, obj->numDynamicSlots(), newCount)) {
+        cx->recoverFromOutOfMemory();
+        return false;
+    }
+    return true;
 }
 
 static void
@@ -1333,6 +1345,11 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
             if ((desc_.attributes() & JSPROP_RESOLVING) == 0)
                 obj->as<ArgumentsObject>().markLengthOverridden();
         }
+        if (JSID_IS_SYMBOL(id) && JSID_TO_SYMBOL(id) == cx->wellKnownSymbols().iterator) {
+            // Do same thing as .length for [@@iterator].
+            if ((desc_.attributes() & JSPROP_RESOLVING) == 0)
+                obj->as<ArgumentsObject>().markIteratorOverridden();
+        }
     }
 
     // 9.1.6.1 OrdinaryDefineOwnProperty steps 1-2.
@@ -1360,7 +1377,7 @@ js::NativeDefineProperty(ExclusiveContext* cx, HandleNativeObject obj, HandleId 
     // Step 2.
     if (!shape) {
         if (!obj->nonProxyIsExtensible())
-            return result.fail(JSMSG_OBJECT_NOT_EXTENSIBLE);
+            return result.fail(JSMSG_CANT_DEFINE_PROP_OBJECT_NOT_EXTENSIBLE);
 
         // Fill in missing desc fields with defaults.
         CompletePropertyDescriptor(&desc);
@@ -1810,7 +1827,7 @@ GetNonexistentProperty(JSContext* cx, HandleNativeObject obj, HandleId id,
     //
     // Don't warn if extra warnings not enabled or for random getprop
     // operations.
-    if (!cx->compartment()->options().extraWarnings(cx))
+    if (!cx->compartment()->behaviors().extraWarnings(cx))
         return true;
 
     jsbytecode* pc;
@@ -1989,7 +2006,7 @@ MaybeReportUndeclaredVarAssignment(JSContext* cx, JSString* propname)
         // check is needed.
         if (IsStrictSetPC(pc))
             flags = JSREPORT_ERROR;
-        else if (cx->compartment()->options().extraWarnings(cx))
+        else if (cx->compartment()->behaviors().extraWarnings(cx))
             flags = JSREPORT_WARNING | JSREPORT_STRICT;
         else
             return true;
@@ -2188,8 +2205,6 @@ SetDenseOrTypedArrayElement(JSContext* cx, HandleNativeObject obj, uint32_t inde
         if (index < len) {
             if (obj->is<TypedArrayObject>())
                 TypedArrayObject::setElement(obj->as<TypedArrayObject>(), index, d);
-            else
-                SharedTypedArrayObject::setElement(obj->as<SharedTypedArrayObject>(), index, d);
         }
         return result.succeed();
     }

@@ -20,6 +20,7 @@
 #include "webrtc/common_video/interface/native_handle.h"
 #include "webrtc/common_video/libyuv/include/webrtc_libyuv.h"
 #include "webrtc/video_engine/include/vie_errors.h"
+#include "webrtc/video_engine/vie_defines.h"
 #include "browser_logging/WebRtcLog.h"
 
 #ifdef MOZ_WIDGET_ANDROID
@@ -957,6 +958,30 @@ WebrtcVideoConduit::ConfigureRecvMediaCodecs(
   return kMediaConduitNoError;
 }
 
+struct ResolutionAndBitrateLimits {
+  uint32_t resolution_in_mb;
+  uint16_t min_bitrate;
+  uint16_t max_bitrate;
+};
+
+#define MB_OF(w,h) ((unsigned int)((((w)>>4))*((unsigned int)((h)>>4))))
+
+// For now, try to set the max rates well above the knee in the curve.
+// Chosen somewhat arbitrarily; it's hard to find good data oriented for
+// realtime interactive/talking-head recording.  These rates assume
+// 30fps.
+
+// XXX Populate this based on a pref (which we should consider sorting because
+// people won't assume they need to).
+static ResolutionAndBitrateLimits kResolutionAndBitrateLimits[] = {
+  {MB_OF(1920, 1200), 1500, 10000}, // >HD (3K, 4K, etc)
+  {MB_OF(1280, 720), 1200, 5000}, // HD ~1080-1200
+  {MB_OF(800, 480), 600, 2500}, // HD ~720
+  {std::max(MB_OF(400, 240), MB_OF(352, 288)), 200, 1300}, // VGA, WVGA
+  {MB_OF(176, 144), 100, 500}, // WQVGA, CIF
+  {0 , 40, 250} // QCIF and below
+};
+
 static void
 SelectBandwidth(webrtc::VideoCodec& vie_codec,
                 unsigned short width,
@@ -971,42 +996,12 @@ SelectBandwidth(webrtc::VideoCodec& vie_codec,
   mb_height = (height + 15) >> 4;
   fs = mb_width * mb_height;
 
-  // For now, try to set the max rates well above the knee in the curve.
-  // Chosen somewhat arbitrarily; it's hard to find good data oriented for
-  // realtime interactive/talking-head recording.  These rates assume
-  // 30fps.
-#define MB_OF(w,h) ((unsigned int)((((w)>>4))*((unsigned int)((h)>>4))))
-
-  // XXX replace this with parsing a config var with roughly a format
-  // of "max_fs,min_bw,max_bw," repeated to populate a table (which we
-  // should consider sorting because people won't assume they need to).
-  // Then iterate through the sorted array comparing fs.
-  if (fs > MB_OF(1920, 1200)) {
-    // >HD (3K, 4K, etc)
-    vie_codec.minBitrate = 1500;
-    vie_codec.maxBitrate = 10000;
-  } else if (fs > MB_OF(1280, 720)) {
-    // HD ~1080-1200
-    vie_codec.minBitrate = 1200;
-    vie_codec.maxBitrate = 5000;
-  } else if (fs > MB_OF(800, 480)) {
-    // HD ~720
-    vie_codec.minBitrate = 600;
-    vie_codec.maxBitrate = 2500;
-  } else if (fs > std::max(MB_OF(400, 240), MB_OF(352, 288))) {
-    // WVGA
-    // VGA
-    vie_codec.minBitrate = 200;
-    vie_codec.maxBitrate = 1300;
-  } else if (fs > MB_OF(176, 144)) {
-    // WQVGA
-    // CIF
-    vie_codec.minBitrate = 100;
-    vie_codec.maxBitrate = 500;
-  } else {
-    // QCIF and below
-    vie_codec.minBitrate = 40;
-    vie_codec.maxBitrate = 250;
+  for (ResolutionAndBitrateLimits resAndLimits : kResolutionAndBitrateLimits) {
+    if (fs > resAndLimits.resolution_in_mb) {
+      vie_codec.minBitrate = resAndLimits.min_bitrate;
+      vie_codec.maxBitrate = resAndLimits.max_bitrate;
+      break;
+    }
   }
 
   // mLastFramerateTenths is an atomic, and scaled by *10
@@ -1021,6 +1016,56 @@ SelectBandwidth(webrtc::VideoCodec& vie_codec,
     // Mostly this would be ultra-low-light situations/mobile or screensharing.
     vie_codec.minBitrate = vie_codec.minBitrate * ((10-(framerate/2))/30);
     vie_codec.maxBitrate = vie_codec.maxBitrate * ((10-(framerate/2))/30);
+  }
+
+  // If we try to set a minimum bitrate that is too low, ViE will reject it.
+  vie_codec.minBitrate = std::max((unsigned int) webrtc::kViEMinCodecBitrate,
+                                  vie_codec.minBitrate);
+}
+
+static void ConstrainPreservingAspectRatioExact(uint32_t max_fs,
+                                                unsigned short* width,
+                                                unsigned short* height)
+{
+  unsigned int mb_width = (*width + 15) >> 4;
+  unsigned int mb_height = (*height + 15) >> 4;
+
+  // We could try to pick a better starting divisor, but it won't make any real
+  // performance difference.
+  for (size_t d = 1; d < std::min(mb_width, mb_height); ++d) {
+    if ((mb_width % d) || (mb_height % d)) {
+      continue; // Not divisible
+    }
+
+    if ((mb_width*mb_height)/(d*d) <= max_fs) {
+      *width = 16 * mb_width / d;
+      *height = 16 * mb_height / d;
+      return;
+    }
+  }
+
+  *width = 0;
+  *height = 0;
+}
+
+static void ConstrainPreservingAspectRatio(uint16_t max_width,
+                                           uint16_t max_height,
+                                           unsigned short* width,
+                                           unsigned short* height)
+{
+  if (((*width) <= max_width) && ((*height) <= max_height)) {
+    return;
+  }
+
+  if ((*width) * max_height > max_width * (*height))
+  {
+    (*height) = max_width * (*height) / (*width);
+    (*width) = max_width;
+  }
+  else
+  {
+    (*width) = max_height * (*width) / (*height);
+    (*height) = max_height;
   }
 }
 
@@ -1038,70 +1083,61 @@ WebrtcVideoConduit::SelectSendResolution(unsigned short width,
 
   mLastWidth = width;
   mLastHeight = height;
-  // Limit resolution to max-fs while keeping same aspect ratio as the
-  // incoming image.
-  if (mCurSendCodecConfig && mCurSendCodecConfig->mMaxFrameSize)
-  {
-    unsigned int cur_fs, max_width, max_height, mb_width, mb_height, mb_max;
-
-    mb_width = (width + 15) >> 4;
-    mb_height = (height + 15) >> 4;
-
-    cur_fs = mb_width * mb_height;
-
-    // Limit resolution to max_fs, but don't scale up.
-    if (cur_fs > mCurSendCodecConfig->mMaxFrameSize)
-    {
-      double scale_ratio;
-
-      scale_ratio = sqrt((double) mCurSendCodecConfig->mMaxFrameSize /
-                         (double) cur_fs);
-
-      mb_width = mb_width * scale_ratio;
-      mb_height = mb_height * scale_ratio;
-
-      // Adjust mb_width and mb_height if they were truncated to zero.
-      if (mb_width == 0) {
-        mb_width = 1;
-        mb_height = std::min(mb_height, mCurSendCodecConfig->mMaxFrameSize);
-      }
-      if (mb_height == 0) {
-        mb_height = 1;
-        mb_width = std::min(mb_width, mCurSendCodecConfig->mMaxFrameSize);
-      }
+  // Enforce constraints
+  if (mCurSendCodecConfig) {
+    uint16_t max_width = mCurSendCodecConfig->mEncodingConstraints.maxWidth;
+    uint16_t max_height = mCurSendCodecConfig->mEncodingConstraints.maxHeight;
+    if (max_width || max_height) {
+      max_width = max_width ? max_width : UINT16_MAX;
+      max_height = max_height ? max_height : UINT16_MAX;
+      ConstrainPreservingAspectRatio(max_width, max_height, &width, &height);
     }
 
-    // Limit width/height seperately to limit effect of extreme aspect ratios.
-    mb_max = (unsigned) sqrt(8 * (double) mCurSendCodecConfig->mMaxFrameSize);
-
-    max_width = 16 * std::min(mb_width, mb_max);
-    max_height = 16 * std::min(mb_height, mb_max);
-
-    if (width * max_height > max_width * height)
+    // Limit resolution to max-fs while keeping same aspect ratio as the
+    // incoming image.
+    if (mCurSendCodecConfig->mEncodingConstraints.maxFs)
     {
-      if (width > max_width)
+      uint32_t max_fs = mCurSendCodecConfig->mEncodingConstraints.maxFs;
+      unsigned int cur_fs, mb_width, mb_height, mb_max;
+
+      // Could we make this simpler by picking the larger of width and height,
+      // calculating a max for just that value based on the scale parameter,
+      // and then let ConstrainPreservingAspectRatio do the rest?
+      mb_width = (width + 15) >> 4;
+      mb_height = (height + 15) >> 4;
+
+      cur_fs = mb_width * mb_height;
+
+      // Limit resolution to max_fs, but don't scale up.
+      if (cur_fs > max_fs)
       {
-        // Due to the value is truncated to integer here and forced to even
-        // value later, adding 1 to improve accuracy.
-        height = max_width * height / width + 1;
-        width = max_width;
-      }
-    }
-    else
-    {
-      if (height > max_height)
-      {
-        // Due to the value is truncated to integer here and forced to even
-        // value later, adding 1 to improve accuracy.
-        width = max_height * width / height + 1;
-        height = max_height;
-      }
-    }
+        double scale_ratio;
 
-    // Favor even multiples of pixels for width and height.
-    width = std::max(width & ~1, 2);
-    height = std::max(height & ~1, 2);
+        scale_ratio = sqrt((double) max_fs / (double) cur_fs);
+
+        mb_width = mb_width * scale_ratio;
+        mb_height = mb_height * scale_ratio;
+
+        // Adjust mb_width and mb_height if they were truncated to zero.
+        if (mb_width == 0) {
+          mb_width = 1;
+          mb_height = std::min(mb_height, max_fs);
+        }
+        if (mb_height == 0) {
+          mb_height = 1;
+          mb_width = std::min(mb_width, max_fs);
+        }
+      }
+
+      // Limit width/height seperately to limit effect of extreme aspect ratios.
+      mb_max = (unsigned) sqrt(8 * (double) max_fs);
+
+      max_width = 16 * std::min(mb_width, mb_max);
+      max_height = 16 * std::min(mb_height, mb_max);
+      ConstrainPreservingAspectRatio(max_width, max_height, &width, &height);
+    }
   }
+
 
   // Adapt to getUserMedia resolution changes
   // check if we need to reconfigure the sending resolution.
@@ -1194,6 +1230,47 @@ WebrtcVideoConduit::ReconfigureSendCodec(unsigned short width,
     vie_codec.maxFramerate = mSendingFramerate;
     SelectBandwidth(vie_codec, width, height, mLastFramerateTenths);
 
+    // TODO: If/when we begin supporting width/height constraints on simulcast
+    // streams, for each such constraint we will need to choose a resolution
+    // that is the same aspect ratio as all other streams. This requires us to
+    // store the original constraints somewhere.
+    for (size_t i = vie_codec.numberOfSimulcastStreams; i > 0; --i) {
+      webrtc::SimulcastStream& stream(vie_codec.simulcastStream[i - 1]);
+      if (stream.maxBitrate && (stream.maxBitrate < vie_codec.minBitrate)) {
+        // This stream cannot do full resolution with good quality. Need to
+        // scale down.
+        stream.width = 0;
+        stream.height = 0;
+        uint32_t max_fs_in_mb = kResolutionAndBitrateLimits[0].resolution_in_mb;
+        for (ResolutionAndBitrateLimits resAndLimits :
+             kResolutionAndBitrateLimits) {
+          if (resAndLimits.min_bitrate < stream.maxBitrate) {
+            // Use the resolution from the _previous_ entry
+            unsigned short adjusted_width = width;
+            unsigned short adjusted_height = height;
+            // webrtc.org won't tolerate simulcast unless every stream is
+            // exactly the same aspect ratio
+            ConstrainPreservingAspectRatioExact(max_fs_in_mb,
+                                                &adjusted_width,
+                                                &adjusted_height);
+            stream.width = adjusted_width;
+            stream.height = adjusted_height;
+            break;
+          }
+          max_fs_in_mb = resAndLimits.resolution_in_mb;
+        }
+      } else {
+        stream.width = width;
+        stream.height = height;
+      }
+      // webrtc.org also gets upset if the last simulcast stream has a
+      // different resolution than the vie_codec
+      if (i == vie_codec.numberOfSimulcastStreams) {
+        vie_codec.width = stream.width;
+        vie_codec.height = stream.height;
+      }
+    }
+
     if ((err = mPtrViECodec->SetSendCodec(mChannel, vie_codec)) != 0)
     {
       CSFLogError(logTag, "%s: SetSendCodec(%ux%u) failed, err %d",
@@ -1221,7 +1298,7 @@ WebrtcVideoConduit::SelectSendFrameRate(unsigned int framerate) const
   unsigned int new_framerate = framerate;
 
   // Limit frame rate based on max-mbps
-  if (mCurSendCodecConfig && mCurSendCodecConfig->mMaxMBPS)
+  if (mCurSendCodecConfig && mCurSendCodecConfig->mEncodingConstraints.maxMbps)
   {
     unsigned int cur_fs, mb_width, mb_height, max_fps;
 
@@ -1229,14 +1306,14 @@ WebrtcVideoConduit::SelectSendFrameRate(unsigned int framerate) const
     mb_height = (mSendingHeight + 15) >> 4;
 
     cur_fs = mb_width * mb_height;
-    max_fps = mCurSendCodecConfig->mMaxMBPS/cur_fs;
+    max_fps = mCurSendCodecConfig->mEncodingConstraints.maxMbps/cur_fs;
     if (max_fps < mSendingFramerate) {
       new_framerate = max_fps;
     }
 
-    if (mCurSendCodecConfig->mMaxFrameRate != 0 &&
-      mCurSendCodecConfig->mMaxFrameRate < mSendingFramerate) {
-      new_framerate = mCurSendCodecConfig->mMaxFrameRate;
+    if (mCurSendCodecConfig->mEncodingConstraints.maxFps != 0 &&
+      mCurSendCodecConfig->mEncodingConstraints.maxFps < mSendingFramerate) {
+      new_framerate = mCurSendCodecConfig->mEncodingConstraints.maxFps;
     }
   }
   return new_framerate;
@@ -1643,6 +1720,18 @@ WebrtcVideoConduit::DeliverI420Frame(const webrtc::I420VideoFrame& webrtc_frame)
   return -1;
 }
 
+template<typename T>
+T MinIgnoreZero(const T& a, const T& b)
+{
+  if (!a) {
+    return b;
+  } else if (!b) {
+    return a;
+  } else {
+    return std::min(a, b);
+  }
+}
+
 /**
  * Copy the codec passed into Conduit's database
  */
@@ -1674,8 +1763,8 @@ WebrtcVideoConduit::CodecConfigToWebRTCCodec(const VideoCodecConfig* codecInfo,
 
   // width/height will be overridden on the first frame; they must be 'sane' for
   // SetSendCodec()
-  if (codecInfo->mMaxFrameRate > 0) {
-    cinst.maxFramerate = codecInfo->mMaxFrameRate;
+  if (codecInfo->mEncodingConstraints.maxFps > 0) {
+    cinst.maxFramerate = codecInfo->mEncodingConstraints.maxFps;
   } else {
     cinst.maxFramerate = DEFAULT_VIDEO_MAX_FRAMERATE;
   }
@@ -1694,10 +1783,13 @@ WebrtcVideoConduit::CodecConfigToWebRTCCodec(const VideoCodecConfig* codecInfo,
     cinst.codecSpecific.H264.constraints = codecInfo->mConstraints;
     cinst.codecSpecific.H264.level = codecInfo->mLevel;
     cinst.codecSpecific.H264.packetizationMode = codecInfo->mPacketizationMode;
-    if (codecInfo->mMaxBitrate > 0 && codecInfo->mMaxBitrate < cinst.maxBitrate) {
-      cinst.maxBitrate = codecInfo->mMaxBitrate;
+    if (codecInfo->mEncodingConstraints.maxBr > 0) {
+      // webrtc.org uses kbps, we use bps
+      cinst.maxBitrate =
+        MinIgnoreZero(cinst.maxBitrate,
+                      codecInfo->mEncodingConstraints.maxBr)/1000;
     }
-    if (codecInfo->mMaxMBPS > 0) {
+    if (codecInfo->mEncodingConstraints.maxMbps > 0) {
       // Not supported yet!
       CSFLogError(logTag,  "%s H.264 max_mbps not supported yet  ", __FUNCTION__);
     }
@@ -1707,6 +1799,46 @@ WebrtcVideoConduit::CodecConfigToWebRTCCodec(const VideoCodecConfig* codecInfo,
     cinst.codecSpecific.H264.spsLen = 0;
     cinst.codecSpecific.H264.ppsData = nullptr;
     cinst.codecSpecific.H264.ppsLen = 0;
+  } else {
+    // TODO(bug 1210175): H264 doesn't support simulcast yet.
+    for (size_t i = 0; i < codecInfo->mSimulcastEncodings.size(); ++i) {
+      const VideoCodecConfig::SimulcastEncoding& encoding =
+        codecInfo->mSimulcastEncodings[i];
+      // Make sure the constraints on the whole stream are reflected.
+      webrtc::SimulcastStream stream;
+      memset(&stream, 0, sizeof(stream));
+      stream.width = cinst.width;
+      stream.height = cinst.height;
+      stream.numberOfTemporalLayers = 1;
+      stream.maxBitrate = cinst.maxBitrate;
+      stream.targetBitrate = cinst.targetBitrate;
+      stream.minBitrate = cinst.minBitrate;
+      stream.qpMax = cinst.qpMax;
+      strncpy(stream.rid, encoding.rid.c_str(), sizeof(stream.rid)-1);
+      stream.rid[sizeof(stream.rid) - 1] = 0;
+
+      // Apply encoding-specific constraints.
+      stream.width = MinIgnoreZero(
+          stream.width,
+          (unsigned short)encoding.constraints.maxWidth);
+      stream.height = MinIgnoreZero(
+          stream.height,
+          (unsigned short)encoding.constraints.maxHeight);
+
+      if (encoding.constraints.maxBr) {
+        // webrtc.org uses kbps, we use bps
+        stream.maxBitrate = encoding.constraints.maxBr/1000;
+        stream.minBitrate = MinIgnoreZero(stream.minBitrate, stream.maxBitrate);
+        stream.targetBitrate = MinIgnoreZero(stream.targetBitrate,
+                                             stream.maxBitrate);
+      }
+
+      // webrtc.org expects simulcast streams to be ordered by increasing
+      // fidelity, our jsep code does the opposite.
+      cinst.simulcastStream[codecInfo->mSimulcastEncodings.size()-i-1] = stream;
+    }
+
+    cinst.numberOfSimulcastStreams = codecInfo->mSimulcastEncodings.size();
   }
 }
 
@@ -1730,8 +1862,7 @@ WebrtcVideoConduit::CheckCodecsForMatch(const VideoCodecConfig* curCodecConfig,
 
   if(curCodecConfig->mType  == codecInfo->mType &&
      curCodecConfig->mName.compare(codecInfo->mName) == 0 &&
-     curCodecConfig->mMaxFrameSize == codecInfo->mMaxFrameSize &&
-     curCodecConfig->mMaxFrameRate == codecInfo->mMaxFrameRate)
+     curCodecConfig->mEncodingConstraints == codecInfo->mEncodingConstraints)
   {
     return true;
   }
@@ -1805,8 +1936,8 @@ WebrtcVideoConduit::DumpCodecDB() const
   {
     CSFLogDebug(logTag,"Payload Name: %s", mRecvCodecList[i]->mName.c_str());
     CSFLogDebug(logTag,"Payload Type: %d", mRecvCodecList[i]->mType);
-    CSFLogDebug(logTag,"Payload Max Frame Size: %d", mRecvCodecList[i]->mMaxFrameSize);
-    CSFLogDebug(logTag,"Payload Max Frame Rate: %d", mRecvCodecList[i]->mMaxFrameRate);
+    CSFLogDebug(logTag,"Payload Max Frame Size: %d", mRecvCodecList[i]->mEncodingConstraints.maxFs);
+    CSFLogDebug(logTag,"Payload Max Frame Rate: %d", mRecvCodecList[i]->mEncodingConstraints.maxFps);
   }
 }
 

@@ -56,8 +56,9 @@ describe("loop.panel", function() {
       GetPluralRule: sinon.stub(),
       SetLoopPref: sinon.stub(),
       GetLoopPref: function(prefName) {
-        return "unseen";
+        return 1;
       },
+      SetPanelHeight: function() { return null; },
       GetPluralForm: function() {
         return "fakeText";
       },
@@ -82,7 +83,7 @@ describe("loop.panel", function() {
       GetHasEncryptionKey: true,
       GetUserProfile: null,
       GetDoNotDisturb: false,
-      "GetLoopPref|gettingStarted.seen": "unseen",
+      "GetLoopPref|gettingStarted.latestFTUVersion": 1,
       "GetLoopPref|legal.ToS_url": "",
       "GetLoopPref|legal.privacy_url": "",
       IsMultiProcessEnabled: false
@@ -464,7 +465,7 @@ describe("loop.panel", function() {
               return supportUrl;
             }
 
-            return "unseen";
+            return 1;
           }
         });
       });
@@ -505,7 +506,7 @@ describe("loop.panel", function() {
               return feedbackUrl;
             }
 
-            return "unseen";
+            return 1;
           }
         });
       });
@@ -531,10 +532,8 @@ describe("loop.panel", function() {
     });
 
     describe("#render", function() {
-      it("should not render a ToSView when gettingStarted.seen is true", function() {
-        LoopMochaUtils.stubLoopRequest({
-          GetLoopPref: function() { return true; }
-        });
+      it("should not render a ToSView when gettingStarted.latestFTUVersion is equal to or greater than FTU_VERSION", function() {
+        loop.storedRequests["GetLoopPref|gettingStarted.latestFTUVersion"] = 2;
         var view = createTestPanelView();
 
         expect(function() {
@@ -542,8 +541,8 @@ describe("loop.panel", function() {
         }).to.Throw(/not find/);
       });
 
-      it("should not render a ToSView when gettingStarted.seen is false", function() {
-        loop.storedRequests["GetLoopPref|gettingStarted.seen"] = false;
+      it("should render a ToSView when gettingStarted.latestFTUVersion is less than FTU_VERSION", function() {
+        loop.storedRequests["GetLoopPref|gettingStarted.latestFTUVersion"] = 0;
         var view = createTestPanelView();
 
         expect(function() {
@@ -551,15 +550,16 @@ describe("loop.panel", function() {
         }).to.not.Throw();
       });
 
-      it("should render a GettingStarted view", function() {
-        loop.storedRequests["GetLoopPref|gettingStarted.seen"] = false;
-        var view = createTestPanelView();
 
-        TestUtils.findRenderedComponentWithType(view, loop.panel.GettingStartedView);
+      it("should render a GettingStarted view when gettingStarted.latestFTUVersion is less than FTU_VERSION", function() {
+        loop.storedRequests["GetLoopPref|gettingStarted.latestFTUVersion"] = 0;
+        var view = createTestPanelView();
+        expect(function() {
+          TestUtils.findRenderedComponentWithType(view, loop.panel.GettingStartedView);
+        }).to.not.Throw();
       });
 
       it("should not render a GettingStartedView when the view has been seen", function() {
-        loop.storedRequests["GetLoopPref|gettingStarted.seen"] = true;
         var view = createTestPanelView();
 
         try {
@@ -575,10 +575,12 @@ describe("loop.panel", function() {
 
         var view = createTestPanelView();
 
-        TestUtils.findRenderedComponentWithType(view, loop.panel.SignInRequestView);
+        expect(function() {
+          TestUtils.findRenderedComponentWithType(view, loop.panel.SignInRequestView);
+        }).to.not.Throw();
       });
 
-      it("should render a SignInRequestView when mozLoop.hasEncryptionKey is true", function() {
+      it("should not render a SignInRequestView when mozLoop.hasEncryptionKey is true", function() {
         var view = createTestPanelView();
 
         try {
@@ -594,7 +596,9 @@ describe("loop.panel", function() {
 
         var view = createTestPanelView();
 
-        TestUtils.findRenderedComponentWithType(view, loop.panel.E10sNotSupported);
+        expect(function() {
+          TestUtils.findRenderedComponentWithType(view, loop.panel.E10sNotSupported);
+        }).to.not.Throw();
       });
 
     });

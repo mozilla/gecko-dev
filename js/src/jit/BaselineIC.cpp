@@ -26,7 +26,7 @@
 #include "jit/SharedICHelpers.h"
 #include "jit/VMFunctions.h"
 #include "js/Conversions.h"
-#include "js/TraceableVector.h"
+#include "js/GCVector.h"
 #include "vm/Opcodes.h"
 #include "vm/TypedArrayCommon.h"
 
@@ -1173,6 +1173,7 @@ RemoveExistingGetElemNativeStubs(JSContext* cx, ICGetElem_Fallback* stub, Handle
           case ICStub::GetElem_NativeSlotSymbol:
             if (indirect)
                 continue;
+            MOZ_FALLTHROUGH;
           case ICStub::GetElem_NativePrototypeSlotName:
           case ICStub::GetElem_NativePrototypeSlotSymbol:
           case ICStub::GetElem_NativePrototypeCallNativeName:
@@ -2355,7 +2356,7 @@ LoadTypedThingLength(MacroAssembler& masm, TypedThingLayout layout, Register obj
 {
     switch (layout) {
       case Layout_TypedArray:
-        masm.unboxInt32(Address(obj, TypedArrayLayout::lengthOffset()), result);
+        masm.unboxInt32(Address(obj, TypedArrayObject::lengthOffset()), result);
         break;
       case Layout_OutlineTypedObject:
       case Layout_InlineTypedObject:
@@ -2768,6 +2769,11 @@ DoSetElemFallback(JSContext* cx, BaselineFrame* frame, ICSetElem_Fallback* stub_
         if (!SetObjectElement(cx, obj, index, rhs, JSOp(*pc) == JSOP_STRICTSETELEM, script, pc))
             return false;
     }
+
+    // Don't try to attach stubs that wish to be hidden. We don't know how to
+    // have different enumerability in the stubs for the moment.
+    if (op == JSOP_INITHIDDENELEM)
+        return true;
 
     // Overwrite the object on the stack (pushed for the decompiler) with the rhs.
     MOZ_ASSERT(stack[2] == objv);
@@ -4294,7 +4300,11 @@ ICGetName_Scope<NumHops>::Compiler::generateStubCode(MacroAssembler& masm)
     }
 
     masm.load32(Address(ICStubReg, ICGetName_Scope::offsetOfOffset()), scratch);
-    masm.loadValue(BaseIndex(scope, scratch, TimesOne), R0);
+
+    // GETNAME needs to check for uninitialized lexicals.
+    BaseIndex slot(scope, scratch, TimesOne);
+    masm.branchTestMagic(Assembler::Equal, slot, &failure);
+    masm.loadValue(slot, R0);
 
     // Enter type monitor IC to type-check result.
     EmitEnterTypeMonitorIC(masm);
@@ -5679,7 +5689,7 @@ GetTemplateObjectForNative(JSContext* cx, Native native, const CallArgs& args,
 
     if (native == StringConstructor) {
         RootedString emptyString(cx, cx->runtime()->emptyString);
-        res.set(StringObject::create(cx, emptyString, TenuredObject));
+        res.set(StringObject::create(cx, emptyString, /* proto = */ nullptr, TenuredObject));
         return !!res;
     }
 
@@ -5690,26 +5700,47 @@ GetTemplateObjectForNative(JSContext* cx, Native native, const CallArgs& args,
     }
 
     if (JitSupportsSimd()) {
+        RootedGlobalObject global(cx, cx->global());
 #define ADD_INT32X4_SIMD_OP_NAME_(OP) || native == js::simd_int32x4_##OP
+#define ADD_BOOL32X4_SIMD_OP_NAME_(OP) || native == js::simd_bool32x4_##OP
 #define ADD_FLOAT32X4_SIMD_OP_NAME_(OP) || native == js::simd_float32x4_##OP
-       if (false
-           ION_COMMONX4_SIMD_OP(ADD_INT32X4_SIMD_OP_NAME_)
-           COMP_COMMONX4_TO_INT32X4_SIMD_OP(ADD_INT32X4_SIMD_OP_NAME_)
-           COMP_COMMONX4_TO_INT32X4_SIMD_OP(ADD_FLOAT32X4_SIMD_OP_NAME_)
-           FOREACH_INT32X4_SIMD_OP(ADD_INT32X4_SIMD_OP_NAME_))
-       {
-            Rooted<SimdTypeDescr*> descr(cx, cx->global()->getOrCreateSimdTypeDescr<Int32x4>(cx));
+        // Operations producing an int32x4.
+        if (false
+            ION_COMMONX4_SIMD_OP(ADD_INT32X4_SIMD_OP_NAME_)
+            FOREACH_BITWISE_SIMD_UNOP(ADD_INT32X4_SIMD_OP_NAME_)
+            FOREACH_BITWISE_SIMD_BINOP(ADD_INT32X4_SIMD_OP_NAME_)
+            FOREACH_SHIFT_SIMD_OP(ADD_INT32X4_SIMD_OP_NAME_)
+            ADD_INT32X4_SIMD_OP_NAME_(fromFloat32x4)
+            ADD_INT32X4_SIMD_OP_NAME_(fromFloat32x4Bits))
+        {
+            Rooted<SimdTypeDescr*> descr(cx, GlobalObject::getOrCreateSimdTypeDescr<Int32x4>(cx, global));
             res.set(cx->compartment()->jitCompartment()->getSimdTemplateObjectFor(cx, descr));
             return !!res;
-       }
-       if (false
-           FOREACH_FLOAT32X4_SIMD_OP(ADD_FLOAT32X4_SIMD_OP_NAME_)
-           ION_COMMONX4_SIMD_OP(ADD_FLOAT32X4_SIMD_OP_NAME_))
-       {
-            Rooted<SimdTypeDescr*> descr(cx, cx->global()->getOrCreateSimdTypeDescr<Float32x4>(cx));
+        }
+        // Operations producing a bool32x4.
+        if (false
+            FOREACH_BITWISE_SIMD_UNOP(ADD_BOOL32X4_SIMD_OP_NAME_)
+            FOREACH_BITWISE_SIMD_BINOP(ADD_BOOL32X4_SIMD_OP_NAME_)
+            FOREACH_COMP_SIMD_OP(ADD_INT32X4_SIMD_OP_NAME_)
+            FOREACH_COMP_SIMD_OP(ADD_FLOAT32X4_SIMD_OP_NAME_))
+        {
+            Rooted<SimdTypeDescr*> descr(cx, GlobalObject::getOrCreateSimdTypeDescr<Bool32x4>(cx, global));
             res.set(cx->compartment()->jitCompartment()->getSimdTemplateObjectFor(cx, descr));
             return !!res;
-       }
+        }
+        // Operations producing a float32x4.
+        if (false
+            FOREACH_FLOAT_SIMD_UNOP(ADD_FLOAT32X4_SIMD_OP_NAME_)
+            FOREACH_FLOAT_SIMD_BINOP(ADD_FLOAT32X4_SIMD_OP_NAME_)
+            ADD_FLOAT32X4_SIMD_OP_NAME_(fromInt32x4)
+            ADD_FLOAT32X4_SIMD_OP_NAME_(fromInt32x4Bits)
+            ION_COMMONX4_SIMD_OP(ADD_FLOAT32X4_SIMD_OP_NAME_))
+        {
+            Rooted<SimdTypeDescr*> descr(cx, GlobalObject::getOrCreateSimdTypeDescr<Float32x4>(cx, global));
+            res.set(cx->compartment()->jitCompartment()->getSimdTemplateObjectFor(cx, descr));
+            return !!res;
+        }
+#undef ADD_BOOL32X4_SIMD_OP_NAME_
 #undef ADD_INT32X4_SIMD_OP_NAME_
 #undef ADD_FLOAT32X4_SIMD_OP_NAME_
     }
@@ -6142,10 +6173,16 @@ DoCallFallback(JSContext* cx, BaselineFrame* frame, ICCall_Fallback* stub_, uint
         res.set(vp[0]);
     } else {
         MOZ_ASSERT(op == JSOP_CALL ||
+                   op == JSOP_CALLITER ||
                    op == JSOP_FUNCALL ||
                    op == JSOP_FUNAPPLY ||
                    op == JSOP_EVAL ||
                    op == JSOP_STRICTEVAL);
+        if (op == JSOP_CALLITER && callee.isPrimitive()) {
+            MOZ_ASSERT(argc == 0, "thisv must be on top of the stack");
+            ReportValueError(cx, JSMSG_NOT_ITERABLE, -1, thisv, nullptr);
+            return false;
+        }
         if (!Invoke(cx, thisv, callee, argc, args, res))
             return false;
     }
