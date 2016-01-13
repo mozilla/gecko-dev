@@ -1,0 +1,47 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>WebExtension test</title>
+  <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script type="text/javascript" src="/tests/SimpleTest/SpawnTask.js"></script>
+  <script type="text/javascript" src="/tests/SimpleTest/ExtensionTestUtils.js"></script>
+  <script type="text/javascript" src="head.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+</head>
+<body>
+
+<script type="text/javascript">
+"use strict";
+
+function backgroundScript() {
+  browser.test.assertTrue(!!browser.downloads, '`downloads` API is present.');
+  browser.test.assertTrue(!!browser.downloads.download, '`downloads.download` API is present.');
+  browser.downloads.download(
+    { url: 'www.google.fr' },
+    (id) => {
+      browser.test.assertTrue(typeof id === "number", `id '${id}' is a number`);
+      browser.test.notifyPass("downloads");
+    }
+  );
+}
+
+let extensionData = {
+  background: "(" + backgroundScript.toString() + ")()",
+  manifest: {
+    permissions: ["downloads"],
+  },
+};
+
+add_task(function* test_downloads() {
+  let extension = ExtensionTestUtils.loadExtension(extensionData);
+  yield extension.startup();
+  info("extension loaded");
+  yield extension.awaitFinish("downloads");
+  yield extension.unload();
+  info("extension unloaded");
+});
+
+</script>
+
+</body>
+</html>
