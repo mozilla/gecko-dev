@@ -56,6 +56,7 @@ Cu.import("resource://gre/modules/ExtensionManagement.jsm");
 ExtensionManagement.registerScript("chrome://extensions/content/ext-alarms.js");
 ExtensionManagement.registerScript("chrome://extensions/content/ext-backgroundPage.js");
 ExtensionManagement.registerScript("chrome://extensions/content/ext-cookies.js");
+ExtensionManagement.registerScript("chrome://extensions/content/ext-downloads.js");
 ExtensionManagement.registerScript("chrome://extensions/content/ext-notifications.js");
 ExtensionManagement.registerScript("chrome://extensions/content/ext-i18n.js");
 ExtensionManagement.registerScript("chrome://extensions/content/ext-idle.js");
