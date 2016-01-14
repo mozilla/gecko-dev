@@ -82,7 +82,7 @@ class BouncerSubmitter(BaseScript, PurgeMixin, BouncerSubmitterMixin, BuildbotMi
                     self.info("Overriding %s with %s" % (prop,  self.buildbot_config["properties"].get(prop)))
                     self.config[prop] = self.buildbot_config["properties"].get(prop)
             if self.buildbot_config["properties"].get("partial_versions"):
-                self.config["prev_versions"] = self.buildbot_config["properties"].get("partial_versions").split()
+                self.config["prev_versions"] = self.buildbot_config["properties"].get("partial_versions").split(", ")
 
         for opt in ["version", "credentials_file", "bouncer-api-prefix"]:
             if opt not in self.config:
