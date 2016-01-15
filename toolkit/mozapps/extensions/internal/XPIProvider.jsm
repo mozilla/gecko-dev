@@ -946,7 +946,7 @@ var loadManifestFromWebManifest = Task.async(function*(aUri) {
       name: extension.localize(getProp("name"), aLocale),
       description: extension.localize(getOptionalProp("description"), aLocale),
       creator: null,
-      homepageURL: null,
+      homepageURL: getOptionalProp("homepage_url"),
 
       developers: null,
       translators: null,
