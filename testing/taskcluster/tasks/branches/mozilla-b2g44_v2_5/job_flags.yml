@@ -31,6 +31,12 @@ builds:
       debug:
         task: tasks/builds/b2g_nexus_5l_ota_debug.yml
 
+post-build:
+  simulator:
+    allowed_build_tasks:
+      - tasks/builds/mulet_linux.yml
+    task: tasks/post-builds/mulet_simulator.yml
+
 # Just needed for parser sake
 tests:
   cppunit:
