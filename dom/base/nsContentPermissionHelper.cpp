@@ -126,6 +126,7 @@ class ContentPermissionRequestParent : public PContentPermissionRequestParent
  private:
   virtual bool Recvprompt();
   virtual bool RecvNotifyVisibility(const bool& aIsVisible);
+  virtual bool RecvDestroy();
   virtual void ActorDestroy(ActorDestroyReason why);
 };
 
@@ -163,6 +164,13 @@ ContentPermissionRequestParent::RecvNotifyVisibility(const bool& aIsVisible)
     return false;
   }
   mProxy->NotifyVisibility(aIsVisible);
+  return true;
+}
+
+bool
+ContentPermissionRequestParent::RecvDestroy()
+{
+  Unused << PContentPermissionRequestParent::Send__delete__(this);
   return true;
 }
 
@@ -300,6 +308,14 @@ ContentPermissionRequestParentMap()
   return sPermissionRequestParentMap;
 }
 
+static std::map<PContentPermissionRequestChild*, TabId>&
+ContentPermissionRequestChildMap()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  static std::map<PContentPermissionRequestChild*, TabId> sPermissionRequestChildMap;
+  return sPermissionRequestChildMap;
+}
+
 /* static */ nsresult
 nsContentPermissionUtils::CreatePermissionArray(const nsACString& aType,
                                                 const nsACString& aAccess,
@@ -363,6 +379,7 @@ nsContentPermissionUtils::AskPermission(nsIContentPermissionRequest* aRequest, n
       permArray,
       IPC::Principal(principal),
       child->GetTabId());
+    ContentPermissionRequestChildMap()[req.get()] = child->GetTabId();
 
     req->Sendprompt();
     return NS_OK;
@@ -400,6 +417,29 @@ nsContentPermissionUtils::NotifyRemoveContentPermissionRequestParent(
   MOZ_ASSERT(it != ContentPermissionRequestParentMap().end());
 
   ContentPermissionRequestParentMap().erase(it);
+}
+
+/* static */ nsTArray<PContentPermissionRequestChild*>
+nsContentPermissionUtils::GetContentPermissionRequestChildById(const TabId& aTabId)
+{
+  nsTArray<PContentPermissionRequestChild*> childArray;
+  for (auto& it : ContentPermissionRequestChildMap()) {
+    if (it.second == aTabId) {
+      childArray.AppendElement(it.first);
+    }
+  }
+
+  return Move(childArray);
+}
+
+/* static */ void
+nsContentPermissionUtils::NotifyRemoveContentPermissionRequestChild(
+  PContentPermissionRequestChild* aChild)
+{
+  auto it = ContentPermissionRequestChildMap().find(aChild);
+  MOZ_ASSERT(it != ContentPermissionRequestChildMap().end());
+
+  ContentPermissionRequestChildMap().erase(it);
 }
 
 NS_IMPL_ISUPPORTS(nsContentPermissionRequester, nsIContentPermissionRequester)
@@ -608,7 +648,7 @@ nsContentPermissionRequestProxy::Cancel()
 
   nsTArray<PermissionChoice> emptyChoices;
 
-  unused << ContentPermissionRequestParent::Send__delete__(mParent, false, emptyChoices);
+  Unused << mParent->SendNotifyResult(false, emptyChoices);
   mParent = nullptr;
   return NS_OK;
 }
@@ -672,7 +712,7 @@ nsContentPermissionRequestProxy::Allow(JS::HandleValue aChoices)
     return NS_ERROR_FAILURE;
   }
 
-  unused << ContentPermissionRequestParent::Send__delete__(mParent, true, choices);
+  Unused << mParent->SendNotifyResult(true, choices);
   mParent = nullptr;
   return NS_OK;
 }
@@ -705,6 +745,7 @@ RemotePermissionRequest::RemotePermissionRequest(
   : mRequest(aRequest)
   , mWindow(aWindow)
   , mIPCOpen(false)
+  , mDestroyed(false)
 {
   mListener = new VisibilityChangeListener(mWindow);
   mListener->SetCallback(this);
@@ -726,11 +767,10 @@ RemotePermissionRequest::DoAllow(JS::HandleValue aChoices)
 
 // PContentPermissionRequestChild
 bool
-RemotePermissionRequest::Recv__delete__(const bool& aAllow,
-                                        InfallibleTArray<PermissionChoice>&& aChoices)
+RemotePermissionRequest::RecvNotifyResult(const bool& aAllow,
+                                          InfallibleTArray<PermissionChoice>&& aChoices)
 {
-  mListener->RemoveListener();
-  mListener = nullptr;
+  Destroy();
 
   if (aAllow && mWindow->IsCurrentInnerWindow()) {
     // Use 'undefined' if no choice is provided.
@@ -780,10 +820,22 @@ RemotePermissionRequest::RecvGetVisibility()
   return true;
 }
 
+void
+RemotePermissionRequest::Destroy()
+{
+  if (!IPCOpen()) {
+    return;
+  }
+  Unused << this->SendDestroy();
+  mListener->RemoveListener();
+  mListener = nullptr;
+  mDestroyed = true;
+}
+
 NS_IMETHODIMP
 RemotePermissionRequest::NotifyVisibility(bool isVisible)
 {
-  if (!mIPCOpen) {
+  if (!IPCOpen()) {
     return NS_OK;
   }
 
