@@ -30,6 +30,12 @@ builds:
     types:
       debug:
         task: tasks/builds/b2g_nexus_5l_ota_debug.yml
+  linux64-mulet:
+    platforms:
+      - Mulet Linux
+    types:
+      opt:
+        task: tasks/builds/mulet_linux.yml
 
 post-build:
   simulator:
