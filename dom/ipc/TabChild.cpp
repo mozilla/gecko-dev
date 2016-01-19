@@ -96,7 +96,6 @@
 #include "nsIOService.h"
 #include "nsDOMClassInfoID.h"
 #include "nsColorPickerProxy.h"
-#include "nsContentPermissionHelper.h"
 #include "nsPresShell.h"
 #include "nsIAppsService.h"
 #include "nsNetUtil.h"
@@ -2271,6 +2270,7 @@ TabChild::DeallocPIndexedDBPermissionRequestChild(
                                        PIndexedDBPermissionRequestChild* aActor)
 {
   MOZ_ASSERT(aActor);
+
   delete aActor;
   return true;
 }
@@ -2381,15 +2381,6 @@ TabChild::RecvDestroy()
 {
   MOZ_ASSERT(mDestroyed == false);
   mDestroyed = true;
-
-  nsTArray<PContentPermissionRequestChild*> childArray =
-      nsContentPermissionUtils::GetContentPermissionRequestChildById(GetTabId());
-
-  // Need to close undeleted ContentPermissionRequestChilds before tab is closed.
-  for (auto& permissionRequestChild : childArray) {
-      auto child = static_cast<RemotePermissionRequest*>(permissionRequestChild);
-      child->Destroy();
-  }
 
   while (mActiveSuppressDisplayport > 0) {
     APZCCallbackHelper::SuppressDisplayport(false);
