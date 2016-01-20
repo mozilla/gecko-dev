@@ -169,6 +169,9 @@ WebGLContext::BufferData(GLenum target, WebGLsizeiptr size, GLenum usage)
     if (!CheckedInt<GLsizeiptr>(size).isValid())
         return ErrorOutOfMemory("bufferData: bad size");
 
+    if (gl->IsANGLE() && size > UINT32_MAX)
+        return ErrorOutOfMemory("bufferData: size too large");
+
     WebGLBuffer* boundBuffer = bufferSlot.get();
 
     if (!boundBuffer)
@@ -221,6 +224,9 @@ WebGLContext::BufferData(GLenum target,
     if (!CheckedInt<GLsizeiptr>(data.Length()).isValid())
         return ErrorOutOfMemory("bufferData: bad size");
 
+    if (gl->IsANGLE() && data.Length() > UINT32_MAX)
+        return ErrorOutOfMemory("bufferData: size too large");
+
     if (!ValidateBufferUsageEnum(usage, "bufferData: usage"))
         return;
 
@@ -271,6 +277,9 @@ WebGLContext::BufferData(GLenum target, const dom::ArrayBufferView& data,
     // is like intptr_t.
     if (!CheckedInt<GLsizeiptr>(data.Length()).isValid())
         return ErrorOutOfMemory("bufferData: bad size");
+
+    if (gl->IsANGLE() && data.Length() > UINT32_MAX)
+        return ErrorOutOfMemory("bufferData: size too large");
 
     InvalidateBufferFetching();
     MakeContextCurrent();
