@@ -563,15 +563,9 @@ nsBrowserElement::GetAllowedAudioChannels(
       return;
     }
 
-    nsCOMPtr<mozIApplication> parentApp;
-    aRv = GetParentApplication(getter_AddRefs(parentApp));
-    if (NS_WARN_IF(aRv.Failed())) {
-      return;
-    }
-
     GenerateAllowedAudioChannels(window, frameLoader, mBrowserElementAPI,
-                                 manifestURL, parentApp,
-                                 mBrowserElementAudioChannels, aRv);
+                                 manifestURL, mBrowserElementAudioChannels,
+                                 aRv);
     if (NS_WARN_IF(aRv.Failed())) {
       return;
     }
@@ -586,7 +580,6 @@ nsBrowserElement::GenerateAllowedAudioChannels(
                  nsIFrameLoader* aFrameLoader,
                  nsIBrowserElementAPI* aAPI,
                  const nsAString& aManifestURL,
-                 mozIApplication* aParentApp,
                  nsTArray<RefPtr<BrowserElementAudioChannel>>& aAudioChannels,
                  ErrorResult& aRv)
 {
@@ -627,19 +620,6 @@ nsBrowserElement::GenerateAllowedAudioChannels(
     for (uint32_t i = 0; audioChannelTable && audioChannelTable[i].tag; ++i) {
       permissionName.AssignASCII("audio-channel-");
       permissionName.AppendASCII(audioChannelTable[i].tag);
-
-      // In case of nested iframes we want to check if the parent has the
-      // permission to use this AudioChannel.
-      if (aParentApp) {
-        aRv = aParentApp->HasPermission(permissionName.get(), &allowed);
-        if (NS_WARN_IF(aRv.Failed())) {
-          return;
-        }
-
-        if (!allowed) {
-          continue;
-        }
-      }
 
       aRv = app->HasPermission(permissionName.get(), &allowed);
       if (NS_WARN_IF(aRv.Failed())) {
