@@ -1,5 +1,13 @@
 #! /bin/bash -vex
 
+if [ $UPDATE_BALROG_RELEASE ]; then
+  if [ ! ${BUILD_ERROR} ]; then
+    $WORKSPACE/gecko/testing/mozharness/scripts/b2g_build.py \
+      --config $BALROG_SERVER_CONFIG
+      --complete-mar-url https://queue.taskcluster.net/v1/task/$TASK_ID/runs/$RUN_ID/artifacts/public/build/
+  fi
+fi
+
 # Don't cache backups
 rm -rf $WORKSPACE/B2G/backup-*
 
