@@ -1151,4 +1151,4 @@ class B2GBuild(LocalesMixin, PurgeMixin,
 # main {{{1
 if __name__ == '__main__':
     myScript = B2GBuild()
-    myScript.run_and_exit()
+    myScript.run_and_exit(self.return_code)

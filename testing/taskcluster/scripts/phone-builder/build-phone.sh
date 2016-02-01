@@ -12,7 +12,7 @@ MOZHARNESS_CONFIG=${MOZHARNESS_CONFIG:=b2g/taskcluster-phone.py}
 
 rm -rf $WORKSPACE/B2G/upload/
 
-$WORKSPACE/gecko/testing/mozharness/scripts/b2g_build.py \
+BUILD_ERROR=${WORKSPACE}/gecko/testing/mozharness/scripts/b2g_build.py \
   --config $MOZHARNESS_CONFIG \
   "$debug_flag" \
   --disable-mock \
