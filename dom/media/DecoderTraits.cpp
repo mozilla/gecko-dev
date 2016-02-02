@@ -69,6 +69,9 @@
 #include "MP3Decoder.h"
 #include "MP3Demuxer.h"
 
+#include "ADTSDecoder.h"
+#include "ADTSDemuxer.h"
+
 namespace mozilla
 {
 
@@ -379,6 +382,13 @@ IsMP3SupportedType(const nsACString& aType,
   return MP3Decoder::CanHandleMediaType(aType, aCodecs);
 }
 
+static bool
+IsAACSupportedType(const nsACString& aType,
+                   const nsAString& aCodecs = EmptyString())
+{
+  return ADTSDecoder::CanHandleMediaType(aType, aCodecs);
+}
+
 #ifdef MOZ_APPLEMEDIA
 static const char * const gAppleMP3Types[] = {
   "audio/mp3",
@@ -463,6 +473,9 @@ DecoderTraits::CanHandleCodecsType(const char* aMIMEType,
   }
 #endif
   if (IsMP3SupportedType(nsDependentCString(aMIMEType), aRequestedCodecs)) {
+    return CANPLAY_YES;
+  }
+  if (IsAACSupportedType(nsDependentCString(aMIMEType), aRequestedCodecs)) {
     return CANPLAY_YES;
   }
 #ifdef MOZ_OMX_DECODER
@@ -553,6 +566,9 @@ DecoderTraits::CanHandleMediaType(const char* aMIMEType,
   if (IsMP3SupportedType(nsDependentCString(aMIMEType))) {
     return CANPLAY_MAYBE;
   }
+  if (IsAACSupportedType(nsDependentCString(aMIMEType))) {
+    return CANPLAY_MAYBE;
+  }
 #ifdef MOZ_GSTREAMER
   if (GStreamerDecoder::CanHandleMediaType(nsDependentCString(aMIMEType),
                                            aHaveRequestedCodecs ? &aRequestedCodecs : nullptr)) {
@@ -604,6 +620,10 @@ InstantiateDecoder(const nsACString& aType, MediaDecoderOwner* aOwner)
 #endif
   if (IsMP3SupportedType(aType)) {
     decoder = new MP3Decoder(aOwner);
+    return decoder.forget();
+  }
+  if (IsAACSupportedType(aType)) {
+    decoder = new ADTSDecoder(aOwner);
     return decoder.forget();
   }
 #ifdef MOZ_GSTREAMER
@@ -721,6 +741,9 @@ MediaDecoderReader* DecoderTraits::CreateReader(const nsACString& aType, Abstrac
   if (IsMP3SupportedType(aType)) {
     decoderReader = new MediaFormatReader(aDecoder, new mp3::MP3Demuxer(aDecoder->GetResource()));
   } else
+  if (IsAACSupportedType(aType)) {
+    decoderReader = new MediaFormatReader(aDecoder, new ADTSDemuxer(aDecoder->GetResource()));
+  } else
 #ifdef MOZ_GSTREAMER
   if (IsGStreamerSupportedType(aType)) {
     decoderReader = new GStreamerReader(aDecoder);
@@ -807,6 +830,7 @@ bool DecoderTraits::IsSupportedInVideoDocument(const nsACString& aType)
     IsMP4SupportedType(aType) ||
 #endif
     IsMP3SupportedType(aType) ||
+    IsAACSupportedType(aType) ||
 #ifdef MOZ_DIRECTSHOW
     IsDirectShowSupportedType(aType) ||
 #endif
