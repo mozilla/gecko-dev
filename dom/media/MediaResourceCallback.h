@@ -11,6 +11,7 @@
 
 namespace mozilla {
 
+class MediaDecoderOwner;
 class MediaResource;
 
 /**
