@@ -2121,7 +2121,7 @@ ScrollFrameHelper::ScrollToWithOrigin(nsPoint aScrollPosition,
           mAsyncScroll = nullptr;
         }
 
-        if (nsLayoutUtils::AsyncPanZoomEnabled(mOuter)) {
+        if (nsLayoutUtils::AsyncPanZoomEnabled(mOuter) && WantAsyncScroll()) {
           // The animation will be handled in the compositor, pass the
           // information needed to start the animation and skip the main-thread
           // animation for this scroll.
