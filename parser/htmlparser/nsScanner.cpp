@@ -384,7 +384,9 @@ nsresult nsScanner::Peek(nsAString& aStr, int32_t aNumChars, int32_t aOffset)
     end.advance(aNumChars);
   }
 
-  CopyUnicodeTo(start, end, aStr);
+  if (!CopyUnicodeTo(start, end, aStr)) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
 
   return NS_OK;
 }
@@ -547,7 +549,9 @@ nsresult nsScanner::ReadTagIdentifier(nsScannerSharedSubstring& aString) {
 
   // Don't bother appending nothing.
   if (current != mCurrentPosition) {
-    AppendUnicodeTo(mCurrentPosition, current, aString);
+    if (!AppendUnicodeTo(mCurrentPosition, current, aString)) {
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
   }
 
   SetPosition(current);  
@@ -602,7 +606,9 @@ nsresult nsScanner::ReadEntityIdentifier(nsString& aString) {
       }
 
       if(!found) {
-        AppendUnicodeTo(mCurrentPosition, current, aString);
+        if (!AppendUnicodeTo(mCurrentPosition, current, aString)) {
+          return NS_ERROR_OUT_OF_MEMORY;
+        }
         break;
       }
     }
@@ -611,7 +617,9 @@ nsresult nsScanner::ReadEntityIdentifier(nsString& aString) {
   
   SetPosition(current);
   if (current == end) {
-    AppendUnicodeTo(origin, current, aString);
+    if (!AppendUnicodeTo(origin, current, aString)) {
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
     return kEOF;
   }
 
@@ -651,7 +659,9 @@ nsresult nsScanner::ReadNumber(nsString& aString,int32_t aBase) {
                              (theChar < 'a' || theChar > 'f')
                              :true);
       if(done) {
-        AppendUnicodeTo(origin, current, aString);
+        if (!AppendUnicodeTo(origin, current, aString)) {
+          return NS_ERROR_OUT_OF_MEMORY;
+        }
         break;
       }
     }
@@ -660,7 +670,9 @@ nsresult nsScanner::ReadNumber(nsString& aString,int32_t aBase) {
 
   SetPosition(current);
   if (current == end) {
-    AppendUnicodeTo(origin, current, aString);
+    if (!AppendUnicodeTo(origin, current, aString)) {
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
     return kEOF;
   }
 
@@ -717,7 +729,9 @@ nsresult nsScanner::ReadWhitespace(nsScannerSharedSubstring& aString,
             haveCR = true;
           } else if (thePrevChar == '\r') {
             // Lone CR becomes CRLF; callers should know to remove extra CRs
-            AppendUnicodeTo(origin, current, aString);
+            if (!AppendUnicodeTo(origin, current, aString)) {
+              return NS_ERROR_OUT_OF_MEMORY;
+            }
             aString.writable().Append(char16_t('\n'));
             origin = current;
             haveCR = true;
@@ -730,14 +744,18 @@ nsresult nsScanner::ReadWhitespace(nsScannerSharedSubstring& aString,
         break;
       default:
         done = true;
-        AppendUnicodeTo(origin, current, aString);
+        if (!AppendUnicodeTo(origin, current, aString)) {
+          return NS_ERROR_OUT_OF_MEMORY;
+        }
         break;
     }
   }
 
   SetPosition(current);
   if (current == end) {
-    AppendUnicodeTo(origin, current, aString);
+    if (!AppendUnicodeTo(origin, current, aString)) {
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
     result = kEOF;
   }
 
@@ -851,7 +869,9 @@ nsresult nsScanner::ReadUntil(nsAString& aString,
         if (*setcurrent == theChar) {
           if(addTerminal)
             ++current;
-          AppendUnicodeTo(origin, current, aString);
+          if (!AppendUnicodeTo(origin, current, aString)) {
+            return NS_ERROR_OUT_OF_MEMORY;
+          }
           SetPosition(current);
 
           //DoErrTest(aString);
@@ -868,7 +888,9 @@ nsresult nsScanner::ReadUntil(nsAString& aString,
   // If we are here, we didn't find any terminator in the string and
   // current = mEndPosition
   SetPosition(current);
-  AppendUnicodeTo(origin, current, aString);
+  if (!AppendUnicodeTo(origin, current, aString)) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
   return kEOF;
 }
 
@@ -911,7 +933,9 @@ nsresult nsScanner::ReadUntil(nsScannerSharedSubstring& aString,
         if (*setcurrent == theChar) {
           if(addTerminal)
             ++current;
-          AppendUnicodeTo(origin, current, aString);
+          if (!AppendUnicodeTo(origin, current, aString)) {
+            return NS_ERROR_OUT_OF_MEMORY;
+          }
           SetPosition(current);
 
           //DoErrTest(aString);
@@ -928,7 +952,9 @@ nsresult nsScanner::ReadUntil(nsScannerSharedSubstring& aString,
   // If we are here, we didn't find any terminator in the string and
   // current = mEndPosition
   SetPosition(current);
-  AppendUnicodeTo(origin, current, aString);
+  if (!AppendUnicodeTo(origin, current, aString)) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
   return kEOF;
 }
 
@@ -1030,7 +1056,9 @@ nsresult nsScanner::ReadUntil(nsAString& aString,
     if (aTerminalChar == theChar) {
       if(addTerminal)
         ++current;
-      AppendUnicodeTo(origin, current, aString);
+      if (!AppendUnicodeTo(origin, current, aString)) {
+        return NS_ERROR_OUT_OF_MEMORY;
+      }
       SetPosition(current);
       return NS_OK;
     }
@@ -1039,7 +1067,9 @@ nsresult nsScanner::ReadUntil(nsAString& aString,
 
   // If we are here, we didn't find any terminator in the string and
   // current = mEndPosition
-  AppendUnicodeTo(origin, current, aString);
+  if (!AppendUnicodeTo(origin, current, aString)) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
   SetPosition(current);
   return kEOF;
 
@@ -1147,19 +1177,19 @@ bool nsScanner::AppendToBuffer(nsScannerString::Buffer* aBuf,
  *  
  *  @update  gess 5/12/98
  *  @param   aCopyBuffer is where the scanner buffer will be copied to
- *  @return  nada
+ *  @return  true if OK or false on OOM
  */
-void nsScanner::CopyUnusedData(nsString& aCopyBuffer) {
+bool nsScanner::CopyUnusedData(nsString& aCopyBuffer) {
   if (!mSlidingBuffer) {
     aCopyBuffer.Truncate();
-    return;
+    return true;
   }
 
   nsScannerIterator start, end;
   start = mCurrentPosition;
   end = mEndPosition;
 
-  CopyUnicodeTo(start, end, aCopyBuffer);
+  return CopyUnicodeTo(start, end, aCopyBuffer);
 }
 
 /**
