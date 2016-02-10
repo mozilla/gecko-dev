@@ -1,6 +1,6 @@
 /*  GRAPHITE2 LICENSING
 
-    Copyright 2012, SIL International
+    Copyright 2015, SIL International
     All rights reserved.
 
     This library is free software; you can redistribute it and/or modify
@@ -24,57 +24,33 @@ Mozilla Public License (http://mozilla.org/MPL) or the GNU General Public
 License, as published by the Free Software Foundation, either version 2
 of the License or (at your option) any later version.
 */
+
 #pragma once
 
-//#include "inc/FeatureMap.h"
-//#include "inc/GlyphsCache.h"
-//#include "inc/Silf.h"
+#include <cstddef>
 
-#ifndef GRAPHITE2_NFILEFACE
-
-#include <cstdio>
-#include <cassert>
-
-#include "graphite2/Font.h"
-
-#include "inc/Main.h"
-#include "inc/TtfTypes.h"
-#include "inc/TtfUtil.h"
-
-namespace graphite2 {
-
-
-class FileFace
+namespace lz4
 {
-    static const void * get_table_fn(const void* appFaceHandle, unsigned int name, size_t *len);
-    static void         rel_table_fn(const void* appFaceHandle, const void *table_buffer);
 
-public:
-    static const gr_face_ops ops;
+// decompress an LZ4 block
+// Parameters:
+//      @in         -   Input buffer containing an LZ4 block.
+//      @in_size    -   Size of the input LZ4 block in bytes.
+//      @out        -   Output buffer to hold decompressed results.
+//      @out_size   -   The size of the buffer pointed to by @out.
+// Invariants:
+//      @in         -   This buffer must be at least 1 machine word in length,
+//                      regardless of the actual LZ4 block size.
+//      @in_size    -   This must be at least 4 and must also be <= to the
+//                      allocated buffer @in.
+//      @out        -   This must be bigger than the input buffer and at least
+//                      13 bytes.
+//      @out_size   -   Must always be big enough to hold the expected size.
+// Return:
+//      -1          -  Decompression failed.
+//      size        -  Actual number of bytes decompressed.
+int decompress(void const *in, size_t in_size, void *out, size_t out_size);
 
-    FileFace(const char *filename);
-    ~FileFace();
+} // end of namespace shrinker
 
-    operator bool () const throw();
-    CLASS_NEW_DELETE;
 
-private:        //defensive
-    FILE          * _file;
-    size_t          _file_len;
-
-    TtfUtil::Sfnt::OffsetSubTable         * _header_tbl;
-    TtfUtil::Sfnt::OffsetSubTable::Entry  * _table_dir;
-
-    FileFace(const FileFace&);
-    FileFace& operator=(const FileFace&);
-};
-
-inline
-FileFace::operator bool() const throw()
-{
-    return _file && _header_tbl && _table_dir;
-}
-
-} // namespace graphite2
-
-#endif      //!GRAPHITE2_NFILEFACE

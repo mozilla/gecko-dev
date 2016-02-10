@@ -23,10 +23,11 @@ else:
 
 # This should contain all of the _SOURCES from files.mk, except *_machine.cpp
 UNIFIED_SOURCES += [
-    'Bidi.cpp',
     'CachedFace.cpp',
     'CmapCache.cpp',
     'Code.cpp',
+    'Collider.cpp',
+    'Decompressor.cpp',
     'Face.cpp',
     'FeatureMap.cpp',
     'FileFace.cpp',
@@ -40,10 +41,12 @@ UNIFIED_SOURCES += [
     'gr_logging.cpp',
     'gr_segment.cpp',
     'gr_slot.cpp',
+    'Intervals.cpp',
     'json.cpp',
     'Justifier.cpp',
     'NameTable.cpp',
     'Pass.cpp',
+    'Position.cpp',
     'SegCache.cpp',
     'SegCacheEntry.cpp',
     'SegCacheStore.cpp',
