@@ -758,6 +758,7 @@ nsTransitionManager::FlushTransitions(FlushFlags aFlags)
     mPresContext->Document()->SetNeedStyleFlush();
   }
 
+  nsRefPtr<nsTransitionManager> kungFuDeathGrip(this);
   for (uint32_t i = 0, i_end = events.Length(); i < i_end; ++i) {
     TransitionEventInfo &info = events[i];
     EventDispatcher::Dispatch(info.mElement, mPresContext, &info.mEvent);

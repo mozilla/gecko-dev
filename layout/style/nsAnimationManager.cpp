@@ -720,6 +720,7 @@ nsAnimationManager::FlushAnimations(FlushFlags aFlags)
 void
 nsAnimationManager::DoDispatchEvents()
 {
+  nsRefPtr<nsAnimationManager> kungFuDeathGrip(this);
   EventArray events;
   mPendingEvents.SwapElements(events);
   for (uint32_t i = 0, i_end = events.Length(); i < i_end; ++i) {
