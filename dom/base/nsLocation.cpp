@@ -740,6 +740,17 @@ nsLocation::SetProtocol(const nsAString& aProtocol)
     return rv;
   }
 
+  nsAutoCString newSpec;
+  rv = uri->GetSpec(newSpec);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+  // We may want a new URI class for the new URI, so recreate it:
+  rv = NS_NewURI(getter_AddRefs(uri), newSpec);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
   return SetURI(uri);
 }
 
