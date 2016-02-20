@@ -581,40 +581,46 @@ BrowserGlue.prototype = {
   // initialization (called on application startup)
   _init: function BG__init() {
     let os = Services.obs;
-    os.addObserver(this, "notifications-open-settings", false);
-    os.addObserver(this, "prefservice:after-app-defaults", false);
-    os.addObserver(this, "final-ui-startup", false);
-    os.addObserver(this, "browser-delayed-startup-finished", false);
-    os.addObserver(this, "sessionstore-windows-restored", false);
-    os.addObserver(this, "browser:purge-session-history", false);
-    os.addObserver(this, "quit-application-requested", false);
-    os.addObserver(this, "quit-application-granted", false);
+    [ "notifications-open-settings"
+     ,"prefservice:after-app-defaults"
+     ,"final-ui-startup"
+     ,"browser-delayed-startup-finished"
+     ,"sessionstore-windows-restored"
+     ,"browser:purge-session-history"
+     ,"quit-application-requested"
+     ,"quit-application-granted"
 #ifdef OBSERVE_LASTWINDOW_CLOSE_TOPICS
-    os.addObserver(this, "browser-lastwindow-close-requested", false);
-    os.addObserver(this, "browser-lastwindow-close-granted", false);
+     ,"browser-lastwindow-close-requested"
+     ,"browser-lastwindow-close-granted"
 #endif
-    os.addObserver(this, "weave:service:ready", false);
-    os.addObserver(this, "weave:engine:clients:display-uri", false);
-    os.addObserver(this, "session-save", false);
-    os.addObserver(this, "places-init-complete", false);
+     ,"weave:service:ready"
+     ,"weave:engine:clients:display-uri"
+     ,"session-save"
+     ,"places-init-complete"
+   ].forEach(topic => {
+     os.addObserver(this, topic, true);
+   })
     this._isPlacesInitObserver = true;
-    os.addObserver(this, "places-database-locked", false);
+    os.addObserver(this, "places-database-locked", true);
     this._isPlacesLockedObserver = true;
-    os.addObserver(this, "distribution-customization-complete", false);
-    os.addObserver(this, "places-shutdown", false);
+    os.addObserver(this, "distribution-customization-complete", true);
+    os.addObserver(this, "places-shutdown", true);
     this._isPlacesShutdownObserver = true;
-    os.addObserver(this, "handle-xul-text-link", false);
-    os.addObserver(this, "profile-before-change", false);
+    os.addObserver(this, "handle-xul-text-link", true);
+    os.addObserver(this, "profile-before-change", true);
 #ifdef MOZ_SERVICES_HEALTHREPORT
-    os.addObserver(this, "keyword-search", false);
+    os.addObserver(this, "keyword-search", true);
 #endif
-    os.addObserver(this, "browser-search-engine-modified", false);
-    os.addObserver(this, "browser-search-service", false);
-    os.addObserver(this, "restart-in-safe-mode", false);
-    os.addObserver(this, "flash-plugin-hang", false);
-    os.addObserver(this, "xpi-signature-changed", false);
-    os.addObserver(this, "autocomplete-did-enter-text", false);
-
+    [ "browser-search-engine-modified",
+      "browser-search-service",
+      "restart-in-safe-mode",
+      "flash-plugin-hang",
+      "xpi-signature-changed",
+      "autocomplete-did-enter-text"
+    ].forEach(topic => {
+      os.addObserver(this, topic, true);
+    })
+    
     ExtensionManagement.registerScript("chrome://browser/content/ext-utils.js");
     ExtensionManagement.registerScript("chrome://browser/content/ext-browserAction.js");
     ExtensionManagement.registerScript("chrome://browser/content/ext-pageAction.js");
