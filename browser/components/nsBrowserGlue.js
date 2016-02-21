@@ -598,10 +598,6 @@ BrowserGlue.prototype = {
      os.addObserver(this, topic, true);
    })
 
-    [
-    ].forEach(topic => {
-      os.addObserver(this, topic, true);
-    })
 
     ExtensionManagement.registerScript("chrome://browser/content/ext-utils.js");
     ExtensionManagement.registerScript("chrome://browser/content/ext-browserAction.js");
@@ -626,44 +622,10 @@ BrowserGlue.prototype = {
   // cleanup (called on application shutdown)
   _dispose: function BG__dispose() {
     let os = Services.obs;
-    os.removeObserver(this, "notifications-open-settings");
-    os.removeObserver(this, "prefservice:after-app-defaults");
-    os.removeObserver(this, "final-ui-startup");
-    os.removeObserver(this, "sessionstore-windows-restored");
-    os.removeObserver(this, "browser:purge-session-history");
-    os.removeObserver(this, "quit-application-requested");
-    os.removeObserver(this, "quit-application-granted");
-    os.removeObserver(this, "restart-in-safe-mode");
-#ifdef OBSERVE_LASTWINDOW_CLOSE_TOPICS
-    os.removeObserver(this, "browser-lastwindow-close-requested");
-    os.removeObserver(this, "browser-lastwindow-close-granted");
-#endif
-    os.removeObserver(this, "weave:service:ready");
-    os.removeObserver(this, "weave:engine:clients:display-uri");
-    os.removeObserver(this, "session-save");
     if (this._bookmarksBackupIdleTime) {
       this._idleService.removeIdleObserver(this, this._bookmarksBackupIdleTime);
       delete this._bookmarksBackupIdleTime;
-    }
-
-    if (this._isPlacesShutdownObserver)
-      os.removeObserver(this, "places-shutdown");
-    os.removeObserver(this, "handle-xul-text-link");
-    os.removeObserver(this, "profile-before-change");
-#ifdef MOZ_SERVICES_HEALTHREPORT
-    os.removeObserver(this, "keyword-search");
-#endif
-    os.removeObserver(this, "browser-search-engine-modified");
-    try {
-      os.removeObserver(this, "browser-search-service");
-      // may have already been removed by the observer
-    } catch (ex) {}
-#ifdef NIGHTLY_BUILD
-    Services.prefs.removeObserver(POLARIS_ENABLED, this);
-#endif
-    os.removeObserver(this, "flash-plugin-hang");
-    os.removeObserver(this, "xpi-signature-changed");
-    os.removeObserver(this, "autocomplete-did-enter-text");
+    }  
   },
 
   _onAppDefaults: function BG__onAppDefaults() {
