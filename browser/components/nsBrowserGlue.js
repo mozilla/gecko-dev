@@ -398,12 +398,6 @@ BrowserGlue.prototype = {
           }
         }
         break;
-      case "profile-before-change":
-         // Any component depending on Places should be finalized in
-         // _onPlacesShutdown.  Any component that doesn't need to act after
-         // the UI has gone should be finalized in _onQuitApplicationGranted.
-        this._dispose();
-        break;
       case "keyword-search":
         // This notification is broadcast by the docshell when it "fixes up" a
         // URI that it's been asked to load into a keyword search.
@@ -618,16 +612,7 @@ BrowserGlue.prototype = {
     this._flashHangCount = 0;
     this._firstWindowReady = new Promise(resolve => this._firstWindowLoaded = resolve);
   },
-
-  // cleanup (called on application shutdown)
-  _dispose: function BG__dispose() {
-    let os = Services.obs;
-    if (this._bookmarksBackupIdleTime) {
-      this._idleService.removeIdleObserver(this, this._bookmarksBackupIdleTime);
-      delete this._bookmarksBackupIdleTime;
-    }  
-  },
-
+  
   _onAppDefaults: function BG__onAppDefaults() {
     // apply distribution customizations (prefs)
     // other customizations are applied in _finalUIStartup()
@@ -1791,13 +1776,12 @@ BrowserGlue.prototype = {
    */
   _onPlacesShutdown: function BG__onPlacesShutdown() {
     PageThumbs.uninit();
-
     if (this._bookmarksBackupIdleTime) {
       this._idleService.removeIdleObserver(this, this._bookmarksBackupIdleTime);
       delete this._bookmarksBackupIdleTime;
     }
   },
-
+``
   /**
    * If a backup for today doesn't exist, this creates one.
    */
