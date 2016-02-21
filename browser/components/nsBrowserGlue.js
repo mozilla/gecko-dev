@@ -250,9 +250,6 @@ function BrowserGlue() {
 
 BrowserGlue.prototype = {
   _saveSession: false,
-  _isPlacesInitObserver: false,
-  _isPlacesLockedObserver: false,
-  _isPlacesShutdownObserver: false,
   _isPlacesDatabaseLocked: false,
   _migrationImportsDefaultBookmarks: false,
 
@@ -347,25 +344,11 @@ BrowserGlue.prototype = {
       case "places-init-complete":
         if (!this._migrationImportsDefaultBookmarks)
           this._initPlaces(false);
-
-        Services.obs.removeObserver(this, "places-init-complete");
-        this._isPlacesInitObserver = false;
-        // no longer needed, since history was initialized completely.
-        Services.obs.removeObserver(this, "places-database-locked");
-        this._isPlacesLockedObserver = false;
         break;
       case "places-database-locked":
         this._isPlacesDatabaseLocked = true;
-        // Stop observing, so further attempts to load history service
-        // will not show the prompt.
-        Services.obs.removeObserver(this, "places-database-locked");
-        this._isPlacesLockedObserver = false;
         break;
       case "places-shutdown":
-        if (this._isPlacesShutdownObserver) {
-          Services.obs.removeObserver(this, "places-shutdown");
-          this._isPlacesShutdownObserver = false;
-        }
         // places-shutdown is fired when the profile is about to disappear.
         this._onPlacesShutdown();
         break;
@@ -597,30 +580,29 @@ BrowserGlue.prototype = {
      ,"weave:engine:clients:display-uri"
      ,"session-save"
      ,"places-init-complete"
+     ,"places-database-locked"
+     ,"distribution-customization-complete"
+     ,"places-shutdown"
+     ,"handle-xul-text-link"
+     ,"profile-before-change"
+#ifdef MOZ_SERVICES_HEALTHREPORT
+     ,"keyword-search"
+#endif
+    ,"browser-search-engine-modified"
+    ,"browser-search-service"
+    ,"restart-in-safe-mode"
+    ,"flash-plugin-hang"
+    ,"xpi-signature-changed"
+    ,"autocomplete-did-enter-text"
    ].forEach(topic => {
      os.addObserver(this, topic, true);
    })
-    this._isPlacesInitObserver = true;
-    os.addObserver(this, "places-database-locked", true);
-    this._isPlacesLockedObserver = true;
-    os.addObserver(this, "distribution-customization-complete", true);
-    os.addObserver(this, "places-shutdown", true);
-    this._isPlacesShutdownObserver = true;
-    os.addObserver(this, "handle-xul-text-link", true);
-    os.addObserver(this, "profile-before-change", true);
-#ifdef MOZ_SERVICES_HEALTHREPORT
-    os.addObserver(this, "keyword-search", true);
-#endif
-    [ "browser-search-engine-modified",
-      "browser-search-service",
-      "restart-in-safe-mode",
-      "flash-plugin-hang",
-      "xpi-signature-changed",
-      "autocomplete-did-enter-text"
+
+    [
     ].forEach(topic => {
       os.addObserver(this, topic, true);
     })
-    
+
     ExtensionManagement.registerScript("chrome://browser/content/ext-utils.js");
     ExtensionManagement.registerScript("chrome://browser/content/ext-browserAction.js");
     ExtensionManagement.registerScript("chrome://browser/content/ext-pageAction.js");
@@ -663,10 +645,7 @@ BrowserGlue.prototype = {
       this._idleService.removeIdleObserver(this, this._bookmarksBackupIdleTime);
       delete this._bookmarksBackupIdleTime;
     }
-    if (this._isPlacesInitObserver)
-      os.removeObserver(this, "places-init-complete");
-    if (this._isPlacesLockedObserver)
-      os.removeObserver(this, "places-database-locked");
+
     if (this._isPlacesShutdownObserver)
       os.removeObserver(this, "places-shutdown");
     os.removeObserver(this, "handle-xul-text-link");
