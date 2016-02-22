@@ -252,6 +252,7 @@ BrowserGlue.prototype = {
   _saveSession: false,
   _isPlacesDatabaseLocked: false,
   _migrationImportsDefaultBookmarks: false,
+  _disposed: false
 
   _setPrefToSaveSession: function BG__setPrefToSaveSession(aForce) {
     if (!this._saveSession && !aForce)
@@ -289,6 +290,10 @@ BrowserGlue.prototype = {
 
   // nsIObserver implementation
   observe: function BG_observe(subject, topic, data) {
+    //observers have been disposed
+    if (this._disposed)
+      return;
+
     switch (topic) {
       case "notifications-open-settings":
         this._openPreferences("content");
@@ -397,6 +402,16 @@ BrowserGlue.prototype = {
             linkHandled.data = true;
           }
         }
+        break;
+      case "profile-before-change":
+         // Any component depending on Places should be finalized in
+         // _onPlacesShutdown.  Any component that doesn't need to act after
+         // the UI has gone should be finalized in _onQuitApplicationGranted. 
+         if (this._bookmarksBackupIdleTime) {
+           this._idleService.removeIdleObserver(this, this._bookmarksBackupIdleTime);
+           delete this._bookmarksBackupIdleTime;
+         }
+         this._disposed = true;
         break;
       case "keyword-search":
         // This notification is broadcast by the docshell when it "fixes up" a
@@ -612,7 +627,7 @@ BrowserGlue.prototype = {
     this._flashHangCount = 0;
     this._firstWindowReady = new Promise(resolve => this._firstWindowLoaded = resolve);
   },
-  
+
   _onAppDefaults: function BG__onAppDefaults() {
     // apply distribution customizations (prefs)
     // other customizations are applied in _finalUIStartup()
@@ -1776,12 +1791,13 @@ BrowserGlue.prototype = {
    */
   _onPlacesShutdown: function BG__onPlacesShutdown() {
     PageThumbs.uninit();
+
     if (this._bookmarksBackupIdleTime) {
       this._idleService.removeIdleObserver(this, this._bookmarksBackupIdleTime);
       delete this._bookmarksBackupIdleTime;
     }
   },
-``
+
   /**
    * If a backup for today doesn't exist, this creates one.
    */
