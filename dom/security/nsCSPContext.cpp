@@ -803,6 +803,7 @@ nsCSPContext::SendReports(nsISupports* aBlockedContentSource,
                           params, ArrayLength(params),
                           aSourceFile, aScriptSample, aLineNum, 0,
                           nsIScriptError::errorFlag, "CSP", mInnerWindowID);
+      continue;
     }
 
     // make sure this is an anonymous request (no cookies) so in case the
