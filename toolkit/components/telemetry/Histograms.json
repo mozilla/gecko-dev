@@ -1352,7 +1352,7 @@
     "expires_in_version": "never",
     "kind": "enumerated",
     "n_values": 16,
-    "description": "SSL Version (1=tls1, 2=tls1.1, 3=tls1.2)"
+    "description": "SSL Version (1=tls1, 2=tls1.1, 3=tls1.2, 4=tls1.3)"
   },
   "SSL_TIME_UNTIL_READY": {
     "expires_in_version": "never",
@@ -8029,6 +8029,18 @@
     "kind": "enumerated",
     "n_values": 10,
     "description": "The number of errors using the HomeProvider due to a locked DB. *** No longer needed (bug 1156565). Delete histogram and accumulation code! ***"
+  },
+  "SSL_TLS13_INTOLERANCE_REASON_PRE": {
+    "expires_in_version": "never",
+    "kind": "enumerated",
+    "n_values": 64,
+    "description": "detected symptom of TLS 1.3 intolerance, before considering historical info"
+  },
+  "SSL_TLS13_INTOLERANCE_REASON_POST": {
+    "expires_in_version": "never",
+    "kind": "enumerated",
+    "n_values": 64,
+    "description": "detected symptom of TLS 1.3 intolerance, after considering historical info"
   },
   "SSL_TLS12_INTOLERANCE_REASON_PRE": {
     "expires_in_version": "never",
