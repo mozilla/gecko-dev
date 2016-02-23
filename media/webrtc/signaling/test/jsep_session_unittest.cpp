@@ -30,9 +30,6 @@
 
 #include "TestHarness.h"
 
-#include "FakeIPC.h"
-#include "FakeIPC.cpp"
-
 namespace mozilla {
 static const char* kCandidates[] = {
   "0 1 UDP 9999 192.168.0.1 2000 typ host",

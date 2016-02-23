@@ -20,9 +20,6 @@ using namespace std;
 #include "nsThreadUtils.h"
 #include "runnable_utils.h"
 
-#include "FakeIPC.h"
-#include "FakeIPC.cpp"
-
 #define GTEST_HAS_RTTI 0
 #include "gtest/gtest.h"
 #include "gtest_utils.h"
