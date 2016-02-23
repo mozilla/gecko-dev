@@ -1017,9 +1017,6 @@ nsIOService::SetOffline(bool offline)
                                                  NS_IOSERVICE_GOING_OFFLINE_TOPIC,
                                                  offlineString.get());
 
-            if (mDNSService)
-                mDNSService->SetOffline(true);
-
             if (mSocketTransportService)
                 mSocketTransportService->SetOffline(true);
 
@@ -1032,7 +1029,6 @@ nsIOService::SetOffline(bool offline)
         else if (!offline && mOffline) {
             // go online
             if (mDNSService) {
-                mDNSService->SetOffline(false);
                 DebugOnly<nsresult> rv = mDNSService->Init();
                 NS_ASSERTION(NS_SUCCEEDED(rv), "DNS service init failed");
             }

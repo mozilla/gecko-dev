@@ -480,7 +480,6 @@ private:
 nsDNSService::nsDNSService()
     : mLock("nsDNSServer.mLock")
     , mFirstTime(true)
-    , mOffline(false)
 {
 }
 
@@ -668,18 +667,15 @@ nsDNSService::Shutdown()
     return NS_OK;
 }
 
-NS_IMETHODIMP
-nsDNSService::GetOffline(bool *offline)
+bool
+nsDNSService::GetOffline() const
 {
-    *offline = mOffline;
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDNSService::SetOffline(bool offline)
-{
-    mOffline = offline;
-    return NS_OK;
+    bool offline = false;
+    nsCOMPtr<nsIIOService> io = do_GetService(NS_IOSERVICE_CONTRACTID);
+    if (io) {
+        io->GetOffline(&offline);
+    }
+    return offline;
 }
 
 NS_IMETHODIMP
@@ -763,7 +759,7 @@ nsDNSService::AsyncResolveExtended(const nsACString  &aHostname,
     if (!PreprocessHostname(localDomain, aHostname, idn, hostname))
         return NS_ERROR_FAILURE;
 
-    if (mOffline &&
+    if (GetOffline() &&
         (!mOfflineLocalhost || !hostname.LowerCaseEqualsASCII("localhost"))) {
         flags |= RESOLVE_OFFLINE;
     }
@@ -875,7 +871,7 @@ nsDNSService::Resolve(const nsACString &aHostname,
     if (!PreprocessHostname(localDomain, aHostname, idn, hostname))
         return NS_ERROR_FAILURE;
 
-    if (mOffline &&
+    if (GetOffline() &&
         (!mOfflineLocalhost || !hostname.LowerCaseEqualsASCII("localhost"))) {
         flags |= RESOLVE_OFFLINE;
     }
