@@ -174,7 +174,7 @@
   <project groups="device" name="device-sony-sirius" path="device/sony/sirius" remote="b2g" revision="763c7408f3132e7558d1f42a75ca212d59634259"/>
   <!-- Yukon platform specific things -->
   <project name="device-sony-yukon" path="device/sony/yukon" remote="b2g" revision="ddbb9c51a1ef0415dd91901cf00e5f821f9165b4"/>
-  <project name="device-sony-tianchi" path="device/sony/tianchi" remote="b2g" revision="7dfcac7b8b51652a31e152ab68755a4714430d5a"/>
+  <project name="device-sony-tianchi" path="device/sony/tianchi" remote="b2g" revision="7adaac955e1dd49e6268f28f34ff580e3be04d47"/>
   <project name="device-sony-eagle" path="device/sony/eagle" remote="b2g" revision="c32653915fc96c1fbf75bffb95ad9485fa005c6f"/>
   <project name="device-sony-flamingo" path="device/sony/flamingo" remote="b2g" revision="ad9110649ec467518900932f648e45ce36effaeb"/>
 </manifest>
