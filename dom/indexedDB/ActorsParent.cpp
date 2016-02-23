@@ -14828,12 +14828,9 @@ ObjectStoreAddOrPutRequestOp::DoDatabaseWork(TransactionBase* aTransaction)
     uint8_t* dataBuffer = reinterpret_cast<uint8_t*>(compressed);
     size_t dataBufferLength = compressedLength;
 
-    // If this call succeeds, | compressed | is now owned by the statement, and
-    // we are no longer responsible for it.
     rv = stmt->BindAdoptedBlobByName(NS_LITERAL_CSTRING("data"), dataBuffer,
                                      dataBufferLength);
     if (NS_WARN_IF(NS_FAILED(rv))) {
-      moz_free(compressed);
       return rv;
     }
   }
