@@ -252,7 +252,7 @@ BrowserGlue.prototype = {
   _saveSession: false,
   _isPlacesDatabaseLocked: false,
   _migrationImportsDefaultBookmarks: false,
-  _disposed: false
+  _disposed: false,
 
   _setPrefToSaveSession: function BG__setPrefToSaveSession(aForce) {
     if (!this._saveSession && !aForce)
@@ -406,7 +406,7 @@ BrowserGlue.prototype = {
       case "profile-before-change":
          // Any component depending on Places should be finalized in
          // _onPlacesShutdown.  Any component that doesn't need to act after
-         // the UI has gone should be finalized in _onQuitApplicationGranted. 
+         // the UI has gone should be finalized in _onQuitApplicationGranted.
          if (this._bookmarksBackupIdleTime) {
            this._idleService.removeIdleObserver(this, this._bookmarksBackupIdleTime);
            delete this._bookmarksBackupIdleTime;
