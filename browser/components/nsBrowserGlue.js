@@ -290,7 +290,7 @@ BrowserGlue.prototype = {
 
   // nsIObserver implementation
   observe: function BG_observe(subject, topic, data) {
-    //observers have been disposed
+    //observers have implcititly disposed
     if (this._disposed)
       return;
 
@@ -362,8 +362,6 @@ BrowserGlue.prototype = {
         break;
       case "distribution-customization-complete":
         Services.obs.removeObserver(this, "distribution-customization-complete");
-        // Customization has finished, we don't need the customizer anymore.
-        delete this._distributionCustomizer;
         break;
       case "browser-glue-test": // used by tests
         if (data == "post-update-notification") {
@@ -411,7 +409,11 @@ BrowserGlue.prototype = {
            this._idleService.removeIdleObserver(this, this._bookmarksBackupIdleTime);
            delete this._bookmarksBackupIdleTime;
          }
-         this._disposed = true;
+
+#ifdef NIGHTLY_BUILD
+        Services.prefs.removeObserver(POLARIS_ENABLED, this);
+#endif
+        this._disposed = true;
         break;
       case "keyword-search":
         // This notification is broadcast by the docshell when it "fixes up" a
