@@ -2718,7 +2718,7 @@ TabChild::DidComposite(uint64_t aTransactionId,
   MOZ_ASSERT(mPuppetWidget->GetLayerManager()->GetBackendType() ==
                LayersBackend::LAYERS_CLIENT);
 
-  ClientLayerManager *manager =
+  RefPtr<ClientLayerManager> manager =
     static_cast<ClientLayerManager*>(mPuppetWidget->GetLayerManager());
 
   manager->DidComposite(aTransactionId, aCompositeStart, aCompositeEnd);
