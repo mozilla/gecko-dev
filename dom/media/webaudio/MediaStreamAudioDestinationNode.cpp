@@ -74,10 +74,6 @@ MediaStreamAudioDestinationNode::MediaStreamAudioDestinationNode(AudioContext* a
   MOZ_ASSERT(tus == mDOMStream->GetStream()->AsProcessedStream());
   tus->SetTrackIDFilter(FilterAudioNodeStreamTrack);
 
-  if (mStream->GraphImpl() != tus->GraphImpl()) {
-    return;
-  }
-
   MediaStreamDestinationEngine* engine = new MediaStreamDestinationEngine(this, tus);
   mStream = aContext->Graph()->CreateAudioNodeStream(engine, MediaStreamGraph::INTERNAL_STREAM);
   mPort = tus->AllocateInputPort(mStream, 0);
