@@ -43,6 +43,9 @@
 #include "stunserver.h"
 #include "stunserver.cpp"
 #include "PeerConnectionImplEnumsBinding.cpp"
+ 
+#include "FakeIPC.h"
+#include "FakeIPC.cpp"
 
 #include "ice_ctx.h"
 #include "ice_peer_ctx.h"
