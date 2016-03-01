@@ -19,8 +19,6 @@
 
 #include "FakeMediaStreams.h"
 #include "FakeMediaStreamsImpl.h"
-#include "FakeIPC.h"
-#include "FakeIPC.cpp"
 
 #include "signaling/src/sdp/SdpMediaSection.h"
 #include "signaling/src/sdp/SipccSdpParser.h"
