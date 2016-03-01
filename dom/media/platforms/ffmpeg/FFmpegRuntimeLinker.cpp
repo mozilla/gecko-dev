@@ -24,12 +24,15 @@ public:
 
 static const char* sLibs[] = {
 #if defined(XP_DARWIN)
+  "libavcodec.57.dylib",
   "libavcodec.56.dylib",
   "libavcodec.55.dylib",
   "libavcodec.54.dylib",
   "libavcodec.53.dylib",
 #else
+  "libavcodec-ffmpeg.so.57",
   "libavcodec-ffmpeg.so.56",
+  "libavcodec.so.57",
   "libavcodec.so.56",
   "libavcodec.so.55",
   "libavcodec.so.54",
@@ -91,22 +94,47 @@ FFmpegRuntimeLinker::Bind(const char* aLibName)
 {
   avcodec_version = (typeof(avcodec_version))PR_FindSymbol(sLinkedLib,
                                                            "avcodec_version");
-  uint32_t major, minor;
-  if (!GetVersion(major, minor)) {
+  uint32_t major, minor, micro;
+  if (!GetVersion(major, minor, micro)) {
     return false;
   }
-  if (major > 55) {
-    // All major greater than 56 currently use the same ABI as 55.
-    major = 55;
+
+  int version;
+  switch (major) {
+    case 53:
+      version = AV_FUNC_53;
+      break;
+    case 54:
+      version = AV_FUNC_54;
+      break;
+    case 56:
+      // We use libavcodec 55 code instead. Fallback
+    case 55:
+      version = AV_FUNC_55;
+      break;
+    case 57:
+      if (micro < 100) {
+        // a micro version >= 100 indicates that it's FFmpeg (as opposed to LibAV).
+        // Due to current AVCodecContext binary incompatibility we can only
+        // support FFmpeg at this stage.
+        return false;
+      }
+      version = AV_FUNC_57;
+      break;
+    default:
+      // Not supported at this stage.
+      return false;
   }
 
 #define LIBAVCODEC_ALLVERSION
 #define AV_FUNC(func, ver)                                                     \
-  if (ver == 0 || ver == major) {                                              \
+  if ((ver) & version) {                                                       \
     if (!(func = (typeof(func))PR_FindSymbol(sLinkedLib, #func))) {            \
       FFMPEG_LOG("Couldn't load function " #func " from %s.", aLibName);       \
       return false;                                                            \
     }                                                                          \
+  } else {                                                                     \
+    func = (typeof(func))nullptr;                                              \
   }
 #include "FFmpegFunctionList.h"
 #undef AV_FUNC
@@ -120,8 +148,8 @@ FFmpegRuntimeLinker::CreateDecoderModule()
   if (!Link()) {
     return nullptr;
   }
-  uint32_t major, minor;
-  if (!GetVersion(major, minor)) {
+  uint32_t major, minor, micro;
+  if (!GetVersion(major, minor, micro)) {
     return  nullptr;
   }
 
@@ -129,7 +157,10 @@ FFmpegRuntimeLinker::CreateDecoderModule()
   switch (major) {
     case 53: module = FFmpegDecoderModule<53>::Create(); break;
     case 54: module = FFmpegDecoderModule<54>::Create(); break;
-    default: module = FFmpegDecoderModule<55>::Create(); break;
+    case 55:
+    case 56: module = FFmpegDecoderModule<55>::Create(); break;
+    case 57: module = FFmpegDecoderModule<57>::Create(); break;
+    default: module = nullptr;
   }
   return module.forget();
 }
@@ -147,7 +178,7 @@ FFmpegRuntimeLinker::Unlink()
 }
 
 /* static */ bool
-FFmpegRuntimeLinker::GetVersion(uint32_t& aMajor, uint32_t& aMinor)
+FFmpegRuntimeLinker::GetVersion(uint32_t& aMajor, uint32_t& aMinor, uint32_t& aMicro)
 {
   if (!avcodec_version) {
     return false;
@@ -155,6 +186,7 @@ FFmpegRuntimeLinker::GetVersion(uint32_t& aMajor, uint32_t& aMinor)
   uint32_t version = avcodec_version();
   aMajor = (version >> 16) & 0xff;
   aMinor = (version >> 8) & 0xff;
+  aMicro = version & 0xff;
   return true;
 }
 
