@@ -47,6 +47,7 @@ httpServer.start(-1);
 function run_test() {
 
   do_get_profile();
+  setPrefs();
 
   disableServiceWorkerEvents(
     'https://example.com/page'

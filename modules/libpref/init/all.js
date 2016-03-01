@@ -4523,7 +4523,7 @@ pref("dom.push.quotaUpdateDelay", 3000); // 3 seconds
 
 // Is the network connection allowed to be up?
 // This preference should be used in UX to enable/disable push.
-pref("dom.push.connection.enabled", true);
+pref("dom.push.connection.enabled", false);
 
 // Exponential back-off start is 5 seconds like in HTTP/1.1.
 // Maximum back-off is pingInterval.
