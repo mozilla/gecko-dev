@@ -1785,13 +1785,16 @@ nsSHistory::InitiateLoad(nsISHEntry * aFrameEntry, nsIDocShell * aFrameDS, long 
   loadInfo->SetSHEntry(aFrameEntry);
 
   nsCOMPtr<nsIURI> originalURI;
+  bool loadReplace;
   nsCOMPtr<nsISHEntry_ESR38> feESR38 = do_QueryInterface(aFrameEntry);
   if (feESR38) {
     feESR38->GetOriginalURI(getter_AddRefs(originalURI));
+    feESR38->GetLoadReplace(&loadReplace);
   }
   nsCOMPtr<nsIDocShellLoadInfo_ESR38> liESR38 = do_QueryInterface(loadInfo);
   if (liESR38) {
     liESR38->SetOriginalURI(originalURI);
+    liESR38->SetLoadReplace(loadReplace);
   }
 
   nsCOMPtr<nsIURI> nextURI;

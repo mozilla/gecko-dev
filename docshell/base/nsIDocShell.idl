@@ -1065,7 +1065,7 @@ interface nsIDocShell_ESR38 : nsIDocShell
   [infallible] attribute boolean allowContentRetargetingOnChildren;
 };
 
-[scriptable, builtinclass, uuid(607604b6-8fe0-4d2c-8a6c-44f5f31a6e02)]
+[scriptable, builtinclass, uuid(539bce70-8261-462f-bbd0-40ee90b7d636)]
 interface nsIDocShell_ESR38_2 : nsIDocShell_ESR38
 {
   /**
@@ -1077,6 +1077,9 @@ interface nsIDocShell_ESR38_2 : nsIDocShell_ESR38
    * @param aOriginalURI    - The URI to set as the originalURI on the channel
    *                          that does the load. If null, aURI will be set as
    *                          the originalURI.
+   * @param aLoadReplace    - If set LOAD_REPLACE flag will be set on the
+   *                          channel. aOriginalURI is null, this argument is
+   *                          ignored.
    * @param aReferrer       - Referring URI
    * @param aReferrerPolicy - Referrer policy
    * @param aOwner          - Owner (security principal) 
@@ -1104,6 +1107,7 @@ interface nsIDocShell_ESR38_2 : nsIDocShell_ESR38
    */
   [noscript]void internalLoad2(in nsIURI aURI,
                                in nsIURI aOriginalURI,
+                               in boolean aLoadReplace,
                                in nsIURI aReferrer,
                                in unsigned long aReferrerPolicy,
                                in nsISupports aOwner,

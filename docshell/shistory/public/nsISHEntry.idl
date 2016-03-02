@@ -324,7 +324,7 @@ interface nsISHEntryInternal : nsISupports
 
 %}
 
-[scriptable, uuid(e45ab6ef-3485-449c-b91c-0846b2bf6faf)]
+[scriptable, uuid(c93d6146-9cfa-4da9-b652-f64d958f3ce4)]
 interface nsISHEntry_ESR38 : nsISHEntry
 {
     /**
@@ -333,4 +333,9 @@ interface nsISHEntry_ESR38 : nsISHEntry
      * URI. The object returned is of type nsIURI
      */
     attribute nsIURI originalURI;
+
+    /**
+     *  This flag remembers whether channel has LOAD_REPLACE set.
+     */
+    attribute boolean loadReplace;
 };
