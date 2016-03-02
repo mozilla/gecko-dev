@@ -5677,6 +5677,10 @@ nsDocShell::LoadPage(nsISupports* aPageDescriptor, uint32_t aDisplayType)
       return rv;
     }
     shEntry->SetURI(newUri);
+    nsCOMPtr<nsISHEntry_ESR38> entryESR38 = do_QueryInterface(shEntry);
+    if (entryESR38) {
+      entryESR38->SetOriginalURI(nullptr);
+    }
   }
 
   rv = LoadHistoryEntry(shEntry, LOAD_HISTORY);
