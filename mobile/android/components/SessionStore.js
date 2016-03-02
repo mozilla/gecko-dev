@@ -744,6 +744,10 @@ SessionStore.prototype = {
       if (entryESR38.originalURI) {
         entry.originalURI = entryESR38.originalURI.spec;
       }
+
+      if (entryESR38.loadReplace) {
+        entry.loadReplace = entryESR38.loadReplace;
+      }
     }
 
     if (aEntry.contentType) {
@@ -828,6 +832,10 @@ SessionStore.prototype = {
 
     if (aEntry.originalURI) {
       shEntry.originalURI =  Services.io.newURI(aEntry.originalURI, null, null);
+    }
+
+    if (aEntry.loadReplace) {
+      shEntry.loadReplace = aEntry.loadReplace;
     }
 
     if (aEntry.cacheKey) {

@@ -197,6 +197,10 @@ let SessionHistoryInternal = {
       if (shEntryESR38.originalURI) {
         entry.originalURI = shEntryESR38.originalURI.spec;
       }
+
+      if (shEntryESR38.loadReplace) {
+        entry.loadReplace = shEntryESR38.loadReplace;
+      }
     }
 
     if (shEntry.srcdocData)
@@ -355,6 +359,9 @@ let SessionHistoryInternal = {
     }
     if (entry.originalURI) {
       shEntry.originalURI = Utils.makeURI(entry.originalURI);
+    }
+    if (entry.loadReplace) {
+      shEntry.loadReplace = entry.loadReplace;
     }
     if (entry.isSrcdocEntry)
       shEntry.srcdocData = entry.srcdocData;
