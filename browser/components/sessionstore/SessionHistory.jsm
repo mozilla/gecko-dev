@@ -192,6 +192,13 @@ let SessionHistoryInternal = {
       entry.referrerPolicy = shEntry.referrerPolicy;
     }
 
+    var shEntryESR38 = shEntry.QueryInterface(Ci.nsISHEntry_ESR38);
+    if (shEntryESR38) {
+      if (shEntryESR38.originalURI) {
+        entry.originalURI = shEntryESR38.originalURI.spec;
+      }
+    }
+
     if (shEntry.srcdocData)
       entry.srcdocData = shEntry.srcdocData;
 
@@ -333,7 +340,7 @@ let SessionHistoryInternal = {
   deserializeEntry: function (entry, idMap, docIdentMap) {
 
     var shEntry = Cc["@mozilla.org/browser/session-history-entry;1"].
-                  createInstance(Ci.nsISHEntry);
+                  createInstance(Ci.nsISHEntry_ESR38);
 
     shEntry.setURI(Utils.makeURI(entry.url));
     shEntry.setTitle(entry.title || entry.url);
@@ -345,6 +352,9 @@ let SessionHistoryInternal = {
     if (entry.referrer) {
       shEntry.referrerURI = Utils.makeURI(entry.referrer);
       shEntry.referrerPolicy = entry.referrerPolicy;
+    }
+    if (entry.originalURI) {
+      shEntry.originalURI = Utils.makeURI(entry.originalURI);
     }
     if (entry.isSrcdocEntry)
       shEntry.srcdocData = entry.srcdocData;
