@@ -111,3 +111,12 @@ interface nsIDocShellLoadInfo : nsISupports
      */
     attribute nsIURI baseURI;
 };
+
+[scriptable, uuid(9d3bc466-5efe-414d-ae8b-3830b45877bb)]
+interface nsIDocShellLoadInfo_ESR38 : nsIDocShellLoadInfo
+{
+    /**
+     * The originalURI to be passed to nsIDocShell.internalLoad. May be null.
+     */
+    attribute nsIURI originalURI;
+};

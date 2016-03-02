@@ -1064,3 +1064,61 @@ interface nsIDocShell_ESR38 : nsIDocShell
    */
   [infallible] attribute boolean allowContentRetargetingOnChildren;
 };
+
+[scriptable, builtinclass, uuid(607604b6-8fe0-4d2c-8a6c-44f5f31a6e02)]
+interface nsIDocShell_ESR38_2 : nsIDocShell_ESR38
+{
+  /**
+   * Loads the given URI.  This method is identical to loadURI(...) except
+   * that its parameter list is broken out instead of being packaged inside
+   * of an nsIDocShellLoadInfo object...
+   *
+   * @param aURI            - The URI to load.
+   * @param aOriginalURI    - The URI to set as the originalURI on the channel
+   *                          that does the load. If null, aURI will be set as
+   *                          the originalURI.
+   * @param aReferrer       - Referring URI
+   * @param aReferrerPolicy - Referrer policy
+   * @param aOwner          - Owner (security principal) 
+   * @param aInheritOwner   - Flag indicating whether the owner of the current
+   *                          document should be inherited if aOwner is null.
+   * @param aStopActiveDoc  - Flag indicating whether loading the current
+   *                          document should be stopped.
+   * @param aWindowTarget   - Window target for the load.
+   * @param aTypeHint       - A hint as to the content-type of the resulting
+   *                          data.  May be null or empty if no hint.
+   * @param aFileName       - Non-null when the link should be downloaded as
+                              the given filename.
+   * @param aPostDataStream - Post data stream (if POSTing)
+   * @param aHeadersStream  - Stream containing "extra" request headers...
+   * @param aLoadFlags      - Flags to modify load behaviour. Flags are defined
+   *                          in nsIWebNavigation.
+   * @param aSHEntry        - Active Session History entry (if loading from SH)
+   * @param aSrcdoc           When INTERNAL_LOAD_FLAGS_IS_SRCDOC is set, the
+   *                          contents of this parameter will be loaded instead
+   *                          of aURI.
+   * @param aSourceDocShell - The source browsing context for the navigation.
+   * @param aBaseURI        - The base URI to be used for the load.  Set in
+   *                          srcdoc loads as it cannot otherwise be inferred
+   *                          in certain situations such as view-source.
+   */
+  [noscript]void internalLoad2(in nsIURI aURI,
+                               in nsIURI aOriginalURI,
+                               in nsIURI aReferrer,
+                               in unsigned long aReferrerPolicy,
+                               in nsISupports aOwner,
+                               in uint32_t aFlags,
+                               in wstring aWindowTarget,
+                               in string aTypeHint,
+                               in AString aFileName,
+                               in nsIInputStream aPostDataStream,
+                               in nsIInputStream aHeadersStream,
+                               in unsigned long aLoadFlags,
+                               in nsISHEntry aSHEntry,
+                               in boolean firstParty,
+                               in AString aSrcdoc,
+                               in nsIDocShell aSourceDocShell,
+                               in nsIURI aBaseURI,
+                               out nsIDocShell aDocShell,
+                               out nsIRequest aRequest);
+};

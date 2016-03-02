@@ -324,3 +324,13 @@ interface nsISHEntryInternal : nsISupports
 
 %}
 
+[scriptable, uuid(e45ab6ef-3485-449c-b91c-0846b2bf6faf)]
+interface nsISHEntry_ESR38 : nsISHEntry
+{
+    /**
+     * A readonly property that returns the original URI of the current entry.
+     * If an entry is the result of a redirect this attribute holds original
+     * URI. The object returned is of type nsIURI
+     */
+    attribute nsIURI originalURI;
+};

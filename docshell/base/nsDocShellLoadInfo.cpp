@@ -39,6 +39,7 @@ NS_IMPL_RELEASE(nsDocShellLoadInfo)
 
 NS_INTERFACE_MAP_BEGIN(nsDocShellLoadInfo)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIDocShellLoadInfo)
+  NS_INTERFACE_MAP_ENTRY(nsIDocShellLoadInfo_ESR38)
   NS_INTERFACE_MAP_ENTRY(nsIDocShellLoadInfo)
 NS_INTERFACE_MAP_END
 
@@ -60,6 +61,23 @@ NS_IMETHODIMP
 nsDocShellLoadInfo::SetReferrer(nsIURI* aReferrer)
 {
   mReferrer = aReferrer;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDocShellLoadInfo::GetOriginalURI(nsIURI** aOriginalURI)
+{
+  NS_ENSURE_ARG_POINTER(aOriginalURI);
+
+  *aOriginalURI = mOriginalURI;
+  NS_IF_ADDREF(*aOriginalURI);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDocShellLoadInfo::SetOriginalURI(nsIURI* aOriginalURI)
+{
+  mOriginalURI = aOriginalURI;
   return NS_OK;
 }
 

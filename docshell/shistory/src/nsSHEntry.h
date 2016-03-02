@@ -22,7 +22,7 @@ class nsSHEntryShared;
 class nsIInputStream;
 class nsIURI;
 
-class nsSHEntry final : public nsISHEntry,
+class nsSHEntry final : public nsISHEntry_ESR38,
                             public nsISHContainer,
                             public nsISHEntryInternal
 {
@@ -31,6 +31,7 @@ public:
   nsSHEntry(const nsSHEntry &other);
 
   NS_DECL_ISUPPORTS
+  NS_DECL_NSISHENTRY_ESR38
   NS_DECL_NSISHENTRY
   NS_DECL_NSISHENTRYINTERNAL
   NS_DECL_NSISHCONTAINER
@@ -49,6 +50,7 @@ private:
 
   // See nsSHEntry.idl for comments on these members.
   nsCOMPtr<nsIURI>         mURI;
+  nsCOMPtr<nsIURI>         mOriginalURI;
   nsCOMPtr<nsIURI>         mReferrerURI;
   uint32_t                 mReferrerPolicy;
   nsString                 mTitle;
