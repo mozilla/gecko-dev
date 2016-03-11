@@ -238,6 +238,9 @@ void GrBitmapTextContext::drawText(const GrPaint& paint, const SkPaint& skPaint,
                                                     SK_ARRAY_COUNT(gTextVertexAttribs));
     }
     int numGlyphs = fSkPaint.textToGlyphs(text, byteLength, NULL);
+    if (numGlyphs <= 0) {
+        return;
+    }
     bool success = fDrawTarget->reserveVertexAndIndexSpace(4*numGlyphs,
                                                            0,
                                                            &fVertices,
@@ -334,6 +337,9 @@ void GrBitmapTextContext::drawPosText(const GrPaint& paint, const SkPaint& skPai
                                                     SK_ARRAY_COUNT(gTextVertexAttribs));
     }
     int numGlyphs = fSkPaint.textToGlyphs(text, byteLength, NULL);
+    if (numGlyphs <= 0) {
+        return;
+    }
     bool success = fDrawTarget->reserveVertexAndIndexSpace(4*numGlyphs,
                                                            0,
                                                            &fVertices,
