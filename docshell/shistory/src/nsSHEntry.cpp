@@ -28,7 +28,8 @@ static uint32_t gEntryID = 0;
 
 
 nsSHEntry::nsSHEntry()
-  : mReferrerPolicy(mozilla::net::RP_Default)
+  : mLoadReplace(false)
+  , mReferrerPolicy(mozilla::net::RP_Default)
   , mLoadType(0)
   , mID(gEntryID++)
   , mScrollPositionX(0)
