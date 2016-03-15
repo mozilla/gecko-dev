@@ -2025,6 +2025,12 @@ public:
     virtual Composer2D* GetComposer2D()
     { return nullptr; }
 
+    virtual void GetScreenIntPoint(ScreenIntPoint* aScreenIntPoint)
+    { *aScreenIntPoint = mScreenPoint; }
+
+    virtual void SetScreenIntPoint(const ScreenIntPoint& aScreenIntPoint)
+    { mScreenPoint = aScreenIntPoint; }
+
     /**
      * Some platforms (only cocoa right now) round widget coordinates to the
      * nearest even pixels (see bug 892994), this function allows us to
@@ -2068,6 +2074,10 @@ protected:
     bool mOnDestroyCalled;
     nsWindowType mWindowType;
     int32_t mZIndex;
+
+    // To store a position inforamtion related to any input devices operating
+    // over this widget.
+    ScreenIntPoint mScreenPoint;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIWidget, NS_IWIDGET_IID)

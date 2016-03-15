@@ -200,7 +200,8 @@ public:
     MULTITOUCH_START,
     MULTITOUCH_MOVE,
     MULTITOUCH_END,
-    MULTITOUCH_CANCEL
+    MULTITOUCH_CANCEL,
+	MULTITOUCH_HOVER_MOVE
   };
 
   MultiTouchInput(MultiTouchType aType, uint32_t aTime, TimeStamp aTimeStamp,

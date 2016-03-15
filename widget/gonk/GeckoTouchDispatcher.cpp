@@ -108,6 +108,17 @@ GeckoTouchDispatcher::NotifyTouch(MultiTouchInput& aTouch, TimeStamp aEventTime)
     mCompositorVsyncScheduler->SetNeedsComposite();
   }
 
+//  LOG("[KK][GeckoTouchDispatcher][NotifyTouch] touch.type = (%d)", aTouch.mType);
+  if (aTouch.mType == MultiTouchInput::MULTITOUCH_HOVER_MOVE) {
+    // NB: we could dispatch this to content as a mousemove event, if
+    // we really wanted to.  But for now we just use this to draw a
+    // mouse cursor so keep it internal to gecko.
+    ScreenIntPoint point = aTouch.mTouches[0].mScreenPoint;
+//    LOG("[KK][GeckoTouchDispatcher][NotifyTouch] ScreenPoint = (%d, %d)", point.x, point.y);
+    nsWindow::NotifyHoverMove(point);
+    return;
+  }
+
   if (aTouch.mType == MultiTouchInput::MULTITOUCH_MOVE) {
     MutexAutoLock lock(mTouchQueueLock);
     if (mInflightNonMoveEvents > 0) {
@@ -338,6 +349,7 @@ GeckoTouchDispatcher::DispatchTouchEvent(MultiTouchInput aMultiTouch)
         touchAction = "Touch_Event_Down";
         break;
       case MultiTouchInput::MULTITOUCH_MOVE:
+      case MultiTouchInput::MULTITOUCH_HOVER_MOVE:
         touchAction = "Touch_Event_Move";
         break;
       case MultiTouchInput::MULTITOUCH_END:

@@ -330,6 +330,11 @@ private:
    */
   void RenderDebugOverlay(const gfx::Rect& aBounds);
 
+  /**
+   * Render an overlay mouse cursor
+   */
+  void RenderMouseCursor(const gfx::Rect& aBounds);
+
 
   RefPtr<CompositingRenderTarget> PushGroupForLayerEffects();
   void PopGroupForLayerEffects(RefPtr<CompositingRenderTarget> aPreviousTarget,

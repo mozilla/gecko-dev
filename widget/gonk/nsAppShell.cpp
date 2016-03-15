@@ -750,9 +750,11 @@ GeckoInputDispatcher::notifyMotion(const NotifyMotionArgs* args)
     case AMOTION_EVENT_ACTION_CANCEL:
         touchType = MultiTouchInput::MULTITOUCH_CANCEL;
         break;
+    case AMOTION_EVENT_ACTION_HOVER_MOVE:
+        touchType = MultiTouchInput::MULTITOUCH_HOVER_MOVE;
+        break;
     case AMOTION_EVENT_ACTION_HOVER_EXIT:
     case AMOTION_EVENT_ACTION_HOVER_ENTER:
-    case AMOTION_EVENT_ACTION_HOVER_MOVE:
         NS_WARNING("Ignoring hover touch events");
         return;
     default:

@@ -527,6 +527,21 @@ nsWindow::WidgetToScreenOffset()
     return p;
 }
 
+/*static*/ void
+nsWindow::NotifyHoverMove(const ScreenIntPoint& point)
+{
+//    sCursor = point;
+    LOG("[KK][nsWindow][NotifyHoverMove] >>>> gFW(%p)", gFocusedWindow);
+    if (gFocusedWindow) {
+        // NB: this is a racy use of gFocusedWindow.  We assume that
+        // our one and only top widget is already in a stable state by
+        // the time we start receiving hover-move events.
+        gFocusedWindow->SetScreenIntPoint(point);
+        gFocusedWindow->mCompositorParent->InvalidateOnCompositorThread();
+        gFocusedWindow->mCompositorParent->ScheduleRenderOnCompositorThread();
+    }
+}
+
 void*
 nsWindow::GetNativeData(uint32_t aDataType)
 {
