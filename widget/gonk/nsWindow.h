@@ -133,6 +133,8 @@ public:
 
     nsScreenGonk* GetScreen();
 
+	static void NotifyHoverMove(const ScreenIntPoint& point);
+
 protected:
     nsWindow* mParent;
     bool mVisible;

@@ -405,6 +405,9 @@ private:
   // This and code dependent on it should be removed once containerless scrolling looks stable.
   DECL_GFX_PREF(Once, "layout.scroll.root-frame-containers",   LayoutUseContainersForRootFrames, bool, true);
 
+  // This is a test pref for drawing mouse cursor on gonk platform
+  DECL_GFX_PREF(Live, "layers.draw_gonk_cursor",               LayersDrawGonkCursor, bool, true);
+
   // These affect how line scrolls from wheel events will be accelerated.
   DECL_GFX_PREF(Live, "mousewheel.acceleration.factor",        MouseWheelAccelerationFactor, int32_t, -1);
   DECL_GFX_PREF(Live, "mousewheel.acceleration.start",         MouseWheelAccelerationStart, int32_t, -1);

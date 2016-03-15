@@ -126,6 +126,8 @@ nsEventStatus GestureEventListener::HandleInputEvent(const MultiTouchInput& aEve
     mTouches.Clear();
     rv = HandleInputTouchCancel();
     break;
+  case MultiTouchInput::MULTITOUCH_HOVER_MOVE:
+    break;	
   }
 
   return rv;

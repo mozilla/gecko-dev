@@ -374,6 +374,33 @@ LayerManagerComposite::PostProcessLayers(Layer* aLayer,
 }
 
 void
+LayerManagerComposite::RenderMouseCursor(const gfx::Rect& aBounds)
+{
+  if (!gfxPrefs::LayersDrawGonkCursor()) {
+    return;
+  }
+  // Mouse Cursor ========================================================
+  ScreenIntPoint screenPoint;
+  mCompositor->GetWidget()->GetScreenIntPoint(&screenPoint);
+  int width2 = 10;
+  float alpha2 = 1;
+  EffectChain effects2;
+  effects2.mPrimaryEffect = new EffectSolidColor(gfx::Color(1, 1, 1, 1));
+  mCompositor->DrawQuad(gfx::Rect(screenPoint.x - width2/2,
+                                  screenPoint.y - width2/2,
+                                  width2+2,
+                                  width2+2),
+                        aBounds, effects2, alpha2, gfx::Matrix4x4());
+  effects2.mPrimaryEffect = new EffectSolidColor(gfx::Color(1, 0, 0, 1));
+  mCompositor->DrawQuad(gfx::Rect(screenPoint.x - width2/2,
+                                  screenPoint.y - width2/2,
+                                  width2,
+                                  width2),
+                        aBounds, effects2, alpha2, gfx::Matrix4x4());
+  // =====================================================================
+}
+
+void
 LayerManagerComposite::EndTransaction(const TimeStamp& aTimeStamp,
                                       EndTransactionFlags aFlags)
 {
@@ -950,6 +977,9 @@ LayerManagerComposite::Render(const nsIntRegion& aInvalidRegion)
 
   // Debugging
   RenderDebugOverlay(actualBounds);
+
+  // Gonk Cursor
+  RenderMouseCursor(actualBounds);
 
   {
     PROFILER_LABEL("LayerManagerComposite", "EndFrame",
