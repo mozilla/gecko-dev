@@ -704,7 +704,7 @@ ssl3_HandleECDHServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
         goto no_memory;
     }
 
-    ss->sec.peerKey = peerKey = PORT_ArenaZNew(arena, SECKEYPublicKey);
+    peerKey = PORT_ArenaZNew(arena, SECKEYPublicKey);
     if (peerKey == NULL) {
         goto no_memory;
     }
@@ -725,7 +725,6 @@ ssl3_HandleECDHServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     /* copy publicValue in peerKey */
     if (SECITEM_CopyItem(arena, &peerKey->u.ec.publicValue,  &ec_point))
     {
-        PORT_FreeArena(arena, PR_FALSE);
         goto no_memory;
     }
     peerKey->pkcs11Slot         = NULL;
@@ -739,10 +738,16 @@ ssl3_HandleECDHServerKeyExchange(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 alert_loser:
     (void)SSL3_SendAlert(ss, alert_fatal, desc);
 loser:
+    if (arena) {
+        PORT_FreeArena(arena, PR_FALSE);
+    }
     PORT_SetError( errCode );
     return SECFailure;
 
 no_memory:      /* no-memory error has already been set. */
+    if (arena) {
+        PORT_FreeArena(arena, PR_FALSE);
+    }
     ssl_MapLowLevelError(SSL_ERROR_SERVER_KEY_EXCHANGE_FAILURE);
     return SECFailure;
 }
