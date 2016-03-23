@@ -15,7 +15,7 @@
   <project name="platform_build" path="build" remote="b2g" revision="c9d4fe680662ee44a4bdea42ae00366f5df399cf">
     <copyfile dest="Makefile" src="core/root.mk"/>
   </project>
-  <project name="gaia" path="gaia" remote="mozillaorg" revision="10661e244812717312d23a2cc014e789e2d33304"/>
+  <project name="gaia" path="gaia" remote="mozillaorg" revision="211ddf230c78526b1b93b33b00834d816a10f70e"/>
   <project name="fake-libdvm" path="dalvik" remote="b2g" revision="d50ae982b19f42f0b66d08b9eb306be81687869f"/>
   <project name="fake-qemu-kernel" path="prebuilts/qemu-kernel" remote="b2g" revision="939b377d55a2f081d94029a30a75d05e5a20daf3"/>
   <project name="gonk-misc" path="gonk-misc" remote="b2g" revision="fcd6359d27046eb5b105e7183f74fa905d2807c7"/>
