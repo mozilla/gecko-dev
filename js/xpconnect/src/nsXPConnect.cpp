@@ -194,7 +194,7 @@ xpc::ErrorReport::Init(JSErrorReport* aReport, const char* aFallbackMessage,
         mFileName.AssignWithConversion(aReport->filename);
     }
 
-    mSourceLine.Assign(aReport->linebuf(), aReport->linebufLength());
+    mSourceLine = static_cast<const char16_t*>(aReport->uclinebuf);
 
     mLineNumber = aReport->lineno;
     mColumn = aReport->column;

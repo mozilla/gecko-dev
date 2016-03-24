@@ -2309,15 +2309,17 @@ nsXPCComponents_Utils::ReportError(HandleValue error, JSContext* cx)
         nsAutoString fileUni;
         CopyUTF8toUTF16(err->filename, fileUni);
 
-        uint32_t column = err->tokenOffset();
+        uint32_t column = err->uctokenptr - err->uclinebuf;
 
-        const char16_t* ucmessage = err->ucmessage;
-        const char16_t* linebuf = err->linebuf();
+        const char16_t* ucmessage =
+            static_cast<const char16_t*>(err->ucmessage);
+        const char16_t* uclinebuf =
+            static_cast<const char16_t*>(err->uclinebuf);
 
         nsresult rv = scripterr->InitWithWindowID(
                 ucmessage ? nsDependentString(ucmessage) : EmptyString(),
                 fileUni,
-                linebuf ? nsDependentString(linebuf, err->linebufLength()) : EmptyString(),
+                uclinebuf ? nsDependentString(uclinebuf) : EmptyString(),
                 err->lineno,
                 column, err->flags, "XPConnect JavaScript", innerWindowID);
         NS_ENSURE_SUCCESS(rv, NS_OK);
