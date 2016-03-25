@@ -110,6 +110,12 @@ HitTestingTreeNode::GetScrollSize() const
   return mScrollSize;
 }
 
+bool
+HitTestingTreeNode::IsScrollbarNode() const
+{
+  return (mScrollDir != Layer::NONE);
+}
+
 void
 HitTestingTreeNode::SetPrevSibling(HitTestingTreeNode* aSibling)
 {
