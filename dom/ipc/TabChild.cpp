@@ -1796,6 +1796,10 @@ TabChild::RecvRealMouseButtonEvent(const WidgetMouseEvent& event,
   WidgetMouseEvent localEvent(event);
   localEvent.widget = mPuppetWidget;
   APZCCallbackHelper::DispatchWidgetEvent(localEvent);
+
+  if (event.mFlags.mHandledByAPZ) {
+    mAPZEventState->ProcessMouseEvent(event, aGuid, aInputBlockId);
+  }
   return true;
 }
 

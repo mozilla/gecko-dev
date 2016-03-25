@@ -4228,7 +4228,7 @@ nsWindow::DispatchMouseEvent(EventMessage aEventMessage, WPARAM wParam,
       }
     }
 
-    result = ConvertStatus(DispatchInputEvent(&event));
+    result = ConvertStatus(DispatchAPZAwareEvent(&event));
 
     // Release the widget with NS_IF_RELEASE() just in case
     // the context menu key code in EventListenerManager::HandleEvent()

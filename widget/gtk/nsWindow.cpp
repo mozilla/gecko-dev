@@ -2682,7 +2682,7 @@ nsWindow::DispatchMissedButtonReleases(GdkEventCrossing *aGdkEvent)
             WidgetMouseEvent synthEvent(true, eMouseUp, this,
                                         WidgetMouseEvent::eSynthesized);
             synthEvent.button = buttonType;
-            DispatchInputEvent(&synthEvent);
+            DispatchAPZAwareEvent(&synthEvent);
         }
     }
 }
@@ -2802,7 +2802,7 @@ nsWindow::OnButtonPressEvent(GdkEventButton *aEvent)
     InitButtonEvent(event, aEvent);
     event.pressure = mLastMotionPressure;
 
-    DispatchInputEvent(&event);
+    DispatchAPZAwareEvent(&event);
 
     // right menu click on linux should also pop up a context menu
     if (domButton == WidgetMouseEvent::eRightButton &&
@@ -2845,7 +2845,7 @@ nsWindow::OnButtonReleaseEvent(GdkEventButton *aEvent)
     gdk_event_get_axis ((GdkEvent*)aEvent, GDK_AXIS_PRESSURE, &pressure);
     event.pressure = pressure ? pressure : mLastMotionPressure;
 
-    DispatchInputEvent(&event);
+    DispatchAPZAwareEvent(&event);
     mLastMotionPressure = pressure;
 }
 
