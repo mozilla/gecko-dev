@@ -8951,6 +8951,7 @@ static SECStatus ssl3_HandleClientHelloPart2(sslSocket *ss,
 
     rv = ssl3_NegotiateCipherSuite(ss, suites);
     if (rv != SECSuccess) {
+        desc = handshake_failure;
         errCode = SSL_ERROR_NO_CYPHER_OVERLAP;
         goto alert_loser;
     }
