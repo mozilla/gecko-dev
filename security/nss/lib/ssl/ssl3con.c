@@ -11294,11 +11294,6 @@ ssl3_AuthCertificate(sslSocket *ss)
                 errCode = SSL_ERROR_FEATURE_NOT_SUPPORTED_FOR_SERVERS;
                 goto loser;
             }
-            /* TODO(ekr@rtfm.com): Reenable for TLS 1.3 */
-            if (ss->version >= SSL_LIBRARY_VERSION_TLS_1_3) {
-                errCode = SSL_ERROR_FEATURE_NOT_SUPPORTED_FOR_VERSION;
-                goto loser;
-            }
 
             ss->ssl3.hs.authCertificatePending = PR_TRUE;
             rv = SECSuccess;

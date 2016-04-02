@@ -156,6 +156,14 @@ class TlsConnectTls12
   TlsConnectTls12();
 };
 
+// A TLS 1.3 only generic test.
+class TlsConnectDatagram13
+  : public TlsConnectTestBase {
+ public:
+  TlsConnectDatagram13()
+      : TlsConnectTestBase(DGRAM, SSL_LIBRARY_VERSION_TLS_1_3) {}
+};
+
 // A variant that is used only with Pre13.
 class TlsConnectGenericPre13 : public TlsConnectGeneric {
 };
