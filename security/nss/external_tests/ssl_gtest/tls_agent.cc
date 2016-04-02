@@ -435,6 +435,7 @@ void TlsAgent::CheckCallbacks() const {
 
 void TlsAgent::Connected() {
   LOG("Handshake success");
+  CheckPreliminaryInfo();
   CheckCallbacks();
 
   SECStatus rv = SSL_GetChannelInfo(ssl_fd_, &info_, sizeof(info_));

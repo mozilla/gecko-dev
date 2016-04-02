@@ -1020,7 +1020,7 @@ class BeforeFinished : public TlsRecordFilter {
           DataBuffer ccs;
           header.Write(&ccs, 0, body);
           server_->SendDirect(ccs);
-          ForceRead();
+          client_->Handshake();
           state_ = AFTER_CCS;
           // Request that the original record be dropped by the filter.
           return DROP;
@@ -1043,16 +1043,6 @@ class BeforeFinished : public TlsRecordFilter {
   }
 
  private:
-  void ForceRead() {
-    // Read from the socket to get libssl to process the handshake messages that
-    // were sent from the server up until now.
-    uint8_t block[10];
-    int32_t rv = PR_Read(client_->ssl_fd(), block, sizeof(block));
-    // Expect a blocking error here, since the handshake shouldn't have completed.
-    EXPECT_GT(0, rv);
-    EXPECT_EQ(PR_WOULD_BLOCK_ERROR, PR_GetError());
-  }
-
   TlsAgent* client_;
   TlsAgent* server_;
   VoidFunction before_ccs_;
@@ -1115,8 +1105,10 @@ class BeforeFinished13 : public PacketFilter {
   typedef std::function<void(void)> VoidFunction;
 
  public:
-  BeforeFinished13(TlsAgent *server, VoidFunction before_finished)
-      : server_(server),
+  BeforeFinished13(TlsAgent* client, TlsAgent *server,
+                   VoidFunction before_finished)
+      : client_(client),
+        server_(server),
         before_finished_(before_finished),
         records_(0) {}
 
@@ -1128,6 +1120,7 @@ class BeforeFinished13 : public PacketFilter {
         return DROP;
 
       case 3:
+        client_->Handshake();
         before_finished_();
         break;
 
@@ -1138,23 +1131,25 @@ class BeforeFinished13 : public PacketFilter {
   }
 
  private:
+  TlsAgent *client_;
   TlsAgent *server_;
   VoidFunction before_finished_;
   size_t records_;
 };
 
-TEST_F(TlsConnectDatagram13, AuthCompleteBeforeFinished_DISABLED) {
+TEST_F(TlsConnectDatagram13, AuthCompleteBeforeFinished) {
   client_->SetAuthCertificateCallback(
       [](TlsAgent&, PRBool, PRBool) -> SECStatus {
         return SECWouldBlock;
       });
-  server_->SetPacketFilter(new BeforeFinished13(server_, [this]() {
+  server_->SetPacketFilter(new BeforeFinished13(client_, server_, [this]() {
         EXPECT_EQ(SECSuccess, SSL_AuthCertificateComplete(client_->ssl_fd(), 0));
       }));
   Connect();
 }
 
 static void TriggerAuthComplete(PollTarget *target, Event event) {
+  std::cerr << "client: call SSL_AuthCertificateComplete" << std::endl;
   EXPECT_EQ(TIMER_EVENT, event);
   TlsAgent* client = static_cast<TlsAgent*>(target);
   EXPECT_EQ(SECSuccess, SSL_AuthCertificateComplete(client->ssl_fd(), 0));
@@ -1165,7 +1160,7 @@ TEST_F(TlsConnectDatagram13, AuthCompleteAfterFinished) {
       [this](TlsAgent&, PRBool, PRBool) -> SECStatus {
         Poller::Timer *timer_handle;
         // This is really just to unroll the stack.
-        Poller::Instance()->SetTimer(3U, client_, TriggerAuthComplete,
+        Poller::Instance()->SetTimer(1U, client_, TriggerAuthComplete,
                                      &timer_handle);
         return SECWouldBlock;
       });
