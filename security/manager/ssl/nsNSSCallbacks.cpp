@@ -55,7 +55,7 @@ public:
   NS_IMETHOD Run();
 
   nsNSSHttpRequestSession *mRequestSession;
-  
+
   RefPtr<nsHTTPListener> mListener;
   bool mResponsibleForDoneSignal;
   TimeStamp mStartTime;
@@ -122,7 +122,7 @@ nsHTTPDownloadEvent::Run()
     nsCOMPtr<nsIUploadChannel> uploadChannel(do_QueryInterface(chan));
     NS_ENSURE_STATE(uploadChannel);
 
-    rv = uploadChannel->SetUploadStream(uploadStream, 
+    rv = uploadChannel->SetUploadStream(uploadStream,
                                         mRequestSession->mPostContentType,
                                         -1);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -154,7 +154,7 @@ nsHTTPDownloadEvent::Run()
   NS_ADDREF(mListener->mLoadGroup);
   mListener->mLoadGroupOwnerThread = PR_GetCurrentThread();
 
-  rv = NS_NewStreamLoader(getter_AddRefs(mListener->mLoader), 
+  rv = NS_NewStreamLoader(getter_AddRefs(mListener->mLoader),
                           mListener);
 
   if (NS_SUCCEEDED(rv)) {
@@ -422,7 +422,7 @@ nsNSSHttpRequestSession::internal_send_receive_attempt(bool &retryable_error,
       wait_interval = PR_MicrosecondsToInterval(50);
     }
     else
-    { 
+    {
       // On a secondary thread, it's fine to wait some more for
       // for the condition variable.
       wait_interval = PR_MillisecondsToInterval(250);
@@ -433,8 +433,8 @@ nsNSSHttpRequestSession::internal_send_receive_attempt(bool &retryable_error,
       if (running_on_main_thread)
       {
         // Networking runs on the main thread, which we happen to block here.
-        // Processing events will allow the OCSP networking to run while we 
-        // are waiting. Thanks a lot to Darin Fisher for rewriting the 
+        // Processing events will allow the OCSP networking to run while we
+        // are waiting. Thanks a lot to Darin Fisher for rewriting the
         // thread manager. Thanks a lot to Christian Biesinger who
         // made me aware of this possibility. (kaie)
 
@@ -443,15 +443,15 @@ nsNSSHttpRequestSession::internal_send_receive_attempt(bool &retryable_error,
       }
 
       waitCondition.Wait(wait_interval);
-      
+
       if (!waitFlag)
         break;
 
       if (!request_canceled)
       {
-        bool timeout = 
+        bool timeout =
           (PRIntervalTime)(PR_IntervalNow() - start_time) > mTimeoutInterval;
- 
+
         if (timeout)
         {
           request_canceled = true;
@@ -614,7 +614,7 @@ nsHTTPListener::OnStreamComplete(nsIStreamLoader* aLoader,
   nsCOMPtr<nsIHttpChannel> hchan;
 
   nsresult rv = aLoader->GetRequest(getter_AddRefs(req));
-  
+
   if (NS_FAILED(aStatus))
   {
     MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
@@ -641,13 +641,13 @@ nsHTTPListener::OnStreamComplete(nsIStreamLoader* aLoader,
     else
       mHttpResponseCode = rcode;
 
-    hchan->GetResponseHeader(NS_LITERAL_CSTRING("Content-Type"), 
+    hchan->GetResponseHeader(NS_LITERAL_CSTRING("Content-Type"),
                                     mHttpResponseContentType);
   }
 
   if (mResponsibleForDoneSignal)
     send_done_signal();
-  
+
   return aStatus;
 }
 
@@ -674,8 +674,8 @@ ShowProtectedAuthPrompt(PK11SlotInfo* slot, nsIInterfaceRequestor *ir)
 
   // Get protected auth dialogs
   nsITokenDialogs* dialogs = 0;
-  nsresult nsrv = getNSSDialogs((void**)&dialogs, 
-                                NS_GET_IID(nsITokenDialogs), 
+  nsresult nsrv = getNSSDialogs((void**)&dialogs,
+                                NS_GET_IID(nsITokenDialogs),
                                 NS_TOKENDIALOGS_CONTRACTID);
   if (NS_SUCCEEDED(nsrv))
   {
@@ -685,16 +685,16 @@ ShowProtectedAuthPrompt(PK11SlotInfo* slot, nsIInterfaceRequestor *ir)
       NS_ADDREF(protectedAuthRunnable);
 
       protectedAuthRunnable->SetParams(slot);
-      
+
       nsCOMPtr<nsIProtectedAuthThread> runnable = do_QueryInterface(protectedAuthRunnable);
       if (runnable)
       {
         nsrv = dialogs->DisplayProtectedAuth(ir, runnable);
-              
+
         // We call join on the thread,
         // so we can be sure that no simultaneous access will happen.
         protectedAuthRunnable->Join();
-              
+
         if (NS_SUCCEEDED(nsrv))
         {
           SECStatus rv = protectedAuthRunnable->GetResult();
@@ -709,7 +709,7 @@ ShowProtectedAuthPrompt(PK11SlotInfo* slot, nsIInterfaceRequestor *ir)
               default:
                   protAuthRetVal = nullptr;
                   break;
-              
+
           }
         }
       }
@@ -727,7 +727,7 @@ class PK11PasswordPromptRunnable : public SyncRunnableBase
                                  , public nsNSSShutDownObject
 {
 public:
-  PK11PasswordPromptRunnable(PK11SlotInfo* slot, 
+  PK11PasswordPromptRunnable(PK11SlotInfo* slot,
                              nsIInterfaceRequestor* ir)
     : mResult(nullptr),
       mSlot(slot),
@@ -792,9 +792,9 @@ void PK11PasswordPromptRunnable::RunOnTargetThread()
   nsCOMPtr<nsINSSComponent> nssComponent(do_GetService(kNSSComponentCID, &rv));
 
   if (NS_FAILED(rv))
-    return; 
+    return;
 
-  const char16_t* formatStrings[1] = { 
+  const char16_t* formatStrings[1] = {
     ToNewUnicode(NS_ConvertUTF8toUTF16(PK11_GetTokenName(mSlot)))
   };
   rv = nssComponent->PIPBundleFormatStringFromName("CertPassPrompt",
@@ -810,7 +810,7 @@ void PK11PasswordPromptRunnable::RunOnTargetThread()
   bool checkState = false;
   rv = prompt->PromptPassword(nullptr, promptString.get(), &password, nullptr,
                               &checkState, &value);
-  
+
   if (NS_SUCCEEDED(rv) && value) {
     mResult = ToNewUTF8String(nsDependentString(password));
     free(password);
@@ -1066,6 +1066,8 @@ AccumulateCipherSuite(Telemetry::ID probe, const SSLChannelInfo& channelInfo)
     case TLS_RSA_WITH_SEED_CBC_SHA: value = 67; break;
     case TLS_RSA_WITH_RC4_128_SHA: value = 68; break;
     case TLS_RSA_WITH_RC4_128_MD5: value = 69; break;
+    // TLS 1.3 PSK resumption
+    case TLS_ECDHE_PSK_WITH_AES_128_GCM_SHA256: value = 70; break;
     // unknown
     default:
       value = 0;
