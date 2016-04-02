@@ -1095,6 +1095,83 @@ TEST_P(TlsConnectGenericPre13, AuthCompleteBeforeFinishedWithFalseStart) {
   Receive(10);
 }
 
+// Running code after the client has started processing the encrypted part of
+// the server's first flight, but before the Finished is processed is very hard
+// in TLS 1.3.  These encrypted messages are sent in a single encrypted blob.
+// The following test uses DTLS to make it possible to force the client to
+// process the handshake in pieces.
+//
+// The first encrypted message from the server is dropped, and the MTU is
+// reduced to just below the original message size so that the server sends two
+// messages.  The Finished message is then processed with the sec.
+class BeforeFinished13 : public PacketFilter {
+ private:
+  enum HandshakeState {
+    INIT,
+    BEFORE_FIRST_FRAGMENT,
+    BEFORE_SECOND_FRAGMENT,
+    DONE
+  };
+  typedef std::function<void(void)> VoidFunction;
+
+ public:
+  BeforeFinished13(TlsAgent *server, VoidFunction before_finished)
+      : server_(server),
+        before_finished_(before_finished),
+        records_(0) {}
+
+ protected:
+  virtual PacketFilter::Action Filter(const DataBuffer& input, DataBuffer* output) {
+    switch (++records_) {
+      case 1:
+        SSLInt_SetMTU(server_->ssl_fd(), input.len() - 1);
+        return DROP;
+
+      case 3:
+        before_finished_();
+        break;
+
+      default:
+        break;
+    }
+    return KEEP;
+  }
+
+ private:
+  TlsAgent *server_;
+  VoidFunction before_finished_;
+  size_t records_;
+};
+
+TEST_F(TlsConnectDatagram13, AuthCompleteBeforeFinished_DISABLED) {
+  client_->SetAuthCertificateCallback(
+      [](TlsAgent&, PRBool, PRBool) -> SECStatus {
+        return SECWouldBlock;
+      });
+  server_->SetPacketFilter(new BeforeFinished13(server_, [this]() {
+        EXPECT_EQ(SECSuccess, SSL_AuthCertificateComplete(client_->ssl_fd(), 0));
+      }));
+  Connect();
+}
+
+static void TriggerAuthComplete(PollTarget *target, Event event) {
+  EXPECT_EQ(TIMER_EVENT, event);
+  TlsAgent* client = static_cast<TlsAgent*>(target);
+  EXPECT_EQ(SECSuccess, SSL_AuthCertificateComplete(client->ssl_fd(), 0));
+}
+
+TEST_F(TlsConnectDatagram13, AuthCompleteAfterFinished) {
+  client_->SetAuthCertificateCallback(
+      [this](TlsAgent&, PRBool, PRBool) -> SECStatus {
+        Poller::Timer *timer_handle;
+        // This is really just to unroll the stack.
+        Poller::Instance()->SetTimer(3U, client_, TriggerAuthComplete,
+                                     &timer_handle);
+        return SECWouldBlock;
+      });
+  Connect();
+}
+
 INSTANTIATE_TEST_CASE_P(GenericStream, TlsConnectGeneric,
                         ::testing::Combine(
                           TlsConnectTestBase::kTlsModesStream,

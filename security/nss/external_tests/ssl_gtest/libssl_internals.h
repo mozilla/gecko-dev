@@ -24,6 +24,5 @@ SECStatus SSLInt_UpdateSSLv2ClientRandom(PRFileDesc *fd,
 
 PRBool SSLInt_ExtensionNegotiated(PRFileDesc *fd, PRUint16 ext);
 void SSLInt_ClearSessionTicketKey();
+void SSLInt_SetMTU(PRFileDesc *fd, PRUint16 mtu);
 #endif
-
-

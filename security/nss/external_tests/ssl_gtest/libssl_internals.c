@@ -92,3 +92,10 @@ SSLInt_ClearSessionTicketKey()
   ssl3_SessionTicketShutdown(NULL, NULL);
   NSS_UnregisterShutdown(ssl3_SessionTicketShutdown, NULL);
 }
+
+void
+SSLInt_SetMTU(PRFileDesc *fd, PRUint16 mtu)
+{
+  sslSocket *ss = ssl_FindSocket(fd);
+  ss->ssl3.mtu = mtu;
+}

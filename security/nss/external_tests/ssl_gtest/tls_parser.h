@@ -22,6 +22,7 @@ namespace nss_test {
 const uint8_t kTlsChangeCipherSpecType = 20;
 const uint8_t kTlsAlertType = 21;
 const uint8_t kTlsHandshakeType = 22;
+const uint8_t kTlsApplicationDataType = 23;
 
 const uint8_t kTlsHandshakeClientHello = 1;
 const uint8_t kTlsHandshakeServerHello = 2;

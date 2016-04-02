@@ -372,6 +372,7 @@ int32_t DummyPrSocket::Write(const void *buf, int32_t length) {
       LOG("Droppped packet: " << packet);
       break;
     case PacketFilter::KEEP:
+      LOG("Packet: " << packet);
       peer_->PacketReceived(packet);
       break;
   }
