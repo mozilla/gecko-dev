@@ -255,8 +255,8 @@ class TlsAgent : public PollTarget {
 
   static void HandshakeCallback(PRFileDesc *fd, void *arg) {
     TlsAgent* agent = reinterpret_cast<TlsAgent*>(arg);
-    agent->CheckPreliminaryInfo();
     agent->handshake_callback_called_ = true;
+    agent->Connected();
     if (agent->handshake_callback_) {
       agent->handshake_callback_(*agent);
     }

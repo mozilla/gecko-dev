@@ -2188,8 +2188,7 @@ tls13_SendClientSecondRound(sslSocket *ss)
         PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
         return SECFailure;
     }
-    if (ss->ssl3.hs.authCertificatePending &&
-        (sendClientCert || ss->ssl3.sendEmptyCert)) {
+    if (ss->ssl3.hs.authCertificatePending) {
         SSL_TRC(3, ("%d: TLS13[%p]: deferring ssl3_SendClientSecondRound because"
                     " certificate authentication is still pending.",
                     SSL_GETPID(), ss->fd));
