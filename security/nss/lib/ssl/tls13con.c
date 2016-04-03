@@ -531,7 +531,7 @@ tls13_HandleClientHelloPart2(sslSocket *ss,
         ** can locate it again, provided that the current ssl socket
         ** has had its server certs configured the same as the previous one.
         */
-        ss->sec.localCert     =
+        ss->sec.localCert =
                 CERT_DupCertificate(ss->serverCerts[sid->keaType].serverCert);
 
         if (sid->peerCert != NULL) {
@@ -1001,6 +1001,12 @@ tls13_HandleServerHelloPart2(sslSocket *ss)
 
         tls13_RestoreCipherInfo(ss, sid);
 
+        SSL_TRC(3, ("%d: TLS13[%d]: resuming", SSL_GETPID(), ss->fd));
+        ss->ssl3.hs.isResuming = PR_TRUE;
+        if (sid->peerCert) {
+            ss->sec.peerCert = CERT_DupCertificate(sid->peerCert);
+        }
+
         SSL_AtomicIncrementLong(&ssl3stats->hsh_sid_cache_hits);
         SSL_AtomicIncrementLong(&ssl3stats->hsh_sid_stateless_resumes);
     } else {
@@ -1034,7 +1040,6 @@ tls13_HandleServerHelloPart2(sslSocket *ss)
         }
     }
 
-
     /* Discard current SID and make a new one, though it may eventually
      * end up looking a lot like the old one.
      */
@@ -1044,7 +1049,11 @@ tls13_HandleServerHelloPart2(sslSocket *ss)
         FATAL_ERROR(ss, PORT_GetError(), internal_error);
         return SECFailure;
     }
+    if (isPSK && ss->sec.peerCert) {
+        sid->peerCert = CERT_DupCertificate(ss->sec.peerCert);
+    }
     sid->version = ss->version;
+    sid->u.ssl3.cipherSuite = ss->ssl3.hs.origCipherSuite;
     rv = tls13_HandleServerKeyShare(ss);
     if (rv != SECSuccess) {
         return SECFailure;
