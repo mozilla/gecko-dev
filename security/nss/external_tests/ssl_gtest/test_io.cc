@@ -372,6 +372,7 @@ int32_t DummyPrSocket::Write(const void *buf, int32_t length) {
       LOG("Droppped packet: " << packet);
       break;
     case PacketFilter::KEEP:
+      LOG("Packet: " << packet);
       peer_->PacketReceived(packet);
       break;
   }
@@ -443,7 +444,8 @@ void Poller::SetTimer(uint32_t timer_ms, PollTarget *target, PollCallback cb,
 }
 
 bool Poller::Poll() {
-  std::cerr << "Poll() waiters = " << waiters_.size() << std::endl;
+  std::cerr << "Poll() waiters = " << waiters_.size()
+            << " timers = " << timers_.size() << std::endl;
   PRIntervalTime timeout = PR_INTERVAL_NO_TIMEOUT;
   PRTime now = PR_Now();
   bool fired = false;

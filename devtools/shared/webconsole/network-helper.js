@@ -721,6 +721,8 @@ var NetworkHelper = {
         return "TLSv1.1";
       case Ci.nsISSLStatus.TLS_VERSION_1_2:
         return "TLSv1.2";
+      case Ci.nsISSLStatus.TLS_VERSION_1_3:
+        return "TLSv1.3";
       default:
         DevToolsUtils.reportException("NetworkHelper.formatSecurityProtocol",
           "protocolVersion " + version + " is unknown.");

@@ -7,6 +7,7 @@
 /* This file contains functions for frobbing the internals of libssl */
 #include "libssl_internals.h"
 
+#include "nss.h"
 #include "seccomon.h"
 #include "ssl.h"
 #include "sslimpl.h"
@@ -14,8 +15,7 @@
 SECStatus
 SSLInt_IncrementClientHandshakeVersion(PRFileDesc *fd)
 {
-    sslSocket *ss = (sslSocket *)fd->secret;
-
+    sslSocket *ss = ssl_FindSocket(fd);
     if (!ss) {
         return SECFailure;
     }
@@ -44,4 +44,58 @@ SSLInt_DetermineKEABits(PRUint16 serverKeyBits, SSLAuthType authAlgorithm) {
 #endif
 
     return PR_MAX(SSL_RSASTRENGTH_TO_ECSTRENGTH(serverKeyBits), minKeaBits);
+}
+
+/* Use this function to update the ClientRandom of a client's handshake state
+ * after replacing its ClientHello message. We for example need to do this
+ * when replacing an SSLv3 ClientHello with its SSLv2 equivalent. */
+SECStatus
+SSLInt_UpdateSSLv2ClientRandom(PRFileDesc *fd, uint8_t *rnd, size_t rnd_len,
+                               uint8_t *msg, size_t msg_len)
+{
+    sslSocket *ss = ssl_FindSocket(fd);
+    if (!ss) {
+        return SECFailure;
+    }
+
+    SECStatus rv = ssl3_InitState(ss);
+    if (rv != SECSuccess) {
+        return rv;
+    }
+
+    rv = ssl3_RestartHandshakeHashes(ss);
+    if (rv != SECSuccess) {
+        return rv;
+    }
+
+    // Zero the client_random struct.
+    PORT_Memset(&ss->ssl3.hs.client_random, 0, SSL3_RANDOM_LENGTH);
+
+    // Copy over the challenge bytes.
+    size_t offset = SSL3_RANDOM_LENGTH - rnd_len;
+    PORT_Memcpy(&ss->ssl3.hs.client_random.rand[offset], rnd, rnd_len);
+
+    // Rehash the SSLv2 client hello message.
+    return ssl3_UpdateHandshakeHashes(ss, msg, msg_len);
+}
+
+PRBool
+SSLInt_ExtensionNegotiated(PRFileDesc *fd, PRUint16 ext)
+{
+    sslSocket *ss = ssl_FindSocket(fd);
+    return (PRBool)(ss && ssl3_ExtensionNegotiated(ss, ext));
+}
+
+void
+SSLInt_ClearSessionTicketKey()
+{
+  ssl3_SessionTicketShutdown(NULL, NULL);
+  NSS_UnregisterShutdown(ssl3_SessionTicketShutdown, NULL);
+}
+
+void
+SSLInt_SetMTU(PRFileDesc *fd, PRUint16 mtu)
+{
+  sslSocket *ss = ssl_FindSocket(fd);
+  ss->ssl3.mtu = mtu;
 }
