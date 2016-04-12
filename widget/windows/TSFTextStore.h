@@ -118,7 +118,7 @@ public:
     if (!sEnabledTextStore) {
       return;
     }
-    RefPtr<TSFTextStore> textStore = sEnabledTextStore;
+    RefPtr<TSFTextStore> textStore(sEnabledTextStore);
     textStore->CommitCompositionInternal(aDiscard);
   }
 
@@ -135,7 +135,7 @@ public:
     if (!sEnabledTextStore) {
       return NS_OK;
     }
-    RefPtr<TSFTextStore> textStore = sEnabledTextStore;
+    RefPtr<TSFTextStore> textStore(sEnabledTextStore);
     return textStore->OnTextChangeInternal(aIMENotification);
   }
 
@@ -145,7 +145,7 @@ public:
     if (!sEnabledTextStore) {
       return NS_OK;
     }
-    RefPtr<TSFTextStore> textStore = sEnabledTextStore;
+    RefPtr<TSFTextStore> textStore(sEnabledTextStore);
     return textStore->OnSelectionChangeInternal(aIMENotification);
   }
 
@@ -155,7 +155,7 @@ public:
     if (!sEnabledTextStore) {
       return NS_OK;
     }
-    RefPtr<TSFTextStore> textStore = sEnabledTextStore;
+    RefPtr<TSFTextStore> textStore(sEnabledTextStore);
     return textStore->OnLayoutChangeInternal();
   }
 
@@ -165,7 +165,7 @@ public:
     if (!sEnabledTextStore) {
       return NS_OK;
     }
-    RefPtr<TSFTextStore> textStore = sEnabledTextStore;
+    RefPtr<TSFTextStore> textStore(sEnabledTextStore);
     return textStore->OnUpdateCompositionInternal();
   }
 
@@ -175,7 +175,7 @@ public:
     if (!sEnabledTextStore) {
       return NS_OK;
     }
-    RefPtr<TSFTextStore> textStore = sEnabledTextStore;
+    RefPtr<TSFTextStore> textStore(sEnabledTextStore);
     return textStore->OnMouseButtonEventInternal(aIMENotification);
   }
 
