@@ -617,8 +617,8 @@ SampleTable::parseSampleCencInfo() {
         return OK;
     }
 
-    if (!mCencSizes.isEmpty() && mCencOffsets.size() > 1 &&
-        mCencSizes.size() != mCencOffsets.size()) {
+    if ((mCencOffsets.size() > 1 && mCencOffsets.size() < mCencInfoCount) ||
+        (!mCencDefaultSize && mCencSizes.size() < mCencInfoCount)) {
         return ERROR_MALFORMED;
     }
 
