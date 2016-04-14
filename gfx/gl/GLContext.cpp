@@ -2338,12 +2338,13 @@ GLContext::MarkDestroyed()
     if (IsDestroyed())
         return;
 
+    // Null these before they're naturally nulled after dtor, as we want GLContext to
+    // still be alive in *their* dtors.
+    mScreen = nullptr;
+    mBlitHelper = nullptr;
+    mReadTexImageHelper = nullptr;
+
     if (MakeCurrent()) {
-        DestroyScreenBuffer();
-
-        mBlitHelper = nullptr;
-        mReadTexImageHelper = nullptr;
-
         mTexGarbageBin->GLContextTeardown();
     } else {
         NS_WARNING("MakeCurrent() failed during MarkDestroyed! Skipping GL object teardown.");
@@ -2587,8 +2588,6 @@ GLContext::CreateScreenBufferImpl(const IntSize& size, const SurfaceCaps& caps)
         return false;
     }
 
-    DestroyScreenBuffer();
-
     // This will rebind to 0 (Screen) if needed when
     // it falls out of scope.
     ScopedBindFramebuffer autoFB(this);
@@ -2605,12 +2604,6 @@ GLContext::ResizeScreenBuffer(const IntSize& size)
         return false;
 
     return mScreen->Resize(size);
-}
-
-void
-GLContext::DestroyScreenBuffer()
-{
-    mScreen = nullptr;
 }
 
 void
