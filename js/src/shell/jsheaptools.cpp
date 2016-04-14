@@ -272,7 +272,7 @@ HeapReverser::traverseEdge(void* cell, JSGCTraceKind kind)
          * visited from the main loop.
          */
         Node n(kind);
-        uint32_t generation = map.generation();
+        Generation generation = map.generation();
         if (!map.add(a, cell, Move(n)) ||
             !work.append(Child(cell, kind)))
             return false;
