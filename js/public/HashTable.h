@@ -13,7 +13,6 @@
 #include "mozilla/Casting.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Move.h"
-#include "mozilla/Opaque.h"
 #include "mozilla/PodOperations.h"
 #include "mozilla/ReentrancyGuard.h"
 #include "mozilla/TemplateLib.h"
@@ -32,8 +31,6 @@ namespace detail {
 }
 
 /*****************************************************************************/
-
-using Generation = mozilla::Opaque<uint64_t>;
 
 // A JS-friendly, STL-like container providing a hash-based map from keys to
 // values. In particular, HashMap calls constructors and destructors of all
@@ -208,9 +205,7 @@ class HashMap
 
     // If |generation()| is the same before and after a HashMap operation,
     // pointers into the table remain valid.
-    Generation generation() const {
-        return impl.generation();
-    }
+    uint32_t generation() const                       { return impl.generation(); }
 
     /************************************************** Shorthand operations */
 
@@ -441,9 +436,7 @@ class HashSet
 
     // If |generation()| is the same before and after a HashSet operation,
     // pointers into the table remain valid.
-    Generation generation() const {
-        return impl.generation();
-    }
+    uint32_t generation() const                       { return impl.generation(); }
 
     /************************************************** Shorthand operations */
 
@@ -778,7 +771,7 @@ class HashTable : private AllocPolicy
         Entry* entry_;
 #ifdef JS_DEBUG
         const HashTable* table_;
-        Generation generation;
+        uint32_t generation;
 #endif
 
       protected:
@@ -885,7 +878,7 @@ class HashTable : private AllocPolicy
 #ifdef JS_DEBUG
         const HashTable* table_;
         uint64_t mutationCount;
-        Generation generation;
+        uint32_t generation;
         bool validEntry;
 #endif
 
@@ -1021,14 +1014,14 @@ class HashTable : private AllocPolicy
     void operator=(const HashTable&) = delete;
 
   private:
-    static const size_t CAP_BITS = 30;
+    static const size_t CAP_BITS = 24;
 
   public:
-    uint64_t    gen:56;                 // entry storage generation number
-    uint32_t    hashShift:8;            // multiplicative hash shift
-    Entry*      table;                  // entry storage
+    Entry*      table;                 // entry storage
+    uint32_t    gen;                    // entry storage generation number
     uint32_t    entryCount;             // number of entries in table
-    uint32_t    removedCount;           // removed entry sentinels in table
+    uint32_t    removedCount:CAP_BITS;  // removed entry sentinels in table
+    uint32_t    hashShift:8;            // multiplicative hash shift
 
 #ifdef JS_DEBUG
     uint64_t     mutationCount;
@@ -1109,11 +1102,11 @@ class HashTable : private AllocPolicy
   public:
     explicit HashTable(AllocPolicy ap)
       : AllocPolicy(ap)
-      , gen(0)
-      , hashShift(sHashBits)
       , table(nullptr)
+      , gen(0)
       , entryCount(0)
       , removedCount(0)
+      , hashShift(sHashBits)
 #ifdef JS_DEBUG
       , mutationCount(0)
       , mEntered(false)
@@ -1536,10 +1529,10 @@ class HashTable : private AllocPolicy
         return JS_BIT(sHashBits - hashShift);
     }
 
-    Generation generation() const
+    uint32_t generation() const
     {
         MOZ_ASSERT(table);
-        return Generation(gen);
+        return gen;
     }
 
     size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const

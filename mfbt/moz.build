@@ -53,7 +53,6 @@ EXPORTS.mozilla = [
     'Move.h',
     'NullPtr.h',
     'NumericLimits.h',
-    'Opaque.h',
     'Pair.h',
     'PodOperations.h',
     'Poison.h',
