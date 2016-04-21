@@ -13,6 +13,7 @@
 
 namespace mozilla {
 namespace layers {
+using namespace gfx;
 
 static SurfaceFormat
 HalFormatToSurfaceFormat(int aHalFormat, TextureFlags aFlags)
