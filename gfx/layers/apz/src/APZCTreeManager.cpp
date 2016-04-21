@@ -98,7 +98,8 @@ APZCTreeManager::APZCTreeManager()
       mTreeLock("APZCTreeLock"),
       mHitResultForInputBlock(HitNothing),
       mRetainedTouchIdentifier(-1),
-      mApzcTreeLog("apzctree")
+      mApzcTreeLog("apzctree"),
+      mPaintThrottlerMapLock("PaintThrottlerMapLock")
 {
   MOZ_ASSERT(NS_IsMainThread());
   AsyncPanZoomController::InitializeGlobalState();
@@ -212,6 +213,8 @@ void
 APZCTreeManager::InitializeForLayersId(uint64_t aLayersId)
 {
   MOZ_ASSERT(NS_IsMainThread());
+  MutexAutoLock lock(mPaintThrottlerMapLock);
+
   auto throttlerInsertResult = mPaintThrottlerMap.insert(
     std::make_pair(aLayersId, RefPtr<TaskThrottler>()));
   if (throttlerInsertResult.second) {
@@ -227,6 +230,8 @@ APZCTreeManager::AdoptLayersId(uint64_t aLayersId, APZCTreeManager* aOldManager)
   if (aOldManager == this) {
     return;
   }
+  MutexAutoLock lock(mPaintThrottlerMapLock);
+
   auto iter = aOldManager->mPaintThrottlerMap.find(aLayersId);
   if (iter != aOldManager->mPaintThrottlerMap.end()) {
     mPaintThrottlerMap[aLayersId] = iter->second;
@@ -471,6 +476,8 @@ APZCTreeManager::PrepareNodeForLayer(const LayerMetricsWrapper& aLayer,
     if (newApzc) {
       // Look up the paint throttler for this layers id, or create it if
       // this is the first APZC for this layers id.
+      MutexAutoLock lock(mPaintThrottlerMapLock);
+
       RefPtr<TaskThrottler> throttler = mPaintThrottlerMap[aLayersId];
       MOZ_ASSERT(throttler);
 

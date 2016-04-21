@@ -1534,8 +1534,9 @@ void
 CompositorParent::NotifyChildCreated(const uint64_t& aChild)
 {
   if (mApzcTreeManager) {
-    NS_DispatchToMainThread(NS_NewRunnableMethodWithArg<uint64_t>(
-        mApzcTreeManager, &APZCTreeManager::InitializeForLayersId, aChild));
+    // Directly initialize paintThrottler for layer Id to avoid race condition
+    // in APZCTreeManager::PrepareNodeForLayer.
+    mApzcTreeManager->InitializeForLayersId(aChild);
   }
   sIndirectLayerTreesLock->AssertCurrentThreadOwns();
   sIndirectLayerTrees[aChild].mParent = this;

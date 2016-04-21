@@ -18,6 +18,7 @@
 #include "mozilla/layers/APZUtils.h"    // for HitTestResult
 #include "mozilla/layers/TouchCounter.h"// for TouchCounter
 #include "mozilla/Monitor.h"            // for Monitor
+#include "mozilla/Mutex.h"              // for Mutex
 #include "mozilla/TimeStamp.h"          // for mozilla::TimeStamp
 #include "mozilla/Vector.h"             // for mozilla::Vector
 #include "nsAutoPtr.h"                  // for nsRefPtr
@@ -561,6 +562,10 @@ private:
   gfx::TreeLog mApzcTreeLog;
 
   static float sDPI;
+
+  /* Provide atomic operation to mPaintThrottlerMap.
+   */
+  mozilla::Mutex mPaintThrottlerMapLock;
 };
 
 } // namespace layers
