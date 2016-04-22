@@ -53,8 +53,8 @@
         accesskey="&inspectorHTMLCopyOuter.accesskey;"
         oncommand="inspector.copyOuterHTML()"/>
       <menuitem id="node-menu-copyuniqueselector"
-        label="&inspectorCopyUniqueSelector.label;"
-        accesskey="&inspectorCopyUniqueSelector.accesskey;"
+        label="&inspectorCopyCSSSelector.label;"
+        accesskey="&inspectorCopyCSSSelector.accesskey;"
         oncommand="inspector.copyUniqueSelector()"/>
       <menuitem id="node-menu-copyimagedatauri"
         label="&inspectorCopyImageDataUri.label;"
