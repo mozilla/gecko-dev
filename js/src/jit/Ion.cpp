@@ -862,7 +862,7 @@ JitCode::finalize(FreeOp* fop)
     // deadlock trying to reacquire the interrupt lock.
     {
         AutoWritableJitCode awjc(this);
-        memset(code_, JS_SWEPT_CODE_PATTERN, bufferSize_);
+        memset(code_ - headerSize_, JS_SWEPT_CODE_PATTERN, headerSize_ + bufferSize_);
         code_ = nullptr;
     }
 
