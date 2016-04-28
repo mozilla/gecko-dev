@@ -193,7 +193,7 @@ mock 0.8.0 is the last version that will support Python 2.4.
   arbitrary keyword arguments (for the `Mock` constructor) instead
 * Fixed `ANY` equality with some types in `assert_called_with` calls
 * Switched to a standard Sphinx theme (compatible with
-  `readthedocs.org <http://mock.readthedocs.org>`_)
+  `readthedocs.org <http://mock.readthedocs.io>`_)
 
 
 2011/12/29 Version 0.8.0 release candidate 1

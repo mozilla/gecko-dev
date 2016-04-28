@@ -9,7 +9,7 @@ PACKAGE_VERSION = '0.1'
 setup(name='mozdebug',
       version=PACKAGE_VERSION,
       description="Utilities for running applications under native code debuggers intended for use in Mozilla testing",
-      long_description="see http://mozbase.readthedocs.org/",
+      long_description="see http://mozbase.readthedocs.io/",
       classifiers=[], # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
       keywords='mozilla',
       author='Mozilla Automation and Testing Team',

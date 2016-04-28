@@ -248,4 +248,4 @@ Documentation
 =============
 
 * [How to write and review tests](http://testthewebforward.org/docs/)
-* [Documentation for the wptserve server](http://wptserve.readthedocs.org/en/latest/)
+* [Documentation for the wptserve server](http://wptserve.readthedocs.io/en/latest/)

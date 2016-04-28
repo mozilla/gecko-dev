@@ -22,7 +22,7 @@ Currently Firefox Puppeteer lives in the `firefox-ui-tests`_ repository,
 along with instructions for installation and usage.
 There are plans to move it alongside the `Marionette python client`_.
 
-.. _Marionette python client: http://marionette-client.readthedocs.org/en/latest/
+.. _Marionette python client: http://marionette-client.readthedocs.io/en/latest/
 .. _firefox-ui-tests: https://github.com/mozilla/firefox-ui-tests/tree/mozilla-central/firefox_puppeteer
 
 

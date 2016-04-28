@@ -10,7 +10,7 @@ deps = ['moznetwork >= 0.24']
 setup(name='mozhttpd',
       version=PACKAGE_VERSION,
       description="Python webserver intended for use with Mozilla testing",
-      long_description="see http://mozbase.readthedocs.org/",
+      long_description="see http://mozbase.readthedocs.io/",
       classifiers=[], # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
       keywords='mozilla',
       author='Mozilla Automation and Testing Team',

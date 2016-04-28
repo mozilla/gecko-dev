@@ -21,7 +21,7 @@ import java.util.Locale;
 /**
  * Builds a {@link TelemetryPing} representing a core ping.
  *
- * See https://gecko.readthedocs.org/en/latest/toolkit/components/telemetry/telemetry/core-ping.html
+ * See https://gecko.readthedocs.io/en/latest/toolkit/components/telemetry/telemetry/core-ping.html
  * for details on the core ping.
  */
 public class TelemetryCorePingBuilder extends TelemetryPingBuilder {

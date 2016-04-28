@@ -182,7 +182,7 @@ Description: mock is a library for testing in Python. It allows you to replace p
         `unittest2 <http://pypi.python.org/pypi/unittest2>`_ to run.
         
         Docs from the in-development version of `mock` can be found at
-        `mock.readthedocs.org <http://mock.readthedocs.org>`_.
+        `mock.readthedocs.io <http://mock.readthedocs.io>`_.
         
 Keywords: testing,test,mock,mocking,unittest,patching,stubs,fakes,doubles
 Platform: UNKNOWN

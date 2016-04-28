@@ -64,7 +64,7 @@ class ManifestParser(object):
         :param finder: If provided, this finder object will be used for filesystem
                        interactions. Finder objects are part of the mozpack package,
                        documented at
-                       http://gecko.readthedocs.org/en/latest/python/mozpack.html#module-mozpack.files
+                       http://gecko.readthedocs.io/en/latest/python/mozpack.html#module-mozpack.files
         """
         self._defaults = defaults or {}
         self._ancestor_defaults = {}

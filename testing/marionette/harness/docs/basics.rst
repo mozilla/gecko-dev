@@ -37,7 +37,7 @@ a python shell and follow along with the
 :doc:`interactive tutorial <interactive>`!
 
 .. _pip installed: https://pip.pypa.io/en/latest/installing.html
-.. _virtualenv: http://virtualenv.readthedocs.org/en/latest/
+.. _virtualenv: http://virtualenv.readthedocs.io/en/latest/
 .. _Marionette-enabled instance of Firefox: https://developer.mozilla.org/en-US/docs/Mozilla/QA/Marionette/Builds
 
 Using the Client for Testing

@@ -12,7 +12,7 @@ import java.util.Map;
 
 import org.json.JSONObject;
 
-// This implements the structured logging API described here: http://mozbase.readthedocs.org/en/latest/mozlog_structured.html
+// This implements the structured logging API described here: http://mozbase.readthedocs.io/en/latest/mozlog_structured.html
 public class StructuredLogger {
     private final static HashSet<String> validTestStatus = new HashSet<String>(Arrays.asList("PASS", "FAIL", "TIMEOUT", "NOTRUN", "ASSERT"));
     private final static HashSet<String> validTestEnd = new HashSet<String>(Arrays.asList("PASS", "FAIL", "OK", "ERROR", "TIMEOUT",

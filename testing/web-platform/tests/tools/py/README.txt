@@ -14,7 +14,7 @@ the following tools and modules:
 NOTE: prior to the 1.4 release this distribution used to
 contain py.test which is now its own package, see http://pytest.org
 
-For questions and more information please visit http://pylib.readthedocs.org
+For questions and more information please visit http://pylib.readthedocs.io
 
 Bugs and issues: http://bitbucket.org/pytest-dev/py/issues/
 

@@ -119,10 +119,10 @@ but otherwise fails:
             FAIL
 
 The available variables for the conditions are those provided by
-[mozinfo](http://mozbase.readthedocs.org/en/latest/mozinfo.html).
+[mozinfo](http://mozbase.readthedocs.io/en/latest/mozinfo.html).
 
 For more information on manifest files, see the
-[wptrunner documentation](http://wptrunner.readthedocs.org/en/latest/expectation.html).
+[wptrunner documentation](http://wptrunner.readthedocs.io/en/latest/expectation.html).
 
 Autogenerating Expectation Data
 -------------------------------

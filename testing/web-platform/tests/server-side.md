@@ -195,7 +195,7 @@ contain (at least) a function named `main`, with the signature:
 Here `request` is a `Request` object that contains details of the
 request, and `response` is a `Response` object that can be used to set
 properties of the response. Full details of these objects is
-provided in the [wptserve documentation](http://wptserve.readthedocs.org/en/latest/).
+provided in the [wptserve documentation](http://wptserve.readthedocs.io/en/latest/).
 
 In many cases tests will not need to work with the `response` object
 directly. Instead they can set the status, headers and body simply by
@@ -231,4 +231,4 @@ using the `writer` property of the response, which exposes a
 the request or direct access to the underlying socket.
 
 For full documentation on the facilities available in `.py` files, see
-the [wptserve documentation](http://wptserve.readthedocs.org/en/latest/).
+the [wptserve documentation](http://wptserve.readthedocs.io/en/latest/).

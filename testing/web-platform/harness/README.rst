@@ -53,7 +53,7 @@ following are most significant:
 
   * a ``MANIFEST.json`` file (instructions on generating this file are
     available in the `detailed documentation
-    <http://wptrunner.readthedocs.org/en/latest/usage.html#installing-wptrunner>`_);
+    <http://wptrunner.readthedocs.io/en/latest/usage.html#installing-wptrunner>`_);
     and
   * (optionally) any expectation files (see below)
 

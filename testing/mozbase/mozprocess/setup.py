@@ -9,7 +9,7 @@ PACKAGE_VERSION = '0.22'
 setup(name='mozprocess',
       version=PACKAGE_VERSION,
       description="Mozilla-authored process handling",
-      long_description='see http://mozbase.readthedocs.org/',
+      long_description='see http://mozbase.readthedocs.io/',
       classifiers=['Environment :: Console',
                    'Intended Audience :: Developers',
                    'License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)',

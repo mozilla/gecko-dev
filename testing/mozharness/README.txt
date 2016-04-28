@@ -3,8 +3,8 @@
 ## Docs
 * https://developer.mozilla.org/en-US/docs/Mozharness_FAQ
 * https://wiki.mozilla.org/ReleaseEngineering/Mozharness
-* http://moz-releng-mozharness.readthedocs.org/en/latest/mozharness.mozilla.html
-* http://moz-releng-docs.readthedocs.org/en/latest/software.html#mozharness
+* http://moz-releng-mozharness.readthedocs.io/en/latest/mozharness.mozilla.html
+* http://moz-releng-docs.readthedocs.io/en/latest/software.html#mozharness
 
 ## Submitting changes
 Like any Gecko change, please create a patch or submit to Mozreview and

@@ -282,7 +282,7 @@ ability to write `.asis` files; these are served as literal HTTP
 responses. It also provides the ability to write python scripts that
 have access to request data and can manipulate the content and timing
 of the response. For details see the
-[wptserve documentation](http://wptserve.readthedocs.org).
+[wptserve documentation](http://wptserve.readthedocs.io).
 
 ## CSS-Specific Requirements
 
