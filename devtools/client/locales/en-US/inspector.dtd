@@ -16,11 +16,11 @@
 <!ENTITY inspectorHTMLCopyOuter.label       "Copy Outer HTML">
 <!ENTITY inspectorHTMLCopyOuter.accesskey   "O">
 
-<!-- LOCALIZATION NOTE (inspectorCopyUniqueSelector.label): This is the label
+<!-- LOCALIZATION NOTE (inspectorCopyCSSSelector.label): This is the label
      shown in the inspector contextual-menu for the item that lets users copy
      the CSS Selector of the current node -->
-<!ENTITY inspectorCopyUniqueSelector.label       "Copy Unique Selector">
-<!ENTITY inspectorCopyUniqueSelector.accesskey   "U">
+<!ENTITY inspectorCopyCSSSelector.label       "Copy CSS Selector">
+<!ENTITY inspectorCopyCSSSelector.accesskey   "U">
 
 <!-- LOCALIZATION NOTE (inspectorHTMLPasteOuter.label): This is the label shown
      in the inspector contextual-menu for the item that lets users paste outer
