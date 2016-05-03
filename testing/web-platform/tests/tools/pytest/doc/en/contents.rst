@@ -5,7 +5,7 @@ Full pytest documentation
 
 `Download latest version as PDF <pytest.pdf>`_
 
-.. `Download latest version as EPUB <http://media.readthedocs.org/epub/pytest/latest/pytest.epub>`_
+.. `Download latest version as EPUB <http://media.readthedocs.io/epub/pytest/latest/pytest.epub>`_
 
 .. toctree::
    :maxdepth: 2

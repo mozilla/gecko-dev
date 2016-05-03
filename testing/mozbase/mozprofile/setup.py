@@ -16,7 +16,7 @@ deps = ['mozfile >= 1.0', 'mozlog >= 3.0']
 setup(name=PACKAGE_NAME,
       version=PACKAGE_VERSION,
       description="Library to create and modify Mozilla application profiles",
-      long_description="see http://mozbase.readthedocs.org/",
+      long_description="see http://mozbase.readthedocs.io/",
       classifiers=['Environment :: Console',
                    'Intended Audience :: Developers',
                    'License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)',

@@ -19,7 +19,7 @@ def get_version():
 setup(name='marionette_client',
       version=get_version(),
       description="Marionette test automation client",
-      long_description='See http://marionette-client.readthedocs.org/',
+      long_description='See http://marionette-client.readthedocs.io/',
       classifiers=[],  # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
       keywords='mozilla',
       author='Jonathan Griffin',

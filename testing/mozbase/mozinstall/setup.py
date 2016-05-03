@@ -20,7 +20,7 @@ deps = ['mozinfo >= 0.7',
 setup(name='mozInstall',
       version=PACKAGE_VERSION,
       description="package for installing and uninstalling Mozilla applications",
-      long_description="see http://mozbase.readthedocs.org/",
+      long_description="see http://mozbase.readthedocs.io/",
       # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
       classifiers=['Environment :: Console',
                    'Intended Audience :: Developers',

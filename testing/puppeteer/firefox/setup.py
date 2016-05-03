@@ -22,7 +22,7 @@ def get_version():
 setup(name='firefox-puppeteer',
       version=get_version(),
       description="Firefox Puppeteer",
-      long_description='See http://firefox-puppeteer.readthedocs.org/',
+      long_description='See http://firefox-puppeteer.readthedocs.io/',
       classifiers=[],  # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
       keywords='mozilla',
       author='Auto-tools',

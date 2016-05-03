@@ -22,7 +22,7 @@ def get_version():
 setup(name='marionette_driver',
       version=get_version(),
       description="Marionette Driver",
-      long_description='See http://marionette-client.readthedocs.org/en/latest/',
+      long_description='See http://marionette-client.readthedocs.io/en/latest/',
       classifiers=[],  # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
       keywords='mozilla',
       author='Auto-tools',

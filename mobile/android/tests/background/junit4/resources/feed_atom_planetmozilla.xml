@@ -799,7 +799,7 @@
             <ul>
                 <li><a href="http://edwin.mozilla.io/t/sumo" target="_blank">You can see the current state of the backlog our developers are working on here</a>.</li>
                 <li><a href="https://public.etherpad-mozilla.org/p/sumo-p-2016-01-21" target="_blank">The latest SUMO Platform meeting notes can be found here</a>.</li>
-                <li>Interested in learning how Kitsune (the engine behind SUMO) works? <a href="http://kitsune.readthedocs.org/" target="_blank">Read more about it here</a> and <a href="https://github.com/mozilla/kitsune/" target="_blank">fork it on GitHub</a>!</li>
+                <li>Interested in learning how Kitsune (the engine behind SUMO) works? <a href="http://kitsune.readthedocs.io/" target="_blank">Read more about it here</a> and <a href="https://github.com/mozilla/kitsune/" target="_blank">fork it on GitHub</a>!</li>
                 <li>We have a new link for promoting contributions to Kitsune’s code. Please use <strong>http://mzl.la/SUMOdev</strong> whenever you want to show interested people to see what Kitsune is all about – thanks!</li>
             </ul>
             <p><a href="http://blog.mozilla.org/sumo/files/2016/01/mission_developers.png"><img alt="mission_developers" class="aligncenter size-full wp-image-3668" height="406" src="http://blog.mozilla.org/sumo/files/2016/01/mission_developers.png" width="437"/></a></p>
@@ -4441,7 +4441,7 @@
                 <li>The 2.0 version of the KPI dashboard is in the works.</li>
                 <li><a href="http://edwin.mozilla.io/t/sumo" target="_blank">You can see the current state of the backlog our developers are working on here</a>.</li>
                 <li><a href="https://public.etherpad-mozilla.org/p/sumo-p-2016-01-14" target="_blank">The latest SUMO Platform meeting notes can be found here</a>.</li>
-                <li>Interested in learning how Kitsune (the engine behind SUMO) works? <a href="http://kitsune.readthedocs.org/" target="_blank">Read more about it here</a> and <a href="https://github.com/mozilla/kitsune/" target="_blank">fork it on GitHub</a>!</li>
+                <li>Interested in learning how Kitsune (the engine behind SUMO) works? <a href="http://kitsune.readthedocs.io/" target="_blank">Read more about it here</a> and <a href="https://github.com/mozilla/kitsune/" target="_blank">fork it on GitHub</a>!</li>
             </ul>
             <h3><strong>Community</strong></h3>
             <ul>

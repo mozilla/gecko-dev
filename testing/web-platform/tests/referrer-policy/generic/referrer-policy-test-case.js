@@ -50,7 +50,7 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
       };
 
       // Values obtained and replaced by the wptserve pipeline:
-      // http://wptserve.readthedocs.org/en/latest/pipes.html#built-in-pipes
+      // http://wptserve.readthedocs.io/en/latest/pipes.html#built-in-pipes
       var portForProtocol = {
         "http": parseInt("{{ports[http][0]}}"),
         "https": parseInt("{{ports[https][0]}}")

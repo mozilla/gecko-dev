@@ -31,4 +31,4 @@ also has the ability to automatically run both testharness-based tests
 and reftests.
 
 Full instructions for using wptrunner are provided in its own
-[documentation](http://wptrunner.readthedocs.org).
+[documentation](http://wptrunner.readthedocs.io).

@@ -84,7 +84,7 @@ format:
   parser = html5lib.HTMLParser(tree=html5lib.getTreeBuilder("dom"))
   minidom_document = parser.parse("<p>Hello World!")
 
-More documentation is available at http://html5lib.readthedocs.org/.
+More documentation is available at http://html5lib.readthedocs.io/.
 
 
 Installation

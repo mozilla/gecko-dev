@@ -7,7 +7,7 @@ function get_host_info() {
   try {
     // In W3C test, we can get the hostname and port number in config.json
     // using wptserve's built-in pipe.
-    // http://wptserve.readthedocs.org/en/latest/pipes.html#built-in-pipes
+    // http://wptserve.readthedocs.io/en/latest/pipes.html#built-in-pipes
     HTTP_PORT = eval('{{ports[http][0]}}');
     HTTPS_PORT = eval('{{ports[https][0]}}');
     ORIGINAL_HOST = eval('\'{{host}}\'');
