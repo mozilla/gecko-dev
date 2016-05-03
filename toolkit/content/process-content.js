@@ -6,10 +6,25 @@
 
 var { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
+
 // Creates a new PageListener for this process. This will listen for page loads
 // and for those that match URLs provided by the parent process will set up
 // a dedicated message port and notify the parent process.
 Cu.import("resource://gre/modules/RemotePageManager.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
 
 // Hooks to listen for push messages
 Cu.import("resource://gre/modules/PushServiceChildPreload.jsm");
+
+const gInContentProcess = Services.appinfo.processType == Ci.nsIXULRuntime.PROCESS_TYPE_CONTENT;
+
+// Forward inner-window-destroyed notifications with the inner window ID,
+// so that code in the parent that should do something when content
+// windows go away can do it
+if (gInContentProcess) {
+  Services.obs.addObserver((subject, topic, data) => {
+    let innerWindowID = subject.QueryInterface(Ci.nsISupportsPRUint64).data;
+    Services.cpmm.sendAsyncMessage("Toolkit:inner-window-destroyed", innerWindowID);
+  }, "inner-window-destroyed", false);
+}
+
