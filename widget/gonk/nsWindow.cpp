@@ -107,7 +107,7 @@ nsWindow::DoDraw(void)
         return;
     }
 
-    nsWindow *targetWindow = (nsWindow *)windows[0];
+    RefPtr<nsWindow> targetWindow = (nsWindow *)windows[0];
     while (targetWindow->GetLastChild()) {
         targetWindow = (nsWindow *)targetWindow->GetLastChild();
     }
@@ -117,15 +117,15 @@ nsWindow::DoDraw(void)
         listener->WillPaintWindow(targetWindow);
     }
 
-    LayerManager* lm = targetWindow->GetLayerManager();
-    if (mozilla::layers::LayersBackend::LAYERS_CLIENT == lm->GetBackendType()) {
-        // No need to do anything, the compositor will handle drawing
-    } else {
-        NS_RUNTIMEABORT("Unexpected layer manager type");
-    }
-
     listener = targetWindow->GetWidgetListener();
     if (listener) {
+        LayerManager* lm = targetWindow->GetLayerManager();
+        if (mozilla::layers::LayersBackend::LAYERS_CLIENT == lm->GetBackendType()) {
+            // No need to do anything, the compositor will handle drawing
+        } else {
+            NS_RUNTIMEABORT("Unexpected layer manager type");
+        }
+
         listener->DidPaintWindow();
     }
 }
