@@ -21,7 +21,7 @@ typedef voidPtr nativeWindow;
  * but rather a common set that nearly all windowed objects support.    
  */
 
-[scriptable, uuid(9DA319F3-EEE6-4504-81A5-6A19CF6215BF)]
+[scriptable, uuid(758a7a9c-03d7-4dce-958f-7885aea2dc75)]
 interface nsIBaseWindow : nsISupports
 {
 	/*
@@ -107,12 +107,18 @@ interface nsIBaseWindow : nsISupports
 	*/
 	void getSize(out long cx, out long cy);
 
+	/**
+	 * The 'flags' argument to setPositionAndSize is a set of these bits.
+	 */
+	const unsigned long eRepaint = 1;
+	const unsigned long eDelayResize = 2;
+
 	/*
 	Convenience function combining the SetPosition and SetSize into one call.
 	Also is more efficient than calling both.
 	*/
 	void setPositionAndSize(in long x, in long y, in long cx, in long cy, 
-		in boolean fRepaint);
+		in unsigned long flags);
 		
 	/*
 	Convenience function combining the GetPosition and GetSize into one call.
