@@ -3634,6 +3634,16 @@ PresShell::ScheduleViewManagerFlush(PaintType aType)
   }
 }
 
+bool
+FlushLayoutRecursive(nsIDocument* aDocument,
+                     void* aData = nullptr)
+{
+  MOZ_ASSERT(!aData);
+  aDocument->EnumerateSubDocuments(FlushLayoutRecursive, nullptr);
+  aDocument->FlushPendingNotifications(Flush_Layout);
+  return true;
+}
+
 void
 PresShell::DispatchSynthMouseMove(WidgetGUIEvent* aEvent,
                                   bool aFlushOnHoverChange)
@@ -3652,7 +3662,10 @@ PresShell::DispatchSynthMouseMove(WidgetGUIEvent* aEvent,
       hoverGenerationBefore != restyleManager->GetHoverGeneration()) {
     // Flush so that the resulting reflow happens now so that our caller
     // can suppress any synthesized mouse moves caused by that reflow.
-    FlushPendingNotifications(Flush_Layout);
+    // This code only ever runs for the root document, but :hover changes
+    // can happen in descendant documents too, so make sure we flush
+    // all of them.
+    FlushLayoutRecursive(mDocument);
   }
 }
 
