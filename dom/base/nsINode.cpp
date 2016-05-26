@@ -1165,7 +1165,7 @@ nsINode::AddEventListener(const nsAString& aType,
 void
 nsINode::AddEventListener(const nsAString& aType,
                           EventListener* aListener,
-                          bool aUseCapture,
+                          const AddEventListenerOptionsOrBoolean& aOptions,
                           const Nullable<bool>& aWantsUntrusted,
                           ErrorResult& aRv)
 {
@@ -1181,7 +1181,8 @@ nsINode::AddEventListener(const nsAString& aType,
     aRv.Throw(NS_ERROR_UNEXPECTED);
     return;
   }
-  listener_manager->AddEventListener(aType, aListener, aUseCapture,
+
+  listener_manager->AddEventListener(aType, aListener, aOptions,
                                      wantsUntrusted);
 }
 
