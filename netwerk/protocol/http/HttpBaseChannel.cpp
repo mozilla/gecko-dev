@@ -46,6 +46,8 @@
 #include "nsILoadGroupChild.h"
 #include "mozilla/ConsoleReportCollector.h"
 #include "LoadInfo.h"
+#include "nsIXULRuntime.h"
+#include "nsPIDOMWindow.h"
 
 #include <algorithm>
 
@@ -3034,41 +3036,49 @@ IMPL_TIMING_ATTR(RedirectEnd)
 nsPerformance*
 HttpBaseChannel::GetPerformance()
 {
-    // If performance timing is disabled, there is no need for the nsPerformance
-    // object anymore.
-    if (!mTimingEnabled) {
-        return nullptr;
-    }
-    nsCOMPtr<nsILoadContext> loadContext;
-    NS_QueryNotificationCallbacks(this, loadContext);
-    if (!loadContext) {
-        return nullptr;
-    }
-    nsCOMPtr<nsIDOMWindow> domWindow;
-    loadContext->GetAssociatedWindow(getter_AddRefs(domWindow));
-    if (!domWindow) {
-        return nullptr;
-    }
-    nsCOMPtr<nsPIDOMWindow> pDomWindow = do_QueryInterface(domWindow);
-    if (!pDomWindow) {
-        return nullptr;
-    }
-    if (!pDomWindow->IsInnerWindow()) {
-        pDomWindow = pDomWindow->GetCurrentInnerWindow();
-        if (!pDomWindow) {
-            return nullptr;
-        }
-    }
+  // If performance timing is disabled, there is no need for the nsPerformance
+  // object anymore.
+  if (!mTimingEnabled) {
+    return nullptr;
+  }
 
-    nsPerformance* docPerformance = pDomWindow->GetPerformance();
-    if (!docPerformance) {
-      return nullptr;
-    }
-    // iframes should be added to the parent's entries list.
-    if (mLoadFlags & LOAD_DOCUMENT_URI) {
-      return docPerformance->GetParentPerformance();
-    }
-    return docPerformance;
+  // There is no point in continuing, since the performance object in the parent
+  // isn't the same as the one in the child which will be reporting resource performance.
+  if (XRE_IsParentProcess() && BrowserTabsRemoteAutostart()) {
+    return nullptr;
+  }
+
+  if (!mLoadInfo) {
+    return nullptr;
+  }
+
+  // We don't need to report the resource timing entry for a TYPE_DOCUMENT load.
+  if (mLoadInfo->GetExternalContentPolicyType() == nsIContentPolicyBase::TYPE_DOCUMENT) {
+    return nullptr;
+  }
+
+  nsCOMPtr<nsIDOMDocument> domDocument;
+  mLoadInfo->GetLoadingDocument(getter_AddRefs(domDocument));
+  if (!domDocument) {
+    return nullptr;
+  }
+
+  nsCOMPtr<nsIDocument> loadingDocument = do_QueryInterface(domDocument);
+  if (!loadingDocument) {
+    return nullptr;
+  }
+
+  nsCOMPtr<nsPIDOMWindow> innerWindow = loadingDocument->GetInnerWindow();
+  if (!innerWindow) {
+    return nullptr;
+  }
+
+  nsPerformance* docPerformance = innerWindow->GetPerformance();
+  if (!docPerformance) {
+    return nullptr;
+  }
+
+  return docPerformance;
 }
 
 //------------------------------------------------------------------------------
