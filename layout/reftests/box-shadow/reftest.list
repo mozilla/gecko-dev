@@ -28,6 +28,11 @@ fuzzy-if(OSX==1010,1,24) == boxshadow-large-border-radius.html boxshadow-large-b
 == boxshadow-inset-neg-spread2.html boxshadow-inset-neg-spread2-ref.html
 fuzzy(26,3610) == boxshadow-rotated.html boxshadow-rotated-ref.html # Bug 1211264
 
+== boxshadow-inset-large-border-radius.html boxshadow-inset-large-border-radius-ref.html
+
+# fuzzy due to blur going inside, but as long as it's essentially black instead of a light gray its ok.
+fuzzy(12,9445) == boxshadow-inset-large-offset.html boxshadow-inset-large-offset-ref.html
+
 == overflow-not-scrollable-1.html overflow-not-scrollable-1-ref.html
 == overflow-not-scrollable-1.html overflow-not-scrollable-1-ref2.html
 == overflow-not-scrollable-2.html overflow-not-scrollable-2-ref.html
