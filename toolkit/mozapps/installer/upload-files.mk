@@ -414,8 +414,6 @@ endif
 
 SO_LIBRARIES := $(filter %.so,$(DIST_FILES))
 # These libraries are placed in the assets/$(ANDROID_CPU_ARCH) directory by packager.py.
-ASSET_SO_LIBRARIES := $(addprefix assets/$(ANDROID_CPU_ARCH)/,$(filter-out libmozglue.so $(MOZ_CHILD_PROCESS_NAME),$(SO_LIBRARIES)))
-
 DIST_FILES := $(filter-out $(SO_LIBRARIES),$(DIST_FILES))
 NON_DIST_FILES += libmozglue.so $(MOZ_CHILD_PROCESS_NAME) $(ASSET_SO_LIBRARIES)
 
@@ -477,7 +475,6 @@ INNER_MAKE_APK = \
     unzip -o $(ABS_DIST)/gecko.ap_ && \
     rm $(ABS_DIST)/gecko.ap_ && \
     $(ZIP) -r9D $(ABS_DIST)/gecko.ap_ assets && \
-    $(ZIP) $(if $(ALREADY_SZIPPED),-0 ,$(if $(MOZ_ENABLE_SZIP),-0 ))$(ABS_DIST)/gecko.ap_ $(ASSET_SO_LIBRARIES) && \
     $(ZIP) -r9D $(ABS_DIST)/gecko.ap_ $(DIST_FILES) -x $(NON_DIST_FILES) $(SZIP_LIBRARIES) && \
     $(if $(filter-out ./,$(OMNIJAR_DIR)), \
       mkdir -p $(OMNIJAR_DIR) && mv $(OMNIJAR_NAME) $(OMNIJAR_DIR) && ) \

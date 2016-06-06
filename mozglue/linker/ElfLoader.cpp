@@ -448,9 +448,6 @@ ElfLoader::GetMappableFromPath(const char *path)
       }
     }
   }
-  /* If we couldn't load above, try with a MappableFile */
-  if (!mappable && !zip)
-    mappable = MappableFile::Create(path);
 
   return mappable;
 }

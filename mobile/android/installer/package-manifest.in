@@ -25,7 +25,11 @@
 @BINPATH@/dictionaries/*
 @BINPATH@/hyphenation/*
 
-[assets destdir="assets/@ANDROID_CPU_ARCH@"]
+[lib destdir="lib/@ANDROID_CPU_ARCH@"]
+@BINPATH@/@DLL_PREFIX@mozglue@DLL_SUFFIX@
+# This should be MOZ_CHILD_PROCESS_NAME, but that has a "lib/" prefix.
+@BINPATH@/@MOZ_CHILD_PROCESS_NAME@
+@BINPATH@/@MOZ_CHILD_PROCESS_NAME_PIE@
 #ifndef MOZ_STATIC_JS
 @BINPATH@/@DLL_PREFIX@mozjs@DLL_SUFFIX@
 #endif
@@ -44,7 +48,6 @@
 @BINPATH@/@DLL_PREFIX@omxpluginhc@DLL_SUFFIX@
 @BINPATH@/@DLL_PREFIX@omxpluginkk@DLL_SUFFIX@
 @BINPATH@/@DLL_PREFIX@xul@DLL_SUFFIX@
-
 @BINPATH@/@DLL_PREFIX@nssckbi@DLL_SUFFIX@
 @BINPATH@/@DLL_PREFIX@nss3@DLL_SUFFIX@
 #ifndef MOZ_FOLD_LIBS
@@ -64,16 +67,9 @@
 @BINPATH@/@DLL_PREFIX@nssdbm3.chk
 #endif
 #endif
-
 #ifndef MOZ_FOLD_LIBS
 @BINPATH@/@DLL_PREFIX@mozsqlite3@DLL_SUFFIX@
 #endif
-
-[lib destdir="lib/@ANDROID_CPU_ARCH@"]
-@BINPATH@/@DLL_PREFIX@mozglue@DLL_SUFFIX@
-# This should be MOZ_CHILD_PROCESS_NAME, but that has a "lib/" prefix.
-@BINPATH@/@MOZ_CHILD_PROCESS_NAME@
-@BINPATH@/@MOZ_CHILD_PROCESS_NAME_PIE@
 
 [xpcom]
 @BINPATH@/package-name.txt

@@ -17,6 +17,7 @@ import java.util.zip.ZipFile;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.os.Build;
 import android.os.Environment;
 import android.util.Log;
@@ -221,7 +222,7 @@ public final class GeckoLoader {
 
         loadMozGlue(context);
         loadLibsSetupLocked(context);
-        loadSQLiteLibsNative(apkName);
+        loadSQLiteLibsNative(context.getApplicationInfo().dataDir + "/lib");
         sSQLiteLibsLoaded = true;
     }
 
@@ -232,7 +233,7 @@ public final class GeckoLoader {
 
         loadMozGlue(context);
         loadLibsSetupLocked(context);
-        loadNSSLibsNative(apkName);
+        loadNSSLibsNative(context.getApplicationInfo().dataDir + "/lib");
         sNSSLibsLoaded = true;
     }
 
@@ -506,7 +507,8 @@ public final class GeckoLoader {
 
     public synchronized static void loadGeckoLibs(final Context context, final String apkName) {
         loadLibsSetupLocked(context);
-        loadGeckoLibsNative(apkName);
+        loadGeckoLibsNative(context.getApplicationInfo().dataDir + "/lib");
+
     }
 
     private static void setupLocaleEnvironment() {
@@ -544,7 +546,7 @@ public final class GeckoLoader {
 
     // These methods are implemented in mozglue/android/APKOpen.cpp
     public static native void nativeRun(String args);
-    private static native void loadGeckoLibsNative(String apkName);
-    private static native void loadSQLiteLibsNative(String apkName);
-    private static native void loadNSSLibsNative(String apkName);
+    private static native void loadGeckoLibsNative(String libDirName);
+    private static native void loadSQLiteLibsNative(String libDirName);
+    private static native void loadNSSLibsNative(String libDirName);
 }
