@@ -28,7 +28,7 @@ template<class T> class nsTArray;
 native nsDirection(nsDirection);
 native ScrollAxis(nsIPresShell::ScrollAxis);
 
-[scriptable, builtinclass, uuid(0c9f4f74-ee7e-4fe9-be6b-0ba856368178)]
+[scriptable, builtinclass, uuid(4d3bb9d5-a259-47ca-b7b7-9b66c6f8b348)]
 interface nsISelectionPrivate : nsISelection
  {
     const short ENDOFPRECEDINGLINE=0;
