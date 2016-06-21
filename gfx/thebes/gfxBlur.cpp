@@ -1064,8 +1064,6 @@ gfxAlphaBoxBlur::BlurInsetBox(gfxContext* aDestinationCtx,
     srcInner.Deflate(blurMargin);   // The outer color fill
     srcInner.Deflate(innerMargin);  // The inner whitespace
 
-    DrawTarget* destDrawTarget = aDestinationCtx->GetDrawTarget();
-
     // The shadow clip rect already takes into account the spread radius
     Rect outerFillRect(aShadowClipRect);
     outerFillRect.Inflate(blurMargin);
