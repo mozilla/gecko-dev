@@ -2647,7 +2647,7 @@ TypedUnmarkGrayCellRecursively(T* t)
     MOZ_ASSERT(t);
 
     JSRuntime* rt = t->runtimeFromMainThread();
-    MOZ_ASSERT(!rt->isHeapBusy());
+    MOZ_ASSERT(!rt->isHeapCollecting());
 
     bool unmarkedArg = false;
     if (t->isTenured()) {
