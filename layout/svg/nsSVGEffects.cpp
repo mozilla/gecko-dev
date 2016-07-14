@@ -237,7 +237,16 @@ nsSVGRenderingObserverProperty::DoUpdate()
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsSVGFilterReference)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsSVGFilterReference)
 
-NS_IMPL_CYCLE_COLLECTION(nsSVGFilterReference, mElement)
+NS_IMPL_CYCLE_COLLECTION_CLASS(nsSVGFilterReference)
+
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsSVGFilterReference)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mElement)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsSVGFilterReference)
+  tmp->StopListening();
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mElement);
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsSVGFilterReference)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsSVGIDRenderingObserver)
@@ -265,11 +274,20 @@ nsSVGFilterReference::DoUpdate()
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsSVGFilterChainObserver)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(nsSVGFilterChainObserver)
 
+NS_IMPL_CYCLE_COLLECTION_CLASS(nsSVGFilterChainObserver)
+
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsSVGFilterChainObserver)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mReferences)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsSVGFilterChainObserver)
+  tmp->DetachReferences();
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mReferences);
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsSVGFilterChainObserver)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
-
-NS_IMPL_CYCLE_COLLECTION(nsSVGFilterChainObserver, mReferences)
 
 nsSVGFilterChainObserver::nsSVGFilterChainObserver(const nsTArray<nsStyleFilter>& aFilters,
                                                    nsIContent* aFilteredElement)
@@ -286,9 +304,7 @@ nsSVGFilterChainObserver::nsSVGFilterChainObserver(const nsTArray<nsStyleFilter>
 
 nsSVGFilterChainObserver::~nsSVGFilterChainObserver()
 {
-  for (uint32_t i = 0; i < mReferences.Length(); i++) {
-    mReferences[i]->DetachFromChainObserver();
-  }
+  DetachReferences();
 }
 
 bool
