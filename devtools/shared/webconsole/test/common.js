@@ -94,6 +94,9 @@ function _attachConsole(aListeners, aCallback, aAttachToTab, aAttachToWorker)
         aState.dbgClient.attachTab(tab.actor, function (response, tabClient) {
           if (aAttachToWorker) {
             var worker = new Worker("console-test-worker.js");
+            // Keep a strong reference to the Worker to avoid it being
+            // GCd during the test (bug 1237492).
+            aState._worker_ref = worker;
             worker.addEventListener("message", function listener() {
               worker.removeEventListener("message", listener);
               tabClient.listWorkers(function (response) {
