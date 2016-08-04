@@ -21,6 +21,7 @@ class FreeBSDBootstrapper(BaseBootstrapper):
 
         self.browser_packages = [
             'dbus-glib',
+            'gconf2',
             'gstreamer-plugins',
             'gtk2',
             'gtk3',
