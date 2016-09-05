@@ -67,6 +67,10 @@ static const char kComodo_Trusted_Services_rootFingerprint[] =
 static const char kCybertrust_Global_RootFingerprint[] =
   "foeCwVDOOVL4AuY2AjpdPpW7XWjjPoWtsroXgSXOvxU=";
 
+/* DST Root CA X3 */
+static const char kDST_Root_CA_X3Fingerprint[] =
+  "Vjs8r4z+80wjNcr1YKepWQboSIRi63WsWXhIMN+eWys=";
+
 /* DigiCert Assured ID Root CA */
 static const char kDigiCert_Assured_ID_Root_CAFingerprint[] =
   "I/Lt/z7ekCWanjD0Cvj5EqXls2lOaThEA0H2Bg4BT/o=";
@@ -115,6 +119,10 @@ static const char kEquifax_Secure_eBusiness_CA_1Fingerprint[] =
 static const char kFacebookBackupFingerprint[] =
   "1ww8E0AYsR2oX5lndk2hwp2Uosk=";
 
+/* GOOGLE_PIN_COMODORSADomainValidationSecureServerCA */
+static const char kGOOGLE_PIN_COMODORSADomainValidationSecureServerCAFingerprint[] =
+  "klO23nT2ehFDXCfx3eHTDRESMz3asj1muO+4aIdjiuY=";
+
 /* GOOGLE_PIN_DigiCertECCSecureServerCA */
 static const char kGOOGLE_PIN_DigiCertECCSecureServerCAFingerprint[] =
   "PZXN3lRAy+8tBKk2Ox6F7jIlnzr2Yzmwqc3JnyfXoCw=";
@@ -135,13 +143,13 @@ static const char kGOOGLE_PIN_GoDaddySecureFingerprint[] =
 static const char kGOOGLE_PIN_GoogleG2Fingerprint[] =
   "7HIpactkIAq2Y49orFOOQKurWxmmSFZhBCoQYcRhJ3Y=";
 
-/* GOOGLE_PIN_LetsEncryptAuthorityX1 */
-static const char kGOOGLE_PIN_LetsEncryptAuthorityX1Fingerprint[] =
-  "YLh1dUR9y6Kja30RrAn7JKnbQG/uEtLMkBgFF2Fuihg=";
-
-/* GOOGLE_PIN_LetsEncryptAuthorityX2 */
-static const char kGOOGLE_PIN_LetsEncryptAuthorityX2Fingerprint[] =
+/* GOOGLE_PIN_LetsEncryptAuthorityBackup_X2_X4 */
+static const char kGOOGLE_PIN_LetsEncryptAuthorityBackup_X2_X4Fingerprint[] =
   "sRHdihwgkaib1P1gxX8HFszlD+7/gTfNvuAybgLPNis=";
+
+/* GOOGLE_PIN_LetsEncryptAuthorityPrimary_X1_X3 */
+static const char kGOOGLE_PIN_LetsEncryptAuthorityPrimary_X1_X3Fingerprint[] =
+  "YLh1dUR9y6Kja30RrAn7JKnbQG/uEtLMkBgFF2Fuihg=";
 
 /* GOOGLE_PIN_RapidSSL */
 static const char kGOOGLE_PIN_RapidSSLFingerprint[] =
@@ -246,6 +254,14 @@ static const char kStartCom_Certification_AuthorityFingerprint[] =
 /* StartCom Certification Authority G2 */
 static const char kStartCom_Certification_Authority_G2Fingerprint[] =
   "FSg5faISiQqDCwuVpZlozvI0dzd531GBzxD6ZHU0u2U=";
+
+/* Swehack */
+static const char kSwehackFingerprint[] =
+  "ng2GUCh9uhHgvZrqlWClUEzq7Kk=";
+
+/* SwehackBackup */
+static const char kSwehackBackupFingerprint[] =
+  "tlSyv06uDprsaNIyrTAd7qgFMRw=";
 
 /* TC TrustCenter Class 3 CA II */
 static const char kTC_TrustCenter_Class_3_CA_IIFingerprint[] =
@@ -532,9 +548,9 @@ static const StaticFingerprints kPinset_tor_sha1 = {
 
 static const char* kPinset_tor_sha256_Data[] = {
   kDigiCert_High_Assurance_EV_Root_CAFingerprint,
-  kGOOGLE_PIN_LetsEncryptAuthorityX1Fingerprint,
+  kGOOGLE_PIN_LetsEncryptAuthorityPrimary_X1_X3Fingerprint,
   kGOOGLE_PIN_RapidSSLFingerprint,
-  kGOOGLE_PIN_LetsEncryptAuthorityX2Fingerprint,
+  kGOOGLE_PIN_LetsEncryptAuthorityBackup_X2_X4Fingerprint,
 };
 static const StaticFingerprints kPinset_tor_sha256 = {
   sizeof(kPinset_tor_sha256_Data) / sizeof(const char*),
@@ -757,6 +773,53 @@ static const StaticPinset kPinset_yahoo = {
   &kPinset_yahoo_sha256
 };
 
+static const char* kPinset_swehackCom_sha1_Data[] = {
+  kSwehackFingerprint,
+  kSwehackBackupFingerprint,
+};
+static const StaticFingerprints kPinset_swehackCom_sha1 = {
+  sizeof(kPinset_swehackCom_sha1_Data) / sizeof(const char*),
+  kPinset_swehackCom_sha1_Data
+};
+
+static const char* kPinset_swehackCom_sha256_Data[] = {
+  kDST_Root_CA_X3Fingerprint,
+  kGOOGLE_PIN_LetsEncryptAuthorityPrimary_X1_X3Fingerprint,
+  kGOOGLE_PIN_COMODORSADomainValidationSecureServerCAFingerprint,
+  kGOOGLE_PIN_LetsEncryptAuthorityBackup_X2_X4Fingerprint,
+};
+static const StaticFingerprints kPinset_swehackCom_sha256 = {
+  sizeof(kPinset_swehackCom_sha256_Data) / sizeof(const char*),
+  kPinset_swehackCom_sha256_Data
+};
+
+static const StaticPinset kPinset_swehackCom = {
+  &kPinset_swehackCom_sha1,
+  &kPinset_swehackCom_sha256
+};
+
+static const char* kPinset_nightx_sha256_Data[] = {
+  kCOMODO_Certification_AuthorityFingerprint,
+  kDigiCert_Assured_ID_Root_CAFingerprint,
+  kVeriSign_Class_3_Public_Primary_Certification_Authority___G5Fingerprint,
+  kVeriSign_Class_3_Public_Primary_Certification_Authority___G4Fingerprint,
+  kDigiCert_High_Assurance_EV_Root_CAFingerprint,
+  kGOOGLE_PIN_LetsEncryptAuthorityPrimary_X1_X3Fingerprint,
+  kAddTrust_External_RootFingerprint,
+  kVeriSign_Universal_Root_Certification_AuthorityFingerprint,
+  kDigiCert_Global_Root_CAFingerprint,
+  kGOOGLE_PIN_LetsEncryptAuthorityBackup_X2_X4Fingerprint,
+};
+static const StaticFingerprints kPinset_nightx_sha256 = {
+  sizeof(kPinset_nightx_sha256_Data) / sizeof(const char*),
+  kPinset_nightx_sha256_Data
+};
+
+static const StaticPinset kPinset_nightx = {
+  nullptr,
+  &kPinset_nightx_sha256
+};
+
 /* Domainlist */
 struct TransportSecurityPreload {
   const char* mHost;
@@ -811,6 +874,7 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "chrome-devtools-frontend.appspot.com", true, false, false, -1, &kPinset_google_root_pems },
   { "chrome.com", true, false, false, -1, &kPinset_google_root_pems },
   { "chrome.google.com", true, false, false, -1, &kPinset_google_root_pems },
+  { "chromiumbugs.appspot.com", true, false, false, -1, &kPinset_google_root_pems },
   { "chromiumcodereview.appspot.com", true, false, false, -1, &kPinset_google_root_pems },
   { "cl.search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
   { "cloud.google.com", true, false, false, -1, &kPinset_google_root_pems },
@@ -1083,6 +1147,7 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "googlegroups.com", true, false, false, -1, &kPinset_google_root_pems },
   { "googlemail.com", false, false, false, -1, &kPinset_google_root_pems },
   { "googleplex.com", true, false, false, -1, &kPinset_google_root_pems },
+  { "googlesource.com", true, false, false, -1, &kPinset_google_root_pems },
   { "googlesyndication.com", true, false, false, -1, &kPinset_google_root_pems },
   { "googletagmanager.com", true, false, false, -1, &kPinset_google_root_pems },
   { "googletagservices.com", true, false, false, -1, &kPinset_google_root_pems },
@@ -1131,6 +1196,7 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "mx.search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
   { "myaccount.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "ni.search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
+  { "nightx.uk", true, true, false, -1, &kPinset_nightx },
   { "nl.search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
   { "no.search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
   { "np.search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
@@ -1138,6 +1204,7 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "oauth.twitter.com", true, false, false, -1, &kPinset_twitterCom },
   { "pa.search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
   { "passwords.google.com", true, false, false, -1, &kPinset_google_root_pems },
+  { "payments.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "pe.search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
   { "ph.search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
   { "pinning-test.badssl.com", true, false, false, -1, &kPinset_test },
@@ -1168,9 +1235,10 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "sites.google.com", true, false, false, -1, &kPinset_google_root_pems },
   { "spideroak.com", true, false, false, -1, &kPinset_spideroak },
   { "spreadsheets.google.com", true, false, false, -1, &kPinset_google_root_pems },
-  { "ssl.google-analytics.com", true, false, false, -1, &kPinset_google_root_pems },
   { "static.googleadsserving.cn", true, false, false, -1, &kPinset_google_root_pems },
+  { "stats.g.doubleclick.net", true, false, false, -1, &kPinset_google_root_pems },
   { "sv.search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
+  { "swehack.org", true, true, false, -1, &kPinset_swehackCom },
   { "t.facebook.com", true, false, false, -1, &kPinset_facebook },
   { "tablet.facebook.com", true, false, false, -1, &kPinset_facebook },
   { "talk.google.com", true, false, false, -1, &kPinset_google_root_pems },
@@ -1210,6 +1278,7 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "wf-trial-hrd.appspot.com", true, false, false, -1, &kPinset_google_root_pems },
   { "withgoogle.com", true, false, false, -1, &kPinset_google_root_pems },
   { "withyoutube.com", true, false, false, -1, &kPinset_google_root_pems },
+  { "www.dropbox.com", true, false, false, -1, &kPinset_dropbox },
   { "www.facebook.com", true, false, false, -1, &kPinset_facebook },
   { "www.gmail.com", false, false, false, -1, &kPinset_google_root_pems },
   { "www.googlemail.com", false, false, false, -1, &kPinset_google_root_pems },
@@ -1226,8 +1295,8 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
   { "zh.search.yahoo.com", false, true, false, -1, &kPinset_yahoo },
 };
 
-// Pinning Preload List Length = 455;
+// Pinning Preload List Length = 461;
 
 static const int32_t kUnknownId = -1;
 
-static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1472903978258000);
+static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1481542269357000);
