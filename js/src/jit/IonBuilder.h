@@ -1076,6 +1076,8 @@ class IonBuilder
         *abortMessage = actionableAbortMessage_;
     }
 
+    void trace(JSTracer* trc);
+
   private:
     bool init();
 
