@@ -235,7 +235,7 @@ protected:
   static nsIContent* GetRootContent(nsPresContext* aPresContext);
 
   static StaticRefPtr<nsIContent> sContent;
-  static nsPresContext* sPresContext;
+  static StaticRefPtr<nsPresContext> sPresContext;
   static nsIWidget* sFocusedIMEWidget;
   static StaticRefPtr<TabParent> sActiveTabParent;
   // sActiveIMEContentObserver points to the currently active
