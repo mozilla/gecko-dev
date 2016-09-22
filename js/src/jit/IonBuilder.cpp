@@ -14051,7 +14051,7 @@ IonBuilder::addLexicalCheck(MDefinition* input)
 void
 IonBuilder::trace(JSTracer* trc)
 {
-    if (script_->zoneFromAnyThread()->runtimeFromAnyThread() != trc->runtime())
+    if (!compartment->runtime()->runtimeMatches(trc->runtime()))
         return;
 
     TraceManuallyBarrieredEdge(trc, &script_, "IonBuiler::script_");
