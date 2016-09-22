@@ -1779,8 +1779,11 @@ nsScriptLoadHandler::TryDecodeRawData(const uint8_t* aData,
   NS_ENSURE_SUCCESS(rv, rv);
 
   uint32_t haveRead = mBuffer.length();
-  uint32_t capacity = haveRead + dstLen;
-  if (!mBuffer.reserve(capacity)) {
+
+  CheckedInt<uint32_t> capacity = haveRead;
+  capacity += dstLen;
+
+  if (!capacity.isValid() || !mBuffer.reserve(capacity.value())) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
@@ -1792,7 +1795,7 @@ nsScriptLoadHandler::TryDecodeRawData(const uint8_t* aData,
   NS_ENSURE_SUCCESS(rv, rv);
 
   haveRead += dstLen;
-  MOZ_ASSERT(haveRead <= capacity, "mDecoder produced more data than expected");
+  MOZ_ASSERT(haveRead <= capacity.value(), "mDecoder produced more data than expected");
   mBuffer.resizeUninitialized(haveRead);
 
   return NS_OK;
