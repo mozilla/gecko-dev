@@ -1058,11 +1058,11 @@ GlobalHelperThreadState::finishParseTask(JSContext* maybecx, JSRuntime* rt, void
 
     mergeParseTaskCompartment(rt, parseTask, global, cx->compartment());
 
-    if (!parseTask->finish(cx))
-        return nullptr;
-
     RootedScript script(rt, parseTask->script);
     releaseAssertSameCompartment(cx, script);
+
+    if (!parseTask->finish(cx))
+        return nullptr;
 
     // Report any error or warnings generated during the parse, and inform the
     // debugger about the compiled scripts.
