@@ -37,7 +37,7 @@ public:
   static bool Link();
   static void Unlink();
   static already_AddRefed<PlatformDecoderModule> CreateDecoderModule();
-  static bool GetVersion(uint32_t& aMajor, uint32_t& aMinor, uint32_t& aMicro);
+  static uint32_t GetVersion(uint32_t& aMajor, uint32_t& aMinor, uint32_t& aMicro);
 
 private:
   static PRLibrary* sLinkedLib;

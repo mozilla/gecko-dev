@@ -94,8 +94,20 @@ FFmpegRuntimeLinker::Bind(const char* aLibName)
 {
   avcodec_version = (typeof(avcodec_version))PR_FindSymbol(sLinkedLib,
                                                            "avcodec_version");
-  uint32_t major, minor, micro;
-  if (!GetVersion(major, minor, micro)) {
+  uint32_t fullVersion, major, minor, micro;
+  fullVersion = GetVersion(major, minor, micro);
+  if (!fullVersion) {
+    return false;
+  }
+
+  if (micro < 100 &&
+      fullVersion < (54u << 16 | 35u << 8 | 1u) &&
+      !Preferences::GetBool("media.libavcodec.allow-obsolete", false)) {
+    // Refuse any libavcodec version prior to 54.35.1.
+    // (Unless media.libavcodec.allow-obsolete==true)
+    Unlink();
+    LogToBrowserConsole(NS_LITERAL_STRING(
+      "libavcodec may be vulnerable or is not supported, and should be updated to play video."));
     return false;
   }
 
@@ -177,17 +189,17 @@ FFmpegRuntimeLinker::Unlink()
   }
 }
 
-/* static */ bool
+/* static */ uint32_t
 FFmpegRuntimeLinker::GetVersion(uint32_t& aMajor, uint32_t& aMinor, uint32_t& aMicro)
 {
   if (!avcodec_version) {
-    return false;
+    return 0u;
   }
   uint32_t version = avcodec_version();
   aMajor = (version >> 16) & 0xff;
   aMinor = (version >> 8) & 0xff;
   aMicro = version & 0xff;
-  return true;
+  return version;
 }
 
 } // namespace mozilla
