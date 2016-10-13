@@ -64,7 +64,7 @@ function runTest() {
   ok(!file.exists(), file.path + " should not exist");
 
   file = dir.clone();
-  file.append(FILE_UPDATE_ARCHIVE);
+  file.append(FILE_UPDATE_MAR);
   ok(!file.exists(), file.path + " should not exist");
 
   let addonPrepDir = Services.dirsvc.get(NS_APP_USER_PROFILE_50_DIR,
