@@ -2520,6 +2520,8 @@ UpdateThreadFunc(void *param)
     // staging.
     if (sReplaceRequest) {
       WriteStatusFile(sUsingService ? "pending-service" : "pending");
+    } else {
+      WriteStatusFile(rv);
     }
 #ifdef TEST_UPDATER
     // Some tests need to use --test-process-updates again.
