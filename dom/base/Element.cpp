@@ -3516,16 +3516,20 @@ Element::InsertAdjacentHTML(const nsAString& aPosition, const nsAString& aText,
     case eBeforeBegin:
       destination->InsertBefore(*fragment, this, aError);
       break;
-    case eAfterBegin:
-      static_cast<nsINode*>(this)->InsertBefore(*fragment, GetFirstChild(),
+    case eAfterBegin: {
+      nsCOMPtr<nsINode> refChild = GetFirstChild();
+      static_cast<nsINode*>(this)->InsertBefore(*fragment, refChild,
                                                 aError);
       break;
+    }
     case eBeforeEnd:
       static_cast<nsINode*>(this)->AppendChild(*fragment, aError);
       break;
-    case eAfterEnd:
-      destination->InsertBefore(*fragment, GetNextSibling(), aError);
+    case eAfterEnd: {
+      nsCOMPtr<nsINode> refChild = GetNextSibling();
+      destination->InsertBefore(*fragment, refChild, aError);
       break;
+    }
   }
 }
 

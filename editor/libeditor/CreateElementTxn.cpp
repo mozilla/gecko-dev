@@ -82,7 +82,8 @@ CreateElementTxn::DoTransaction()
   // Note, it's ok for mRefNode to be null. That means append
   mRefNode = mParent->GetChildAt(mOffsetInParent);
 
-  mParent->InsertBefore(*mNewNode, mRefNode, rv);
+  nsCOMPtr<nsIContent> refNode = mRefNode;
+  mParent->InsertBefore(*mNewNode, refNode, rv);
   NS_ENSURE_TRUE(!rv.Failed(), rv.StealNSResult());
 
   // Only set selection to insertion point if editor gives permission
@@ -122,7 +123,8 @@ CreateElementTxn::RedoTransaction()
 
   // Now, reinsert mNewNode
   ErrorResult rv;
-  mParent->InsertBefore(*mNewNode, mRefNode, rv);
+  nsCOMPtr<nsIContent> refNode = mRefNode;
+  mParent->InsertBefore(*mNewNode, refNode, rv);
   return rv.StealNSResult();
 }
 

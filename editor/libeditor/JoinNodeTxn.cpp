@@ -93,7 +93,8 @@ JoinNodeTxn::UndoTransaction()
     }
   }
   // Second, re-insert the left node into the tree
-  mParent->InsertBefore(*mLeftNode, mRightNode, rv);
+  nsCOMPtr<nsINode> refNode = mRightNode;
+  mParent->InsertBefore(*mLeftNode, refNode, rv);
   return rv.StealNSResult();
 }
 

@@ -108,7 +108,8 @@ SplitNodeTxn::RedoTransaction()
     }
   }
   // Second, re-insert the left node into the tree
-  mParent->InsertBefore(*mNewLeftNode, mExistingRightNode, rv);
+  nsCOMPtr<nsIContent> refNode = mExistingRightNode;
+  mParent->InsertBefore(*mNewLeftNode, refNode, rv);
   return rv.StealNSResult();
 }
 
