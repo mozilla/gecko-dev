@@ -9919,6 +9919,7 @@ ssl3_HandleDHClientKeyExchange(sslSocket *ss,
                          CKM_DH_PKCS_DERIVE, target, CKA_DERIVE, 0, NULL);
     if (pms == NULL) {
 	ssl_MapLowLevelError(SSL_ERROR_CLIENT_KEY_EXCHANGE_FAILURE);
+	rv = SECFailure;
 	goto loser;
     }
 
