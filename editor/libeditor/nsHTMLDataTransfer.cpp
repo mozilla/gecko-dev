@@ -120,7 +120,7 @@ nsHTMLEditor::LoadHTML(const nsAString & aInputString)
   bool cancel, handled;
   // Protect the edit rules object from dying
   nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
-  nsresult rv = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
+  nsresult rv = kungFuDeathGrip->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(rv, rv);
   if (cancel) {
     return NS_OK; // rules canceled the operation
@@ -163,7 +163,7 @@ nsHTMLEditor::LoadHTML(const nsAString & aInputString)
     }
   }
 
-  return mRules->DidDoAction(selection, &ruleInfo, rv);
+  return kungFuDeathGrip->DidDoAction(selection, &ruleInfo, rv);
 }
 
 
@@ -367,7 +367,7 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
   // give rules a chance to handle or cancel
   nsTextRulesInfo ruleInfo(EditAction::insertElement);
   bool cancel, handled;
-  rv = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
+  rv = kungFuDeathGrip->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(rv, rv);
   if (cancel) {
     return NS_OK; // rules canceled the operation
@@ -702,7 +702,7 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
     }
   }
 
-  return mRules->DidDoAction(selection, &ruleInfo, rv);
+  return kungFuDeathGrip->DidDoAction(selection, &ruleInfo, rv);
 }
 
 NS_IMETHODIMP
@@ -1582,7 +1582,7 @@ NS_IMETHODIMP nsHTMLEditor::PasteAsCitedQuotation(const nsAString & aCitation,
   bool cancel, handled;
   // Protect the edit rules object from dying
   nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
-  nsresult rv = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
+  nsresult rv = kungFuDeathGrip->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(rv, rv);
   if (cancel || handled) {
     return NS_OK; // rules canceled the operation
@@ -1776,7 +1776,7 @@ nsHTMLEditor::InsertAsPlaintextQuotation(const nsAString & aQuotedText,
   bool cancel, handled;
   // Protect the edit rules object from dying
   nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
-  nsresult rv = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
+  nsresult rv = kungFuDeathGrip->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(rv, rv);
   if (cancel || handled) {
     return NS_OK; // rules canceled the operation
@@ -1866,7 +1866,7 @@ nsHTMLEditor::InsertAsCitedQuotation(const nsAString & aQuotedText,
   bool cancel, handled;
   // Protect the edit rules object from dying
   nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
-  nsresult rv = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
+  nsresult rv = kungFuDeathGrip->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(rv, rv);
   if (cancel || handled) {
     return NS_OK; // rules canceled the operation

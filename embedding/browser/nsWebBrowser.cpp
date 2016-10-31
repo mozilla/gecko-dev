@@ -54,6 +54,8 @@
 #include "nsISecureBrowserUI.h"
 #include "nsXULAppAPI.h"
 
+#include "mozilla/unused.h"
+
 using namespace mozilla;
 using namespace mozilla::gfx;
 using namespace mozilla::layers;
@@ -1623,6 +1625,7 @@ NS_IMETHODIMP
 nsWebBrowser::SetDocShell(nsIDocShell* aDocShell)
 {
   nsCOMPtr<nsIDocShell> kungFuDeathGrip(mDocShell);
+  Unused << kungFuDeathGrip;
   if (aDocShell) {
     NS_ENSURE_TRUE(!mDocShell, NS_ERROR_FAILURE);
 

@@ -4937,14 +4937,14 @@ Selection::Collapse(nsINode& aParentNode, uint32_t aOffset, ErrorResult& aRv)
   nsCOMPtr<nsINode> kungfuDeathGrip = &aParentNode;
 
   mFrameSelection->InvalidateDesiredPos();
-  if (!IsValidSelectionPoint(mFrameSelection, &aParentNode)) {
+  if (!IsValidSelectionPoint(mFrameSelection, kungfuDeathGrip)) {
     aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
   nsresult result;
 
   RefPtr<nsPresContext> presContext = GetPresContext();
-  if (!presContext || presContext->Document() != aParentNode.OwnerDoc()) {
+  if (!presContext || presContext->Document() != kungfuDeathGrip->OwnerDoc()) {
     aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
@@ -4955,22 +4955,22 @@ Selection::Collapse(nsINode& aParentNode, uint32_t aOffset, ErrorResult& aRv)
   // Turn off signal for table selection
   mFrameSelection->ClearTableCellSelection();
 
-  RefPtr<nsRange> range = new nsRange(&aParentNode);
-  result = range->SetEnd(&aParentNode, aOffset);
+  RefPtr<nsRange> range = new nsRange(kungfuDeathGrip);
+  result = range->SetEnd(kungfuDeathGrip, aOffset);
   if (NS_FAILED(result)) {
     aRv.Throw(result);
     return;
   }
-  result = range->SetStart(&aParentNode, aOffset);
+  result = range->SetStart(kungfuDeathGrip, aOffset);
   if (NS_FAILED(result)) {
     aRv.Throw(result);
     return;
   }
 
 #ifdef DEBUG_SELECTION
-  nsCOMPtr<nsIContent> content = do_QueryInterface(&aParentNode);
-  nsCOMPtr<nsIDocument> doc = do_QueryInterface(&aParentNode);
-  printf ("Sel. Collapse to %p %s %d\n", &aParentNode,
+  nsCOMPtr<nsIContent> content = do_QueryInterface(kungfuDeathGrip);
+  nsCOMPtr<nsIDocument> doc = do_QueryInterface(kungfuDeathGrip);
+  printf ("Sel. Collapse to %p %s %d\n", kungfuDeathGrip,
           content ? nsAtomCString(content->NodeInfo()->NameAtom()).get()
                   : (doc ? "DOCUMENT" : "???"),
           aOffset);

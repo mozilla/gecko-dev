@@ -1488,7 +1488,7 @@ nsHTMLEditor::InsertElementAtSelection(nsIDOMElement* aElement, bool aDeleteSele
   bool cancel, handled;
   nsTextRulesInfo ruleInfo(EditAction::insertElement);
   ruleInfo.insertElement = aElement;
-  res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
+  res = kungFuDeathGrip->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   if (cancel || (NS_FAILED(res))) return res;
 
   if (!handled)
@@ -1557,7 +1557,7 @@ nsHTMLEditor::InsertElementAtSelection(nsIDOMElement* aElement, bool aDeleteSele
       }
     }
   }
-  res = mRules->DidDoAction(selection, &ruleInfo, res);
+  res = kungFuDeathGrip->DidDoAction(selection, &ruleInfo, res);
   return res;
 }
 
@@ -1919,7 +1919,7 @@ nsHTMLEditor::MakeOrChangeList(const nsAString& aListType, bool entireList, cons
   ruleInfo.blockType = &aListType;
   ruleInfo.entireList = entireList;
   ruleInfo.bulletType = &aBulletType;
-  res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
+  res = kungFuDeathGrip->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   if (cancel || (NS_FAILED(res))) return res;
 
   if (!handled)
@@ -1965,7 +1965,7 @@ nsHTMLEditor::MakeOrChangeList(const nsAString& aListType, bool entireList, cons
     }
   }
 
-  res = mRules->DidDoAction(selection, &ruleInfo, res);
+  res = kungFuDeathGrip->DidDoAction(selection, &ruleInfo, res);
   return res;
 }
 
@@ -1992,12 +1992,12 @@ nsHTMLEditor::RemoveList(const nsAString& aListType)
   if (aListType.LowerCaseEqualsLiteral("ol"))
     ruleInfo.bOrdered = true;
   else  ruleInfo.bOrdered = false;
-  res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
+  res = kungFuDeathGrip->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   if (cancel || (NS_FAILED(res))) return res;
 
   // no default behavior for this yet.  what would it mean?
 
-  res = mRules->DidDoAction(selection, &ruleInfo, res);
+  res = kungFuDeathGrip->DidDoAction(selection, &ruleInfo, res);
   return res;
 }
 
@@ -2020,7 +2020,7 @@ nsHTMLEditor::MakeDefinitionItem(const nsAString& aItemType)
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
   nsTextRulesInfo ruleInfo(EditAction::makeDefListItem);
   ruleInfo.blockType = &aItemType;
-  res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
+  res = kungFuDeathGrip->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   if (cancel || (NS_FAILED(res))) return res;
 
   if (!handled)
@@ -2028,7 +2028,7 @@ nsHTMLEditor::MakeDefinitionItem(const nsAString& aItemType)
     // todo: no default for now.  we count on rules to handle it.
   }
 
-  res = mRules->DidDoAction(selection, &ruleInfo, res);
+  res = kungFuDeathGrip->DidDoAction(selection, &ruleInfo, res);
   return res;
 }
 
@@ -2051,7 +2051,7 @@ nsHTMLEditor::InsertBasicBlock(const nsAString& aBlockType)
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
   nsTextRulesInfo ruleInfo(EditAction::makeBasicBlock);
   ruleInfo.blockType = &aBlockType;
-  res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
+  res = kungFuDeathGrip->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   if (cancel || (NS_FAILED(res))) return res;
 
   if (!handled)
@@ -2097,7 +2097,7 @@ nsHTMLEditor::InsertBasicBlock(const nsAString& aBlockType)
     }
   }
 
-  res = mRules->DidDoAction(selection, &ruleInfo, res);
+  res = kungFuDeathGrip->DidDoAction(selection, &ruleInfo, res);
   return res;
 }
 
@@ -2124,7 +2124,7 @@ nsHTMLEditor::Indent(const nsAString& aIndent)
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
 
   nsTextRulesInfo ruleInfo(opID);
-  res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
+  res = kungFuDeathGrip->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   if (cancel || (NS_FAILED(res))) return res;
 
   if (!handled)
@@ -2176,7 +2176,7 @@ nsHTMLEditor::Indent(const nsAString& aIndent)
       }
     }
   }
-  res = mRules->DidDoAction(selection, &ruleInfo, res);
+  res = kungFuDeathGrip->DidDoAction(selection, &ruleInfo, res);
   return res;
 }
 
@@ -2199,11 +2199,11 @@ nsHTMLEditor::Align(const nsAString& aAlignType)
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
   nsTextRulesInfo ruleInfo(EditAction::align);
   ruleInfo.alignType = &aAlignType;
-  nsresult res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
+  nsresult res = kungFuDeathGrip->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   if (cancel || NS_FAILED(res))
     return res;
 
-  res = mRules->DidDoAction(selection, &ruleInfo, res);
+  res = kungFuDeathGrip->DidDoAction(selection, &ruleInfo, res);
   return res;
 }
 
@@ -3196,7 +3196,7 @@ nsHTMLEditor::DoContentInserted(nsIDocument* aDocument, nsIContent* aContainer,
     }
     // Protect the edit rules object from dying
     nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
-    mRules->DocumentModified();
+    kungFuDeathGrip->DocumentModified();
 
     // Update spellcheck for only the newly-inserted node (bug 743819)
     if (mInlineSpellChecker) {
@@ -3238,7 +3238,7 @@ nsHTMLEditor::ContentRemoved(nsIDocument *aDocument, nsIContent* aContainer,
     }
     // Protect the edit rules object from dying
     nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
-    mRules->DocumentModified();
+    kungFuDeathGrip->DocumentModified();
   }
 }
 
@@ -3416,7 +3416,9 @@ nsHTMLEditor::StartOperation(EditAction opID,
   nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
 
   nsEditor::StartOperation(opID, aDirection);  // will set mAction, mDirection
-  if (mRules) return mRules->BeforeEdit(mAction, mDirection);
+  if (kungFuDeathGrip) {
+    return kungFuDeathGrip->BeforeEdit(mAction, mDirection);
+  }
   return NS_OK;
 }
 
@@ -3431,7 +3433,9 @@ nsHTMLEditor::EndOperation()
 
   // post processing
   nsresult res = NS_OK;
-  if (mRules) res = mRules->AfterEdit(mAction, mDirection);
+  if (kungFuDeathGrip) {
+    res = kungFuDeathGrip->AfterEdit(mAction, mDirection);
+  }
   nsEditor::EndOperation();  // will clear mAction, mDirection
   return res;
 }
@@ -3493,7 +3497,7 @@ nsHTMLEditor::SelectEntireDocument(Selection* aSelection)
 
   // is doc empty?
   bool bDocIsEmpty;
-  nsresult res = mRules->DocumentIsEmpty(&bDocIsEmpty);
+  nsresult res = kungFuDeathGrip->DocumentIsEmpty(&bDocIsEmpty);
   NS_ENSURE_SUCCESS(res, res);
 
   if (bDocIsEmpty)
@@ -4533,7 +4537,7 @@ nsHTMLEditor::SetCSSBackgroundColor(const nsAString& aColor)
 
   bool cancel, handled;
   nsTextRulesInfo ruleInfo(EditAction::setTextProperty);
-  nsresult res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
+  nsresult res = kungFuDeathGrip->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(res, res);
   if (!cancel && !handled) {
     // Loop through the ranges in the selection
@@ -4650,7 +4654,7 @@ nsHTMLEditor::SetCSSBackgroundColor(const nsAString& aColor)
   }
   if (!cancel) {
     // Post-process
-    res = mRules->DidDoAction(selection, &ruleInfo, res);
+    res = kungFuDeathGrip->DidDoAction(selection, &ruleInfo, res);
     NS_ENSURE_SUCCESS(res, res);
   }
   return NS_OK;

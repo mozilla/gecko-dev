@@ -24,6 +24,7 @@
 #include "nsNodeInfoManager.h"
 #include "nsUnicharUtils.h"
 #include "nsWrapperCacheInlines.h"
+#include "mozilla/unused.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -309,6 +310,7 @@ nsDOMAttributeMap::SetNamedItemNS(Attr& aAttr, ErrorResult& aError)
     }
 
     NS_ASSERTION(adoptedNode == &aAttr, "Uh, adopt node changed nodes?");
+    mozilla::Unused << adoptedNode;
   }
 
   // Get nodeinfo and preexisting attribute (if it exists)

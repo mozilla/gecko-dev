@@ -1690,7 +1690,7 @@ void
 nsXULElement::Focus(ErrorResult& rv)
 {
     nsIFocusManager* fm = nsFocusManager::GetFocusManager();
-    nsCOMPtr<nsIDOMElement> elem = do_QueryObject(this);
+    RefPtr<nsXULElement> elem = this;
     if (fm) {
         rv = fm->SetFocus(this, 0);
     }

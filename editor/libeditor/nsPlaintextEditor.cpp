@@ -691,7 +691,7 @@ nsPlaintextEditor::DeleteSelection(EDirection aAction,
   ruleInfo.collapsedAction = aAction;
   ruleInfo.stripWrappers = aStripWrappers;
   bool cancel, handled;
-  result = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
+  result = kungFuDeathGrip->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(result, result);
   if (!cancel && !handled)
   {
@@ -700,7 +700,7 @@ nsPlaintextEditor::DeleteSelection(EDirection aAction,
   if (!cancel)
   {
     // post-process
-    result = mRules->DidDoAction(selection, &ruleInfo, result);
+    result = kungFuDeathGrip->DidDoAction(selection, &ruleInfo, result);
   }
 
   return result;
@@ -733,7 +733,7 @@ NS_IMETHODIMP nsPlaintextEditor::InsertText(const nsAString &aStringToInsert)
   ruleInfo.maxLength = mMaxTextLength;
 
   bool cancel, handled;
-  nsresult res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
+  nsresult res = kungFuDeathGrip->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(res, res);
   if (!cancel && !handled)
   {
@@ -742,7 +742,7 @@ NS_IMETHODIMP nsPlaintextEditor::InsertText(const nsAString &aStringToInsert)
   if (!cancel)
   {
     // post-process
-    res = mRules->DidDoAction(selection, &ruleInfo, res);
+    res = kungFuDeathGrip->DidDoAction(selection, &ruleInfo, res);
   }
   return res;
 }
@@ -764,7 +764,7 @@ NS_IMETHODIMP nsPlaintextEditor::InsertLineBreak()
   nsTextRulesInfo ruleInfo(EditAction::insertBreak);
   ruleInfo.maxLength = mMaxTextLength;
   bool cancel, handled;
-  nsresult res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
+  nsresult res = kungFuDeathGrip->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(res, res);
   if (!cancel && !handled)
   {
@@ -817,7 +817,7 @@ NS_IMETHODIMP nsPlaintextEditor::InsertLineBreak()
   if (!cancel)
   {
     // post-process, always called if WillInsertBreak didn't return cancel==true
-    res = mRules->DidDoAction(selection, &ruleInfo, res);
+    res = kungFuDeathGrip->DidDoAction(selection, &ruleInfo, res);
   }
 
   return res;
@@ -834,7 +834,7 @@ nsPlaintextEditor::BeginIMEComposition(WidgetCompositionEvent* aEvent)
     nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
 
     nsTextEditRules *textEditRules =
-      static_cast<nsTextEditRules*>(mRules.get());
+      static_cast<nsTextEditRules*>(kungFuDeathGrip.get());
     textEditRules->ResetIMETextPWBuf();
   }
 
@@ -917,7 +917,7 @@ nsPlaintextEditor::GetDocumentIsEmpty(bool *aDocumentIsEmpty)
   // Protect the edit rules object from dying
   nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
 
-  return mRules->DocumentIsEmpty(aDocumentIsEmpty);
+  return kungFuDeathGrip->DocumentIsEmpty(aDocumentIsEmpty);
 }
 
 NS_IMETHODIMP
@@ -1116,12 +1116,12 @@ nsPlaintextEditor::Undo(uint32_t aCount)
   nsTextRulesInfo ruleInfo(EditAction::undo);
   RefPtr<Selection> selection = GetSelection();
   bool cancel, handled;
-  nsresult result = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
+  nsresult result = kungFuDeathGrip->WillDoAction(selection, &ruleInfo, &cancel, &handled);
 
   if (!cancel && NS_SUCCEEDED(result))
   {
     result = nsEditor::Undo(aCount);
-    result = mRules->DidDoAction(selection, &ruleInfo, result);
+    result = kungFuDeathGrip->DidDoAction(selection, &ruleInfo, result);
   }
 
   NotifyEditorObservers(eNotifyEditorObserversOfEnd);
@@ -1145,12 +1145,12 @@ nsPlaintextEditor::Redo(uint32_t aCount)
   nsTextRulesInfo ruleInfo(EditAction::redo);
   RefPtr<Selection> selection = GetSelection();
   bool cancel, handled;
-  nsresult result = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
+  nsresult result = kungFuDeathGrip->WillDoAction(selection, &ruleInfo, &cancel, &handled);
 
   if (!cancel && NS_SUCCEEDED(result))
   {
     result = nsEditor::Redo(aCount);
-    result = mRules->DidDoAction(selection, &ruleInfo, result);
+    result = kungFuDeathGrip->DidDoAction(selection, &ruleInfo, result);
   }
 
   NotifyEditorObservers(eNotifyEditorObserversOfEnd);
@@ -1314,7 +1314,7 @@ nsPlaintextEditor::OutputToString(const nsAString& aFormatType,
   nsAutoString str(aFormatType);
   ruleInfo.outputFormat = &str;
   bool cancel, handled;
-  nsresult rv = mRules->WillDoAction(nullptr, &ruleInfo, &cancel, &handled);
+  nsresult rv = kungFuDeathGrip->WillDoAction(nullptr, &ruleInfo, &cancel, &handled);
   if (cancel || NS_FAILED(rv)) { return rv; }
   if (handled)
   { // this case will get triggered by password fields
@@ -1443,7 +1443,7 @@ nsPlaintextEditor::InsertAsQuotation(const nsAString& aQuotedText,
   // give rules a chance to handle or cancel
   nsTextRulesInfo ruleInfo(EditAction::insertElement);
   bool cancel, handled;
-  rv = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
+  rv = kungFuDeathGrip->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(rv, rv);
   if (cancel) return NS_OK; // rules canceled the operation
   if (!handled)
@@ -1563,7 +1563,9 @@ nsPlaintextEditor::StartOperation(EditAction opID,
   nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
 
   nsEditor::StartOperation(opID, aDirection);  // will set mAction, mDirection
-  if (mRules) return mRules->BeforeEdit(mAction, mDirection);
+  if (kungFuDeathGrip) {
+    return kungFuDeathGrip->BeforeEdit(mAction, mDirection);
+  }
   return NS_OK;
 }
 
@@ -1578,7 +1580,9 @@ nsPlaintextEditor::EndOperation()
 
   // post processing
   nsresult res = NS_OK;
-  if (mRules) res = mRules->AfterEdit(mAction, mDirection);
+  if (kungFuDeathGrip) {
+    res = kungFuDeathGrip->AfterEdit(mAction, mDirection);
+  }
   nsEditor::EndOperation();  // will clear mAction, mDirection
   return res;
 }
@@ -1594,7 +1598,7 @@ nsPlaintextEditor::SelectEntireDocument(Selection* aSelection)
 
   // is doc empty?
   bool bDocIsEmpty;
-  if (NS_SUCCEEDED(mRules->DocumentIsEmpty(&bDocIsEmpty)) && bDocIsEmpty)
+  if (NS_SUCCEEDED(kungFuDeathGrip->DocumentIsEmpty(&bDocIsEmpty)) && bDocIsEmpty)
   {
     // get root node
     nsCOMPtr<nsIDOMElement> rootElement = do_QueryInterface(GetRoot());

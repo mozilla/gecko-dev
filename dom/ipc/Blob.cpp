@@ -1718,7 +1718,7 @@ private:
 
     mClosing = true;
 
-    nsresult rv = mIOTarget->Dispatch(this, NS_DISPATCH_NORMAL);
+    nsresult rv = kungFuDeathGrip->Dispatch(this, NS_DISPATCH_NORMAL);
     NS_ENSURE_SUCCESS(rv, rv);
 
     return NS_OK;

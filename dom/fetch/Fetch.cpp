@@ -33,6 +33,7 @@
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/URLSearchParams.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/unused.h"
 
 #include "InternalRequest.h"
 #include "InternalResponse.h"
@@ -954,6 +955,11 @@ FetchBody<Derived>::ContinueConsumeBody(nsresult aStatus, uint32_t aResultLength
   RefPtr<Promise> localPromise = mConsumePromise.forget();
 
   RefPtr<Derived> kungfuDeathGrip = DerivedClass();
+  Unused << kungfuDeathGrip;
+  // The kungfuDeathGrip keeps alive the `this` object itself. As the `this`
+  // pointer is not mutable, so we don't have to worry about someone reading a
+  // new value which isn't guarded by this kungfuDeathGrip later in this
+  // function.
   ReleaseObject();
 
   if (NS_WARN_IF(NS_FAILED(aStatus))) {

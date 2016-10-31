@@ -386,12 +386,12 @@ nsSplitterFrame::HandleEvent(nsPresContext* aPresContext,
   RefPtr<nsSplitterFrameInner> kungFuDeathGrip(mInner);
   switch (aEvent->mMessage) {
     case eMouseMove: 
-      mInner->MouseDrag(aPresContext, aEvent);
+      kungFuDeathGrip->MouseDrag(aPresContext, aEvent);
       break;
   
     case eMouseUp:
       if (aEvent->AsMouseEvent()->button == WidgetMouseEvent::eLeftButton) {
-        mInner->MouseUp(aPresContext, aEvent);
+        kungFuDeathGrip->MouseUp(aPresContext, aEvent);
       }
       break;
 

@@ -422,7 +422,7 @@ nsSMILAnimationController::DoSample(bool aSkipUnchangedContainers)
   }
 
   nsCOMPtr<nsIDocument> kungFuDeathGrip(mDocument);  // keeps 'this' alive too
-  mDocument->FlushPendingNotifications(Flush_Style);
+  kungFuDeathGrip->FlushPendingNotifications(Flush_Style);
 
   // WARNING: 
   // WARNING: the above flush may have destroyed the pres shell and/or

@@ -59,6 +59,7 @@
 #include "nsIWebSocketListener.h"
 #include "nsProxyRelease.h"
 #include "nsWeakReference.h"
+#include "mozilla/unused.h"
 
 using namespace mozilla::net;
 using namespace mozilla::dom::workers;
@@ -1248,12 +1249,12 @@ WebSocket::Constructor(const GlobalObject& aGlobal,
   bool connectionFailed = true;
 
   if (NS_IsMainThread()) {
-    webSocket->mImpl->Init(aGlobal.Context(), principal, aUrl, protocolArray,
+    kungfuDeathGrip->Init(aGlobal.Context(), principal, aUrl, protocolArray,
                            EmptyCString(), 0, 0, aRv, &connectionFailed);
   } else {
     // In workers we have to keep the worker alive using a feature in order to
     // dispatch messages correctly.
-    if (!webSocket->mImpl->RegisterFeature()) {
+    if (!kungfuDeathGrip->RegisterFeature()) {
       aRv.Throw(NS_ERROR_FAILURE);
       return nullptr;
     }
@@ -1266,7 +1267,7 @@ WebSocket::Constructor(const GlobalObject& aGlobal,
     }
 
     RefPtr<InitRunnable> runnable =
-      new InitRunnable(webSocket->mImpl, aUrl, protocolArray,
+      new InitRunnable(kungfuDeathGrip, aUrl, protocolArray,
                        nsAutoCString(file.get()), lineno, column, aRv,
                        &connectionFailed);
     runnable->Dispatch(aRv);
@@ -1286,12 +1287,12 @@ WebSocket::Constructor(const GlobalObject& aGlobal,
   // We don't return an error if the connection just failed. Instead we dispatch
   // an event.
   if (connectionFailed) {
-    webSocket->mImpl->FailConnection(nsIWebSocketChannel::CLOSE_ABNORMAL);
+    kungfuDeathGrip->FailConnection(nsIWebSocketChannel::CLOSE_ABNORMAL);
   }
 
   // If we don't have a channel, the connection is failed and onerror() will be
   // called asynchrounsly.
-  if (!webSocket->mImpl->mChannel) {
+  if (!kungfuDeathGrip->mChannel) {
     return webSocket.forget();
   }
 
@@ -1321,11 +1322,11 @@ WebSocket::Constructor(const GlobalObject& aGlobal,
     bool mDone;
   };
 
-  ClearWebSocket cws(webSocket->mImpl);
+  ClearWebSocket cws(kungfuDeathGrip);
 
   // This operation must be done on the correct thread. The rest must run on the
   // main-thread.
-  aRv = webSocket->mImpl->mChannel->SetNotificationCallbacks(webSocket->mImpl);
+  aRv = kungfuDeathGrip->mChannel->SetNotificationCallbacks(kungfuDeathGrip);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }
@@ -1345,10 +1346,10 @@ WebSocket::Constructor(const GlobalObject& aGlobal,
       windowID = topWindow->WindowID();
     }
 
-    webSocket->mImpl->AsyncOpen(principal, windowID, aRv);
+    kungfuDeathGrip->AsyncOpen(principal, windowID, aRv);
   } else {
     RefPtr<AsyncOpenRunnable> runnable =
-      new AsyncOpenRunnable(webSocket->mImpl, aRv);
+      new AsyncOpenRunnable(kungfuDeathGrip, aRv);
     runnable->Dispatch(aRv);
   }
 
@@ -1364,10 +1365,10 @@ WebSocket::Constructor(const GlobalObject& aGlobal,
   }
 
   // Let's inform devtools about this new active WebSocket.
-  webSocket->mImpl->mService->WebSocketCreated(webSocket->mImpl->mChannel->Serial(),
-                                               webSocket->mImpl->mInnerWindowID,
-                                               webSocket->mURI,
-                                               webSocket->mImpl->mRequestedProtocolList);
+  kungfuDeathGrip->mService->WebSocketCreated(kungfuDeathGrip->mChannel->Serial(),
+                                              kungfuDeathGrip->mInnerWindowID,
+                                              webSocket->mURI,
+                                              kungfuDeathGrip->mRequestedProtocolList);
 
   cws.Done();
   return webSocket.forget();

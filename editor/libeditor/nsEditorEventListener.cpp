@@ -58,6 +58,7 @@
 #include "nsContentUtils.h"             // for nsContentUtils, etc
 #include "nsIBidiKeyboard.h"            // for nsIBidiKeyboard
 #endif
+#include "mozilla/unused.h"
 
 #include "mozilla/dom/TabParent.h"
 
@@ -356,6 +357,7 @@ nsEditorEventListener::HandleEvent(nsIDOMEvent* aEvent)
   NS_ENSURE_TRUE(mEditor, NS_ERROR_FAILURE);
 
   nsCOMPtr<nsIEditor> kungFuDeathGrip = mEditor;
+  mozilla::Unused << kungFuDeathGrip;
 
   WidgetEvent* internalEvent = aEvent->GetInternalNSEvent();
 

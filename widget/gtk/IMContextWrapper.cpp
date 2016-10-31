@@ -15,6 +15,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/TextEvents.h"
 #include "WritingModes.h"
+#include "mozilla/unused.h"
 
 namespace mozilla {
 namespace widget {
@@ -1359,19 +1360,22 @@ IMContextWrapper::DispatchCompositionChangeEvent(
         return false;
     }
 
+    // This keeps mLastFocusedWindow alive during DispatchCompositionStart() as
+    // well as for the lifetime of the call. Make sure not to move it after the
+    // !IsComposing block.
+    RefPtr<nsWindow> lastFocusedWindow = mLastFocusedWindow;
+
     if (!IsComposing()) {
         MOZ_LOG(gGtkIMLog, LogLevel::Debug,
             ("GTKIM: %p   DispatchCompositionChangeEvent(), the composition "
              "wasn't started, force starting...",
              this));
-        nsCOMPtr<nsIWidget> kungFuDeathGrip = mLastFocusedWindow;
         if (!DispatchCompositionStart(aContext)) {
             return false;
         }
     }
 
     nsEventStatus status;
-    RefPtr<nsWindow> lastFocusedWindow = mLastFocusedWindow;
 
     // Store the selected string which will be removed by following
     // compositionchange event.
@@ -1386,7 +1390,7 @@ IMContextWrapper::DispatchCompositionChangeEvent(
     }
 
     WidgetCompositionEvent compositionChangeEvent(true, eCompositionChange,
-                                                  mLastFocusedWindow);
+                                                  lastFocusedWindow);
     InitEvent(compositionChangeEvent);
 
     uint32_t targetOffset = mCompositionStart;
@@ -1408,7 +1412,7 @@ IMContextWrapper::DispatchCompositionChangeEvent(
     mCompositionTargetRange.mLength =
         compositionChangeEvent.TargetClauseLength();
 
-    mLastFocusedWindow->DispatchEvent(&compositionChangeEvent, status);
+    lastFocusedWindow->DispatchEvent(&compositionChangeEvent, status);
     if (lastFocusedWindow->IsDestroyed() ||
         lastFocusedWindow != mLastFocusedWindow) {
         MOZ_LOG(gGtkIMLog, LogLevel::Error,
@@ -1453,6 +1457,7 @@ IMContextWrapper::DispatchCompositionCommitEvent(
              "the composition wasn't started, force starting...",
              this));
         nsCOMPtr<nsIWidget> kungFuDeathGrip(mLastFocusedWindow);
+        mozilla::Unused << kungFuDeathGrip;
         if (!DispatchCompositionStart(aContext)) {
             return false;
         }

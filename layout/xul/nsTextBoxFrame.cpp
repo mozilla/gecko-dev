@@ -524,7 +524,7 @@ nsTextBoxFrame::DrawText(nsRenderingContext& aRenderingContext,
 
     nscolor c = aOverrideColor ? *aOverrideColor : StyleColor()->mColor;
     ColorPattern color(ToDeviceColor(c));
-    aRenderingContext.ThebesContext()->SetColor(Color::FromABGR(c));
+    ctx->SetColor(Color::FromABGR(c));
 
     nsresult rv = NS_ERROR_FAILURE;
 

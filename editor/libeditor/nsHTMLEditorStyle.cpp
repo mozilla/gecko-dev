@@ -135,7 +135,7 @@ nsHTMLEditor::SetInlineProperty(nsIAtom* aProperty,
   bool cancel, handled;
   nsTextRulesInfo ruleInfo(EditAction::setTextProperty);
   // Protect the edit rules object from dying
-  nsresult res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
+  nsresult res = kungFuDeathGrip->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(res, res);
   if (!cancel && !handled) {
     // Loop through the ranges in the selection
@@ -219,7 +219,7 @@ nsHTMLEditor::SetInlineProperty(nsIAtom* aProperty,
   }
   if (!cancel) {
     // Post-process
-    return mRules->DidDoAction(selection, &ruleInfo, res);
+    return kungFuDeathGrip->DidDoAction(selection, &ruleInfo, res);
   }
   return NS_OK;
 }
@@ -1315,7 +1315,7 @@ nsHTMLEditor::RemoveInlinePropertyImpl(nsIAtom* aProperty,
   nsTextRulesInfo ruleInfo(EditAction::removeTextProperty);
   // Protect the edit rules object from dying
   nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
-  nsresult res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
+  nsresult res = kungFuDeathGrip->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(res, res);
   if (!cancel && !handled) {
     // Loop through the ranges in the selection
@@ -1406,7 +1406,7 @@ nsHTMLEditor::RemoveInlinePropertyImpl(nsIAtom* aProperty,
   }
   if (!cancel) {
     // Post-process
-    res = mRules->DidDoAction(selection, &ruleInfo, res);
+    res = kungFuDeathGrip->DidDoAction(selection, &ruleInfo, res);
     NS_ENSURE_SUCCESS(res, res);
   }
   return NS_OK;

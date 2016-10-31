@@ -91,6 +91,8 @@ using mozilla::DefaultXDisplay;
 #include "mozilla/dom/TabChild.h"
 #include "ClientLayerManager.h"
 
+#include "mozilla/unused.h"
+
 #ifdef CreateEvent // Thank you MS.
 #undef CreateEvent
 #endif
@@ -322,6 +324,8 @@ nsPluginFrame::PrepForDrawing(nsIWidget *aWidget)
     parentWidget->ConfigureChildren(configurations);
 
     RefPtr<nsDeviceContext> dx = viewMan->GetDeviceContext();
+    Unused << dx;
+
     mInnerView->AttachWidgetEventHandler(mWidget);
 
 #ifdef XP_MACOSX

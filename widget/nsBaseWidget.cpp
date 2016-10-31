@@ -44,7 +44,6 @@
 #include "mozilla/gfx/2D.h"
 #include "mozilla/MouseEvents.h"
 #include "GLConsts.h"
-#include "mozilla/unused.h"
 #include "mozilla/IMEStateManager.h"
 #include "mozilla/VsyncDispatcher.h"
 #include "mozilla/layers/APZCTreeManager.h"
@@ -207,8 +206,8 @@ WidgetShutdownObserver::Observe(nsISupports *aSubject,
                                 const char16_t *aData)
 {
   if (mWidget && !strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID)) {
-    nsCOMPtr<nsIWidget> kungFuDeathGrip(mWidget);
-    mWidget->Shutdown();
+    RefPtr<nsBaseWidget> kungFuDeathGrip(mWidget);
+    kungFuDeathGrip->Shutdown();
   }
   return NS_OK;
 }
@@ -252,7 +251,8 @@ void nsBaseWidget::DestroyCompositor()
     // ClientLayerManager destructor. See bug 1133426.
     RefPtr<CompositorChild> compositorChild = mCompositorChild;
     RefPtr<CompositorParent> compositorParent = mCompositorParent;
-    mCompositorChild->Destroy();
+    mozilla::Unused << compositorParent;
+    compositorChild->Destroy();
   }
 
   // Can have base widgets that are things like tooltips

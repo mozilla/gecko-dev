@@ -50,6 +50,7 @@
 #include "Classifier.h"
 #include "ProtocolParser.h"
 #include "nsContentUtils.h"
+#include "mozilla/unused.h"
 
 using namespace mozilla;
 using namespace mozilla::safebrowsing;
@@ -1582,6 +1583,7 @@ nsUrlClassifierDBService::Observe(nsISupports *aSubject, const char *aTopic,
   if (!strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID)) {
     nsresult rv;
     nsCOMPtr<nsIPrefBranch> prefs(do_QueryInterface(aSubject, &rv));
+    mozilla::Unused << prefs;
     NS_ENSURE_SUCCESS(rv, rv);
     if (NS_LITERAL_STRING(CHECK_MALWARE_PREF).Equals(aData)) {
       mCheckMalware = Preferences::GetBool(CHECK_MALWARE_PREF,

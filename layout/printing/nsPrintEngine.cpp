@@ -123,6 +123,7 @@ static const char kPrintingPromptService[] = "@mozilla.org/embedcomp/printingpro
 #include "nsIChannel.h"
 #include "xpcpublic.h"
 #include "nsVariant.h"
+#include "mozilla/unused.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -1844,6 +1845,7 @@ nsPrintEngine::OnStateChange(nsIWebProgress* aWebProgress,
   }
   if (aStateFlags & STATE_START) {
     nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
+    mozilla::Unused << channel;
 
     ++mLoadCounter;
   } else if (aStateFlags & STATE_STOP) {

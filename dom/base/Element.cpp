@@ -75,6 +75,7 @@
 #ifdef DEBUG
 #include "nsRange.h"
 #endif
+#include "mozilla/unused.h"
 
 #include "nsBindingManager.h"
 #include "nsXBLBinding.h"
@@ -3233,6 +3234,7 @@ static const char*
 GetFullScreenError(nsIDocument* aDoc)
 {
   nsCOMPtr<nsPIDOMWindow> win = aDoc->GetWindow();
+  mozilla::Unused << win;
   if (aDoc->NodePrincipal()->GetAppStatus() >= nsIPrincipal::APP_STATUS_INSTALLED) {
     // Request is in a web app and in the same origin as the web app.
     // Don't enforce as strict security checks for web apps, the user

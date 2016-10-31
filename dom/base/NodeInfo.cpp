@@ -15,6 +15,7 @@
 
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Likely.h"
+#include "mozilla/unused.h"
 
 #include "nsNodeInfoManager.h"
 #include "nsCOMPtr.h"
@@ -207,6 +208,7 @@ void
 NodeInfo::DeleteCycleCollectable()
 {
   RefPtr<nsNodeInfoManager> kungFuDeathGrip = mOwnerManager;
+  Unused << kungFuDeathGrip;
   delete this;
 }
 

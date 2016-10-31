@@ -14,6 +14,7 @@
 #include "nsIDocShellTreeItem.h"
 #include "nsIBaseWindow.h"
 #include "nsIDocument.h"
+#include "mozilla/unused.h"
 
 //---------------------------------------------------
 //-- nsPrintObject Class Impl
@@ -68,6 +69,7 @@ nsPrintObject::Init(nsIDocShell* aDocShell, nsIDOMDocument* aDoc,
   NS_ENSURE_TRUE(mDocShell, NS_ERROR_FAILURE);
 
   nsCOMPtr<nsIDOMDocument> dummy = do_GetInterface(mDocShell);
+  mozilla::Unused << dummy;
   nsCOMPtr<nsIContentViewer> viewer;
   mDocShell->GetContentViewer(getter_AddRefs(viewer));
   NS_ENSURE_STATE(viewer);

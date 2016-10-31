@@ -22995,9 +22995,11 @@ CreateIndexOp::InsertDataFromObjectStoreInternal(
   MOZ_ASSERT(!IndexedDatabaseManager::InLowDiskSpaceMode());
   MOZ_ASSERT(mMaybeUniqueIndexTable);
 
+#ifdef DEBUG
   nsCOMPtr<mozIStorageConnection> storageConnection =
     aConnection->GetStorageConnection();
   MOZ_ASSERT(storageConnection);
+#endif
 
   DatabaseConnection::CachedStatement stmt;
   nsresult rv = aConnection->GetCachedStatement(NS_LITERAL_CSTRING(

@@ -40,6 +40,7 @@
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/Services.h"
+#include "mozilla/unused.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -1435,7 +1436,9 @@ nsXULPopupManager::FirePopupHidingEvent(nsIContent* aPopup,
                                         bool aDeselectMenu,
                                         bool aIsCancel)
 {
+#ifndef MOZ_WIDGET_GTK
   nsCOMPtr<nsIPresShell> presShell = aPresContext->PresShell();
+#endif
 
   nsEventStatus status = nsEventStatus_eIgnore;
   WidgetMouseEvent event(true, eXULPopupHiding, nullptr,
@@ -2665,6 +2668,7 @@ nsXULMenuCommandEvent::Run()
     nsPresContext* presContext = menuFrame->PresContext();
     nsCOMPtr<nsIPresShell> shell = presContext->PresShell();
     RefPtr<nsViewManager> kungFuDeathGrip = shell->GetViewManager();
+    Unused << kungFuDeathGrip;
 
     // Deselect ourselves.
     if (mCloseMenuMode != CloseMenuMode_None)

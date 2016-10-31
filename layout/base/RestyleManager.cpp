@@ -44,6 +44,7 @@
 #include "nsSMILAnimationController.h"
 #include "nsCSSRuleProcessor.h"
 #include "ChildIterator.h"
+#include "mozilla/unused.h"
 
 #ifdef ACCESSIBILITY
 #include "nsAccessibilityService.h"
@@ -1288,7 +1289,7 @@ RestyleManager::AttributeChanged(Element* aElement,
   if (aAttribute == nsGkAtoms::tooltiptext ||
       aAttribute == nsGkAtoms::tooltip)
   {
-    nsIRootBox* rootBox = nsIRootBox::GetRootBox(mPresContext->GetPresShell());
+    nsIRootBox* rootBox = nsIRootBox::GetRootBox(shell);
     if (rootBox) {
       if (aModType == nsIDOMMutationEvent::REMOVAL)
         rootBox->RemoveTooltipSupport(aElement);
@@ -1637,6 +1638,7 @@ RestyleManager::RebuildAllStyleData(nsChangeHint aExtraHint,
 
   // Make sure that the viewmanager will outlive the presshell
   RefPtr<nsViewManager> vm = presShell->GetViewManager();
+  Unused << vm;
 
   // We may reconstruct frames below and hence process anything that is in the
   // tree. We don't want to get notified to process those items again after.

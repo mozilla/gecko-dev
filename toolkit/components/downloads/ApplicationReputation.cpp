@@ -49,6 +49,7 @@
 #include "nsIContentPolicy.h"
 #include "nsILoadInfo.h"
 #include "nsContentUtils.h"
+#include "mozilla/unused.h"
 
 using mozilla::BasePrincipal;
 using mozilla::PrincipalOriginAttributes;
@@ -960,6 +961,7 @@ PendingLookup::SendRemoteQueryInternal()
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(mChannel, &rv));
+  mozilla::Unused << httpChannel;
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Upload the protobuf to the application reputation service.

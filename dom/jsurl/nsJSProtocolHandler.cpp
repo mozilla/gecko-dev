@@ -53,6 +53,7 @@
 #include "nsContentSecurityManager.h"
 
 #include "mozilla/ipc/URIUtils.h"
+#include "mozilla/unused.h"
 
 using mozilla::dom::AutoEntryScript;
 
@@ -218,6 +219,7 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
     nsCOMPtr<nsIScriptGlobalObject> innerGlobal = do_QueryInterface(innerWin);
 
     nsCOMPtr<nsIDOMWindow> domWindow(do_QueryInterface(global, &rv));
+    mozilla::Unused << domWindow; // This validates that global has the interface nsIDOMWindow
     if (NS_FAILED(rv)) {
         return NS_ERROR_FAILURE;
     }

@@ -73,11 +73,11 @@ nsHTMLEditor::AbsolutePositionSelection(bool aEnabled)
   bool cancel, handled;
   // Protect the edit rules object from dying
   nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
-  nsresult res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
+  nsresult res = kungFuDeathGrip->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   if (NS_FAILED(res) || cancel)
     return res;
 
-  return mRules->DidDoAction(selection, &ruleInfo, res);
+  return kungFuDeathGrip->DidDoAction(selection, &ruleInfo, res);
 }
 
 NS_IMETHODIMP
@@ -181,7 +181,7 @@ nsHTMLEditor::RelativeChangeZIndex(int32_t aChange)
   bool cancel, handled;
   // Protect the edit rules object from dying
   nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
-  nsresult res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
+  nsresult res = kungFuDeathGrip->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   if (cancel || NS_FAILED(res))
     return res;
 

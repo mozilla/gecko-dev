@@ -382,7 +382,7 @@ nsNPAPIPluginInstance::GetDOMWindow()
   RefPtr<nsPluginInstanceOwner> deathGrip(mOwner);
 
   nsCOMPtr<nsIDocument> doc;
-  mOwner->GetDocument(getter_AddRefs(doc));
+  deathGrip->GetDocument(getter_AddRefs(doc));
   if (!doc)
     return nullptr;
 
@@ -1582,7 +1582,7 @@ nsNPAPIPluginInstance::GetJSContext(JSContext* *outContext)
   *outContext = nullptr;
   nsCOMPtr<nsIDocument> document;
 
-  nsresult rv = mOwner->GetDocument(getter_AddRefs(document));
+  nsresult rv = deathGrip->GetDocument(getter_AddRefs(document));
 
   if (NS_SUCCEEDED(rv) && document) {
     nsCOMPtr<nsIScriptGlobalObject> global =
