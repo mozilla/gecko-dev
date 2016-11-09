@@ -7080,7 +7080,7 @@ void nsWindow::GetCompositorWidgetInitData(mozilla::widget::CompositorWidgetInit
   } else {
     *aInitData = mozilla::widget::CompositorWidgetInitData(
                                   (uintptr_t)mWaylandSurface,
-                                  nullptr,
+                                  nsCString(nullptr),
                                   GetClientSize());
   }
   #endif
