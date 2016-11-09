@@ -50,7 +50,7 @@ nsScreenGtk :: GetRect(int32_t *outLeft, int32_t *outTop, int32_t *outWidth, int
   *outHeight = mRect.height;
 
   return NS_OK;
-  
+
 } // GetRect
 
 
@@ -63,7 +63,7 @@ nsScreenGtk :: GetAvailRect(int32_t *outLeft, int32_t *outTop, int32_t *outWidth
   *outHeight = mAvailRect.height;
 
   return NS_OK;
-  
+
 } // GetAvailRect
 
 gint
@@ -93,7 +93,7 @@ nsScreenGtk :: GetDPIScale()
   return dpiScale;
 }
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsScreenGtk :: GetPixelDepth(int32_t *aPixelDepth)
 {
   GdkVisual * visual = gdk_screen_get_system_visual(gdk_screen_get_default());
@@ -103,7 +103,7 @@ nsScreenGtk :: GetPixelDepth(int32_t *aPixelDepth)
 
 } // GetPixelDepth
 
-NS_IMETHODIMP 
+NS_IMETHODIMP
 nsScreenGtk :: GetColorDepth(int32_t *aColorDepth)
 {
   return GetPixelDepth ( aColorDepth );
@@ -129,6 +129,8 @@ nsScreenGtk :: Init (GdkWindow *aRootWindow)
   // on the default screen to do this, except that doesn't work with
   // versions of GDK predating the GdkScreen object.  See bug 256646.
   mAvailRect = mRect = nsIntRect(0, 0, width, height);
+
+  return;
 
 #ifdef MOZ_X11
   // We need to account for the taskbar, etc in the available rect.

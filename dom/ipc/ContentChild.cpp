@@ -522,6 +522,44 @@ NS_INTERFACE_MAP_BEGIN(ContentChild)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIContentChild)
 NS_INTERFACE_MAP_END
 
+#ifdef MOZ_WIDGET_GTK
+// We need to keep in sync whith the same detection routine at nsAppRunner.cpp
+static char* detectDisplay(void)
+{
+  bool tryX11 = false;
+  bool tryWayland = false;
+  bool tryBroadway = false;
+
+  // Honor user backend selection
+  char *backend = PR_GetEnv("GDK_BACKEND");
+  if (!backend || strstr(backend, "*")) {
+    // Try all backends
+    tryX11 = true;
+    tryWayland = true;
+    tryBroadway = true;
+  } else if (backend) {
+    if (strstr(backend, "x11"))
+      tryX11 = true;
+    if (strstr(backend, "wayland"))
+      tryWayland = true;
+    if (strstr(backend, "broadway"))
+      tryBroadway = true;
+  }
+
+  char *display_name;
+  if (tryX11 && (display_name = PR_GetEnv("DISPLAY"))) {
+    return display_name;
+  } else if (tryWayland && (display_name = PR_GetEnv("WAYLAND_DISPLAY"))) {
+    return display_name;
+  } else if (tryBroadway && (display_name = PR_GetEnv("BROADWAY_DISPLAY"))) {
+    return display_name;
+  }
+
+  PR_fprintf(PR_STDERR, "Error: GDK_BACKEND does not match available displays\n");
+  return nullptr;
+}
+#endif
+
 bool
 ContentChild::Init(MessageLoop* aIOLoop,
                    base::ProcessId aParentPid,
@@ -533,7 +571,7 @@ ContentChild::Init(MessageLoop* aIOLoop,
   // to use, and when starting under XWayland, it may choose to start with
   // the wayland backend instead of the x11 backend.
   // The DISPLAY environment variable is normally set by the parent process.
-  char* display_name = PR_GetEnv("DISPLAY");
+  char* display_name = detectDisplay();
   if (display_name) {
     int argc = 3;
     char option_name[] = "--display";

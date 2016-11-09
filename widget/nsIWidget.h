@@ -132,6 +132,8 @@ typedef void* nsNativeWidget;
 #define NS_NATIVE_PLUGIN_OBJECT_PTR    104
 #ifdef MOZ_X11
 #define NS_NATIVE_COMPOSITOR_DISPLAY   105
+// Return true the compositor display is X11
+#define NS_NATIVE_COMPOSITOR_DISPLAY_X11 106
 #endif // MOZ_X11
 #endif
 #ifdef MOZ_WIDGET_ANDROID

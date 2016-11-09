@@ -67,6 +67,8 @@ HasExtension(const char* aExtensions, const char* aRequiredExtension)
 bool
 GLXLibrary::EnsureInitialized()
 {
+    return false;
+
     if (mInitialized) {
         return true;
     }

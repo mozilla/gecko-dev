@@ -11,6 +11,7 @@
 #include "WindowSurfaceX11Image.h"
 #include "WindowSurfaceX11SHM.h"
 #include "WindowSurfaceXRender.h"
+#include "WindowSurfaceWayland.h"
 
 namespace mozilla {
 namespace widget {
@@ -19,11 +20,14 @@ using namespace mozilla::gfx;
 using namespace mozilla::layers;
 
 WindowSurfaceProvider::WindowSurfaceProvider()
-    : mXDisplay(nullptr)
+    : mIsX11Display(false)
+    , mXDisplay(nullptr)
     , mXWindow(0)
     , mXVisual(nullptr)
     , mXDepth(0)
     , mWindowSurface(nullptr)
+    , mWaylandDisplay(nullptr)
+    , mWaylandSurface(nullptr)
 {
 }
 
@@ -43,7 +47,21 @@ void WindowSurfaceProvider::Initialize(
   mXWindow = aWindow;
   mXVisual = aVisual;
   mXDepth = aDepth;
+  mIsX11Display = true;
 }
+
+void WindowSurfaceProvider::Initialize(
+      wl_display *aWaylandDisplay,
+      wl_surface *aWaylandSurface)
+{
+  // We should not be initialized
+  MOZ_ASSERT(!mWaylandSurface);
+
+  mWaylandDisplay = aWaylandDisplay;
+  mWaylandSurface = aWaylandSurface;
+  mIsX11Display = false;
+}
+
 void WindowSurfaceProvider::CleanupResources()
 {
   mWindowSurface = nullptr;
@@ -52,30 +70,36 @@ void WindowSurfaceProvider::CleanupResources()
 UniquePtr<WindowSurface>
 WindowSurfaceProvider::CreateWindowSurface()
 {
-  // We should be initialized
-  MOZ_ASSERT(mXDisplay);
+  if (mIsX11Display) {
+    // We should be initialized
+    MOZ_ASSERT(mXDisplay);
 
-  // Blit to the window with the following priority:
-  // 1. XRender (iff XRender is enabled && we are in-process)
-  // 2. MIT-SHM
-  // 3. XPutImage
+    // Blit to the window with the following priority:
+    // 1. XRender (iff XRender is enabled && we are in-process)
+    // 2. MIT-SHM
+    // 3. XPutImage
 
 #ifdef MOZ_WIDGET_GTK
-  if (gfxVars::UseXRender()) {
-    LOGDRAW(("Drawing to nsWindow %p using XRender\n", (void*)this));
-    return MakeUnique<WindowSurfaceXRender>(mXDisplay, mXWindow, mXVisual, mXDepth);
-  }
+    if (gfxVars::UseXRender()) {
+      LOGDRAW(("Drawing to nsWindow %p using XRender\n", (void*)this));
+      return MakeUnique<WindowSurfaceXRender>(mXDisplay, mXWindow, mXVisual, mXDepth);
+    }
 #endif // MOZ_WIDGET_GTK
 
 #ifdef MOZ_HAVE_SHMIMAGE
-  if (nsShmImage::UseShm()) {
-    LOGDRAW(("Drawing to nsWindow %p using MIT-SHM\n", (void*)this));
-    return MakeUnique<WindowSurfaceX11SHM>(mXDisplay, mXWindow, mXVisual, mXDepth);
-  }
+    if (nsShmImage::UseShm()) {
+      LOGDRAW(("Drawing to nsWindow %p using MIT-SHM\n", (void*)this));
+      return MakeUnique<WindowSurfaceX11SHM>(mXDisplay, mXWindow, mXVisual, mXDepth);
+    }
 #endif // MOZ_HAVE_SHMIMAGE
 
-  LOGDRAW(("Drawing to nsWindow %p using XPutImage\n", (void*)this));
-  return MakeUnique<WindowSurfaceX11Image>(mXDisplay, mXWindow, mXVisual, mXDepth);
+    LOGDRAW(("Drawing to nsWindow %p using XPutImage\n", (void*)this));
+    return MakeUnique<WindowSurfaceX11Image>(mXDisplay, mXWindow, mXVisual, mXDepth);
+  } else {
+    MOZ_ASSERT(mWaylandDisplay);
+    LOGDRAW(("Drawing to nsWindow %p using wl_surface\n", (void*)this));
+    return MakeUnique<WindowSurfaceWayland>(mWaylandDisplay, mWaylandSurface);
+  }
 }
 
 already_AddRefed<gfx::DrawTarget>
@@ -93,7 +117,7 @@ WindowSurfaceProvider::StartRemoteDrawingInRegion(LayoutDeviceIntRegion& aInvali
 
   *aBufferMode = BufferMode::BUFFER_NONE;
   RefPtr<DrawTarget> dt = nullptr;
-  if (!(dt = mWindowSurface->Lock(aInvalidRegion))) {
+  if (!(dt = mWindowSurface->Lock(aInvalidRegion)) && mIsX11Display) {
     gfxWarningOnce() << "Failed to lock WindowSurface, falling back to XPutImage backend.";
     mWindowSurface = MakeUnique<WindowSurfaceX11Image>(mXDisplay, mXWindow, mXVisual, mXDepth);
   }

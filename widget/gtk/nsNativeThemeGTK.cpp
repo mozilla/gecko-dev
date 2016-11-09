@@ -1220,7 +1220,11 @@ nsNativeThemeGTK::DrawWidgetBackground(nsRenderingContext* aContext,
 #endif
 
   if (!safeState) {
-    gdk_flush();
+    // gdk_flush() call from expose event crashes Gtk+ on Wayland
+    // (Gnome BZ #773307)
+    if (GDK_IS_X11_DISPLAY(gdk_display_get_default())) {
+      gdk_flush();
+    }
     gLastGdkError = gdk_error_trap_pop ();
 
     if (gLastGdkError) {

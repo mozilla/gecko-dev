@@ -55,6 +55,10 @@
 
 #endif /* MOZ_X11 */
 
+#if defined(GDK_WINDOWING_WAYLAND)
+#include <gdk/gdkwayland.h>
+#endif
+
 #include <fontconfig/fontconfig.h>
 
 #include "nsMathUtils.h"
@@ -105,14 +109,20 @@ gfxPlatformGtk::gfxPlatformGtk()
     InitBackendPrefs(canvasMask, BackendType::CAIRO,
                      contentMask, BackendType::CAIRO);
 
-#ifdef MOZ_X11
-    if (GDK_IS_X11_DISPLAY(gdk_display_get_default())) {
-      mCompositorDisplay = XOpenDisplay(nullptr);
-      MOZ_ASSERT(mCompositorDisplay, "Failed to create compositor display!");
-    } else {
-      mCompositorDisplay = nullptr;
+#if defined(MOZ_X11)
+    GdkDisplay *gdkDisplay = gdk_display_get_default();
+    mIsX11Display = GDK_IS_X11_DISPLAY(gdkDisplay);
+    if (mIsX11Display) {
+      mXCompositorDisplay = XOpenDisplay(nullptr);
+      MOZ_ASSERT(mXCompositorDisplay, "Failed to create compositor display!");
     }
-#endif // MOZ_X11
+#if defined(GDK_WINDOWING_WAYLAND)
+    else {
+      mWaylandCompositorDisplay = wl_display_connect(nullptr);
+      MOZ_ASSERT(mWaylandCompositorDisplay, "Failed to create compositor display!");
+    }
+#endif
+#endif // defined(MOZ_X11)
 }
 
 gfxPlatformGtk::~gfxPlatformGtk()
@@ -123,11 +133,16 @@ gfxPlatformGtk::~gfxPlatformGtk()
         gfxPangoFontGroup::Shutdown();
     }
 
-#ifdef MOZ_X11
-    if (mCompositorDisplay) {
-      XCloseDisplay(mCompositorDisplay);
+#if defined(MOZ_X11)
+    if (mIsX11Display) {
+       XCloseDisplay(mXCompositorDisplay);
     }
-#endif // MOZ_X11
+#if defined(GDK_WINDOWING_WAYLAND)
+    else {
+       wl_display_disconnect(mWaylandCompositorDisplay);
+    }
+#endif
+#endif
 }
 
 void

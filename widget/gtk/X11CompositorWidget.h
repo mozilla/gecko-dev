@@ -58,8 +58,13 @@ protected:
 private:
   LayoutDeviceIntSize mClientSize;
 
+  bool     mIsX11Display;
   Display* mXDisplay;
   Window   mXWindow;
+#ifdef GDK_WINDOWING_WAYLAND
+  wl_display* mWaylandDisplay;
+  wl_surface* mWaylandSurface;
+#endif  
   WindowSurfaceProvider mProvider;
 };
 

@@ -346,8 +346,12 @@ public:
                                                 nsIObserver* aObserver) override;
 #endif
 
+    bool     IsX11Display() { return mIsX11Display; }
 #ifdef MOZ_X11
     Display* XDisplay() { return mXDisplay; }
+#endif
+#ifdef GDK_WINDOWING_WAYLAND
+    wl_display* WaylandDisplay() { return mWaylandDisplay; }
 #endif
     virtual void GetCompositorWidgetInitData(mozilla::widget::CompositorWidgetInitData* aInitData) override;
 
@@ -462,9 +466,12 @@ private:
     Window              mXWindow;
     Visual*             mXVisual;
     int                 mXDepth;
+#ifdef GDK_WINDOWING_WAYLAND
+    wl_display*         mWaylandDisplay;
+    wl_surface*         mWaylandSurface;
+#endif
     mozilla::widget::WindowSurfaceProvider mSurfaceProvider;
 #endif
-
     // Upper bound on pending ConfigureNotify events to be dispatched to the
     // window. See bug 1225044.
     int mPendingConfigures;

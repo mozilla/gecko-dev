@@ -1385,7 +1385,7 @@ void nsBaseWidget::NotifyRemoteCompositorSessionLost(CompositorSession* aSession
 
 bool nsBaseWidget::ShouldUseOffMainThreadCompositing()
 {
-  return gfxPlatform::UsesOffMainThreadCompositing();
+  return gfxPlatform::UsesOffMainThreadCompositing();  
 }
 
 LayerManager* nsBaseWidget::GetLayerManager(PLayerTransactionChild* aShadowManager,

@@ -21,27 +21,39 @@ X11CompositorWidget::X11CompositorWidget(const CompositorWidgetInitData& aInitDa
   // If we have a nsWindow, then grab the already existing display connection
   // If we don't, then use the init data to connect to the display
   if (aWindow) {
-    mXDisplay = aWindow->XDisplay();
+    mIsX11Display = aWindow->IsX11Display();
+    if (mIsX11Display) {
+      mXDisplay = aWindow->XDisplay();
+    } else {
+      mWaylandDisplay = aWindow->WaylandDisplay();
+    }
   } else {
+    // TODO - not implemented
+    abort();
     mXDisplay = XOpenDisplay(aInitData.XDisplayString().get());
+  }  
+  
+  if (mIsX11Display) {
+    mXWindow = (Window)aInitData.XWindow();
+
+    // Grab the window's visual and depth
+    XWindowAttributes windowAttrs;
+    XGetWindowAttributes(mXDisplay, mXWindow, &windowAttrs);
+
+    Visual*   visual = windowAttrs.visual;
+    int       depth = windowAttrs.depth;
+
+    // Initialize the window surface provider
+    mProvider.Initialize(
+      mXDisplay,
+      mXWindow,
+      visual,
+      depth
+      );
+  } else {
+    mWaylandSurface = (wl_surface *)aInitData.XWindow();
+    mProvider.Initialize(mWaylandDisplay, mWaylandSurface);  
   }
-  mXWindow = (Window)aInitData.XWindow();
-
-  // Grab the window's visual and depth
-  XWindowAttributes windowAttrs;
-  XGetWindowAttributes(mXDisplay, mXWindow, &windowAttrs);
-
-  Visual*   visual = windowAttrs.visual;
-  int       depth = windowAttrs.depth;
-
-  // Initialize the window surface provider
-  mProvider.Initialize(
-    mXDisplay,
-    mXWindow,
-    visual,
-    depth
-    );
-
   mClientSize = aInitData.InitialClientSize();
 }
 

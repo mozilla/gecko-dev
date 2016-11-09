@@ -44,7 +44,7 @@ extern "C" {
  * gtk_widget_set_parent_window should be called on the child GtkWidget before
  * it is realized.
  */
- 
+
 #define MOZ_CONTAINER_TYPE            (moz_container_get_type())
 #define MOZ_CONTAINER(obj)            (G_TYPE_CHECK_INSTANCE_CAST ((obj), MOZ_CONTAINER_TYPE, MozContainer))
 #define MOZ_CONTAINER_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST ((klass), MOZ_CONTAINER_TYPE, MozContainerClass))
@@ -55,10 +55,25 @@ extern "C" {
 typedef struct _MozContainer      MozContainer;
 typedef struct _MozContainerClass MozContainerClass;
 
+/* Workaround for bug at wayland-util.h,
+ * present in wayland < 1.12
+ */
+#ifdef GDK_WINDOWING_WAYLAND
+struct wl_subcompositor;
+struct wl_surface;
+struct wl_subsurface;
+#endif
+
 struct _MozContainer
 {
     GtkContainer   container;
     GList         *children;
+
+#ifdef GDK_WINDOWING_WAYLAND
+    struct wl_subcompositor *subcompositor;
+    struct wl_surface       *surface;
+    struct wl_subsurface    *subsurface;
+#endif
 };
 
 struct _MozContainerClass
@@ -78,6 +93,12 @@ void       moz_container_move          (MozContainer *container,
                                         gint          y,
                                         gint          width,
                                         gint          height);
+
+#ifdef GDK_WINDOWING_WAYLAND
+struct wl_surface * moz_container_get_wl_surface (MozContainer *container);
+gboolean            moz_container_map_wl_surface (MozContainer *container);
+struct wl_event_queue* moz_container_get_wl_queue();
+#endif
 
 #ifdef __cplusplus
 }

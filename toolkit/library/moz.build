@@ -310,6 +310,9 @@ if 'gtk' in CONFIG['MOZ_WIDGET_TOOLKIT']:
     OS_LIBS += [
         'gthread-2.0',
     ]
+    OS_LIBS += [
+        'wayland-client',
+    ]
 
 if CONFIG['MOZ_ENABLE_STARTUP_NOTIFICATION']:
     OS_LIBS += CONFIG['MOZ_STARTUP_NOTIFICATION_LIBS']

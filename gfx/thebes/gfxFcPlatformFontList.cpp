@@ -775,12 +775,14 @@ PreparePattern(FcPattern* aPattern, bool aIsPrinterFont)
 #endif
 
 #ifdef MOZ_X11
-        FcValue value;
-        int lcdfilter;
-        if (FcPatternGet(aPattern, FC_LCD_FILTER, 0, &value)
-                == FcResultNoMatch &&
-            GetXftInt(DefaultXDisplay(), "lcdfilter", &lcdfilter)) {
-            FcPatternAddInteger(aPattern, FC_LCD_FILTER, lcdfilter);
+        if (GDK_IS_X11_DISPLAY(gdk_display_get_default())) {
+            FcValue value;
+            int lcdfilter;
+            if (FcPatternGet(aPattern, FC_LCD_FILTER, 0, &value)
+                    == FcResultNoMatch &&
+                GetXftInt(DefaultXDisplay(), "lcdfilter", &lcdfilter)) {
+                FcPatternAddInteger(aPattern, FC_LCD_FILTER, lcdfilter);
+            }
         }
 #endif
     }
