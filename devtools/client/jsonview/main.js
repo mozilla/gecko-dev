@@ -11,7 +11,7 @@ const {Cu, Ci, Cc} = require("chrome");
 const {XPCOMUtils} = Cu.import("resource://gre/modules/XPCOMUtils.jsm", {});
 const {Services} = Cu.import("resource://gre/modules/Services.jsm", {});
 
-XPCOMUtils.defineLazyGetter(this, "JsonViewService", function() {
+XPCOMUtils.defineLazyGetter(this, "JsonViewUtils", function () {
   return require("devtools/client/jsonview/utils");
 });
 

@@ -136,10 +136,9 @@ var Converter = Class({
     JsonViewUtils.exportIntoContentScope(win, Locale, "Locale");
 
     Events.once(win, "DOMContentLoaded", event => {
-      Cu.exportFunction(this.postChromeMessage.bind(this), win, {
-        defineAs: "postChromeMessage"
-      });
-    })
+      win.addEventListener("contentMessage",
+        this.onContentMessage.bind(this), false, true);
+    });
 
     // The request doesn't have to be always nsIHttpChannel
     // (e.g. in case of data: URLs)
@@ -240,21 +239,26 @@ var Converter = Class({
 
   // Chrome <-> Content communication
 
-  postChromeMessage: function(type, args, objects) {
-    var value = args;
+  onContentMessage: function (e) {
+    // Do not handle events from different documents.
+    let win = NetworkHelper.getWindowForRequest(this.channel);
+    if (win != e.target) {
+      return;
+    }
 
-    switch (type) {
-    case "copy":
-      Clipboard.set(value, "text");
-      break;
+    let value = e.detail.value;
+    switch (e.detail.type) {
+      case "copy":
+        Clipboard.set(value, "text");
+        break;
 
-    case "copy-headers":
-      this.copyHeaders(value);
-      break;
+      case "copy-headers":
+        this.copyHeaders(value);
+        break;
 
-    case "save":
-      childProcessMessageManager.sendAsyncMessage(
-        "devtools:jsonview:save", value);
+      case "save":
+        childProcessMessageManager.sendAsyncMessage(
+          "devtools:jsonview:save", value);
     }
   },
 

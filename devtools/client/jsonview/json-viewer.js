@@ -43,17 +43,15 @@ headers.remove();
  */
 input.actions = {
   onCopyJson: function() {
-    var value = input.prettified ? input.jsonPretty : input.jsonText;
-    postChromeMessage("copy", value);
+    dispatchEvent("copy", input.prettified ? input.jsonPretty : input.jsonText);
   },
 
   onSaveJson: function() {
-    var value = input.prettified ? input.jsonPretty : input.jsonText;
-    postChromeMessage("save", value);
+    dispatchEvent("save", input.prettified ? input.jsonPretty : input.jsonText);
   },
 
   onCopyHeaders: function() {
-    postChromeMessage("copy-headers", input.headers);
+    dispatchEvent("copy-headers", input.headers);
   },
 
   onSearch: function(value) {
@@ -72,6 +70,24 @@ input.actions = {
 
     input.prettified = !input.prettified;
   },
+}
+
+/**
+ * Helper for dispatching an event. It's handled in chrome scope.
+ *
+ * @param {String} type Event detail type
+ * @param {Object} value Event detail value
+ */
+function dispatchEvent(type, value) {
+  let data = {
+    detail: {
+      type,
+      value,
+    }
+  };
+
+  let contentMessageEvent = new CustomEvent("contentMessage", data);
+  window.dispatchEvent(contentMessageEvent);
 }
 
 /**
