@@ -291,8 +291,6 @@ const uint32_t Arena::ThingSizes[] = CHECK_MIN_THING_SIZE(
     sizeof(JSFatInlineString),  /* AllocKind::FAT_INLINE_STRING   */
     sizeof(JSString),           /* AllocKind::STRING              */
     sizeof(JSExternalString),   /* AllocKind::EXTERNAL_STRING     */
-    sizeof(js::FatInlineAtom),  /* AllocKind::FAT_INLINE_ATOM     */
-    sizeof(js::NormalAtom),     /* AllocKind::ATOM                */
     sizeof(JS::Symbol),         /* AllocKind::SYMBOL              */
     sizeof(jit::JitCode),       /* AllocKind::JITCODE             */
 );
@@ -326,8 +324,6 @@ const uint32_t Arena::FirstThingOffsets[] = {
     OFFSET(JSFatInlineString),  /* AllocKind::FAT_INLINE_STRING   */
     OFFSET(JSString),           /* AllocKind::STRING              */
     OFFSET(JSExternalString),   /* AllocKind::EXTERNAL_STRING     */
-    OFFSET(js::FatInlineAtom),  /* AllocKind::FAT_INLINE_ATOM     */
-    OFFSET(js::NormalAtom),     /* AllocKind::ATOM                */
     OFFSET(JS::Symbol),         /* AllocKind::SYMBOL              */
     OFFSET(jit::JitCode),       /* AllocKind::JITCODE             */
 };
@@ -384,8 +380,6 @@ static const AllocKind BackgroundPhaseObjects[] = {
 static const AllocKind BackgroundPhaseStringsAndSymbols[] = {
     AllocKind::FAT_INLINE_STRING,
     AllocKind::STRING,
-    AllocKind::FAT_INLINE_ATOM,
-    AllocKind::ATOM,
     AllocKind::SYMBOL
 };
 
@@ -639,10 +633,6 @@ FinalizeArenas(FreeOp* fop,
         return FinalizeTypedArenas<JSFatInlineString>(fop, src, dest, thingKind, budget, keepArenas);
       case AllocKind::EXTERNAL_STRING:
         return FinalizeTypedArenas<JSExternalString>(fop, src, dest, thingKind, budget, keepArenas);
-      case AllocKind::FAT_INLINE_ATOM:
-        return FinalizeTypedArenas<js::FatInlineAtom>(fop, src, dest, thingKind, budget, keepArenas);
-      case AllocKind::ATOM:
-        return FinalizeTypedArenas<js::NormalAtom>(fop, src, dest, thingKind, budget, keepArenas);
       case AllocKind::SYMBOL:
         return FinalizeTypedArenas<JS::Symbol>(fop, src, dest, thingKind, budget, keepArenas);
       case AllocKind::JITCODE:
@@ -2487,8 +2477,6 @@ bool ArenasToUpdate::shouldProcessKind(AllocKind kind)
     if (kind == AllocKind::FAT_INLINE_STRING ||
         kind == AllocKind::STRING ||
         kind == AllocKind::EXTERNAL_STRING ||
-        kind == AllocKind::FAT_INLINE_ATOM ||
-        kind == AllocKind::ATOM ||
         kind == AllocKind::SYMBOL)
     {
         return false;

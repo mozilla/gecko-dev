@@ -270,19 +270,9 @@ struct JSCompartment
         performanceMonitoring.unlink();
         isSystem_ = isSystem;
     }
-
-    bool isAtomsCompartment() const {
-        return isAtomsCompartment_;
-    }
-    void setIsAtomsCompartment() {
-        isAtomsCompartment_ = true;
-    }
-
   private:
     JSPrincipals*                principals_;
     bool                         isSystem_;
-    bool                         isAtomsCompartment_;
-
   public:
     bool                         isSelfHosting;
     bool                         marked;
