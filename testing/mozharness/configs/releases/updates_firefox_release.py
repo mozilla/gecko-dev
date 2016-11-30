@@ -3,7 +3,7 @@ config = {
     "log_name": "updates_release",
     "repo": {
         "repo": "https://hg.mozilla.org/build/tools",
-        "branch": "FIREFOX_50_0_1",
+        "branch": "FIREFOX_50_0_2",
         "dest": "tools",
         "vcs": "hg",
     },
