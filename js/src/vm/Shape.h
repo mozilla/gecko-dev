@@ -29,7 +29,6 @@
 #include "js/RootingAPI.h"
 #include "js/UbiNode.h"
 #include "vm/ObjectGroup.h"
-#include "vm/String.h"
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1173,7 +1172,7 @@ struct StackShape : public JS::Traceable
         /* Accumulate from least to most random so the low bits are most random. */
         hash = mozilla::RotateLeft(hash, 4) ^ attrs;
         hash = mozilla::RotateLeft(hash, 4) ^ slot_;
-        hash = mozilla::RotateLeft(hash, 4) ^ HashId(propid);
+        hash = mozilla::RotateLeft(hash, 4) ^ JSID_BITS(propid);
         hash = mozilla::RotateLeft(hash, 4) ^ uintptr_t(rawGetter);
         hash = mozilla::RotateLeft(hash, 4) ^ uintptr_t(rawSetter);
         return hash;
