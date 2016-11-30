@@ -166,7 +166,7 @@ WebMReader::Shutdown()
   return MediaDecoderReader::Shutdown();
 }
 
-nsresult WebMReader::Init()
+nsresult WebMReader::InitInternal()
 {
   mBufferedState = new WebMBufferedState;
   return NS_OK;

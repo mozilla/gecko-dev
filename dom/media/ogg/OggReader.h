@@ -50,7 +50,6 @@ protected:
   ~OggReader();
 
 public:
-  virtual nsresult Init() override;
   virtual nsresult ResetDecode() override;
   virtual bool DecodeAudioData() override;
 
@@ -67,6 +66,8 @@ public:
   virtual media::TimeIntervals GetBuffered() override;
 
 private:
+  nsresult InitInternal() override;
+
   bool HasAudio() {
     return (mVorbisState != 0 && mVorbisState->mActive) ||
            (mOpusState != 0 && mOpusState->mActive);

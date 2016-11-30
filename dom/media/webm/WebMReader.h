@@ -78,7 +78,6 @@ public:
   MediaInfo GetMediaInfo() { return mInfo; }
 
   virtual RefPtr<ShutdownPromise> Shutdown() override;
-  virtual nsresult Init() override;
   virtual nsresult ResetDecode() override;
   virtual bool DecodeAudioData() override;
 
@@ -138,6 +137,7 @@ protected:
   bool ShouldSkipVideoFrame(int64_t aTimeThreshold);
 
 private:
+  nsresult InitInternal() override;
   nsresult RetrieveWebMMetadata(MediaInfo* aInfo);
 
   // Get the timestamp of keyframe greater than aTimeThreshold.

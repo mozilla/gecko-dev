@@ -83,10 +83,15 @@ MediaDecoderReader::MediaDecoderReader(AbstractMediaDecoder* aDecoder)
     mDataArrivedListener = mDecoder->DataArrivedEvent()->Connect(
       mTaskQueue, this, &MediaDecoderReader::NotifyDataArrived);
   }
+}
 
+nsresult
+MediaDecoderReader::Init()
+{
   // Dispatch initialization that needs to happen on that task queue.
   nsCOMPtr<nsIRunnable> r = NS_NewRunnableMethod(this, &MediaDecoderReader::InitializationTask);
   mTaskQueue->Dispatch(r.forget());
+  return InitInternal();
 }
 
 void
