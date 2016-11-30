@@ -40,7 +40,6 @@ public:
   explicit GStreamerReader(AbstractMediaDecoder* aDecoder);
   virtual ~GStreamerReader();
 
-  virtual nsresult Init() override;
   virtual RefPtr<ShutdownPromise> Shutdown() override;
   virtual nsresult ResetDecode() override;
   virtual bool DecodeAudioData() override;
@@ -59,6 +58,7 @@ public:
   layers::ImageContainer* GetImageContainer() { return mDecoder->GetImageContainer(); }
 
 private:
+  virtual nsresult InitInternal() override;
   bool HasAudio() { return mInfo.HasAudio(); }
   bool HasVideo() { return mInfo.HasVideo(); }
   void ReadAndPushData(guint aLength);
