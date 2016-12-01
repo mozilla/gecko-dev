@@ -3173,33 +3173,12 @@ nsHTMLEditor::ContentInserted(nsIDocument *aDocument, nsIContent* aContainer,
                     eInserted);
 }
 
-bool
-HTMLEditor::IsInObservedSubtree(nsIDocument* aDocument,
-                                nsIContent* aContainer,
-                                nsIContent* aChild)
-{
-  if (!aChild) {
-    return false;
-  }
-
-  Element* root = GetRoot();
-  // To be super safe here, check both ChromeOnlyAccess and GetBindingParent.
-  // That catches (also unbound) native anonymous content, XBL and ShadowDOM.
-  if (root &&
-      (root->ChromeOnlyAccess() != aChild->ChromeOnlyAccess() ||
-       root->GetBindingParent() != aChild->GetBindingParent())) {
-    return false;
-  }
-
-  return !aChild->ChromeOnlyAccess() && !aChild->GetBindingParent();
-}
-
 void
 nsHTMLEditor::DoContentInserted(nsIDocument* aDocument, nsIContent* aContainer,
                                 nsIContent* aChild, int32_t aIndexInContainer,
                                 InsertedOrAppended aInsertedOrAppended)
 {
-  if (!IsInObservedSubtree(aDocument, aContainer, aChild)) {
+  if (!aChild) {
     return;
   }
 
@@ -3245,10 +3224,6 @@ nsHTMLEditor::ContentRemoved(nsIDocument *aDocument, nsIContent* aContainer,
                              nsIContent* aChild, int32_t aIndexInContainer,
                              nsIContent* aPreviousSibling)
 {
-  if (!IsInObservedSubtree(aDocument, aContainer, aChild)) {
-    return;
-  }
-
   nsCOMPtr<nsIHTMLEditor> kungFuDeathGrip(this);
 
   if (SameCOMIdentity(aChild, mRootElement)) {
