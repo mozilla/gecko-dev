@@ -815,6 +815,10 @@ protected:
   /* PACKED BOOLEANS FOR RESIZING, ABSOLUTE POSITIONING AND */
   /* INLINE TABLE EDITING */
 
+  bool IsInObservedSubtree(nsIDocument* aDocument,
+                           nsIContent* aContainer,
+                           nsIContent* aChild);
+
   // resizing
   bool mIsObjectResizingEnabled;
   bool mIsResizing;
