@@ -207,7 +207,11 @@ public:
     MOZ_COUNT_CTOR(WidgetEvent);
     mFlags.Clear();
     mFlags.mIsTrusted = aIsTrusted;
-    mFlags.mCancelable = true;
+    if (mMessage == eResize) {
+      mFlags.mCancelable = false;
+    } else {
+      mFlags.mCancelable = true;
+    }
     mFlags.mBubbles = true;
   }
 
