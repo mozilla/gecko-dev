@@ -525,6 +525,7 @@ static const StaticFingerprints kPinset_google_sha1 = {
 static const char* kPinset_google_sha256_Data[] = {
   kGOOGLE_PIN_GoogleG2Fingerprint,
   kGeoTrust_Global_CAFingerprint,
+  kGlobalSign_Root_CA___R2Fingerprint,
 };
 static const StaticFingerprints kPinset_google_sha256 = {
   sizeof(kPinset_google_sha256_Data) / sizeof(const char*),
@@ -1302,4 +1303,4 @@ static const TransportSecurityPreload kPublicKeyPinningPreloadList[] = {
 
 static const int32_t kUnknownId = -1;
 
-static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1489415047893000);
+static const PRTime kPreloadPKPinsExpirationTime = INT64_C(1489505883871000);
