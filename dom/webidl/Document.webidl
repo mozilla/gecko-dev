@@ -401,6 +401,12 @@ partial interface Document {
   [ChromeOnly] readonly attribute boolean userHasInteracted;
 };
 
+// Extension to give chrome and XBL JS the ability to determine whether
+// inline scripts are blocked by the document's CSP.
+partial interface Document {
+  [Func="IsChromeOrXBL"] readonly attribute boolean inlineScriptAllowedByCSP;
+};
+
 Document implements XPathEvaluator;
 Document implements GlobalEventHandlers;
 Document implements TouchEventHandlers;

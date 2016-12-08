@@ -12912,6 +12912,24 @@ nsIDocument::SetPageUseCounter(UseCounter aUseCounter)
   contentParent->SetChildDocumentUseCounter(aUseCounter);
 }
 
+bool
+nsIDocument::InlineScriptAllowedByCSP()
+{
+  nsCOMPtr<nsIContentSecurityPolicy> csp;
+  nsresult rv = NodePrincipal()->GetCsp(getter_AddRefs(csp));
+  NS_ENSURE_SUCCESS(rv, true);
+  bool allowsInlineScript = true;
+  if (csp) {
+    nsresult rv = csp->GetAllowsInline(nsIContentPolicy::TYPE_SCRIPT,
+                                       EmptyString(), // aNonce
+                                       EmptyString(), // FIXME get script sample (bug 1314567)
+                                       0,             // aLineNumber
+                                       &allowsInlineScript);
+    NS_ENSURE_SUCCESS(rv, true);
+  }
+  return allowsInlineScript;
+}
+
 static bool
 MightBeAboutOrChromeScheme(nsIURI* aURI)
 {

@@ -2647,6 +2647,8 @@ public:
     return mUserHasInteracted;
   }
 
+  bool InlineScriptAllowedByCSP();
+
 protected:
   bool GetUseCounter(mozilla::UseCounter aUseCounter)
   {
