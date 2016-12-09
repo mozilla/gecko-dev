@@ -32,6 +32,8 @@ public:
 
   virtual ~MediaFormatReader();
 
+  nsresult Init() override;
+
   size_t SizeOfVideoQueueInFrames() override;
   size_t SizeOfAudioQueueInFrames() override;
 
@@ -95,7 +97,6 @@ public:
 #endif
 
 private:
-  nsresult InitInternal() override;
   bool HasVideo() { return mVideo.mTrackDemuxer; }
   bool HasAudio() { return mAudio.mTrackDemuxer; }
 
