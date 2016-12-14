@@ -430,6 +430,7 @@ gfxWindowsPlatform::InitDWriteSupport()
   }
 
   mDWriteFactory = factory;
+  Factory::SetDWriteFactory(mDWriteFactory);
 
   SetupClearTypeParams();
   reporter.SetSuccessful();
