@@ -377,7 +377,7 @@ moz_container_realize (GtkWidget *widget)
         attributes.wclass = GDK_INPUT_OUTPUT;
         attributes.visual = gtk_widget_get_visual (widget);
         attributes.window_type = GDK_WINDOW_CHILD;
-#if defined(GDK_WINDOWING_WAYLAND)        
+#if defined(GDK_WINDOWING_WAYLAND)
         /* TODO: We may optimize the code to use GDK_WINDOW_SUBSURFACE
          * for all windows
          */

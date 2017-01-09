@@ -27,6 +27,10 @@ GDK_WINDOWING_X11 - remove
 - resize (pool size) optimization
 - pool of available buffers?
 - call wayland display/queue events right after attach&co?
+- optimization -> use Image bufer when update area is smaller that whole window
+- is bounds.x bounds.y non-zero??
+- buffer sync - can be undamaged part unsynced?
+- GdkWidnow - show/hide -> callback, get surface and frame callback
 */
 #include <assert.h>
 #include <poll.h>
@@ -55,7 +59,72 @@ wl_event_queue*     WindowSurfaceWayland::mQueue;
 GThread*            WindowSurfaceWayland::mThread;
 wl_display*         WindowSurfaceWayland::mDisplay;
 
-bool SurfaceBuffer::CreateShmPool(int aSize)
+ImageBuffer::ImageBuffer()
+  : mBufferData(nullptr)
+  , mBufferAllocated(0)
+  , mWidth(0)
+  , mHeight(0)
+{
+}
+
+ImageBuffer::~ImageBuffer()
+{
+  if (mBufferData)
+    free(mBufferData);
+}
+
+void
+ImageBuffer::Dump(char *lokace)
+{
+  char tmp[500];
+  static int num = 0;
+  sprintf(tmp, "/home/komat/tmpmoz/check-%.3d-%s.png", num++, lokace);
+  cairo_surface_t *surface = 
+    cairo_image_surface_create_for_data (mBufferData, CAIRO_FORMAT_ARGB32,
+                                         mWidth, mHeight,                                                         
+                                         mWidth * BUFFER_BPP);
+  cairo_surface_write_to_png(surface, tmp);
+  cairo_surface_destroy(surface);
+}
+
+already_AddRefed<gfx::DrawTarget>
+ImageBuffer::Lock(const LayoutDeviceIntRegion& aRegion)
+{    
+  gfx::IntRect bounds = aRegion.GetBounds().ToUnknownRect();
+  gfx::IntSize imageSize(bounds.XMost(), bounds.YMost());
+
+  fprintf(stderr, "ImageBuffer::Lock %d,%d, size %d x %d\n", 
+                   bounds.x, bounds.y, imageSize.width, imageSize.height);
+
+  // We use the same trick as nsShmImage::CreateDrawTarget() does:
+  // Due to bug 1205045, we must avoid making GTK calls off the main thread
+  // to query window size.
+  // Instead we just track the largest offset within the image we are
+  // drawing to and grow the image to accomodate it. Since usually
+  // the entire window is invalidated on the first paint to it,
+  // this should grow the image to the necessary size quickly without
+  // many intermediate reallocations.
+  int newSize = imageSize.width * imageSize.height * BUFFER_BPP;
+  if (!mBufferData || mBufferAllocated < newSize) {
+    if (mBufferData) {
+      free(mBufferData);
+    }
+    
+    mBufferData = (unsigned char*)malloc(newSize);
+    if (!mBufferData)
+      return nullptr;
+    
+    mBufferAllocated = newSize;
+  }
+
+  mWidth = imageSize.width;
+  mHeight = imageSize.height;
+
+  return gfxPlatform::CreateDrawTargetForData(mBufferData, imageSize,
+    BUFFER_BPP * mWidth, WindowSurfaceWayland::GetSurfaceFormat());
+}
+
+bool BackBufferWayland::CreateShmPool(int aSize)
 {
   mAllocatedSize = aSize;
 
@@ -79,7 +148,7 @@ bool SurfaceBuffer::CreateShmPool(int aSize)
   return true;
 }
 
-bool SurfaceBuffer::ResizeShmPool(int aSize)
+bool BackBufferWayland::ResizeShmPool(int aSize)
 {
   // We do size increase only
   if (aSize <= mAllocatedSize)
@@ -107,7 +176,7 @@ bool SurfaceBuffer::ResizeShmPool(int aSize)
   return true;
 }
 
-void SurfaceBuffer::ReleaseShmPool()
+void BackBufferWayland::ReleaseShmPool()
 {
   munmap(mBufferData, mAllocatedSize);
   wl_shm_pool_destroy(mShmPool);
@@ -120,7 +189,7 @@ void SurfaceBuffer::ReleaseShmPool()
 static void
 buffer_release(void *data, wl_buffer *buffer)
 {  
-  auto surface = reinterpret_cast<SurfaceBuffer*>(data);
+  auto surface = reinterpret_cast<BackBufferWayland*>(data);
   surface->Detach();
 }
 
@@ -128,7 +197,7 @@ static const struct wl_buffer_listener buffer_listener = {
   buffer_release
 };
 
-void SurfaceBuffer::CreateBuffer(int aWidth, int aHeight)
+void BackBufferWayland::CreateBuffer(int aWidth, int aHeight)
 {
   mBuffer = wl_shm_pool_create_buffer(mShmPool, 0,
                               			  aWidth, aHeight, aWidth*BUFFER_BPP,
@@ -141,21 +210,20 @@ void SurfaceBuffer::CreateBuffer(int aWidth, int aHeight)
   mHeight = aHeight;
 }
 
-void SurfaceBuffer::ReleaseBuffer()
+void BackBufferWayland::ReleaseBuffer()
 {
   wl_buffer_destroy(mBuffer);
   mWidth = mHeight = 0;
 }
 
-SurfaceBuffer::SurfaceBuffer(int aWidth, int aHeight)
+BackBufferWayland::BackBufferWayland(int aWidth, int aHeight)
  : mShmPool(nullptr)
   ,mShmPoolFd(0)
   ,mAllocatedSize(0)
   ,mBuffer(nullptr)
   ,mBufferData(nullptr)
-  ,mWidth(0)
-  ,mHeight(0)
-  ,mFormat(gfx::SurfaceFormat::B8G8R8A8)
+  ,mWidth(aWidth)
+  ,mHeight(aHeight)
   ,mAttached(false)
 {
   if(CreateShmPool(aWidth*aHeight*BUFFER_BPP)) {
@@ -164,13 +232,14 @@ SurfaceBuffer::SurfaceBuffer(int aWidth, int aHeight)
     assert(0);
 }
 
-SurfaceBuffer::~SurfaceBuffer()
+BackBufferWayland::~BackBufferWayland()
 {
   ReleaseBuffer();
   ReleaseShmPool();
 }
 
-bool SurfaceBuffer::Resize(int aWidth, int aHeight)
+bool
+BackBufferWayland::Resize(int aWidth, int aHeight)
 {
   if (aWidth == mWidth && aHeight == mHeight)
     return true;
@@ -185,28 +254,91 @@ bool SurfaceBuffer::Resize(int aWidth, int aHeight)
   return (mBuffer != nullptr);
 }
 
-already_AddRefed<gfx::DrawTarget>
-SurfaceBuffer::Lock()
+// Update back buffer with image data from ImageBuffer
+void
+BackBufferWayland::CopyRectangle(ImageBuffer *aImage,
+                                 const mozilla::LayoutDeviceIntRect &r)
 {
-  unsigned char* data = static_cast<unsigned char*>(mBufferData);
-  return gfxPlatform::CreateDrawTargetForData(data,
-                                              gfx::IntSize(mWidth, mHeight),
-                                              mWidth*BUFFER_BPP,
-                                              mFormat);
+  for (int y = r.y; y < r.y + r.height; y++) {
+    int start = (y * mWidth + r.x) * BUFFER_BPP;
+    int lenght = r.width * BUFFER_BPP;
+    memcpy((unsigned char *)mBufferData + start,
+            aImage->GetData() + ((y * aImage->mWidth) + r.x) * BUFFER_BPP,
+            lenght);
+  }
+}
+
+// Update back buffer with image data from ImageBuffer
+void
+BackBufferWayland::UpdateRegion(ImageBuffer *aImage,
+                                const LayoutDeviceIntRegion& aInvalidRegion)
+{
+  
+/*  
+  gfx::IntRect bounds = aInvalidRegion.GetBounds().ToUnknownRect();
+  gfx::IntSize regionSize = bounds.Size();
+
+  assert(bounds.x + regionSize.width <= mWidth && 
+         bounds.y + regionSize.height <= mHeight);
+*/
+/*
+  for (int y = bounds.y; y < bounds.y + regionSize.height; y++) {
+    int start = (y * mWidth + bounds.x) * BUFFER_BPP;
+    int lenght = regionSize.width * BUFFER_BPP;
+    //memset((unsigned char *)mBufferData + start, c, lenght);
+    for (int i = 0; i < lenght; i+=4) {
+      ((unsigned char *)mBufferData + start)[i] = c;
+      ((unsigned char *)mBufferData + start)[i+1] = c;
+      ((unsigned char *)mBufferData + start)[i+2] = c;
+      ((unsigned char *)mBufferData + start)[i+3] = 0xff;
+    }
+  }
+*/
+  // Copy whole aImage to bounds.x, bounds.y, size.width, size.height
+/*  
+  if (mWidth == size.width) {
+    // copy whole rows
+    int start = bounds.y * mWidth * BUFFER_BPP;
+    int lenght = size.height * mWidth * BUFFER_BPP;
+    memcpy((unsigned char *)mBufferData + start, aImage->GetData(), lenght);
+  } else {
+*/  
+/*
+    
+    Dump();
+*/
+/*    
+
+    for (int y = bounds.y; y < bounds.y + regionSize.height; y++) {
+      int start = (y * mWidth + bounds.x) * BUFFER_BPP;
+      int lenght = regionSize.width * BUFFER_BPP;
+      memcpy((unsigned char *)mBufferData + start,
+              aImage->GetData() + ((y * aImage->mWidth) + bounds.x) * BUFFER_BPP,
+              lenght);
+    }
+*/
+//    Dump();
+//  }
 }
 
 void
-SurfaceBuffer::Attach(wl_surface* aSurface,
-                      const LayoutDeviceIntRegion& aInvalidRegion)
+BackBufferWayland::Dump()
 {
-  gfx::IntRect bounds = aInvalidRegion.GetBounds().ToUnknownRect();
-  gfx::IntSize size(bounds.XMost(), bounds.YMost());
+  char tmp[500];
+  static int num = 0;
+  sprintf(tmp, "/home/komat/tmpmoz/back-buffer-%.3d.png", num++);
+  cairo_surface_t *surface = 
+    cairo_image_surface_create_for_data ((unsigned char *)mBufferData,
+                                         CAIRO_FORMAT_ARGB32,
+                                         mWidth, mHeight,                                                         
+                                         mWidth * BUFFER_BPP);
+  cairo_surface_write_to_png(surface, tmp);
+  cairo_surface_destroy(surface);
+}
 
-  fprintf(stderr, "Commit %d,%d -> %d x %d\n", bounds.x, bounds.y, size.width, size.height);
-  wl_surface_damage(aSurface, bounds.x, bounds.y, size.width, size.height);
-  wl_surface_attach(aSurface, mBuffer, 0, 0);
-  wl_surface_commit(aSurface);
-
+void
+BackBufferWayland::Attach(wl_surface* aSurface)
+{
   // Taken from Hybris project:
   // Some compositors, namely Weston, queue buffer release events instead
   // of sending them immediately.  If a frame event is used, this should
@@ -214,24 +346,27 @@ SurfaceBuffer::Attach(wl_surface* aSurface,
   // request to ensure that they get flushed.    
   //wl_callback_destroy(wl_display_sync(WindowSurfaceWayland::GetDisplay()));
   
+  wl_surface_attach(aSurface, mBuffer, 0, 0);
+  wl_surface_commit(aSurface);
   wl_display_flush(WindowSurfaceWayland::GetDisplay());
-
   mAttached = true;
 }
 
 void
-SurfaceBuffer::Detach()
+BackBufferWayland::Detach()
 {
   mAttached = false;
 }
 
-bool SurfaceBuffer::Sync(class SurfaceBuffer* aSourceBuffer)
+bool BackBufferWayland::Sync(class BackBufferWayland* aSourceBuffer)
 {
-  if (mWidth != aSourceBuffer->mWidth || mHeight != aSourceBuffer->mHeight)
-    return false;
+  bool bufferSizeMatches = MatchSize(aSourceBuffer);
+  if (!bufferSizeMatches) {
+    Resize(aSourceBuffer->mWidth, aSourceBuffer->mHeight);
+  }
 
-  int bufferSize = mWidth*mHeight*BUFFER_BPP;
-  memcpy(mBufferData, aSourceBuffer->mBufferData, bufferSize);
+  memcpy(mBufferData, aSourceBuffer->mBufferData,
+         aSourceBuffer->mWidth * aSourceBuffer->mHeight * BUFFER_BPP);
   return true;
 }
 
@@ -293,7 +428,7 @@ gst_wl_display_thread_run (gpointer data)
 
   /* main loop */
   while (1) {
-    fprintf(stderr, "***** Loop Enter 1.\n");
+    //fprintf(stderr, "***** Loop Enter 1.\n");
     while (wl_display_prepare_read_queue (WindowSurfaceWayland::GetDisplay(),
                                           WindowSurfaceWayland::GetQueue()) < 0) {
       wl_display_dispatch_queue_pending (WindowSurfaceWayland::GetDisplay(),
@@ -301,12 +436,12 @@ gst_wl_display_thread_run (gpointer data)
     }
     wl_display_flush (WindowSurfaceWayland::GetDisplay());
 
-    fprintf(stderr, "***** Loop Enter 2.\n");
+    //fprintf(stderr, "***** Loop Enter 2.\n");
     int ret = poll(&fds, 1, -1);
-    fprintf(stderr, "***** Loop Enter 3.\n");
+    //fprintf(stderr, "***** Loop Enter 3.\n");
     if (ret == -1) {
       wl_display_cancel_read(WindowSurfaceWayland::GetDisplay());
-      fprintf(stderr, "***** Loop error!!\n");
+      //fprintf(stderr, "***** Loop error!!\n");
       break;
     }
     wl_display_read_events(WindowSurfaceWayland::GetDisplay());
@@ -320,6 +455,17 @@ gst_wl_display_thread_run (gpointer data)
 extern "C" {
 struct wl_event_queue* moz_container_get_wl_queue();
 }
+
+static void
+redraw(void *data, struct wl_callback *callback, uint32_t time)
+{
+    auto surface = reinterpret_cast<WindowSurfaceWayland*>(data);    
+    surface->Draw();
+}
+
+static const struct wl_callback_listener frame_listener = {
+    redraw
+};
 
 void
 WindowSurfaceWayland::Init()
@@ -337,12 +483,19 @@ WindowSurfaceWayland::Init()
   wl_proxy_set_queue((struct wl_proxy *)registry, mQueue);
   wl_registry_add_listener(registry,
                            &registry_listener, nullptr);
+
+  // We need two roundtrips here to get the registry info
+  wl_display_dispatch_queue(mDisplay, mQueue);
+  wl_display_roundtrip_queue(mDisplay, mQueue);
+
   wl_display_dispatch_queue(mDisplay, mQueue);
   wl_display_roundtrip_queue(mDisplay, mQueue);
 
   // We should have a valid pixel format now
   mIsAvailable = (mFormat != gfx::SurfaceFormat::UNKNOWN);
   NS_ASSERTION(mIsAvailable, "We don't have any pixel format!");
+  
+  assert(mFormat != gfx::SurfaceFormat::UNKNOWN);
 
   GError *err = nullptr;
   mThread = g_thread_try_new ("GstWlDisplay", gst_wl_display_thread_run,
@@ -352,9 +505,9 @@ WindowSurfaceWayland::Init()
 WindowSurfaceWayland::WindowSurfaceWayland(wl_display *aDisplay,
                                            wl_surface *aSurface)
   : mSurface(aSurface)
-  , mBuffers{nullptr, nullptr}
-  , mFrontBuffer(0)
-  , mLastBuffer(0)
+  , mFrontBuffer(nullptr)
+  , mBackBuffer(nullptr)
+  , mFrameCallback(nullptr)
 {
   NS_ASSERTION(mSurface != nullptr,
                "Missing Wayland surfaces to draw to!");
@@ -362,6 +515,9 @@ WindowSurfaceWayland::WindowSurfaceWayland(wl_display *aDisplay,
   mDisplay = aDisplay;
   Init();
   wl_proxy_set_queue((struct wl_proxy *)mSurface, mQueue);
+    
+  mFrameCallback = wl_surface_frame(aSurface);
+  wl_callback_add_listener(mFrameCallback, &frame_listener, this);
 }
 
 WindowSurfaceWayland::~WindowSurfaceWayland()
@@ -369,56 +525,87 @@ WindowSurfaceWayland::~WindowSurfaceWayland()
   // TODO - free registry, buffers etc.
 }
 
-SurfaceBuffer*
-WindowSurfaceWayland::SetBufferToDraw(int aWidth, int aHeight)
+BackBufferWayland*
+WindowSurfaceWayland::GetBufferToDraw(int aWidth, int aHeight)
 {
-  int i;
-  for (i = 0; i < 100; i++) {
-    if (!mBuffers[i] || !mBuffers[i]->IsAttached()) {
-      mFrontBuffer = i;
-      break;
+  if (!mFrontBuffer) {
+    mFrontBuffer = new BackBufferWayland(aWidth, aHeight);
+    mBackBuffer = new BackBufferWayland(aWidth, aHeight);  
+  } else {
+    if (mFrontBuffer->IsAttached()) {
+      return nullptr; //TODO
+
+      if (mBackBuffer->IsAttached()) {
+        NS_ASSERTION(!mBackBuffer->IsAttached(), "We don't have any buffer to draw to!");
+        return nullptr;
+      }
+      
+      BackBufferWayland *tmp = mFrontBuffer;
+      mFrontBuffer = mBackBuffer;
+      mBackBuffer = tmp;
+
+      mFrontBuffer->Sync(mBackBuffer);      
+    }
+
+    if (!mFrontBuffer->MatchSize(aWidth, aHeight)) {
+      mFrontBuffer->Resize(aWidth, aHeight);
     }
   }
-    
-  assert(i != 100);
-  
-  if (mBuffers[mFrontBuffer] != nullptr) {
-    mBuffers[mFrontBuffer]->Resize(aWidth, aHeight);
-  } else {
-    mBuffers[mFrontBuffer] = new SurfaceBuffer(aWidth, aHeight);    
-  }
 
-  fprintf(stderr, "WindowSurfaceWayland %p Take Buffer[%d] %d x %d\n", this, mFrontBuffer, aWidth, aHeight);
-
-  /*
-  // Sync last and front buffer
-  if (mFrontBuffer != mLastBuffer) {  
-    mBuffers[mFrontBuffer]->Sync(mBuffers[mLastBuffer]);
-    mLastBuffer = mFrontBuffer;
-  }
-  */
-
-  return mBuffers[mFrontBuffer]->IsValid() ? mBuffers[mFrontBuffer] : nullptr;
+  return mFrontBuffer;
 }
 
 already_AddRefed<gfx::DrawTarget>
 WindowSurfaceWayland::Lock(const LayoutDeviceIntRegion& aRegion)
 {
-  gfx::IntRect bounds = aRegion.GetBounds().ToUnknownRect();
-  gfx::IntSize size(bounds.XMost(), bounds.YMost());
-
-  SurfaceBuffer* buffer = SetBufferToDraw(size.width, size.height);
-  if (!buffer)
-    return nullptr;
-
-  return buffer->Lock();
+  return mImageBuffer.Lock(aRegion);
 }
 
 void
 WindowSurfaceWayland::Commit(const LayoutDeviceIntRegion& aInvalidRegion)
 {
-  MOZ_ASSERT(mBuffers[mFrontBuffer], "Attempted to commit invalid surface!");  
-  mBuffers[mFrontBuffer]->Attach(mSurface, aInvalidRegion);
+  gfx::IntRect bounds = aInvalidRegion.GetBounds().ToUnknownRect();
+  gfx::IntSize size = bounds.Size();
+
+  fprintf(stderr, "WindowSurfaceWayland::Request %d,%d -> %d x %d\n", 
+                   bounds.x, bounds.y, size.width, size.height);
+/* TODO
+  BackBufferWayland* buffer = GetBufferToDraw(bounds.x + size.width,
+                                              bounds.y + size.height);
+*/  
+  
+  BackBufferWayland* buffer = GetBufferToDraw(1300, 1300);
+  NS_ASSERTION(buffer,
+               "******** We don't have a buffer to draw to!");
+  if (!buffer)
+    return;
+
+  for (auto iter = aInvalidRegion.RectIter(); !iter.Done(); iter.Next()) {
+    buffer->CopyRectangle(&mImageBuffer, iter.Get());
+  }
+
+  wl_surface_damage(mSurface, bounds.x, bounds.y, size.width, size.height);
+
+  fprintf(stderr, "WindowSurfaceWayland::Commit %d,%d -> %d x %d\n", 
+                   bounds.x, bounds.y, size.width, size.height);
+  
+  Draw();
+}
+
+// TODO -> why is it not called?
+void
+WindowSurfaceWayland::Draw()
+{
+/*  
+  if (mFrameCallback) {
+      wl_callback_destroy(mFrameCallback);
+  }
+  
+  mFrameCallback = wl_surface_frame(mSurface);
+  wl_callback_add_listener(mFrameCallback, 
+                           &frame_listener, this);
+*/
+  mFrontBuffer->Attach(mSurface);
 }
 
 }  // namespace widget
