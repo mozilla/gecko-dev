@@ -73,20 +73,6 @@ ImageBuffer::~ImageBuffer()
     free(mBufferData);
 }
 
-void
-ImageBuffer::Dump(char *lokace)
-{
-  char tmp[500];
-  static int num = 0;
-  sprintf(tmp, "/home/komat/tmpmoz/check-%.3d-%s.png", num++, lokace);
-  cairo_surface_t *surface = 
-    cairo_image_surface_create_for_data (mBufferData, CAIRO_FORMAT_ARGB32,
-                                         mWidth, mHeight,                                                         
-                                         mWidth * BUFFER_BPP);
-  cairo_surface_write_to_png(surface, tmp);
-  cairo_surface_destroy(surface);
-}
-
 already_AddRefed<gfx::DrawTarget>
 ImageBuffer::Lock(const LayoutDeviceIntRegion& aRegion)
 {    
@@ -266,74 +252,6 @@ BackBufferWayland::CopyRectangle(ImageBuffer *aImage,
             aImage->GetData() + ((y * aImage->mWidth) + r.x) * BUFFER_BPP,
             lenght);
   }
-}
-
-// Update back buffer with image data from ImageBuffer
-void
-BackBufferWayland::UpdateRegion(ImageBuffer *aImage,
-                                const LayoutDeviceIntRegion& aInvalidRegion)
-{
-  
-/*  
-  gfx::IntRect bounds = aInvalidRegion.GetBounds().ToUnknownRect();
-  gfx::IntSize regionSize = bounds.Size();
-
-  assert(bounds.x + regionSize.width <= mWidth && 
-         bounds.y + regionSize.height <= mHeight);
-*/
-/*
-  for (int y = bounds.y; y < bounds.y + regionSize.height; y++) {
-    int start = (y * mWidth + bounds.x) * BUFFER_BPP;
-    int lenght = regionSize.width * BUFFER_BPP;
-    //memset((unsigned char *)mBufferData + start, c, lenght);
-    for (int i = 0; i < lenght; i+=4) {
-      ((unsigned char *)mBufferData + start)[i] = c;
-      ((unsigned char *)mBufferData + start)[i+1] = c;
-      ((unsigned char *)mBufferData + start)[i+2] = c;
-      ((unsigned char *)mBufferData + start)[i+3] = 0xff;
-    }
-  }
-*/
-  // Copy whole aImage to bounds.x, bounds.y, size.width, size.height
-/*  
-  if (mWidth == size.width) {
-    // copy whole rows
-    int start = bounds.y * mWidth * BUFFER_BPP;
-    int lenght = size.height * mWidth * BUFFER_BPP;
-    memcpy((unsigned char *)mBufferData + start, aImage->GetData(), lenght);
-  } else {
-*/  
-/*
-    
-    Dump();
-*/
-/*    
-
-    for (int y = bounds.y; y < bounds.y + regionSize.height; y++) {
-      int start = (y * mWidth + bounds.x) * BUFFER_BPP;
-      int lenght = regionSize.width * BUFFER_BPP;
-      memcpy((unsigned char *)mBufferData + start,
-              aImage->GetData() + ((y * aImage->mWidth) + bounds.x) * BUFFER_BPP,
-              lenght);
-    }
-*/
-//    Dump();
-//  }
-}
-
-void
-BackBufferWayland::Dump()
-{
-  char tmp[500];
-  static int num = 0;
-  sprintf(tmp, "/home/komat/tmpmoz/back-buffer-%.3d.png", num++);
-  cairo_surface_t *surface = 
-    cairo_image_surface_create_for_data ((unsigned char *)mBufferData,
-                                         CAIRO_FORMAT_ARGB32,
-                                         mWidth, mHeight,                                                         
-                                         mWidth * BUFFER_BPP);
-  cairo_surface_write_to_png(surface, tmp);
-  cairo_surface_destroy(surface);
 }
 
 void
