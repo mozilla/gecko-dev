@@ -177,7 +177,6 @@ moz_container_map_wl_surface(MozContainer *container)
       // We requested the underlying wl_surface too early. 
       return FALSE;
     }    
-    //wl_proxy_set_queue((struct wl_proxy *)gtk_surface, mQueue);
 
     container->subsurface =
       wl_subcompositor_get_subsurface (container->subcompositor,
@@ -241,7 +240,7 @@ moz_container_class_init (MozContainerClass *klass)
     widget_class->unmap = moz_container_unmap;
     widget_class->realize = moz_container_realize;
 #if defined(GDK_WINDOWING_WAYLAND)
-    widget_class->unrealize = moz_container_unrealize;    
+    widget_class->unrealize = moz_container_unrealize;
 #endif
     widget_class->size_allocate = moz_container_size_allocate;
 
@@ -348,7 +347,7 @@ moz_container_unmap (GtkWidget *widget)
 #if defined(GDK_WINDOWING_WAYLAND)
   /* Gdk/Wayland deletes underlying GdkWindow wl_surface on unmap event.
    * Delete the wl_subsurface interface which
-   * keeps wl_surface object and it's available to reuse.
+   * keeps wl_surface object and it's available for reuse.
    */
     moz_container_unmap_surface(MOZ_CONTAINER(widget));
 #endif
@@ -378,14 +377,13 @@ moz_container_realize (GtkWidget *widget)
         attributes.visual = gtk_widget_get_visual (widget);
         attributes.window_type = GDK_WINDOW_CHILD;
 #if defined(GDK_WINDOWING_WAYLAND)
-        /* TODO: We may optimize the code to use GDK_WINDOW_SUBSURFACE
-         * for all windows
-         */
+/*
         parent_widget = gtk_widget_get_parent(widget);
         if (parent_widget &&
             gtk_window_get_window_type(GTK_WINDOW(parent_widget)) == GTK_WINDOW_POPUP) {
             attributes.window_type = GDK_WINDOW_SUBSURFACE;
         }
+*/        
 #endif
 
 #if (MOZ_WIDGET_GTK == 2)

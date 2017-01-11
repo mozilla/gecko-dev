@@ -83,7 +83,7 @@ private:
 // and related management
 class WindowSurfaceWayland : public WindowSurface {
 public:
-  WindowSurfaceWayland(wl_display *aDisplay, wl_surface *aSurface);
+  WindowSurfaceWayland(nsWindow *aWidget, wl_display *aDisplay, wl_surface *aSurface);
   ~WindowSurfaceWayland();
 
   already_AddRefed<gfx::DrawTarget> Lock(const LayoutDeviceIntRegion& aRegion) override;
@@ -108,6 +108,8 @@ private:
   static wl_event_queue*    mQueue;
   static GThread*           mThread;
   static wl_display*        mDisplay;
+
+  nsWindow*                 mWidget;
   
   // The surface size is dynamically allocated by Commit() call,
   // we store the latest size request here to optimize 

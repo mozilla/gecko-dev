@@ -4067,7 +4067,7 @@ nsWindow::Create(nsIWidget* aParent,
     else {
       mWaylandDisplay = gdk_wayland_display_get_wl_display(gdk_display_get_default());
       mWaylandSurface = moz_container_get_wl_surface(MOZ_CONTAINER(mContainer));
-      mSurfaceProvider.Initialize(mWaylandDisplay, mWaylandSurface);
+      mSurfaceProvider.Initialize(this, mWaylandDisplay, mWaylandSurface);
     }
 #endif
 #endif

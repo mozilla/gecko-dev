@@ -52,7 +52,7 @@ X11CompositorWidget::X11CompositorWidget(const CompositorWidgetInitData& aInitDa
       );
   } else {
     mWaylandSurface = (wl_surface *)aInitData.XWindow();
-    mProvider.Initialize(mWaylandDisplay, mWaylandSurface);
+    mProvider.Initialize(aWindow, mWaylandDisplay, mWaylandSurface);
   }
   mClientSize = aInitData.InitialClientSize();
 }

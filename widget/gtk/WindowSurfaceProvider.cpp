@@ -26,8 +26,11 @@ WindowSurfaceProvider::WindowSurfaceProvider()
     , mXVisual(nullptr)
     , mXDepth(0)
     , mWindowSurface(nullptr)
+#ifdef GDK_WINDOWING_WAYLAND
+    , mWidget(nullptr)
     , mWaylandDisplay(nullptr)
     , mWaylandSurface(nullptr)
+#endif
 {
 }
 
@@ -51,12 +54,14 @@ void WindowSurfaceProvider::Initialize(
 }
 
 void WindowSurfaceProvider::Initialize(
+      nsWindow *aWidget,
       wl_display *aWaylandDisplay,
       wl_surface *aWaylandSurface)
 {
   // We should not be initialized
   MOZ_ASSERT(!mWaylandSurface);
 
+  mWidget = aWidget;
   mWaylandDisplay = aWaylandDisplay;
   mWaylandSurface = aWaylandSurface;
   mIsX11Display = false;
@@ -98,7 +103,7 @@ WindowSurfaceProvider::CreateWindowSurface()
   } else {
     MOZ_ASSERT(mWaylandDisplay);
     LOGDRAW(("Drawing to nsWindow %p using wl_surface\n", (void*)this));
-    return MakeUnique<WindowSurfaceWayland>(mWaylandDisplay, mWaylandSurface);
+    return MakeUnique<WindowSurfaceWayland>(mWidget, mWaylandDisplay, mWaylandSurface);
   }
 }
 
