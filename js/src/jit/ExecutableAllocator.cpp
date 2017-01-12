@@ -27,6 +27,8 @@
 
 #include "jit/ExecutableAllocator.h"
 
+#include "mozilla/Atomics.h"
+
 #include "js/MemoryMetrics.h"
 
 #ifdef __APPLE__
@@ -93,3 +95,47 @@ bool ExecutableAllocator::nonWritableJitCode = true;
 #else
 bool ExecutableAllocator::nonWritableJitCode = false;
 #endif
+
+// Limit on the number of bytes of executable memory to prevent JIT spraying
+// attacks.
+#if JS_BITS_PER_WORD == 32
+static const size_t MaxCodeBytesPerProcess = 128 * 1024 * 1024;
+#else
+static const size_t MaxCodeBytesPerProcess = 512 * 1024 * 1024;
+#endif
+
+static mozilla::Atomic<size_t> allocatedExecutableBytes(0);
+
+bool
+js::jit::AddAllocatedExecutableBytes(size_t bytes)
+{
+    MOZ_ASSERT(allocatedExecutableBytes <= MaxCodeBytesPerProcess);
+
+    // Multiple threads can call this concurrently. We use compareExchange to
+    // ensure allocatedExecutableBytes is always <= MaxCodeBytesPerProcess.
+    while (true) {
+        size_t bytesOld = allocatedExecutableBytes;
+        size_t bytesNew = bytesOld + bytes;
+
+        if (bytesNew > MaxCodeBytesPerProcess)
+            return false;
+
+        if (allocatedExecutableBytes.compareExchange(bytesOld, bytesNew))
+            return true;
+    }
+
+    MOZ_CRASH();
+}
+
+void
+js::jit::SubAllocatedExecutableBytes(size_t bytes)
+{
+    MOZ_ASSERT(bytes <= allocatedExecutableBytes);
+    allocatedExecutableBytes -= bytes;
+}
+
+void
+js::jit::AssertAllocatedExecutableBytesIsZero()
+{
+    MOZ_ASSERT(allocatedExecutableBytes == 0);
+}

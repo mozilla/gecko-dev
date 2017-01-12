@@ -69,7 +69,7 @@ AllocateExecutableMemory(ExclusiveContext* cx, size_t bytes)
     // case, DynamicallyLinkModule will reprotect the code as RX.
     unsigned permissions =
         ExecutableAllocator::initialProtectionFlags(ExecutableAllocator::Writable);
-    void* p = AllocateExecutableMemory(nullptr, bytes, permissions, "asm-js-code", AsmJSPageSize);
+    void* p = AllocateExecutableMemory(bytes, permissions, "asm-js-code", AsmJSPageSize);
     if (!p)
         ReportOutOfMemory(cx);
     return (uint8_t*)p;

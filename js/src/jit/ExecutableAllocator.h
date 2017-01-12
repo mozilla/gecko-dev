@@ -186,10 +186,6 @@ class ExecutableAllocator
     typedef void (*DestroyCallback)(void* addr, size_t size);
     DestroyCallback destroyCallback;
 
-#ifdef XP_WIN
-    mozilla::Maybe<mozilla::non_crypto::XorShift128PlusRNG> randomNumberGenerator;
-#endif
-
   public:
     enum ProtectionSetting { Writable, Executable };
 
@@ -294,7 +290,6 @@ class ExecutableAllocator
     // On OOM, this will return an Allocation where pages is nullptr.
     ExecutablePool::Allocation systemAlloc(size_t n);
     static void systemRelease(const ExecutablePool::Allocation& alloc);
-    void* computeRandomAllocationAddress();
 
     ExecutablePool* createPool(size_t n)
     {
@@ -316,8 +311,8 @@ class ExecutableAllocator
         }
 
         if (!m_pools.put(pool)) {
+            // Note: this will call |systemRelease(a)|.
             js_delete(pool);
-            systemRelease(a);
             return nullptr;
         }
 
@@ -487,11 +482,24 @@ class ExecutableAllocator
 };
 
 extern void*
-AllocateExecutableMemory(void* addr, size_t bytes, unsigned permissions, const char* tag,
+AllocateExecutableMemory(size_t bytes, unsigned permissions, const char* tag,
                          size_t pageSize);
 
 extern void
 DeallocateExecutableMemory(void* addr, size_t bytes, size_t pageSize);
+
+// These functions are called by the platform-specific definitions of
+// (Allocate|Deallocate)ExecutableMemory and should not otherwise be
+// called directly.
+
+extern MOZ_MUST_USE bool
+AddAllocatedExecutableBytes(size_t bytes);
+
+extern void
+SubAllocatedExecutableBytes(size_t bytes);
+
+extern void
+AssertAllocatedExecutableBytesIsZero();
 
 } // namespace jit
 } // namespace js
