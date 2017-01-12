@@ -238,7 +238,6 @@ using namespace js;
 using namespace js::gc;
 
 using mozilla::ArrayLength;
-using mozilla::HashCodeScrambler;
 using mozilla::Maybe;
 using mozilla::Swap;
 
@@ -4311,7 +4310,7 @@ js::gc::MarkingValidator::nonIncrementalMark()
      * For saving, smush all of the keys into one big table and split them back
      * up into per-zone tables when restoring.
      */
-    gc::WeakKeyTable savedWeakKeys(SystemAllocPolicy(), runtime->randomHashCodeScrambler());
+    gc::WeakKeyTable savedWeakKeys;
     if (!savedWeakKeys.init())
         return;
 

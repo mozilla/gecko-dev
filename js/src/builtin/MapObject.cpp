@@ -15,7 +15,6 @@
 #include "js/Utility.h"
 #include "vm/GlobalObject.h"
 #include "vm/Interpreter.h"
-#include "vm/Symbol.h"
 
 #include "jsobjinlines.h"
 
@@ -65,38 +64,20 @@ HashableValue::setValue(JSContext* cx, HandleValue v)
 }
 
 static HashNumber
-HashValue(const Value& v, const mozilla::HashCodeScrambler& hcs)
+HashValue(const Value& v)
 {
     // HashableValue::setValue normalizes values so that the SameValue relation
     // on HashableValues is the same as the == relationship on
-    // value.asRawBits(). So why not just return that? Security.
-    //
-    // To avoid revealing GC of atoms, string-based hash codes are computed
-    // from the string contents rather than any pointer; to avoid revealing
-    // addresses, pointer-based hash codes are computed using the
-    // HashCodeScrambler.
-
+    // value.data.asBits.
     if (v.isString())
         return v.toString()->asAtom().hash();
-    if (v.isSymbol()) {
-        Symbol* sym = v.toSymbol();
-        if (sym->isWellKnownSymbol())
-            return HashNumber(sym->code());
-        if (sym->code() == SymbolCode::InSymbolRegistry)
-            return sym->description()->hash();
-        return hcs.scramble(v.asRawBits());
-    }
-    if (v.isObject())
-        return hcs.scramble(v.asRawBits());
-
-    MOZ_ASSERT(v.isNull() || !v.isGCThing(), "do not reveal pointers via hash codes");
     return v.asRawBits();
 }
 
 HashNumber
-HashableValue::hash(const mozilla::HashCodeScrambler& hcs) const
+HashableValue::hash() const
 {
-    return HashValue(value, hcs);
+    return HashValue(value);
 }
 
 bool
@@ -352,15 +333,13 @@ MapObject::mark(JSTracer* trc, JSObject* obj)
 
 struct UnbarrieredHashPolicy {
     typedef Value Lookup;
-    static HashNumber hash(const Lookup& v, const mozilla::HashCodeScrambler& hcs) {
-        return HashValue(v, hcs);
-    }
+    static HashNumber hash(const Lookup& v) { return HashValue(v); }
     static bool match(const Value& k, const Lookup& l) { return k == l; }
     static bool isEmpty(const Value& v) { return v.isMagic(JS_HASH_KEY_EMPTY); }
     static void makeEmpty(Value* vp) { vp->setMagic(JS_HASH_KEY_EMPTY); }
 };
 
-template <typename RealTableType, typename TableType>
+template <typename TableType>
 class OrderedHashTableRef : public gc::BufferableRef
 {
     TableType* table;
@@ -370,9 +349,8 @@ class OrderedHashTableRef : public gc::BufferableRef
     explicit OrderedHashTableRef(TableType* t, const Value& k) : table(t), key(k) {}
 
     void trace(JSTracer* trc) override {
-        MOZ_ASSERT(reinterpret_cast<RealTableType*>(table)
-                       ->hash(*reinterpret_cast<HashableValue*>(&key)) ==
-                   table->hash(key));
+        MOZ_ASSERT(UnbarrieredHashPolicy::hash(key) ==
+                   HashableValue::Hasher::hash(*reinterpret_cast<HashableValue*>(&key)));
         Value prior = key;
         TraceManuallyBarrieredEdge(trc, &key, "ordered hash table key");
         table->rekeyOneEntry(prior, key);
@@ -384,7 +362,7 @@ WriteBarrierPost(JSRuntime* rt, ValueMap* map, const Value& key)
 {
     typedef OrderedHashMap<Value, Value, UnbarrieredHashPolicy, RuntimeAllocPolicy> UnbarrieredMap;
     if (MOZ_UNLIKELY(key.isObject() && IsInsideNursery(&key.toObject()))) {
-        rt->gc.storeBuffer.putGeneric(OrderedHashTableRef<ValueMap, UnbarrieredMap>(
+        rt->gc.storeBuffer.putGeneric(OrderedHashTableRef<UnbarrieredMap>(
                     reinterpret_cast<UnbarrieredMap*>(map), key));
     }
 }
@@ -394,7 +372,7 @@ WriteBarrierPost(JSRuntime* rt, ValueSet* set, const Value& key)
 {
     typedef OrderedHashSet<Value, UnbarrieredHashPolicy, RuntimeAllocPolicy> UnbarrieredSet;
     if (MOZ_UNLIKELY(key.isObject() && IsInsideNursery(&key.toObject()))) {
-        rt->gc.storeBuffer.putGeneric(OrderedHashTableRef<ValueSet, UnbarrieredSet>(
+        rt->gc.storeBuffer.putGeneric(OrderedHashTableRef<UnbarrieredSet>(
                     reinterpret_cast<UnbarrieredSet*>(set), key));
     }
 }
@@ -441,8 +419,7 @@ MapObject::set(JSContext* cx, HandleObject obj, HandleValue k, HandleValue v)
 MapObject*
 MapObject::create(JSContext* cx, HandleObject proto /* = nullptr */)
 {
-    auto map = cx->make_unique<ValueMap>(cx->runtime(),
-                                         cx->compartment()->randomHashCodeScrambler());
+    auto map = cx->make_unique<ValueMap>(cx->runtime());
     if (!map || !map->init()) {
         ReportOutOfMemory(cx);
         return nullptr;
@@ -566,7 +543,7 @@ MapObject::is(HandleObject o)
 }
 
 #define ARG0_KEY(cx, args, key)                                               \
-    Rooted<HashableValue> key(cx);                                            \
+    Rooted<HashableValue> key(cx);                                          \
     if (args.length() > 0 && !key.setValue(cx, args[0]))                      \
         return false
 
@@ -1095,8 +1072,7 @@ SetObject::add(JSContext* cx, HandleObject obj, HandleValue k)
 SetObject*
 SetObject::create(JSContext* cx, HandleObject proto /* = nullptr */)
 {
-    auto set = cx->make_unique<ValueSet>(cx->runtime(),
-                                         cx->compartment()->randomHashCodeScrambler());
+    auto set = cx->make_unique<ValueSet>(cx->runtime());
     if (!set || !set->init()) {
         ReportOutOfMemory(cx);
         return nullptr;
