@@ -12,10 +12,6 @@ config = {
         # self._query_graph_server_branch_name()
         "graph_server_branch_name": "MozillaTest",
         'graph_server': 'graphs.allizom.org',
-        "hgtool_base_bundle_urls": [
-            'http://dev-stage01.build.mozilla.org/pub/mozilla'
-            '.org/firefox/bundles',
-        ],
         'symbol_server_host': "dev-stage01.srv.releng.scl3.mozilla.com",
         'stage_server': 'upload.ffxbld.productdelivery.stage.mozaws.net',
         "sendchange_masters": ["dev-master1.srv.releng.scl3.mozilla.com:9038"],
@@ -27,9 +23,6 @@ config = {
         # see PurgeMixin for clobber() conditions
         'clobberer_url': 'https://api.pub.build.mozilla.org/clobberer/lastclobber',
         'graph_server': 'graphs.mozilla.org',
-        "hgtool_base_bundle_urls": [
-            'https://ftp-ssl.mozilla.org/pub/mozilla.org/firefox/bundles'
-        ],
         'symbol_server_host': "symbolpush.mozilla.org",
         # bug 1216907, set this at branch level
         # 'stage_server': 'upload.ffxbld.productdelivery.prod.mozaws.net',
