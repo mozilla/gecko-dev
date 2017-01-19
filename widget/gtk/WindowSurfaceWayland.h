@@ -38,7 +38,7 @@ public:
   ~BackBufferWayland();
 
   void CopyRectangle(ImageBuffer *aImage,
-                     const mozilla::LayoutDeviceIntRect &r);
+                     const mozilla::LayoutDeviceIntRect &rect);
   
   void Attach(wl_surface* aSurface);
   void Detach();
@@ -123,6 +123,7 @@ private:
   BackBufferWayland*        mFrontBuffer;
   BackBufferWayland*        mBackBuffer;
   wl_callback*              mFrameCallback;
+  bool                      mDelayedCommit;
 };
 
 }  // namespace widget

@@ -176,7 +176,7 @@ moz_container_map_wl_surface(MozContainer *container)
     if (!gtk_surface) {
       // We requested the underlying wl_surface too early. 
       return FALSE;
-    }    
+    }
 
     container->subsurface =
       wl_subcompositor_get_subsurface (container->subcompositor,
@@ -210,7 +210,7 @@ moz_container_create_surface(MozContainer *container)
       mQueue = wl_display_create_queue(gdk_wayland_display_get_wl_display(display));
     }
   
-    if (container->subcompositor && !container->surface) {
+    if (!container->surface) {
         GdkDisplay *display;
         struct wl_compositor *compositor;
 

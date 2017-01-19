@@ -9,10 +9,6 @@
  * https://github.com/wayland-project/weston/blob/master/clients/simple-shm.c
  */
 /*
-- make it work single thread, no e10s
-- simple multi-thread app
-- abort() on exhausted buffer pool
-
 TODO:
 moz-container -> display check
 X11CompositorWidget - update
@@ -82,9 +78,6 @@ ImageBuffer::Lock(const LayoutDeviceIntRegion& aRegion)
 {    
   gfx::IntRect bounds = aRegion.GetBounds().ToUnknownRect();
   gfx::IntSize imageSize(bounds.XMost(), bounds.YMost());
-
-  fprintf(stderr, "ImageBuffer::Lock %d,%d, size %d x %d\n", 
-                   bounds.x, bounds.y, imageSize.width, imageSize.height);
 
   // We use the same trick as nsShmImage::CreateDrawTarget() does:
   // Due to bug 1205045, we must avoid making GTK calls off the main thread
@@ -249,8 +242,15 @@ BackBufferWayland::Resize(int aWidth, int aHeight)
 // Update back buffer with image data from ImageBuffer
 void
 BackBufferWayland::CopyRectangle(ImageBuffer *aImage,
-                                 const mozilla::LayoutDeviceIntRect &r)
+                                 const mozilla::LayoutDeviceIntRect &rect)
 {
+  mozilla::LayoutDeviceIntRect r = rect;
+
+  if (r.x + r.width > mWidth)
+    r.width = mWidth - r.x;
+  if (r.y + r.height > mHeight)
+    r.height = mHeight - r.y;
+
   for (int y = r.y; y < r.y + r.height; y++) {
     int start = (y * mWidth + r.x) * BUFFER_BPP;
     int lenght = r.width * BUFFER_BPP;
@@ -352,7 +352,6 @@ gst_wl_display_thread_run (gpointer data)
 
   /* main loop */
   while (1) {
-    //fprintf(stderr, "***** Loop Enter 1.\n");
     while (wl_display_prepare_read_queue (WindowSurfaceWayland::GetDisplay(),
                                           WindowSurfaceWayland::GetQueue()) < 0) {
       wl_display_dispatch_queue_pending (WindowSurfaceWayland::GetDisplay(),
@@ -360,12 +359,9 @@ gst_wl_display_thread_run (gpointer data)
     }
     wl_display_flush (WindowSurfaceWayland::GetDisplay());
 
-    //fprintf(stderr, "***** Loop Enter 2.\n");
     int ret = poll(&fds, 1, -1);
-    //fprintf(stderr, "***** Loop Enter 3.\n");
     if (ret == -1) {
       wl_display_cancel_read(WindowSurfaceWayland::GetDisplay());
-      //fprintf(stderr, "***** Loop error!!\n");
       break;
     }
     wl_display_read_events(WindowSurfaceWayland::GetDisplay());
@@ -432,6 +428,7 @@ WindowSurfaceWayland::WindowSurfaceWayland(nsWindow *aWidget,
   , mFrontBuffer(nullptr)
   , mBackBuffer(nullptr)
   , mFrameCallback(nullptr)
+  , mDelayedCommit(false)
 {
   NS_ASSERTION(mSurface != nullptr,
                "Missing Wayland surfaces to draw to!");
@@ -454,8 +451,6 @@ WindowSurfaceWayland::GetBufferToDraw(int aWidth, int aHeight)
     mBackBuffer = new BackBufferWayland(aWidth, aHeight);  
   } else {
     if (mFrontBuffer->IsAttached()) {
-      return nullptr; //TODO
-
       if (mBackBuffer->IsAttached()) {
         NS_ASSERTION(!mBackBuffer->IsAttached(), "We don't have any buffer to draw to!");
         return nullptr;
@@ -487,10 +482,6 @@ WindowSurfaceWayland::Commit(const LayoutDeviceIntRegion& aInvalidRegion)
 {
   gfx::IntRect bounds = aInvalidRegion.GetBounds().ToUnknownRect();
   gfx::IntSize bufferSize(bounds.XMost(), bounds.YMost());
-  gfx::IntSize areaSize = bounds.Size();
-
-  fprintf(stderr, "WindowSurfaceWayland::Commit %d,%d, size %d x %d\n", 
-                   bounds.x, bounds.y, bufferSize.width, bufferSize.height);
 
   LayoutDeviceIntRect rect = mWidget->GetBounds();
   BackBufferWayland* buffer = GetBufferToDraw(rect.width,
@@ -500,33 +491,42 @@ WindowSurfaceWayland::Commit(const LayoutDeviceIntRegion& aInvalidRegion)
     return;
 
   for (auto iter = aInvalidRegion.RectIter(); !iter.Done(); iter.Next()) {
-    buffer->CopyRectangle(&mImageBuffer, iter.Get());
+    const mozilla::LayoutDeviceIntRect &r = iter.Get();
+    buffer->CopyRectangle(&mImageBuffer, r);
+    wl_surface_damage(mSurface, r.x, r.y, r.width, r.height);
   }
 
-  wl_surface_damage(mSurface, bounds.x, bounds.y, areaSize.width, areaSize.height);
-/*
   if (mFrameCallback) {
-      wl_callback_destroy(mFrameCallback);
+    // Do nothing here - buffer will be commited to compositor
+    // in next frame callback event.
+    mDelayedCommit = true;
+    return;
+  } else  {
+    mFrameCallback = wl_surface_frame(mSurface);
+    wl_callback_add_listener(mFrameCallback, &frame_listener, this);
+
+    // There's no pending frame callback so we can draw immediately
+    // and create frame callback for possible subsequent drawing.
+    mFrontBuffer->Attach(mSurface);
+    mDelayedCommit = false;
   }
-  mFrameCallback = wl_surface_frame(mSurface);
-  wl_callback_add_listener(mFrameCallback, &frame_listener, this);
-*/
-  Draw();
 }
 
 void
 WindowSurfaceWayland::Draw()
 {
-/*
   if (mFrameCallback) {
       wl_callback_destroy(mFrameCallback);
+      mFrameCallback = nullptr;
   }
-  
-  mFrameCallback = wl_surface_frame(mSurface);
-  wl_callback_add_listener(mFrameCallback,
-                           &frame_listener, this);
-*/
-  mFrontBuffer->Attach(mSurface);
+
+  if (mDelayedCommit) {
+    mFrameCallback = wl_surface_frame(mSurface);
+    wl_callback_add_listener(mFrameCallback, &frame_listener, this);
+
+    mFrontBuffer->Attach(mSurface);
+    mDelayedCommit = false;
+  }
 }
 
 }  // namespace widget

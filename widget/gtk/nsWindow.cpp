@@ -2394,8 +2394,6 @@ nsWindow::OnExposeEvent(cairo_t *cr)
         gdk_window_process_updates(mGdkWindow, false);
     }
 
-    fprintf(stderr, "*************** Expose end nsWindow %p\n", this);
-
     // check the return value!
     return TRUE;
 }
@@ -3830,12 +3828,7 @@ nsWindow::Create(nsIWidget* aParent,
 
         // the drawing window
         mGdkWindow = gtk_widget_get_window(eventWidget);
-#if defined(GDK_WINDOWING_WAYLAND)
-        wl_surface *waylandSurface = moz_container_get_wl_surface(
-                                          MOZ_CONTAINER(container));
-        g_object_set_data(G_OBJECT(mGdkWindow), "WAYLAND_SURFACE",
-                          waylandSurface);
-#endif
+
         if (mWindowType == eWindowType_popup) {
             // gdk does not automatically set the cursor for "temporary"
             // windows, which are what gtk uses for popups.
@@ -3875,7 +3868,6 @@ nsWindow::Create(nsIWidget* aParent,
     case eWindowType_plugin_ipc_chrome:
     case eWindowType_plugin_ipc_content:
     case eWindowType_child: {
-        assert(0);
         if (parentMozContainer) {
             mGdkWindow = CreateGdkWindow(parentGdkWindow, parentMozContainer);
             mHasMappedToplevel = parentnsWindow->mHasMappedToplevel;
@@ -7086,4 +7078,3 @@ void nsWindow::GetCompositorWidgetInitData(mozilla::widget::CompositorWidgetInit
   #endif
   #endif
 }
-
