@@ -555,7 +555,7 @@ static char* detectDisplay(void)
     return display_name;
   }
 
-  PR_fprintf(PR_STDERR, "Error: GDK_BACKEND does not match available displays\n");
+  MOZ_ASSERT(display_name);
   return nullptr;
 }
 #endif
