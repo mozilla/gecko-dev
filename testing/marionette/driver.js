@@ -2543,7 +2543,8 @@ GeckoDriver.prototype.sendKeysToDialog = function (cmd, resp) {
   // see toolkit/components/prompts/content/commonDialog.js
   let {loginContainer, loginTextbox} = this.dialog.ui;
   if (loginContainer.hidden) {
-    throw new ElementNotVisibleError("This prompt does not accept text input");
+    throw new ElementNotInteractableError(
+        "This prompt does not accept text input");
   }
 
   let win = this.dialog.window ? this.dialog.window : this.getCurrentWindow();
