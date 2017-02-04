@@ -39,6 +39,7 @@
 #include "jit/arm/Simulator-arm.h"
 #include "jit/mips32/Simulator-mips32.h"
 #include "jit/mips64/Simulator-mips64.h"
+#include "jit/ProcessExecutableMemory.h"
 #include "js/GCAPI.h"
 #include "js/HashTable.h"
 #include "js/Vector.h"
@@ -187,8 +188,6 @@ class ExecutableAllocator
     DestroyCallback destroyCallback;
 
   public:
-    enum ProtectionSetting { Writable, Executable };
-
     ExecutableAllocator()
       : destroyCallback(nullptr)
     {
@@ -259,14 +258,7 @@ class ExecutableAllocator
         this->destroyCallback = destroyCallback;
     }
 
-    static void initStatic();
-
-    static bool nonWritableJitCode;
-
   private:
-    static size_t pageSize;
-    static size_t largeAllocSize;
-
     static const size_t OVERSIZE_ALLOCATION = size_t(-1);
 
     static size_t roundUpAllocationSize(size_t request, size_t granularity)
@@ -293,7 +285,7 @@ class ExecutableAllocator
 
     ExecutablePool* createPool(size_t n)
     {
-        size_t allocSize = roundUpAllocationSize(n, pageSize);
+        size_t allocSize = roundUpAllocationSize(n, ExecutableCodePageSize);
         if (allocSize == OVERSIZE_ALLOCATION)
             return nullptr;
 
@@ -339,11 +331,11 @@ class ExecutableAllocator
         }
 
         // If the request is large, we just provide a unshared allocator
-        if (n > largeAllocSize)
+        if (n > ExecutableCodePageSize)
             return createPool(n);
 
         // Create a new allocator
-        ExecutablePool* pool = createPool(largeAllocSize);
+        ExecutablePool* pool = createPool(ExecutableCodePageSize);
         if (!pool)
             return nullptr;
         // At this point, local |pool| is the owner.
@@ -380,17 +372,11 @@ class ExecutableAllocator
 
     static void makeWritable(void* start, size_t size)
     {
-        if (nonWritableJitCode)
-            reprotectRegion(start, size, Writable);
     }
 
     static void makeExecutable(void* start, size_t size)
     {
-        if (nonWritableJitCode)
-            reprotectRegion(start, size, Executable);
     }
-
-    static unsigned initialProtectionFlags(ProtectionSetting protection);
 
 #if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
     static void cacheFlush(void*, size_t)
@@ -464,8 +450,6 @@ class ExecutableAllocator
     ExecutableAllocator(const ExecutableAllocator&) = delete;
     void operator=(const ExecutableAllocator&) = delete;
 
-    static void reprotectRegion(void*, size_t, ProtectionSetting);
-
     // These are strong references;  they keep pools alive.
     static const size_t maxSmallPools = 4;
     typedef js::Vector<ExecutablePool*, maxSmallPools, js::SystemAllocPolicy> SmallExecPoolVector;
@@ -477,38 +461,7 @@ class ExecutableAllocator
     typedef js::HashSet<ExecutablePool*, js::DefaultHasher<ExecutablePool*>, js::SystemAllocPolicy>
             ExecPoolHashSet;
     ExecPoolHashSet m_pools;    // All pools, just for stats purposes.
-
-    static size_t determinePageSize();
 };
-
-extern void*
-AllocateExecutableMemory(size_t bytes, unsigned permissions, const char* tag,
-                         size_t pageSize);
-
-extern void
-DeallocateExecutableMemory(void* addr, size_t bytes, size_t pageSize);
-
-// These functions are called by the platform-specific definitions of
-// (Allocate|Deallocate)ExecutableMemory and should not otherwise be
-// called directly.
-
-extern MOZ_MUST_USE bool
-AddAllocatedExecutableBytes(size_t bytes);
-
-extern void
-SubAllocatedExecutableBytes(size_t bytes);
-
-extern void
-AssertAllocatedExecutableBytesIsZero();
-
-// Returns true if we can allocate a few more MB of executable code without
-// hitting our code limit. This function can be used to stop compiling things
-// that are optional (like Baseline and Ion code) when we're about to reach the
-// limit, so we are less likely to OOM or crash. Note that the limit is
-// per-process, so other threads can also allocate code after we call this
-// function.
-extern bool
-CanLikelyAllocateMoreExecutableMemory();
 
 } // namespace jit
 } // namespace js

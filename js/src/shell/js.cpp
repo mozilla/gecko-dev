@@ -6767,11 +6767,6 @@ main(int argc, char** argv, char** envp)
     OOM_printAllocationCount = op.getBoolOption('O');
 #endif
 
-    if (op.getBoolOption("non-writable-jitcode")) {
-        js::jit::ExecutableAllocator::nonWritableJitCode = true;
-        PropagateFlagToNestedShells("--non-writable-jitcode");
-    }
-
 #ifdef JS_CODEGEN_X86
     if (op.getBoolOption("no-fpu"))
         js::jit::CPUInfo::SetFloatingPointDisabled();

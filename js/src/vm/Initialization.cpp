@@ -83,7 +83,9 @@ JS_Init(void)
     js::oom::SetThreadType(js::oom::THREAD_TYPE_MAIN);
 #endif
 
-    js::jit::ExecutableAllocator::initStatic();
+    js::gc::InitMemorySubsystem(); // Ensure gc::SystemPageSize() works.
+    if (!js::jit::InitProcessExecutableMemory())
+        return false;
 
     if (!js::jit::InitializeIon())
         return false;
@@ -147,7 +149,7 @@ JS_ShutDown(void)
 #endif // EXPOSE_INTL_API
 
     if (!JSRuntime::hasLiveRuntimes())
-        js::jit::AssertAllocatedExecutableBytesIsZero();
+        js::jit::ReleaseProcessExecutableMemory();
 
     libraryInitState = InitState::ShutDown;
 }

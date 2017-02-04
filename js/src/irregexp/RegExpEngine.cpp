@@ -1733,7 +1733,8 @@ irregexp::CompilePattern(JSContext* cx, RegExpShared* shared, RegExpCompileData*
     RegExpMacroAssembler* assembler;
     if (IsNativeRegExpEnabled(cx) &&
         !force_bytecode &&
-        jit::CanLikelyAllocateMoreExecutableMemory())
+        jit::CanLikelyAllocateMoreExecutableMemory() &&
+        shared->getSource()->length() < 32 * 1024)
     {
         NativeRegExpMacroAssembler::Mode mode =
             is_ascii ? NativeRegExpMacroAssembler::ASCII

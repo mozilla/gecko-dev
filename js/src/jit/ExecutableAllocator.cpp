@@ -27,18 +27,9 @@
 
 #include "jit/ExecutableAllocator.h"
 
-#include "mozilla/Atomics.h"
-
 #include "js/MemoryMetrics.h"
 
-#ifdef __APPLE__
-#include <TargetConditionals.h>
-#endif
-
 using namespace js::jit;
-
-size_t ExecutableAllocator::pageSize = 0;
-size_t ExecutableAllocator::largeAllocSize = 0;
 
 ExecutablePool::~ExecutablePool()
 {
@@ -48,28 +39,6 @@ ExecutablePool::~ExecutablePool()
     MOZ_ASSERT(m_otherCodeBytes == 0);
 
     m_allocator->releasePoolPages(this);
-}
-
-/* static */ void
-ExecutableAllocator::initStatic()
-{
-    if (!pageSize) {
-        pageSize = determinePageSize();
-        // On Windows, VirtualAlloc effectively allocates in 64K chunks.
-        // (Technically, it allocates in page chunks, but the starting
-        // address is always a multiple of 64K, so each allocation uses up
-        // 64K of address space.)  So a size less than that would be
-        // pointless.  But it turns out that 64KB is a reasonable size for
-        // all platforms.  (This assumes 4KB pages.) On 64-bit windows,
-        // AllocateExecutableMemory prepends an extra page for structured
-        // exception handling data (see comments in function) onto whatever
-        // is passed in, so subtract one page here.
-#if defined(JS_CPU_X64) && defined(XP_WIN)
-        largeAllocSize = pageSize * 15;
-#else
-        largeAllocSize = pageSize * 16;
-#endif
-    }
 }
 
 void
@@ -90,62 +59,16 @@ ExecutableAllocator::addSizeOfCode(JS::CodeSizes* sizes) const
     }
 }
 
-#if TARGET_OS_IPHONE
-bool ExecutableAllocator::nonWritableJitCode = true;
-#else
-bool ExecutableAllocator::nonWritableJitCode = false;
-#endif
-
-// Limit on the number of bytes of executable memory to prevent JIT spraying
-// attacks.
-#if JS_BITS_PER_WORD == 32
-static const size_t MaxCodeBytesPerProcess = 160 * 1024 * 1024;
-#else
-static const size_t MaxCodeBytesPerProcess = 640 * 1024 * 1024;
-#endif
-
-static mozilla::Atomic<size_t> allocatedExecutableBytes(0);
-
-bool
-js::jit::AddAllocatedExecutableBytes(size_t bytes)
+ExecutablePool::Allocation
+ExecutableAllocator::systemAlloc(size_t n)
 {
-    MOZ_ASSERT(allocatedExecutableBytes <= MaxCodeBytesPerProcess);
-
-    // Multiple threads can call this concurrently. We use compareExchange to
-    // ensure allocatedExecutableBytes is always <= MaxCodeBytesPerProcess.
-    while (true) {
-        size_t bytesOld = allocatedExecutableBytes;
-        size_t bytesNew = bytesOld + bytes;
-
-        if (bytesNew > MaxCodeBytesPerProcess)
-            return false;
-
-        if (allocatedExecutableBytes.compareExchange(bytesOld, bytesNew))
-            return true;
-    }
-
-    MOZ_CRASH();
+    void* allocation = AllocateExecutableMemory(n, ProtectionSetting::Executable);
+    ExecutablePool::Allocation alloc = { reinterpret_cast<char*>(allocation), n };
+    return alloc;
 }
 
 void
-js::jit::SubAllocatedExecutableBytes(size_t bytes)
+ExecutableAllocator::systemRelease(const ExecutablePool::Allocation& alloc)
 {
-    MOZ_ASSERT(bytes <= allocatedExecutableBytes);
-    allocatedExecutableBytes -= bytes;
-}
-
-void
-js::jit::AssertAllocatedExecutableBytesIsZero()
-{
-    MOZ_ASSERT(allocatedExecutableBytes == 0);
-}
-
-bool
-js::jit::CanLikelyAllocateMoreExecutableMemory()
-{
-    // Use a 16 MB buffer.
-    static const size_t BufferSize = 16 * 1024 * 1024;
-
-    MOZ_ASSERT(allocatedExecutableBytes <= MaxCodeBytesPerProcess);
-    return allocatedExecutableBytes + BufferSize <= MaxCodeBytesPerProcess;
+    DeallocateExecutableMemory(alloc.pages, alloc.size);
 }
