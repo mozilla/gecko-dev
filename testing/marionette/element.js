@@ -334,7 +334,7 @@ function find_(container, strategy, selector, searchFn, opts) {
  */
 element.findByXPath = function (root, startNode, expr) {
   let iter = root.evaluate(expr, startNode, null,
-      Ci.nsIDOMXPathResult.FIRST_ORDERED_NODE_TYPE, null)
+      Ci.nsIDOMXPathResult.FIRST_ORDERED_NODE_TYPE, null);
   return iter.singleNodeValue;
 };
 
@@ -482,6 +482,7 @@ function findElement(using, value, rootNode, startNode) {
       } catch (e) {
         throw new InvalidSelectorError(`${e.message}: "${value}"`);
       }
+      break;
 
     case element.Strategy.Anon:
       return rootNode.getAnonymousNodes(startNode);
@@ -493,7 +494,7 @@ function findElement(using, value, rootNode, startNode) {
     default:
       throw new InvalidSelectorError(`No such strategy: ${using}`);
   }
-};
+}
 
 /**
  * Find multiple elements.
