@@ -242,9 +242,10 @@ CamerasChild::NumberOfCapabilities(CaptureEngine aCapEngine,
   LOG((__PRETTY_FUNCTION__));
   LOG(("NumberOfCapabilities for %s", deviceUniqueIdUTF8));
   nsCString unique_id(deviceUniqueIdUTF8);
+  RefPtr<CamerasChild> self = this;
   nsCOMPtr<nsIRunnable> runnable =
-    media::NewRunnableFrom([this, aCapEngine, unique_id]() -> nsresult {
-      if (this->SendNumberOfCapabilities(aCapEngine, unique_id)) {
+    media::NewRunnableFrom([self, aCapEngine, unique_id]() -> nsresult {
+      if (self->SendNumberOfCapabilities(aCapEngine, unique_id)) {
         return NS_OK;
       }
       return NS_ERROR_FAILURE;
@@ -277,9 +278,10 @@ CamerasChild::NumberOfCaptureDevices(CaptureEngine aCapEngine)
 {
   MutexAutoLock requestLock(mRequestMutex);
   LOG((__PRETTY_FUNCTION__));
+  RefPtr<CamerasChild> self = this;
   nsCOMPtr<nsIRunnable> runnable =
-    media::NewRunnableFrom([this, aCapEngine]() -> nsresult {
-      if (this->SendNumberOfCaptureDevices(aCapEngine)) {
+    media::NewRunnableFrom([self, aCapEngine]() -> nsresult {
+      if (self->SendNumberOfCaptureDevices(aCapEngine)) {
         return NS_OK;
       }
       return NS_ERROR_FAILURE;
@@ -330,9 +332,10 @@ CamerasChild::GetCaptureCapability(CaptureEngine aCapEngine,
   MutexAutoLock requestLock(mRequestMutex);
   LOG(("GetCaptureCapability: %s %d", unique_idUTF8, capability_number));
   nsCString unique_id(unique_idUTF8);
+  RefPtr<CamerasChild> self = this;
   nsCOMPtr<nsIRunnable> runnable =
-    media::NewRunnableFrom([this, aCapEngine, unique_id, capability_number]() -> nsresult {
-      if (this->SendGetCaptureCapability(aCapEngine, unique_id, capability_number)) {
+    media::NewRunnableFrom([self, aCapEngine, unique_id, capability_number]() -> nsresult {
+      if (self->SendGetCaptureCapability(aCapEngine, unique_id, capability_number)) {
         return NS_OK;
       }
       return NS_ERROR_FAILURE;
@@ -393,9 +396,10 @@ CamerasChild::GetCaptureDevice(CaptureEngine aCapEngine,
 {
   MutexAutoLock requestLock(mRequestMutex);
   LOG((__PRETTY_FUNCTION__));
+  RefPtr<CamerasChild> self = this;
   nsCOMPtr<nsIRunnable> runnable =
-    media::NewRunnableFrom([this, aCapEngine, list_number]() -> nsresult {
-      if (this->SendGetCaptureDevice(aCapEngine, list_number)) {
+    media::NewRunnableFrom([self, aCapEngine, list_number]() -> nsresult {
+      if (self->SendGetCaptureDevice(aCapEngine, list_number)) {
         return NS_OK;
       }
       return NS_ERROR_FAILURE;
@@ -451,9 +455,10 @@ CamerasChild::AllocateCaptureDevice(CaptureEngine aCapEngine,
   MutexAutoLock requestLock(mRequestMutex);
   LOG((__PRETTY_FUNCTION__));
   nsCString unique_id(unique_idUTF8);
+  RefPtr<CamerasChild> self = this;
   nsCOMPtr<nsIRunnable> runnable =
-    media::NewRunnableFrom([this, aCapEngine, unique_id]() -> nsresult {
-      if (this->SendAllocateCaptureDevice(aCapEngine, unique_id)) {
+    media::NewRunnableFrom([self, aCapEngine, unique_id]() -> nsresult {
+      if (self->SendAllocateCaptureDevice(aCapEngine, unique_id)) {
         return NS_OK;
       }
       return NS_ERROR_FAILURE;
@@ -498,9 +503,10 @@ CamerasChild::ReleaseCaptureDevice(CaptureEngine aCapEngine,
 {
   MutexAutoLock requestLock(mRequestMutex);
   LOG((__PRETTY_FUNCTION__));
+  RefPtr<CamerasChild> self = this;
   nsCOMPtr<nsIRunnable> runnable =
-    media::NewRunnableFrom([this, aCapEngine, capture_id]() -> nsresult {
-      if (this->SendReleaseCaptureDevice(aCapEngine, capture_id)) {
+    media::NewRunnableFrom([self, aCapEngine, capture_id]() -> nsresult {
+      if (self->SendReleaseCaptureDevice(aCapEngine, capture_id)) {
         return NS_OK;
       }
       return NS_ERROR_FAILURE;
@@ -570,9 +576,10 @@ CamerasChild::StartCapture(CaptureEngine aCapEngine,
                            webrtcCaps.rawType,
                            webrtcCaps.codecType,
                            webrtcCaps.interlaced);
+  RefPtr<CamerasChild> self = this;
   nsCOMPtr<nsIRunnable> runnable =
-    media::NewRunnableFrom([this, aCapEngine, capture_id, capCap]() -> nsresult {
-      if (this->SendStartCapture(aCapEngine, capture_id, capCap)) {
+    media::NewRunnableFrom([self, aCapEngine, capture_id, capCap]() -> nsresult {
+      if (self->SendStartCapture(aCapEngine, capture_id, capCap)) {
         return NS_OK;
       }
       return NS_ERROR_FAILURE;
@@ -600,9 +607,10 @@ CamerasChild::StopCapture(CaptureEngine aCapEngine, const int capture_id)
 {
   MutexAutoLock requestLock(mRequestMutex);
   LOG((__PRETTY_FUNCTION__));
+  RefPtr<CamerasChild> self = this;
   nsCOMPtr<nsIRunnable> runnable =
-    media::NewRunnableFrom([this, aCapEngine, capture_id]() -> nsresult {
-      if (this->SendStopCapture(aCapEngine, capture_id)) {
+    media::NewRunnableFrom([self, aCapEngine, capture_id]() -> nsresult {
+      if (self->SendStopCapture(aCapEngine, capture_id)) {
         return NS_OK;
       }
       return NS_ERROR_FAILURE;
@@ -669,12 +677,13 @@ CamerasChild::ShutdownParent()
   }
   if (CamerasSingleton::Thread()) {
     LOG(("Dispatching actor deletion"));
+    RefPtr<CamerasChild> self = this;
     // Delete the parent actor.
     RefPtr<nsRunnable> deleteRunnable =
       // CamerasChild (this) will remain alive and is only deleted by the
       // IPC layer when SendAllDone returns.
-      media::NewRunnableFrom([this]() -> nsresult {
-        Unused << this->SendAllDone();
+      media::NewRunnableFrom([self]() -> nsresult {
+        Unused << self->SendAllDone();
         return NS_OK;
       });
     CamerasSingleton::Thread()->Dispatch(deleteRunnable, NS_DISPATCH_NORMAL);

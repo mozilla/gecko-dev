@@ -2105,7 +2105,8 @@ MediaManager::GetUserMedia(nsPIDOMWindow* aWindow,
   RefPtr<PledgeSourceSet> p = EnumerateDevicesImpl(windowID, videoType,
                                                    audioType, fake,
                                                    fakeTracks);
-  p->Then([this, onSuccess, onFailure, windowID, c, listener, askPermission,
+  RefPtr<MediaManager> self = this;
+  p->Then([self, onSuccess, onFailure, windowID, c, listener, askPermission,
            prefs, isHTTPS, callID, origin](SourceSet*& aDevices) mutable {
 
     RefPtr<Refcountable<ScopedDeletePtr<SourceSet>>> devices(
@@ -2118,9 +2119,9 @@ MediaManager::GetUserMedia(nsPIDOMWindow* aWindow,
     }
 
     // Apply any constraints. This modifies the passed-in list.
-    RefPtr<PledgeChar> p2 = SelectSettings(c, devices);
+    RefPtr<PledgeChar> p2 = self->SelectSettings(c, devices);
 
-    p2->Then([this, onSuccess, onFailure, windowID, c,
+    p2->Then([self, onSuccess, onFailure, windowID, c,
               listener, askPermission, prefs, isHTTPS,
               callID, origin, devices](const char*& badConstraint) mutable {
 
@@ -2170,13 +2171,13 @@ MediaManager::GetUserMedia(nsPIDOMWindow* aWindow,
                                                              prefs, origin,
                                                              devices->forget()));
       // Store the task w/callbacks.
-      mActiveCallbacks.Put(callID, task.forget());
+      self->mActiveCallbacks.Put(callID, task.forget());
 
       // Add a WindowID cross-reference so OnNavigation can tear things down
       nsTArray<nsString>* array;
-      if (!mCallIds.Get(windowID, &array)) {
+      if (!self->mCallIds.Get(windowID, &array)) {
         array = new nsTArray<nsString>();
-        mCallIds.Put(windowID, array);
+        self->mCallIds.Put(windowID, array);
       }
       array->AppendElement(callID);
 
@@ -2673,14 +2674,16 @@ MediaManager::Shutdown()
   // cleared until the lambda function clears it.
 
   // note that this == sSingleton
-  RefPtr<MediaManager> that(sSingleton);
+  RefPtr<MediaManager> self = this;
+  MOZ_ASSERT(self == sSingleton);
+
   // Release the backend (and call Shutdown()) from within the MediaManager thread
   // Don't use MediaManager::PostTask() because we're sInShutdown=true here!
   mMediaThread->message_loop()->PostTask(FROM_HERE, new ShutdownTask(this,
-      media::NewRunnableFrom([this, that]() mutable {
+      media::NewRunnableFrom([self]() mutable {
     LOG(("MediaManager shutdown lambda running, releasing MediaManager singleton and thread"));
-    if (mMediaThread) {
-      mMediaThread->Stop();
+    if (self->mMediaThread) {
+      self->mMediaThread->Stop();
     }
 
     // Remove async shutdown blocker
@@ -2688,7 +2691,7 @@ MediaManager::Shutdown()
     nsCOMPtr<nsIAsyncShutdownClient> shutdownPhase = GetShutdownPhase();
     shutdownPhase->RemoveBlocker(sSingleton->mShutdownBlocker);
 
-    // we hold a ref to 'that' which is the same as sSingleton
+    // we hold a ref to 'self' which is the same as sSingleton
     sSingleton = nullptr;
 
     return NS_OK;
