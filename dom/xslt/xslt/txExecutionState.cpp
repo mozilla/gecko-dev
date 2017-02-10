@@ -82,7 +82,10 @@ txExecutionState::~txExecutionState()
 
     txStackIterator handlerIter(&mResultHandlerStack);
     while (handlerIter.hasNext()) {
-        delete (txAXMLEventHandler*)handlerIter.next();
+        txAXMLEventHandler* handler = (txAXMLEventHandler*)handlerIter.next();
+        if (handler != mObsoleteHandler) {
+          delete handler;
+        }
     }
 
     txStackIterator paramIter(&mParamStack);
