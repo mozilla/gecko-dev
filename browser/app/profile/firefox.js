@@ -655,6 +655,9 @@ pref("plugin.defaultXpi.state", 2);
 pref("plugin.state.flash", 2);
 pref("plugin.state.java", 1);
 
+// On ESR only, we re-enable all plugins instead of only loading Flash.
+pref("plugin.load_flash_only", false);
+
 #ifdef XP_MACOSX
 pref("browser.preferences.animateFadeIn", true);
 #else
