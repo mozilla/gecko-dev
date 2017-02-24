@@ -21,8 +21,11 @@ add_task(function* () {
   yield SpecialPowers.pushPrefEnv({
     "set": [
       // Accept workers from mochitest's http.
+      ["dom.serviceWorkers.enabled", true],
+      ["dom.serviceWorkers.openWindow.enabled", true],
       ["dom.serviceWorkers.testing.enabled", true],
       // Enable the push service.
+      ["dom.push.enabled", true],
       ["dom.push.connection.enabled", true],
     ]
   });

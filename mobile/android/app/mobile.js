@@ -879,9 +879,9 @@ pref("dom.vr.enabled", true);
 
 pref("browser.tabs.showAudioPlayingIcon", true);
 
-pref("dom.serviceWorkers.enabled", true);
-pref("dom.serviceWorkers.interception.enabled", true);
-pref("dom.serviceWorkers.openWindow.enabled", true);
+pref("dom.serviceWorkers.enabled", false);
+pref("dom.serviceWorkers.interception.enabled", false);
+pref("dom.serviceWorkers.openWindow.enabled", false);
 
 pref("dom.push.debug", false);
 // The upstream autopush endpoint must have the Google API key corresponding to
@@ -890,7 +890,7 @@ pref("dom.push.serverURL", "https://updates.push.services.mozilla.com/v1/gcm/@MO
 pref("dom.push.maxRecentMessageIDsPerSubscription", 0);
 
 #ifdef MOZ_ANDROID_GCM
-pref("dom.push.enabled", true);
+pref("dom.push.enabled", false);
 #endif
 
 // The remote content URL where FxAccountsWebChannel messages originate.  Must use HTTPS.

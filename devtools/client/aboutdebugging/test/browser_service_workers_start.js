@@ -19,6 +19,8 @@ add_task(function* () {
   yield new Promise(done => {
     let options = { "set": [
       // Accept workers from mochitest's http.
+      ["dom.serviceWorkers.enabled", true],
+      ["dom.serviceWorkers.openWindow.enabled", true],
       ["dom.serviceWorkers.testing.enabled", true],
       // Reduce the timeout to accelerate service worker freezing
       ["dom.serviceWorkers.idle_timeout", SW_TIMEOUT],
