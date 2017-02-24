@@ -17,6 +17,7 @@ RELEASE_PROJECTS = set([
     'mozilla-aurora',
     'mozilla-beta',
     'mozilla-release',
+    'mozilla-esr52',
 ])
 
 _target_task_methods = {}
@@ -117,14 +118,4 @@ def target_tasks_cedar(full_task_graph, parameters):
                     or 'xpcshell' in task.attributes['unittest_suite']):
                 return False
         return True
-    return [l for l, t in full_task_graph.tasks.iteritems() if filter(t)]
-
-
-@_target_task('nightly_fennec')
-def target_tasks_nightly(full_task_graph, parameters):
-    """Select the set of tasks required for a nightly build of fennec. The
-    nightly build process involves a pipeline of builds, signing,
-    and, eventually, uploading the tasks to balrog."""
-    def filter(task):
-        return task.attributes.get('nightly', False)
     return [l for l, t in full_task_graph.tasks.iteritems() if filter(t)]
