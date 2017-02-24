@@ -176,6 +176,16 @@ var interfaceNamesInGlobalScope =
 // IMPORTANT: Do not change this list without review from a DOM peer!
     { name: "PerformanceObserverEntryList", nightly: true },
 // IMPORTANT: Do not change this list without review from a DOM peer!
+    "PushEvent",
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    "PushManager",
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    "PushMessageData",
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    "PushSubscription",
+// IMPORTANT: Do not change this list without review from a DOM peer!
+    "PushSubscriptionOptions",
+// IMPORTANT: Do not change this list without review from a DOM peer!
     "Request",
 // IMPORTANT: Do not change this list without review from a DOM peer!
     "Response",

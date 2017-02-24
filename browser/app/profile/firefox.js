@@ -1494,11 +1494,11 @@ pref("reader.errors.includeURLs", true);
 
 pref("view_source.tab", true);
 
-pref("dom.serviceWorkers.enabled", false);
-pref("dom.serviceWorkers.openWindow.enabled", false);
+pref("dom.serviceWorkers.enabled", true);
+pref("dom.serviceWorkers.openWindow.enabled", true);
 
 // Enable Push API.
-pref("dom.push.enabled", false);
+pref("dom.push.enabled", true);
 
 // These are the thumbnail width/height set in about:newtab.
 // If you change this, ENSURE IT IS THE SAME SIZE SET
