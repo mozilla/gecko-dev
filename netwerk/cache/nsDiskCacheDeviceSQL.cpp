@@ -9,6 +9,7 @@
 
 #include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/Snprintf.h"
+#include "mozilla/ThreadLocal.h"
 
 #include "nsCache.h"
 #include "nsDiskCache.h"
@@ -111,13 +112,13 @@ class EvictionObserver
                    nsOfflineCacheEvictionFunction *evictionFunction)
     : mDB(db), mEvictionFunction(evictionFunction)
     {
+      mEvictionFunction->Init();
       mDB->ExecuteSimpleSQL(
           NS_LITERAL_CSTRING("CREATE TEMP TRIGGER cache_on_delete BEFORE DELETE"
                              " ON moz_cache FOR EACH ROW BEGIN SELECT"
                              " cache_eviction_observer("
                              "  OLD.ClientID, OLD.key, OLD.generation);"
                              " END;"));
-      mEvictionFunction->Reset();
     }
 
     ~EvictionObserver()
@@ -183,6 +184,13 @@ GetCacheDataFile(nsIFile *cacheDir, const char *key,
   return file->AppendNative(nsDependentCString(leaf));
 }
 
+namespace appcachedetail {
+
+typedef nsCOMArray<nsIFile> FileArray;
+static ThreadLocal<FileArray*> tlsEvictionItems;
+
+} // appcachedetail
+
 NS_IMETHODIMP
 nsOfflineCacheEvictionFunction::OnFunctionCall(mozIStorageValueArray *values, nsIVariant **_retval)
 {
@@ -219,9 +227,42 @@ nsOfflineCacheEvictionFunction::OnFunctionCall(mozIStorageValueArray *values, ns
     return rv;
   }
 
-  mItems.AppendObject(file);
+  appcachedetail::FileArray* items = appcachedetail::tlsEvictionItems.get();
+  MOZ_ASSERT(items);
+  if (items) {
+    items->AppendObject(file);
+  }
 
   return NS_OK;
+}
+
+nsOfflineCacheEvictionFunction::nsOfflineCacheEvictionFunction(nsOfflineCacheDevice * device)
+  : mDevice(device)
+{
+  mTLSInited = appcachedetail::tlsEvictionItems.initialized() ||
+               appcachedetail::tlsEvictionItems.init();
+}
+
+void nsOfflineCacheEvictionFunction::Init()
+{
+  if (mTLSInited) {
+    appcachedetail::tlsEvictionItems.set(new appcachedetail::FileArray());
+  }
+}
+
+void nsOfflineCacheEvictionFunction::Reset()
+{
+  if (!mTLSInited) {
+    return;
+  }
+
+  appcachedetail::FileArray* items = appcachedetail::tlsEvictionItems.get();
+  if (!items) {
+    return;
+  }
+
+  appcachedetail::tlsEvictionItems.set(nullptr);
+  delete items;
 }
 
 void
@@ -229,17 +270,27 @@ nsOfflineCacheEvictionFunction::Apply()
 {
   LOG(("nsOfflineCacheEvictionFunction::Apply\n"));
 
-  for (int32_t i = 0; i < mItems.Count(); i++) {
+  if (!mTLSInited) {
+    return;
+  }
+
+  appcachedetail::FileArray* pitems = appcachedetail::tlsEvictionItems.get();
+  if (!pitems) {
+    return;
+  }
+
+  appcachedetail::FileArray items;
+  items.SwapElements(*pitems);
+
+  for (int32_t i = 0; i < items.Count(); i++) {
     if (MOZ_LOG_TEST(gCacheLog, LogLevel::Debug)) {
       nsAutoCString path;
-      mItems[i]->GetNativePath(path);
+      items[i]->GetNativePath(path);
       LOG(("  removing %s\n", path.get()));
     }
 
-    mItems[i]->Remove(false);
+    items[i]->Remove(false);
   }
-
-  Reset();
 }
 
 class nsOfflineCacheDiscardCache : public nsRunnable
