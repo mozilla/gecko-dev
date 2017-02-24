@@ -22,6 +22,8 @@ add_task(function* () {
     "set": [
       // Accept workers from mochitest's http.
       ["dom.serviceWorkers.testing.enabled", true],
+      ["dom.serviceWorkers.enabled", true],
+      ["dom.serviceWorkers.openWindow.enabled", true],
       // Enable the push service.
       ["dom.push.connection.enabled", true],
     ]
