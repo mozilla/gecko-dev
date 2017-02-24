@@ -48,17 +48,19 @@ public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_MOZISTORAGEFUNCTION
 
-  explicit nsOfflineCacheEvictionFunction(nsOfflineCacheDevice *device);
+  explicit nsOfflineCacheEvictionFunction(nsOfflineCacheDevice *device)
+    : mDevice(device)
+  {}
 
-  void Init();
-  void Reset();
+  void Reset() { mItems.Clear(); }
   void Apply();
 
 private:
   ~nsOfflineCacheEvictionFunction() {}
 
   nsOfflineCacheDevice *mDevice;
-  bool mTLSInited;
+  nsCOMArray<nsIFile> mItems;
+
 };
 
 class nsOfflineCacheDevice final : public nsCacheDevice
