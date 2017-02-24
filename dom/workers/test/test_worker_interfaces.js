@@ -69,7 +69,6 @@ var ecmaGlobals =
     "URIError",
     "WeakMap",
     "WeakSet",
-    {name: "WebAssembly", optional: true}
   ];
 // IMPORTANT: Do not change the list above without review from
 //            a JavaScript Engine peer!
@@ -255,8 +254,6 @@ function createInterfaceMap(version, userAgent) {
             (entry.release === !isRelease) ||
             entry.disabled) {
           interfaceMap[entry.name] = false;
-        } else if (entry.optional) {
-          interfaceMap[entry.name] = "optional";
         } else {
           interfaceMap[entry.name] = true;
         }
@@ -277,21 +274,17 @@ function runTest(version, userAgent) {
     if (!/^[A-Z]/.test(name)) {
       continue;
     }
-    ok(interfaceMap[name] === "optional" || interfaceMap[name],
+    ok(interfaceMap[name],
        "If this is failing: DANGER, are you sure you want to expose the new interface " + name +
        " to all webpages as a property on the worker? Do not make a change to this file without a " +
        " review from a DOM peer for that specific change!!! (or a JS peer for changes to ecmaGlobals)");
     delete interfaceMap[name];
   }
   for (var name of Object.keys(interfaceMap)) {
-    if (interfaceMap[name] === "optional") {
+    ok(name in self === interfaceMap[name],
+       name + " should " + (interfaceMap[name] ? "" : " NOT") + " be defined on the global scope");
+    if (!interfaceMap[name]) {
       delete interfaceMap[name];
-    } else {
-      ok(name in self === interfaceMap[name],
-         name + " should " + (interfaceMap[name] ? "" : " NOT") + " be defined on the global scope");
-      if (!interfaceMap[name]) {
-        delete interfaceMap[name];
-      }
     }
   }
   is(Object.keys(interfaceMap).length, 0,

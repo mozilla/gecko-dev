@@ -11,7 +11,8 @@
 <script type="application/javascript;version=1.7">
 
 function setup_tests() {
-  SpecialPowers.pushPrefEnv({"set": [["dom.input.dirpicker", true]]}, next);
+  SpecialPowers.pushPrefEnv({"set": [["dom.input.dirpicker", true],
+                                     ["javascript.options.wasm", true]]}, next);
 }
 
 function getType(a) {

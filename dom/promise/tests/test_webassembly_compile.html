@@ -167,7 +167,7 @@ function runTest() {
 }
 
 SimpleTest.waitForExplicitFinish();
-runTest();
+SpecialPowers.pushPrefEnv({"set": [["javascript.options.wasm", true]]}, runTest);
 </script>
 </body>
 </html>
