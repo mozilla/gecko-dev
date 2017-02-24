@@ -557,7 +557,6 @@ AudioCallbackDriver::Init()
 
   if (cubeb_get_min_latency(CubebUtils::GetCubebContext(), params, &latency) != CUBEB_OK) {
     NS_WARNING("Could not get minimal latency from cubeb.");
-    return;
   }
 
   cubeb_stream* stream;
@@ -567,9 +566,13 @@ AudioCallbackDriver::Init()
     mAudioStream.own(stream);
   } else {
     NS_WARNING("Could not create a cubeb stream for MediaStreamGraph, falling back to a SystemClockDriver");
-    // Fall back to a driver using a normal thread.
+    // Fall back to a driver using a normal thread. If needed,
+    // the graph will try to re-open an audio stream later.
     mNextDriver = new SystemClockDriver(GraphImpl());
     mNextDriver->SetGraphTime(this, mIterationStart, mIterationEnd);
+    // We're not using SwitchAtNextIteration here, because there
+    // won't be a next iteration if we don't restart things manually:
+    // the audio stream just signaled that it's in error state.
     mGraphImpl->SetCurrentDriver(mNextDriver);
     DebugOnly<bool> found = mGraphImpl->RemoveMixerCallback(this);
     NS_WARN_IF_FALSE(!found, "Mixer callback not added when switching?");
@@ -882,6 +885,16 @@ void
 AudioCallbackDriver::StateCallback(cubeb_state aState)
 {
   STREAM_LOG(LogLevel::Debug, ("AudioCallbackDriver State: %d", aState));
+  if (aState == CUBEB_STATE_ERROR) {
+    // Fall back to a driver using a normal thread.
+    MonitorAutoLock lock(GraphImpl()->GetMonitor());
+    SystemClockDriver* nextDriver = new SystemClockDriver(GraphImpl());
+    mNextDriver = nextDriver;
+    DebugOnly<bool> found = mGraphImpl->RemoveMixerCallback(this);
+    nextDriver->SetGraphTime(this, mIterationStart, mIterationEnd);
+    mGraphImpl->SetCurrentDriver(nextDriver);
+    nextDriver->Start();
+  }
 }
 
 void
