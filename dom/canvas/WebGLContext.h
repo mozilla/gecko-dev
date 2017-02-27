@@ -1749,10 +1749,9 @@ ComputeLengthAndData(const dom::ArrayBufferViewOrSharedArrayBufferView& view,
                      void** const out_data, size_t* const out_length,
                      js::Scalar::Type* const out_type);
 
-void
-Intersect(uint32_t srcSize, int32_t dstStartInSrc, uint32_t dstSize,
-          uint32_t* const out_intStartInSrc, uint32_t* const out_intStartInDst,
-          uint32_t* const out_intSize);
+bool
+Intersect(int32_t srcSize, int32_t read0, int32_t readSize, int32_t* out_intRead0,
+          int32_t* out_intWrite0, int32_t* out_intSize);
 
 bool
 ZeroTextureData(WebGLContext* webgl, const char* funcName, bool respecifyTexture,

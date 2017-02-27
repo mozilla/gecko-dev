@@ -1515,16 +1515,27 @@ WebGLContext::ReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum
     if (!isValid)
         return ErrorInvalidOperation("readPixels: Invalid format/type pair");
 
+    ////
+
+    int32_t readX, readY;
+    int32_t writeX, writeY;
+    int32_t rwWidth, rwHeight;
+    if (!Intersect(srcWidth, x, width, &readX, &writeX, &rwWidth) ||
+        !Intersect(srcHeight, y, height, &readY, &writeY, &rwHeight))
+    {
+        ErrorOutOfMemory("readPixels: Bad subrect selection.");
+        return;
+    }
+
     // Now that the errors are out of the way, on to actually reading!
 
-    uint32_t readX, readY;
-    uint32_t writeX, writeY;
-    uint32_t rwWidth, rwHeight;
-    Intersect(srcWidth, x, width, &readX, &writeX, &rwWidth);
-    Intersect(srcHeight, y, height, &readY, &writeY, &rwHeight);
+    if (!rwWidth || !rwHeight) {
+        // Disjoint rects, so we're done already.
+        DummyReadFramebufferOperation("readPixels");
+        return;
+    }
 
-    if (rwWidth == uint32_t(width) && rwHeight == uint32_t(height)) {
-        // Warning: Possibly shared memory.  See bug 1225033.
+    if (rwWidth == width && rwHeight == height) {
         DoReadPixelsAndConvert(x, y, width, height, format, type, data, auxReadFormat,
                                auxReadType);
         return;
@@ -1571,12 +1582,6 @@ WebGLContext::ReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum
     ////////////////////////////////////
     // Read only the in-bounds pixels.
 
-    if (!rwWidth || !rwHeight) {
-        // There aren't any, so we're 'done'.
-        DummyReadFramebufferOperation("readPixels");
-        return;
-    }
-
     if (IsWebGL2()) {
         if (!mPixelStore_PackRowLength) {
             gl->fPixelStorei(LOCAL_GL_PACK_ROW_LENGTH, width);
@@ -1595,7 +1600,7 @@ WebGLContext::ReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum
 
         uint8_t* row = (uint8_t*)data + startOffset.value() + writeX * bytesPerPixel;
         row += writeY * rowStride.value();
-        for (uint32_t j = 0; j < rwHeight; j++) {
+        for (uint32_t j = 0; j < uint32_t(rwHeight); j++) {
             DoReadPixelsAndConvert(readX, readY+j, rwWidth, 1, format, type, row,
                                    auxReadFormat, auxReadType);
             row += rowStride.value();
