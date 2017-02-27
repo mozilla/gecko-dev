@@ -50,6 +50,7 @@ if (!this.runTest) {
 
       enableTesting();
       enableExperimental();
+      enableWasm();
     }
 
     Cu.importGlobalProperties(["indexedDB", "Blob", "File", "FileReader"]);
@@ -62,6 +63,7 @@ if (!this.runTest) {
 function finishTest()
 {
   if (SpecialPowers.isMainProcess()) {
+    resetWasm();
     resetExperimental();
     resetTesting();
 
@@ -211,6 +213,16 @@ function enableTesting()
 function resetTesting()
 {
   SpecialPowers.clearUserPref("dom.indexedDB.testing");
+}
+
+function enableWasm()
+{
+  SpecialPowers.setBoolPref("javascript.options.wasm", true);
+}
+
+function resetWasm()
+{
+  SpecialPowers.clearUserPref("javascript.options.wasm");
 }
 
 function gc()

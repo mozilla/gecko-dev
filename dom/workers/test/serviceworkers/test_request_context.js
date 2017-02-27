@@ -69,6 +69,7 @@ onload = function() {
     ["dom.requestcontext.enabled", true],
     ["dom.serviceWorkers.exemptFromPerDomainMax", true],
     ["dom.serviceWorkers.enabled", true],
+    ["dom.serviceWorkers.openWindow.enabled", true],
     ["dom.serviceWorkers.testing.enabled", true],
   ]}, runTest);
 };

@@ -15,7 +15,11 @@ add_task(function* () {
   yield SpecialPowers.pushPrefEnv({
     "set": [
       // Accept workers from mochitest's http.
+      ["dom.serviceWorkers.enabled", true],
+      ["dom.serviceWorkers.openWindow.enabled", true],
       ["dom.serviceWorkers.testing.enabled", true],
+      // Reduce the timeout to expose issues when service worker
+      // freezing is broken
       ["dom.serviceWorkers.idle_timeout", SW_TIMEOUT],
       ["dom.serviceWorkers.idle_extended_timeout", SW_TIMEOUT],
       ["dom.ipc.processCount", 1],

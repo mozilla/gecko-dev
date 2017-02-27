@@ -19,6 +19,8 @@ add_task(function* () {
   yield new Promise(done => {
     let options = { "set": [
       // Accept workers from mochitest's http.
+      ["dom.serviceWorkers.enabled", true],
+      ["dom.serviceWorkers.openWindow.enabled", true],
       ["dom.serviceWorkers.testing.enabled", true],
     ]};
     SpecialPowers.pushPrefEnv(options, done);

@@ -4,8 +4,5 @@
 
 implementation: 'taskgraph.task.signing:SigningTask'
 
-jobs-from:
-  - android-signing.yml
-
 kind-dependencies:
   - build
