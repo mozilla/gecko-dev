@@ -57,12 +57,13 @@ Finder.prototype = {
   destroy: function() {
     if (this._iterator)
       this._iterator.reset();
-    if (this._highlighter) {
+    let window = this._getWindow();
+    if (this._highlighter && window) {
       // if we clear all the references before we hide the highlights (in both
       // highlighting modes), we simply can't use them to find the ranges we
       // need to clear from the selection.
-      this._highlighter.hide();
-      this._highlighter.clear();
+      this._highlighter.hide(window);
+      this._highlighter.clear(window);
     }
     this.listeners = [];
     this._docShell.QueryInterface(Ci.nsIInterfaceRequestor)
@@ -296,7 +297,7 @@ Finder.prototype = {
   removeSelection: function() {
     this._fastFind.collapseSelection();
     this.enableSelection();
-    this.highlighter.clear();
+    this.highlighter.clear(this._getWindow());
   },
 
   focusContent: function() {
@@ -476,6 +477,8 @@ Finder.prototype = {
   },
 
   _getWindow: function () {
+    if (!this._docShell)
+      return null;
     return this._docShell.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow);
   },
 
