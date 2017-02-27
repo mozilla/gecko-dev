@@ -1986,11 +1986,15 @@ DoCopyTexOrSubImage(WebGLContext* webgl, const char* funcName, bool isSubImage,
 
     ////
 
-    uint32_t readX, readY;
-    uint32_t writeX, writeY;
-    uint32_t rwWidth, rwHeight;
-    Intersect(srcTotalWidth, xWithinSrc, dstWidth, &readX, &writeX, &rwWidth);
-    Intersect(srcTotalHeight, yWithinSrc, dstHeight, &readY, &writeY, &rwHeight);
+    int32_t readX, readY;
+    int32_t writeX, writeY;
+    int32_t rwWidth, rwHeight;
+    if (!Intersect(srcTotalWidth, xWithinSrc, dstWidth, &readX, &writeX, &rwWidth) ||
+        !Intersect(srcTotalHeight, yWithinSrc, dstHeight, &readY, &writeY, &rwHeight))
+    {
+        webgl->ErrorOutOfMemory("%s: Bad subrect selection.", funcName);
+        return false;
+    }
 
     writeX += xOffset;
     writeY += yOffset;
@@ -2003,7 +2007,7 @@ DoCopyTexOrSubImage(WebGLContext* webgl, const char* funcName, bool isSubImage,
         if (!isSubImage) {
             UniqueBuffer buffer;
 
-            if (rwWidth != dstWidth || rwHeight != dstHeight) {
+            if (uint32_t(rwWidth) != dstWidth || uint32_t(rwHeight) != dstHeight) {
                 const auto& pi = idealUnpack->ToPacking();
                 CheckedUint32 byteCount = BytesPerPixel(pi);
                 byteCount *= dstWidth;
