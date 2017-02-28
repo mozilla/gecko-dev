@@ -2106,7 +2106,7 @@ MediaManager::GetUserMedia(nsPIDOMWindow* aWindow,
                                                    audioType, fake,
                                                    fakeTracks);
   RefPtr<MediaManager> self = this;
-  p->Then([self, onSuccess, onFailure, windowID, c, listener, askPermission,
+  p->Then([this, self, onSuccess, onFailure, windowID, c, listener, askPermission,
            prefs, isHTTPS, callID, origin](SourceSet*& aDevices) mutable {
 
     RefPtr<Refcountable<ScopedDeletePtr<SourceSet>>> devices(
@@ -2121,7 +2121,7 @@ MediaManager::GetUserMedia(nsPIDOMWindow* aWindow,
     // Apply any constraints. This modifies the passed-in list.
     RefPtr<PledgeChar> p2 = self->SelectSettings(c, devices);
 
-    p2->Then([self, onSuccess, onFailure, windowID, c,
+    p2->Then([this, self, onSuccess, onFailure, windowID, c,
               listener, askPermission, prefs, isHTTPS,
               callID, origin, devices](const char*& badConstraint) mutable {
 
@@ -2680,7 +2680,7 @@ MediaManager::Shutdown()
   // Release the backend (and call Shutdown()) from within the MediaManager thread
   // Don't use MediaManager::PostTask() because we're sInShutdown=true here!
   mMediaThread->message_loop()->PostTask(FROM_HERE, new ShutdownTask(this,
-      media::NewRunnableFrom([self]() mutable {
+      media::NewRunnableFrom([this, self]() mutable {
     LOG(("MediaManager shutdown lambda running, releasing MediaManager singleton and thread"));
     if (self->mMediaThread) {
       self->mMediaThread->Stop();
