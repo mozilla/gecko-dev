@@ -1,4 +1,4 @@
-#include <functional>
+#include "mozilla/Function.h"
 #define MOZ_STRONG_REF __attribute__((annotate("moz_strong_ref")))
 
 struct RefCountedBase {
@@ -121,97 +121,97 @@ void foo() {
 void b() {
   R* ptr;
   SmartPtr<R> sp;
-  std::function<void(R*)>([&](R* argptr) {
+  mozilla::Function<void(R*)>([&](R* argptr) {
     R* localptr;
     ptr->method();
     argptr->method();
     localptr->method();
   });
-  std::function<void(SmartPtr<R>)>([&](SmartPtr<R> argsp) {
+  mozilla::Function<void(SmartPtr<R>)>([&](SmartPtr<R> argsp) {
     SmartPtr<R> localsp;
     sp->method();
     argsp->method();
     localsp->method();
   });
-  std::function<void(R*)>([&](R* argptr) {
+  mozilla::Function<void(R*)>([&](R* argptr) {
     R* localptr;
     take(ptr);
     take(argptr);
     take(localptr);
   });
-  std::function<void(SmartPtr<R>)>([&](SmartPtr<R> argsp) {
+  mozilla::Function<void(SmartPtr<R>)>([&](SmartPtr<R> argsp) {
     SmartPtr<R> localsp;
     take(sp);
     take(argsp);
     take(localsp);
   });
-  std::function<void(R*)>([=](R* argptr) {
+  mozilla::Function<void(R*)>([=](R* argptr) {
     R* localptr;
     ptr->method(); // expected-error{{Refcounted variable 'ptr' of type 'R' cannot be captured by a lambda}} expected-note{{Please consider using a smart pointer}}
     argptr->method();
     localptr->method();
   });
-  std::function<void(SmartPtr<R>)>([=](SmartPtr<R> argsp) {
+  mozilla::Function<void(SmartPtr<R>)>([=](SmartPtr<R> argsp) {
     SmartPtr<R> localsp;
     sp->method();
     argsp->method();
     localsp->method();
   });
-  std::function<void(R*)>([=](R* argptr) {
+  mozilla::Function<void(R*)>([=](R* argptr) {
     R* localptr;
     take(ptr); // expected-error{{Refcounted variable 'ptr' of type 'R' cannot be captured by a lambda}} expected-note{{Please consider using a smart pointer}}
     take(argptr);
     take(localptr);
   });
-  std::function<void(SmartPtr<R>)>([=](SmartPtr<R> argsp) {
+  mozilla::Function<void(SmartPtr<R>)>([=](SmartPtr<R> argsp) {
     SmartPtr<R> localsp;
     take(sp);
     take(argsp);
     take(localsp);
   });
-  std::function<void(R*)>([ptr](R* argptr) { // expected-error{{Refcounted variable 'ptr' of type 'R' cannot be captured by a lambda}} expected-note{{Please consider using a smart pointer}}
+  mozilla::Function<void(R*)>([ptr](R* argptr) { // expected-error{{Refcounted variable 'ptr' of type 'R' cannot be captured by a lambda}} expected-note{{Please consider using a smart pointer}}
     R* localptr;
     ptr->method();
     argptr->method();
     localptr->method();
   });
-  std::function<void(SmartPtr<R>)>([sp](SmartPtr<R> argsp) {
+  mozilla::Function<void(SmartPtr<R>)>([sp](SmartPtr<R> argsp) {
     SmartPtr<R> localsp;
     sp->method();
     argsp->method();
     localsp->method();
   });
-  std::function<void(R*)>([ptr](R* argptr) { // expected-error{{Refcounted variable 'ptr' of type 'R' cannot be captured by a lambda}} expected-note{{Please consider using a smart pointer}}
+  mozilla::Function<void(R*)>([ptr](R* argptr) { // expected-error{{Refcounted variable 'ptr' of type 'R' cannot be captured by a lambda}} expected-note{{Please consider using a smart pointer}}
     R* localptr;
     take(ptr);
     take(argptr);
     take(localptr);
   });
-  std::function<void(SmartPtr<R>)>([sp](SmartPtr<R> argsp) {
+  mozilla::Function<void(SmartPtr<R>)>([sp](SmartPtr<R> argsp) {
     SmartPtr<R> localsp;
     take(sp);
     take(argsp);
     take(localsp);
   });
-  std::function<void(R*)>([&ptr](R* argptr) {
+  mozilla::Function<void(R*)>([&ptr](R* argptr) {
     R* localptr;
     ptr->method();
     argptr->method();
     localptr->method();
   });
-  std::function<void(SmartPtr<R>)>([&sp](SmartPtr<R> argsp) {
+  mozilla::Function<void(SmartPtr<R>)>([&sp](SmartPtr<R> argsp) {
     SmartPtr<R> localsp;
     sp->method();
     argsp->method();
     localsp->method();
   });
-  std::function<void(R*)>([&ptr](R* argptr) {
+  mozilla::Function<void(R*)>([&ptr](R* argptr) {
     R* localptr;
     take(ptr);
     take(argptr);
     take(localptr);
   });
-  std::function<void(SmartPtr<R>)>([&sp](SmartPtr<R> argsp) {
+  mozilla::Function<void(SmartPtr<R>)>([&sp](SmartPtr<R> argsp) {
     SmartPtr<R> localsp;
     take(sp);
     take(argsp);
