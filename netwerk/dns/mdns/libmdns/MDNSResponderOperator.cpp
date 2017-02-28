@@ -620,7 +620,7 @@ ResolveOperator::Reply(DNSServiceRef aSdRef,
 {
   MOZ_ASSERT(GetThread() == NS_GetCurrentThread());
 
-  auto guard = MakeScopeExit([this] {
+  auto guard = MakeScopeExit([&] {
     NS_WARN_IF(NS_FAILED(Stop()));
   });
 
@@ -738,7 +738,7 @@ GetAddrInfoOperator::Reply(DNSServiceRef aSdRef,
 {
   MOZ_ASSERT(GetThread() == NS_GetCurrentThread());
 
-  auto guard = MakeScopeExit([this] {
+  auto guard = MakeScopeExit([&] {
     NS_WARN_IF(NS_FAILED(Stop()));
   });
 
