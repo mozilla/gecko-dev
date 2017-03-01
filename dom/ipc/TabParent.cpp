@@ -485,7 +485,7 @@ TabParent::ActorDestroy(ActorDestroyReason why)
                    nullptr);
     frameLoader->DestroyComplete();
 
-    if (why == AbnormalShutdown && os) {
+    if ((why == AbnormalShutdown || why == FailedConstructor) && os) {
       os->NotifyObservers(NS_ISUPPORTS_CAST(nsIFrameLoader*, frameLoader),
                           "oop-frameloader-crashed", nullptr);
       nsCOMPtr<nsIFrameLoaderOwner> owner = do_QueryInterface(frameElement);
