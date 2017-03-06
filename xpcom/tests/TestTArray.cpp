@@ -1020,7 +1020,7 @@ static bool test_fallible()
     bool success = arrays[i].SetCapacity(128 * 1024 * 1024 - 1024, fallible);
     if (!success) {
       // We got our OOM.  Check that it didn't come too early.
-      if (i < 8) {
+      if (i < 7) {
         printf("test_fallible: Got OOM on iteration %d.  Too early!\n", int(i));
         return false;
       }
