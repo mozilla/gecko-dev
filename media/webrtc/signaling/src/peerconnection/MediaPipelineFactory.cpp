@@ -823,11 +823,22 @@ MediaPipelineFactory::GetOrCreateVideoConduit(
   }
 
   if (receiving) {
-    if (!aTrackPair.mSending) {
+    if (aTrackPair.mSending) {
+      auto ssrcs = &aTrackPair.mSending->GetSsrcs();
+      if (!ssrcs->empty()) {
+        if (!conduit->SetLocalSSRC(ssrcs->front())) {
+          MOZ_MTLOG(ML_ERROR, "SetLocalSSRC failed(1)");
+          return NS_ERROR_FAILURE;
+        }
+      } else {
+        MOZ_MTLOG(ML_ERROR, "Sending without an SSRC??");
+        return NS_ERROR_FAILURE;
+      }
+    } else {
       // No send track, but we still need to configure an SSRC for receiver
       // reports.
       if (!conduit->SetLocalSSRC(aTrackPair.mRecvonlySsrc)) {
-        MOZ_MTLOG(ML_ERROR, "SetLocalSSRC failed");
+        MOZ_MTLOG(ML_ERROR, "SetLocalSSRC failed(2)");
         return NS_ERROR_FAILURE;
       }
     }
