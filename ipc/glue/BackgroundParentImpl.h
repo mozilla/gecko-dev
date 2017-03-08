@@ -188,10 +188,6 @@ protected:
   AllocPFileSystemRequestParent(const FileSystemParams&) override;
 
   virtual bool
-  RecvPFileSystemRequestConstructor(PFileSystemRequestParent* aActor,
-                                    const FileSystemParams& aParams) override;
-
-  virtual bool
   DeallocPFileSystemRequestParent(PFileSystemRequestParent*) override;
 
   // Gamepad API Background IPC

@@ -6,7 +6,6 @@
 
 #include "mozilla/dom/Directory.h"
 
-#include "FileSystemPermissionRequest.h"
 #include "GetDirectoryListingTask.h"
 #include "GetFilesTask.h"
 #include "WorkerPrivate.h"
@@ -189,7 +188,8 @@ Directory::GetFilesAndDirectories(ErrorResult& aRv)
     return nullptr;
   }
 
-  FileSystemPermissionRequest::RequestForTask(task);
+  task->Start();
+
   return task->GetPromise();
 }
 
@@ -210,7 +210,8 @@ Directory::GetFiles(bool aRecursiveFlag, ErrorResult& aRv)
     return nullptr;
   }
 
-  FileSystemPermissionRequest::RequestForTask(task);
+  task->Start();
+
   return task->GetPromise();
 }
 
