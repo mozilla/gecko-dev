@@ -47,7 +47,6 @@ DIRS += [
     'cache',
     'canvas',
     'crypto',
-    'devicestorage',
     'encoding',
     'events',
     'fetch',

@@ -731,12 +731,6 @@ private:
 
   virtual bool DeallocPBrowserParent(PBrowserParent* frame) override;
 
-  virtual PDeviceStorageRequestParent*
-  AllocPDeviceStorageRequestParent(const DeviceStorageParams&) override;
-
-  virtual bool
-  DeallocPDeviceStorageRequestParent(PDeviceStorageRequestParent*) override;
-
   virtual PBlobParent*
   AllocPBlobParent(const BlobConstructorParams& aParams) override;
 
@@ -932,11 +926,6 @@ private:
                                 const IPC::Principal& aPrincipal,
                                 const ClonedMessageData& aData) override;
 
-  virtual bool RecvFilePathUpdateNotify(const nsString& aType,
-                                        const nsString& aStorageName,
-                                        const nsString& aFilePath,
-                                        const nsCString& aReason) override;
-
   virtual bool RecvAddGeolocationListener(const IPC::Principal& aPrincipal,
                                           const bool& aHighAccuracy) override;
   virtual bool RecvRemoveGeolocationListener() override;
@@ -1051,11 +1040,6 @@ private:
   virtual bool RecvGetGraphicsDeviceInitData(ContentDeviceData* aOut) override;
 
   void StartProfiler(nsIProfilerStartParams* aParams);
-
-  virtual bool RecvGetDeviceStorageLocation(const nsString& aType,
-                                            nsString* aPath) override;
-
-  virtual bool RecvGetDeviceStorageLocations(DeviceStorageLocationInfo* info) override;
 
   virtual bool RecvGetAndroidSystemInfo(AndroidSystemInfo* aInfo) override;
 

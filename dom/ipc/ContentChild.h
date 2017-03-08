@@ -198,12 +198,6 @@ public:
 
   virtual bool DeallocPBrowserChild(PBrowserChild*) override;
 
-  virtual PDeviceStorageRequestChild*
-  AllocPDeviceStorageRequestChild(const DeviceStorageParams&) override;
-
-  virtual bool
-  DeallocPDeviceStorageRequestChild(PDeviceStorageRequestChild*) override;
-
   virtual PBlobChild*
   AllocPBlobChild(const BlobConstructorParams& aParams) override;
 
@@ -440,11 +434,6 @@ public:
   virtual bool RecvLastPrivateDocShellDestroyed() override;
 
   virtual bool RecvVolumes(InfallibleTArray<VolumeInfo>&& aVolumes) override;
-
-  virtual bool RecvFilePathUpdate(const nsString& aStorageType,
-                                  const nsString& aStorageName,
-                                  const nsString& aPath,
-                                  const nsCString& aReason) override;
 
   virtual bool RecvFileSystemUpdate(const nsString& aFsName,
                                     const nsString& aVolumeName,
