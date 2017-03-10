@@ -30,7 +30,6 @@ JS::Zone::Zone(JSRuntime* rt)
     compartments(),
     gcGrayRoots(),
     gcWeakKeys(SystemAllocPolicy(), rt->randomHashCodeScrambler()),
-    hasDeadProxies(false),
     gcMallocBytes(0),
     gcMallocGCTriggered(false),
     usage(&rt->gc.usage),

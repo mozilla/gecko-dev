@@ -937,7 +937,7 @@ class GCRuntime
 
     void beginSweepPhase(bool lastGC);
     void findZoneGroups();
-    bool findInterZoneEdges();
+    bool findZoneEdgesForWeakMaps();
     void getNextZoneGroup();
     void endMarkingZoneGroup();
     void beginSweepingZoneGroup();
