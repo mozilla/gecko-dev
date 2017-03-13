@@ -250,6 +250,7 @@ DecoderDoctorDocumentWatcher::EnsureTimerIsStarted()
   }
 }
 
+// Note: ReportStringIds are limited to alphanumeric only.
 static const NotificationAndReportStringId sMediaWidevineNoWMFNoSilverlight =
   { dom::DecoderDoctorNotificationType::Platform_decoder_not_found,
     "MediaWidevineNoWMFNoSilverlight" };
