@@ -12,7 +12,6 @@
 all-tests:
     - cppunit
     - crashtest
-    - external-media-tests
     - firefox-ui-functional-local
     - firefox-ui-functional-remote
     - gtest
