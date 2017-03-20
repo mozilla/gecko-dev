@@ -377,6 +377,8 @@ nsSMILAnimationController::DoSample(bool aSkipUnchangedContainers)
   // Create the compositor table
   nsAutoPtr<nsSMILCompositorTable>
     currentCompositorTable(new nsSMILCompositorTable(0));
+  nsTArray<RefPtr<SVGAnimationElement>>
+    animElems(mAnimationElementTable.Count());
 
   for (auto iter = mAnimationElementTable.Iter(); !iter.Done(); iter.Next()) {
     SVGAnimationElement* animElem = iter.Get()->GetKey();
@@ -384,6 +386,7 @@ nsSMILAnimationController::DoSample(bool aSkipUnchangedContainers)
     AddAnimationToCompositorTable(animElem,
                                   currentCompositorTable,
                                   isStyleFlushNeeded);
+    animElems.AppendElement(animElem);
   }
   activeContainers.Clear();
 
