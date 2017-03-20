@@ -352,7 +352,7 @@ ServiceWorkerRegistrar::ReadData()
       GET_LINE(entry->scope());
 
       entry->principal() =
-        mozilla::ipc::ContentPrincipalInfo(attrs, entry->scope());
+        mozilla::ipc::ContentPrincipalInfo(attrs, void_t(), entry->scope());
 
       GET_LINE(entry->currentWorkerURL());
 
@@ -377,7 +377,7 @@ ServiceWorkerRegistrar::ReadData()
       GET_LINE(entry->scope());
 
       entry->principal() =
-        mozilla::ipc::ContentPrincipalInfo(attrs, entry->scope());
+        mozilla::ipc::ContentPrincipalInfo(attrs, void_t(), entry->scope());
 
       GET_LINE(entry->currentWorkerURL());
 
@@ -402,7 +402,7 @@ ServiceWorkerRegistrar::ReadData()
       GET_LINE(entry->scope());
 
       entry->principal() =
-        mozilla::ipc::ContentPrincipalInfo(attrs, entry->scope());
+        mozilla::ipc::ContentPrincipalInfo(attrs, void_t(), entry->scope());
 
       // scriptSpec is no more used in latest version.
       GET_LINE(unused);
