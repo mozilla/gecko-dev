@@ -7512,7 +7512,11 @@ JS::IsIncrementalGCInProgress(JSRuntime* rt)
 JS_PUBLIC_API(bool)
 JS::IsIncrementalBarrierNeeded(JSRuntime* rt)
 {
-    return rt->gc.state() == gc::MARK && !rt->isHeapBusy();
+    if (rt->isHeapBusy())
+        return false;
+
+    auto state = rt->gc.state();
+    return state != gc::NO_INCREMENTAL && state <= gc::SWEEP;
 }
 
 JS_PUBLIC_API(bool)
