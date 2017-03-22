@@ -9286,12 +9286,14 @@ public:
   InitOrigin(PersistenceType aPersistenceType,
              const nsACString& aGroup,
              const nsACString& aOrigin,
+             const AtomicBool& aCanceled,
              UsageInfo* aUsageInfo) override;
 
   virtual nsresult
   GetUsageForOrigin(PersistenceType aPersistenceType,
                     const nsACString& aGroup,
                     const nsACString& aOrigin,
+                    const AtomicBool& aCanceled,
                     UsageInfo* aUsageInfo) override;
 
   virtual void
@@ -9333,6 +9335,7 @@ private:
 
   nsresult
   GetUsageForDirectoryInternal(nsIFile* aDirectory,
+                               const AtomicBool& aCanceled,
                                UsageInfo* aUsageInfo,
                                bool aDatabaseFiles);
 
@@ -17749,6 +17752,7 @@ nsresult
 QuotaClient::InitOrigin(PersistenceType aPersistenceType,
                         const nsACString& aGroup,
                         const nsACString& aOrigin,
+                        const AtomicBool& aCanceled,
                         UsageInfo* aUsageInfo)
 {
   AssertIsOnIOThread();
@@ -17790,7 +17794,7 @@ QuotaClient::InitOrigin(PersistenceType aPersistenceType,
   bool hasMore;
   while (NS_SUCCEEDED((rv = entries->HasMoreElements(&hasMore))) &&
          hasMore &&
-         (!aUsageInfo || !aUsageInfo->Canceled())) {
+         !aCanceled) {
     nsCOMPtr<nsISupports> entry;
     rv = entries->GetNext(getter_AddRefs(entry));
     if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -17957,7 +17961,9 @@ QuotaClient::InitOrigin(PersistenceType aPersistenceType,
     }
   }
 
-  for (uint32_t count = initInfos.Length(), i = 0; i < count; i++) {
+  for (uint32_t count = initInfos.Length(), i = 0;
+       i < count && !aCanceled;
+       i++) {
     FileManagerInitInfo& initInfo = initInfos[i];
     MOZ_ASSERT(initInfo.mDirectory);
     MOZ_ASSERT(initInfo.mDatabaseFile);
@@ -17973,7 +17979,7 @@ QuotaClient::InitOrigin(PersistenceType aPersistenceType,
       return rv;
     }
 
-    if (aUsageInfo && !aUsageInfo->Canceled()) {
+    if (aUsageInfo) {
       int64_t fileSize;
       rv = initInfo.mDatabaseFile->GetFileSize(&fileSize);
       if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -18038,6 +18044,7 @@ nsresult
 QuotaClient::GetUsageForOrigin(PersistenceType aPersistenceType,
                                const nsACString& aGroup,
                                const nsACString& aOrigin,
+                               const AtomicBool& aCanceled,
                                UsageInfo* aUsageInfo)
 {
   AssertIsOnIOThread();
@@ -18050,7 +18057,7 @@ QuotaClient::GetUsageForOrigin(PersistenceType aPersistenceType,
     return rv;
   }
 
-  rv = GetUsageForDirectoryInternal(directory, aUsageInfo, true);
+  rv = GetUsageForDirectoryInternal(directory, aCanceled, aUsageInfo, true);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -18238,6 +18245,7 @@ QuotaClient::GetDirectory(PersistenceType aPersistenceType,
 
 nsresult
 QuotaClient::GetUsageForDirectoryInternal(nsIFile* aDirectory,
+                                          const AtomicBool& aCanceled,
                                           UsageInfo* aUsageInfo,
                                           bool aDatabaseFiles)
 {
@@ -18264,7 +18272,7 @@ QuotaClient::GetUsageForDirectoryInternal(nsIFile* aDirectory,
   bool hasMore;
   while (NS_SUCCEEDED((rv = entries->HasMoreElements(&hasMore))) &&
          hasMore &&
-         !aUsageInfo->Canceled()) {
+         !aCanceled) {
     nsCOMPtr<nsISupports> entry;
     rv = entries->GetNext(getter_AddRefs(entry));
     if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -18299,7 +18307,7 @@ QuotaClient::GetUsageForDirectoryInternal(nsIFile* aDirectory,
 
     if (isDirectory) {
       if (aDatabaseFiles) {
-        rv = GetUsageForDirectoryInternal(file, aUsageInfo, false);
+        rv = GetUsageForDirectoryInternal(file, aCanceled, aUsageInfo, false);
         if (NS_WARN_IF(NS_FAILED(rv))) {
           return rv;
         }

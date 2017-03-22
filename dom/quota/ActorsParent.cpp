@@ -875,6 +875,7 @@ class NormalOriginOperationBase
 protected:
   Nullable<PersistenceType> mPersistenceType;
   OriginScope mOriginScope;
+  mozilla::Atomic<bool> mCanceled;
   const bool mExclusive;
 
 public:
@@ -3839,7 +3840,11 @@ QuotaManager::InitializeOrigin(PersistenceType aPersistenceType,
       return NS_ERROR_UNEXPECTED;
     }
 
-    rv = mClients[clientType]->InitOrigin(aPersistenceType, aGroup, aOrigin,
+    Atomic<bool> dummy(false);
+    rv = mClients[clientType]->InitOrigin(aPersistenceType,
+                                          aGroup,
+                                          aOrigin,
+                                          /* aCanceled */ dummy,
                                           usageInfo);
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -5893,7 +5898,7 @@ GetOriginUsageOp::AddToUsage(QuotaManager* aQuotaManager,
 
   // If the directory exists then enumerate all the files inside, adding up
   // the sizes to get the final usage statistic.
-  if (exists && !mUsageInfo.Canceled()) {
+  if (exists && !mCanceled) {
     bool initialized;
 
     if (IsTreatedAsPersistent(aPersistenceType, mIsApp)) {
@@ -5910,7 +5915,7 @@ GetOriginUsageOp::AddToUsage(QuotaManager* aQuotaManager,
 
     bool hasMore;
     while (NS_SUCCEEDED((rv = entries->HasMoreElements(&hasMore))) &&
-           hasMore && !mUsageInfo.Canceled()) {
+           hasMore && !mCanceled) {
       nsCOMPtr<nsISupports> entry;
       rv = entries->GetNext(getter_AddRefs(entry));
       NS_ENSURE_SUCCESS(rv, rv);
@@ -5960,12 +5965,14 @@ GetOriginUsageOp::AddToUsage(QuotaManager* aQuotaManager,
         rv = client->GetUsageForOrigin(aPersistenceType,
                                        mGroup,
                                        mOriginScope.GetOrigin(),
+                                       mCanceled,
                                        &mUsageInfo);
       }
       else {
         rv = client->InitOrigin(aPersistenceType,
                                 mGroup,
                                 mOriginScope.GetOrigin(),
+                                mCanceled,
                                 &mUsageInfo);
       }
       NS_ENSURE_SUCCESS(rv, rv);
@@ -6027,7 +6034,7 @@ GetOriginUsageOp::SendResults()
       mResultCode = NS_ERROR_FAILURE;
     }
   } else {
-    if (mUsageInfo.Canceled()) {
+    if (mCanceled) {
       mResultCode = NS_ERROR_FAILURE;
     }
 
@@ -6068,8 +6075,8 @@ GetOriginUsageOp::RecvCancel()
 {
   AssertIsOnOwningThread();
 
-  nsresult rv = mUsageInfo.Cancel();
-  if (NS_WARN_IF(NS_FAILED(rv))) {
+  if (mCanceled.exchange(true)) {
+    NS_WARNING("Canceled more than once?!");
     return false;
   }
 
