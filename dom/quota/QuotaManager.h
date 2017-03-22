@@ -384,7 +384,7 @@ public:
                    bool* aIsApp);
 
   static bool
-  IsOriginWhitelistedForPersistentStorage(const nsACString& aOrigin);
+  IsOriginInternal(const nsACString& aOrigin);
 
   static bool
   IsFirstPromptRequired(PersistenceType aPersistenceType,

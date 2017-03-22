@@ -4839,10 +4839,9 @@ QuotaManager::GetInfoForChrome(nsACString* aSuffix,
 
 // static
 bool
-QuotaManager::IsOriginWhitelistedForPersistentStorage(const nsACString& aOrigin)
+QuotaManager::IsOriginInternal(const nsACString& aOrigin)
 {
-  // The first prompt and quota tracking is not required for these origins in
-  // persistent storage.
+  // The first prompt is not required for these origins.
   if (aOrigin.EqualsLiteral(kChromeOrigin) ||
       StringBeginsWith(aOrigin, nsDependentCString(kAboutHomeOriginPrefix)) ||
       StringBeginsWith(aOrigin, nsDependentCString(kIndexedDBOriginPrefix)) ||
@@ -4863,7 +4862,7 @@ QuotaManager::IsFirstPromptRequired(PersistenceType aPersistenceType,
     return false;
   }
 
-  return !IsOriginWhitelistedForPersistentStorage(aOrigin);
+  return !IsOriginInternal(aOrigin);
 }
 
 // static
@@ -6161,8 +6160,7 @@ GetUsageOp::TraverseRepository(QuotaManager* aQuotaManager,
       return rv;
     }
 
-    if (!mGetAll &&
-        aQuotaManager->IsOriginWhitelistedForPersistentStorage(origin)) {
+    if (!mGetAll && aQuotaManager->IsOriginInternal(origin)) {
       continue;
     }
 
@@ -7348,8 +7346,7 @@ CreateOrUpgradeDirectoryMetadataHelper::CreateOrUpgradeMetadataFiles()
         originProps->mIgnore = true;
       }
     }
-    else if (!QuotaManager::IsOriginWhitelistedForPersistentStorage(
-                                                          originProps->mSpec)) {
+    else if (!QuotaManager::IsOriginInternal(originProps->mSpec)) {
       int64_t timestamp = INT64_MIN;
       rv = GetLastModifiedTime(originDir, &timestamp);
       if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -7554,9 +7551,8 @@ CreateOrUpgradeDirectoryMetadataHelper::DoProcessOriginDirectories()
         return rv;
       }
 
-      // Move whitelisted origins to new persistent storage.
-      if (QuotaManager::IsOriginWhitelistedForPersistentStorage(
-                                                           originProps.mSpec)) {
+      // Move internal origins to new persistent storage.
+      if (QuotaManager::IsOriginInternal(originProps.mSpec)) {
         if (!permanentStorageDir) {
           permanentStorageDir =
             do_CreateInstance(NS_LOCAL_FILE_CONTRACTID, &rv);

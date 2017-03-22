@@ -21251,7 +21251,7 @@ FactoryOp::CheckPermission(ContentParent* aContentParent,
 
 #ifdef IDB_MOBILE
   if (persistenceType == PERSISTENCE_TYPE_PERSISTENT &&
-      !QuotaManager::IsOriginWhitelistedForPersistentStorage(origin) &&
+      !QuotaManager::IsOriginInternal(origin) &&
       !isApp) {
     return NS_ERROR_DOM_INDEXEDDB_NOT_ALLOWED_ERR;
   }
