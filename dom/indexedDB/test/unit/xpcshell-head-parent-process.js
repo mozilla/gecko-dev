@@ -532,7 +532,7 @@ function grabFileUsageAndContinueHandler(request)
   testGenerator.send(request.result.fileUsage);
 }
 
-function getUsage(usageHandler)
+function getCurrentUsage(usageHandler)
 {
   let qms = Cc["@mozilla.org/dom/quota-manager-service;1"]
               .getService(Ci.nsIQuotaManagerService);
