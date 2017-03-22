@@ -78,6 +78,8 @@ class UsageRequest final
   bool mCanceled;
 
 public:
+  explicit UsageRequest(nsIQuotaUsageCallback* aCallback);
+
   UsageRequest(nsIPrincipal* aPrincipal,
                nsIQuotaUsageCallback* aCallback);
 

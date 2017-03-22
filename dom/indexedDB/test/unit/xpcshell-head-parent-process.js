@@ -527,9 +527,21 @@ function verifyWasmModule(module1, module2)
   continueToNextStep();
 }
 
+function grabResultAndContinueHandler(request)
+{
+  testGenerator.send(request.result);
+}
+
 function grabFileUsageAndContinueHandler(request)
 {
   testGenerator.send(request.result.fileUsage);
+}
+
+function getUsage(usageHandler, getAll)
+{
+  let qms = Cc["@mozilla.org/dom/quota-manager-service;1"]
+              .getService(Ci.nsIQuotaManagerService);
+  qms.getUsage(usageHandler, getAll)
 }
 
 function getCurrentUsage(usageHandler)
