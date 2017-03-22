@@ -8,6 +8,7 @@ XPIDL_SOURCES += [
     'nsIQuotaCallbacks.idl',
     'nsIQuotaManagerService.idl',
     'nsIQuotaRequests.idl',
+    'nsIQuotaResults.idl',
 ]
 
 XPIDL_MODULE = 'dom_quota'
@@ -36,6 +37,7 @@ UNIFIED_SOURCES += [
     'FileStreams.cpp',
     'QuotaManagerService.cpp',
     'QuotaRequests.cpp',
+    'QuotaResults.cpp',
     'StorageManager.cpp',
 ]
 

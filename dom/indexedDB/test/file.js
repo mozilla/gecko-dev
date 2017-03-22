@@ -220,7 +220,7 @@ function verifyWasmModule(module1, module2)
 
 function grabFileUsageAndContinueHandler(request)
 {
-  testGenerator.send(request.fileUsage);
+  testGenerator.send(request.result.fileUsage);
 }
 
 function getUsage(usageHandler)

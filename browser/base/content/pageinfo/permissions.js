@@ -231,7 +231,8 @@ function onIndexedDBUsageCallback(request)
     throw new Error("Callback received for bad URI: " + uri);
   }
 
-  if (request.usage) {
+  let usage = request.result.usage;
+  if (usage) {
     if (!("DownloadUtils" in window)) {
       Components.utils.import("resource://gre/modules/DownloadUtils.jsm");
     }
@@ -241,7 +242,7 @@ function onIndexedDBUsageCallback(request)
 
     status.value =
       gBundle.getFormattedString("indexedDBUsage",
-                                 DownloadUtils.convertByteUnits(request.usage));
+                                 DownloadUtils.convertByteUnits(usage));
     status.removeAttribute("hidden");
     button.removeAttribute("hidden");
   }

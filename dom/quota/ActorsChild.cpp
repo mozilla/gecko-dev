@@ -6,8 +6,10 @@
 
 #include "ActorsChild.h"
 
+#include "nsVariant.h"
 #include "QuotaManagerService.h"
 #include "QuotaRequests.h"
+#include "QuotaResults.h"
 
 namespace mozilla {
 namespace dom {
@@ -145,9 +147,14 @@ QuotaUsageRequestChild::HandleResponse(const UsageResponse& aResponse)
   AssertIsOnOwningThread();
   MOZ_ASSERT(mRequest);
 
-  mRequest->SetResult(aResponse.usage(),
-                      aResponse.fileUsage(),
-                      aResponse.limit());
+  RefPtr<UsageResult> result = new UsageResult(aResponse.usage(),
+                                               aResponse.fileUsage(),
+                                               aResponse.limit());
+
+  RefPtr<nsVariant> variant = new nsVariant();
+  variant->SetAsInterface(NS_GET_IID(nsIQuotaUsageResult), result);
+
+  mRequest->SetResult(variant);
 }
 
 void
