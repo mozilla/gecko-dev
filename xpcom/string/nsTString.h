@@ -369,12 +369,14 @@ public:
    *  @param  aSet -- characters to be cut from this
    */
   void StripChars(const char* aSet);
+  bool StripChars(const char* aSet, const fallible_t&);
 
 
   /**
    *  This method strips whitespace throughout the string.
    */
   void StripWhitespace();
+  bool StripWhitespace(const fallible_t&);
 
 
   /**
