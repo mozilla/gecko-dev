@@ -11,7 +11,6 @@
     <script>
       function runTest() {
         var textarea = document.getElementById('textarea');
-        textarea.setSelectionRange(textarea.value.length, textarea.value.length)
         textarea.focus();
         synthesizeKey('VK_BACK_SPACE', {}); // so that it becomes invalid first
         textarea.blur();
@@ -26,3 +25,4 @@
     <textarea id="textarea" maxlength="3">foooo</textarea>
   </body>
 </html>
+

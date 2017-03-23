@@ -11,7 +11,6 @@
     <script>
       function runTest() {
         var textarea = document.getElementById('textarea');
-        textarea.setSelectionRange(textarea.value.length, textarea.value.length)
         textarea.focus();
         synthesizeKey('o', {}); // so that it becomes invalid first
         textarea.blur();
@@ -26,3 +25,4 @@
     <textarea id="textarea" minlength="3">f</textarea>
   </body>
 </html>
+
