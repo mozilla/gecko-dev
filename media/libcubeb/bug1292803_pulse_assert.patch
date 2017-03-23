@@ -1,0 +1,46 @@
+commit 2c7617f5ca20b764c605e19af490889c761e65e2
+Author: Matthew Gregan <kinetik@flim.org>
+Date:   Thu Nov 10 19:07:07 2016 +1300
+
+    pulse: Bail early from pulse_defer_event_cb when shutting down.
+    
+    When starting a stream, trigger_user_callback may be called from
+    stream_write_callback and immediately enter a drain situation, creating
+    a drain timer and setting shutdown to true.  If pulse_defer_event_cb
+    then runs without checking for shutdown, it can overwrite the current
+    timer with a new timer, resulting in a leaked timer and a null pointer
+    assertion.
+
+diff --git a/src/cubeb_pulse.c b/src/cubeb_pulse.c
+index 5b61bda..86f2ba3 100644
+--- a/src/cubeb_pulse.c
++++ b/src/cubeb_pulse.c
+@@ -181,9 +181,9 @@ static void
+ stream_drain_callback(pa_mainloop_api * a, pa_time_event * e, struct timeval const * tv, void * u)
+ {
+   (void)a;
+-  (void)e;
+   (void)tv;
+   cubeb_stream * stm = u;
++  assert(stm->drain_timer == e);
+   stream_state_change_callback(stm, CUBEB_STATE_DRAINED);
+   /* there's no pa_rttime_free, so use this instead. */
+   a->time_free(stm->drain_timer);
+@@ -267,6 +267,7 @@ trigger_user_callback(pa_stream * s, void const * input_data, size_t nbytes, cub
+       assert(r == 0 || r == -PA_ERR_NODATA);
+       /* pa_stream_drain is useless, see PA bug# 866. this is a workaround. */
+       /* arbitrary safety margin: double the current latency. */
++      assert(!stm->drain_timer);
+       stm->drain_timer = WRAP(pa_context_rttime_new)(stm->context->context, WRAP(pa_rtclock_now)() + 2 * latency, stream_drain_callback, stm);
+       stm->shutdown = 1;
+       return;
+@@ -851,6 +852,9 @@ pulse_defer_event_cb(pa_mainloop_api * a, void * userdata)
+ {
+   (void)a;
+   cubeb_stream * stm = userdata;
++  if (stm->shutdown) {
++    return;
++  }
+   size_t writable_size = WRAP(pa_stream_writable_size)(stm->output_stream);
+   trigger_user_callback(stm->output_stream, NULL, writable_size, stm);
+ }
