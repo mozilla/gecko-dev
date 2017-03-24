@@ -31,6 +31,7 @@ GDK_WINDOWING_X11 - remove
 - how big is rectangle owerlap in BackBufferWayland::CopyRectangle()?
 (firefox:15155): Gdk-WARNING **: Tried to map a popup with a non-top most parent
   - it was ok in X11
+- try to draw (first commit) when vblank comes like Gtk does, not when gecko calls it
 */
 #include <assert.h>
 #include <poll.h>
@@ -441,7 +442,12 @@ WindowSurfaceWayland::WindowSurfaceWayland(nsWindow *aWidget,
 
 WindowSurfaceWayland::~WindowSurfaceWayland()
 {
-  // TODO - free registry, buffers etc.
+  delete mFrontBuffer;
+  delete mBackBuffer;
+
+  if (mFrameCallback) {
+      wl_callback_destroy(mFrameCallback);
+  }
 }
 
 BackBufferWayland*
