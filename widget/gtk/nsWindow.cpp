@@ -3002,8 +3002,12 @@ nsWindow::GetEventTimeStamp(guint32 aEventTime)
         return TimeStamp::Now();
     }
     if (!mIsX11Display) {
-        // Wayland uses CLOCK_MONOTONIC for event timestamp on Linux
-        return TimeStamp::Now();
+        // Wayland uses SYSTEM_TIME_MONOTONIC.
+        // Our posix implemententaion of TimeStamp::Now uses SYSTEM_TIME_MONOTONIC
+        //  too. Due to same implementation, we can use this via FromSystemTime.
+        int64_t tick =
+           BaseTimeDurationPlatformUtils::TicksFromMilliseconds(aEventTime);
+        return TimeStamp::FromSystemTime(tick);
     } else {
         CurrentX11TimeGetter* getCurrentTime = GetCurrentTimeGetter();
         MOZ_ASSERT(getCurrentTime,
