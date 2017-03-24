@@ -101,6 +101,9 @@ gfxPlatformGtk::gfxPlatformGtk()
                      contentMask, BackendType::CAIRO);
 
 #if defined(MOZ_X11)
+    mXCompositorDisplay = nullptr;
+    mWaylandCompositorDisplay = nullptr;
+
     GdkDisplay *gdkDisplay = gdk_display_get_default();
     mIsX11Display = GDK_IS_X11_DISPLAY(gdkDisplay);
     if (mIsX11Display) {
