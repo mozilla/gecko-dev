@@ -119,8 +119,11 @@ gfxPlatformGtk::gfxPlatformGtk()
 gfxPlatformGtk::~gfxPlatformGtk()
 {
 #ifdef MOZ_X11
-    if (mIsX11Display && mCompositorDisplay) {
-      XCloseDisplay(mCompositorDisplay);
+    if (mXCompositorDisplay) {
+      XCloseDisplay(mXCompositorDisplay);
+    }
+    if (mWaylandCompositorDisplay) {
+      wl_display_disconnect(mWaylandCompositorDisplay);
     }
 #endif
 }
