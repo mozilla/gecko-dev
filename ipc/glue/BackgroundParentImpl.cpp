@@ -764,9 +764,16 @@ BackgroundParentImpl::AllocPFileSystemRequestParent(
     return nullptr;
   }
 
-  result->Start();
-
   return result.forget().take();
+}
+
+bool
+BackgroundParentImpl::RecvPFileSystemRequestConstructor(
+                                               PFileSystemRequestParent* aActor,
+                                               const FileSystemParams& params)
+{
+  static_cast<FileSystemRequestParent*>(aActor)->Start();
+  return true;
 }
 
 bool
